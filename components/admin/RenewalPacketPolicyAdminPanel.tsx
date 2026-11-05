@@ -108,7 +108,7 @@ function FamilyUseEditor({
               htmlFor={`family-use-${family.kind}`}
               hint={
                 family.source.system === "engineering_default"
-                  ? "Engineering default, not yet approved by the client. An Admin records the client's decision."
+                  ? "Engineering default. Choosing a use here records it as a new configuration version."
                   : `Recorded in configuration version ${family.source.version}.`
               }
             >
@@ -296,7 +296,7 @@ function ChargePolicyEditor({
       <p className="muted">
         {record
           ? `Current version ${record.version}, effective ${record.effectiveFrom}.`
-          : "No charge policy is published. Packets name the charges they are waiting on."}{" "}
+          : "No charge policy is published. Each packet shows that its charges wait for one."}{" "}
         Amounts here are company policy you enter; they are never read from a form.
       </p>
       <Field

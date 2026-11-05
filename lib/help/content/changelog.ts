@@ -8,6 +8,14 @@ import type { HelpChangelogEntry } from "@/lib/help/types";
  */
 export const HELP_CHANGELOG: readonly HelpChangelogEntry[] = [
   {
+    version: "V1.1",
+    date: "2026-11-04",
+    summary:
+      "V1.1, the Manage Connections guide says what the card shows after a live check passes or does not pass",
+    affectedGuides: ["manage-connections"],
+    contentDigest: "26f721848804b337cc93b9fc4aedf359715549db70c2c0596b05657fd726f9a4",
+  },
+  {
     version: "V1.0",
     date: "2026-11-04",
     summary: "V1.0, first release of the staff help hub",

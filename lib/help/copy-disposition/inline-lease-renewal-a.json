@@ -16,6 +16,13 @@
   {
     "kind": "inline",
     "location": "components/lease-renewal/DotloopPacketLinkPanel.tsx",
+    "text": "Reading this loop again needs a connected Dotloop account.",
+    "describes": "Dotloop packet panel when reading the linked loop again is unavailable",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/DotloopPacketLinkPanel.tsx",
     "text": "Not recorded. After the signers finish in Dotloop, record the outside result in the signatures step.",
     "describes": "Dotloop packet panel with no staff-recorded signature result",
     "disposition": "keep"
@@ -53,6 +60,13 @@
     "location": "components/lease-renewal/LeaseTermReviewControl.tsx",
     "text": "Recording the lease term needs Editor access. Ask an Admin to review your role; the term above stays visible read-only.",
     "describes": "Lease term review control shown read-only without Editor access",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/LeaseTermReviewControl.tsx",
+    "text": "No term has been recorded for this lease yet.",
+    "describes": "Lease term review control when no term is recorded",
     "disposition": "keep"
   },
   {
@@ -114,6 +128,20 @@
   {
     "kind": "inline",
     "location": "components/lease-renewal/NoticeTimingBasisSelection.tsx",
+    "text": "No basis is saved. Notice timing remains Cannot determine until a basis and usable dates are available.",
+    "describes": "Shared notice timing basis when none is saved",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/NoticeTimingBasisSelection.tsx",
+    "text": "The saved basis is invalid or unreadable. Review its current state before selecting.",
+    "describes": "Shared notice timing basis that cannot be read",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/NoticeTimingBasisSelection.tsx",
     "text": "This session can read the basis; an authorized renewal staff session is required to select it.",
     "describes": "Notice basis selection shown read-only without renewal staff authority",
     "disposition": "keep"
@@ -156,6 +184,20 @@
   {
     "kind": "inline",
     "location": "components/lease-renewal/OperatingSheetPanel.tsx",
+    "text": "Historical reversal terms remain recorded for recovery review. In-app reversal is unavailable: Google Sheets provides no atomic stable-row delete or restore protocol.",
+    "describes": "Sheet effect card note that in-app reversal is unavailable",
+    "disposition": "correct",
+    "contradicts": ["S242", "S244"],
+    "corrections": [
+      {
+        "before": "Historical reversal terms remain recorded for recovery review. In-app reversal is unavailable until Google Sheets provides an atomic stable-row delete or restore protocol.",
+        "after": "Historical reversal terms remain recorded for recovery review. In-app reversal is unavailable: Google Sheets provides no atomic stable-row delete or restore protocol."
+      }
+    ]
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/OperatingSheetPanel.tsx",
     "text": "The Sheet outcome is unproven. Reconciliation reads fresh state by the row&apos;s system note or the exact cell and may report before, after, or drift without claiming causality. Nothing is retried automatically, and new Sheet previews for this lease stay locked while this attempt is uncertain. If reconciliation still cannot prove the outcome, the lease needs an engineering readback and a manual clear from this attempt&apos;s record; the app offers no archive for an uncertain attempt.",
     "describes": "Locked state and recovery route for an ambiguous Sheet update outcome",
     "disposition": "correct",
@@ -179,6 +221,27 @@
     "location": "components/lease-renewal/OperatingSheetPanel.tsx",
     "text": "Confirming a Sheet update needs Editor access.",
     "describes": "Sheet update confirmation shown without Editor access",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/OperatingSheetPanel.tsx",
+    "text": "No Sheet update is prepared for this lease yet: the app has not found its one Sheet row.",
+    "describes": "Operating Sheet updates section when the lease's Sheet row is ambiguous",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/OperatingSheetPanel.tsx",
+    "text": "No Sheet update is prepared for this lease yet: the selected location is read-only for updates.",
+    "describes": "Operating Sheet updates section when the selected Sheet location is read-only",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/OperatingSheetPanel.tsx",
+    "text": "No Sheet update is waiting. Staff with Editor access prepare and confirm one here.",
+    "describes": "Operating Sheet updates section shown without Editor access",
     "disposition": "keep"
   },
   {
@@ -240,6 +303,20 @@
   {
     "kind": "inline",
     "location": "components/lease-renewal/PacketInputsEditor.tsx",
+    "text": "Nothing is saved for this lease yet.",
+    "describes": "Packet inputs editor before any input is saved for the lease",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/PacketInputsEditor.tsx",
+    "text": "Sources disagree. Choose the value the packet uses.",
+    "describes": "Packet fact field hint when its sources disagree",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/PacketInputsEditor.tsx",
     "text": "One person may hold several roles. A PMI manager or broker signs for PMI, never as the property owner. Use a reviewed email for anyone who signs in Dotloop.",
     "describes": "People and signer roles in the packet inputs",
     "disposition": "keep"
@@ -267,6 +344,27 @@
   },
   {
     "kind": "inline",
+    "location": "components/lease-renewal/RenewalAuxiliaryNotice.tsx",
+    "text": "Some supporting renewal information could not be verified. The lease data remains visible, but affected actions are paused rather than treating the missing read as an empty result.",
+    "describes": "Renewal notice when a supporting read fails; affected actions pause",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalCorrections.tsx",
+    "text": "No working value is saved yet.",
+    "describes": "Observed current rent by source when no working value is saved",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalCorrections.tsx",
+    "text": "Differs from the working value …. The working value stays until you change it.",
+    "describes": "Observed current rent source that differs from the working value",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
     "location": "components/lease-renewal/RenewalCorrections.tsx",
     "text": "Using a source value changes the working value in this app only. RentVine changes only through Prepare RentVine rent charge update beside the working current rent; the Sheet changes only under Review Sheet updates.",
     "describes": "Using an observed source value as the working current rent",
@@ -275,8 +373,22 @@
   {
     "kind": "inline",
     "location": "components/lease-renewal/RenewalCurrentRent.tsx",
+    "text": "None identified in the current schedule.",
+    "describes": "Recurring charge evidence line when no current charge is identified",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalCurrentRent.tsx",
     "text": "RentVine lease total; the sum of active recurring charges, never the rent",
     "describes": "RentVine lease total label in the rent facts",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalCurrentRent.tsx",
+    "text": "differs from the working value …. The working value stays until you change it.",
+    "describes": "Working current rent compared with a source that differs",
     "disposition": "keep"
   },
   {
@@ -407,6 +519,20 @@
   },
   {
     "kind": "inline",
+    "location": "components/lease-renewal/RenewalDocumentHandoff.tsx",
+    "text": "Clearing is for a creation that failed or has no confirmed outcome. If Dotloop shows the loop, clear this creation, then review and link that loop.",
+    "describes": "Clearing an unresolved Dotloop loop creation, then linking the loop",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalDocumentHandoff.tsx",
+    "text": "This changes only the app's link. Dotloop keeps the loop and its files; a person retires files or archives a loop there.",
+    "describes": "Correcting the lease's Dotloop loop link, which changes only the app",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
     "location": "components/lease-renewal/RenewalFocusViewPane.tsx",
     "text": "The fix belongs in the source record; refresh this lease after updating it.",
     "describes": "Focus task whose fix happens in the source record",
@@ -478,8 +604,29 @@
   {
     "kind": "inline",
     "location": "components/lease-renewal/RenewalMessagePreparation.tsx",
+    "text": "Your wording is kept exactly as written. It is not replaced when the lease information changes.",
+    "describes": "Staff-written message wording kept when lease information changes",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalMessagePreparation.tsx",
     "text": "… Mailbox: …. A person sends from Gmail.",
     "describes": "Created unsent Gmail draft location and who sends it",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalMessagePreparation.tsx",
+    "text": "Open the Drafts folder to find this draft",
+    "describes": "Created Gmail draft link to the managed mailbox Drafts folder",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalMessagePreparation.tsx",
+    "text": "Open the Drafts folder in your managed Gmail mailbox to find this draft.",
+    "describes": "Created Gmail draft location when no Drafts link is available",
     "disposition": "keep"
   },
   {
@@ -501,6 +648,41 @@
     "location": "components/lease-renewal/RenewalMessagePreparation.tsx",
     "text": "Filled from RentVine recurring charge …. Change anything that differs for the renewal.",
     "describes": "Message charge filled from a RentVine recurring charge",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalMessagePreparation.tsx",
+    "text": "Edited here. It saves with this message and is kept for your managed sender.",
+    "describes": "Managed sender signature edited in this message",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalMessagePreparation.tsx",
+    "text": "Filled from your approved business profile (version …). Existing saved messages keep their prior signature.",
+    "describes": "Managed sender signature filled from the approved business profile",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalMessagePreparation.tsx",
+    "text": "Filled from your retained sender signature (saved …). Edit here to change it.",
+    "describes": "Managed sender signature filled from the retained sender signature",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalMessagePreparation.tsx",
+    "text": "Saved with this message as your signature for this managed sender.",
+    "describes": "Managed sender signature you saved with this message",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalMessagePreparation.tsx",
+    "text": "Saved with this message by another sender and shown as saved. Use your retained signature or edit it here if you prefer.",
+    "describes": "Managed sender signature another sender saved with this message",
     "disposition": "keep"
   },
   {

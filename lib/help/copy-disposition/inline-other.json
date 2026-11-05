@@ -64,6 +64,34 @@
   },
   {
     "kind": "inline",
+    "location": "components/ask/AskForm.tsx",
+    "text": "Each answer in this conversation is saved to your history.",
+    "describes": "Dashboard conversation note when answers are saved to your history",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/ask/AskForm.tsx",
+    "text": "This conversation lasts while this page stays open.",
+    "describes": "Dashboard conversation note when answers are not saved to history",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/ask/DashboardHistoryNav.tsx",
+    "text": "Your history could not be loaded just now. Nothing was removed.",
+    "describes": "Conversation history list when it fails to load",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/ask/DashboardHistoryNav.tsx",
+    "text": "No saved conversations here. Questions you ask here are saved to your history.",
+    "describes": "Empty conversation history list and how questions are saved",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
     "location": "components/ask/DashboardSavedNav.tsx",
     "text": "Your saved questions could not be loaded just now. Nothing was removed.",
     "describes": "Saved questions list when it fails to load",
@@ -85,9 +113,30 @@
   },
   {
     "kind": "inline",
+    "location": "components/ask/DashboardSavedNav.tsx",
+    "text": "Running it again reads current records without a new interpretation.",
+    "describes": "Saved structured question: running it again reads current records",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
     "location": "components/ask/DashboardTurnView.tsx",
     "text": "Saved answer from …. It shows what was true then, not current results.",
     "describes": "Reopened saved answer label: past results, not current ones",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/ask/DashboardTurnView.tsx",
+    "text": "This was a current run of a saved question.",
+    "describes": "Reopened answer that was a current run of a saved question",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/ask/DashboardTurnView.tsx",
+    "text": "Current results, run … from your saved question with no new interpretation.",
+    "describes": "Current run of a saved question: run time and no new interpretation",
     "disposition": "keep"
   },
   {
@@ -144,6 +193,20 @@
     "location": "components/auth/SignInPanel.tsx",
     "text": "Use this app&rsquo;s menu to open the page in your browser, or copy the link and paste it there.",
     "describes": "Sign-in note for a page opened inside another app",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/console/DashboardAttentionQueue.tsx",
+    "text": "Nothing found in the sources that answered. Some sources could not be read just now.",
+    "describes": "Empty Waiting on you list when some sources did not answer",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/console/DashboardAttentionQueue.tsx",
+    "text": "Nothing is waiting on you right now.",
+    "describes": "Empty Waiting on you list",
     "disposition": "keep"
   },
   {
@@ -303,6 +366,34 @@
   {
     "kind": "inline",
     "location": "components/maintenance/RentvineWorkOrderPanel.tsx",
+    "text": "Linked existing RentVine work order … (read-only import).",
+    "describes": "Not rendered by any staff route: Retired RentVine work-order link from a read-only import",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/maintenance/RentvineWorkOrderPanel.tsx",
+    "text": "A create attempt is awaiting approval or execution.",
+    "describes": "Not rendered by any staff route: Retired RentVine work-order create attempt awaiting approval or execution",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/maintenance/RentvineWorkOrderPanel.tsx",
+    "text": "The last create outcome is unproven; reconcile before anything new.",
+    "describes": "Not rendered by any staff route: Retired RentVine work-order create with an unproven outcome",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/maintenance/RentvineWorkOrderPanel.tsx",
+    "text": "The last create attempt was declined; a fresh proposal is allowed.",
+    "describes": "Not rendered by any staff route: Retired RentVine work-order create attempt that was declined",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/maintenance/RentvineWorkOrderPanel.tsx",
     "text": "Reads the exact work order and checks its property and unit against this ticket. Confirmation records the link in the app.",
     "describes": "Not rendered by any staff route: Retired RentVine work-order link check and confirmation",
     "disposition": "keep"
@@ -382,6 +473,20 @@
     "location": "components/search/EntitySearchResults.tsx",
     "text": "…shown · read …. Select a record to open it in a new tab.",
     "describes": "Search results count, read time and new tab opening",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/search/GlobalEntitySearch.tsx",
+    "text": "… suggestions. Use arrows to choose, or Enter to view all results.",
+    "describes": "Global search suggestion count and keyboard choice",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/spaces/SpaceDetailClient.tsx",
+    "text": "Create an SOP from the safe … seed.",
+    "describes": "Space SOP panel when the Space has no SOP",
     "disposition": "keep"
   },
   {

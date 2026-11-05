@@ -51,6 +51,20 @@
   {
     "kind": "inline",
     "location": "components/lease-renewal/RenewalProgressControls.tsx",
+    "text": "· Open the RentCast market report for …",
+    "describes": "Comps preparation link to the RentCast market report for the ZIP code",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalProgressControls.tsx",
+    "text": "No comparable range is available yet (…). Needs verification.",
+    "describes": "Market comp lookup that returned no comparable range",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalProgressControls.tsx",
     "text": "This retained lookup used … miles; a new lookup uses the radius above (… miles).",
     "describes": "Retained comp lookup radius versus the radius a new lookup uses",
     "disposition": "keep"
@@ -95,6 +109,13 @@
     "location": "components/lease-renewal/RenewalResourceLocations.tsx",
     "text": "Shared by every lease. Only staff-verified links reach a message or packet.",
     "describes": "Connections renewal resource links shared by every lease, verified links only",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalRouteLoading.tsx",
+    "text": "Reading the current records for this lease.",
+    "describes": "Renewal loading placeholder while one lease opens",
     "disposition": "keep"
   },
   {
@@ -163,6 +184,20 @@
   {
     "kind": "inline",
     "location": "components/lease-renewal/RenewalWorkspace.tsx",
+    "text": "Every required phase has exact completion evidence.",
+    "describes": "Next-step card for a verified complete renewal",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalWorkspace.tsx",
+    "text": "Nothing else is required right now.",
+    "describes": "Next-step card while the renewal is waiting",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalWorkspace.tsx",
     "text": "A recorded term review exists for a different version of these lease facts, so it is not applied. Record the term again against the current facts.",
     "describes": "Stale recorded lease term review not applied to current facts",
     "disposition": "keep"
@@ -198,8 +233,22 @@
   {
     "kind": "inline",
     "location": "components/lease-renewal/RenewalWorkspace.tsx",
+    "text": "Staff completion recorded. Provider-verified document completion: not established.",
+    "describes": "Completion checks card after staff record completion",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalWorkspace.tsx",
     "text": "Confirmed updates change lease dates and recurring charges in RentVine and the recognized renewal fields on the Sheet. One-time fees, deposits, ledger history, party changes, insurance enrollment and Sheet reversals stay manual. There is no general RentVine base-rent setter, no combined RentVine-and-Sheet update and no Sheet row deletion.",
     "describes": "Scope of confirmed source updates and what stays manual or unsupported",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RentAndCharges.tsx",
+    "text": "No recurring charge is within the current schedule.",
+    "describes": "Recurring charges list when no RentVine charge is in the current schedule",
     "disposition": "keep"
   },
   {
@@ -214,6 +263,13 @@
     "location": "components/lease-renewal/RentAndCharges.tsx",
     "text": "One-time fees, deposits, ledger history, party changes and insurance enrollment are outside these RentVine actions ….",
     "describes": "Charges and lease changes outside the supported RentVine actions",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RentAndCharges.tsx",
+    "text": "; handle those in the RentVine lease record",
+    "describes": "Link to the RentVine lease record for charges outside these actions",
     "disposition": "keep"
   },
   {
@@ -359,6 +415,13 @@
   {
     "kind": "inline",
     "location": "components/lease-renewal/ReturnedDocumentsPanel.tsx",
+    "text": "Dotloop has not been refreshed for this packet. A refresh never sets a signed state.",
+    "describes": "Returned documents Dotloop line before the packet is refreshed",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/ReturnedDocumentsPanel.tsx",
     "text": "Recording a returned document needs Editor access. The states above stay visible read-only.",
     "describes": "Returned document recording needs Editor; states stay visible read-only",
     "disposition": "keep"
@@ -368,6 +431,20 @@
     "location": "components/lease-renewal/flag-actions.tsx",
     "text": "Editor access is required to record a resolution.",
     "describes": "Flag resolution needs Editor access",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/flag-actions.tsx",
+    "text": "This is the exact value and source saved by the human resolution. Approval authorizes this snapshot only; writing remains a separate exact-preview action.",
+    "describes": "Exact queued Sheet write-back proposal from the flag resolution; writing stays separate",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/flag-actions.tsx",
+    "text": "Suggestion only: appends to a new column and keeps existing cells intact; it is not approved or written here.",
+    "describes": "Append-only Sheet write-back suggestion before it is queued",
     "disposition": "keep"
   },
   {

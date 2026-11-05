@@ -129,9 +129,16 @@ describe("S243 R-S243-2 / R-S243-3: references, glossary and What changed", () =
       expect(terms, term).toContain(term);
   });
 
-  it("What changed starts at V1.0 with one entry", () => {
-    expect(HELP_CHANGELOG).toHaveLength(1);
-    expect(HELP_CHANGELOG[0]).toMatchObject({ version: "V1.0" });
+  it("What changed starts at V1.0 and lists each later version once, newest first", () => {
+    // R-S243-3: the first entry is V1.0; each later help content change adds one entry on top
+    // (S242 R-S242-4), so the newest entry is the current HELP_VERSION.
+    const versions = HELP_CHANGELOG.map((entry) => entry.version);
+    expect(versions.at(-1)).toBe("V1.0");
+    expect(new Set(versions).size).toBe(versions.length);
+    const minor = (version: string) => Number(version.split(".")[1]);
+    for (let index = 1; index < versions.length; index += 1)
+      expect(minor(versions[index - 1])).toBeGreaterThan(minor(versions[index]));
+    expect(versions).toEqual(["V1.1", "V1.0"]);
   });
 });
 

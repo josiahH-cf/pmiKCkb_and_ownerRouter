@@ -82,9 +82,15 @@ describe("S66 Admin renewal packet configuration (AC-S66-6, AC-S66-7)", () => {
     const kcrar = document.querySelector(
       '[data-family-use-kind="kcrar_additional_disclosures"]',
     ) as HTMLElement;
+    // S235 R-S235-2 as amended 2026-11-04: the Admin field hint labels the engineering default and
+    // says what choosing a use records, in present-tense help copy (S244); the readiness views keep
+    // the "not yet approved by the client" source label.
     expect(
-      within(kcrar).getByText(/Engineering default, not yet approved by the client/),
+      within(kcrar).getByText(
+        "Engineering default. Choosing a use here records it as a new configuration version.",
+      ),
     ).toBeTruthy();
+    expect(within(kcrar).queryByText(/not yet approved/)).toBeNull();
     fireEvent.change(within(kcrar).getByRole("combobox"), {
       target: { value: "mandatory" },
     });

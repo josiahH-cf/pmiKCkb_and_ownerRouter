@@ -89,8 +89,10 @@ owner's exact authorization for the first real loop.
   explicit snapshot step.
 - **R-S235-2 — Defaults are labeled, not policy.** Families at `family-use-default-v1` and default
   predicates (for example the 1978 lead-disclosure boundary) read "Engineering default — not yet
-  approved by the client" until an Admin records the client's decision; unused families never hold
-  unrelated output.
+  approved by the client" in the packet and process readiness views until an Admin records the
+  client's decision; unused families never hold unrelated output. Amended 2026-11-04 by owner
+  decision: the Admin form-family field hint is in-app help copy under the S244 rules and reads
+  "Engineering default. Choosing a use here records it as a new configuration version."
 - **R-S235-3 — Party and animal slots.** `per_party` fields bind to packet people in their reviewed
   role order and `per_animal` fields to animals in their recorded order, each to its own slot or
   repeated PDF field. More parties or animals than the map provides refuses with "This form has
