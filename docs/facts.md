@@ -889,8 +889,9 @@ and their serving truth stays in the ledger above (F-S114 through F-S120). Ownin
   quoting it. Default kept: the current label.
 - **Confirm-with-default: three About panels on no route (S115, from the S245 litmus).** The
   `owner-decision`, `tenant-offer` and `renewal-notice-draft` cards render only without staff
-  record state, which the live lease page never passes; AC-S115-2 pins them and help V1.1 lists
-  them. Proposed: retire the three ids, amend AC-S115-2 and drop their help V1.2 rows. Default kept.
+  record state, which the live lease page never passes; the retired S115 About-control check in
+  `tests/unit/s115-section-help.test.tsx` pins them and help V1.1 lists them. Proposed: retire the
+  three ids, amend that check and drop their help V1.2 rows. Default kept.
 - **Confirm-with-default: the QuickBooks Connect button.** The app has no QuickBooks sign-in, and
   the button's result now says so. Proposed: show QuickBooks without a Connect button, under the
   voice rule that removes dead controls. Default kept: the button stays.
