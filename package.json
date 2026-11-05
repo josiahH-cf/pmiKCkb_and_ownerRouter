@@ -13,7 +13,7 @@
     "start": "next start",
     "lint": "eslint .",
     "format": "prettier --check .",
-    "format:check": "prettier --check .",
+    "format:check": "prettier --check . --cache --cache-strategy content",
     "format:write": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "test": "node scripts/run-unit-tests.mjs",

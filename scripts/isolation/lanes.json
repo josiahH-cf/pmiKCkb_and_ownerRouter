@@ -5,6 +5,8 @@
     ["run", "typecheck"]
   ],
   "unit": [["test"]],
+  "unit-1": [["test", "--", "--shard=1/2"]],
+  "unit-2": [["test", "--", "--shard=2/2"]],
   "firestore": [["run", "test:firestore"]],
   "policy-build": [
     ["run", "verify:dependencies"],

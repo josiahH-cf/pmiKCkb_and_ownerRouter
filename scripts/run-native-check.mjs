@@ -6,14 +6,17 @@ import { existsSync, mkdtempSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { overlayWorkingChanges } from "./run-unit-tests.mjs";
+import {
+  addNativeWorktree,
+  overlayWorkingChanges,
+  removeNativeWorktree,
+} from "./run-unit-tests.mjs";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 export function nativeCheckEnvironment(source, base = process.env) {
   const captures = join(source, "golden-data", "captured");
   return {
     ...base,
-    VITEST_MAX_WORKERS: "2",
     PMIKC_TEST_SHADOW: "0",
     ...(existsSync(captures) ? { PMIKC_VERIFIED_CAPTURE_DIR: captures } : {}),
   };
@@ -30,8 +33,13 @@ export function main(argv = process.argv.slice(2)) {
     if (result.error) throw result.error;
     return result.status ?? 1;
   };
-  if (run("git", ["worktree", "add", "--detach", checkout, "HEAD"], root, process.env))
+  // Works from the primary checkout and from Windows-created Claude/Codex worktrees alike.
+  let commonDir;
+  try {
+    commonDir = addNativeWorktree(checkout, root);
+  } catch {
     return 1;
+  }
   try {
     overlayWorkingChanges(checkout);
     // Verify with the caller's environment, as CI does. Importing the app's local
@@ -47,7 +55,7 @@ export function main(argv = process.argv.slice(2)) {
     return run(command[0], command.slice(1), checkout, env);
   } finally {
     if (keep) console.log(`[native-check] Retained execution directory: ${checkout}`);
-    else run("git", ["worktree", "remove", "--force", checkout], root, process.env);
+    else removeNativeWorktree(checkout, commonDir, root);
   }
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

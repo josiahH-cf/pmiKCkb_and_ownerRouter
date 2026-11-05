@@ -49,12 +49,29 @@ Updated: 2026-10-20.
 
 - Unit tests cover behavior and refusal paths.
 - `npm test` runs the complete registered unit/eval inventory with per-file isolation.
-- On WSL Windows mounts, the unit runner uses a disposable native Linux Git worktree, eight or fewer
-  thread workers, native temp files, and a lockfile/Node-ABI-keyed dependency cache. Ignored env,
-  client, scratch, secret, output, and runner-local files are never mirrored.
-- The supported WSL full-unit lane has a ten-minute hard performance budget. The final S80 canonical
-  run measured 58.40 seconds inside the runner for 528 passing files and one intentional file skip;
-  clean repository installation is a separate gate.
+- Vitest uses one thread worker per logical CPU but one, at most eight and bounded by memory (2 GB
+  plus 0.5 GB per worker); a run reading straight from a WSL Windows mount keeps two. The Firestore
+  lane leaves one more CPU to the emulator. An explicit `--maxWorkers` is passed through unchanged.
+  Measured 2026-11-05 on the 1,096-file inventory: 554 s at two workers and 214 s at eight, with
+  identical test identities and statuses; twelve was no faster and timed out four jsdom tests.
+- On WSL Windows mounts, including Windows-created Claude and Codex worktrees, the unit runner and
+  `scripts/run-native-check.mjs` use a disposable native Linux Git worktree, native temp files, and
+  one lockfile/Node-ABI-keyed dependency cache shared by every checkout. Windows Git lists the
+  uncommitted changes (it owns that index). Ignored env, client, scratch, secret, output, and
+  runner-local files are never mirrored.
+- CI runs every lane on all of the runner's CPUs, splits the unit inventory into two shards that
+  together cover every file, restores the public npm download cache for the anonymous install, and
+  cancels a pull request's superseded run. `scripts/verify.sh` runs the second-scale policy checks
+  before format, lint, typecheck, the test lanes and the build.
+- `format:check` keeps Prettier's content-hash cache under `node_modules`, so a repeat local check
+  takes about 5 s instead of 37 s; CI and every fresh install start cold. Lint stays single-threaded:
+  two ESLint threads measured 28–30 s against 39–41 s at twice the memory, with no CI gain, and
+  automatic concurrency exhausted the WSL machine. ESLint's cache is not used because some rules
+  read other files.
+- Both gates run the complete served E2E inventory with the emulator (65 passed and 4 skipped:
+  204 s locally and 176 s in CI on 2026-11-05). Locally this needs Java, the E2E emulator port 8090
+  and the dev-server port 4310 free. The degraded-mode group (`npm run test:e2e:core`, the four
+  tests that run only without the emulator) stays a separate step: it took 464 s in CI's isolation.
 - Firestore Rules tests cover access boundaries.
 - Architecture sentinels constrain imports, routes, secrets, gates, and provider construction.
 - E2E is bounded and must terminate on setup failure.

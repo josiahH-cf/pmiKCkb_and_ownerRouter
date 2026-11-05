@@ -34,11 +34,8 @@ fi
 
 "$NPM_CMD" ci
 "$NPM_CMD" run verify:dependencies
-"$NPM_CMD" run format:check
-"$NPM_CMD" run lint
-"$NPM_CMD" run typecheck
-"$NPM_CMD" test
-"$NPM_CMD" run test:firestore
+# The second-scale policy checks run first, so a failure among them is reported before the
+# minutes-long lanes rather than after them. Every check still runs on every gate.
 "$NPM_CMD" run verify:router-boundary
 "$NPM_CMD" run verify:falsification
 "$NPM_CMD" run verify:context-freshness
@@ -55,4 +52,12 @@ fi
 # the documented multi-Space override is required; CI has no such file and runs the stricter bare
 # form. Both must run it, or a budget regression reaches main through whichever lane omits it.
 "$NPM_CMD" run check:budget-guard -- --allow-multiple-spaces
+"$NPM_CMD" run format:check
+"$NPM_CMD" run lint
+"$NPM_CMD" run typecheck
+"$NPM_CMD" test
+"$NPM_CMD" run test:firestore
 "$NPM_CMD" run build
+# Served E2E last, in its own build directory: the complete inventory with the emulator, as CI's
+# e2e lane runs it. The degraded-mode group (the e2e core script) remains a separate step.
+"$NPM_CMD" run test:e2e -- --firestore

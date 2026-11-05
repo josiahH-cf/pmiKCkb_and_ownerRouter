@@ -27,7 +27,14 @@ TASKS = json.loads((HERE / 'isolation/lanes.json').read_text())
 FONT_SPEC = importlib.util.spec_from_file_location('pmi_public_fonts', HERE / 'isolation/public-fonts.py')
 PUBLIC_FONTS = importlib.util.module_from_spec(FONT_SPEC)
 FONT_SPEC.loader.exec_module(PUBLIC_FONTS)
-ALLOWED = TASKS['quality'] + TASKS['unit'] + TASKS['firestore'] + TASKS['policy-build'] + TASKS['e2e'] + TASKS['e2e-core'] + TASKS['renewal-journey'] + [['run', 'check:budget-guard', '--', '--allow-multiple-spaces']]
+ALLOWED = [command for task in TASKS.values() for command in task] + [['run', 'check:budget-guard', '--', '--allow-multiple-spaces']]
+
+
+def lane_cpus():
+    # Every CPU the job was given. The OS isolation, memory and time bounds apply unchanged; the
+    # lanes are no longer confined to two CPUs of a larger runner (measured 2026-11-05: GitHub's
+    # 4-CPU runners spent 380 to 896 s in the unit lane on CPUs 0 and 1 only).
+    return sorted(os.sched_getaffinity(0))
 
 
 def now():
@@ -74,8 +81,11 @@ def bounded(config, label, argv, env, cwd, monitor_handshake=None):
     namespace_fds = []
     namespace_unreadable = set()
     monitoring_established = monitor_handshake is None
-    cpus = sorted(os.sched_getaffinity(0))[:2]
+    cpus = lane_cpus()
     record['cpuAffinity'] = cpus
+    # Hosted runners differ by CPU model; record it so lane timings can be compared like for like.
+    record['cpuModel'] = next((line.split(':', 1)[1].strip() for line in Path('/proc/cpuinfo').read_text().splitlines()
+                               if line.startswith('model name')), 'unknown')
     argv = ['/usr/bin/taskset', '--cpu-list', ','.join(map(str, cpus)), *argv]
     with (evidence / 'stdout.log').open('w') as stdout, (evidence / 'stderr.log').open('w') as stderr:
         child = subprocess.Popen(argv, cwd=cwd, env=env, stdout=stdout, stderr=stderr, start_new_session=True)
@@ -378,8 +388,9 @@ def isolated(config, label, args):
         'FIREBASE_CLI_DISABLE_UPDATE_CHECK': 'true', 'PMIKC_TEST_SHADOW': '0',
         'NODE_OPTIONS': '--max-old-space-size=' + str(node_heap_mib),
         'JAVA_TOOL_OPTIONS': '-Xms128m -Xmx768m',
-        'CIRCLE_NODE_TOTAL': '2', 'GIT_CONFIG_NOSYSTEM': '1', 'GIT_CONFIG_GLOBAL': '/dev/null',
-        'UV_THREADPOOL_SIZE': '2', 'GOMAXPROCS': '2', 'RAYON_NUM_THREADS': '2',
+        'CIRCLE_NODE_TOTAL': str(len(lane_cpus())), 'GIT_CONFIG_NOSYSTEM': '1', 'GIT_CONFIG_GLOBAL': '/dev/null',
+        'UV_THREADPOOL_SIZE': str(len(lane_cpus())), 'GOMAXPROCS': str(len(lane_cpus())),
+        'RAYON_NUM_THREADS': str(len(lane_cpus())),
         'NPM_CONFIG_USERCONFIG': '/dev/null', 'NO_COLOR': '1',
         'PMI_HOST_CONTROL_PORT': str(server.server_address[1]),
         'PMI_HOST_SENTINEL_PATH': str(sentinel), 'PMI_HOST_HOME': config['hostHome'],
@@ -439,7 +450,9 @@ def bridge(config, args):
         return subprocess.run([config['nodeRoot'] + '/bin/npm', '--version'], env=clean_env(config)).returncode
     if args == ['ci']:
         return public_dependencies(config)
-    label = 'npm-' + '-'.join(part.replace(':', '-') for part in args if part != '--')
+    # Labels name evidence directories, so any character outside a plain file name becomes '-'
+    # (a shard argument such as --shard=1/2 must not create a nested directory).
+    label = 'npm-' + '-'.join(re.sub(r'[^A-Za-z0-9._=-]', '-', part) for part in args if part != '--')
     if args == ['run', 'verify:dependencies']:
         return bounded(config, label, [config['nodeRoot'] + '/bin/npm', *args], clean_env(config), config['app'])
     return isolated(config, label, args)
@@ -455,7 +468,8 @@ def stage(args):
         (output / name).mkdir()
     config = {'output': str(output), 'app': str(output / 'source'),
               'controller': str(output / 'controller'), 'prepHome': str(output / 'prep-home'),
-              'npmCache': str(output / 'npm-cache'), 'emulatorCache': str(output / 'emulators'),
+              'npmCache': str(Path(args.npm_cache).resolve(strict=True) if args.npm_cache else output / 'npm-cache'),
+              'emulatorCache': str(output / 'emulators'),
               'fontCache': str(output / 'public-fonts'),
               'nodeRoot': str(Path(args.node_root).resolve(strict=True)), 'javaRoot': 'none',
               'emulatorJar': args.emulator_jar, 'needsEmulator': args.task in ['verify', 'firestore', 'e2e', 'renewal-journey'],
@@ -538,6 +552,8 @@ def main():
     parser.add_argument('--java-root', default=os.environ.get('JAVA_HOME'))
     parser.add_argument('--emulator-jar')
     parser.add_argument('--include-new', action='append', default=[])
+    parser.add_argument('--npm-cache', help='Existing npm download cache for the anonymous preparation install only; '
+                        'npm ci still verifies every tarball against the lockfile integrity hashes')
     parser.add_argument('--ci-sudo', action='store_true')
     parser.add_argument('--timeout-seconds', type=int, default=900)
     parser.add_argument('--memory-mib', type=int, default=4096)
@@ -552,7 +568,10 @@ def main():
         parser.error('Typecheck heap must leave at least512MiB below the aggregate RSS cap')
     if not 512 <= args.build_heap_mib <= min(3072, args.memory_mib - 512):
         parser.error('Build heap must leave at least512MiB below the aggregate RSS cap')
-    os.sched_setaffinity(0, sorted(os.sched_getaffinity(0))[:2])
+    if args.npm_cache:
+        cache = Path(args.npm_cache).resolve()
+        if not cache.is_dir() or cache.is_relative_to(HERE.parent) or cache.is_relative_to(Path(args.output).expanduser().resolve()):
+            parser.error('The npm cache must be an existing directory outside the checkout and the output')
     config = stage(args)
     if args.task == 'verify':
         wrapper = Path(config['controller']) / 'npm-bridge'
