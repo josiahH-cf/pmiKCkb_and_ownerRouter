@@ -5,8 +5,8 @@
 The owner clarified a staff training release on November 4: one in-app Help section that is the
 single, versioned, printable manual for every developed staff feature, plus a refresh of every
 hover and inline help text so the app and the manual say the same thing. Authoring is
-**FINAL / READY**; implementation is **NOT STARTED**; it ships as a release under the ordinary
-gates. Content is repository-managed, screenshots come from the isolated synthetic rehearsal
+**FINAL / READY**; implementation is **DELIVERED** through ordinary releases on November 4 and
+November 5. Content is repository-managed, screenshots come from the isolated synthetic rehearsal
 (blurred production captures only where the rehearsal cannot show a state), one global help
 version (`V1.x`) is shown on the landing page, every guide and every print footer, printing uses
 the browser, the table of contents sidebar has collapsible sections, and a backend coverage gate
@@ -22,18 +22,18 @@ are built, with repairs in scope and a sanitized report in evidence.
 | Every hover and inline help text matches the current processes       | [S244](in-app-help-copy-refresh.md)               | Disposition for every text; stale approval and packet wording removed; "Open the guide" links; consistency gate          |
 | An outside model proves the manual before staff are trained on it    | [S245](staff-help-hub-adversary-litmus.md)        | Paste-ready brief and L01–L34 checks; rehearsal only; repair in scope; acceptance blocked by any No                      |
 
-| Suite | Active contract                                                 | State                                                                                                                                                                                                                                   |
-| ----- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| S242  | `docs/feature-suites/staff-help-hub-foundation.md`              | DELIVERED — intake 108; released with S243 by run 74d79a9d at 323e8be3. Help route family, sidebar, version, deep links, print, coverage and content gates.                                                                             |
-| S243  | `docs/feature-suites/staff-help-hub-content-and-screenshots.md` | DELIVERED — intake 109; released with S242 by run 74d79a9d at 323e8be3. Guides, screen references, glossary, What changed, scene manifest, capture script, consolidation.                                                               |
-| S244  | `docs/feature-suites/in-app-help-copy-refresh.md`               | DELIVERED — intake 110; released with S242 by run 74d79a9d at 323e8be3. Audit table, corrected copy, guide links with plain-text fallback, pins, consistency gate.                                                                      |
-| S245  | `docs/feature-suites/staff-help-hub-adversary-litmus.md`        | Template and validator DELIVERED by run 74d79a9d at 323e8be3; the machine-run litmus is IN PROGRESS against the released build — intake 111. Fresh-session litmus handoff, report template and validator, repair loop, acceptance rule. |
+| Suite | Active contract                                                 | State                                                                                                                                                                                                                                                                                             |
+| ----- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S242  | `docs/feature-suites/staff-help-hub-foundation.md`              | DELIVERED — intake 108; released with S243 by run 74d79a9d at 323e8be3; its litmus repairs released by run 6951545a at 3f2e3f5d. Help route family, sidebar, version, deep links, print, coverage and content gates.                                                                              |
+| S243  | `docs/feature-suites/staff-help-hub-content-and-screenshots.md` | DELIVERED — intake 109; released with S242 by run 74d79a9d at 323e8be3; help V1.1 released by run 6951545a at 3f2e3f5d. Guides, screen references, glossary, What changed, scene manifest, capture script, consolidation.                                                                         |
+| S244  | `docs/feature-suites/in-app-help-copy-refresh.md`               | DELIVERED — intake 110; released with S242 by run 74d79a9d at 323e8be3; its litmus repairs and conditional-branch inventory released by run 6951545a at 3f2e3f5d. Audit table, corrected copy, guide links with plain-text fallback, pins, consistency gate.                                      |
+| S245  | `docs/feature-suites/staff-help-hub-adversary-litmus.md`        | DELIVERED — intake 111; template and validator released by run 74d79a9d at 323e8be3; the machine-run litmus accepted the hub on Run 4 and its report and repairs released by run 6951545a at 3f2e3f5d. Fresh-session litmus handoff, report template and validator, repair loop, acceptance rule. |
 
 ## November 3 application completion — finalized specifications and plan
 
 The owner finalized and launched P1–P9. Authoring remains **FINAL / READY**; source and
 application are **DELIVERED**, with scoped normal configuration **VERIFIED**. The delivered application commit
-`b5ba780279be0eb5661e463d2e73b5add1064056` served at 100% canonical traffic; the current serving source `323e8be3` includes it. Promotion, two
+`b5ba780279be0eb5661e463d2e73b5add1064056` served at 100% canonical traffic; the current serving source `3f2e3f5d` includes it. Promotion, two
 observation checkpoints in 417,609 ms, 375 matched records/zero errors and all eleven final
 readbacks are recorded in [delivery and configuration evidence](../evidence/application-gap-delivery-2026-11-03.md).
 

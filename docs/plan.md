@@ -1,6 +1,6 @@
 # Current plan
 
-Updated: 2026-11-04 (UTC), staff help hub delivery.
+Updated: 2026-11-05 (UTC), help hub litmus repairs delivery.
 
 ## Authorized outcome
 
@@ -9,7 +9,7 @@ assessment gaps, newly diagnosed A-08 PDF publication dependency, and the config
 communication work needed to unblock real renewals.
 The owner finalized this scope, then launched implementation and backend-question maintenance.
 It was delivered at `b5ba7802` / `pmi-kc-app-rmw123csb-dc0ce89a8583`; the current serving source
-`323e8be3` / `pmi-kc-app-rmw2hrh4d-8b96ea7b6800` includes it.
+`3f2e3f5d` / `pmi-kc-app-rmw3661as-aecc6937ff3f` includes it.
 The four independent source findings are repaired and reviewed; full07 passed 10,162 unit tests
 with four parity skips and all 497 backend tests, core passed 46 with 23 explicit configuration
 skips, and exact-main CI passed all five jobs. Run `ff1f44bf` passed candidate/promotion, two
@@ -42,7 +42,13 @@ The S242–S245 staff help hub and the merged #173 adversary-review fixes were d
 November 4 by run `74d79a9d` (exact-main CI `41886947757`, two observation checkpoints in
 413,080 ms, 375 matched records, eleven matched readbacks); see the
 [help hub delivery evidence](evidence/help-hub-delivery-2026-11-04.md). The S245 machine-run
-litmus report follows; repairs it finds ship as their own release.
+litmus accepted the hub on Run 4 ([litmus report](evidence/help-hub-litmus-2026-11-04.md)). Its
+repairs, help V1.1 and the S235 Admin form-family hint were delivered on November 5 by run
+`6951545a` (exact-main CI `41979132377`, two observation checkpoints in 416,972 ms,
+375 matched records, eleven matched readbacks). Its first candidate assurance pass stopped before
+promotion with production untouched and no proven cause beyond slow cold first loads; the operator
+resume of that pass passed assurance and every later phase, with no rollback. See the
+[litmus repairs delivery evidence](evidence/help-hub-litmus-repairs-delivery-2026-11-05.md).
 
 ## Settled authoring decisions
 

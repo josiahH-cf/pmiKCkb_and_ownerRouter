@@ -1,18 +1,43 @@
 # Current status
 
-Updated: 2026-11-04 (UTC).
+Updated: 2026-11-05 (UTC).
 
-The S242–S245 staff help hub and the merged #173 adversary-review fixes are DELIVERED at
-`323e8be3` / `pmi-kc-app-rmw2hrh4d-8b96ea7b6800`, 100% canonical traffic. Run `74d79a9d` completed
-and its permit is consumed. Exact-main CI passed five jobs (`41886947757`); the pull-request head's
-full gate passed 10,387 unit and 497 backend tests. Observation passed two checkpoints/413,080 ms,
-375 matched records, zero discrepancies/5xx/unresolved effects or mutation attempts; all eleven
-final readbacks matched at 19:31:37Z.
+The S242–S245 help hub litmus repairs and help V1.1, with the S235 Admin form-family hint, are
+DELIVERED at `3f2e3f5d` / `pmi-kc-app-rmw3661as-aecc6937ff3f`, 100% canonical traffic. Run `6951545a`
+completed and its permit is consumed. Exact-main CI passed five jobs (`41979132377`); the
+pull-request head's full gate passed 10,391 unit and 497 backend tests. Observation passed two
+checkpoints/416,972 ms, 375 matched records, zero discrepancies/5xx/unresolved effects or
+mutation attempts; all eleven final readbacks matched at 07:04:43Z.
+
+The run's first candidate assurance pass stopped before promotion (`assurance_unverified`) with
+production untouched. Its request log showed no 5xx and slow cold first loads, including a 41.5 s
+renewal desk; the gate kept no report, so the cause is not proven beyond cold first loads.
+Read-only diagnostics on the warm candidate rendered 13 of 13 Admin routes and matched
+375/375/375. The operator resume of that same pass then passed assurance, promotion, observation
+and completion, with no rollback.
+
+The S245 machine-run litmus accepted the hub on Run 4 at `13e5ab40` under R-S245-5: no check is
+No, L10 is UNVERIFIED for 25 steps that need RentCast, Gmail, Dotloop, the Sheet updates switch or
+Production with Live data, and the human verdict is NOT RUN. Pull-request CI's firestore lane failed
+twice on the S113 mounted journey's tenant-preview wait (attempt one of runs 41968323970
+and 41974275990) on commits that change only help text and docs; each passed unchanged on re-run,
+the test is unchanged and a root-cause follow-up is proposed separately. Exact holds remain in
+`docs/open-blockers.md`; delivery evidence:
+`docs/evidence/help-hub-litmus-repairs-delivery-2026-11-05.md`.
+
+## November 4 help-hub delivery (historical)
+
+The S242–S245 staff help hub and the merged #173 adversary-review fixes were DELIVERED at
+`323e8be3` / `pmi-kc-app-rmw2hrh4d-8b96ea7b6800`, then 100% canonical traffic. Run `74d79a9d`
+completed and its permit is consumed. Exact-main CI passed five jobs (`41886947757`); the
+pull-request head's full gate passed 10,387 unit and 497 backend tests. Observation passed two
+checkpoints/413,080 ms, 375 matched records, zero discrepancies/5xx/unresolved effects or mutation
+attempts; all eleven final readbacks matched at 19:31:37Z.
 
 The first run of this source (`6960e4e1`, `b0f3fca2`) held at observation after one passed
 checkpoint; its resume ended in a verified rollback and it is archived as superseded. The S245
-machine-run litmus report follows; repairs it finds ship as their own release. Exact holds remain
-in `docs/open-blockers.md`; delivery evidence: `docs/evidence/help-hub-delivery-2026-11-04.md`.
+machine-run litmus report followed; its repairs shipped in the release above. Delivery evidence:
+`docs/evidence/help-hub-delivery-2026-11-04.md`.
 
 ## November 3 gap-program delivery (historical)
 
