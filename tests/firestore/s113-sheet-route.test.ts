@@ -28,6 +28,7 @@ import { FIRESTORE_EMULATOR_TARGET } from "./emulator-target";
 import { createPendingRequestTracker } from "../helpers/pending-requests";
 import { runAfterImmediateSourceDrain } from "../helpers/immediate-source-drain";
 import { installIndexedLabelControl } from "../helpers/jsdom-label-control";
+import { installPollingErrorsWithoutDom } from "../helpers/polling-element-errors";
 import {
   clearLiveLeaseCache,
   invalidateLiveLeaseCache,
@@ -150,7 +151,7 @@ let assertMountedReadbacks: () => void = () => undefined;
 let observeMountedTransaction:
   | ((request: Promise<unknown>, callerStack: string) => void)
   | null = null;
-let restoreLabelControl: (() => void) | null = null;
+let restoreQueryCosts: Array<() => void> = [];
 let marketValue = "1000",
   mutations = 0,
   loseResponse = false,
@@ -191,13 +192,16 @@ beforeAll(async () => {
   vi.stubEnv("LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED", "true");
   vi.stubEnv("K_REVISION", "pmi-kc-app-test-enabled-a");
   vi.stubEnv("RENEWAL_DESK_PARTY_FILTER_KEY", Buffer.alloc(32, 29).toString("base64url"));
-  // Q-ENG-ADV-CI: jsdom's own label lookup made each label or named-role query on the mounted
-  // lease page cost seconds on the thread this file's routes and Firestore client share, so a
-  // polling wait starved the reads it awaited. The indexed lookup returns identical answers.
-  restoreLabelControl = installIndexedLabelControl();
+  // Q-ENG-ADV-CI: this file's routes and Firestore client share the test's one thread, so a
+  // polling wait whose check is expensive starves the reads it awaits. jsdom's own label lookup
+  // made each label or named-role query on the mounted lease page cost seconds, and every failed
+  // check formatted the whole page into an error it then discarded. Both repairs keep every
+  // answer identical.
+  restoreQueryCosts = [installIndexedLabelControl(), installPollingErrorsWithoutDom()];
 });
 afterAll(async () => {
-  restoreLabelControl?.();
+  for (const restore of restoreQueryCosts.reverse()) restore();
+  restoreQueryCosts = [];
   await runAfterImmediateSourceDrain(
     mountedRequests,
     async () => {
