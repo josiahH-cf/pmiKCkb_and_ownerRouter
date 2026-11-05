@@ -322,7 +322,7 @@ describe("S246 one short row and opening a lease (R-S246-7, R-S246-8, BEH-S246-3
     open();
     const row = batchRow(list("this_batch")!, S246_LEASES.activeInMonth);
     expect(row).toHaveAttribute("data-batch-row-kind", "work");
-    // S247 R-S247-2: the next step is the lease's current path step from the one stage projection,
+    // S247 R-S247-3: the next step is the lease's current path step from the one stage projection,
     // and it opens the lease in Guided view at that step.
     const href = `${DESK}/lease/${S246_LEASES.activeInMonth}?step=check-numbers`;
     const links = within(row).getAllByRole("link");

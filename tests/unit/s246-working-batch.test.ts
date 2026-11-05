@@ -244,7 +244,7 @@ describe("S246 one short row (R-S246-7) and its seams", () => {
     expect(row.address).toContain("Sample St");
     expect(row.tenants).toEqual(["Avery Example"]);
     expect(row.dateLabel).toBe("Ends 12/31/2026");
-    // S247 R-S247-2 replaces this seam with the one stage projection: a lease with nothing
+    // S247 R-S247-3 replaces this seam with the one stage projection: a lease with nothing
     // recorded whose current rent still needs a check stands at the path's first open step.
     expect(row.stageLine).toBe("Verifying lease and rent, nothing recorded yet");
     expect(row.nextStep).toEqual({

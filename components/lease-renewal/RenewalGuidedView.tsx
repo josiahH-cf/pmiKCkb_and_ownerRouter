@@ -126,7 +126,7 @@ export function RenewalGuidedView({
       ),
     [state, context, readUnavailable, standingCovered, pricing],
   );
-  // The step shown: one chosen on this page, else the one a reload returns to (R-S247-7), else
+  // The step shown: one chosen on this page, else the one a reload returns to (R-S247-9), else
   // the one the address names (an older `step` value names the path step that holds it,
   // R-S247-11), else the current step.
   const [chosen, setChosen] = useState<RenewalPathStepId | null>(null);

@@ -215,7 +215,7 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
     ).toBe(true);
   });
 
-  it("R-S247-7: a reload returns to the hand-chosen view and step; the next open starts in Guided view", async () => {
+  it("R-S247-9: a reload returns to the hand-chosen view and step; the next open starts in Guided view", async () => {
     const routes = stubRenewalRoutes(manualState());
     await renderWorkspace({ manual: manualState(), view: "default" });
     const user = userEvent.setup();
@@ -254,7 +254,7 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
     expect(routes.writes()).toEqual([]);
   });
 
-  it("R-S247-4: a section link opens Full view at that section", async () => {
+  it("R-S247-7: a section link opens Full view at that section", async () => {
     stubRenewalRoutes(manualState());
     await renderWorkspace({ manual: manualState(), view: "default" });
     const user = userEvent.setup();

@@ -2426,6 +2426,30 @@ label.secondary-button:focus-within {
   .renewal-now-facts {
     grid-template-columns: 1fr;
   }
+
+  /* R-S247-10: at phone width the three views share one row and the path strip is compact, so
+     the Now card's primary action stays within two screens. Buttons keep their touch height. */
+  .renewal-view-switch[data-renewal-view-switch] {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .renewal-view-switch[data-renewal-view-switch] .renewal-view-switch-button {
+    padding-inline: var(--space-1);
+  }
+
+  .renewal-path-steps {
+    gap: var(--space-1);
+  }
+
+  .renewal-path-button {
+    font-size: 0.875rem;
+  }
+
+  .renewal-path-state {
+    font-size: 0.75rem;
+  }
 }
 
 .renewal-focus-pane .text-link {

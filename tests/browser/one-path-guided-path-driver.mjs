@@ -178,14 +178,36 @@ try {
       const overflow = await page.evaluate(
         () => document.documentElement.scrollWidth > window.innerWidth + 1,
       );
+      // What stands above the Guided view, by element role and class only (no page text), so a
+      // miss names the block that pushed the primary action down.
+      const above = await page.evaluate(() => {
+        const blocks = [];
+        let node = document.querySelector('[aria-label="Guided view"]');
+        while (node && node !== document.body) {
+          let sibling = node.previousElementSibling;
+          while (sibling) {
+            const height = Math.round(sibling.getBoundingClientRect().height);
+            if (height >= 24)
+              blocks.push({
+                block: `${sibling.tagName.toLowerCase()}.${[...sibling.classList].join(".")}`,
+                height,
+              });
+            sibling = sibling.previousElementSibling;
+          }
+          node = node.parentElement;
+        }
+        return blocks;
+      });
       layout.push({
         leaseId,
         width,
         current,
         primaryBottom: box ? Math.round(box.y + box.height) : null,
         stripBottom: stripBox ? Math.round(stripBox.y + stripBox.height) : null,
+        stripHeight: stripBox ? Math.round(stripBox.height) : null,
         limit: height * screens,
         overflow,
+        above,
       });
     }
   }
@@ -217,25 +239,74 @@ try {
     { heading, currentBefore, url: page.url() },
   );
 
-  // 3. Reload continuity (R-S247-7, L16): the same view, step and place.
+  // 3. Reload continuity (R-S247-9, L16): the same view, step and place.
+  // The place is measured once the page has finished its reads (its height has stopped changing),
+  // on both sides of the reload: a step's prepared message that arrives after the scroll grows the
+  // card, and the browser keeps what is on the screen in place by moving the page's offset.
+  const settle = async (maxMs = 20_000) => {
+    const started = Date.now();
+    let last = -1;
+    let since = Date.now();
+    while (Date.now() - started < maxMs) {
+      const height = await page.evaluate(() => document.documentElement.scrollHeight);
+      if (height !== last) {
+        last = height;
+        since = Date.now();
+      } else if (Date.now() - since >= 1500) return;
+      await page.waitForTimeout(250);
+    }
+  };
+  // The place is what the person sees: the page's offset and where the Now card sits on screen.
+  const nowTop = async () => Math.round((await now().boundingBox())?.y ?? Number.NaN);
   await page.mouse.wheel(0, 600);
   await page.waitForTimeout(300);
+  await settle();
   const scrolled = await page.evaluate(() => window.scrollY);
+  const nowTopBefore = await nowTop();
+  const heightBefore = await page.evaluate(() => document.documentElement.scrollHeight);
+  // Read-only evidence: the place the page kept for itself, read before the page's own scripts.
+  await page.addInitScript(() => {
+    try {
+      window.__keptPlace = window.sessionStorage.getItem("renewal-lease-continuity");
+    } catch {
+      window.__keptPlace = null;
+    }
+  });
   await page.reload({ waitUntil: "domcontentloaded" });
+  // The kept place is applied once the page is interactive; it holds while reads settle. The
+  // page's offset and height are sampled from the reload on, so a miss shows when the page moved.
+  const timeline = [];
+  const reloadedAt = Date.now();
+  for (let i = 0; i < 40; i += 1) {
+    const [y, h] = await page.evaluate(() => [
+      Math.round(window.scrollY),
+      document.documentElement.scrollHeight,
+    ]);
+    const last = timeline.at(-1);
+    if (!last || last[1] !== y || last[2] !== h)
+      timeline.push([Date.now() - reloadedAt, y, h]);
+    await page.waitForTimeout(250);
+  }
   await guided().waitFor({ state: "visible" });
-  // The kept place is applied once the page is interactive; it holds while reads settle.
-  await page
-    .waitForFunction((y) => Math.abs(window.scrollY - y) <= 80, scrolled, {
-      timeout: 15_000,
-    })
-    .catch(() => undefined);
-  await page.waitForTimeout(4500);
+  await settle();
+  const kept = await page.evaluate(() => {
+    try {
+      return JSON.parse(window.__keptPlace ?? "null")?.y ?? null;
+    } catch {
+      return null;
+    }
+  });
   const reloaded = {
     url: page.url(),
     heading: (await now().getByRole("heading", { level: 2 }).textContent())?.trim(),
     pressed: await viewButton("Guided view").getAttribute("aria-pressed"),
     scrollY: await page.evaluate(() => window.scrollY),
     scrolled,
+    nowTopBefore,
+    nowTopAfter: await nowTop(),
+    heightBefore,
+    kept,
+    timeline,
   };
   check(
     "a reload returns to Guided view at the chosen step and place",
@@ -243,11 +314,13 @@ try {
       reloaded.pressed === "true" &&
       // Choosing a step and reloading leave the address as it was.
       new URL(reloaded.url).search === "" &&
-      Math.abs(reloaded.scrollY - scrolled) <= 80,
+      // The same offset, and the Now card where it was on the screen.
+      Math.abs(reloaded.scrollY - scrolled) <= 80 &&
+      Math.abs(reloaded.nowTopAfter - nowTopBefore) <= 80,
     reloaded,
   );
 
-  // 4. The three-way view control and the five section links (R-S247-4, L17, L18).
+  // 4. The three-way view control and the five section links (R-S247-7, L17, L18).
   await viewButton("Focus view").click();
   const focusShown = await page
     .getByRole("region", { name: "Focus view", exact: true })
@@ -448,10 +521,22 @@ try {
     });
     await open(prepared, "?step=ask-owner");
     scheduledLine = ((await now().textContent()) ?? "").replace(/\s+/g, " ");
+    // The server's own reading of the same source just before the tick (a read), so a held send
+    // shows whether the source moved or the tick read it differently.
+    const recomposed = await route(
+      `/api/gmail-hub/composition?purpose=renewal_owner&lease=${prepared}`,
+    );
+    const serverSource = {
+      atSchedule: composition.body?.target?.materialSourceHash ?? null,
+      beforeTick: recomposed.body?.target?.materialSourceHash ?? null,
+      noticeCycleId: recomposed.body?.target?.noticeCycleId ?? null,
+      blockers: recomposed.body?.target?.blockers ?? null,
+    };
     // The harness's in-process tick: the due message is sent through the mail stand-in.
     tick = await runDueMessageTick(rehearsal, {
       sequenceId: scheduled.body?.sequence?.id,
     }).catch((error) => ({ error: String(error?.message ?? error) }));
+    tick = { ...tick, serverSource };
     await open(prepared, "?step=ask-owner");
     afterTick = await stageLine();
     // Where the app's own record of the scheduled message stands after the tick.

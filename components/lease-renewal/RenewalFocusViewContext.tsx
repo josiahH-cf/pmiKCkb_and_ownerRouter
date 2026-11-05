@@ -67,6 +67,36 @@ export function useRenewalFocusView() {
 const CONTINUITY_KEY = "renewal-lease-continuity";
 const interactions = ["wheel", "touchstart", "keydown", "mousedown"] as const;
 
+interface KeptPlace {
+  readonly y?: unknown;
+  readonly view?: unknown;
+  readonly step?: unknown;
+}
+
+/** The place this tab kept on unload, taken once, and only on a reload of the same address. */
+function readKeptPlace(path: string): KeptPlace | null {
+  try {
+    const saved = JSON.parse(window.sessionStorage.getItem(CONTINUITY_KEY) ?? "null") as
+      | (KeptPlace & { at?: unknown; path?: unknown })
+      | null;
+    window.sessionStorage.removeItem(CONTINUITY_KEY);
+    const navigation = window.performance?.getEntriesByType?.("navigation")?.[0] as
+      | { type?: string }
+      | undefined;
+    return saved &&
+      saved.path === path &&
+      typeof saved.at === "number" &&
+      Date.now() - saved.at < 10 * 60_000 &&
+      navigation?.type === "reload" &&
+      !window.location.hash
+      ? saved
+      : null;
+  } catch {
+    // A convenience only.
+    return null;
+  }
+}
+
 export function RenewalFocusViewProvider({
   children,
   initialView = "guided",
@@ -85,6 +115,7 @@ export function RenewalFocusViewProvider({
   const fullTarget = useRef<string | null>(null);
   const reveal = useRef<{ body: HTMLElement; reveal: FocusReveal } | null>(null);
   const stepRef = useRef<string | null>(null);
+  const kept = useRef<KeptPlace | null | undefined>(undefined);
   const [restoredStep, setRestoredStep] = useState<string | null>(null);
   // A reload hands the kept step to the Guided view once (see the continuity effect below).
   const restoreStep = useCallback(
@@ -156,7 +187,7 @@ export function RenewalFocusViewProvider({
     },
     [],
   );
-  // R-S247-7: a reload returns to the same view, step and place. They are kept in this tab's own
+  // R-S247-9: a reload returns to the same view, step and place. They are kept in this tab's own
   // session storage only while the page unloads, and read back once, on a reload of the same
   // address; any other way of opening the lease starts in Guided view at its current step.
   // Nothing here writes the address, saves a record or calls a route.
@@ -182,59 +213,52 @@ export function RenewalFocusViewProvider({
       }
     };
     let timer: number | null = null;
-    try {
-      const saved = JSON.parse(
-        window.sessionStorage.getItem(CONTINUITY_KEY) ?? "null",
-      ) as {
-        at?: number;
-        path?: string;
-        y?: number;
-        view?: unknown;
-        step?: unknown;
-      } | null;
-      window.sessionStorage.removeItem(CONTINUITY_KEY);
-      const navigation = window.performance?.getEntriesByType?.("navigation")?.[0] as
-        | { type?: string }
-        | undefined;
-      if (
-        saved &&
-        saved.path === here() &&
-        typeof saved.at === "number" &&
-        Date.now() - saved.at < 10 * 60_000 &&
-        navigation?.type === "reload" &&
-        !window.location.hash
-      ) {
-        if (!explicitView && isRenewalWorkspaceView(saved.view)) move(saved.view);
-        if (typeof saved.step === "string") {
-          stepRef.current = saved.step;
-          restoreStep(saved.step);
-        }
-        if (typeof saved.y === "number") {
-          const y = saved.y;
-          // While the page's reads settle and its height shifts, it is held at the kept place for
-          // a few seconds, until the person scrolls, types or clicks themselves.
-          const startedAt = Date.now();
-          const hold = () => {
-            if (Math.abs(window.scrollY - y) > 2) window.scrollTo?.({ top: y });
-            timer = Date.now() - startedAt < 4000 ? window.setTimeout(hold, 100) : null;
-          };
-          const release = () => {
-            if (timer !== null) window.clearTimeout(timer);
-            timer = null;
-            for (const name of interactions) window.removeEventListener(name, release);
-          };
-          for (const name of interactions)
-            window.addEventListener(name, release, { once: true, passive: true });
-          hold();
-        }
+    let release: (() => void) | null = null;
+    // Read once per page: a mount that runs again (React's development double mount) reads the
+    // same kept place instead of finding it already taken.
+    if (kept.current === undefined) kept.current = readKeptPlace(here());
+    const saved = kept.current;
+    if (saved) {
+      if (!explicitView && isRenewalWorkspaceView(saved.view)) move(saved.view);
+      if (typeof saved.step === "string") {
+        stepRef.current = saved.step;
+        restoreStep(saved.step);
       }
-    } catch {
-      // A convenience only.
+      if (typeof saved.y === "number") {
+        const y = saved.y;
+        // While the page's reads settle and its height shifts, it is held at the kept place: for
+        // at least four seconds and until its height has held still for one, at most fifteen,
+        // and never past the person's own scroll, key press or click.
+        const startedAt = Date.now();
+        let height = -1;
+        let stillSince = startedAt;
+        const stop = () => {
+          if (timer !== null) window.clearTimeout(timer);
+          timer = null;
+          for (const name of interactions) window.removeEventListener(name, stop);
+        };
+        const hold = () => {
+          const now = Date.now();
+          const nextHeight = document.documentElement.scrollHeight;
+          if (nextHeight !== height) {
+            height = nextHeight;
+            stillSince = now;
+          }
+          if (Math.abs(window.scrollY - y) > 2) window.scrollTo?.({ top: y });
+          const settled = now - startedAt >= 4000 && now - stillSince >= 1000;
+          timer =
+            settled || now - startedAt >= 15_000 ? null : window.setTimeout(hold, 100);
+        };
+        for (const name of interactions)
+          window.addEventListener(name, stop, { once: true, passive: true });
+        release = stop;
+        hold();
+      }
     }
     window.addEventListener("pagehide", save);
     return () => {
       window.removeEventListener("pagehide", save);
-      if (timer !== null) window.clearTimeout(timer);
+      release?.();
     };
     // Mount only.
   }, []); // eslint-disable-line react-hooks/exhaustive-deps

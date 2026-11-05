@@ -43,48 +43,54 @@ export async function runDueMessageTick(rehearsal, { sequenceId } = {}) {
     throw new Error("The rehearsal's mail stand-in is not on 127.0.0.1.");
   if (sequenceId) await makeDue(rehearsal, sequenceId);
   const output = await new Promise((done, fail) => {
-    const child = spawn(
-      process.execPath,
-      ["--import", `./${PRELOAD}`, "node_modules/tsx/dist/cli.mjs", TICK],
-      {
-        stdio: ["ignore", "pipe", "pipe"],
-        // The rehearsal server's Demo environment, by name, and nothing inherited.
-        env: {
-          PATH: process.env.PATH,
-          HOME: join(rehearsal.runDir, "server-home"),
-          TMPDIR: process.env.TMPDIR ?? "/tmp",
-          TZ: "America/Chicago",
-          NODE_ENV: "development",
-          NOVDEC_JOURNEY_NETWORK_LOG: rehearsal.files.harnessNetworkLog,
-          NOVDEC_JOURNEY_OUTAGE_FLAG: rehearsal.files.rentvineOutage,
-          ONE_PATH_REHEARSAL_RENTVINE_CONTROL: rehearsal.files.rentvineControl,
-          ONE_PATH_REHEARSAL_MIX: join(
-            process.cwd(),
-            "tests/fixtures/lease-renewal/november-5-mix.json",
-          ),
-          ONE_PATH_REHEARSAL_STAND_IN_ORIGIN: rehearsal.standInOrigin,
-          ENVIRONMENT_KIND: "demo",
-          DATA_CONTEXT: "demo",
-          LOCAL_DEMO_AUTH: "true",
-          REHEARSAL_STAND_IN_ORIGIN: rehearsal.standInOrigin,
-          APP_COMMIT_SHA: rehearsal.servedCommit,
-          FIRESTORE_EMULATOR_HOST: rehearsal.firestoreEmulatorHost,
-          FIREBASE_AUTH_EMULATOR_HOST: rehearsal.authEmulatorHost,
-          FIREBASE_PROJECT_ID: rehearsal.projectId,
-          GOOGLE_CLOUD_PROJECT: rehearsal.projectId,
-          GOOGLE_APPLICATION_CREDENTIALS: join(
-            rehearsal.runDir,
-            "server-home",
-            "synthetic-adc.json",
-          ),
-          CLOUDSDK_CONFIG: join(rehearsal.runDir, "no-gcloud-config"),
-          RENTVINE_API_BASE_URL: "https://pmikcmetro.rentvine.com/api/manager",
-          RENTVINE_API_KEY: "synthetic-rehearsal-key",
-          RENTVINE_API_SECRET: "synthetic-rehearsal-secret",
-          RENEWAL_SHEET_ID: "synthetic-rehearsal-sheet",
-        },
+    const child = spawn(process.execPath, ["node_modules/tsx/dist/cli.mjs", TICK], {
+      stdio: ["ignore", "pipe", "pipe"],
+      // The rehearsal server's Demo environment, by name, and nothing inherited.
+      env: {
+        PATH: process.env.PATH,
+        HOME: join(rehearsal.runDir, "server-home"),
+        TMPDIR: process.env.TMPDIR ?? "/tmp",
+        LANG: "en_US.UTF-8",
+        TZ: "America/Chicago",
+        NODE_ENV: "development",
+        // The network boundary loads in every process, as on the rehearsal server: tsx runs the
+        // tick in a child node process, which an `--import` flag on this command never reaches.
+        // The tick checks the boundary is active in its own process before it loads the app.
+        NODE_OPTIONS: `--import ${join(process.cwd(), PRELOAD)}`,
+        NOVDEC_JOURNEY_NETWORK_LOG: rehearsal.files.harnessNetworkLog,
+        NOVDEC_JOURNEY_OUTAGE_FLAG: rehearsal.files.rentvineOutage,
+        ONE_PATH_REHEARSAL_RENTVINE_CONTROL: rehearsal.files.rentvineControl,
+        ONE_PATH_REHEARSAL_MIX: join(
+          process.cwd(),
+          "tests/fixtures/lease-renewal/november-5-mix.json",
+        ),
+        ONE_PATH_REHEARSAL_STAND_IN_ORIGIN: rehearsal.standInOrigin,
+        ENVIRONMENT_KIND: "demo",
+        DATA_CONTEXT: "demo",
+        LOCAL_DEMO_AUTH: "true",
+        REHEARSAL_STAND_IN_ORIGIN: rehearsal.standInOrigin,
+        APP_COMMIT_SHA: rehearsal.servedCommit,
+        FIRESTORE_EMULATOR_HOST: rehearsal.firestoreEmulatorHost,
+        FIREBASE_AUTH_EMULATOR_HOST: rehearsal.authEmulatorHost,
+        FIREBASE_PROJECT_ID: rehearsal.projectId,
+        GOOGLE_CLOUD_PROJECT: rehearsal.projectId,
+        GOOGLE_APPLICATION_CREDENTIALS: join(
+          rehearsal.runDir,
+          "server-home",
+          "synthetic-adc.json",
+        ),
+        CLOUDSDK_CONFIG: join(rehearsal.runDir, "no-gcloud-config"),
+        RENTVINE_API_BASE_URL: "https://pmikcmetro.rentvine.com/api/manager",
+        RENTVINE_API_KEY: "synthetic-rehearsal-key",
+        RENTVINE_API_SECRET: "synthetic-rehearsal-secret",
+        RENEWAL_SHEET_ID: "synthetic-rehearsal-sheet",
+        // The worker re-reads the lease and the operating Sheet before it sends; the Sheet is
+        // answered by the same stand-in as the server's, under the same synthetic identity.
+        SHEETS_IMPERSONATE_SA: "synthetic-rehearsal@example.invalid",
+        SHEETS_DWD_SUBJECT: "synthetic-rehearsal@pmikcmetro.com",
+        ONE_PATH_TICK_SEQUENCE: sequenceId ?? "",
       },
-    );
+    });
     let stdout = "";
     let stderr = "";
     child.stdout.on("data", (chunk) => (stdout += chunk));
