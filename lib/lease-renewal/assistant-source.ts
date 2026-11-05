@@ -6,6 +6,7 @@ import { listRenewalWorkspaces } from "@/lib/firestore/renewal-workspace";
 import { listRenewalWorkingRecords } from "@/lib/firestore/renewal-working-record";
 import { sheetRowBindingsFromWorkingRecords } from "@/lib/lease-renewal/sheet-lookup";
 import { listRenewalWorkStatuses } from "@/lib/firestore/renewal-work-status";
+import { listRenewalCycleDateDecisions } from "@/lib/firestore/renewal-cycle-date-decisions";
 // S110: the Renewals desk orchestration, extracted so exactly one code path produces the desk rows.
 //
 // The desk page and the assistant both call this. That is the whole point: a parity test can compare
@@ -123,6 +124,7 @@ export async function runRenewalAssistantSource(
     pricingRead,
     workStatusRead,
     timingBasis,
+    cycleDateDecisions,
   ] = await measureRead("renewal.supporting", () =>
     Promise.all([
       readRenewalAuxiliary("progress", () => listAllRenewalProgress(user)),
@@ -173,6 +175,10 @@ export async function runRenewalAssistantSource(
         version: null,
         updatedAtIso: null,
       })),
+      // S246 R-S246-5: one bulk read of staff's keep-working choices. This read never throws and
+      // feeds only the working batch: when it is unavailable no choice is assumed, so a lease
+      // RentVine has moved past asks again. The table and its counts never depend on it.
+      withReadDeadline(() => listRenewalCycleDateDecisions(user)).catch(() => null),
     ]),
   );
 
@@ -239,9 +245,16 @@ export async function runRenewalAssistantSource(
           leaseSnapshotResult.statusTable,
           renewalAuxiliaryValue(workingRead, new Map()),
           pricingRead.status === "available" ? pricingRead.value : undefined,
+          cycleDateDecisions ?? undefined,
         );
 
-  return { outcome, auxiliaryFailures, coverage: window };
+  return {
+    outcome,
+    auxiliaryFailures,
+    coverage: window,
+    /** S246: false when the keep-working choices could not be read for this render. */
+    cycleDateDecisionsAvailable: cycleDateDecisions !== null,
+  };
 }
 
 /** The desk page and the assistant both call this one orchestration. */

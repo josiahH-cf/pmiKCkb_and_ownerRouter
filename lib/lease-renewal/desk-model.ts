@@ -13,6 +13,7 @@ import type {
   LifecycleProjection,
 } from "@/lib/lease-renewal/lifecycle-category";
 import type { manualRenewalSummary } from "@/lib/lease-renewal/workspace-state";
+import type { RenewalTargetProjection } from "@/lib/lease-renewal/renewal-target";
 // Neutral Renewal Desk view contracts shared by the authenticated Live surfaces.
 //
 // This module contains no records, fixtures, or constructors. Deterministic sample data belongs in
@@ -251,6 +252,12 @@ export interface DeskLeaseSummaryBase {
   endedWithoutOutcome?: boolean;
   /** S232: the visible reason this row appears in, or is retained outside, the worklist. */
   inclusionReason?: string;
+  /**
+   * S246 R-S246-1: the one renewal target projection, read from the RentVine lease status table by
+   * the shared orchestration. The working batch, the lease page and the assistant read this; the
+   * table's own columns are unchanged by it. Absent only when a caller did not project it.
+   */
+  renewalTarget?: RenewalTargetProjection;
   processVersion: string | null;
   workflowStepId: string | null;
   stageIndex: number;

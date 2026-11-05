@@ -65,7 +65,16 @@ import {
   type CohortLease,
   type DateWindow,
 } from "@/lib/lease-renewal/cohort";
+import {
+  cycleDateDecisionIsCurrent,
+  type RenewalCycleDateDecision,
+} from "@/lib/lease-renewal/cycle-date-decision";
 import { projectCycleSourceDateChange } from "@/lib/lease-renewal/cycle-source-date";
+import {
+  projectRenewalTarget,
+  type RenewalTargetProjection,
+} from "@/lib/lease-renewal/renewal-target";
+import { projectRentvineLeaseStatus } from "@/lib/lease-renewal/rentvine-lease-status";
 import { readLeaseStatusTable } from "@/lib/lease-renewal/lease-status-table";
 import { staffRecordLatestAtIso } from "@/lib/lease-renewal/lease-work-status";
 import { projectLifecycleCategory } from "@/lib/lease-renewal/lifecycle-category";
@@ -918,6 +927,56 @@ function toLiveSummary(
   return withCurrentLifecycle(summaryBase, progress, progressStateAvailable);
 }
 
+/**
+ * S246 R-S246-1: the one renewal target projection for a loaded lease. It reads the lease status
+ * table already read for this generation (no extra provider read), the existing cohort skip
+ * signal, the move-out disposition and the staff record, so the desk, the lease page and the
+ * assistant carry the same verdict. R-S246-12: an unreadable status never excludes the lease.
+ */
+function renewalTargetFor(input: {
+  readonly view: RawLease;
+  readonly classification: CohortLease;
+  readonly moveOut: MoveOutDisposition | undefined;
+  readonly manual: RenewalWorkspaceState | null;
+  readonly statusTable: LeaseStatusTableRead;
+  /** True only when the app-recorded completion is verified against the current evidence. */
+  readonly appCompletionCurrent: boolean;
+  readonly decision: RenewalCycleDateDecision | null | undefined;
+}): RenewalTargetProjection {
+  const { classification, manual } = input;
+  const staff = manual ? manualRenewalSummary(manual) : null;
+  // The recorded cycle date beside the lease end RentVine reports now, for every row with a
+  // staff record (the table's own S123 field is limited to the rows that show it).
+  const cycleSourceDate = manual
+    ? projectCycleSourceDateChange(manual.basis, classification.endDateIso)
+    : null;
+  return projectRenewalTarget({
+    status: projectRentvineLeaseStatus(input.view, input.statusTable),
+    term: classification.termProjection.term,
+    endDateIso: classification.endDateIso,
+    skipReason:
+      classification.disposition === "skip" &&
+      (classification.reason === "owner_authorized" ||
+        classification.reason === "program")
+        ? classification.reason
+        : null,
+    moveOutInitiated: input.moveOut?.state === "initiated",
+    staffRecord: staff
+      ? { complete: staff.complete, nonRenewal: staff.nonRenewal }
+      : null,
+    appCompletionCurrent: input.appCompletionCurrent,
+    cycleSourceDate,
+    reviewDateIso: classification.termProjection.nextReviewIso,
+    keepWorking:
+      cycleSourceDate?.state === "changed" &&
+      cycleDateDecisionIsCurrent(input.decision, {
+        cycleId: manual?.cycleId,
+        recordedDateIso: cycleSourceDate.recordedIso,
+        sourceDateIso: cycleSourceDate.currentIso,
+      }),
+  });
+}
+
 /** Reuse the process evidence result; a historical completion scalar cannot verify itself. */
 function withCurrentLifecycle(
   summaryBase: DeskLeaseSummaryBase,
@@ -1589,6 +1648,11 @@ export async function loadLiveRenewalDesk(
   /** S157: the bulk working-record read; absent means the caller did not attempt it. */
   workingByLease?: ReadonlyMap<string, RenewalWorkingRecord>,
   pricing?: RenewalPricingRead,
+  /**
+   * S246 R-S246-5: staff's recorded choice to keep working a cycle after RentVine reported a later
+   * lease end. Absent or unreadable means no decision, so the lease asks again.
+   */
+  cycleDateDecisions?: ReadonlyMap<string, RenewalCycleDateDecision>,
 ): Promise<LiveRenewalDeskResult> {
   if (!config.ok) return { status: config.reason };
   try {
@@ -1670,6 +1734,26 @@ export async function loadLiveRenewalDesk(
       const manual = classification.leaseId
         ? (manualByLease?.get(classification.leaseId) ?? null)
         : null;
+      // S246 ARCH-S246-1: every loaded row leaves with the one target verdict, read from the
+      // status table of this same generation. It is an additive field: the table's own
+      // classification, lifecycle and guidance above are unchanged by it.
+      const withTarget = (
+        row: DeskLeaseRow,
+        appCompletionCurrent = false,
+      ): DeskLeaseRow => ({
+        ...row,
+        renewalTarget: renewalTargetFor({
+          view,
+          classification,
+          moveOut: row.moveOut,
+          manual,
+          statusTable: moveOutInputs.statusTable,
+          appCompletionCurrent,
+          decision: classification.leaseId
+            ? cycleDateDecisions?.get(classification.leaseId)
+            : undefined,
+        }),
+      });
       // S157: the working record is read once for the desk; absent means not attempted.
       const working =
         workingByLease && classification.leaseId
@@ -1746,18 +1830,22 @@ export async function loadLiveRenewalDesk(
       ) {
         const summary = sourceAwareSummary;
         if (!leaseId) {
-          return toRow(withRenewalDeskQueryKeys(summary), {
-            process: null,
-            dataCheck,
-            rentDecision: currentRentDecision,
-          });
+          return withTarget(
+            toRow(withRenewalDeskQueryKeys(summary), {
+              process: null,
+              dataCheck,
+              rentDecision: currentRentDecision,
+            }),
+          );
         }
         if (!effectiveDataCheck || !dataCheck || !currentRentDecision) {
-          return toRow(withRenewalDeskQueryKeys(summary), {
-            process: null,
-            dataCheck,
-            rentDecision: currentRentDecision,
-          });
+          return withTarget(
+            toRow(withRenewalDeskQueryKeys(summary), {
+              process: null,
+              dataCheck,
+              rentDecision: currentRentDecision,
+            }),
+          );
         }
         const processEvidence = buildLiveProcessEvidence({
           leaseId,
@@ -1788,7 +1876,10 @@ export async function loadLiveRenewalDesk(
           tenantOutcome: effectiveProgress?.tenantOutcome ?? null,
           complete: effectiveProgress?.complete ?? false,
         });
-        return toRow(
+        // The same verified-completion fact the lifecycle reads, never a stored scalar by itself.
+        const appCompletionCurrent =
+          progressStateAvailable && process.status === "complete";
+        const row = toRow(
           withRenewalDeskQueryKeys({
             ...withCurrentLifecycle(
               summary,
@@ -1824,26 +1915,29 @@ export async function loadLiveRenewalDesk(
           }),
           { process, dataCheck, rentDecision: currentRentDecision },
         );
+        return withTarget(row, appCompletionCurrent);
       }
       const summary = sourceAwareSummary;
-      return toRow(
-        withRenewalDeskQueryKeys(
-          leaseId
-            ? {
-                ...summary,
-                ...(rentvineDestination
-                  ? { sourceDestinations: { rentvine: rentvineDestination } }
-                  : {}),
-                followUp: buildLiveFollowUp({
-                  leaseId,
-                  view,
-                  readTimestamp,
-                  sources: followUpSources,
-                }),
-              }
-            : summary,
+      return withTarget(
+        toRow(
+          withRenewalDeskQueryKeys(
+            leaseId
+              ? {
+                  ...summary,
+                  ...(rentvineDestination
+                    ? { sourceDestinations: { rentvine: rentvineDestination } }
+                    : {}),
+                  followUp: buildLiveFollowUp({
+                    leaseId,
+                    view,
+                    readTimestamp,
+                    sources: followUpSources,
+                  }),
+                }
+              : summary,
+          ),
+          { process: null, dataCheck, rentDecision: currentRentDecision },
         ),
-        { process: null, dataCheck, rentDecision: currentRentDecision },
       );
     });
     // S70 AC-S70-1: the queue is ordered soonest-lease-end first. Before this it had no sort at all
@@ -1916,6 +2010,8 @@ export async function loadLiveRenewalLeaseWorkspace(
   sheetRowBindings?: ReadonlyMap<string, WorkingSheetRow>,
   working?: RenewalWorkingRecord | null,
   pricing?: RenewalPricingRead,
+  /** S246 R-S246-5: this lease's keep-working decision, when the page read one. */
+  cycleDateDecision?: RenewalCycleDateDecision | null,
 ): Promise<LiveRenewalLeaseWorkspaceResult> {
   if (!config.ok) return { status: config.reason };
   try {
@@ -2082,6 +2178,16 @@ export async function loadLiveRenewalLeaseWorkspace(
       stageLabel: RENEWAL_STEPS[process.currentStepIndex]?.label ?? null,
       nextAction: STAGE_NEXT_ACTION[process.currentStepIndex] ?? null,
       followUp,
+      // S246 R-S246-1: the lease page carries the same target verdict as the desk row.
+      renewalTarget: renewalTargetFor({
+        view,
+        classification,
+        moveOut: summary.moveOut,
+        manual,
+        statusTable: moveOutInputs.statusTable,
+        appCompletionCurrent: process.status === "complete",
+        decision: cycleDateDecision,
+      }),
     };
     const deskSummary = withRenewalDeskQueryKeys(summary);
 
