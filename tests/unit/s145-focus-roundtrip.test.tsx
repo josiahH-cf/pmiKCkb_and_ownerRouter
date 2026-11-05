@@ -25,7 +25,8 @@ import { getRenewalLeaseWorkspace } from "@/tests/helpers/sample-desk";
 // both orders returns the Full view byte-for-byte to the recorded signature, with no request,
 // save, navigation or refresh. The non-consolidated layout offers no switch at all.
 // S152 (f2a50650): the lease opens in Focus view, so the Full view is reached through the switch
-// first; every later round trip must return it unchanged.
+// first; every later round trip must return it unchanged. S247: the lease opens in Guided view;
+// this file opens Focus view by its address (`?view=focus`) and keeps the Focus round trip.
 
 const BASELINE = JSON.parse(
   readFileSync(
@@ -88,6 +89,7 @@ async function renderCase(testCase: (typeof CASES)[number]) {
       workspace={workspace}
       role={testCase.role}
       manualState={manualState}
+      viewParam="focus"
       {...(testCase.selectedStepId ? { selectedStepId: testCase.selectedStepId } : {})}
     />,
   );

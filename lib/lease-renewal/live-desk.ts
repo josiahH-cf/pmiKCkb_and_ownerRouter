@@ -77,6 +77,22 @@ import {
 import { projectRentvineLeaseStatus } from "@/lib/lease-renewal/rentvine-lease-status";
 import { readLeaseStatusTable } from "@/lib/lease-renewal/lease-status-table";
 import { staffRecordLatestAtIso } from "@/lib/lease-renewal/lease-work-status";
+import {
+  EMPTY_OUTREACH_EVIDENCE_INPUT,
+  UNREADABLE_OUTREACH_EVIDENCE_INPUT,
+  outreachFill,
+  outreachScopeFor,
+  projectOutreachEvidence,
+  type LeaseOutreachEvidenceInput,
+} from "@/lib/lease-renewal/outreach-evidence";
+import {
+  deskRowRenewalStage,
+  renewalStageContextFor,
+} from "@/lib/lease-renewal/renewal-stage-context";
+import {
+  projectRenewalStage,
+  summarizeRenewalStage,
+} from "@/lib/lease-renewal/renewal-stage";
 import { projectLifecycleCategory } from "@/lib/lease-renewal/lifecycle-category";
 import {
   projectMoveOutDisposition,
@@ -712,6 +728,11 @@ interface LiveSummaryContext {
   readonly manualStateAvailable?: boolean;
   /** Today's America/Chicago business date for the read; absent disables ended-lease disclosure. */
   readonly todayIso?: string | null;
+  /**
+   * S248: this lease's linked renewal messages, outreach records and Gmail drafts. Absent means
+   * the caller did not read them, and the staff record alone guides the lease, as before.
+   */
+  readonly outreach?: LeaseOutreachEvidenceInput | null;
 }
 
 /** S124: what one disposition needs beyond the lease view itself. */
@@ -858,8 +879,18 @@ function toLiveSummary(
     ...((manual || renewalPricing?.authority.covered) &&
     (classification.disposition !== "skip" || retention.state === "tracked_incomplete")
       ? {
+          // S248 R-S248-1: the app's own evidence fills what staff have not recorded.
           manualProgress: manualRenewalSummary(manual ?? null, {
             standingOwnerAuthority: renewalPricing?.authority.covered,
+            evidence: context.outreach
+              ? outreachFill(
+                  manual ?? null,
+                  projectOutreachEvidence(
+                    context.outreach,
+                    outreachScopeFor(manual ?? null),
+                  ),
+                )
+              : null,
           }),
           staffRecordedAtIso: staffRecordLatestAtIso(manual),
           // S123: the recorded basis is history; only the comparison with the current provider
@@ -1654,6 +1685,21 @@ function effectiveProgressAfterEvidence(
  * throwing, and never surfaces the underlying error message (PII / config safety).
  */
 /** S119: the bulk staff-status read the desk projects into every row. */
+/** S248: the desk's one bulk read of linked renewal message evidence. */
+export interface RenewalDeskOutreachRead {
+  readonly available: boolean;
+  readonly byLease: ReadonlyMap<string, LeaseOutreachEvidenceInput>;
+}
+
+function outreachInputFor(
+  read: RenewalDeskOutreachRead | undefined,
+  leaseId: string | null | undefined,
+): LeaseOutreachEvidenceInput | null {
+  if (!read || !leaseId) return null;
+  if (!read.available) return UNREADABLE_OUTREACH_EVIDENCE_INPUT;
+  return read.byLease.get(leaseId) ?? EMPTY_OUTREACH_EVIDENCE_INPUT;
+}
+
 export interface RenewalDeskWorkStatusRead {
   readonly available: boolean;
   readonly byLease: ReadonlyMap<string, RenewalWorkStatusRecord>;
@@ -1721,6 +1767,11 @@ export async function loadLiveRenewalDesk(
    * lease end. Absent or unreadable means no decision, so the lease asks again.
    */
   cycleDateDecisions?: ReadonlyMap<string, RenewalCycleDateDecision>,
+  /**
+   * S248: the bulk read of linked renewal messages, outreach records and Gmail drafts. Absent
+   * means not attempted (the staff record alone guides); unavailable derives nothing.
+   */
+  outreachRead?: RenewalDeskOutreachRead,
 ): Promise<LiveRenewalDeskResult> {
   if (!config.ok) return { status: config.reason };
   try {
@@ -1802,26 +1853,43 @@ export async function loadLiveRenewalDesk(
       const manual = classification.leaseId
         ? (manualByLease?.get(classification.leaseId) ?? null)
         : null;
+      const outreach = outreachInputFor(outreachRead, classification.leaseId);
       // S246 ARCH-S246-1: every loaded row leaves with the one target verdict, read from the
       // status table of this same generation. It is an additive field: the table's own
-      // classification, lifecycle and guidance above are unchanged by it.
+      // classification, lifecycle and guidance above are unchanged by it. S247: the row then
+      // carries the one stage and next step, from the projection the lease page reads.
       const withTarget = (
         row: DeskLeaseRow,
         appCompletionCurrent: boolean,
-      ): DeskLeaseRow => ({
-        ...row,
-        renewalTarget: renewalTargetFor({
-          view,
-          classification,
-          moveOut: row.moveOut,
-          manual,
-          statusTable: moveOutInputs.statusTable,
-          appCompletionCurrent,
-          decision: classification.leaseId
-            ? cycleDateDecisions?.get(classification.leaseId)
-            : undefined,
-        }),
-      });
+      ): DeskLeaseRow => {
+        const targeted: DeskLeaseRow = {
+          ...row,
+          // S248: an evidence read that failed says so on the row; it never reads as no evidence.
+          ...(outreach
+            ? { outreachEvidence: outreach.readable ? "read" : "unavailable" }
+            : {}),
+          renewalTarget: renewalTargetFor({
+            view,
+            classification,
+            moveOut: row.moveOut,
+            manual,
+            statusTable: moveOutInputs.statusTable,
+            appCompletionCurrent,
+            decision: classification.leaseId
+              ? cycleDateDecisions?.get(classification.leaseId)
+              : undefined,
+          }),
+        };
+        return {
+          ...targeted,
+          renewalStage: deskRowRenewalStage(
+            targeted,
+            manual,
+            outreach,
+            toDeskCurrency(currency).readAtIso,
+          ),
+        };
+      };
       // S157: the working record is read once for the desk; absent means not attempted.
       const working =
         workingByLease && classification.leaseId
@@ -1835,6 +1903,7 @@ export async function loadLiveRenewalDesk(
       const summaryContext: LiveSummaryContext = {
         manualStateAvailable: workStatusRead?.cyclesAvailable ?? true,
         todayIso: businessDateIso(readTimestamp),
+        outreach,
       };
       const initialSummary = toLiveSummary(
         view,
@@ -2105,6 +2174,8 @@ export async function loadLiveRenewalLeaseWorkspace(
   pricing?: RenewalPricingRead,
   /** S246 R-S246-5: this lease's keep-working decision, when the page read one. */
   cycleDateDecision?: RenewalCycleDateDecision | null,
+  /** S248: this lease's linked renewal message evidence; absent means not read. */
+  outreach?: LeaseOutreachEvidenceInput | null,
 ): Promise<LiveRenewalLeaseWorkspaceResult> {
   if (!config.ok) return { status: config.reason };
   try {
@@ -2206,6 +2277,7 @@ export async function loadLiveRenewalLeaseWorkspace(
       {
         manualStateAvailable: workStatusRead?.cyclesAvailable ?? true,
         todayIso: businessDateIso(readTimestamp),
+        outreach: outreach ?? null,
       },
     );
     // S154: classification and window are context, never an edit grant. Every resolved real
@@ -2304,12 +2376,25 @@ export async function loadLiveRenewalLeaseWorkspace(
       currencyState: currency.state,
       readComplete: complete,
     };
+    const guidance = buildDeskLeaseGuidance(guidanceInput);
+    // S247 ARCH-S247-1: the same stage context and projection the desk row is given.
+    const renewalStageContext = renewalStageContextFor(
+      { ...deskSummary, guidance },
+      outreach ?? null,
+      toDeskCurrency(currency).readAtIso,
+    );
+    const renewalStage = summarizeRenewalStage(
+      projectRenewalStage(manual, renewalStageContext, {
+        standingCovered: deskSummary.renewalPricing?.authority.covered === true,
+      }),
+    );
     const workspace: RenewalLeaseWorkspace = {
-      summary: deskSummary,
+      summary: { ...deskSummary, renewalStage },
+      renewalStageContext,
       // S104: the desk row and this workspace read ONE guidance projection, from the same builder
       // and the same process/data-check/rent inputs, so the two surfaces cannot disagree about
       // status, blockers, or the next action for this lease.
-      guidance: buildDeskLeaseGuidance(guidanceInput),
+      guidance,
       // S142: the Needs-verification cause the same input names, for the action projection.
       verificationCause: deskGuidanceVerificationCause(guidanceInput),
       steps: RENEWAL_STEPS,

@@ -26,6 +26,19 @@ import {
 import type { SheetEditableField } from "@/lib/lease-renewal/sheet-writeback/field-intent";
 import { isOperatingSheetWritebackPaused } from "@/lib/lease-renewal/sheet-writeback-policy";
 import { sheetRuntimeBindingMatches } from "@/lib/lease-renewal/sheet-writeback/runtime-binding";
+import { createHash } from "node:crypto";
+import { getAdminFirestore } from "@/lib/firestore/admin";
+import { recordDerivedSourceUpdate } from "@/lib/firestore/renewal-workspace";
+import {
+  RENEWAL_OUTREACH_RECORD_COLLECTION,
+  readLeaseOutreachEvidence,
+} from "@/lib/firestore/renewal-outreach-records";
+import {
+  OUTREACH_ACTIVITY,
+  outreachFillFor,
+  type OutreachAudience,
+} from "@/lib/lease-renewal/outreach-evidence";
+import { derivedOutreachSheetIntent } from "@/lib/lease-renewal/workspace-state";
 
 const MANUAL_REFERENCE =
   /^workspace:([1-9]\d*):cycle:([a-f0-9-]{36}):manual:([a-f0-9-]{36})$/;
@@ -62,6 +75,102 @@ export async function assertManualSheetProposalCurrent(
       "This staff fact or renewal cycle changed. Prepare its current Sheet update before confirming.",
       409,
     );
+  // S248 R-S248-11: a value from the app's confirmed send stays bound to that message. Once staff
+  // said "This was not the renewal outreach", its Sheet update cannot be confirmed.
+  if (
+    entry.derivedFrom &&
+    (await derivedOutreachCorrected(entry.derivedFrom.occurrenceId))
+  )
+    throw new EditableLayerError(
+      "That message no longer counts as the renewal outreach. Nothing was sent to the Sheet.",
+      409,
+    );
+}
+/** True when staff removed the derived outreach record this Sheet value came from. */
+async function derivedOutreachCorrected(occurrenceId: string): Promise<boolean> {
+  const record = await getAdminFirestore()
+    .collection(RENEWAL_OUTREACH_RECORD_COLLECTION)
+    .doc(occurrenceId)
+    .get();
+  return record.exists && record.get("correction") != null;
+}
+/** S248 R-S248-11: the deterministic event identity of the value one derived record prepares. */
+export function derivedSourceEventId(occurrenceId: string): string {
+  const hex = createHash("sha256")
+    .update(`s248-derived-outreach:${occurrenceId}`)
+    .digest("hex");
+  // Shaped as a version 8 UUID so the existing staff-value identity checks accept it.
+  return [
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    `8${hex.slice(13, 16)}`,
+    `${((parseInt(hex[16]!, 16) & 0x3) | 0x8).toString(16)}${hex.slice(17, 20)}`,
+    hex.slice(20, 32),
+  ].join("-");
+}
+/**
+ * S248 R-S248-11: prepare, never execute, the operating Sheet update a derived outreach record
+ * holds: the same field and Done the staff record of that activity prepares, bound to the exact
+ * message the app's confirmed send recorded. The record is re-derived here from the stored
+ * evidence; applying the update keeps its own exact preview, confirmation, one-attempt claim and
+ * receipt. Owner outreach has no Sheet column, exactly as for a staff record.
+ */
+export async function prepareDerivedWorkspaceSheetUpdate(
+  actor: AuthenticatedUser,
+  input: {
+    leaseId: string;
+    cycleId: string;
+    audience: OutreachAudience;
+    sequenceId: string;
+    occurrenceId: string;
+  },
+) {
+  assertMutationAllowed(requireEnvironmentDescriptor());
+  if (isOperatingSheetWritebackPaused())
+    throw new EditableLayerError(
+      "Saved in app; Sheet updates paused. No proposal was created.",
+      409,
+    );
+  const activity = OUTREACH_ACTIVITY[input.audience];
+  const intent = derivedOutreachSheetIntent(activity);
+  if (!intent)
+    throw new EditableLayerError(
+      "Owner outreach has no operating Sheet column, so there is no Sheet update to prepare.",
+      409,
+    );
+  const state = await getRenewalWorkspace(actor, input.leaseId);
+  if (!state || state.cycleId !== input.cycleId)
+    throw new EditableLayerError(
+      "This lease's work record changed. Reload the current activity.",
+      409,
+    );
+  const evidence = await readLeaseOutreachEvidence(input.leaseId);
+  const derived = outreachFillFor(state, { input: evidence, cycleDateIso: null })?.[
+    activity
+  ];
+  if (
+    !derived ||
+    derived.sequenceId !== input.sequenceId ||
+    derived.occurrenceId !== input.occurrenceId
+  )
+    throw new EditableLayerError(
+      "That message no longer records this step. Reload the lease.",
+      409,
+    );
+  const eventId = derivedSourceEventId(input.occurrenceId);
+  await recordDerivedSourceUpdate(actor, {
+    leaseId: input.leaseId,
+    cycleId: input.cycleId,
+    eventId,
+    intent,
+    derivedFrom: { sequenceId: input.sequenceId, occurrenceId: input.occurrenceId },
+  });
+  return prepareWorkspaceSheetUpdate(actor, {
+    leaseId: input.leaseId,
+    cycleId: input.cycleId,
+    field: intent.field,
+    eventId,
+  });
 }
 /** Receipt lookup uses the real execution store. Matching provider values alone never settle this. */
 export async function syncManualSheetReceipt(

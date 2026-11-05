@@ -211,7 +211,13 @@ async function mount(state: RenewalWorkspaceState | null) {
   const base = actionFixture({ manual: state }).workspace;
   const workspace = { ...base, summary: { ...base.summary, id: LEASE } };
   const view = render(
-    h(RenewalWorkspace, { workspace, role: testState.role, manualState: state }),
+    // S247: the lease opens in Guided view; this Focus journey opens Focus view by its address.
+    h(RenewalWorkspace, {
+      workspace,
+      role: testState.role,
+      manualState: state,
+      viewParam: "focus",
+    }),
   );
   // S152: the lease opens in Focus view; the view switch is the sign the dashboard rendered.
   await screen.findByRole("button", { name: "Full view" });

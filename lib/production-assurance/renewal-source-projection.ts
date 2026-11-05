@@ -21,12 +21,20 @@ export const INDEPENDENT_STAFF_LANE_CONTRACT_MARKER = "s156-staff-lane";
  * tenant has the move. Read under the staff-lane rule set with that waiting rule.
  */
 export const INDEPENDENT_ONE_STATUS_CONTRACT_MARKER = "s232-one-status";
+/**
+ * S248: the S232 one-status rules, with the app's own renewal message evidence filling the staff
+ * record (an accepted owner or tenant message records that outreach; an observed reply hands the
+ * move back to the team). Read under the staff-lane rule set with S232's waiting rule and the
+ * oracle's own independent evidence reading.
+ */
+export const INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER = "s248-evidence-stage";
 /** The rule set one desk row is verified under. */
 export type IndependentGuidanceContract = "predecessor" | "staff_lane";
 /** What a caller may require of every row: a staff-lane marker, or no marker at all. */
 export type IndependentExpectedContractMarker =
   | typeof INDEPENDENT_STAFF_LANE_CONTRACT_MARKER
   | typeof INDEPENDENT_ONE_STATUS_CONTRACT_MARKER
+  | typeof INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER
   | "none";
 
 /** The staff-lane waiting rule a marker names: S156's response step or S232's awaited party. */
@@ -34,7 +42,8 @@ export type IndependentStaffLaneWaitingRule = "response_step" | "awaited_party";
 export function independentStaffLaneWaitingRule(
   marker: string | null,
 ): IndependentStaffLaneWaitingRule {
-  return marker === INDEPENDENT_ONE_STATUS_CONTRACT_MARKER
+  return marker === INDEPENDENT_ONE_STATUS_CONTRACT_MARKER ||
+    marker === INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER
     ? "awaited_party"
     : "response_step";
 }
@@ -661,6 +670,7 @@ export function countIndependentContractMarkerMismatches(
     null,
     INDEPENDENT_STAFF_LANE_CONTRACT_MARKER,
     INDEPENDENT_ONE_STATUS_CONTRACT_MARKER,
+    INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER,
   ].map((value) => markers.filter((marker) => marker === value).length);
   const recognised = groups.reduce((sum, count) => sum + count, 0);
   return markers.length - recognised + (recognised - Math.max(...groups));
@@ -1599,4 +1609,31 @@ function compareRows(
 
 function digestInMemory(value: unknown): string {
   return createHash("sha256").update(JSON.stringify(value)).digest("hex");
+}
+
+/** S248: true when the marker (or the caller-named contract) reads the app's own evidence. */
+export function independentContractReadsEvidence(
+  marker: string | null,
+  expected?: IndependentExpectedContractMarker,
+): boolean {
+  return (
+    (expected !== undefined ? expected : marker) ===
+    INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER
+  );
+}
+
+/**
+ * S248: a row read under the evidence-stage rules whose own `data-outreach-evidence` says the
+ * application could not read its renewal message evidence. Only that exact value counts; a missing
+ * or other value is read as evidence the row claims to hold.
+ */
+export function independentRowEvidenceUnavailable(
+  marker: string | null,
+  expected: IndependentExpectedContractMarker | undefined,
+  outreachEvidence: string | null,
+): boolean {
+  return (
+    independentContractReadsEvidence(marker, expected) &&
+    outreachEvidence === "unavailable"
+  );
 }

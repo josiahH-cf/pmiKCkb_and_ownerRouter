@@ -78,17 +78,20 @@ function focusFixture(
         return {
           ...locator(options.switches ?? 1, options.switchVisible ?? true),
           getByRole: (_role: string, inner: { name: string }) =>
-            inner.name === "Focus view"
-              ? locator(
-                  1,
-                  true,
-                  options.focusPressed === undefined ? "true" : options.focusPressed,
-                )
-              : locator(
-                  options.fullButtons ?? 1,
-                  true,
-                  options.fullPressed === undefined ? "false" : options.fullPressed,
-                ),
+            // S247: the S152 predecessor's switch offers no Guided view.
+            inner.name === "Guided view"
+              ? locator(0)
+              : inner.name === "Focus view"
+                ? locator(
+                    1,
+                    true,
+                    options.focusPressed === undefined ? "true" : options.focusPressed,
+                  )
+                : locator(
+                    options.fullButtons ?? 1,
+                    true,
+                    options.fullPressed === undefined ? "false" : options.fullPressed,
+                  ),
         };
       if (role === "region" && args.name === "Focus view")
         return locator(options.panes ?? 1, options.paneVisible ?? true);
@@ -97,7 +100,147 @@ function focusFixture(
     },
   } as unknown as Page;
 }
+/** S247: a lease that opened in Guided view, rendered exactly as the contract names it. */
+interface GuidedOptions {
+  switchButtons?: number;
+  pressed?: Partial<Record<"Guided view" | "Focus view" | "Full view", string | null>>;
+  regions?: number;
+  regionVisible?: boolean;
+  focusRegions?: number;
+  paths?: number;
+  steps?: readonly string[];
+  currentSteps?: number;
+  nows?: number;
+  primaries?: number;
+  primaryVisible?: boolean;
+  sectionNavs?: number;
+  sectionLinks?: number;
+  badSectionHref?: boolean;
+  hiddenSectionLink?: boolean;
+}
+const GUIDED_STEPS = [
+  "Check the numbers",
+  "Compare market rent",
+  "Ask the owner",
+  "Offer the tenant",
+  "Documents and signatures",
+  "Finish up",
+  "Complete",
+] as const;
+function guidedFixture(options: GuidedOptions = {}): Page {
+  const locator = (count: number, visible = true, attribute?: string | null) => ({
+    count: async () => count,
+    isVisible: async () => visible,
+    getAttribute: async () => attribute ?? null,
+  });
+  const pressed = {
+    "Guided view": "true",
+    "Focus view": "false",
+    "Full view": "false",
+    ...options.pressed,
+  } as Record<string, string | null>;
+  const steps = options.steps ?? GUIDED_STEPS;
+  const path = {
+    ...locator(options.paths ?? 1),
+    getByRole: () => ({
+      count: async () => steps.length,
+      nth: (index: number) => ({ textContent: async () => steps[index] ?? null }),
+    }),
+    locator: () => locator(options.currentSteps ?? 1),
+  };
+  const now = {
+    ...locator(options.nows ?? 1),
+    locator: () => locator(options.primaries ?? 1, options.primaryVisible ?? true),
+  };
+  const sections = {
+    ...locator(options.sectionNavs ?? 1),
+    getByRole: (_role: string, args?: { name?: string }) =>
+      args?.name
+        ? locator(
+            names.includes(args.name) ? 1 : 0,
+            !(options.hiddenSectionLink && args.name === names[2]),
+            options.badSectionHref && args.name === names[1]
+              ? "#renewal-section-owner"
+              : `#renewal-section-${ids[names.indexOf(args.name)]}`,
+          )
+        : locator(options.sectionLinks ?? 5),
+  };
+  const region = {
+    ...locator(options.regions ?? 1, options.regionVisible ?? true),
+    getByRole: (role: string, args: { name: string }) =>
+      role === "navigation" && args.name === "Renewal path"
+        ? path
+        : role === "region" && args.name === "Now"
+          ? now
+          : role === "navigation" && args.name === "Every section in Full view"
+            ? sections
+            : locator(0),
+  };
+  return {
+    getByRole: (role: string, args: { name: string }) => {
+      if (role === "group" && args.name === "Lease view")
+        return {
+          ...locator(1),
+          getByRole: (_role: string, inner?: { name: string }) =>
+            inner?.name
+              ? locator(
+                  ["Guided view", "Focus view", "Full view"].includes(inner.name) ? 1 : 0,
+                  true,
+                  pressed[inner.name],
+                )
+              : locator(options.switchButtons ?? 3),
+        };
+      if (role === "region" && args.name === "Guided view") return region;
+      if (role === "region" && args.name === "Focus view")
+        return locator(options.focusRegions ?? 0);
+      // No Full view section navigation and no legacy phase navigation on a Guided page.
+      return { ...locator(0), getByRole: () => locator(0) };
+    },
+  } as unknown as Page;
+}
 describe("S113 candidate and captured predecessor workspace landmarks", () => {
+  it("S247: accepts a lease that opened in Guided view only with its exact contract", async () => {
+    expect(await hasRenewalWorkspaceLandmarks(guidedFixture())).toBe(true);
+    // A month-to-month lease's path starts with its review step.
+    expect(
+      await hasRenewalWorkspaceLandmarks(
+        guidedFixture({ steps: ["Month-to-month review", ...GUIDED_STEPS] }),
+      ),
+    ).toBe(true);
+    for (const options of [
+      { switchButtons: 2 },
+      { switchButtons: 4 },
+      { pressed: { "Guided view": "false" } },
+      { pressed: { "Guided view": null } },
+      { pressed: { "Focus view": "true" } },
+      { pressed: { "Full view": "true" } },
+      { regions: 0 },
+      { regions: 2 },
+      { regionVisible: false },
+      { focusRegions: 1 },
+      { paths: 0 },
+      { paths: 2 },
+      { steps: GUIDED_STEPS.slice(0, 6) },
+      { steps: [...GUIDED_STEPS].reverse() },
+      { steps: ["Compare market rent", ...GUIDED_STEPS.slice(1)] },
+      { currentSteps: 0 },
+      { currentSteps: 2 },
+      { nows: 0 },
+      { nows: 2 },
+      { primaries: 0 },
+      { primaries: 2 },
+      { primaryVisible: false },
+      { sectionNavs: 0 },
+      { sectionLinks: 4 },
+      { badSectionHref: true },
+      { hiddenSectionLink: true },
+    ] satisfies GuidedOptions[])
+      expect(
+        await hasRenewalWorkspaceLandmarks(guidedFixture(options)),
+        JSON.stringify(options),
+      ).toBe(false);
+  });
+
   it("separates observed framework prefetch cancellation from failed navigation, API reads and mutations", () => {
     const origin = "https://app.example";
     const request = {

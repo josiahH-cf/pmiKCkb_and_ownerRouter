@@ -14,6 +14,10 @@ import type {
 } from "@/lib/lease-renewal/lifecycle-category";
 import type { manualRenewalSummary } from "@/lib/lease-renewal/workspace-state";
 import type { RenewalTargetProjection } from "@/lib/lease-renewal/renewal-target";
+import type {
+  RenewalStageContext,
+  RenewalStageSummary,
+} from "@/lib/lease-renewal/renewal-stage";
 // Neutral Renewal Desk view contracts shared by the authenticated Live surfaces.
 //
 // This module contains no records, fixtures, or constructors. Deterministic sample data belongs in
@@ -258,6 +262,16 @@ export interface DeskLeaseSummaryBase {
    * table's own columns are unchanged by it. Absent only when a caller did not project it.
    */
   renewalTarget?: RenewalTargetProjection;
+  /**
+   * S247 R-S247-3: the one stage and next step, from the same projection the lease page's guided
+   * view reads (S248 evidence included). Absent only when a caller did not project it.
+   */
+  renewalStage?: RenewalStageSummary;
+  /**
+   * S248: whether this row's renewal message evidence was read ("read") or its read failed
+   * ("unavailable", so the stage reads the staff record alone). Absent when no read was made.
+   */
+  outreachEvidence?: "read" | "unavailable";
   processVersion: string | null;
   workflowStepId: string | null;
   stageIndex: number;
@@ -469,4 +483,10 @@ export interface RenewalLeaseWorkspace {
    * base rent. It never feeds verification, proposals, drafts, or the Sheet comparison.
    */
   unitListedRent?: number;
+  /**
+   * S247: the stage projection's context for this lease, built from the same row the desk
+   * renders, so the guided view recomputes the stage from the live staff record with the same
+   * facts. Absent on a sample workspace; the guided view then reads the staff record alone.
+   */
+  renewalStageContext?: RenewalStageContext;
 }

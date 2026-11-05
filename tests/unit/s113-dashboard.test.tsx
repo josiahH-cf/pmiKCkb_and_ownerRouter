@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { focusRenewalDashboardControl } from "@/components/lease-renewal/RenewalDashboardNavigation";
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
@@ -80,10 +80,12 @@ describe("S113 F1 consolidated dashboard", () => {
     }
   });
 
-  it("gives next actions a mounted keyboard-focusable target", () => {
+  it("gives next actions a mounted keyboard-focusable target", async () => {
     // S156 (8a3f929d): the suggested next action is a staff-lane control, mounted by the
     // consolidated dashboard. S152: the lease opens in Focus view, so the Full view link is read
-    // through the hidden tree; its target is the chosen task's own disclosure.
+    // through the hidden tree; its target is the chosen task's own disclosure. S247: the lease
+    // opens in Guided view; the request chooses the path step that holds the control, which is
+    // then revealed and focused.
     const workspace = getRenewalLeaseWorkspace("lease-318-cedar-7")!;
     const { container } = render(
       <RenewalWorkspace workspace={workspace} manualState={null} />,
@@ -93,8 +95,10 @@ describe("S113 F1 consolidated dashboard", () => {
     expect(fragment).toBe("#renewal-manual-owner_outreach");
     const target = container.querySelector(fragment);
     expect(target).not.toBeNull();
-    focusRenewalDashboardControl(fragment.slice(1));
-    expect(target).toHaveAttribute("open");
+    act(() => {
+      focusRenewalDashboardControl(fragment.slice(1));
+    });
+    await waitFor(() => expect(target).toHaveAttribute("open"));
     expect(target!.contains(document.activeElement)).toBe(true);
     expect(document.activeElement).toHaveAttribute("data-renewal-next-control");
   });

@@ -322,12 +322,14 @@ describe("S246 one short row and opening a lease (R-S246-7, R-S246-8, BEH-S246-3
     open();
     const row = batchRow(list("this_batch")!, S246_LEASES.activeInMonth);
     expect(row).toHaveAttribute("data-batch-row-kind", "work");
-    const href = `${DESK}/lease/${S246_LEASES.activeInMonth}?step=owner-decision#renewal-manual-owner_outreach`;
+    // S247 R-S247-3: the next step is the lease's current path step from the one stage projection,
+    // and it opens the lease in Guided view at that step.
+    const href = `${DESK}/lease/${S246_LEASES.activeInMonth}?step=check-numbers`;
     const links = within(row).getAllByRole("link");
     // The row's own link and its one next step; both open the lease at its current step.
     expect(links.map((link) => link.textContent)).toEqual([
       title(S246_LEASES.activeInMonth),
-      "Owner outreach",
+      "Check the numbers",
     ]);
     for (const link of links) {
       expect(link).toHaveAttribute("href", href);
@@ -340,9 +342,7 @@ describe("S246 one short row and opening a lease (R-S246-7, R-S246-8, BEH-S246-3
     expect(within(row).getByText("Ends 12/31/2026")).toBeInTheDocument();
     const stage = row.querySelectorAll(".renewal-batch-stage");
     expect(stage).toHaveLength(1);
-    expect(stage[0]).toHaveTextContent(
-      "Ready, waiting on the PMI KC team, nothing recorded yet",
-    );
+    expect(stage[0]).toHaveTextContent("Verifying lease and rent, nothing recorded yet");
     expect(row.querySelectorAll("[data-batch-tag]").length).toBeLessThanOrEqual(3);
     expect(within(row).queryByRole("button")).toBeNull();
     // No row anywhere in the batch carries a name filter or opens a second tab.

@@ -244,11 +244,13 @@ describe("S246 one short row (R-S246-7) and its seams", () => {
     expect(row.address).toContain("Sample St");
     expect(row.tenants).toEqual(["Avery Example"]);
     expect(row.dateLabel).toBe("Ends 12/31/2026");
-    expect(row.stageLine).toBe("Ready, waiting on the PMI KC team, nothing recorded yet");
+    // S247 R-S247-3 replaces this seam with the one stage projection: a lease with nothing
+    // recorded whose current rent still needs a check stands at the path's first open step.
+    expect(row.stageLine).toBe("Verifying lease and rent, nothing recorded yet");
     expect(row.nextStep).toEqual({
-      label: "Owner outreach",
-      stepId: "owner-decision",
-      controlId: "renewal-manual-owner_outreach",
+      label: "Check the numbers",
+      stepId: "check-numbers",
+      controlId: null,
     });
     expect(row.tags.length).toBeLessThanOrEqual(3);
     expect(row.canOpen).toBe(true);
@@ -256,8 +258,10 @@ describe("S246 one short row (R-S246-7) and its seams", () => {
       (entry) => entry.leaseId === S246_LEASES.endedWithoutOutcome,
     )!;
     expect(ended.dateLabel).toBe("Ended 10/31/2026");
-    // A classification label is context, never a next step.
-    expect(ended.nextStep.label).toBe("Open the lease");
+    // A classification label is context, never a next step. S247: the next step is the lease's
+    // current path step, the same one its page and the assistant name.
+    expect(ended.nextStep.label).toBe("Check the numbers");
+    expect(ended.nextStep.stepId).toBe("check-numbers");
     const review = rows.find((entry) => entry.leaseId === S246_LEASES.monthToMonthDue)!;
     expect(review.dateLabel).toBe("Review due 12/10/2026");
   });

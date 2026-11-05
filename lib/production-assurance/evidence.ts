@@ -220,6 +220,7 @@ function assertReconciliation(value: unknown): void {
       "mismatch",
       "inconclusive_source_changed",
       "inconclusive_source_unavailable",
+      "inconclusive_evidence_unavailable",
     ] as const)
   ) {
     throw new Error("Reconciliation state is invalid.");

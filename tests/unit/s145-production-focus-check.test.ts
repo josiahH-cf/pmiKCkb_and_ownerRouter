@@ -8,6 +8,7 @@ import {
   classifyRequest,
   maskedRequest,
   parseFocusCheckArgs,
+  resolveDefaultLeaseView,
   workspacePaths,
 } from "@/scripts/check-production-focus";
 import { describeSignatureDifference } from "@/scripts/lib/renewal-focus-signature.mjs";
@@ -123,5 +124,25 @@ describe("S145 production Focus check helpers", () => {
       "copy 1->1 at [0] sections renewal-section-owner; controls 1->1 at [0]; hidden 0->3",
     );
     expect(described).not.toMatch(/private|typed|value/i);
+  });
+});
+
+describe("S247 production Focus check: the three-way lease view control", () => {
+  it("accepts exactly one pressed view, and only Guided view as the default", () => {
+    expect(resolveDefaultLeaseView({ guided: true, focus: false, full: false })).toBe(
+      "Guided view",
+    );
+    expect(() =>
+      resolveDefaultLeaseView({ guided: false, focus: true, full: false }),
+    ).toThrow("view_default_not_guided");
+    expect(() =>
+      resolveDefaultLeaseView({ guided: false, focus: false, full: true }),
+    ).toThrow("view_default_not_guided");
+    expect(() =>
+      resolveDefaultLeaseView({ guided: true, focus: true, full: false }),
+    ).toThrow("view_default_not_exclusive");
+    expect(() =>
+      resolveDefaultLeaseView({ guided: false, focus: false, full: false }),
+    ).toThrow("view_default_not_exclusive");
   });
 });

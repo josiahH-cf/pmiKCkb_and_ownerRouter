@@ -135,8 +135,11 @@ function setup() {
   fixture.decision.mockResolvedValue(KEPT);
 }
 
-/** The keep-working choice the page handed to the lease projection (its last argument). */
-const decisionPassed = () => fixture.project.mock.calls[0]?.at(-1);
+/**
+ * The keep-working choice the page handed to the lease projection. S248 appends one argument
+ * after it (the lease's renewal message evidence), so the choice is the one before the last.
+ */
+const decisionPassed = () => fixture.project.mock.calls[0]?.at(-2);
 
 describe("S246 the lease page's keep-working choice read", () => {
   it("starts with the page's other independent reads, while they are still pending", async () => {

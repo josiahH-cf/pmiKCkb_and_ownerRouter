@@ -46,6 +46,7 @@ import {
   type CommunicationAttachment,
   type CommunicationAuthorization,
   type CommunicationInboundEvidence,
+  type CommunicationOccurrence,
   type CommunicationSequence,
   type SequenceDraft,
   type VerifiedCommunicationTarget,
@@ -86,6 +87,16 @@ export interface CommunicationSequenceDependencies {
     actor: AuthenticatedUser,
     context: WorkflowCommunicationContext,
   ): Promise<CommunicationSequence["linkedThreads"]>;
+  /**
+   * S248 ARCH-S248-2: after Gmail accepted a message and the send settled, record the renewal
+   * outreach once for that exact message. It runs after the send and never decides it: a failure
+   * here is swallowed, so the send is neither repeated nor failed by it.
+   */
+  recordAcceptedSend?(
+    sequence: CommunicationSequence,
+    occurrence: CommunicationOccurrence & { gmailMessageId: string },
+    sentAtMs: number,
+  ): Promise<void>;
 }
 export function assertCommunicationStaff(
   actor: AuthenticatedUser,
@@ -550,6 +561,10 @@ export class WorkflowCommunicationSequenceService {
           ...(target.noticeCycleId !== undefined
             ? { noticeCycleId: target.noticeCycleId }
             : {}),
+          authorizationOperation: {
+            id: input.operationId,
+            revision: authorization.revision,
+          },
           linkedThreads: [
             ...new Map(
               [...c.linkedThreads, ...linkedThreads].map((t) => [
@@ -983,14 +998,13 @@ export class WorkflowCommunicationSequenceService {
         readback.threadId !== sent.threadId
       )
         throw new Error("Exact send readback is unavailable.");
-      return {
-        status: "sent",
-        sequence: await this.deps.store.settle(o, {
-          nowMs: this.now(),
-          result: readback,
-          sentAtMs: readback.sentAtMs,
-        }),
-      };
+      const settled = await this.deps.store.settle(o, {
+        nowMs: this.now(),
+        result: readback,
+        sentAtMs: readback.sentAtMs,
+      });
+      await this.recordAccepted(settled, o, readback.messageId, readback.sentAtMs);
+      return { status: "sent", sequence: settled };
     } catch (error) {
       const ambiguous =
         attempted && (!(error instanceof GmailRuntimeError) || error.ambiguous);
@@ -1058,7 +1072,34 @@ export class WorkflowCommunicationSequenceService {
       result,
       sentAtMs: result.sentAtMs,
     });
+    await this.recordAccepted(s, o, result.messageId, result.sentAtMs);
     return this.observe(s);
+  }
+  /**
+   * S248 ARCH-S248-2: the outreach record for a settled, accepted send. Only a message the settled
+   * communication holds as sent is recorded; any failure is swallowed, so the next read rebuilds
+   * the same fact from the communication's delivery evidence.
+   */
+  private async recordAccepted(
+    sequence: CommunicationSequence,
+    occurrence: CommunicationOccurrence,
+    gmailMessageId: string,
+    sentAtMs: number,
+  ): Promise<void> {
+    if (!this.deps.recordAcceptedSend) return;
+    if (
+      !sequence.threads.some((thread) => thread.rfcMessageId === occurrence.rfcMessageId)
+    )
+      return;
+    try {
+      await this.deps.recordAcceptedSend(
+        sequence,
+        { ...occurrence, state: "sent", gmailMessageId, sentAtMs },
+        sentAtMs,
+      );
+    } catch {
+      // The record is rebuilt on read from the delivery evidence (ARCH-S248-2).
+    }
   }
   private client(mailbox: string) {
     const client = this.deps.createClient(mailbox);

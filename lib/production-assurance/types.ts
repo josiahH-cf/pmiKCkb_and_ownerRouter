@@ -67,7 +67,9 @@ export type ReconciliationState =
   | "matched"
   | "mismatch"
   | "inconclusive_source_changed"
-  | "inconclusive_source_unavailable";
+  | "inconclusive_source_unavailable"
+  /** S248: the application could not read renewal message evidence for some rendered rows. */
+  | "inconclusive_evidence_unavailable";
 
 export interface ReconciliationCounts {
   readonly sourceRecords: number;
@@ -106,6 +108,7 @@ export const OBSERVATION_REASONS = [
   "reconciliation_mismatch",
   "source_changed",
   "source_unavailable",
+  "evidence_unavailable",
   "monitoring_unavailable",
   "candidate_5xx",
   "unresolved_live_effect",

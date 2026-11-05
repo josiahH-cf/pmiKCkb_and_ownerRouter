@@ -9,6 +9,8 @@ import { packetEconomics } from "@/lib/lease-documents/owner-approval-binding";
 import { ownerRosterFingerprint } from "@/lib/firestore/renewal-workspace";
 import { projectRenewalDeskIdentity } from "@/lib/lease-renewal/desk-identity";
 import { listLeaseOwnerReplies } from "@/lib/gmail-hub/sequence-store";
+import { readLeaseOutreachEvidence } from "@/lib/firestore/renewal-outreach-records";
+import { UNREADABLE_OUTREACH_EVIDENCE_INPUT } from "@/lib/lease-renewal/outreach-evidence";
 import type { OwnerApprovalChoices } from "@/lib/lease-renewal/owner-approval-evidence";
 import { readRenewalPricingForViews } from "@/lib/lease-renewal/pricing-policy-read";
 import { RenewalDeskReturnLink } from "@/components/lease-renewal/RenewalDeskReturnLink";
@@ -169,6 +171,8 @@ export default async function LiveRenewalLeaseWorkspacePage({
   const { leaseId } = await params;
   const search = (await searchParams) ?? {};
   const stepParam = Array.isArray(search.step) ? search.step[0] : search.step;
+  // S247: a view chosen by hand lasts for the visit through this key; Guided view otherwise.
+  const viewParam = Array.isArray(search.view) ? search.view[0] : search.view;
   const rawDeskView = Array.isArray(search.deskView)
     ? search.deskView[0]
     : search.deskView;
@@ -202,6 +206,11 @@ export default async function LiveRenewalLeaseWorkspacePage({
   // none and never holds the page.
   const cycleDateDecisionPromise = withReadDeadline(() =>
     getRenewalCycleDateDecision(user, leaseId),
+  ).catch(() => null);
+  // S248: this lease's linked renewal messages, outreach records and Gmail drafts, read-only and
+  // with the same bounded wait.
+  const outreachEvidencePromise = withReadDeadline(() =>
+    readLeaseOutreachEvidence(leaseId),
   ).catch(() => null);
   // Independent genuine reads start after both access guards, alongside the lease snapshot.
   // Every result retains its typed failure; there is no cache or provider effect on navigation.
@@ -465,6 +474,8 @@ export default async function LiveRenewalLeaseWorkspacePage({
     renewalAuxiliaryValue(workingRecordRead, null),
     pricingRead.status === "available" ? pricingRead.value : undefined,
     cycleDateDecision,
+    // S248: unreadable evidence derives nothing; the stage then reads the staff record alone.
+    (await outreachEvidencePromise) ?? UNREADABLE_OUTREACH_EVIDENCE_INPUT,
   );
   const dispositions = renewalAuxiliaryValue(dispositionsRead, []);
   const writebackProposal = renewalAuxiliaryValue(writebackProposalRead, null);
@@ -797,6 +808,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
                 : [];
             })}
             selectedStepId={stepParam}
+            viewParam={viewParam}
             sheetDestination={sheetDestination}
             sheetLookup={{
               workspaceContext: sheetWorkspaceContext,

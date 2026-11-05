@@ -2323,6 +2323,135 @@ label.secondary-button:focus-within {
   gap: var(--space-2);
 }
 
+/* S247: the Guided view. The path strip is one wrapping row, so the stage, the strip and the Now
+   card's primary action fit the first screen at 1280 by 800 and within two screens at 390 wide. */
+.renewal-guided {
+  gap: var(--space-2);
+}
+
+.renewal-guided-stage {
+  font-weight: 700;
+  margin: 0;
+}
+
+.renewal-path-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.renewal-path-step {
+  align-items: baseline;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.renewal-path-button {
+  background: transparent;
+  border: 1px solid var(--ui-border-interactive);
+  border-radius: var(--radius-pill);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  padding: var(--space-1) var(--space-2);
+}
+
+.renewal-path-button[aria-pressed="true"] {
+  border-color: var(--action-primary);
+  box-shadow: inset 0 0 0 1px var(--action-primary);
+  font-weight: 700;
+}
+
+.renewal-path-button[aria-current="step"] {
+  background: var(--action-secondary-hover);
+}
+
+.renewal-path-step[data-renewal-path-state="not_part"] .renewal-path-button {
+  border-style: dashed;
+}
+
+.renewal-path-state {
+  font-size: 0.8125rem;
+  padding-inline: var(--space-2);
+}
+
+.renewal-now-card {
+  border: 1px solid var(--ui-border-strong);
+  border-radius: var(--radius-md);
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
+
+.renewal-now-card > p,
+.renewal-now-card > h2 {
+  margin: 0;
+}
+
+.renewal-now-facts {
+  display: grid;
+  gap: var(--space-1) var(--space-3);
+  grid-template-columns: max-content 1fr;
+  margin: 0;
+}
+
+.renewal-now-facts > div {
+  display: contents;
+}
+
+.renewal-now-facts dt {
+  font-weight: 600;
+}
+
+.renewal-now-facts dd {
+  margin: 0;
+}
+
+.renewal-now-secondary {
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.renewal-guided-sections ul {
+  flex-wrap: wrap;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+@media (max-width: 640px) {
+  .renewal-now-facts {
+    grid-template-columns: 1fr;
+  }
+
+  /* R-S247-10: at phone width the three views share one row and the path strip is compact, so
+     the Now card's primary action stays within two screens. Buttons keep their touch height. */
+  .renewal-view-switch[data-renewal-view-switch] {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .renewal-view-switch[data-renewal-view-switch] .renewal-view-switch-button {
+    padding-inline: var(--space-1);
+  }
+
+  .renewal-path-steps {
+    gap: var(--space-1);
+  }
+
+  .renewal-path-button {
+    font-size: 0.875rem;
+  }
+
+  .renewal-path-state {
+    font-size: 0.75rem;
+  }
+}
+
 .renewal-focus-pane .text-link {
   margin-bottom: 0;
 }

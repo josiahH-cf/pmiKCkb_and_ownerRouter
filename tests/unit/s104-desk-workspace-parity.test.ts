@@ -156,7 +156,7 @@ describe("S104 desk and workspace parity (ARCH-S104-1 / BEH-S104-1)", () => {
     expect(workspace.summary.disposition).toBe("periodic_review");
     expect(workspace.live).toMatchObject({ leaseId: "7003" });
     expect(workspace.guidance).toMatchObject({
-      contract: "s232-one-status",
+      contract: "s248-evidence-stage",
       overallStatus: "ready",
       isBlocked: false,
       blockers: [],

@@ -102,6 +102,8 @@ export function evaluateReleaseObservation(
     holdReasons.push("source_changed");
   } else if (input.reconciliation.state === "inconclusive_source_unavailable") {
     holdReasons.push("source_unavailable");
+  } else if (input.reconciliation.state === "inconclusive_evidence_unavailable") {
+    holdReasons.push("evidence_unavailable");
   }
 
   if (!input.monitoring.configurationReady) {

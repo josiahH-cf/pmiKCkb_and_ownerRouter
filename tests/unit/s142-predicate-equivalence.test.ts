@@ -41,6 +41,10 @@ import {
 // the marker held at its S156 value the diff was exactly the 16 guidance outputs of the "revision"
 // and "counter" cases; the marker then changes every one of the 72 guidance outputs; no manual
 // summary changed.
+// S248 re-baseline: the guidance contract marker becomes "s248-evidence-stage" (the staff record
+// filled by the app's own renewal message evidence). Re-recorded once: with the marker held at its
+// S232 value every output was unchanged; the marker then changes every one of the 72 guidance
+// outputs; no manual summary changed (this matrix carries no evidence).
 
 const FIXTURE_PATH = join(__dirname, "..", "fixtures", "s142-predicate-equivalence.json");
 const CYCLE_ID = "b4bc3b81-c402-4f62-a2e2-c605c67867fb";

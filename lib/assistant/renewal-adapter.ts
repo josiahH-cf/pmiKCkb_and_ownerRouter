@@ -84,6 +84,9 @@ function renewalDetail(row: DeskLeaseRow, leaseResolved: boolean): string {
     tenantIdentity(row),
     row.reasonLabel,
     date,
+    // S247 R-S247-3: the same stage line and next step as the desk row and the lease page.
+    row.renewalStage ? row.renewalStage.stageLine : null,
+    row.renewalStage ? `Next step: ${row.renewalStage.nextStep.label}` : null,
     leaseResolved ? null : "Lease record not resolved, so this opens the Renewals desk",
   ]
     .filter((part): part is string => Boolean(part))
@@ -96,6 +99,9 @@ function renewalDetail(row: DeskLeaseRow, leaseResolved: boolean): string {
  * id. The assistant builds no provider URL and never derives a link from a name.
  */
 function leaseHref(row: DeskLeaseRow): string | null {
+  // S247: the lease opens in the guided view at the step the one stage projection names.
+  if (row.renewalStage)
+    return leaseWorkspaceHrefOrNull(row.id, row.renewalStage.nextStep.stepId);
   const action = row.guidance.action;
   const destination = "destination" in action ? action.destination : null;
   const stepId = destination?.kind === "workspace_phase" ? destination.stepId : undefined;

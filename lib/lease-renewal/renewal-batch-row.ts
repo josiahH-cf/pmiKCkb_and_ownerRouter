@@ -43,17 +43,33 @@ const OPEN_LEASE_LABEL = "Open the lease";
 type StageSourceRow = Pick<
   DeskLeaseRow,
   "guidance" | "manualProgress" | "staffRecordedAtIso" | "staffRecordUnavailable"
-> & { readonly followUp?: DeskLeaseRow["followUp"] };
+> & {
+  readonly followUp?: DeskLeaseRow["followUp"];
+  readonly renewalStage?: DeskLeaseRow["renewalStage"];
+};
 
 /**
- * The batch row's one stage line and one next step. Today both come from the existing S232
- * status projection and the desk guidance action; a later stage projection replaces this one
- * function and nothing else on the row.
+ * The batch row's one stage line and one next step. S247: both come from the one stage
+ * projection the row carries (`row.renewalStage`), the same one the lease page's guided view and
+ * the assistant read. The next step opens the lease at its current path step in the guided view.
+ * A row built without the projection keeps the S232 status and guidance action it had before.
  */
 export function renewalBatchRowStage(
   row: StageSourceRow,
   sourceReadAtIso: string | null,
 ): RenewalBatchRowStage {
+  const projected = row.renewalStage;
+  if (projected)
+    return {
+      stageLine: projected.stageLine,
+      nextStep: {
+        label: projected.nextStep.label,
+        stepId: projected.nextStep.stepId,
+        controlId: null,
+      },
+      needsCheck: projected.needsCheck,
+      checkDetail: projected.checkDetail,
+    };
   const status = projectLeaseWorkStatus(deskLeaseWorkStatusInput(row, sourceReadAtIso));
   const lines = leaseWorkStatusLines(status);
   const action = row.guidance.action;

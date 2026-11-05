@@ -13,7 +13,10 @@ import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
 import { RenewalMarketBasisSchema } from "@/lib/lease-renewal/market-basis-schema";
-import { SheetFieldIntentSchema } from "@/lib/lease-renewal/sheet-writeback/field-intent";
+import {
+  SheetFieldIntentSchema,
+  type SheetFieldIntent,
+} from "@/lib/lease-renewal/sheet-writeback/field-intent";
 import { captureApprovedWorkingTerms } from "@/lib/lease-documents/owner-approval-binding";
 import { readChargePolicyIn } from "@/lib/firestore/lease-charge-policy";
 import { readPacketInputsIn } from "@/lib/firestore/lease-packet-inputs";
@@ -142,6 +145,14 @@ const stateSchema = z
           proposalId: z.string().optional(),
           executionId: z.string().optional(),
           reason: z.string().optional(),
+          // S248 R-S248-11: a value from the app's own confirmed send, bound to that message.
+          derivedFrom: z
+            .object({
+              sequenceId: z.string().min(1).max(128),
+              occurrenceId: z.string().regex(/^[0-9a-f]{64}$/),
+            })
+            .strict()
+            .optional(),
         })
         .strict(),
     ),
@@ -712,6 +723,84 @@ export async function ensureRenewalWorkRecord(
   return state;
 }
 
+/**
+ * S248 R-S248-11: hold the operating Sheet value a derived outreach record prepares, exactly as a
+ * staff record holds its value: pending until staff deliberately prepare it, then confirmed
+ * separately. The caller has re-derived the record from the stored evidence. A staff value already
+ * held for the field is never replaced; the same derived value again changes nothing.
+ */
+export async function recordDerivedSourceUpdate(
+  actor: AuthenticatedUser,
+  input: {
+    leaseId: string;
+    cycleId: string;
+    eventId: string;
+    intent: SheetFieldIntent;
+    derivedFrom: { sequenceId: string; occurrenceId: string };
+  },
+  db: Firestore = getAdminFirestore(),
+): Promise<RenewalWorkspaceState> {
+  assertActor(actor, true);
+  const refs = headRefs(db, input.leaseId);
+  const audit = db.collection(RENEWAL_WORKSPACE_COLLECTIONS.activity).doc(randomUUID());
+  return db.runTransaction(async (tx) => {
+    const [dated, leaseBound] = await Promise.all([
+      tx.get(refs.dated),
+      tx.get(refs.leaseBound),
+    ]);
+    const located = currentHead(refs, dated, leaseBound, input.leaseId);
+    const current = located?.state ?? null;
+    if (!current || !located || current.cycleId !== input.cycleId)
+      throw new EditableLayerError(
+        "This lease's work record changed. Reload the current activity.",
+        409,
+      );
+    const existing = current.sourceUpdates[input.intent.field];
+    if (existing) {
+      if (
+        existing.eventId === input.eventId &&
+        existing.derivedFrom?.occurrenceId === input.derivedFrom.occurrenceId
+      )
+        return current;
+      throw new EditableLayerError(
+        "A recorded value already holds this Sheet update. Prepare that one from Source updates.",
+        409,
+      );
+    }
+    const next = parseState(
+      {
+        ...current,
+        revision: current.revision + 1,
+        sourceUpdates: {
+          ...current.sourceUpdates,
+          [input.intent.field]: {
+            eventId: input.eventId,
+            intent: input.intent,
+            state: "pending",
+            derivedFrom: input.derivedFrom,
+          },
+        },
+      },
+      input.leaseId,
+    );
+    tx.set(located.ref, next);
+    tx.set(db.collection(RENEWAL_WORKSPACE_COLLECTIONS.cycles).doc(input.cycleId), next);
+    tx.create(audit, {
+      lease_id: input.leaseId,
+      cycle_id: input.cycleId,
+      actor_uid: actor.uid,
+      recorded_at: new Date().toISOString(),
+      action: {
+        kind: "derived_source_update",
+        field: input.intent.field,
+        eventId: input.eventId,
+        derivedFrom: input.derivedFrom,
+      },
+      previous_revision: current.revision,
+    });
+    return next;
+  });
+}
 /** Server-derived source status, conditional on the same current staff event and cycle. */
 export async function recordWorkspaceSourceStatus(
   actor: AuthenticatedUser,
@@ -749,7 +838,13 @@ export async function recordWorkspaceSourceStatus(
         "The staff fact changed while its source update was being prepared. Review the current record.",
         409,
       );
-    const updated = { eventId: entry.eventId, intent: entry.intent, ...input.update };
+    const updated = {
+      eventId: entry.eventId,
+      intent: entry.intent,
+      // S248 R-S248-11: a derived value keeps the message it is bound to through each status.
+      ...(entry.derivedFrom ? { derivedFrom: entry.derivedFrom } : {}),
+      ...input.update,
+    };
     if (hashExecutionPreview(entry) === hashExecutionPreview(updated)) return;
     const next = parseState(
       {

@@ -402,6 +402,8 @@ describe("S153 consumers in the lease workspace", () => {
         rentChargeStatus={[]}
         role="Editor"
         selectedStepId="verify-renewal"
+        // S247: the lease opens in Guided view; this check reads the Focus pane by its address.
+        viewParam="focus"
         workingRecord={record}
         workspace={workspace}
       />,

@@ -32,6 +32,7 @@ import {
   renewalDeskItemIsBlocked,
 } from "@/lib/lease-renewal/desk-query-v2";
 import { renewalBatchPlacement } from "@/lib/lease-renewal/renewal-batch";
+import { renewalStageWaitingOn } from "@/lib/lease-renewal/renewal-stage";
 import type { MaintenanceTicketRecord } from "@/lib/maintenance/ticket-model";
 import {
   MAINTENANCE_WAITING_ON_LABELS,
@@ -116,9 +117,12 @@ export function projectRenewalRead(
         address: row.addressLabel,
         propertyName: row.propertyNameLabel,
         unitLabel: row.identity.unit?.label?.label ?? null,
-        stage: row.stageLabel,
-        nextAction: row.nextAction,
-        waitingOn: WAITING_LABELS[row.queryKeys.waitingOn] ?? null,
+        // S247 R-S247-3: the one stage and next step the desk row and lease page show.
+        stage: row.renewalStage?.stageLine ?? row.stageLabel,
+        nextAction: row.renewalStage?.nextStep.label ?? row.nextAction,
+        waitingOn: row.renewalStage
+          ? renewalStageWaitingOn(row.renewalStage)
+          : (WAITING_LABELS[row.queryKeys.waitingOn] ?? null),
         workStatus: row.workStatus?.state === "recorded" ? row.workStatus.label : null,
         lifecycle: row.lifecycle?.label ?? null,
         batch: renewalBatchPlacement(row),

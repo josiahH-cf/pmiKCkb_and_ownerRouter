@@ -7,6 +7,7 @@ import { listRenewalWorkingRecords } from "@/lib/firestore/renewal-working-recor
 import { sheetRowBindingsFromWorkingRecords } from "@/lib/lease-renewal/sheet-lookup";
 import { listRenewalWorkStatuses } from "@/lib/firestore/renewal-work-status";
 import { listRenewalCycleDateDecisions } from "@/lib/firestore/renewal-cycle-date-decisions";
+import { readRenewalOutreachEvidence } from "@/lib/firestore/renewal-outreach-records";
 // S110: the Renewals desk orchestration, extracted so exactly one code path produces the desk rows.
 //
 // The desk page and the assistant both call this. That is the whole point: a parity test can compare
@@ -125,6 +126,7 @@ export async function runRenewalAssistantSource(
     workStatusRead,
     timingBasis,
     cycleDateDecisions,
+    outreachEvidence,
   ] = await measureRead("renewal.supporting", () =>
     Promise.all([
       readRenewalAuxiliary("progress", () => listAllRenewalProgress(user)),
@@ -179,6 +181,19 @@ export async function runRenewalAssistantSource(
       // feeds only the working batch: when it is unavailable no choice is assumed, so a lease
       // RentVine has moved past asks again. The table and its counts never depend on it.
       withReadDeadline(() => listRenewalCycleDateDecisions(user)).catch(() => null),
+      // S248: one bulk read of the loaded leases' linked renewal messages, outreach records and
+      // Gmail drafts. Read-only; when it is unavailable nothing is derived, and every stage reads
+      // from the staff record alone.
+      withReadDeadline(async () => {
+        const source = await leaseRead;
+        if (!source) throw new Error("Source unavailable");
+        return readRenewalOutreachEvidence(
+          source.snapshot.views.flatMap((view) => {
+            const leaseId = leaseViewId(view);
+            return leaseId ? [leaseId] : [];
+          }),
+        );
+      }).catch(() => null),
     ]),
   );
 
@@ -246,6 +261,9 @@ export async function runRenewalAssistantSource(
           renewalAuxiliaryValue(workingRead, new Map()),
           pricingRead.status === "available" ? pricingRead.value : undefined,
           cycleDateDecisions ?? undefined,
+          outreachEvidence
+            ? { available: true, byLease: outreachEvidence }
+            : { available: false, byLease: new Map() },
         );
 
   return {

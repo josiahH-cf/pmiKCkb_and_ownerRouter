@@ -70,7 +70,9 @@ describe("S143 Focus view switch", { timeout: 60_000 }, () => {
     await renderWorkspace({ manual: manualFixture() });
     const group = screen.getByRole("group", { name: "Lease view" });
     const buttons = within(group).getAllByRole("button");
+    // S247 adds Guided view beside the two; the harness opens Focus view by its address.
     expect(buttons.map((button) => button.textContent)).toEqual([
+      "Guided view",
       "Focus view",
       "Full view",
     ]);
