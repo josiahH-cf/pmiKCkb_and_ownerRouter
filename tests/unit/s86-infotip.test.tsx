@@ -151,6 +151,113 @@ describe("S86 InfoTip", () => {
     expect(screen.queryByRole("tooltip")).toBeNull();
   });
 
+  it("S245 litmus: leaving the trigger before 600 ms cancels the pending open", () => {
+    vi.useFakeTimers();
+    render(
+      <div>
+        <InfoTip content="First help." interactive label="First" />
+        <InfoTip content="Second help." interactive label="Second" />
+      </div>,
+    );
+    const first = screen.getByRole("button", { name: "About First" });
+    const second = screen.getByRole("button", { name: "About Second" });
+
+    fireEvent.pointerEnter(second, { pointerType: "mouse", clientX: 80, clientY: 40 });
+    act(() => vi.advanceTimersByTime(300));
+    fireEvent.pointerLeave(second, { pointerType: "mouse", clientX: 30, clientY: 40 });
+    act(() => vi.advanceTimersByTime(1000));
+    expect(screen.queryByRole("region", { name: "About Second" })).toBeNull();
+
+    // What the litmus saw: the open still pending on a trigger the pointer had left replaced the
+    // panel the user then opened by click.
+    fireEvent.pointerEnter(second, { pointerType: "mouse", clientX: 80, clientY: 40 });
+    act(() => vi.advanceTimersByTime(300));
+    fireEvent.pointerLeave(second, { pointerType: "mouse", clientX: 30, clientY: 40 });
+    fireEvent.pointerEnter(first, { pointerType: "mouse", clientX: 30, clientY: 40 });
+    fireEvent.click(first);
+    act(() => vi.advanceTimersByTime(1000));
+    expect(screen.getByRole("region", { name: "About First" })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "About Second" })).toBeNull();
+  });
+
+  it("S245 litmus: content scrolled under a resting pointer neither opens help nor replaces a panel opened by click", () => {
+    vi.useFakeTimers();
+    render(
+      <div>
+        <InfoTip content="First help." interactive label="First" />
+        <InfoTip content="Second help." interactive label="Second" />
+      </div>,
+    );
+    const first = screen.getByRole("button", { name: "About First" });
+    const second = screen.getByRole("button", { name: "About Second" });
+
+    fireEvent.click(first);
+    expect(screen.getByRole("region", { name: "About First" })).toBeInTheDocument();
+
+    // The pointer comes to rest, then a page scroll carries the second trigger under it.
+    fireEvent.pointerMove(document.body, {
+      pointerType: "mouse",
+      clientX: 200,
+      clientY: 400,
+    });
+    fireEvent.scroll(window);
+    fireEvent.pointerEnter(second, { pointerType: "mouse", clientX: 200, clientY: 400 });
+    act(() => vi.advanceTimersByTime(1000));
+    expect(screen.getByRole("region", { name: "About First" })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "About Second" })).toBeNull();
+
+    // Moving the pointer itself over the second trigger is a hover again.
+    fireEvent.pointerMove(second, { pointerType: "mouse", clientX: 206, clientY: 401 });
+    act(() => vi.advanceTimersByTime(599));
+    expect(screen.queryByRole("region", { name: "About Second" })).toBeNull();
+    act(() => vi.advanceTimersByTime(1));
+    expect(screen.getByRole("region", { name: "About Second" })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "About First" })).toBeNull();
+  });
+
+  it("S245 litmus: Escape inside an About panel closes it and keeps it closed while focus returns to the trigger", async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <button type="button">Before</button>
+        <InfoTip
+          content={
+            <p>
+              <Link href="/help/lease-renewals/update-sources#offered-source-updates">
+                Open the guide
+              </Link>
+            </p>
+          }
+          interactive
+          label="Source updates"
+        />
+      </>,
+    );
+    const trigger = screen.getByRole("button", { name: "About Source updates" });
+
+    await user.click(trigger);
+    await user.tab();
+    expect(screen.getByRole("link", { name: "Open the guide" })).toHaveFocus();
+
+    await user.keyboard("{Escape}");
+    // Let the queued focus return run.
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(trigger).toHaveFocus();
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("region", { name: "About Source updates" })).toBeNull();
+
+    // Focus that the person moves back to the trigger still opens it.
+    await user.tab({ shift: true });
+    expect(screen.getByRole("button", { name: "Before" })).toHaveFocus();
+    await user.tab();
+    expect(trigger).toHaveFocus();
+    expect(
+      screen.getByRole("region", { name: "About Source updates" }),
+    ).toBeInTheDocument();
+  });
+
   it("clamps the panel inside a 320-pixel viewport", async () => {
     vi.stubGlobal("innerWidth", 320);
     vi.stubGlobal("innerHeight", 640);
