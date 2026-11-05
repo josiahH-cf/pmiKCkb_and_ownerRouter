@@ -16,6 +16,9 @@ vi.mock("next/image", () => ({
   },
 }));
 
+const { replace } = vi.hoisted(() => ({ replace: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ replace }) }));
+
 import {
   HELP_TOC_LEADING,
   HELP_TOC_TRAILING,
@@ -39,6 +42,7 @@ afterEach(() => {
   cleanup();
   window.sessionStorage.clear();
   window.location.hash = "";
+  replace.mockClear();
 });
 
 describe("S242 BEH-S242-1: Help landing", () => {
@@ -168,15 +172,41 @@ describe("S242 BEH-S242-3: deep links", () => {
     for (const step of guide.steps)
       expect(container.querySelector(`li#${CSS.escape(step.id)}`)).not.toBeNull();
     expect(screen.queryByText(/This guide moved/)).toBeNull();
+    expect(replace).not.toHaveBeenCalled();
     const css = readFileSync(join(process.cwd(), "app/globals.css"), "utf8");
     expect(css).toMatch(/\.help-step:target \{/);
   });
 
-  it("an unknown step id shows the visible moved line instead of a blank page", () => {
+  it("every picture declares its committed pixel size, so a linked step stays put as pictures load", () => {
+    // S245 litmus L26: a cropped region picture declared at its scene viewport size reserved a
+    // taller box until it loaded, and a step opened from an About panel moved out of view.
+    const mismatched: string[] = [];
+    let pictures = 0;
+    for (const entry of HELP_GUIDES) {
+      const { container } = render(
+        <HelpGuidePage guide={entry} servingCommit={COMMIT} />,
+      );
+      for (const image of container.querySelectorAll("img.help-figure-image")) {
+        pictures += 1;
+        const src = image.getAttribute("src")!;
+        const png = readFileSync(join(process.cwd(), "public", src));
+        const declared = `${image.getAttribute("width")}x${image.getAttribute("height")}`;
+        const actual = `${png.readUInt32BE(16)}x${png.readUInt32BE(20)}`;
+        if (declared !== actual)
+          mismatched.push(`${entry.id} ${src}: ${declared}, not ${actual}`);
+      }
+      cleanup();
+    }
+    expect(pictures).toBeGreaterThanOrEqual(22);
+    expect(mismatched).toEqual([]);
+  });
+
+  it("an unknown step id lands on the section page with the moved line, never a blank page", () => {
     window.location.hash = "#no-such-step";
     render(<HelpGuidePage guide={guide} servingCommit={COMMIT} />);
     expect(screen.getByRole("status")).toHaveTextContent("This guide moved");
     expect(screen.getByRole("heading", { level: 1, name: guide.title })).toBeVisible();
+    expect(replace).toHaveBeenCalledWith(`/help/${guide.section}?moved=1`);
   });
 
   it("an unknown guide lands on its section page with the moved line", () => {

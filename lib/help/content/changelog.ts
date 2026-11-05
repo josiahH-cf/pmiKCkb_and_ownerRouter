@@ -8,6 +8,14 @@ import type { HelpChangelogEntry } from "@/lib/help/types";
  */
 export const HELP_CHANGELOG: readonly HelpChangelogEntry[] = [
   {
+    version: "V1.1",
+    date: "2026-11-04",
+    summary:
+      "V1.1, three guide results now match the app: the Completion checks card, the connection card after a live check and a snoozed queue item",
+    affectedGuides: ["prepare-documents", "manage-connections", "approve-or-deny"],
+    contentDigest: "a77ea88054d52bdade8d4c1f573934025e0de03f12fbee6acfedde6bb0641bfb",
+  },
+  {
     version: "V1.0",
     date: "2026-11-04",
     summary: "V1.0, first release of the staff help hub",

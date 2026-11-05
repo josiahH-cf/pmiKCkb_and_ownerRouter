@@ -13,6 +13,9 @@ vi.mock("next/image", () => ({
   },
 }));
 
+// The moved-step notice on a guide page uses the App Router to open the section page.
+vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: vi.fn() }) }));
+
 import { HelpFrame } from "@/components/help/HelpFrame";
 import { HelpGuidePage, HelpLanding, HelpWholeManual } from "@/components/help/HelpViews";
 import { helpGuideById, helpScreen } from "@/lib/help";

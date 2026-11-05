@@ -149,7 +149,7 @@ export function QueueBulkPanel({
           ? `${bulkPreview.highRiskApprovals} High-risk approval(s) require confirmation. `
           : ""}
         {bulkAction === "execute"
-          ? "Execute is visible for v1, but current items will be skipped until approved executable action runtime exists."
+          ? "Execute skips every current item; no external write is attempted."
           : "The server checks every selected item again before updating it."}
       </p>
       {bulkResult ? (

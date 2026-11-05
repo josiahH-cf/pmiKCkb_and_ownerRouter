@@ -504,7 +504,7 @@ export function OperatingSheetPanel({
                   <p className="muted">
                     {status?.reversal_executable
                       ? REVERSAL_LABELS[effect.reversal_kind]
-                      : "Historical reversal terms remain recorded for recovery review. In-app reversal is unavailable until Google Sheets provides an atomic stable-row delete or restore protocol."}
+                      : "Historical reversal terms remain recorded for recovery review. In-app reversal is unavailable: Google Sheets provides no atomic stable-row delete or restore protocol."}
                   </p>
                   {state === "ambiguous" ? (
                     <p

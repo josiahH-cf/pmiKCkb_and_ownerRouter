@@ -120,6 +120,10 @@ export function InfoTip({
       0,
       Math.min(PANEL_MAX_WIDTH, window.innerWidth - VIEWPORT_GUTTER * 2),
     );
+    // Measure at the width the panel is given below. Measured wider (its first render has no width),
+    // the text wraps less and reads shorter than it renders, so a panel placed below the trigger can
+    // run past the bottom of the viewport and hide its last line, "Open the guide".
+    panel.style.width = `${width}px`;
     const measuredHeight = panel.offsetHeight || 120;
     const left = Math.min(
       Math.max(trigger.left, VIEWPORT_GUTTER),

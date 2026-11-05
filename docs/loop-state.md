@@ -1,6 +1,6 @@
 # Loop state
 
-Last updated: 2026-11-04 (UTC). Read AGENTS.md and docs/facts.md first.
+Last updated: 2026-11-05 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current execution
 
@@ -12,8 +12,10 @@ with 375 matched records and zero discrepancies/5xx/unresolved effects/mutation 
 eleven final readbacks matched at 19:31:37Z. The first run of this source, 6960e4e1 at b0f3fca2,
 held at observation and its resume ended in a verified rollback; it and the wrong-root run
 697b754f are archived as superseded. See docs/evidence/help-hub-delivery-2026-11-04.md.
-The S245 machine-run litmus continues against the released build; its repairs are a separate
-release that must pass the same gates. The earlier P1–P9 delivery (run ff1f44bf, b5ba7802) is in
+The S245 machine-run litmus accepted the hub on Run 4 at 13e5ab40
+(docs/evidence/help-hub-litmus-2026-11-04.md). Its repairs and help V1.1 await one release (PR
+#177, Awaiting release below) that must pass the same gates. The earlier P1–P9 delivery (run
+ff1f44bf, b5ba7802) is in
 docs/evidence/application-gap-delivery-2026-11-03.md; its details follow.
 
 Full07 passed 10,162 unit tests/four existing parity skips, all 497 backend tests/no skips and
@@ -54,10 +56,17 @@ attempts and free profile before/after. It also exposed the remaining source-acc
 
 ## Awaiting release
 
-None. S242–S245 and the five #173 fixes (S130, S241, S227, S125, S235) were delivered by run
-74d79a9d at 323e8be3. Documentation-only closure does not deploy. Never resume a consumed or
-archived run or use its receipts as a new queue. The stopped original native owner and archived
-held runs remain untouched.
+1. S242 help hub repairs: unknown step ids land on the section page, pictures declare their size and screen control rows have unique keys — `cbe0de3482173883f357d0924c78b39882bc369f`.
+2. S243 help V1.1: three guide results match the app and the 22 pictures are recaptured — `d2d3a7874d8f58aa12d190a6540d872416685d30`, `2d2550320a8d72653aeaa6b530d05c4288a67cf5`, `13e5ab40e3dd18eb8697aac820ee3ffc75365f9d`.
+3. S244 in-app help copy: InfoTip width, three present-behavior lines and the conditional-branch inventory with its 65 rows — `cbe0de3482173883f357d0924c78b39882bc369f`, `d2d3a7874d8f58aa12d190a6540d872416685d30`, `13e5ab40e3dd18eb8697aac820ee3ffc75365f9d`.
+4. S245 machine-run litmus report, Runs 1 to 4, accepted on Run 4 — `cbe0de3482173883f357d0924c78b39882bc369f`, `d9647ea7fc427ceba812617b9e8c30d36ca76b87`.
+5. S235 Admin form-family hint by the owner's decision of 2026-11-04, R-S235-2 amended — `d2d3a7874d8f58aa12d190a6540d872416685d30`.
+
+One candidate carries all five items. PR #177 merges with a merge commit so every row's commits
+stay ancestors of main. S242–S245 and the five #173 fixes were delivered by run 74d79a9d at
+323e8be3. Documentation-only closure does not deploy. Never resume a consumed or archived run or
+use its receipts as a new queue. The stopped original native owner and archived held runs remain
+untouched.
 
 ## Continuation contract
 

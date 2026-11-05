@@ -62,7 +62,7 @@ export const CONNECTIONS_GUIDES: readonly HelpGuide[] = [
         route: "/connections",
         where: "Renewal data, RentVine card",
         result:
-          "A line reads that RentVine answered the live check, or that it did not pass, and the card's status updates. The check only reads.",
+          "A line reads that RentVine answered the live check and the card then reads Connected, or that it did not pass, and the card keeps its status and next step. The check only reads.",
         effect: "reads",
         note: "Google Sheets, RentCast and Dotloop have the same check. Service keys are set up on the server and never typed here; Set up RentVine explains how the service connects.",
       },

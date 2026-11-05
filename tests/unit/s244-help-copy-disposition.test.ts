@@ -1,3 +1,7 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import { HELP_COPY_DISPOSITIONS } from "@/lib/help/copy-disposition";
@@ -110,6 +114,64 @@ describe("S244 help copy disposition table", () => {
           correction.before,
         );
       }
+    }
+  });
+
+  it("AC-S244-1: help text in conditional branches is inventoried, so a missing row fails", () => {
+    const root = mkdtempSync(join(tmpdir(), "pmi-s244-inventory-"));
+    try {
+      mkdirSync(join(root, "app"));
+      mkdirSync(join(root, "components"));
+      writeFileSync(
+        join(root, "components", "ConditionalHelp.tsx"),
+        [
+          'import { Field } from "@/components/ui/Field";',
+          "",
+          "export function ConditionalHelp({ ready, saved, locked }: { ready: boolean; saved: boolean; locked: boolean }) {",
+          "  return (",
+          "    <div>",
+          '      <p className="muted">',
+          "        {ready",
+          '          ? "Confirming saves this change and reads it back from the Sheet."',
+          '          : "Nothing is saved until you confirm the exact preview."}',
+          "      </p>",
+          '      <span className="muted">',
+          '        {saved && "The app records the saved value with its source and time."}',
+          "      </span>",
+          "      <Field",
+          '        htmlFor="basis"',
+          '        label="Basis"',
+          "        hint={",
+          "          locked",
+          '            ? "Choosing a basis here records it as a new version."',
+          '            : "This field needs a verified lease date first."',
+          "        }",
+          "      >",
+          '        <input id="basis" />',
+          "      </Field>",
+          "    </div>",
+          "  );",
+          "}",
+          "",
+        ].join("\n"),
+      );
+      expect(inventoryHelpCopy(root)).toEqual(
+        expect.arrayContaining(
+          [
+            "Confirming saves this change and reads it back from the Sheet.",
+            "Nothing is saved until you confirm the exact preview.",
+            "The app records the saved value with its source and time.",
+            "Choosing a basis here records it as a new version.",
+            "This field needs a verified lease date first.",
+          ].map((text) => ({
+            kind: "inline",
+            location: "components/ConditionalHelp.tsx",
+            text,
+          })),
+        ),
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
     }
   });
 });

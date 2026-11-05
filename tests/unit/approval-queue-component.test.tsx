@@ -314,7 +314,7 @@ describe("ApprovalQueue bulk UI", () => {
 
     expect(
       screen.getByText(
-        "Execute is visible for v1, but current items will be skipped until approved executable action runtime exists.",
+        "Execute skips every current item; no external write is attempted.",
       ),
     ).toBeInTheDocument();
     expect(

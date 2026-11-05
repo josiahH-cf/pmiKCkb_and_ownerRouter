@@ -29,6 +29,13 @@
   },
   {
     "kind": "inline",
+    "location": "app/admin/migration/page.tsx",
+    "text": "Remote Away Mode is active; cost-bearing overrides stay blocked.",
+    "describes": "Migration readiness budget posture while Remote Away Mode is active",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
     "location": "app/admin/page.tsx",
     "text": "…staff start as Editors. Approver and Admin roles can approve work.",
     "describes": "Default Editor role for staff and which roles approve queue items",
@@ -218,6 +225,20 @@
   },
   {
     "kind": "inline",
+    "location": "components/admin/LiveVendorLifecyclePanel.tsx",
+    "text": "is open for exact preview and Approval Queue review.",
+    "describes": "Not rendered by any staff route: Retired Live Vendor action availability line for an open action",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/LiveVendorLifecyclePanel.tsx",
+    "text": "is closed in Production. This form cannot prepare or execute.",
+    "describes": "Not rendered by any staff route: Retired Live Vendor action availability line for a closed action",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
     "location": "components/admin/ModelConfigPanel.tsx",
     "text": "This panel is read only. The production model is set by GEMINI_MODEL_ANSWER, GEMINI_MODEL_CLASSIFY and GEMINI_MODEL_LOCATION in the reviewed release configuration plus an owner-run deploy.",
     "describes": "Read-only model configuration panel and where production models are set",
@@ -331,9 +352,37 @@
   {
     "kind": "inline",
     "location": "components/admin/RenewalPacketPolicyAdminPanel.tsx",
+    "text": "Engineering default. Choosing a use here records it as a new configuration version.",
+    "describes": "Form family use field hint for a family still at its engineering default",
+    "disposition": "correct",
+    "contradicts": ["S242", "S244"],
+    "corrections": [
+      {
+        "before": "Engineering default, not yet approved by the client. An Admin records the client's decision.",
+        "after": "Engineering default. Choosing a use here records it as a new configuration version."
+      }
+    ]
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/RenewalPacketPolicyAdminPanel.tsx",
     "text": "… Amounts here are company policy you enter; they are never read from a form.",
     "describes": "Renewal charge policy version line and staff-entered policy amounts",
     "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/RenewalPacketPolicyAdminPanel.tsx",
+    "text": "No charge policy is published. Each packet shows that its charges wait for one.",
+    "describes": "Renewal charge policy status line when no policy version is published",
+    "disposition": "correct",
+    "contradicts": ["S66"],
+    "corrections": [
+      {
+        "before": "No charge policy is published. Packets name the charges they are waiting on.",
+        "after": "No charge policy is published. Each packet shows that its charges wait for one."
+      }
+    ]
   },
   {
     "kind": "inline",
@@ -421,6 +470,48 @@
   },
   {
     "kind": "inline",
+    "location": "components/approval/ApprovalQueueBulkPanel.tsx",
+    "text": "Execute skips every current item; no external write is attempted.",
+    "describes": "Approval Queue bulk preview note for the Execute bulk action",
+    "disposition": "correct",
+    "contradicts": ["S242", "S244"],
+    "corrections": [
+      {
+        "before": "Execute is visible for v1, but current items will be skipped until approved executable action runtime exists.",
+        "after": "Execute skips every current item; no external write is attempted."
+      }
+    ]
+  },
+  {
+    "kind": "inline",
+    "location": "components/approval/ApprovalQueueDetailPanel.tsx",
+    "text": "This legacy non-Live record is unavailable. Production decisions operate on Live records only.",
+    "describes": "Approval Queue item detail note for a legacy non-Live record",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/approval/ApprovalQueueDetailPanel.tsx",
+    "text": "Approval authorizes the exact execution preview. Execution remains a separate owning-workflow action.",
+    "describes": "Approval Queue item detail note for an item with an execution preview",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/approval/ApprovalQueueDetailPanel.tsx",
+    "text": "Approval changes this app decision only; external actions stay in their owning workflow.",
+    "describes": "Approval Queue item detail note for an app-only decision",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/approval/ApprovalQueueFilterBar.tsx",
+    "text": "Nothing is currently waiting for review.",
+    "describes": "Approval Queue empty state with no filters applied",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
     "location": "components/approval/ApprovalQueueFilterBar.tsx",
     "text": "Use Reset to retry the queue connection.",
     "describes": "Approval Queue unavailable state pointing to the reset control",
@@ -449,6 +540,27 @@
   },
   {
     "kind": "inline",
+    "location": "components/approval/NeedsDecisionInboxPanel.tsx",
+    "text": "… can be approved right here; the rest open on their own pages for the full decision.",
+    "describes": "Needs your decision panel: items approvable here and items that open their own page",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/approval/NeedsDecisionInboxPanel.tsx",
+    "text": "You can approve them right here.",
+    "describes": "Needs your decision panel when every item can be approved here",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/approval/NeedsDecisionInboxPanel.tsx",
+    "text": "Open each on its own page to decide.",
+    "describes": "Needs your decision panel when every item opens on its own page",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
     "location": "components/approval/RenewalReviewPanel.tsx",
     "text": "…open reconciliation flag …across …renewal run …. Resolve each on its run page. Each Sheet update has its own exact confirmation.",
     "describes": "Renewal review open reconciliation flag count and where to resolve them",
@@ -466,6 +578,13 @@
     "location": "components/approval/RenewalReviewPanel.tsx",
     "text": "…write-back proposal …awaiting your approval ….",
     "describes": "Write-back proposals awaiting a staff decision in renewal review",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/approval/RenewalReviewPanel.tsx",
+    "text": "· … approved (ready to write, not executed)",
+    "describes": "Renewal review count of approved write-back proposals that have not executed",
     "disposition": "keep"
   },
   {

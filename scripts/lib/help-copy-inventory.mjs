@@ -2,6 +2,13 @@
 // app/ and components/ with the TypeScript compiler and lists:
 //   - inline helper sentences: elements whose className contains `muted`, and Field `hint` text,
 //     in scope when they explain what a control reads, saves, needs or does not do;
+//   - the conditional help text the static reading shows as `…`: each branch of a conditional
+//     (`a ? b : c`) or logical (`a && b` right side; `a || b`, `a ?? b` both sides) expression at
+//     any depth in a muted element's children, except inside a nested muted element (listed on its
+//     own) and in JSX attributes, and in a Field `hint` whose value is one. A string branch is its
+//     text, a template reads `…` for each substitution, JSX reads its static text, a nested
+//     conditional or logical expression recurses and anything else reads nothing; each branch is
+//     listed under the same scope rule;
 //   - the InfoTips outside the renewal About panels (their label and content);
 //   - the renewal workspace's Process guide entries (title and explanation).
 // The renewal About panels come from lib/lease-renewal/section-help.ts. The S244 enumeration test
@@ -93,6 +100,65 @@ function inScope(text) {
   return words.length >= MIN_WORDS && EXPLANATORY.test(text);
 }
 
+function isMutedElement(node) {
+  return ts.isJsxElement(node) && classNameHasMuted(node.openingElement);
+}
+
+const LOGICAL_OPERATORS = new Set([
+  ts.SyntaxKind.AmpersandAmpersandToken,
+  ts.SyntaxKind.BarBarToken,
+  ts.SyntaxKind.QuestionQuestionToken,
+]);
+
+function isBranching(node) {
+  return (
+    ts.isConditionalExpression(node) ||
+    (ts.isBinaryExpression(node) && LOGICAL_OPERATORS.has(node.operatorToken.kind))
+  );
+}
+
+/** The parts that can render: both branches of `a ? b : c`, the right side of `a && b`, and both
+ * sides of `a || b` and `a ?? b`. */
+function renderedParts(node) {
+  if (ts.isConditionalExpression(node)) return [node.whenTrue, node.whenFalse];
+  return node.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken
+    ? [node.right]
+    : [node.left, node.right];
+}
+
+/** The texts one branch renders; identifiers, calls, element access and the like read nothing. */
+function branchTexts(expression) {
+  let node = expression;
+  while (ts.isParenthesizedExpression(node)) node = node.expression;
+  if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node))
+    return [node.text];
+  if (ts.isTemplateExpression(node))
+    return [
+      node.head.text + node.templateSpans.map((span) => `…${span.literal.text}`).join(""),
+    ];
+  if (ts.isJsxElement(node) || ts.isJsxFragment(node))
+    return isMutedElement(node) ? [] : [jsxText(node)];
+  if (isBranching(node)) return renderedParts(node).flatMap(branchTexts);
+  return [];
+}
+
+/** The branch texts of every conditional and logical expression at any depth under `nodes`,
+ * skipping JSX attributes and nested muted elements (the inventory visits those on their own). */
+function conditionalCopy(nodes) {
+  const texts = [];
+  const visit = (node) => {
+    if (ts.isJsxAttributes(node) || isMutedElement(node)) return;
+    if (isBranching(node)) {
+      texts.push(...branchTexts(node));
+      renderedParts(node).forEach(visit);
+      return;
+    }
+    ts.forEachChild(node, visit);
+  };
+  nodes.forEach(visit);
+  return texts;
+}
+
 /** Lists every in-scope help text under app/ and components/ with its file. */
 export function inventoryHelpCopy(root = process.cwd()) {
   const items = [];
@@ -107,10 +173,16 @@ export function inventoryHelpCopy(root = process.cwd()) {
       true,
       ts.ScriptKind.TSX,
     );
+    // Each distinct in-scope branch text of one muted element or one Field hint, once.
+    const pushBranches = (texts) => {
+      for (const text of new Set(texts.map(normalizeCopy)))
+        if (inScope(text)) items.push({ kind: "inline", location, text });
+    };
     const visit = (node) => {
-      if (ts.isJsxElement(node) && classNameHasMuted(node.openingElement)) {
+      if (isMutedElement(node)) {
         const text = normalizeCopy(jsxText(node));
         if (inScope(text)) items.push({ kind: "inline", location, text });
+        pushBranches(conditionalCopy(node.children));
       }
       const opening = ts.isJsxElement(node)
         ? node.openingElement
@@ -118,9 +190,18 @@ export function inventoryHelpCopy(root = process.cwd()) {
           ? node
           : null;
       if (opening && tagName(opening) === "Field") {
-        const hint = literalAttribute(attribute(opening, "hint"));
+        const hintProp = attribute(opening, "hint");
+        const hint = literalAttribute(hintProp);
         if (hint && inScope(normalizeCopy(hint)))
           items.push({ kind: "inline", location, text: normalizeCopy(hint) });
+        let hintExpression =
+          hintProp?.initializer && ts.isJsxExpression(hintProp.initializer)
+            ? hintProp.initializer.expression
+            : undefined;
+        while (hintExpression && ts.isParenthesizedExpression(hintExpression))
+          hintExpression = hintExpression.expression;
+        if (hintExpression && isBranching(hintExpression))
+          pushBranches(conditionalCopy([hintExpression]));
       }
       if (
         opening &&
