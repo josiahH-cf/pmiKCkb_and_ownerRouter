@@ -57,18 +57,16 @@ attempts and free profile before/after. It also exposed the remaining source-acc
 
 ## Awaiting release
 
-1. S242 help hub repairs: unknown step ids land on the section page, pictures declare their size and screen control rows have unique keys — `cbe0de3482173883f357d0924c78b39882bc369f`.
+1. S242 help hub repairs: unknown step ids land on the section page, pictures declare their size and screen control rows have unique keys — `cbe0de3482173883f357d0924c78b39882bc369f`; print keeps every help heading with the content it introduces (PR #179) — `d51e84adede237e47516491888613c1535540d45`.
 2. S243 help V1.1: three guide results match the app and the 22 pictures are recaptured — `d2d3a7874d8f58aa12d190a6540d872416685d30`, `2d2550320a8d72653aeaa6b530d05c4288a67cf5`, `13e5ab40e3dd18eb8697aac820ee3ffc75365f9d`.
 3. S244 in-app help copy: InfoTip width, three present-behavior lines and the conditional-branch inventory with its 65 rows — `cbe0de3482173883f357d0924c78b39882bc369f`, `d2d3a7874d8f58aa12d190a6540d872416685d30`, `13e5ab40e3dd18eb8697aac820ee3ffc75365f9d`.
 4. S245 machine-run litmus report, Runs 1 to 4, accepted on Run 4 — `cbe0de3482173883f357d0924c78b39882bc369f`, `d9647ea7fc427ceba812617b9e8c30d36ca76b87`.
 5. S235 Admin form-family hint by the owner's decision of 2026-11-04, R-S235-2 amended — `d2d3a7874d8f58aa12d190a6540d872416685d30`.
-6. S87 present-tense copy from the S245 litmus: the Connections no-sign-in result, the Approval Queue bulk Execute refusal and the People and Access and Space request read-failure notes — `d51e84adede237e47516491888613c1535540d45`.
+6. S87 present-tense copy and display from the S245 litmus: the Connections no-sign-in result, the Approval Queue bulk Execute refusal, the People and Access and Space request read-failure notes, and a workflow run's Next Action from its checklist on the run page, Space card, process summary and shared context — `d51e84adede237e47516491888613c1535540d45`.
 7. S126 Source last read in the date and time convention on Waiting on you, Notifications, Spaces and the assistant's approvals answer — `d51e84adede237e47516491888613c1535540d45`.
 8. S147 Try again waits, bounded at 30 s, for the lease read in flight before re-reading — `d51e84adede237e47516491888613c1535540d45`.
-9. S87 workflow run Next Action follows the checklist on the run page, Space card, process summary and shared context — `d51e84adede237e47516491888613c1535540d45`.
-10. S242 print keeps every help heading with the content it introduces — `d51e84adede237e47516491888613c1535540d45`.
 
-One candidate carries all ten items. PRs #177 and #179 merge with a merge commit so every row's
+One candidate carries all eight items. PRs #177 and #179 merge with a merge commit so every row's
 commits stay ancestors of main. The litmus's two open owner questions (S34 closed-key label, S115
 unreachable About panels) and the QuickBooks Connect button are in docs/facts.md Open Questions.
 S242–S245 and the five #173 fixes were delivered by run 74d79a9d at 323e8be3.
