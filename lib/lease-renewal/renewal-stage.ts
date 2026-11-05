@@ -14,6 +14,7 @@ import {
   MANUAL_ACTIVITIES,
   MANUAL_REQUIRED_RENEWAL,
   currentManualTenantOutcome,
+  emptyRenewalWorkspace,
   currentStaffActivity,
   manualActionLabel,
   manualActivitySatisfied,
@@ -25,7 +26,9 @@ import {
   audienceEvidenceSentence,
   derivedOutreachAttribution,
   outreachDate,
+  NO_WORK_RECORD_CYCLE,
   outreachFill,
+  outreachScopeFor,
   projectOutreachEvidence,
   type AudienceOutreachEvidence,
   type DerivedOutreachRecord,
@@ -70,7 +73,10 @@ export interface RenewalStageContext {
   /** The staff-record read failed for this render; nothing about it is known. */
   readonly staffRecordUnavailable: boolean;
   /** The existing standing owner authority (S194) covering this lease's current record. */
-  readonly standingAgreement: { readonly label: string | null; readonly reason: string } | null;
+  readonly standingAgreement: {
+    readonly label: string | null;
+    readonly reason: string;
+  } | null;
   /** S251 slot; null until that suite records the lease fact. */
   readonly housingAssistance: { readonly program: string } | null;
   /** Check the numbers: the shared desk guidance's rent verification and the open differences. */
@@ -273,7 +279,8 @@ function audienceStep(
   const outreachDone = satisfied(outreachKey);
   const tenantOutcome = state ? currentManualTenantOutcome(state) : null;
   // As in the staff lane, a current tenant counter reopens the owner response.
-  const counterReopen = satisfied("tenant_offer") && tenantOutcome === "counter_change_requested";
+  const counterReopen =
+    satisfied("tenant_offer") && tenantOutcome === "counter_change_requested";
   // The recorded answer that ends the step.
   const decided =
     audience === "owner"
@@ -313,10 +320,8 @@ function audienceStep(
   if (outreachDone) {
     const replied =
       audience === "owner" ? Boolean(lane.ownerReplied) : Boolean(lane.tenantReplied);
-    const revision =
-      audience === "owner" && Boolean(lane.ownerRevisionRequested);
-    const staffMove =
-      lane.nextActivity === responseKey && lane.waitingParty === "staff";
+    const revision = audience === "owner" && Boolean(lane.ownerRevisionRequested);
+    const staffMove = lane.nextActivity === responseKey && lane.waitingParty === "staff";
     if (replied || revision || staffMove) {
       const label = manualActionLabel(responseKey, lane);
       return {
@@ -444,7 +449,9 @@ function currentStepFor(
   if (lane.complete) return "complete";
   if (context.sourceRenewal) return "complete";
   if (evaluation.variants.nonRenewal?.source === "rentvine" && !lane.nonRenewal) {
-    const handoffDone = state ? manualActivitySatisfied(state, "non_renewal_handoff") : false;
+    const handoffDone = state
+      ? manualActivitySatisfied(state, "non_renewal_handoff")
+      : false;
     return handoffDone ? "complete" : "non-renewal-handoff";
   }
   const laneStep = STEP_FOR_ACTIVITY[lane.nextActivity];
@@ -480,13 +487,26 @@ function currentStepFor(
  * standing authority bound to this exact staff record revision (S194), as Focus reads it.
  */
 export function projectRenewalStage(
-  state: RenewalWorkspaceState | null,
+  recordedState: RenewalWorkspaceState | null,
   context: RenewalStageContext,
   options: { readonly standingCovered?: boolean } = {},
 ): RenewalStage {
-  const standingCovered =
-    options.standingCovered ?? Boolean(context.standingAgreement);
-  const evidence = projectOutreachEvidence(context.outreach, state?.cycleId ?? null);
+  const standingCovered = options.standingCovered ?? Boolean(context.standingAgreement);
+  // AC-S248-4: messages that named this record's cycle, and those the app sent before it.
+  const evidence = projectOutreachEvidence(
+    context.outreach,
+    outreachScopeFor(recordedState),
+  );
+  // A lease with no work record yet is read as an empty record on no cycle, so the app's own
+  // accepted message still records the outreach; nothing is saved by reading it.
+  const state =
+    recordedState ??
+    (evidence.owner.state !== "none" || evidence.tenant.state !== "none"
+      ? emptyRenewalWorkspace(context.leaseId, NO_WORK_RECORD_CYCLE, {
+          kind: "lease_bound",
+          source: "No work record yet",
+        })
+      : null);
   const fill = outreachFill(state, evidence);
   const lane = manualRenewalSummary(state, {
     standingOwnerAuthority: standingCovered,
@@ -509,7 +529,9 @@ export function projectRenewalStage(
   const tenant = audienceStep(evaluation, "tenant");
   const documents = activityStepState(evaluation, DOCUMENT_ACTIVITIES);
   const followUps = activityStepState(evaluation, FOLLOW_UP_ACTIVITIES);
-  const handoffDone = state ? manualActivitySatisfied(state, "non_renewal_handoff") : false;
+  const handoffDone = state
+    ? manualActivitySatisfied(state, "non_renewal_handoff")
+    : false;
   // Documents delivered and signatures outstanding: the step waits on the signers.
   const deliveryRecord =
     state && documents.next === "signatures" && satisfied("document_delivery")
@@ -521,7 +543,9 @@ export function projectRenewalStage(
       case "month-to-month-review":
         return !scopedContext.term.reviewNeeded;
       case "check-numbers":
-        return scopedContext.numbers.verified && scopedContext.numbers.openDifferences === 0;
+        return (
+          scopedContext.numbers.verified && scopedContext.numbers.openDifferences === 0
+        );
       case "compare-market":
         return Boolean(state?.preparation);
       case "ask-owner":
@@ -555,8 +579,17 @@ export function projectRenewalStage(
       controls: definition.controls,
     };
     if (!step.applies)
-      return { ...base, state: "not_part", detail: NOT_PART_OF_PATH_LABEL, primary: null };
-    if (step.id === "ask-owner" && scopedContext.standingAgreement && owner.state !== "done")
+      return {
+        ...base,
+        state: "not_part",
+        detail: NOT_PART_OF_PATH_LABEL,
+        primary: null,
+      };
+    if (
+      step.id === "ask-owner" &&
+      scopedContext.standingAgreement &&
+      owner.state !== "done"
+    )
       return {
         ...base,
         state: "covered",
@@ -578,7 +611,9 @@ export function projectRenewalStage(
       audience?.primary ??
       (step.id === "documents" && documents.next
         ? {
-            label: ACTIVITY_NEXT_STEP[documents.next] ?? MANUAL_ACTIVITIES[documents.next].label,
+            label:
+              ACTIVITY_NEXT_STEP[documents.next] ??
+              MANUAL_ACTIVITIES[documents.next].label,
             target: `renewal-manual-${documents.next}`,
           }
         : step.id === "finish-up" && followUps.next
@@ -589,14 +624,20 @@ export function projectRenewalStage(
           : step.id === "check-numbers"
             ? scopedContext.numbers.openDifferences > 0 || !scopedContext.numbers.verified
               ? definition.primary
-              : { label: "Continue to Compare market rent", target: "renewal-section-comps" }
+              : {
+                  label: "Continue to Compare market rent",
+                  target: "renewal-section-comps",
+                }
             : step.id === "complete" && scopedContext.sourceRenewal && !lane.complete
               ? {
                   label: RENEWAL_STAGE_NEXT_STEP.confirmFinished,
                   target: "renewal-manual-complete",
                 }
               : step.id === "complete" && lane.complete
-                ? { label: "Review the recorded completion", target: "renewal-manual-complete" }
+                ? {
+                    label: "Review the recorded completion",
+                    target: "renewal-manual-complete",
+                  }
                 : definition.primary);
     const detail =
       audience?.detail ??
@@ -617,7 +658,11 @@ export function projectRenewalStage(
   const current = views.find((step) => step.id === currentStepId)!;
   const currentDefinition = RENEWAL_PATH_DEFINITION[currentStepId];
   const audience =
-    currentStepId === "ask-owner" ? owner : currentStepId === "offer-tenant" ? tenant : null;
+    currentStepId === "ask-owner"
+      ? owner
+      : currentStepId === "offer-tenant"
+        ? tenant
+        : null;
   // The one next step: the current step's primary action, or the staff lane's own wording.
   const nextStepLabel = (() => {
     if (audience) return audience.nextStep;

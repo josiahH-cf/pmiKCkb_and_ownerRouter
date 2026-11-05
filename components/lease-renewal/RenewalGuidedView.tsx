@@ -618,12 +618,13 @@ function NowCard({
               className="ui-stack-tight"
               onSubmit={(event) => {
                 event.preventDefault();
-                if (!reason.trim() || !state) return;
+                if (!reason.trim()) return;
                 void post(
                   {
                     operation: "correct_outreach",
                     leaseId,
-                    cycleId: state.cycleId,
+                    // A lease with no work record yet has no cycle to name.
+                    cycleId: state?.cycleId ?? null,
                     audience: derived.record.audience,
                     occurrenceId: derived.record.occurrenceId,
                     reason: reason.trim(),

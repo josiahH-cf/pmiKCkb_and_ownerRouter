@@ -81,6 +81,7 @@ import {
   EMPTY_OUTREACH_EVIDENCE_INPUT,
   UNREADABLE_OUTREACH_EVIDENCE_INPUT,
   outreachFill,
+  outreachScopeFor,
   projectOutreachEvidence,
   type LeaseOutreachEvidenceInput,
 } from "@/lib/lease-renewal/outreach-evidence";
@@ -884,7 +885,10 @@ function toLiveSummary(
             evidence: context.outreach
               ? outreachFill(
                   manual ?? null,
-                  projectOutreachEvidence(context.outreach, manual?.cycleId ?? null),
+                  projectOutreachEvidence(
+                    context.outreach,
+                    outreachScopeFor(manual ?? null),
+                  ),
                 )
               : null,
           }),

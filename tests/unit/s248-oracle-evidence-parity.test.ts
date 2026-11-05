@@ -5,11 +5,14 @@ import { linkedRenewalMessageEvidence } from "@/lib/firestore/renewal-outreach-r
 import type { CommunicationSequence } from "@/lib/gmail-hub/sequence-model";
 import {
   outreachFill,
+  outreachScopeFor,
   projectOutreachEvidence,
   type StoredOutreachRecord,
 } from "@/lib/lease-renewal/outreach-evidence";
 import {
+  emptyRenewalWorkspace,
   manualRenewalSummary,
+  planRenewalWorkspaceAction,
   type RenewalWorkspaceAction,
   type RenewalWorkspaceState,
 } from "@/lib/lease-renewal/workspace-state";
@@ -21,7 +24,6 @@ import {
   countIndependentContractMarkerMismatches,
   independentContractReadsEvidence,
 } from "@/lib/production-assurance/renewal-source-projection";
-import { recordedState } from "@/tests/helpers/outreach-evidence-fixtures";
 
 // S248 release reconciliation (ARCH-S248-3): the app's desk projection and the oracle's
 // independent projection derive the same compared facts for every evidence state. The app reads
@@ -206,6 +208,10 @@ interface Case {
   readonly actions: readonly { action: RenewalWorkspaceAction; atMs: number }[];
   readonly sequences: readonly (CommunicationSequence & { purged?: boolean })[];
   readonly corrections?: (sequences: readonly CommunicationSequence[]) => unknown[];
+  /** The work record's basis: dated on 12/31/2026 unless named. */
+  readonly basis?:
+    | { kind: "lease_bound"; source: string }
+    | { kind: "lease_end"; dateIso: string; source: string };
 }
 
 const APPROVED_AT = SENT - 2 * HOUR;
@@ -233,6 +239,36 @@ const CASES: readonly Case[] = [
   { name: "not confirmed", actions: [], sequences: [sequence({ unconfirmed: true })] },
   { name: "another cycle", actions: [], sequences: [sequence({ cycleId: OTHER_CYCLE })] },
   { name: "no cycle", actions: [], sequences: [sequence({ cycleId: null })] },
+  {
+    name: "sent before any work record, the record established after it",
+    actions: [{ action: ownerAnswer("no_response"), atMs: SENT + 2 * HOUR }],
+    sequences: [sequence({ cycleId: null })],
+  },
+  {
+    name: "sent before any work record, a staff event before the send",
+    actions: [{ action: outreach("not_started"), atMs: SENT - 2 * HOUR }],
+    sequences: [sequence({ cycleId: null })],
+  },
+  {
+    name: "sent before any work record, a renewal more than 400 days later",
+    actions: [],
+    basis: { kind: "lease_end", dateIso: "2028-06-30", source: "RentVine lease end" },
+    sequences: [sequence({ cycleId: null })],
+  },
+  {
+    name: "a lease-bound record reads the messages that named no cycle",
+    actions: [],
+    basis: { kind: "lease_bound", source: "No lease end reported" },
+    sequences: [sequence({ cycleId: null, replyAt: [SENT + HOUR] })],
+  },
+  {
+    name: "removed message that named no cycle",
+    actions: [],
+    sequences: [sequence({ cycleId: null })],
+    corrections: (sequences) => [
+      { ...correction(sequences[0]!, "owner"), cycleId: null },
+    ],
+  },
   { name: "another lease", actions: [], sequences: [sequence({ leaseId: "9104" })] },
   { name: "retired communication", actions: [], sequences: [sequence({ purged: true })] },
   {
@@ -343,11 +379,22 @@ const CASES: readonly Case[] = [
 ];
 
 function stateFor(entry: Case): RenewalWorkspaceState {
-  return recordedState(
+  let state = emptyRenewalWorkspace(
     LEASE,
-    entry.actions.map(({ action, atMs }) => ({ action, atIso: iso(atMs) })),
     CYCLE,
+    entry.basis ?? {
+      kind: "lease_end",
+      dateIso: "2026-12-31",
+      source: "RentVine lease end",
+    },
   );
+  for (const [index, { action, atMs }] of entry.actions.entries())
+    state = planRenewalWorkspaceAction(state, action, {
+      actorUid: "synthetic-operator",
+      recordedAt: iso(atMs),
+      eventId: `${LEASE}-event-${index}`,
+    });
+  return state;
 }
 
 function appFacts(state: RenewalWorkspaceState, entry: Case, records: unknown[]) {
@@ -365,7 +412,7 @@ function appFacts(state: RenewalWorkspaceState, entry: Case, records: unknown[])
       records: records as StoredOutreachRecord[],
       drafts: [],
     },
-    state.cycleId,
+    outreachScopeFor(state),
   );
   const summary = manualRenewalSummary(state, {
     evidence: outreachFill(state, evidence),
@@ -419,7 +466,7 @@ describe("S248 the oracle derives the desk's evidence-stage facts independently"
         []) as StoredOutreachRecord[];
       const evidence = projectOutreachEvidence(
         { readable: true, messages, records, drafts: [] },
-        state.cycleId,
+        outreachScopeFor(state),
       );
       states.add(evidence.owner.state);
       states.add(evidence.tenant.state);

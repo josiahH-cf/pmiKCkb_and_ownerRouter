@@ -73,7 +73,8 @@ export interface StoredOutreachRecord {
   readonly occurrenceId: string;
   readonly sequenceId: string;
   readonly leaseId: string;
-  readonly cycleId: string;
+  /** The cycle the message's notice scope named; null for a message sent before any record. */
+  readonly cycleId: string | null;
   readonly audience: OutreachAudience;
   readonly sentAtMs: number;
   readonly senderEmail: string;
@@ -100,9 +101,8 @@ export const EMPTY_OUTREACH_EVIDENCE_INPUT: LeaseOutreachEvidenceInput = Object.
   drafts: [],
 });
 
-export const UNREADABLE_OUTREACH_EVIDENCE_INPUT: LeaseOutreachEvidenceInput = Object.freeze(
-  { readable: false, messages: [], records: [], drafts: [] },
-);
+export const UNREADABLE_OUTREACH_EVIDENCE_INPUT: LeaseOutreachEvidenceInput =
+  Object.freeze({ readable: false, messages: [], records: [], drafts: [] });
 
 export type AudienceEvidenceState =
   | "none"
@@ -193,19 +193,75 @@ export function emptyOutreachEvidence(
 const latest = (values: readonly number[]): number | null =>
   values.length ? Math.max(...values) : null;
 
+/**
+ * AC-S248-4: which messages belong to one work record's cycle. A message whose notice scope named
+ * that cycle belongs to it. A message the app sent while the lease had no dated work record (its
+ * notice scope named no cycle) belongs to the record established after it: no record yet, a
+ * lease-bound record (whose notice scope never names a cycle), or a dated record whose staff
+ * events all come after the send and whose date is the renewal that send was about (within 400
+ * days of it).
+ */
+export interface OutreachScope {
+  readonly cycleId: string;
+  readonly unscoped: (sentAtMs: number) => boolean;
+}
+
+/** The cycle id the evidence is read under while a lease has no work record yet. */
+export const NO_WORK_RECORD_CYCLE = "no-work-record";
+const UNSCOPED_RENEWAL_WINDOW_MS = 400 * 24 * 3_600_000;
+
+function earliestStaffEventMs(state: RenewalWorkspaceState): number {
+  const times = [
+    ...Object.values(state.activities).map((entry) => entry?.recordedAt),
+    state.ownerResponse?.recordedAt,
+    state.tenantResponse?.recordedAt,
+    state.completion?.recordedAt,
+    state.preparation?.recordedAt,
+  ]
+    .map((value) => (value ? Date.parse(value) : NaN))
+    .filter((value) => Number.isFinite(value));
+  return times.length ? Math.min(...times) : Infinity;
+}
+
+export function outreachScopeFor(state: RenewalWorkspaceState | null): OutreachScope {
+  if (!state) return { cycleId: NO_WORK_RECORD_CYCLE, unscoped: () => true };
+  if (state.basis.kind === "lease_bound")
+    return { cycleId: state.cycleId, unscoped: () => true };
+  const earliest = earliestStaffEventMs(state);
+  const basisMs = Date.parse(`${state.basis.dateIso}T12:00:00.000Z`);
+  return {
+    cycleId: state.cycleId,
+    unscoped: (sentAtMs) =>
+      sentAtMs < earliest &&
+      Number.isFinite(basisMs) &&
+      basisMs >= sentAtMs &&
+      basisMs - sentAtMs <= UNSCOPED_RENEWAL_WINDOW_MS,
+  };
+}
+
 function projectAudience(
   input: LeaseOutreachEvidenceInput,
   audience: OutreachAudience,
-  cycleId: string,
+  scope: OutreachScope,
 ): AudienceOutreachEvidence {
+  const cycleId = scope.cycleId;
+  // A message that named no cycle is read by its first send (or, unsent, by when it was made).
+  const inScope = (message: LinkedRenewalMessageEvidence) =>
+    message.cycleId === cycleId ||
+    (message.cycleId === null &&
+      scope.unscoped(message.accepted[0]?.sentAtMs ?? message.createdAtMs));
   const records = new Map(
     input.records
-      .filter((record) => record.audience === audience && record.cycleId === cycleId)
+      .filter(
+        (record) =>
+          record.audience === audience &&
+          (record.cycleId === cycleId || record.cycleId === null),
+      )
       .map((record) => [record.occurrenceId, record] as const),
   );
   // AC-S248-4: only this audience's messages bound to the current cycle count.
   const messages = input.messages
-    .filter((message) => message.audience === audience && message.cycleId === cycleId)
+    .filter((message) => message.audience === audience && inScope(message))
     .slice()
     .sort(
       (left, right) =>
@@ -273,7 +329,8 @@ function projectAudience(
       )
     : [];
   const reply = replies.sort(
-    (left, right) => right.receivedAtMs - left.receivedAtMs || left.id.localeCompare(right.id),
+    (left, right) =>
+      right.receivedAtMs - left.receivedAtMs || left.id.localeCompare(right.id),
   )[0];
   const failedAtMs = latest(failed.map((entry) => entry.atMs));
   const pending = messages.filter((message) => message.accepted.length === 0);
@@ -293,7 +350,8 @@ function projectAudience(
     const candidates: { state: AudienceEvidenceState; atMs: number }[] = [];
     if (failedAtMs !== null)
       candidates.push({ state: "delivery_failed", atMs: failedAtMs });
-    if (unconfirmed) candidates.push({ state: "unconfirmed", atMs: unconfirmed.createdAtMs });
+    if (unconfirmed)
+      candidates.push({ state: "unconfirmed", atMs: unconfirmed.createdAtMs });
     if (scheduled) candidates.push({ state: "scheduled", atMs: scheduled.createdAtMs });
     if (draftSinceMs !== null) candidates.push({ state: "draft", atMs: draftSinceMs });
     state = candidates.sort((left, right) => right.atMs - left.atMs)[0]?.state ?? "none";
@@ -317,15 +375,23 @@ function projectAudience(
 /** ARCH-S248-1: the lease cycle's evidence for both audiences. Pure. */
 export function projectOutreachEvidence(
   input: LeaseOutreachEvidenceInput | null | undefined,
-  cycleId: string | null,
+  /** A cycle id reads only messages that named it; a scope also reads those sent before it. */
+  cycle: string | null | OutreachScope,
 ): OutreachEvidence {
-  if (!input || !input.readable) return emptyOutreachEvidence(cycleId, false);
-  if (cycleId === null) return emptyOutreachEvidence(null, true);
+  const scope: OutreachScope | null =
+    cycle === null
+      ? null
+      : typeof cycle === "string"
+        ? { cycleId: cycle, unscoped: () => false }
+        : cycle;
+  if (!input || !input.readable)
+    return emptyOutreachEvidence(scope?.cycleId ?? null, false);
+  if (scope === null) return emptyOutreachEvidence(null, true);
   return {
     readable: true,
-    cycleId,
-    owner: projectAudience(input, "owner", cycleId),
-    tenant: projectAudience(input, "tenant", cycleId),
+    cycleId: scope.cycleId,
+    owner: projectAudience(input, "owner", scope),
+    tenant: projectAudience(input, "tenant", scope),
   };
 }
 
@@ -417,7 +483,8 @@ export function outreachFill(
     const derived = evidence[audience].derived;
     if (!derived) return null;
     const activity = OUTREACH_ACTIVITY[audience];
-    if (activity === "tenant_offer" && !sentUnderCurrentTerms(state, derived)) return null;
+    if (activity === "tenant_offer" && !sentUnderCurrentTerms(state, derived))
+      return null;
     const staff = staffActivityFor(state, activity);
     if (!staff) return derived;
     if (staff.outcome === "done") {

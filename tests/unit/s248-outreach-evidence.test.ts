@@ -9,9 +9,11 @@ import {
   audienceEvidenceSentence,
   derivedOutreachAttribution,
   outreachFill,
+  outreachScopeFor,
   projectOutreachEvidence,
 } from "@/lib/lease-renewal/outreach-evidence";
 import { staffLaneGuidance } from "@/lib/lease-renewal/desk-guidance";
+import { projectRenewalStage } from "@/lib/lease-renewal/renewal-stage";
 import {
   EVIDENCE_CYCLE,
   OTHER_CYCLE,
@@ -244,5 +246,72 @@ describe("S248 tenant offer: the same rules for Tenant offer delivered", () => {
       ]),
     );
     expect(before.nextActivity).toBe("tenant_offer");
+  });
+});
+
+describe("S248 AC-S248-4: a message sent before the lease had a work record", () => {
+  const context = (outreach: ReturnType<typeof evidenceInput>) => ({
+    leaseId: LEASE,
+    staffRecordUnavailable: false,
+    standingAgreement: null,
+    housingAssistance: null,
+    numbers: { verified: true, openDifferences: 0 },
+    term: { monthToMonth: false, reviewNeeded: false },
+    moveOutInitiated: false,
+    sourceRenewal: null,
+    verification: null,
+    handStatus: null,
+    lastContactAtIso: null,
+    threadCheck: null,
+    outreach,
+  });
+
+  it("moves a lease with no work record to the owner's response, and a reply to the team", () => {
+    const sent = message({ cycleId: null });
+    const waiting = projectRenewalStage(null, context(evidenceInput([sent])));
+    expect(waiting.currentStepId).toBe("ask-owner");
+    expect(waiting.stageLine).toMatch(/^Waiting on owner response since 11\/04\/2026/);
+    const replied = projectRenewalStage(
+      null,
+      context(evidenceInput([message({ cycleId: null, replyAtMs: REPLY_AT_MS })])),
+    );
+    expect(replied.nextStep.label).toBe(OWNER_DECISION_AFTER_REPLY_LABEL);
+    expect(replied.evidenceLine).toBe("Owner replied 11/05/2026");
+    // Nothing at all: the lease reads as before.
+    expect(projectRenewalStage(null, context(evidenceInput([]))).currentStepId).toBe(
+      "compare-market",
+    );
+  });
+
+  it("counts for the dated record established after it, never for one that began before", () => {
+    const sent = message({ cycleId: null });
+    const after = recordedState(LEASE, [
+      {
+        action: { kind: "owner_response", outcome: "no_response" },
+        atIso: new Date(SENT_AT_MS + 3_600_000).toISOString(),
+      },
+    ]);
+    expect(
+      projectOutreachEvidence(evidenceInput([sent]), outreachScopeFor(after)).owner
+        .derived,
+    ).not.toBeNull();
+    const before = recordedState(LEASE, [
+      {
+        action: { kind: "activity", activity: "owner_outreach", outcome: "not_started" },
+        atIso: new Date(SENT_AT_MS - 3_600_000).toISOString(),
+      },
+    ]);
+    expect(
+      projectOutreachEvidence(evidenceInput([sent]), outreachScopeFor(before)).owner
+        .derived,
+    ).toBeNull();
+    // A message that named another cycle never counts, whatever the record.
+    expect(
+      projectOutreachEvidence(
+        evidenceInput([message({ cycleId: OTHER_CYCLE })]),
+        outreachScopeFor(after),
+      ).owner.derived,
+    ).toBeNull();
+    expect(after.cycleId).toBe(EVIDENCE_CYCLE);
   });
 });

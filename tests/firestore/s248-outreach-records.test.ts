@@ -300,9 +300,9 @@ describe("S248 outreach records from the confirmed renewal Send", () => {
     await otherCycle.service.dispatch((await otherCycle.approve()).id);
     const noCycle = fixture({ cycleId: null });
     await noCycle.service.dispatch((await noCycle.approve()).id);
-    // No cycle: nothing is recorded at all.
-    expect((await records()).map((record) => record.cycleId).sort()).toEqual(
-      [CYCLE, OTHER_CYCLE].sort(),
+    // A message sent before any work record names no cycle; its record names none either.
+    expect((await records()).map((record) => String(record.cycleId)).sort()).toEqual(
+      [CYCLE, OTHER_CYCLE, "null"].sort(),
     );
     const read = await readRenewalOutreachEvidence([LEASE, OTHER_LEASE], db);
     expect(projectOutreachEvidence(read.get(LEASE)!, CYCLE).owner.derived).toBeNull();

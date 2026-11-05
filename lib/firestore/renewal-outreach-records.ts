@@ -135,7 +135,8 @@ export function linkedRenewalMessageEvidence(
 
 /**
  * The record one accepted renewal send writes, or null when the send is not a renewal message
- * for a known cycle (nothing is recorded then). Pure.
+ * (nothing is recorded then). A message sent before the lease had a dated work record names no
+ * cycle; its record carries none, and the evidence read places it (AC-S248-4). Pure.
  */
 export function outreachRecordForAcceptedSend(
   sequence: CommunicationSequence,
@@ -151,7 +152,6 @@ export function outreachRecordForAcceptedSend(
   const authorization = sequence.authorization;
   if (
     !audience ||
-    !cycleId ||
     !authorization ||
     occurrence.sequenceId !== sequence.id ||
     occurrenceIdFromRfcMessageId(occurrence.rfcMessageId) !== occurrence.id
@@ -212,7 +212,7 @@ function storedRecord(value: unknown): StoredOutreachRecord | null {
     typeof record.occurrenceId !== "string" ||
     typeof record.sequenceId !== "string" ||
     typeof record.leaseId !== "string" ||
-    typeof record.cycleId !== "string" ||
+    (typeof record.cycleId !== "string" && record.cycleId !== null) ||
     !OUTREACH_AUDIENCES.includes(record.audience as OutreachAudience) ||
     typeof record.sentAtMs !== "number"
   )
@@ -221,7 +221,7 @@ function storedRecord(value: unknown): StoredOutreachRecord | null {
     occurrenceId: record.occurrenceId,
     sequenceId: record.sequenceId,
     leaseId: record.leaseId,
-    cycleId: record.cycleId,
+    cycleId: record.cycleId ?? null,
     audience: record.audience as OutreachAudience,
     sentAtMs: record.sentAtMs,
     senderEmail: typeof record.senderEmail === "string" ? record.senderEmail : "",
@@ -341,7 +341,8 @@ export async function readLeaseOutreachEvidence(
 export const CorrectRenewalOutreachSchema = z
   .object({
     leaseId: z.string().regex(/^[1-9]\d*$/),
-    cycleId: z.string().uuid(),
+    // Null while the lease has no work record yet; the record then names no cycle either.
+    cycleId: z.string().uuid().nullable(),
     audience: z.enum(OUTREACH_AUDIENCES),
     occurrenceId: z.string().regex(/^[0-9a-f]{64}$/),
     reason: z.string().trim().min(1).max(500),
@@ -413,7 +414,7 @@ export async function correctRenewalOutreach(
     }
     if (
       record.leaseId !== input.leaseId ||
-      record.cycleId !== input.cycleId ||
+      (record.cycleId !== input.cycleId && record.cycleId !== null) ||
       record.audience !== input.audience
     )
       throw new EditableLayerError(

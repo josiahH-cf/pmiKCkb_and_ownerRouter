@@ -57,6 +57,8 @@ interface CountedSend {
 function countedSends(
   leaseId: string,
   cycleId: string,
+  /** Whether a message that named no cycle, first sent at this time, belongs to the record. */
+  beforeRecord: (sentAtMs: number) => boolean,
   audience: "owner" | "tenant",
   sequences: readonly Raw[],
   records: readonly Raw[],
@@ -66,7 +68,7 @@ function countedSends(
       .filter(
         (record) =>
           record.leaseId === leaseId &&
-          record.cycleId === cycleId &&
+          (record.cycleId === cycleId || record.cycleId === null) &&
           record.audience === audience &&
           record.correction !== null &&
           record.correction !== undefined,
@@ -77,7 +79,8 @@ function countedSends(
   for (const sequence of sequences) {
     if (sequence.purged) continue;
     if (audienceOf(sequence.context, leaseId) !== audience) continue;
-    if (sequence.noticeCycleId !== cycleId) continue;
+    const named = sequence.noticeCycleId;
+    if (named !== cycleId && named !== null && named !== undefined) continue;
     const sends = (Array.isArray(sequence.threads) ? (sequence.threads as Raw[]) : [])
       .map((thread) => ({
         id: RFC.exec(String(thread.rfcMessageId ?? ""))?.[1] ?? null,
@@ -90,6 +93,7 @@ function countedSends(
       .sort((left, right) => left.atMs - right.atMs);
     const first = sends[0];
     if (!first || removed.has(first.id)) continue;
+    if (named !== cycleId && !beforeRecord(first.atMs)) continue;
     const ids = new Set(sends.map((send) => send.id));
     const inbound = Array.isArray(sequence.inbound) ? (sequence.inbound as Raw[]) : [];
     if (
@@ -133,15 +137,52 @@ function replyCounts(
   return !(Number.isFinite(savedMs) && savedMs >= replyAtMs);
 }
 
+/**
+ * A message the app sent before the lease had a dated work record names no cycle. It belongs to a
+ * lease-bound record, or to a dated record whose staff events all come after its first send and
+ * whose date falls within 400 days after that send. Independent copy.
+ */
+function independentBeforeRecordRule(
+  state: RenewalWorkspaceState,
+): (sentAtMs: number) => boolean {
+  const basis = state.basis as { kind: string; dateIso?: string };
+  if (basis.kind === "lease_bound") return () => true;
+  const recorded = [
+    ...Object.values(state.activities).map((entry) => entry?.recordedAt),
+    state.ownerResponse?.recordedAt,
+    state.tenantResponse?.recordedAt,
+    state.completion?.recordedAt,
+    state.preparation?.recordedAt,
+  ]
+    .map((value) => (typeof value === "string" ? Date.parse(value) : NaN))
+    .filter((value) => !Number.isNaN(value));
+  const firstEvent = recorded.length ? Math.min(...recorded) : Number.POSITIVE_INFINITY;
+  const dateMs = Date.parse(`${basis.dateIso ?? ""}T12:00:00.000Z`);
+  return (sentAtMs) =>
+    sentAtMs < firstEvent &&
+    !Number.isNaN(dateMs) &&
+    dateMs - sentAtMs >= 0 &&
+    dateMs - sentAtMs <= 400 * 86_400_000;
+}
+
 export function projectIndependentOutreachFill(
   state: RenewalWorkspaceState,
   sequences: readonly Raw[],
   records: readonly Raw[],
 ): IndependentOutreachFill {
-  const owner = countedSends(state.leaseId, state.cycleId, "owner", sequences, records);
+  const beforeRecord = independentBeforeRecordRule(state);
+  const owner = countedSends(
+    state.leaseId,
+    state.cycleId,
+    beforeRecord,
+    "owner",
+    sequences,
+    records,
+  );
   const tenantAll = countedSends(
     state.leaseId,
     state.cycleId,
+    beforeRecord,
     "tenant",
     sequences,
     records,
