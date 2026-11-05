@@ -3,7 +3,7 @@
 
 # S245 — Staff help hub adversary litmus (machine-run verification of the manual)
 
-> Status: Template and validator DELIVERED 2026-11-04 by run 74d79a9d at 323e8be3; the machine-run litmus is in progress against the released build; authoring FINAL / READY (intake 111). Defines the fresh-session verification handoff an outside model executes against the built hub and the real interface, how its result is recorded, and the repair loop. Nothing here is a client dependency.
+> Status: DELIVERED. Template and validator released 2026-11-04 by run 74d79a9d at 323e8be3; the machine-run litmus accepted the hub on Run 4 at 13e5ab40 under R-S245-5 (`docs/evidence/help-hub-litmus-2026-11-04.md`), and its report and repairs released 2026-11-05 by run 6951545a at 3f2e3f5d. L10 is UNVERIFIED for 25 provider-bound steps; human verdict NOT RUN. Authoring FINAL / READY (intake 111). Defines the fresh-session verification handoff an outside model executes against the built hub and the real interface, how its result is recorded, and the repair loop. Nothing here is a client dependency.
 
 **Goal.**
 

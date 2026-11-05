@@ -19,7 +19,41 @@ When two sources disagree, use this order:
 Never revive a historical blocker, Demo/Test policy, action grant, or provider claim without checking
 the current code and live service. Date-stamped history is not authority.
 
-## Present production truth — November 4 help-hub delivery
+## Present production truth — November 5 help-hub litmus repairs delivery
+
+Production serves `3f2e3f5dc20a6b010afacac472419d81429a79a7` /
+`pmi-kc-app-rmw3661as-aecc6937ff3f` at 100% canonical traffic. Run
+`6951545a-4e90-4620-b53f-ef5de75b2c1a` completed at 07:04:20Z; its permit is consumed and controller
+exited zero. One application build `10aff53f-a5a8-4cb0-9877-54a6791ee0d3` succeeded. Candidate
+receipt `eac936d1-13e5-49c9-ac09-fbbd68a62458` issued at 06:57:08.097Z; receipt-bound promotion
+verified at 06:57:27.868Z. Two observation checkpoints passed in 416,972 ms, within the
+300,000/480,000 ms bounds. All 375 source/projected/rendered records matched, with zero
+discrepancies, candidate 5xx, unresolved effects or guarded Admin mutation attempts. Editor browser
+remains `not_run` under the existing policy. All eleven independent final readback sections matched
+at 07:04:43Z. Runtime fingerprint:
+`sha256:e5e35e04f4df400919a8ce6c9e1f21b51afac60858e0f6285da0ed1e683cf814`. The running digest
+matches the successful regional build. Only APP_COMMIT_SHA changed among 54 environment keys;
+managed runtime identity, eleven paired Space maps, five secret bindings, Production/Live,
+Demo=false and Sheet=true match reviewed state.
+
+The run's first candidate assurance pass stopped before promotion (`assurance_unverified`) with
+canonical traffic untouched on `pmi-kc-app-rmw2hrh4d-8b96ea7b6800`. Its request log showed no 5xx
+and slow cold first loads (the renewal desk took 41.5 s); the gate kept no report, so the cause is
+not proven beyond cold first loads. Read-only diagnostics on the warm candidate rendered 13 of 13
+Admin routes and matched 375/375/375. The operator resume of that same pass then passed assurance,
+promotion, observation and completion, with no rollback.
+
+PR #177 is delivered in one candidate: the S242–S244 repairs the S245 machine-run litmus found,
+help V1.1 (three guide results that match the app and 22 recaptured pictures), the conditional-branch
+help copy inventory with its one S66 correction, the S245 litmus report and the S235 Admin
+form-family hint by the owner's decision of 2026-11-04. The litmus accepted the hub on Run 4 at
+`13e5ab40` under R-S245-5: no check is No, L10 is UNVERIFIED for 25 provider-bound steps, and the
+human verdict is NOT RUN. Exact-main CI passed all five jobs in `41979132377`. The November 4
+help-hub delivery (run `74d79a9d` at `323e8be3`) is historical. Both Dotloop write keys remain
+closed; no customer dispatch, provider business write or signature was release proof.
+Evidence: `docs/evidence/help-hub-litmus-repairs-delivery-2026-11-05.md`; current holds: `docs/open-blockers.md`.
+
+## Previous production truth — November 4 help-hub delivery (historical)
 
 Production serves `323e8be36535dabe21623ff28ca1160f8aae6657` /
 `pmi-kc-app-rmw2hrh4d-8b96ea7b6800` at 100% canonical traffic. Run

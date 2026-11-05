@@ -34,7 +34,10 @@ release acceptance passed; no live customer completion or human usability verdic
 
 ## Current core
 
-The S242–S245 staff help hub and the merged #173 adversary-review fixes are delivered at
+The S242–S245 help hub litmus repairs and help V1.1, with the S235 Admin form-family hint, are
+delivered at 3f2e3f5d / pmi-kc-app-rmw3661as-aecc6937ff3f; see the
+[litmus repairs delivery evidence](evidence/help-hub-litmus-repairs-delivery-2026-11-05.md).
+The S242–S245 staff help hub and the merged #173 adversary-review fixes were delivered at
 323e8be3 / pmi-kc-app-rmw2hrh4d-8b96ea7b6800; see the
 [help hub delivery evidence](evidence/help-hub-delivery-2026-11-04.md).
 The launched November 3 gap work was delivered at b5ba7802 / pmi-kc-app-rmw123csb-dc0ce89a8583.
