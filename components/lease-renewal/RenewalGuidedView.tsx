@@ -603,6 +603,11 @@ function NowCard({
           </div>
         </dl>
       ) : null}
+      {/* S249 fills these named slots (the prepared numbers check, the stored comparison, Rent to
+          recommend, the message preview, Review and send); each stays empty until it does. */}
+      {definition.slots.map((slot) => (
+        <div data-renewal-now-slot={slot} hidden key={slot} />
+      ))}
       {derived ? (
         <div className="ui-stack-tight" data-renewal-derived={derived.record.activity}>
           <p className="muted" data-renewal-field="derived-origin">

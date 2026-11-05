@@ -65,6 +65,7 @@ export function useRenewalFocusView() {
 }
 
 const CONTINUITY_KEY = "renewal-lease-continuity";
+const interactions = ["wheel", "touchstart", "keydown", "mousedown"] as const;
 
 export function RenewalFocusViewProvider({
   children,
@@ -160,6 +161,9 @@ export function RenewalFocusViewProvider({
   // address; any other way of opening the lease starts in Guided view at its current step.
   // Nothing here writes the address, saves a record or calls a route.
   useEffect(() => {
+    // This page restores its own place on a reload (below), so the browser does not move it.
+    if ("scrollRestoration" in window.history)
+      window.history.scrollRestoration = "manual";
     const here = () => `${window.location.pathname}${window.location.search}`;
     const save = () => {
       try {
@@ -207,25 +211,21 @@ export function RenewalFocusViewProvider({
         }
         if (typeof saved.y === "number") {
           const y = saved.y;
-          if ("scrollRestoration" in window.history)
-            window.history.scrollRestoration = "manual";
-          // The page grows as its reads settle; scroll once its height holds still.
-          let lastHeight = -1;
-          let steady = 0;
-          let tries = 0;
-          const attempt = () => {
-            tries += 1;
-            const height = document.documentElement.scrollHeight;
-            steady = height === lastHeight ? steady + 1 : 0;
-            lastHeight = height;
-            if ((steady >= 8 && height >= y) || tries > 120) {
-              window.scrollTo?.({ top: y });
-              timer = null;
-              return;
-            }
-            timer = window.setTimeout(attempt, 100);
+          // While the page's reads settle and its height shifts, it is held at the kept place for
+          // a few seconds, until the person scrolls, types or clicks themselves.
+          const startedAt = Date.now();
+          const hold = () => {
+            if (Math.abs(window.scrollY - y) > 2) window.scrollTo?.({ top: y });
+            timer = Date.now() - startedAt < 4000 ? window.setTimeout(hold, 100) : null;
           };
-          attempt();
+          const release = () => {
+            if (timer !== null) window.clearTimeout(timer);
+            timer = null;
+            for (const name of interactions) window.removeEventListener(name, release);
+          };
+          for (const name of interactions)
+            window.addEventListener(name, release, { once: true, passive: true });
+          hold();
         }
       }
     } catch {

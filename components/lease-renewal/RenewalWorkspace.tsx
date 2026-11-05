@@ -203,7 +203,7 @@ export function RenewalWorkspace({
   workspace: RenewalLeaseWorkspace;
   /** Raw `step` URL value; invalid/empty falls back to the process-current phase without error. */
   selectedStepId?: string;
-  /** S247: the raw `view` URL value; a view chosen by hand lasts for the visit through it. */
+  /** S247: the raw `view` URL value; a link may name the view the lease opens in. */
   viewParam?: string;
   /** Canonical desk continuation; phase links preserve it so Back to renewals restores the view. */
   deskView?: string | null;

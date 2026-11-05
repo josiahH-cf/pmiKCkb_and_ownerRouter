@@ -159,6 +159,50 @@ try {
   }
   check("opening the five leases made no write", writes.length === 0, { writes });
 
+  // 1b. Layout (R-S247-10): on the first four steps the stage, the strip and the primary action
+  // are on the first screen at 1280 by 800, and the primary action is within two screens at 390.
+  const layout = [];
+  for (const leaseId of WORKING) {
+    for (const [width, height, screens] of [
+      [1280, 800, 1],
+      [390, 844, 2],
+    ]) {
+      await page.setViewportSize({ width, height });
+      await open(leaseId);
+      const current = (
+        await strip().locator('[aria-current="step"]').textContent()
+      )?.trim();
+      if (!STEPS.slice(0, 4).includes(current ?? "")) continue;
+      const box = await now().locator("[data-renewal-now-primary]").boundingBox();
+      const stripBox = await strip().boundingBox();
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth > window.innerWidth + 1,
+      );
+      layout.push({
+        leaseId,
+        width,
+        current,
+        primaryBottom: box ? Math.round(box.y + box.height) : null,
+        stripBottom: stripBox ? Math.round(stripBox.y + stripBox.height) : null,
+        limit: height * screens,
+        overflow,
+      });
+    }
+  }
+  await page.setViewportSize({ width: 1280, height: 800 });
+  check(
+    "the primary action is on the first screen at 1280 by 800 and within two screens at 390, with no sideways scroll",
+    layout.length > 0 &&
+      layout.every(
+        (entry) =>
+          entry.primaryBottom !== null &&
+          entry.primaryBottom <= entry.limit &&
+          (entry.width !== 1280 || (entry.stripBottom ?? Infinity) <= entry.limit) &&
+          !entry.overflow,
+      ),
+    layout,
+  );
+
   // 2. A later step while an earlier one is unfinished (BEH-S247-2, L15).
   await open(prepared);
   const currentBefore = await strip().locator('[aria-current="step"]').textContent();
@@ -179,7 +223,13 @@ try {
   const scrolled = await page.evaluate(() => window.scrollY);
   await page.reload({ waitUntil: "domcontentloaded" });
   await guided().waitFor({ state: "visible" });
-  await page.waitForTimeout(2500);
+  // The kept place is applied once the page is interactive; it holds while reads settle.
+  await page
+    .waitForFunction((y) => Math.abs(window.scrollY - y) <= 80, scrolled, {
+      timeout: 15_000,
+    })
+    .catch(() => undefined);
+  await page.waitForTimeout(4500);
   const reloaded = {
     url: page.url(),
     heading: (await now().getByRole("heading", { level: 2 }).textContent())?.trim(),
@@ -207,6 +257,16 @@ try {
   await page
     .getByRole("group", { name: "Lease view", exact: true })
     .waitFor({ state: "visible" });
+  // The kept view is applied once the page is interactive after the reload.
+  await page
+    .waitForFunction(
+      () =>
+        document.querySelector('[data-renewal-view-switch] button[aria-pressed="true"]')
+          ?.textContent === "Full view",
+      undefined,
+      { timeout: 15_000 },
+    )
+    .catch(() => undefined);
   const fullKept = await viewButton("Full view").getAttribute("aria-pressed");
   await viewButton("Guided view").click();
   await guided()
@@ -357,7 +417,7 @@ try {
   );
   let scheduledLine = "";
   let afterTick = "";
-  let tick = null;
+  let tick = {};
   if (composition.status === 200) {
     const uuid = () => page.evaluate(() => crypto.randomUUID());
     const { context: messageContext, initial, reviewedTargetHash } = composition.body;
@@ -394,6 +454,11 @@ try {
     }).catch((error) => ({ error: String(error?.message ?? error) }));
     await open(prepared, "?step=ask-owner");
     afterTick = await stageLine();
+    // Where the app's own record of the scheduled message stands after the tick.
+    const standing = await route(
+      `/api/gmail-hub/sequences?id=${scheduled.body?.sequence?.id}`,
+    );
+    tick = { ...tick, standing: sequenceStanding(standing.body?.sequence) };
   }
   check(
     "a scheduled message reads Owner message scheduled for its date and is not counted before Gmail accepts it",
