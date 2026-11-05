@@ -62,6 +62,7 @@ import type {
   StaticValueFormat,
 } from "@/lib/lease-documents/artifact-intake-contract";
 import { EditableLayerError } from "@/lib/errors/editable-layer-error";
+import { normalizeParagraphText } from "@/lib/lease-documents/paragraph-text";
 import { PdfRefusalError } from "@/lib/lease-documents/pdf-refusal";
 
 export const STATIC_ADAPTER = "pdf-lib@1.17.1:bounded-static/v1";
@@ -71,6 +72,11 @@ const TOLERANCE = 0.75;
 /** A value is set so its cap height, this share of its size, sits centered in its region. */
 const CAP_HEIGHT = 0.72;
 const FILL_TAG = "PMIFill";
+// S253 (ARCH-S253-2): a multi-line box sets its lines from the top at the reviewed size. The line
+// step, the room kept below the last baseline and the inner margin are fixed; text is never shrunk.
+const PARAGRAPH_LEADING = 1.2;
+const PARAGRAPH_DESCENT = 0.22;
+const PARAGRAPH_PAD = 2;
 
 function refuse(message: string): never {
   throw new PdfRefusalError(`Static PDF filling unavailable: ${message}`, "undecodable");
@@ -496,6 +502,123 @@ function fillWidth(encoded: Uint8Array, fontSize: number): number | null {
     total += width;
   }
   return total * fontSize;
+}
+
+/** The fill's own encoding: the WinAnsi code of each character Helvetica can show. */
+let winAnsiCodes: Map<number, number> | null = null;
+function encodeWinAnsi(text: string): Uint8Array | null {
+  if (!winAnsiCodes) {
+    winAnsiCodes = new Map();
+    const { encoding } = shippedFont(StandardFonts.Helvetica);
+    for (const codePoint of encoding.supportedCodePoints)
+      winAnsiCodes.set(codePoint, encoding.encodeUnicodeCodePoint(codePoint).code);
+  }
+  const codes: number[] = [];
+  for (const character of text) {
+    const code = winAnsiCodes.get(character.codePointAt(0)!);
+    if (code === undefined) return null;
+    codes.push(code);
+  }
+  return Uint8Array.from(codes);
+}
+
+/** One line of a multi-line box: its text exactly as drawn, and whether staff ended it. */
+export interface ParagraphLine {
+  /** A wrapped line keeps the space it was broken at, so the lines read back as the text. */
+  text: string;
+  /** True when a line break staff typed follows this line; false for a wrap or the last line. */
+  hardBreak: boolean;
+}
+
+export interface ParagraphLayout {
+  /** The normal form of the text; the lines reproduce it exactly. */
+  text: string;
+  lines: ParagraphLine[];
+  /** How many lines the box holds at the reviewed size. */
+  capacity: number;
+  /** Lines beyond the box, and about how many characters they carry; zero when it fits. */
+  overLines: number;
+  overCharacters: number;
+  /** A word wider than the box, when there is one. */
+  wideWord: string | null;
+  /** True when the text has a character the approved font cannot show. */
+  unsupported: boolean;
+}
+
+/**
+ * S253 (ARCH-S253-2): how a text in paragraphs sits in a box of this on-screen length and height at
+ * the reviewed size. Words wrap at spaces, every line break staff typed is kept, and nothing is
+ * shrunk or cut: a text with more lines than the box holds reports how much it is over. The static
+ * filler and the lease's box preview both use this one layout.
+ */
+export function layoutStaticParagraphs(
+  text: string,
+  box: { along: number; across: number; fontSize: number },
+): ParagraphLayout {
+  const normal = normalizeParagraphText(text);
+  const step = PARAGRAPH_LEADING * box.fontSize;
+  const room =
+    box.across - 2 * PARAGRAPH_PAD - (CAP_HEIGHT + PARAGRAPH_DESCENT) * box.fontSize;
+  const capacity = room < 0 ? 0 : Math.floor(room / step + 1e-9) + 1;
+  const layout: ParagraphLayout = {
+    text: normal,
+    lines: [],
+    capacity,
+    overLines: 0,
+    overCharacters: 0,
+    wideWord: null,
+    unsupported: false,
+  };
+  if (normal === "") return layout;
+  const widthOf = (value: string): number | null => {
+    const encoded = encodeWinAnsi(value);
+    return encoded ? fillWidth(encoded, box.fontSize) : null;
+  };
+  const space = widthOf(" ") ?? 0;
+  const source = normal.split("\n");
+  source.forEach((sourceLine, index) => {
+    const last = index === source.length - 1;
+    let current = "";
+    for (const word of sourceLine === "" ? [] : sourceLine.split(" ")) {
+      const wordWidth = widthOf(word);
+      if (wordWidth === null) {
+        layout.unsupported = true;
+        continue;
+      }
+      // Every line keeps room for the space it may be broken at.
+      if (wordWidth + space > box.along + 0.01) layout.wideWord ??= word;
+      const candidate = current === "" ? word : `${current} ${word}`;
+      if (current === "" || (widthOf(candidate) ?? 0) + space <= box.along + 0.01)
+        current = candidate;
+      else {
+        layout.lines.push({ text: `${current} `, hardBreak: false });
+        current = word;
+      }
+    }
+    layout.lines.push({ text: current, hardBreak: !last });
+  });
+  const over = layout.lines.slice(capacity);
+  layout.overLines = over.length;
+  layout.overCharacters = over.reduce(
+    (total, line) => total + line.text.trim().length,
+    0,
+  );
+  return layout;
+}
+
+/**
+ * Why a text in paragraphs cannot be set in its box, or null when it fits. The filler refuses with
+ * these words and the lease's preview shows the same ones, so staff read one answer in both places.
+ */
+export function paragraphLayoutIssue(layout: ParagraphLayout): string | null {
+  if (layout.unsupported)
+    return "the value has characters the approved font cannot show.";
+  if (layout.capacity < 1) return "the text is taller than its region.";
+  if (layout.wideWord !== null)
+    return "a word is wider than its box. The reviewed text size is kept and every word stays whole: shorten that word, or use an approved form with room for it.";
+  if (layout.overLines > 0)
+    return `the text is ${layout.overLines} ${layout.overLines === 1 ? "line" : "lines"} longer than its box holds, about ${layout.overCharacters} characters. The reviewed text size is kept and nothing is cut: shorten the text, or use an approved form with room for it.`;
+  return null;
 }
 
 function parseToUnicode(bytes: Uint8Array): Map<number, string> {
@@ -1955,11 +2078,13 @@ function textMatrix(
   align: "left" | "center" | "right",
   width: number,
   fontSize: number,
+  /** A multi-line box sets each baseline itself; a single line centers its cap height. */
+  baseline?: number,
 ): [number, number, number, number, number, number] {
   const { along, across } = screenExtent(rect, rotation);
   const offset =
     align === "left" ? 0 : align === "center" ? (along - width) / 2 : along - width;
-  const lift = (across - fontSize * CAP_HEIGHT) / 2;
+  const lift = baseline ?? (across - fontSize * CAP_HEIGHT) / 2;
   const { x, y, width: w, height: h } = rect;
   switch (rotation) {
     case 90:
@@ -2004,12 +2129,19 @@ function hex(bytes: Uint8Array): string {
 export function readStaticFillValues(content: ContentOp[]): Map<number, string> {
   const values = new Map<number, string>();
   let region: number | null = null;
+  let lineBreak = false;
   for (const op of content) {
     if (op.operator === "BDC" && op.operands[0]?.name === FILL_TAG) {
       const r = op.operands[1]?.entries?.get("R")?.number;
       region = typeof r === "number" ? r : null;
-    } else if (op.operator === "EMC") region = null;
-    else if (op.operator === "Tj" && region !== null) {
+      // S253: a line of a multi-line box records whether a line break staff typed follows it.
+      lineBreak = op.operands[1]?.entries?.get("N")?.number === 1;
+    } else if (op.operator === "EMC") {
+      if (region !== null && lineBreak)
+        values.set(region, `${values.get(region) ?? ""}\n`);
+      region = null;
+      lineBreak = false;
+    } else if (op.operator === "Tj" && region !== null) {
       const bytes = op.operands.find((operand) => operand.kind === "string")?.bytes;
       if (bytes)
         values.set(
@@ -2069,16 +2201,63 @@ async function fill(
   const rotationOf = (pageIndex: number) =>
     geometry.pages.find((page) => page.pageIndex === pageIndex)?.rotation ?? 0;
   // Every value is checked before anything is drawn: glyphs, width and height in its region.
+  interface DrawnRow {
+    encoded: Uint8Array;
+    width: number;
+    /** A multi-line box's baseline above its on-screen bottom edge; null centers one line. */
+    baseline: number | null;
+    /** A multi-line box's row: whether a line break staff typed follows. Null for one line. */
+    hardBreak: boolean | null;
+  }
   const drawn: Array<{
     index: number;
     region: StaticPdfGeometry["regions"][number];
+    /** The value as the output holds it: a text in paragraphs is in its normal form. */
     text: string;
-    encoded: Uint8Array;
-    width: number;
+    rows: DrawnRow[];
+    /** What the fill's marked content reads back as for this region. */
+    readback: string;
   }> = [];
+  const latin1 = (bytes: Uint8Array) => Buffer.from(bytes).toString("latin1");
   geometry.regions.forEach((region, index) => {
     const text = byRegion.get(region.regionId) ?? "";
     if (text === "") return;
+    if (region.format === "paragraphs") {
+      // S253 (ARCH-S253-2): a multi-line box keeps every paragraph and line break staff typed,
+      // wraps at spaces at the reviewed size, and refuses what does not fit: never shrunk or cut.
+      const normal = normalizeParagraphText(text);
+      if (normal === "") return;
+      if (/[\u0000-\u0009\u000b-\u001f\u007f]/.test(normal))
+        refuse(`${region.regionId}: control characters are unsupported.`);
+      const { along, across } = screenExtent(region.rect, rotationOf(region.pageIndex));
+      const layout = layoutStaticParagraphs(normal, {
+        along,
+        across,
+        fontSize: region.fontSize,
+      });
+      const issue = paragraphLayoutIssue(layout);
+      if (issue) refuse(`${region.regionId}: ${issue}`);
+      const top = across - PARAGRAPH_PAD - CAP_HEIGHT * region.fontSize;
+      const rows = layout.lines.map((line, row): DrawnRow => {
+        const encoded = encodeWinAnsi(line.text) ?? new Uint8Array();
+        return {
+          encoded,
+          width: fillWidth(encoded, region.fontSize) ?? 0,
+          baseline: top - row * PARAGRAPH_LEADING * region.fontSize,
+          hardBreak: line.hardBreak,
+        };
+      });
+      drawn.push({
+        index,
+        region,
+        text: normal,
+        rows,
+        readback: rows
+          .map((row) => `${latin1(row.encoded)}${row.hardBreak ? "\n" : ""}`)
+          .join(""),
+      });
+      return;
+    }
     if (/[\u0000-\u001f\u007f]/.test(text))
       refuse(`${region.regionId}: line breaks and control characters are unsupported.`);
     let encoded: Uint8Array;
@@ -2103,8 +2282,16 @@ async function fill(
       );
     if (region.fontSize > across)
       refuse(`${region.regionId}: the text is taller than its region.`);
-    drawn.push({ index, region, text, encoded, width });
+    drawn.push({
+      index,
+      region,
+      text,
+      rows: [{ encoded, width, baseline: null, hardBreak: null }],
+      readback: latin1(encoded),
+    });
   });
+  const shownRows = (entry: (typeof drawn)[number]) =>
+    entry.rows.filter((row) => row.encoded.length > 0);
   const touched = new Set<number>([
     ...plans.filter((plan) => plan.removed.length > 0).map((plan) => plan.pageIndex),
     ...drawn.map((entry) => entry.region.pageIndex),
@@ -2147,16 +2334,29 @@ async function fill(
     const lines: string[] = ["q"];
     for (const entry of drawn.filter((item) => item.region.pageIndex === pageIndex)) {
       const { region } = entry;
-      const matrix = textMatrix(
-        region.rect,
-        rotationOf(pageIndex),
-        region.align,
-        entry.width,
-        region.fontSize,
-      );
-      lines.push(
-        `/${FILL_TAG} <</R ${entry.index}>> BDC BT /${fontKey} ${region.fontSize} Tf 0 g ${matrix.map((value) => value.toFixed(3)).join(" ")} Tm <${hex(entry.encoded)}> Tj ET EMC`,
-      );
+      for (const row of entry.rows) {
+        // A row of a multi-line box carries /N: 1 when a line break staff typed follows it.
+        const tag =
+          row.hardBreak === null
+            ? `<</R ${entry.index}>>`
+            : `<</R ${entry.index} /N ${row.hardBreak ? 1 : 0}>>`;
+        if (row.encoded.length === 0) {
+          // An empty line between paragraphs draws nothing and still reads back as its break.
+          lines.push(`/${FILL_TAG} ${tag} BDC EMC`);
+          continue;
+        }
+        const matrix = textMatrix(
+          region.rect,
+          rotationOf(pageIndex),
+          region.align,
+          row.width,
+          region.fontSize,
+          row.baseline ?? undefined,
+        );
+        lines.push(
+          `/${FILL_TAG} ${tag} BDC BT /${fontKey} ${region.fontSize} Tf 0 g ${matrix.map((value) => value.toFixed(3)).join(" ")} Tm <${hex(row.encoded)}> Tj ET EMC`,
+        );
+      }
     }
     lines.push("Q");
     // The original may leave graphics states saved; each is restored before the fill draws.
@@ -2237,29 +2437,37 @@ async function fill(
     const fillRuns = reading.runs.filter((run) => run.streamIndex === fillIndex);
     const drawnHere = drawn.filter((item) => item.region.pageIndex === pageIndex);
     for (const entry of drawnHere) {
+      // One run per drawn line: a single value is one line, a multi-line box one per shown row.
       const placed = fillRuns.filter((run) => run.fill === entry.index);
-      const run = placed[0];
-      const cap = run
-        ? boxOf(run.matrix, [
-            [0, run.rise],
-            [run.advance, run.rise],
-            [0, run.rise + CAP_HEIGHT * run.fontSize],
-            [run.advance, run.rise + CAP_HEIGHT * run.fontSize],
-          ])
-        : null;
-      if (placed.length !== 1 || !cap || !inside(cap, entry.region.rect))
+      const caps = placed.map((run) =>
+        boxOf(run.matrix, [
+          [0, run.rise],
+          [run.advance, run.rise],
+          [0, run.rise + CAP_HEIGHT * run.fontSize],
+          [run.advance, run.rise + CAP_HEIGHT * run.fontSize],
+        ]),
+      );
+      if (
+        placed.length !== shownRows(entry).length ||
+        !caps.every((cap) => inside(cap, entry.region.rect))
+      )
         refuse(`${entry.region.regionId}: the saved value is not inside its region.`);
     }
-    if (fillRuns.length !== drawnHere.length)
+    if (
+      fillRuns.length !==
+      drawnHere.reduce((total, entry) => total + shownRows(entry).length, 0)
+    )
       refuse("the saved fill draws text outside its reviewed regions.");
     const values = readStaticFillValues(tokenizeContent(bytes[fillIndex]));
     for (const entry of drawnHere) {
-      if (values.get(entry.index) !== Buffer.from(entry.encoded).toString("latin1"))
+      if (values.get(entry.index) !== entry.readback)
         refuse(`${entry.region.regionId}: the saved value does not read back exactly.`);
     }
   }
+  const shownText = new Map(drawn.map((entry) => [entry.region.regionId, entry.text]));
   for (const region of geometry.regions)
-    allFields[region.regionId] = byRegion.get(region.regionId) ?? "";
+    allFields[region.regionId] =
+      shownText.get(region.regionId) ?? byRegion.get(region.regionId) ?? "";
   return {
     content,
     adapter: STATIC_ADAPTER,
@@ -2377,7 +2585,119 @@ export function formatStaticValue(
       ? `${LONG_MONTHS[Number(month) - 1]} ${Number(day)}, ${year}`
       : `${month}/${day}/${year}`;
   }
+  // S253: a text in paragraphs is shown in its one normal form, the form the box reads back as.
+  if (format === "paragraphs")
+    return normalizeParagraphText(
+      typeof value === "string" ? value : (displayValue ?? String(value)),
+    );
   return displayValue ?? String(value);
+}
+
+/** One run of text on a page of a saved file, where it sits and whether the fill drew it. */
+export interface StaticPageRun {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  text: string;
+  /** The index of the reviewed region whose fill drew this run; null for the form's own text. */
+  fillRegion: number | null;
+}
+
+/**
+ * S253 (R-S253-5, R-S253-10): every text run a program reads from one page of a saved file, with
+ * no review cap, so a prepared form's own text and its drawn values can be compared exactly.
+ */
+export function readStaticPageRuns(
+  content: Uint8Array,
+  pageIndex: number,
+): Promise<StaticPageRun[]> {
+  return bounded(async () => {
+    const { pdf } = await parseSafePdf(content, true);
+    const page = pdf.getPages()[pageIndex];
+    if (!page) return refuse(`page ${pageIndex + 1} does not exist in the file.`);
+    return readPage(pdf, page).runs.map((run) => ({
+      x: run.box.x0,
+      y: run.box.y0,
+      width: run.box.x1 - run.box.x0,
+      height: run.box.y1 - run.box.y0,
+      text: run.text,
+      fillRegion: run.fill,
+    }));
+  });
+}
+
+/** One line of a page as a program reads it: the runs on one baseline, in reading order. */
+export interface StaticTextLine {
+  pageIndex: number;
+  text: string;
+}
+
+/**
+ * S253 (R-S253-5, R-S253-10): the text of a saved file line by line, the form's own text and any
+ * drawn value together, as text extraction reads them. Runs are grouped by their baseline and
+ * ordered along their own direction, so a value drawn into a sentence reads inside that sentence
+ * on an upright or a turned page. No review cap applies; nothing is rendered or recognized.
+ */
+export function readStaticPdfLines(content: Uint8Array): Promise<StaticTextLine[]> {
+  return bounded(async () => {
+    const { pdf } = await parseSafePdf(content, true);
+    const lines: StaticTextLine[] = [];
+    for (const [pageIndex, page] of pdf.getPages().entries()) {
+      const items = readPage(pdf, page).runs.map((run) => {
+        const length = Math.hypot(run.matrix[0], run.matrix[1]) || 1;
+        const dx = run.matrix[0] / length;
+        const dy = run.matrix[1] / length;
+        const [x, y] = point(run.matrix, 0, run.rise);
+        const along = x * dx + y * dy;
+        return {
+          text: run.text,
+          direction: `${Math.round(dx)}:${Math.round(dy)}`,
+          along,
+          end: along + run.advance * length,
+          across: y * dx - x * dy,
+          size: Math.abs(run.fontSize) * length,
+        };
+      });
+      for (const direction of [...new Set(items.map((item) => item.direction))]) {
+        const sorted = items
+          .filter((item) => item.direction === direction)
+          .sort((left, right) => right.across - left.across || left.along - right.along);
+        let line: typeof sorted = [];
+        const flush = () => {
+          if (!line.length) return;
+          const ordered = [...line].sort((left, right) => left.along - right.along);
+          let text = "";
+          ordered.forEach((item, index) => {
+            const gap = index === 0 ? 0 : item.along - ordered[index - 1].end;
+            text += `${gap > 0.15 * item.size ? " " : ""}${item.text}`;
+          });
+          lines.push({ pageIndex, text: text.replace(/\s+/g, " ").trim() });
+          line = [];
+        };
+        for (const item of sorted) {
+          if (
+            line.length &&
+            Math.abs(item.across - line[0].across) > Math.max(1.5, 0.3 * item.size)
+          )
+            flush();
+          line.push(item);
+        }
+        flush();
+      }
+    }
+    return lines;
+  });
+}
+
+/** The on-screen length and height of a reviewed region, as the multi-line layout reads them. */
+export function staticRegionBox(
+  geometry: StaticPdfGeometry,
+  region: StaticPdfGeometry["regions"][number],
+): { along: number; across: number; fontSize: number } {
+  const rotation =
+    geometry.pages.find((page) => page.pageIndex === region.pageIndex)?.rotation ?? 0;
+  return { ...screenExtent(region.rect, rotation), fontSize: region.fontSize };
 }
 
 const WIN_ANSI_HIGH: Readonly<Record<number, string>> = {

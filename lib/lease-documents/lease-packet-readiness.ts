@@ -10,8 +10,13 @@ import {
   slotCapacityIssues,
 } from "@/lib/lease-documents/artifact-intake";
 import { EditableLayerError } from "@/lib/errors/editable-layer-error";
-import { FAMILY_NOT_USED_REASON } from "@/lib/lease-documents/evaluate-packet";
+import {
+  FAMILY_NOT_USED_REASON,
+  HELD_ANIMAL_REASON,
+} from "@/lib/lease-documents/evaluate-packet";
 import { FAMILY_USE_LABELS } from "@/lib/lease-documents/family-use";
+import { formHoldLabels } from "@/lib/lease-documents/form-holds";
+import { formNotesOf } from "@/lib/lease-documents/form-notes";
 import { LEASE_ARTIFACT_FAMILIES } from "@/lib/lease-documents/artifact-catalog";
 import { formatCentralTime } from "@/lib/lease-documents/returned-state-view";
 import type {
@@ -35,6 +40,17 @@ export interface LeasePacketFamilyRow {
   readonly missing: readonly string[];
   /** Shared catalog preparation, kept separate from this output's blockers. */
   readonly catalogSetup: readonly string[];
+  /**
+   * S253 (R-S253-8, R-S253-9): what the reviewed form leaves blank or keeps for a signer. Absent
+   * when the form has nothing to say or does not apply to this lease.
+   */
+  readonly notes?: readonly string[];
+  /** S253: a question this lease raises that the business has yet to answer. */
+  readonly questions?: readonly string[];
+  /** S253 (R-S253-10): organization, representative and signer text this form prints. */
+  readonly printed?: readonly string[];
+  /** The organization text alone, exactly as printed, to say whether two forms differ. */
+  readonly organizations?: readonly string[];
 }
 
 export interface PacketContextReadiness {
@@ -127,6 +143,8 @@ const APPLICABILITY_LABELS = {
   unknown: "Unknown until the packet facts are recorded",
   not_evaluated: "Current applicability unavailable",
 } as const;
+/** S253: the owner acknowledgment is its own packet beside the tenant packet. */
+export const OWNER_ACKNOWLEDGMENT_SEPARATE_LABEL = "Prepared separately for the owner";
 
 const shortHash = (hash: string) => hash.slice(0, 12);
 
@@ -254,6 +272,9 @@ export function projectLeasePacketReadiness(input: {
           missing.push(
             ...facts.map((blocker) => `${blocker.label} (${blocker.fieldKey}; staff)`),
           );
+        else if (evaluatedFamily?.reason === HELD_ANIMAL_REASON)
+          // S253 (R-S253-6): the rule is the client's answer to give; the lease's other forms go on.
+          missing.push(`${HELD_ANIMAL_REASON} (client; an open question)`);
         else
           missing.push(
             `${evaluatedFamily?.reason ?? "The current packet facts that decide whether this family applies are unavailable"} (staff)`,
@@ -270,13 +291,46 @@ export function projectLeasePacketReadiness(input: {
           parties: manifest.participants.filter(
             (participant) => participant.kind === entry.fieldMap!.audience,
           ).length,
-          animals: manifest.animals.length,
+          // S253: an assistance animal waiting on the approved rule is not placed on a form.
+          animals: manifest.animals.filter((animal) => !animal.heldBy).length,
         }))
           missing.push(
             `${issue} An approved form or attachment with room for everyone (client document approver)`,
           );
+      // S253 (R-S253-11): what this one form waits for. The lease's other forms go on.
+      if (applicability === "required")
+        missing.push(...formHoldLabels(manifest?.formHolds, family.kind));
     }
+    // S253: the owner acknowledgment is prepared as its own packet, so in a tenant packet's view
+    // it reads as prepared separately and still shows what its reviewed form leaves blank.
+    const separate =
+      Boolean(otherContext) &&
+      family.kind === "owner_acknowledgment" &&
+      !notUsed &&
+      input.familyUse.readable;
+    const formNotes =
+      entry?.fieldMap && !notUsed && (applicability === "required" || separate)
+        ? formNotesOf(
+            entry.fieldMap,
+            entry.fieldMap.audience === "tenant" && evaluation?.manifest
+              ? evaluation.manifest.participants.filter(
+                  (participant) => participant.kind === "tenant",
+                ).length
+              : null,
+          )
+        : null;
+    if (formNotes?.mapIssues.length)
+      missing.push(...formNotes.mapIssues.map((issue) => `${issue} (Admin)`));
+    const organizations = formNotes
+      ? (entry?.fieldMap?.printedParties ?? [])
+          .filter((printed) => printed.kind === "organization")
+          .map((printed) => printed.text)
+      : [];
     return {
+      ...(formNotes?.notes.length ? { notes: formNotes.notes } : {}),
+      ...(formNotes?.questions.length ? { questions: formNotes.questions } : {}),
+      ...(formNotes?.printed.length ? { printed: formNotes.printed } : {}),
+      ...(organizations.length ? { organizations } : {}),
       kind: family.kind,
       label: family.label,
       use: !input.familyUse.readable
@@ -289,7 +343,11 @@ export function projectLeasePacketReadiness(input: {
         : recordedUse?.source.system === "engineering_default"
           ? ENGINEERING_DEFAULT_LABEL
           : "Recorded client decision",
-      applicability: notUsed ? "Not used" : APPLICABILITY_LABELS[applicability],
+      applicability: notUsed
+        ? "Not used"
+        : separate
+          ? OWNER_ACKNOWLEDGMENT_SEPARATE_LABEL
+          : APPLICABILITY_LABELS[applicability],
       original,
       map,
       missing,

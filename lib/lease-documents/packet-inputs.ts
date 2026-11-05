@@ -24,6 +24,13 @@ import {
   DOTLOOP_PARTICIPANT_ROLES,
   type DotloopParticipantRole,
 } from "@/lib/integrations/dotloop/participant-roles";
+import {
+  OWNER_EXPLANATION_FACT,
+  OWNER_EXPLANATION_MAX_LENGTH,
+  ownerExplanationState,
+} from "@/lib/lease-documents/owner-explanation";
+import { normalizeParagraphText } from "@/lib/lease-documents/paragraph-text";
+import { PET_FEE_CHARGE_ID } from "@/lib/lease-documents/pet-agreement-facts";
 
 export const PACKET_INPUTS_SCHEMA_VERSION = "renewal-packet-inputs/v1";
 /** The source system of a value staff entered or reviewed in the packet inputs. */
@@ -127,6 +134,21 @@ export type PacketPersonInput = z.infer<typeof PacketPersonInputSchema>;
 export const ANIMAL_TREATMENTS = ["pet", "assistance_animal"] as const;
 export type AnimalTreatment = (typeof ANIMAL_TREATMENTS)[number];
 
+/**
+ * S253 (R-S253-3, R-S253-12): the refundable deposit staff recorded for one pet on one lease, with
+ * where the amount comes from. The server keeps who recorded it and when. It belongs to this animal
+ * on this lease: no other lease, portfolio or policy is ever offered it.
+ */
+export const AnimalDepositSchema = z
+  .object({
+    amountCents: z.number().int().nonnegative().max(10_000_000),
+    source: z.string().trim().min(3).max(300),
+    recordedAt: isoTime.optional(),
+    recordedByUid: uid.optional(),
+  })
+  .strict();
+export type AnimalDeposit = z.infer<typeof AnimalDepositSchema>;
+
 export const PacketAnimalInputSchema = z
   .object({
     animalId: z.string().uuid(),
@@ -142,9 +164,27 @@ export const PacketAnimalInputSchema = z
     fidoScore: z.number().int().min(1).max(5).nullable(),
     /** Unknown until staff record it; never inferred. */
     treatment: z.enum(ANIMAL_TREATMENTS).nullable(),
+    /** S253: absent until staff record one. No tier, schedule or printed amount supplies it. */
+    deposit: AnimalDepositSchema.optional(),
   })
   .strict();
 export type PacketAnimalInput = z.infer<typeof PacketAnimalInputSchema>;
+
+/**
+ * S253 (R-S253-7): the owner acknowledgment's explanation as stored: the text staff wrote for this
+ * lease and renewal cycle, with who wrote it and when. Staff write every word of it.
+ */
+const OwnerExplanationSchema = z
+  .object({
+    revision: z.number().int().positive(),
+    /** Null after staff deliberately clear it. */
+    text: z.string().min(1).max(OWNER_EXPLANATION_MAX_LENGTH).nullable(),
+    /** The renewal cycle it was written for; null when the lease had no cycle yet. */
+    cycleId: z.string().trim().min(1).max(128).nullable(),
+    recordedAt: isoTime,
+    recordedByUid: uid,
+  })
+  .strict();
 
 export const ChargeOverrideInputSchema = z
   .object({
@@ -210,6 +250,8 @@ export const PacketInputsRecordSchema = z
     people: section(PacketPersonInputSchema, 30),
     animals: section(PacketAnimalInputSchema, 20),
     chargeOverrides: section(StoredOverrideSchema, 60),
+    /** S253: absent until staff save an explanation on this lease. */
+    ownerExplanation: OwnerExplanationSchema.optional(),
     updatedAt: isoTime,
     updatedByUid: uid,
   })
@@ -269,6 +311,17 @@ export const SavePacketInputsSchema = z
       })
       .strict()
       .optional(),
+    /** S253: the owner explanation for this lease; null clears it. */
+    ownerExplanation: z
+      .object({
+        expectedRevision: z.number().int().nonnegative(),
+        text: z
+          .string()
+          .max(OWNER_EXPLANATION_MAX_LENGTH * 2)
+          .nullable(),
+      })
+      .strict()
+      .optional(),
   })
   .strict()
   .refine(
@@ -276,7 +329,8 @@ export const SavePacketInputsSchema = z
       (input.facts?.length ?? 0) > 0 ||
       input.people !== undefined ||
       input.animals !== undefined ||
-      input.chargeOverrides !== undefined,
+      input.chargeOverrides !== undefined ||
+      input.ownerExplanation !== undefined,
     "Nothing to save.",
   )
   .superRefine((input, ctx) => {
@@ -298,6 +352,16 @@ export const SavePacketInputsSchema = z
       !distinct(input.chargeOverrides.entries.map((entry) => entry.chargeId))
     )
       ctx.addIssue({ code: "custom", message: "One override per charge." });
+    // S253 (R-S253-5): the fee is published policy. A lease carries no amount of its own for it,
+    // so the charge an owner approves and the fee the prepared agreement states cannot differ.
+    if (
+      input.chargeOverrides?.entries.some((entry) => entry.chargeId === PET_FEE_CHARGE_ID)
+    )
+      ctx.addIssue({
+        code: "custom",
+        message:
+          "The pet processing fee is the published amount. An Admin changes it in the charge policy.",
+      });
   });
 export type SavePacketInputs = z.input<typeof SavePacketInputsSchema>;
 
@@ -498,7 +562,13 @@ function stableJson(value: unknown): string {
 export function planPacketInputsSave(
   current: PacketInputsRecord | null,
   raw: SavePacketInputs,
-  meta: { actorUid: string; nowIso: string; eventId: string },
+  meta: {
+    actorUid: string;
+    nowIso: string;
+    eventId: string;
+    /** S253: the lease's current renewal cycle, which a saved explanation is written for. */
+    cycleId?: string | null;
+  },
 ): { record: PacketInputsRecord; changed: string[] } {
   const input = SavePacketInputsSchema.parse(raw);
   const base = current ?? emptyPacketInputs(input.leaseId, meta.nowIso, meta.actorUid);
@@ -602,7 +672,78 @@ export function planPacketInputsSave(
   );
   const peopleIssue = peopleIssues(people.entries);
   if (peopleIssue) throw new EditableLayerError(peopleIssue, 400);
-  const animals = sectionUpdate("animals", "animals", base.animals, input.animals);
+  const priorAnimals = new Map(
+    base.animals.entries.map((animal) => [animal.animalId, animal]),
+  );
+  const animals = sectionUpdate(
+    "animals",
+    "animals",
+    base.animals,
+    input.animals
+      ? {
+          expectedRevision: input.animals.expectedRevision,
+          // S253: the server says who recorded a deposit and when; an unchanged one keeps both.
+          entries: input.animals.entries.map((animal) => {
+            if (!animal.deposit) return animal;
+            const prior = priorAnimals.get(animal.animalId)?.deposit;
+            const { amountCents, source } = animal.deposit;
+            return {
+              ...animal,
+              deposit:
+                prior && prior.amountCents === amountCents && prior.source === source
+                  ? prior
+                  : {
+                      amountCents,
+                      source,
+                      recordedAt: meta.nowIso,
+                      recordedByUid: meta.actorUid,
+                    },
+            };
+          }),
+        }
+      : undefined,
+  );
+  // S253 (R-S253-7): the explanation is saved as staff typed it, in its one normal form, for the
+  // lease's current cycle. Nothing is added to it and nothing is taken from another lease.
+  let ownerExplanation = base.ownerExplanation;
+  if (input.ownerExplanation) {
+    const currentRevision = base.ownerExplanation?.revision ?? 0;
+    if (currentRevision !== input.ownerExplanation.expectedRevision)
+      throw new EditableLayerError(
+        "Another operator changed the owner explanation. Your text is kept; review the current text before saving again.",
+        409,
+      );
+    const normal =
+      input.ownerExplanation.text === null
+        ? ""
+        : normalizeParagraphText(input.ownerExplanation.text);
+    if (/[\u0000-\u0009\u000b-\u001f\u007f]/.test(normal))
+      throw new EditableLayerError(
+        "The explanation has a character a form cannot show. Remove it and save again.",
+        400,
+      );
+    if (normal.length > OWNER_EXPLANATION_MAX_LENGTH)
+      throw new EditableLayerError(
+        `The explanation is ${normal.length - OWNER_EXPLANATION_MAX_LENGTH} characters longer than the ${OWNER_EXPLANATION_MAX_LENGTH} this record keeps. Shorten it and save again.`,
+        400,
+      );
+    const text = normal === "" ? null : normal;
+    const cycleId = meta.cycleId ?? null;
+    const unchanged = base.ownerExplanation
+      ? base.ownerExplanation.text === text &&
+        (base.ownerExplanation.cycleId === cycleId || text === null)
+      : text === null;
+    if (!unchanged) {
+      ownerExplanation = {
+        revision: currentRevision + 1,
+        text,
+        cycleId,
+        recordedAt: meta.nowIso,
+        recordedByUid: meta.actorUid,
+      };
+      changed.push("ownerExplanation");
+    }
+  }
   const priorOverrides = new Map(
     base.chargeOverrides.entries.map((entry) => [entry.chargeId, entry]),
   );
@@ -634,6 +775,7 @@ export function planPacketInputsSave(
     people,
     animals,
     chargeOverrides,
+    ...(ownerExplanation ? { ownerExplanation } : {}),
     updatedAt: meta.nowIso,
     updatedByUid: meta.actorUid,
   };
@@ -686,6 +828,34 @@ export function packetInputFacts(record: PacketInputsRecord | null): PacketFact[
       verifiedBy: entry.recordedByUid,
       blockingScope: scopeOf(fieldKey),
     }));
+}
+
+/**
+ * S253 (R-S253-7): the explanation as the owner acknowledgment's fact, present only when staff
+ * wrote one on this lease for its current cycle. Otherwise there is no fact at all: nothing stands
+ * in for text nobody wrote, and no other lease's text is ever read.
+ */
+export function packetOwnerExplanationFact(
+  record: PacketInputsRecord | null,
+  cycleId: string | null,
+): PacketFact | null {
+  const stored = record?.ownerExplanation;
+  const state = ownerExplanationState({ stored, cycleId, termsChangedAt: null });
+  if (!record || !stored || state.text === null) return null;
+  return {
+    fieldKey: OWNER_EXPLANATION_FACT,
+    normalizedValue: state.text,
+    displayValue: state.text,
+    source: inputSource(
+      `packet-inputs:${record.leaseId}:owner-explanation`,
+      stored.recordedAt,
+      stored.revision,
+    ),
+    confidence: "Verified",
+    applicability: "Applicable",
+    verifiedBy: stored.recordedByUid,
+    blockingScope: "owner_acknowledgment",
+  };
 }
 
 /** One participant per person and signer role; a person may hold several roles. */

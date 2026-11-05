@@ -62,6 +62,20 @@ export function bindCurrentPacketForDotloop(input: {
       409,
     );
   }
+  // S253 (R-S253-6): a form whose decision is still open, such as the animal agreement while an
+  // assistance animal waits on the approved rule, holds the packet's execution. Leaving that form
+  // out of a signed packet would treat the open decision as settled.
+  const undecided = snapshot.manifest.excludedArtifacts.filter(
+    (artifact) => artifact.ruleResult === "Needs input",
+  );
+  if (undecided.length > 0) {
+    throw new EditableLayerError(
+      `A form decision is still open, so this packet cannot enter Dotloop preview yet: ${undecided
+        .map((artifact) => artifact.reason)
+        .join(" ")}`,
+      409,
+    );
+  }
   if (
     currentHead.leaseId !== snapshot.leaseId ||
     currentHead.transactionId !== snapshot.transactionId ||

@@ -1,3 +1,4 @@
+import { organizationDifferenceNote } from "@/lib/lease-documents/form-notes";
 import type {
   LeasePacketFamilyRow,
   PacketContextReadiness,
@@ -19,6 +20,9 @@ export function LeasePacketReadiness({
   selection?: SelectionFreshness | null;
   context?: PacketContextReadiness | null;
 }>) {
+  const organizationNote = organizationDifferenceNote(
+    rows.map((row) => row.organizations),
+  );
   return (
     <section
       aria-label="Form families for this lease"
@@ -93,13 +97,45 @@ export function LeasePacketReadiness({
                   {row.original}
                   <br />
                   <span className="muted">{row.map}</span>
+                  {/* S253: what the reviewed form leaves blank and what it prints. */}
+                  {row.notes?.length ? (
+                    <ul data-form-notes>
+                      {row.notes.map((note) => (
+                        <li key={note}>{note}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  {row.printed?.length ? (
+                    <details>
+                      <summary>Printed on this form</summary>
+                      <ul data-form-printed>
+                        {row.printed.map((line) => (
+                          <li key={line}>{line}</li>
+                        ))}
+                      </ul>
+                    </details>
+                  ) : null}
                 </td>
-                <td>{row.missing.length ? row.missing.join("; ") : "Nothing missing"}</td>
+                <td>
+                  {row.missing.length ? row.missing.join("; ") : "Nothing missing"}
+                  {row.questions?.length ? (
+                    <ul data-form-questions>
+                      {row.questions.map((question) => (
+                        <li key={question}>{question}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      {organizationNote ? (
+        <p className="muted" data-renewal-field="form-organization-difference">
+          {organizationNote}
+        </p>
+      ) : null}
       {selection ? (
         <div className="ui-stack-tight" data-renewal-field="dotloop-selection-freshness">
           <h4>Dotloop selection</h4>
