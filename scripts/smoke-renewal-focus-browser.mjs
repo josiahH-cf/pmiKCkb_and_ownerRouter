@@ -57,7 +57,7 @@ assert(
 for (const [index, result] of results.entries())
   process.stdout.write(`Lease workspace ${index + 1}: ${JSON.stringify(result)}\n`);
 process.stdout.write(
-  `S145 Focus view browser smoke passed on ${results.length} live lease workspace(s): Focus view is the default, Focus shows one task, and the Full view returns to the same signature by pointer and keyboard at desktop and phone widths with no write request, navigation or page error.\n`,
+  `S145 Focus view browser smoke passed on ${results.length} live lease workspace(s): Guided view is the default, Focus shows one task, and the Full view returns to the same signature by pointer and keyboard at desktop and phone widths with no write request, navigation or page error.\n`,
 );
 
 async function workspaceLinks() {
@@ -120,11 +120,28 @@ async function verifyLease(href) {
 
   const fullButton = page.getByRole("button", { name: "Full view", exact: true });
   const focusButton = page.getByRole("button", { name: "Focus view", exact: true });
+  const guidedButton = page.getByRole("button", { name: "Guided view", exact: true });
   assert(
     (await page.getByRole("group", { name: "Lease view" }).count()) === 1,
     "The lease view switch is not one accessible group.",
   );
-  // S152: a lease opens in Focus view with its task pane; the round trips start from Full view.
+  // S247: a lease opens in Guided view, with Focus view and Full view beside it.
+  assert(
+    (await guidedButton.getAttribute("aria-pressed")) === "true" &&
+      (await focusButton.getAttribute("aria-pressed")) === "false" &&
+      (await fullButton.getAttribute("aria-pressed")) === "false" &&
+      (await page.getByRole("region", { name: "Guided view", exact: true }).count()) ===
+        1 &&
+      (await page.getByRole("region", { name: "Focus view", exact: true }).count()) === 0,
+    "Guided view is not the default.",
+  );
+  // The Focus checks below open the lease by its Focus view address, as a hand-chosen view lasts.
+  const focusHref = new URL(href, baseUrl);
+  focusHref.searchParams.set("view", "focus");
+  await page.goto(focusHref.href, { waitUntil: "domcontentloaded" });
+  await toolbarSwitch.waitFor({ timeout: ROUTE_BUDGET_MS });
+  await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
+  // S152: Focus view shows its task pane; the round trips start from Full view.
   assert(
     (await focusButton.getAttribute("aria-pressed")) === "true" &&
       (await fullButton.getAttribute("aria-pressed")) === "false",
@@ -270,7 +287,7 @@ async function verifyLease(href) {
   const tocSections = await tableOfContents(page);
   await context.close();
   return {
-    defaultView: "Focus view",
+    defaultView: "Guided view",
     focusTask: heading,
     elementsNarrowedInFocus: hiddenInFocus,
     tasksChosenInFocus: tasks,

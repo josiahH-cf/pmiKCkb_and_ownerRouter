@@ -1635,10 +1635,10 @@ function DeskRow({
             prefetch={false}
             className="renewal-lease-link"
             href={workspaceHref}
-            target={EXTERNAL_LINK_TARGET}
-            rel={EXTERNAL_LINK_REL}
+            // S247 R-S247-9 (D-OP-6): the lease opens in this tab, in Guided view; Back to
+            // renewals returns to this list view.
             aria-describedby={`pmi-lease-destination-${row.id}`}
-            title={`Open PMI lease workspace in a new tab`}
+            title="Open the PMI lease workspace"
           >
             {row.addressLabel}
           </Link>
@@ -1647,7 +1647,7 @@ function DeskRow({
         )}
         {workspaceHref ? (
           <span id={`pmi-lease-destination-${row.id}`} className="renewal-td-secondary">
-            PMI lease workspace ↗
+            PMI lease workspace
           </span>
         ) : null}
         <span className="renewal-td-secondary">

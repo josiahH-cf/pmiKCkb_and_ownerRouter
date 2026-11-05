@@ -1,0 +1,430 @@
+// S247 and S248: the guided path through the one-path rehearsal. Run it with
+//
+//   bash scripts/run-renewal-one-path-rehearsal.sh --overlay --driver tests/browser/one-path-guided-path-driver.mjs
+//
+// As the local demo Editor it opens each of the five working-month role leases and checks the
+// Guided view default (the three-way view control with Guided view pressed, the path strip with
+// one current step, one Now card with one primary action, the five section links); works a later
+// step while an earlier one is unfinished; reloads and returns to the same view, step and place;
+// switches views and follows a section link into Full view; sends an owner message through the
+// mail stand-in with the existing confirmation and sees the lease wait on the owner on its page
+// and its desk row with nothing more entered; removes that derived outreach with a reason; and
+// uses the control hooks for an owner reply, an unconfirmed send, a failed delivery and a
+// scheduled message. The scheduled message is counted only after the harness's own due-message
+// tick (scripts/lib/one-path-rehearsal/due-message-tick.mjs) has Gmail accept it.
+//
+// Every check is named and decides itself; the result goes to guided-path.json in the run
+// directory. Synthetic data only; nothing leaves this machine.
+import assert from "node:assert/strict";
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { chromium } from "playwright-core";
+
+import { resolveBrowserExecutable } from "../../scripts/lib/browser-executable.mjs";
+import { requireLoopbackRehearsalOrigin } from "../../scripts/lib/help-rehearsal-origin.mjs";
+import {
+  readRehearsal,
+  setNextSend,
+} from "../../scripts/lib/one-path-rehearsal/control.mjs";
+import {
+  routeFromPage,
+  sendOwnerMessage,
+  sequenceStanding,
+} from "../../scripts/lib/one-path-rehearsal/seeds.mjs";
+import { runDueMessageTick } from "../../scripts/lib/one-path-rehearsal/due-message-tick.mjs";
+
+const origin = requireLoopbackRehearsalOrigin(process.env.ONE_PATH_REHEARSAL_ORIGIN);
+const runDir = process.env.ONE_PATH_REHEARSAL_RUN_DIR;
+assert.ok(runDir, "Run through scripts/run-renewal-one-path-rehearsal.sh.");
+const rehearsal = readRehearsal(runDir);
+const { prepared, covered, assisted, missingRecipient, replied } = rehearsal.roles;
+const WORKING = [prepared, covered, assisted, missingRecipient, replied].filter(Boolean);
+const STEPS = [
+  "Check the numbers",
+  "Compare market rent",
+  "Ask the owner",
+  "Offer the tenant",
+  "Documents and signatures",
+  "Finish up",
+  "Complete",
+];
+const SECTIONS = [
+  "Lease details",
+  "Market rent comparison",
+  "Owner approval",
+  "Tenant offer and response",
+  "Documents and completion",
+];
+
+const checks = [];
+const check = (name, passed, observed) => {
+  checks.push({ name, passed: Boolean(passed), observed });
+  process.stdout.write(`${passed ? "ok  " : "FAIL"} ${name}\n`);
+};
+const leasePath = (leaseId, query = "") =>
+  `/lease-renewal/live/desk/lease/${leaseId}${query}`;
+
+const browser = await chromium.launch({
+  executablePath: resolveBrowserExecutable(),
+  headless: true,
+});
+try {
+  const context = await browser.newContext({
+    viewport: { width: 1280, height: 800 },
+    timezoneId: "America/Chicago",
+    locale: "en-US",
+  });
+  await context.route("**/*", (route) =>
+    new URL(route.request().url()).origin === origin
+      ? route.continue()
+      : route.abort("blockedbyclient"),
+  );
+  const page = await context.newPage();
+  page.setDefaultTimeout(240_000);
+  page.setDefaultNavigationTimeout(240_000);
+  // Every write the page makes, so opening, choosing and reloading can be shown to make none.
+  const writes = [];
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (
+      url.origin === origin &&
+      request.method() !== "GET" &&
+      url.pathname.startsWith("/api/")
+    )
+      writes.push(`${request.method()} ${url.pathname}`);
+  });
+  await page.goto(`${origin}/sign-in`, { waitUntil: "domcontentloaded" });
+  assert.ok(
+    await page.evaluate(
+      `fetch("/api/auth/demo",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({role:"Editor"})}).then(r=>r.ok)`,
+    ),
+    "Local demo Editor sign-in failed.",
+  );
+  writes.length = 0;
+  const route = (path, body) => routeFromPage(page, path, body);
+  const guided = () => page.getByRole("region", { name: "Guided view", exact: true });
+  const now = () => guided().getByRole("region", { name: "Now", exact: true });
+  const strip = () =>
+    guided().getByRole("navigation", { name: "Renewal path", exact: true });
+  const viewButton = (name) =>
+    page
+      .getByRole("group", { name: "Lease view", exact: true })
+      .getByRole("button", { name, exact: true });
+  const open = async (leaseId, query = "") => {
+    await page.goto(`${origin}${leasePath(leaseId, query)}`, {
+      waitUntil: "domcontentloaded",
+    });
+    await page
+      .getByRole("group", { name: "Lease view", exact: true })
+      .waitFor({ state: "visible" });
+    await page.waitForTimeout(1500);
+  };
+  const stageLine = async () =>
+    (await guided().locator('[data-renewal-field="stage-line"]').textContent())?.trim() ??
+    "";
+
+  // 1. Guided view is the default on each working-month lease (BEH-S247-1, L12 to L14).
+  for (const leaseId of WORKING) {
+    await open(leaseId);
+    const observed = {
+      leaseId,
+      pressed: await viewButton("Guided view").getAttribute("aria-pressed"),
+      views: await page
+        .getByRole("group", { name: "Lease view", exact: true })
+        .getByRole("button")
+        .allTextContents(),
+      steps: await strip().getByRole("button").allTextContents(),
+      current: await strip().locator('[aria-current="step"]').count(),
+      nowCards: await now().count(),
+      primaries: await now().locator("[data-renewal-now-primary]").count(),
+      sections: await guided()
+        .getByRole("navigation", { name: "Every section in Full view", exact: true })
+        .getByRole("link")
+        .allTextContents(),
+      stage: await stageLine(),
+    };
+    check(
+      `lease ${leaseId} opens in Guided view with the path strip and one Now card`,
+      observed.pressed === "true" &&
+        JSON.stringify(observed.views) ===
+          JSON.stringify(["Guided view", "Focus view", "Full view"]) &&
+        STEPS.every((step) => observed.steps.includes(step)) &&
+        observed.current === 1 &&
+        observed.nowCards === 1 &&
+        observed.primaries === 1 &&
+        JSON.stringify(observed.sections) === JSON.stringify(SECTIONS) &&
+        observed.stage.length > 0,
+      observed,
+    );
+  }
+  check("opening the five leases made no write", writes.length === 0, { writes });
+
+  // 2. A later step while an earlier one is unfinished (BEH-S247-2, L15).
+  await open(prepared);
+  const currentBefore = await strip().locator('[aria-current="step"]').textContent();
+  await strip().getByRole("button", { name: "Offer the tenant", exact: true }).click();
+  await page.waitForTimeout(500);
+  const heading = (await now().getByRole("heading", { level: 2 }).textContent())?.trim();
+  check(
+    "a later step opens in the Now card while the current step stays as it was",
+    heading === "Offer the tenant" &&
+      (await strip().locator('[aria-current="step"]').textContent()) === currentBefore &&
+      (await page.locator("#renewal-manual-tenant_offer").isVisible()),
+    { heading, currentBefore, url: page.url() },
+  );
+
+  // 3. Reload continuity (R-S247-7, L16): the same view, step and place.
+  await page.mouse.wheel(0, 600);
+  await page.waitForTimeout(300);
+  const scrolled = await page.evaluate(() => window.scrollY);
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await guided().waitFor({ state: "visible" });
+  await page.waitForTimeout(2500);
+  const reloaded = {
+    url: page.url(),
+    heading: (await now().getByRole("heading", { level: 2 }).textContent())?.trim(),
+    pressed: await viewButton("Guided view").getAttribute("aria-pressed"),
+    scrollY: await page.evaluate(() => window.scrollY),
+    scrolled,
+  };
+  check(
+    "a reload returns to Guided view at the chosen step and place",
+    reloaded.heading === "Offer the tenant" &&
+      reloaded.pressed === "true" &&
+      // Choosing a step and reloading leave the address as it was.
+      new URL(reloaded.url).search === "" &&
+      Math.abs(reloaded.scrollY - scrolled) <= 80,
+    reloaded,
+  );
+
+  // 4. The three-way view control and the five section links (R-S247-4, L17, L18).
+  await viewButton("Focus view").click();
+  const focusShown = await page
+    .getByRole("region", { name: "Focus view", exact: true })
+    .isVisible();
+  await viewButton("Full view").click();
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page
+    .getByRole("group", { name: "Lease view", exact: true })
+    .waitFor({ state: "visible" });
+  const fullKept = await viewButton("Full view").getAttribute("aria-pressed");
+  await viewButton("Guided view").click();
+  await guided()
+    .getByRole("navigation", { name: "Every section in Full view", exact: true })
+    .getByRole("link", { name: "Owner approval", exact: true })
+    .click();
+  await page.waitForTimeout(500);
+  const atSection = await page.evaluate(
+    () => document.activeElement?.closest("#renewal-section-owner") !== null,
+  );
+  check(
+    "the view control offers three views, a hand-chosen view lasts the visit, and a section link opens Full view there",
+    focusShown &&
+      fullKept === "true" &&
+      atSection &&
+      (await viewButton("Full view").getAttribute("aria-pressed")) === "true",
+    { focusShown, fullKept, atSection },
+  );
+  // The next lease opens in Guided view again.
+  await open(covered);
+  check(
+    "the next lease opened opens in Guided view",
+    (await viewButton("Guided view").getAttribute("aria-pressed")) === "true",
+    { url: page.url() },
+  );
+  check("choosing, switching and reloading made no write", writes.length === 0, {
+    writes,
+  });
+
+  // 5. A confirmed send records the outreach (AC-S248-1, L36 to L41).
+  const workRecordBefore = await route(
+    `/api/lease-renewal/workspace?leaseId=${prepared}`,
+  );
+  await setNextSend(rehearsal, "normal");
+  const sent = await sendOwnerMessage(page, prepared);
+  check(
+    "the owner message for the prepared lease is accepted by the mail stand-in",
+    sent.sent?.status === 200 && (sent.sent?.body?.sequence?.threads ?? []).length === 1,
+    {
+      step: sent.step,
+      refusal: sent.refusal,
+      standing: sequenceStanding(sent.sent?.body?.sequence),
+    },
+  );
+  writes.length = 0;
+  await open(prepared);
+  const waitingLine = await stageLine();
+  const workRecordAfter = await route(`/api/lease-renewal/workspace?leaseId=${prepared}`);
+  check(
+    "the lease page reads Waiting on owner response with nothing more entered",
+    /^Waiting on owner response/.test(waitingLine) &&
+      JSON.stringify(workRecordAfter.body?.state?.activities ?? {}) ===
+        JSON.stringify(workRecordBefore.body?.state?.activities ?? {}) &&
+      writes.length === 0,
+    {
+      waitingLine,
+      activities: Object.keys(workRecordAfter.body?.state?.activities ?? {}),
+      writes,
+    },
+  );
+  await page.goto(`${origin}/lease-renewal/live/desk`, { waitUntil: "domcontentloaded" });
+  const row = page.locator(`[data-batch-lease="${prepared}"]`).first();
+  await row.waitFor({ state: "attached" });
+  const rowText = (await row.textContent()) ?? "";
+  check(
+    "the desk row reads the same stage",
+    rowText.includes("Waiting on owner response"),
+    { rowText: rowText.replace(/\s+/g, " ").slice(0, 300) },
+  );
+
+  // 6. The correction (R-S248-10).
+  await open(prepared, "?step=ask-owner");
+  const notOutreach = now().getByRole("button", {
+    name: "This was not the renewal outreach",
+    exact: true,
+  });
+  const offered = await notOutreach.isVisible();
+  if (offered) {
+    await notOutreach.click();
+    await now()
+      .getByLabel("Why this was not the renewal outreach")
+      .fill("Synthetic rehearsal check of the correction.");
+    await now()
+      .getByRole("button", { name: "Remove the derived record", exact: true })
+      .click();
+    await page.waitForTimeout(3000);
+    await open(prepared, "?step=ask-owner");
+  }
+  check(
+    "This was not the renewal outreach removes the derived record and keeps its reason",
+    offered &&
+      !/^Waiting on owner response/.test(await stageLine()) &&
+      ((await now().textContent()) ?? "").includes(
+        "Synthetic rehearsal check of the correction.",
+      ),
+    { offered, stage: await stageLine() },
+  );
+
+  // 7. An owner reply (L36): the replied lease, and a fresh reply on the covered lease.
+  await open(replied);
+  const repliedLine = await stageLine();
+  const repliedNext = ((await now().textContent()) ?? "").replace(/\s+/g, " ");
+  check(
+    "the replied lease reads Owner replied and asks staff to record the owner's decision",
+    /Owner replied/.test(repliedLine) &&
+      repliedNext.includes("Record the owner's decision"),
+    { repliedLine, repliedNext: repliedNext.slice(0, 300) },
+  );
+
+  // 8. An unconfirmed send (L37).
+  await setNextSend(rehearsal, "unconfirmed");
+  const unconfirmed = await sendOwnerMessage(page, covered);
+  await open(covered, "?step=ask-owner");
+  const unconfirmedCard = ((await now().textContent()) ?? "").replace(/\s+/g, " ");
+  check(
+    "an unconfirmed send never counts as outreach and offers Check whether the message went out",
+    unconfirmed.sent?.body?.sequence?.state === "needs_reconciliation" &&
+      unconfirmedCard.includes("Check whether the message went out") &&
+      !/^Waiting on owner response/.test(await stageLine()),
+    {
+      standing: sequenceStanding(unconfirmed.sent?.body?.sequence),
+      card: unconfirmedCard.slice(0, 300),
+    },
+  );
+
+  // 9. A failed delivery (L38).
+  await setNextSend(rehearsal, "bounce");
+  const bounced = await sendOwnerMessage(page, assisted);
+  if (bounced.sequenceId)
+    await route("/api/gmail-hub/sequences", {
+      action: "refresh",
+      id: bounced.sequenceId,
+    });
+  await open(assisted, "?step=ask-owner");
+  const bouncedCard = ((await now().textContent()) ?? "").replace(/\s+/g, " ");
+  check(
+    "a failed delivery reads Delivery failed and offers Check the address and send again",
+    bouncedCard.includes("Delivery failed") &&
+      bouncedCard.includes("Check the address and send again"),
+    { standing: bounced.refusal ?? "sent", card: bouncedCard.slice(0, 300) },
+  );
+  await setNextSend(rehearsal, "normal");
+
+  // 10. A scheduled message (L39): shown as scheduled, counted only after Gmail accepts it.
+  const target = missingRecipient ?? covered;
+  const composition = await route(
+    `/api/gmail-hub/composition?purpose=renewal_owner&lease=${prepared}`,
+  );
+  let scheduledLine = "";
+  let afterTick = "";
+  let tick = null;
+  if (composition.status === 200) {
+    const uuid = () => page.evaluate(() => crypto.randomUUID());
+    const { context: messageContext, initial, reviewedTargetHash } = composition.body;
+    const saved = await route("/api/gmail-hub/sequences", {
+      action: "save",
+      draft: { id: await uuid(), context: messageContext, initial, followUp: null },
+      expectedVersion: 0,
+      operationId: await uuid(),
+    });
+    const tomorrow = new Date(Date.now() + 86_400_000).toLocaleDateString("en-CA", {
+      timeZone: "America/Chicago",
+    });
+    const scheduled = await route("/api/gmail-hub/sequences", {
+      action: "schedule",
+      id: saved.body?.sequence?.id,
+      expectedVersion: saved.body?.sequence?.version,
+      operationId: await uuid(),
+      reviewedDraftHash: saved.body?.reviewedDraftHash,
+      reviewedTargetHash,
+      schedule: {
+        firstDate: tomorrow,
+        time: "09:00",
+        timeZone: "America/Chicago",
+        everyDays: null,
+        endDate: null,
+        sendLimit: 1,
+      },
+    });
+    await open(prepared, "?step=ask-owner");
+    scheduledLine = ((await now().textContent()) ?? "").replace(/\s+/g, " ");
+    // The harness's in-process tick: the due message is sent through the mail stand-in.
+    tick = await runDueMessageTick(rehearsal, {
+      sequenceId: scheduled.body?.sequence?.id,
+    }).catch((error) => ({ error: String(error?.message ?? error) }));
+    await open(prepared, "?step=ask-owner");
+    afterTick = await stageLine();
+  }
+  check(
+    "a scheduled message reads Owner message scheduled for its date and is not counted before Gmail accepts it",
+    /Owner message scheduled for/.test(scheduledLine),
+    { target, scheduledLine: scheduledLine.slice(0, 300) },
+  );
+  check(
+    "after the due-message tick has Gmail accept it, the scheduled message counts as the outreach",
+    /^Waiting on owner response/.test(afterTick),
+    { tick, afterTick },
+  );
+} catch (error) {
+  check(
+    "the guided path ran to its end",
+    false,
+    String(error?.stack ?? error).slice(0, 1500),
+  );
+} finally {
+  await browser.close().catch(() => undefined);
+}
+const failed = checks.filter((entry) => !entry.passed);
+const result = {
+  servedCommit: rehearsal.servedCommit,
+  overlay: rehearsal.overlay,
+  passed: checks.length - failed.length,
+  failed: failed.length,
+  checks,
+};
+writeFileSync(join(runDir, "guided-path.json"), `${JSON.stringify(result, null, 2)}\n`);
+process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+process.stdout.write(
+  `one-path guided path: ${result.passed} passed, ${result.failed} failed on ${rehearsal.servedCommit.slice(0, 8)}.\n`,
+);
+process.exit(failed.length ? 1 : 0);

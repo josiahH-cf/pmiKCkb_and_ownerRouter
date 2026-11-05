@@ -980,7 +980,10 @@ describe("S82 chips, clear control, and zero states", () => {
   });
 });
 
-it("S196 opens a verified internal lease in a distinct new tab at its top, retaining the list view", () => {
+// S247 R-S247-9 (D-OP-6) settles the lease link: a lease opens in this tab, in Guided view, and
+// Back to renewals returns to the list view the link carries. S196's new tab is replaced; the
+// link still opens at the lease's top and keeps the list view.
+it("S196/S247 opens a verified internal lease in this tab at its top, retaining the list view", () => {
   render(
     <RenewalDeskTable
       rows={[row("7001")]}
@@ -991,11 +994,11 @@ it("S196 opens a verified internal lease in a distinct new tab at its top, retai
     />,
   );
   const link = screen.getByText("7001 Main St").closest("a")!;
-  expect(link).toHaveAttribute("target", "_blank");
-  expect(link).toHaveAttribute("rel", expect.stringContaining("noopener"));
+  expect(link).not.toHaveAttribute("target");
   expect(link.getAttribute("href")).toContain("/lease/7001?");
+  expect(link.getAttribute("href")).toContain("deskView=");
   expect(link.getAttribute("href")).not.toContain("#");
-  expect(link).toHaveAccessibleDescription("PMI lease workspace ↗");
+  expect(link).toHaveAccessibleDescription("PMI lease workspace");
   expect(screen.getByRole("link", { name: "Nonrenewals first" })).toHaveAttribute(
     "href",
     expect.stringContaining("scope=all"),

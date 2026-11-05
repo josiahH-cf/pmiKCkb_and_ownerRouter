@@ -182,8 +182,8 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
     expect(strip.querySelector("[aria-current='step']")?.textContent).toBe(
       current.textContent,
     );
-    // The chosen step is kept in this page's own address for a reload; nothing is saved.
-    expect(new URL(window.location.href).searchParams.get("step")).toBe("ask-owner");
+    // Choosing a step leaves the address as it was and saves nothing.
+    expect(window.location.search).toBe("");
     expect(routes.writes()).toEqual([]);
     expect(router.replace).not.toHaveBeenCalled();
     expect(router.push).not.toHaveBeenCalled();
@@ -215,19 +215,42 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
     ).toBe(true);
   });
 
-  it("R-S247-7: a view chosen by hand is kept in the address for the visit", async () => {
+  it("R-S247-7: a reload returns to the hand-chosen view and step; the next open starts in Guided view", async () => {
     const routes = stubRenewalRoutes(manualState());
     await renderWorkspace({ manual: manualState(), view: "default" });
     const user = userEvent.setup();
+    const strip = within(guidedPane()).getByRole("navigation", { name: "Renewal path" });
+    await user.click(within(strip).getByRole("button", { name: "Ask the owner" }));
     await user.click(viewButton("Focus view"));
-    expect(new URL(window.location.href).searchParams.get("view")).toBe("focus");
     expect(screen.getByRole("region", { name: "Focus view" })).toBeVisible();
+    // Switching changes neither the address nor any record.
+    expect(window.location.search).toBe("");
+    await user.click(viewButton("Guided view"));
     await user.click(viewButton("Full view"));
-    expect(new URL(window.location.href).searchParams.get("view")).toBe("full");
+    // The page unloads for a reload: the view and step are kept in this tab only.
+    act(() => {
+      window.dispatchEvent(new Event("pagehide"));
+    });
     cleanup();
-    // The reload reads the view back from the address.
-    await renderWorkspace({ manual: manualState(), view: "full" });
+    const navigation = vi
+      .spyOn(window.performance, "getEntriesByType")
+      .mockReturnValue([{ type: "reload" } as unknown as PerformanceEntry]);
+    await renderWorkspace({ manual: manualState(), view: "default" });
+    await settle(5);
     expect(viewButton("Full view")).toHaveAttribute("aria-pressed", "true");
+    await user.click(viewButton("Guided view"));
+    expect(within(nowCard()).getByRole("heading", { level: 2 })).toHaveTextContent(
+      "Ask the owner",
+    );
+    // Opened any other way (not a reload), the lease starts in Guided view at its current step.
+    act(() => {
+      window.dispatchEvent(new Event("pagehide"));
+    });
+    cleanup();
+    navigation.mockReturnValue([{ type: "navigate" } as unknown as PerformanceEntry]);
+    await renderWorkspace({ manual: manualState(), view: "default" });
+    expect(viewButton("Guided view")).toHaveAttribute("aria-pressed", "true");
+    navigation.mockRestore();
     expect(routes.writes()).toEqual([]);
   });
 

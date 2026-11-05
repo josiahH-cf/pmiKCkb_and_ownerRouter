@@ -14,7 +14,7 @@ import {
 
 import {
   RENEWAL_VIEW_LABELS,
-  RENEWAL_VIEW_PARAM,
+  isRenewalWorkspaceView,
   type RenewalWorkspaceView,
 } from "@/lib/lease-renewal/workspace-view";
 import { focusRenewalDashboardControl } from "./RenewalDashboardNavigation";
@@ -27,9 +27,10 @@ import { createFocusReveal, type FocusReveal } from "./renewal-focus-reveal";
  * support the same work and neither is an edit, review or locked mode.
  *
  * S247 R-S247-7 / R-S247-9 (D-OP-6): a lease opens in Guided view, with Focus view and Full view
- * beside it unchanged. A view chosen by hand lasts for that visit: it is written into this page's
- * own address (`view`), so a reload or a release returns to it, and the next lease opened from the
- * desk opens in Guided view again. An older link that names a section or a control in its hash
+ * beside it unchanged. A view chosen by hand lasts for that visit: a reload of the page returns to
+ * it, its step and its place (kept in this tab's session storage while the page unloads), and the
+ * next lease opened opens in Guided view again. An address may name a view (`view`). An older
+ * link that names a section or a control in its hash
  * opens Full view there (R-S247-11).
  */
 
@@ -51,6 +52,10 @@ interface FocusViewValue {
   readonly applyReveal: (keep: readonly Element[]) => void;
   /** True when the address named the view, so an older link's hash does not override it. */
   readonly explicitView: boolean;
+  /** The step the Guided view shows, kept for a reload of this page. */
+  readonly rememberStep: (step: string | null) => void;
+  /** The step a reload of this page returns to, once read; null otherwise. */
+  readonly restoredStep: string | null;
 }
 
 const FocusViewContext = createContext<FocusViewValue | null>(null);
@@ -59,21 +64,7 @@ export function useRenewalFocusView() {
   return useContext(FocusViewContext);
 }
 
-/** Write the chosen view (or step) into this page's own address, keeping every other key. */
-export function replaceLeaseAddress(changes: Record<string, string | null>) {
-  if (typeof window === "undefined") return;
-  try {
-    const url = new URL(window.location.href);
-    for (const [key, value] of Object.entries(changes)) {
-      if (value === null) url.searchParams.delete(key);
-      else url.searchParams.set(key, value);
-    }
-    if (url.href !== window.location.href)
-      window.history.replaceState(window.history.state, "", url.href);
-  } catch {
-    // The address is a convenience; the view itself is already shown.
-  }
-}
+const CONTINUITY_KEY = "renewal-lease-continuity";
 
 export function RenewalFocusViewProvider({
   children,
@@ -92,6 +83,16 @@ export function RenewalFocusViewProvider({
   const scrollY = useRef<number | null>(null);
   const fullTarget = useRef<string | null>(null);
   const reveal = useRef<{ body: HTMLElement; reveal: FocusReveal } | null>(null);
+  const stepRef = useRef<string | null>(null);
+  const [restoredStep, setRestoredStep] = useState<string | null>(null);
+  // A reload hands the kept step to the Guided view once (see the continuity effect below).
+  const restoreStep = useCallback(
+    (step: string) => window.setTimeout(() => setRestoredStep(step), 0),
+    [],
+  );
+  const rememberStep = useCallback((step: string | null) => {
+    stepRef.current = step;
+  }, []);
   const move = useCallback((next: RenewalWorkspaceView) => {
     if (next === current.current) return false;
     if (current.current === "full") scrollY.current = window.scrollY;
@@ -99,11 +100,10 @@ export function RenewalFocusViewProvider({
     setViewState(next);
     return true;
   }, []);
-  // A view chosen by hand: shown, and kept for this visit through the page's own address.
+  // A view chosen by hand: shown, and kept for a reload of this page (see below).
   const setView = useCallback(
     (next: RenewalWorkspaceView) => {
       move(next);
-      replaceLeaseAddress({ [RENEWAL_VIEW_PARAM]: next });
     },
     [move],
   );
@@ -155,53 +155,78 @@ export function RenewalFocusViewProvider({
     },
     [],
   );
-  // R-S247-7: a reload returns to the same place on the page. The position is kept in this tab's
-  // own session storage only while the page unloads, and read once when it opens again.
+  // R-S247-7: a reload returns to the same view, step and place. They are kept in this tab's own
+  // session storage only while the page unloads, and read back once, on a reload of the same
+  // address; any other way of opening the lease starts in Guided view at its current step.
+  // Nothing here writes the address, saves a record or calls a route.
   useEffect(() => {
-    const key = "renewal-lease-scroll";
     const here = () => `${window.location.pathname}${window.location.search}`;
     const save = () => {
       try {
         window.sessionStorage.setItem(
-          key,
-          JSON.stringify({ at: Date.now(), path: here(), y: window.scrollY }),
+          CONTINUITY_KEY,
+          JSON.stringify({
+            at: Date.now(),
+            path: here(),
+            y: window.scrollY,
+            view: current.current,
+            step: stepRef.current,
+          }),
         );
       } catch {
         // A convenience only.
       }
     };
-    let restore: number | null = null;
+    let timer: number | null = null;
     try {
-      const saved = JSON.parse(window.sessionStorage.getItem(key) ?? "null") as {
+      const saved = JSON.parse(
+        window.sessionStorage.getItem(CONTINUITY_KEY) ?? "null",
+      ) as {
         at?: number;
         path?: string;
         y?: number;
+        view?: unknown;
+        step?: unknown;
       } | null;
-      window.sessionStorage.removeItem(key);
+      window.sessionStorage.removeItem(CONTINUITY_KEY);
+      const navigation = window.performance?.getEntriesByType?.("navigation")?.[0] as
+        | { type?: string }
+        | undefined;
       if (
         saved &&
         saved.path === here() &&
-        typeof saved.y === "number" &&
         typeof saved.at === "number" &&
         Date.now() - saved.at < 10 * 60_000 &&
+        navigation?.type === "reload" &&
         !window.location.hash
       ) {
-        const y = saved.y;
-        let tries = 0;
-        // The page grows as its reads settle; scroll once it is tall enough, within a moment.
-        const attempt = () => {
-          tries += 1;
-          if (
-            document.documentElement.scrollHeight >= y + window.innerHeight ||
-            tries > 40
-          ) {
-            window.scrollTo?.({ top: y });
-            restore = null;
-            return;
-          }
-          restore = window.setTimeout(attempt, 50);
-        };
-        attempt();
+        if (!explicitView && isRenewalWorkspaceView(saved.view)) move(saved.view);
+        if (typeof saved.step === "string") {
+          stepRef.current = saved.step;
+          restoreStep(saved.step);
+        }
+        if (typeof saved.y === "number") {
+          const y = saved.y;
+          if ("scrollRestoration" in window.history)
+            window.history.scrollRestoration = "manual";
+          // The page grows as its reads settle; scroll once its height holds still.
+          let lastHeight = -1;
+          let steady = 0;
+          let tries = 0;
+          const attempt = () => {
+            tries += 1;
+            const height = document.documentElement.scrollHeight;
+            steady = height === lastHeight ? steady + 1 : 0;
+            lastHeight = height;
+            if ((steady >= 8 && height >= y) || tries > 120) {
+              window.scrollTo?.({ top: y });
+              timer = null;
+              return;
+            }
+            timer = window.setTimeout(attempt, 100);
+          };
+          attempt();
+        }
       }
     } catch {
       // A convenience only.
@@ -209,9 +234,10 @@ export function RenewalFocusViewProvider({
     window.addEventListener("pagehide", save);
     return () => {
       window.removeEventListener("pagehide", save);
-      if (restore !== null) window.clearTimeout(restore);
+      if (timer !== null) window.clearTimeout(timer);
     };
-  }, []);
+    // Mount only.
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const value = useMemo(
     () => ({
       view,
@@ -223,8 +249,20 @@ export function RenewalFocusViewProvider({
       setSlot,
       applyReveal,
       explicitView,
+      rememberStep,
+      restoredStep,
     }),
-    [view, setView, showInFull, selectedActionId, slot, applyReveal, explicitView],
+    [
+      view,
+      setView,
+      showInFull,
+      selectedActionId,
+      slot,
+      applyReveal,
+      explicitView,
+      rememberStep,
+      restoredStep,
+    ],
   );
   return <FocusViewContext.Provider value={value}>{children}</FocusViewContext.Provider>;
 }

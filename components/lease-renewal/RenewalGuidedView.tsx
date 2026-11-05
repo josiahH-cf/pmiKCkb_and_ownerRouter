@@ -37,7 +37,7 @@ import {
   focusRenewalDashboardControl,
   RENEWAL_FOCUS_REQUEST_EVENT,
 } from "./RenewalDashboardNavigation";
-import { replaceLeaseAddress, useRenewalFocusView } from "./RenewalFocusViewContext";
+import { useRenewalFocusView } from "./RenewalFocusViewContext";
 import type { RenewalFocusFacts } from "./RenewalFocusViewPane";
 import { useRenewalManualWorkspace } from "./RenewalManualWorkspace";
 import { useRenewalPricingPolicy } from "./RenewalPricingPolicy";
@@ -126,14 +126,22 @@ export function RenewalGuidedView({
       ),
     [state, context, readUnavailable, standingCovered, pricing],
   );
-  const [chosen, setChosen] = useState<RenewalPathStepId | null>(() => {
-    const linked = pathStepForLinkStep(selectedStepId);
-    return linked ?? null;
-  });
+  // The step shown: one chosen on this page, else the one a reload returns to (R-S247-7), else
+  // the one the address names (an older `step` value names the path step that holds it,
+  // R-S247-11), else the current step.
+  const [chosen, setChosen] = useState<RenewalPathStepId | null>(null);
+  const preferred =
+    chosen ??
+    pathStepForLinkStep(view?.restoredStep ?? null) ??
+    pathStepForLinkStep(selectedStepId);
   const shownId =
-    chosen && stage.steps.some((step) => step.id === chosen)
-      ? chosen
+    preferred && stage.steps.some((step) => step.id === preferred)
+      ? preferred
       : stage.currentStepId;
+  const rememberStep = view?.rememberStep;
+  useEffect(() => {
+    rememberStep?.(preferred);
+  }, [rememberStep, preferred]);
   const shown = stage.steps.find((step) => step.id === shownId) ?? stage.steps[0]!;
   const guided = view?.view === "guided";
   const heading = useRef<HTMLHeadingElement | null>(null);
@@ -144,7 +152,6 @@ export function RenewalGuidedView({
   const choose = useCallback((id: RenewalPathStepId) => {
     focusHeading.current = true;
     setChosen(id);
-    replaceLeaseAddress({ step: id });
   }, []);
 
   // Reveal the shown step's existing controls in place; everything else stays mounted, hidden.
@@ -199,7 +206,6 @@ export function RenewalGuidedView({
       if (owner) {
         pendingFocus.current = id;
         setChosen(owner.id);
-        replaceLeaseAddress({ step: owner.id });
       } else view.showInFull(id);
     };
     document.addEventListener(RENEWAL_FOCUS_REQUEST_EVENT, onRequest);
