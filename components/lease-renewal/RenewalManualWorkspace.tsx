@@ -42,6 +42,7 @@ import {
   MANUAL_ACTIVITIES,
   STAFF_RECORD_SOURCE,
   currentStaffActivity,
+  derivedOutreachSheetIntent,
   manualActionLabel,
   manualRenewalSummary,
   type ManualActivity,
@@ -50,6 +51,11 @@ import {
   type RenewalWorkspaceAction,
   type RenewalWorkspaceState,
 } from "@/lib/lease-renewal/workspace-state";
+import {
+  outreachFillFor,
+  type DerivedOutreachRecord,
+  type LeaseOutreachEvidence,
+} from "@/lib/lease-renewal/outreach-evidence";
 import {
   describeOwnerApproval,
   type OwnerApprovalChoices,
@@ -78,8 +84,12 @@ interface ManualContext {
     field: keyof typeof SHEET_FIELD_LABELS,
     eventId: string,
   ) => Promise<void>;
+  /** S248 R-S248-11: prepare the Sheet update a derived outreach record holds. */
+  prepareDerivedSource: (record: DerivedOutreachRecord) => Promise<void>;
   /** S234 R-S234-1: the owners of record and owner-thread replies an approval can name. */
   ownerApproval?: OwnerApprovalChoices;
+  /** S248: the lease's message evidence, read into the staff lane as the desk row reads it. */
+  outreachEvidence?: LeaseOutreachEvidence | null;
 }
 const Context = createContext<ManualContext | null>(null);
 export function useRenewalManualWorkspace() {
@@ -95,6 +105,8 @@ interface ManualProviderProps {
   statusLog?: ReactNode;
   cycleBasis?: RenewalCycleBasis | null;
   ownerApproval?: OwnerApprovalChoices;
+  /** S248: the lease's renewal message evidence (the stage context's), or none. */
+  outreachEvidence?: LeaseOutreachEvidence | null;
 }
 export function RenewalManualProvider(props: ManualProviderProps) {
   return props.initialState === undefined && !props.unavailable ? (
@@ -152,6 +164,7 @@ function ActiveManualProvider({
   writebackPaused = false,
   unavailable = false,
   ownerApproval,
+  outreachEvidence,
 }: ManualProviderProps) {
   const pricing = useRenewalPricingPolicy();
   const [pausedReadback, setPaused] = useState<boolean | null>(null);
@@ -382,6 +395,46 @@ function ActiveManualProvider({
       setDeliberate(false);
     }
   }
+  async function prepareDerivedSource(record: DerivedOutreachRecord) {
+    if (paused) {
+      setMessage("Saved in the app. Sheet updates are paused.");
+      return;
+    }
+    const current = stateRef.current;
+    if (!current) return;
+    setDeliberate(true);
+    try {
+      const response = await fetch("/api/lease-renewal/workspace", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          operation: "prepare_derived_source",
+          leaseId,
+          cycleId: current.cycleId,
+          audience: record.audience,
+          sequenceId: record.sequenceId,
+          occurrenceId: record.occurrenceId,
+        }),
+      });
+      const result = await response.json();
+      if (typeof result.writeback_paused === "boolean")
+        setPaused(result.writeback_paused);
+      if (!response.ok)
+        throw new Error(result.error ?? "This Sheet update could not be prepared.");
+      applyState(result.state);
+      setMessage(
+        "Prepared from the app's confirmed send. Review the Sheet update and confirm it separately.",
+      );
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "This Sheet update could not be prepared.",
+      );
+    } finally {
+      setDeliberate(false);
+    }
+  }
   async function reload() {
     setDeliberate(true);
     try {
@@ -401,7 +454,11 @@ function ActiveManualProvider({
     }
   }
   const covered = useStandingOwnerAuthority(state?.revision ?? 0);
-  const summary = manualRenewalSummary(state, { standingOwnerAuthority: covered });
+  // S248: the same evidence fill the desk row reads; the recorded work card names its next step.
+  const summary = manualRenewalSummary(state, {
+    standingOwnerAuthority: covered,
+    evidence: outreachFillFor(state, outreachEvidence),
+  });
   return (
     <Context.Provider
       value={{
@@ -414,7 +471,9 @@ function ActiveManualProvider({
         states,
         record,
         prepareSource,
+        prepareDerivedSource,
         ownerApproval,
+        outreachEvidence: outreachEvidence ?? null,
       }}
     >
       <div className="renewal-primary-progress" data-renewal-focus-context>
@@ -531,7 +590,19 @@ export function RenewalManualSection({
   const { state } = context;
   if (context.readUnavailable && !state)
     return <p>Reload current staff records above before recording work.</p>;
-  const summary = manualRenewalSummary(state, { standingOwnerAuthority: covered });
+  const fill = outreachFillFor(state, context.outreachEvidence);
+  const summary = manualRenewalSummary(state, {
+    standingOwnerAuthority: covered,
+    evidence: fill,
+  });
+  // S248 R-S248-11: a derived tenant offer with no Sheet value held for it yet.
+  const derivedIntent = fill?.tenant_offer
+    ? derivedOutreachSheetIntent(fill.tenant_offer.activity)
+    : null;
+  const derivedSheetValue =
+    state && fill?.tenant_offer && derivedIntent && !state.sourceUpdates[derivedIntent.field]
+      ? { record: fill.tenant_offer, intent: derivedIntent }
+      : null;
   const activities = Object.entries(MANUAL_ACTIVITIES)
     .filter(
       ([key, value]) =>
@@ -588,6 +659,26 @@ export function RenewalManualSection({
             <RenewalSectionHeading id="source-updates" as="h3">
               Source updates
             </RenewalSectionHeading>
+            {state && derivedSheetValue ? (
+              // S248 R-S248-11: the derived tenant offer holds the same Sheet value a staff record
+              // holds; preparing it is a deliberate step and its update is confirmed separately.
+              <p data-renewal-derived-source={derivedSheetValue.intent.field}>
+                {SHEET_FIELD_LABELS[derivedSheetValue.intent.field]}:{" "}
+                {String(derivedSheetValue.intent.value)} :{" "}
+                {context.writebackPaused
+                  ? "Sheet updates are paused"
+                  : "The Sheet changes only when you confirm its update"}
+                .{" "}
+                <Button
+                  variant="secondary"
+                  disabled={context.pending || context.writebackPaused}
+                  onClick={() => void context.prepareDerivedSource(derivedSheetValue.record)}
+                >
+                  Prepare the Sheet update for{" "}
+                  {SHEET_FIELD_LABELS[derivedSheetValue.intent.field].toLowerCase()}
+                </Button>
+              </p>
+            ) : null}
             {state && Object.values(state.sourceUpdates).length ? (
               <ul>
                 {Object.values(state.sourceUpdates).map((update) => (
@@ -670,6 +761,7 @@ function ActivityForm({ activity }: { activity: ManualActivity }) {
       standingOwnerAuthority:
         pricing?.view?.manualRevision === (state?.revision ?? 0) &&
         pricing.view.authority.covered,
+      evidence: outreachFillFor(state, context.outreachEvidence),
     }).nextActivity === activity;
   const key = `activity:${activity}`;
   // A typed detail that differs from the saved record is not saved yet.

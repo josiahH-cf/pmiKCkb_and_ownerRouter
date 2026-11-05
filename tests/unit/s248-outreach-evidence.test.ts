@@ -250,7 +250,10 @@ describe("S248 tenant offer: the same rules for Tenant offer delivered", () => {
 });
 
 describe("S248 AC-S248-4: a message sent before the lease had a work record", () => {
-  const context = (outreach: ReturnType<typeof evidenceInput>) => ({
+  const context = (
+    outreach: ReturnType<typeof evidenceInput>,
+    cycleDateIso: string | null = "2026-12-31",
+  ) => ({
     leaseId: LEASE,
     staffRecordUnavailable: false,
     standingAgreement: null,
@@ -264,6 +267,110 @@ describe("S248 AC-S248-4: a message sent before the lease had a work record", ()
     lastContactAtIso: null,
     threadCheck: null,
     outreach,
+    cycleDateIso,
+  });
+  const DAY = 86_400_000;
+  /** A dated work record for a lease end, with optional staff events. */
+  const dated = (
+    dateIso: string,
+    actions: Parameters<typeof recordedState>[1] = [],
+  ): ReturnType<typeof recordedState> => ({
+    ...recordedState(LEASE, actions),
+    basis: { kind: "lease_end", dateIso, source: "RentVine lease end" },
+  });
+  const counted = (
+    sentAtMs: number,
+    scope: ReturnType<typeof outreachScopeFor>,
+  ): boolean =>
+    projectOutreachEvidence(
+      evidenceInput([message({ cycleId: null, acceptedAtMs: sentAtMs })]),
+      scope,
+    ).owner.derived !== null;
+
+  it("never counts a previous cycle's message for this cycle (a 12-month renewal)", () => {
+    // Cycle A ended 10/31/2026 and its owner message went out 10/05/2026; cycle B ends
+    // 10/31/2027, with every staff event after that message. A's message is not B's outreach.
+    const previous = Date.parse("2026-10-05T15:00:00.000Z");
+    const cycleB = dated("2027-10-31", [
+      {
+        action: { kind: "activity", activity: "owner_outreach", outcome: "not_started" },
+        atIso: "2027-08-01T15:00:00.000Z",
+      },
+    ]);
+    expect(counted(previous, outreachScopeFor(cycleB))).toBe(false);
+    // The last owner message of a 12-month cycle 12 to 14 months before this cycle's end.
+    for (const monthsBefore of [12, 13, 14]) {
+      const sent = Date.parse("2027-12-31T15:00:00.000Z") - monthsBefore * 30 * DAY;
+      expect(counted(sent, outreachScopeFor(dated("2027-12-31")))).toBe(false);
+    }
+    // A six-month term: the previous cycle's carried-over message 60 days after its end.
+    const sixMonthPrevious = Date.parse("2027-08-29T15:00:00.000Z");
+    expect(counted(sixMonthPrevious, outreachScopeFor(dated("2027-12-31")))).toBe(false);
+    // Nor for a lease with no record yet, read against its current RentVine end.
+    expect(counted(previous, outreachScopeFor(null, "2027-10-31"))).toBe(false);
+  });
+
+  it("counts a message inside this cycle's own window, sent before or after the record began", () => {
+    const end = "2026-12-31";
+    // Opens 120 days before the cycle date (09/02/2026) and closes 60 days after (03/01/2027).
+    expect(counted(Date.parse("2026-09-02T15:00:00.000Z"), outreachScopeFor(dated(end)))).toBe(
+      true,
+    );
+    expect(counted(Date.parse("2026-09-01T15:00:00.000Z"), outreachScopeFor(dated(end)))).toBe(
+      false,
+    );
+    expect(counted(Date.parse("2027-03-01T15:00:00.000Z"), outreachScopeFor(dated(end)))).toBe(
+      true,
+    );
+    expect(counted(Date.parse("2027-03-02T15:00:00.000Z"), outreachScopeFor(dated(end)))).toBe(
+      false,
+    );
+    // A message reviewed before S233 recorded the cycle, sent after the record's first staff
+    // event: it is this cycle's outreach.
+    const began = dated(end, [
+      {
+        action: { kind: "activity", activity: "owner_outreach", outcome: "not_started" },
+        atIso: new Date(SENT_AT_MS - 3_600_000).toISOString(),
+      },
+    ]);
+    expect(counted(SENT_AT_MS, outreachScopeFor(began))).toBe(true);
+    // A message that named another cycle never counts, whatever the record.
+    expect(
+      projectOutreachEvidence(
+        evidenceInput([message({ cycleId: OTHER_CYCLE })]),
+        outreachScopeFor(began),
+      ).owner.derived,
+    ).toBeNull();
+    expect(began.cycleId).toBe(EVIDENCE_CYCLE);
+  });
+
+  it("a lease-bound record counts from 120 days before its first staff event, and a lease with no date counts none", () => {
+    const leaseBound = (atIso: string | null) => ({
+      ...(atIso
+        ? recordedState(LEASE, [
+            {
+              action: {
+                kind: "activity",
+                activity: "owner_outreach",
+                outcome: "not_started",
+              },
+              atIso,
+            },
+          ])
+        : recordedState(LEASE)),
+      basis: { kind: "lease_bound" as const, source: "No lease end reported" },
+    });
+    const first = "2026-11-10T15:00:00.000Z";
+    expect(counted(SENT_AT_MS, outreachScopeFor(leaseBound(first)))).toBe(true);
+    expect(
+      counted(Date.parse(first) + 200 * DAY, outreachScopeFor(leaseBound(first))),
+    ).toBe(true);
+    // A month-to-month lease starting a new lease-bound record inherits no earlier message.
+    expect(
+      counted(Date.parse(first) - 200 * DAY, outreachScopeFor(leaseBound(first))),
+    ).toBe(false);
+    expect(counted(SENT_AT_MS, outreachScopeFor(leaseBound(null)))).toBe(false);
+    expect(counted(SENT_AT_MS, outreachScopeFor(null, null))).toBe(false);
   });
 
   it("moves a lease with no work record to the owner's response, and a reply to the team", () => {
@@ -281,37 +388,9 @@ describe("S248 AC-S248-4: a message sent before the lease had a work record", ()
     expect(projectRenewalStage(null, context(evidenceInput([]))).currentStepId).toBe(
       "compare-market",
     );
-  });
-
-  it("counts for the dated record established after it, never for one that began before", () => {
-    const sent = message({ cycleId: null });
-    const after = recordedState(LEASE, [
-      {
-        action: { kind: "owner_response", outcome: "no_response" },
-        atIso: new Date(SENT_AT_MS + 3_600_000).toISOString(),
-      },
-    ]);
+    // A lease with no date to place the message on derives nothing from it.
     expect(
-      projectOutreachEvidence(evidenceInput([sent]), outreachScopeFor(after)).owner
-        .derived,
-    ).not.toBeNull();
-    const before = recordedState(LEASE, [
-      {
-        action: { kind: "activity", activity: "owner_outreach", outcome: "not_started" },
-        atIso: new Date(SENT_AT_MS - 3_600_000).toISOString(),
-      },
-    ]);
-    expect(
-      projectOutreachEvidence(evidenceInput([sent]), outreachScopeFor(before)).owner
-        .derived,
-    ).toBeNull();
-    // A message that named another cycle never counts, whatever the record.
-    expect(
-      projectOutreachEvidence(
-        evidenceInput([message({ cycleId: OTHER_CYCLE })]),
-        outreachScopeFor(after),
-      ).owner.derived,
-    ).toBeNull();
-    expect(after.cycleId).toBe(EVIDENCE_CYCLE);
+      projectRenewalStage(null, context(evidenceInput([sent]), null)).currentStepId,
+    ).toBe("compare-market");
   });
 });

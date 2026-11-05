@@ -17,6 +17,7 @@ import type { ActionGraphDiagnostic } from "@/lib/lease-renewal/action-graph";
 import { operationalCurrentRent } from "@/lib/lease-renewal/current-rent";
 import { describeRenewalTerms } from "@/lib/lease-renewal/current-rent-display";
 import { effectiveRenewalTerms } from "@/lib/lease-renewal/effective-terms";
+import { outreachFillFor } from "@/lib/lease-renewal/outreach-evidence";
 import {
   focusLeaseWorkStatusInput,
   projectLeaseWorkStatus,
@@ -241,6 +242,7 @@ export function RenewalFocusViewPane({
           authority.manualRevision === (state?.revision ?? 0),
         followUp: snapshot.leaseStatus.followUp,
         sourceReadAtIso: snapshot.leaseStatus.sourceReadAtIso,
+        evidence: outreachFillFor(state, snapshot.outreach),
       }),
     );
   }, [snapshot, contextual, readUnavailable, contextState, pricing]);

@@ -131,6 +131,9 @@ export interface DeskPartyFilterOptions {
 }
 
 export const PARTY_FILTERING_UNAVAILABLE_NOTICE = "Party filtering is unavailable.";
+/** S248: the app's renewal message records could not be read for this view. */
+export const OUTREACH_EVIDENCE_UNAVAILABLE_NOTICE =
+  "The app's renewal message records could not be read just now, so each stage shows the staff record alone. Refresh to read them again.";
 export const UNFILTERED_EMPTY_COPY = "No renewals are in the current worklist.";
 export const FILTERED_EMPTY_COPY = "No renewals match these filters.";
 /** S122: a zero-match view offers a wider view or fewer filters; it never claims a lease is gone. */
@@ -1186,6 +1189,12 @@ export function RenewalDeskTable({
         ) : null}
         <RenewalDeskViewMemoryStatus />
       </div>
+      {rows.some((row) => row.outreachEvidence === "unavailable") ? (
+        // S248: a failed evidence read says so; the stages below read the staff record alone.
+        <p className="renewal-notice" data-outreach-evidence-notice role="note">
+          {OUTREACH_EVIDENCE_UNAVAILABLE_NOTICE}
+        </p>
+      ) : null}
 
       <DataTableFrame
         className="renewal-table-scroll"
@@ -1613,6 +1622,7 @@ function DeskRow({
         row.manualProgress ? String(row.manualProgress.complete) : "none"
       }
       data-manual-next={row.manualProgress?.nextActivity ?? "none"}
+      data-outreach-evidence={row.outreachEvidence ?? "none"}
       data-manual-pending-source-updates={
         row.manualProgress ? String(row.manualProgress.pendingSourceUpdates) : "none"
       }

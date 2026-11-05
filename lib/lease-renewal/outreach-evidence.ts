@@ -6,7 +6,8 @@
 //
 // Only a message linked to this lease, this audience and the current renewal cycle counts
 // (AC-S248-4): the communication's context names the lease and audience, and its notice scope
-// names the cycle. A message with no cycle, or another cycle's, changes nothing here.
+// names the cycle. Another cycle's message changes nothing here; a message whose scope named no
+// cycle counts only inside this cycle's own renewal window (`outreachScopeFor`).
 //
 // Evidence fills what staff have not recorded. When staff recorded something different after the
 // evidence time, neither wins: the step keeps the staff record and the lease reads "Needs a check"
@@ -195,11 +196,19 @@ const latest = (values: readonly number[]): number | null =>
 
 /**
  * AC-S248-4: which messages belong to one work record's cycle. A message whose notice scope named
- * that cycle belongs to it. A message the app sent while the lease had no dated work record (its
- * notice scope named no cycle) belongs to the record established after it: no record yet, a
- * lease-bound record (whose notice scope never names a cycle), or a dated record whose staff
- * events all come after the send and whose date is the renewal that send was about (within 400
- * days of it).
+ * that cycle belongs to it; a message that named another cycle never does. A message whose notice
+ * scope named no cycle (every message reviewed before S233 recorded the cycle, and any message
+ * reviewed while the lease had no dated work record) belongs to the cycle whose own renewal window
+ * holds its first send, on the Central business calendar:
+ *
+ * - a dated record, or a lease with no record yet: from the day the lease enters the Renewals desk
+ *   window (`OUTREACH_WINDOW_DAYS_BEFORE` days before the cycle date, the desk's own horizon)
+ *   through `OUTREACH_WINDOW_DAYS_AFTER` days after it. The cycle date is the record's basis date,
+ *   or with no record the lease end RentVine reports now (a month-to-month lease's review date);
+ *   with no date at all no such message counts. Two cycles of a six-month term, the shortest the
+ *   batch renews, never share a window, so a previous cycle's message never fills this one.
+ * - a lease-bound record (no date to anchor on): from `OUTREACH_WINDOW_DAYS_BEFORE` days before
+ *   the record's first staff event onward; a record with no staff event yet counts none.
  */
 export interface OutreachScope {
   readonly cycleId: string;
@@ -208,7 +217,29 @@ export interface OutreachScope {
 
 /** The cycle id the evidence is read under while a lease has no work record yet. */
 export const NO_WORK_RECORD_CYCLE = "no-work-record";
-const UNSCOPED_RENEWAL_WINDOW_MS = 400 * 24 * 3_600_000;
+/** The Renewals desk's own horizon: a lease enters its renewal window this many days ahead. */
+export const OUTREACH_WINDOW_DAYS_BEFORE = 120;
+/** Carried-over work after the cycle date; with the days before, shorter than a six-month term. */
+export const OUTREACH_WINDOW_DAYS_AFTER = 60;
+
+function shiftDays(dateIso: string, days: number): string {
+  const [year, month, day] = dateIso.split("-").map(Number);
+  return new Date(Date.UTC(year!, month! - 1, day! + days)).toISOString().slice(0, 10);
+}
+
+/** The cycle's own renewal window around its date, as a test on a send time. */
+export function outreachCycleWindow(
+  cycleDateIso: string | null | undefined,
+): (atMs: number) => boolean {
+  if (!cycleDateIso || !/^\d{4}-\d{2}-\d{2}$/.test(cycleDateIso)) return () => false;
+  const opens = shiftDays(cycleDateIso, -OUTREACH_WINDOW_DAYS_BEFORE);
+  const closes = shiftDays(cycleDateIso, OUTREACH_WINDOW_DAYS_AFTER);
+  return (atMs) => {
+    if (!Number.isFinite(atMs)) return false;
+    const day = businessDateIso(atMs);
+    return day >= opens && day <= closes;
+  };
+}
 
 function earliestStaffEventMs(state: RenewalWorkspaceState): number {
   const times = [
@@ -223,19 +254,24 @@ function earliestStaffEventMs(state: RenewalWorkspaceState): number {
   return times.length ? Math.min(...times) : Infinity;
 }
 
-export function outreachScopeFor(state: RenewalWorkspaceState | null): OutreachScope {
-  if (!state) return { cycleId: NO_WORK_RECORD_CYCLE, unscoped: () => true };
-  if (state.basis.kind === "lease_bound")
-    return { cycleId: state.cycleId, unscoped: () => true };
+export function outreachScopeFor(
+  state: RenewalWorkspaceState | null,
+  /** With no work record: the lease's current cycle date (RentVine end or review date). */
+  leaseCycleDateIso: string | null = null,
+): OutreachScope {
+  if (!state)
+    return {
+      cycleId: NO_WORK_RECORD_CYCLE,
+      unscoped: outreachCycleWindow(leaseCycleDateIso),
+    };
+  if (state.basis.kind !== "lease_bound")
+    return { cycleId: state.cycleId, unscoped: outreachCycleWindow(state.basis.dateIso) };
   const earliest = earliestStaffEventMs(state);
-  const basisMs = Date.parse(`${state.basis.dateIso}T12:00:00.000Z`);
+  if (!Number.isFinite(earliest)) return { cycleId: state.cycleId, unscoped: () => false };
+  const opens = shiftDays(businessDateIso(earliest), -OUTREACH_WINDOW_DAYS_BEFORE);
   return {
     cycleId: state.cycleId,
-    unscoped: (sentAtMs) =>
-      sentAtMs < earliest &&
-      Number.isFinite(basisMs) &&
-      basisMs >= sentAtMs &&
-      basisMs - sentAtMs <= UNSCOPED_RENEWAL_WINDOW_MS,
+    unscoped: (sentAtMs) => Number.isFinite(sentAtMs) && businessDateIso(sentAtMs) >= opens,
   };
 }
 
@@ -414,6 +450,8 @@ export interface OutreachFill {
 export interface OutreachCheck {
   readonly activity: OutreachActivity;
   readonly audience: OutreachAudience;
+  /** What disagrees: the outreach record, or the recorded answer after an observed reply. */
+  readonly subject: "outreach" | "response";
   /** The staff record's fact, in words. */
   readonly staffRecord: string;
   /** The app's evidence, in words. */
@@ -496,6 +534,7 @@ export function outreachFill(
       checks.push({
         activity,
         audience,
+        subject: "outreach",
         staffRecord: `says ${ACTIVITY_WORDS[activity]} is ${STAFF_OUTCOME_WORDS[staff.outcome]} (saved ${at(recordedMs)})`,
         appEvidence: `show the ${audience} message accepted by Gmail ${at(derived.sentAtMs)}`,
       });
@@ -505,27 +544,44 @@ export function outreachFill(
   };
   const ownerFill = fill("owner");
   const tenantFill = fill("tenant");
-  const ownerReplyAtMs = (() => {
-    const reply = evidence.owner.replyAtMs;
+  // A reply after the latest recorded answer hands the move to the team. A recorded "no answer
+  // yet" saved after the reply disagrees with it: both facts are shown and neither wins, so the
+  // recorded answer stays in the staff lane and the lease reads "Needs a check" (R-S248-9).
+  const replyAfterAnswer = (
+    audience: OutreachAudience,
+    answer: { outcome: string; recordedAt: string } | null,
+    waitingOutcome: string,
+    waitingWords: string,
+  ): number | null => {
+    const reply = evidence[audience].replyAtMs;
     if (reply === null) return null;
-    const answer = state.ownerResponse;
     if (!answer) return reply;
-    if (answer.outcome !== "no_response") return null;
+    if (answer.outcome !== waitingOutcome) return null;
     const recordedMs = Date.parse(answer.recordedAt);
-    return Number.isFinite(recordedMs) && recordedMs >= reply ? null : reply;
-  })();
-  const tenantReplyAtMs = (() => {
-    const reply = evidence.tenant.replyAtMs;
-    if (reply === null) return null;
-    const answer =
-      state.tenantResponse && state.tenantResponse.termsRevision === state.termsRevision
-        ? state.tenantResponse
-        : null;
-    if (!answer) return reply;
-    if (answer.outcome !== "awaiting_response") return null;
-    const recordedMs = Date.parse(answer.recordedAt);
-    return Number.isFinite(recordedMs) && recordedMs >= reply ? null : reply;
-  })();
+    if (!(Number.isFinite(recordedMs) && recordedMs >= reply)) return reply;
+    checks.push({
+      activity: OUTREACH_ACTIVITY[audience],
+      audience,
+      subject: "response",
+      staffRecord: `says ${waitingWords} (saved ${at(recordedMs)})`,
+      appEvidence: `show ${audience === "owner" ? "an owner" : "a tenant"} reply received ${at(reply)}`,
+    });
+    return null;
+  };
+  const ownerReplyAtMs = replyAfterAnswer(
+    "owner",
+    state.ownerResponse,
+    "no_response",
+    "the owner response is No response",
+  );
+  const tenantReplyAtMs = replyAfterAnswer(
+    "tenant",
+    state.tenantResponse && state.tenantResponse.termsRevision === state.termsRevision
+      ? state.tenantResponse
+      : null,
+    "awaiting_response",
+    "the tenant response is Awaiting response",
+  );
   return {
     owner_outreach: ownerFill,
     tenant_offer: tenantFill,
@@ -534,6 +590,29 @@ export function outreachFill(
     checks,
     agreeing,
   };
+}
+
+/** The lease's evidence as every surface hands it to the staff lane: the input and its cycle date. */
+export interface LeaseOutreachEvidence {
+  readonly input: LeaseOutreachEvidenceInput | null;
+  /** The lease's current cycle date, which places a message that named no cycle. */
+  readonly cycleDateIso: string | null;
+}
+
+/**
+ * S232/BEH-S248-1: the one evidence fill for a staff record, so the desk row, the guided view, the
+ * Focus view and the Full view read the same status from the same evidence. Null when the lease
+ * has no work record or its evidence was not read; the staff record is then read alone.
+ */
+export function outreachFillFor(
+  state: RenewalWorkspaceState | null | undefined,
+  evidence: LeaseOutreachEvidence | null | undefined,
+): OutreachFill | null {
+  if (!state || !evidence?.input) return null;
+  return outreachFill(
+    state,
+    projectOutreachEvidence(evidence.input, outreachScopeFor(state, evidence.cycleDateIso)),
+  );
 }
 
 /** The evidence sentence for one audience, in the exact words the lease page and desk read. */

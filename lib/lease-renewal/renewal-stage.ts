@@ -45,6 +45,7 @@ import {
   type RenewalPathVariants,
 } from "@/lib/lease-renewal/renewal-path";
 import type { RenewalProcessStepId } from "@/lib/lease-renewal/renewal-process";
+import { SHEET_FIELD_LABELS } from "@/lib/lease-renewal/sheet-writeback/field-intent";
 import {
   RENEWAL_WORK_STATUS_LABELS,
   type RenewalWorkStatus,
@@ -61,6 +62,8 @@ export const RENEWAL_STAGE_NEXT_STEP = {
   sentFromGmail: "I sent it from Gmail",
   confirmFinished: "Confirm this renewal is finished",
   notOutreach: "This was not the renewal outreach",
+  /** R-S248-9: both facts are shown and neither wins; staff record which one is right. */
+  settleCheck: "Review both facts and record what happened",
 } as const;
 
 /**
@@ -104,7 +107,48 @@ export interface RenewalStageContext {
   readonly threadCheck: string | null;
   /** S248: this lease's linked renewal messages, records and drafts; null when not read. */
   readonly outreach: LeaseOutreachEvidenceInput | null;
+  /**
+   * AC-S248-4: the lease's current cycle date (the RentVine lease end, or a month-to-month
+   * lease's review date), which places a message that named no cycle while the lease has no work
+   * record. Absent or null: no such message counts.
+   */
+  readonly cycleDateIso?: string | null;
+  /**
+   * R-S248-7: the confirmed RentVine updates the lease page read with their receipts. A receipt
+   * read back marks its Finish up item done as verified by the provider. Absent where no receipt
+   * was read (the desk row); the staff record and the operating Sheet receipts still show.
+   */
+  readonly providerUpdates?: readonly RenewalProviderUpdate[] | null;
 }
+
+/** R-S248-7: one confirmed RentVine update and whether its receipt was read back. */
+export interface RenewalProviderUpdate {
+  readonly id: string;
+  readonly label: string;
+  readonly verified: boolean;
+  /** The update's own state in the existing words ("Applied with receipt" and the rest). */
+  readonly stateLabel: string;
+}
+
+/** R-S248-7: who settled a Finish up item; each reads in its own words. */
+export type RenewalFinishUpOrigin = "staff" | "provider_verified";
+
+/** R-S248-7: one item of Finish up: a follow-up, an operating Sheet or a RentVine update. */
+export interface RenewalFinishUpItem {
+  readonly key: string;
+  readonly label: string;
+  readonly done: boolean;
+  readonly origin: RenewalFinishUpOrigin | null;
+  /** The item's state in words, distinct for staff-recorded and provider-verified. */
+  readonly detail: string;
+}
+
+/** R-S248-7: the words a Finish up item's state reads in. */
+export const RENEWAL_FINISH_UP_WORDS = {
+  staff: "Done: recorded by staff",
+  providerVerified: "Done: verified by the provider's receipt",
+  open: "Open",
+} as const;
 
 export type RenewalPathStepState =
   | "done"
@@ -123,6 +167,8 @@ export interface RenewalPathStepView {
   /** The step's one primary action, or null when the step asks for nothing. */
   readonly primary: { readonly label: string; readonly target: string } | null;
   readonly controls: readonly string[];
+  /** A scheduled first message is not yet sent: nothing to send again or record about it. */
+  readonly scheduled?: boolean;
 }
 
 export interface RenewalStageWaiting {
@@ -173,6 +219,8 @@ export interface RenewalStage {
   /** Something to resolve before relying on the stage: a refresh or a record reload. */
   readonly blocker: { readonly label: string; readonly target: string | null } | null;
   readonly evidence: OutreachEvidence;
+  /** R-S248-7: Finish up's items: follow-ups, operating Sheet updates and RentVine updates. */
+  readonly finishUp: readonly RenewalFinishUpItem[];
 }
 
 const STEP_FOR_ACTIVITY: Record<
@@ -263,6 +311,7 @@ function audienceStep(
   readonly primary: { label: string; target: string } | null;
   readonly detail: string | null;
   readonly waiting: RenewalStageWaiting | null;
+  readonly scheduled?: boolean;
 } {
   const { lane, state } = evaluation;
   const satisfied = satisfiedFor(evaluation);
@@ -314,6 +363,25 @@ function audienceStep(
       nextStep: definition.primary.label,
       primary: null,
       detail: null,
+      waiting: null,
+    };
+  }
+  // R-S248-9 (L41): the staff record and the app's evidence disagree. Both facts are shown and
+  // neither wins, so the one next step settles the check at the staff record it concerns; it is
+  // never a new send.
+  const check = evaluation.fill.checks.find((entry) => entry.audience === audience);
+  if (check) {
+    const target =
+      check.subject === "response" ? responseTarget : `renewal-manual-${outreachKey}`;
+    return {
+      state: "current",
+      stage:
+        check.subject === "response"
+          ? (definition.waitingStage ?? definition.stage)
+          : definition.stage,
+      nextStep: RENEWAL_STAGE_NEXT_STEP.settleCheck,
+      primary: { label: RENEWAL_STAGE_NEXT_STEP.settleCheck, target },
+      detail: `Needs a check: The staff record ${check.staffRecord}; the app's records ${check.appEvidence}.`,
       waiting: null,
     };
   }
@@ -389,6 +457,7 @@ function audienceStep(
           lastContactIso: evaluation.context.lastContactAtIso,
           watching: `The ${who} message is counted as sent only once Gmail accepts it.`,
         },
+        scheduled: true,
       };
     case "draft":
       return {
@@ -438,6 +507,57 @@ function variantsFor(
     standingAgreement: context.standingAgreement,
     housingAssistance: context.housingAssistance,
   };
+}
+
+/**
+ * R-S248-7: Finish up's items. A follow-up is done when staff recorded it; an operating Sheet
+ * update is done when its confirmed update was read back (the existing receipt sync marks it
+ * verified); a RentVine update is done when its receipt was read. Nothing here completes the lease:
+ * completion stays the staff confirmation.
+ */
+function finishUpItems(
+  evaluation: Evaluation,
+  keys: readonly ManualActivity[],
+): RenewalFinishUpItem[] {
+  const { state, context } = evaluation;
+  const satisfied = satisfiedFor(evaluation);
+  const items: RenewalFinishUpItem[] = keys.map((key) => {
+    const done = satisfied(key);
+    return {
+      key: `follow-up:${key}`,
+      label: MANUAL_ACTIVITIES[key].label,
+      done,
+      origin: done ? "staff" : null,
+      detail: done ? RENEWAL_FINISH_UP_WORDS.staff : RENEWAL_FINISH_UP_WORDS.open,
+    };
+  });
+  for (const [field, update] of Object.entries(state?.sourceUpdates ?? {})) {
+    const verified = update.state === "verified";
+    const label =
+      (SHEET_FIELD_LABELS as Record<string, string | undefined>)[field] ?? field;
+    items.push({
+      key: `sheet:${field}`,
+      label: `Operating Sheet: ${label}`,
+      done: verified,
+      origin: verified ? "provider_verified" : null,
+      detail: verified
+        ? RENEWAL_FINISH_UP_WORDS.providerVerified
+        : update.state === "prepared"
+          ? "Prepared, waiting for its own confirmation"
+          : update.state === "unavailable"
+            ? "Preparation unavailable"
+            : "Waiting to be prepared",
+    });
+  }
+  for (const update of context.providerUpdates ?? [])
+    items.push({
+      key: `rentvine:${update.id}`,
+      label: update.label,
+      done: update.verified,
+      origin: update.verified ? "provider_verified" : null,
+      detail: update.verified ? RENEWAL_FINISH_UP_WORDS.providerVerified : update.stateLabel,
+    });
+  return items;
 }
 
 /** The current step: the staff lane's step once work has started, else the first open one. */
@@ -492,10 +612,11 @@ export function projectRenewalStage(
   options: { readonly standingCovered?: boolean } = {},
 ): RenewalStage {
   const standingCovered = options.standingCovered ?? Boolean(context.standingAgreement);
-  // AC-S248-4: messages that named this record's cycle, and those the app sent before it.
+  // AC-S248-4: messages that named this record's cycle, and those that named none inside the
+  // cycle's own renewal window.
   const evidence = projectOutreachEvidence(
     context.outreach,
-    outreachScopeFor(recordedState),
+    outreachScopeFor(recordedState, context.cycleDateIso ?? null),
   );
   // A lease with no work record yet is read as an empty record on no cycle, so the app's own
   // accepted message still records the outreach; nothing is saved by reading it.
@@ -529,6 +650,8 @@ export function projectRenewalStage(
   const tenant = audienceStep(evaluation, "tenant");
   const documents = activityStepState(evaluation, DOCUMENT_ACTIVITIES);
   const followUps = activityStepState(evaluation, FOLLOW_UP_ACTIVITIES);
+  const finishUp = finishUpItems(evaluation, FOLLOW_UP_ACTIVITIES);
+  const verifiedUpdates = finishUp.filter((item) => item.origin === "provider_verified");
   const handoffDone = state
     ? manualActivitySatisfied(state, "non_renewal_handoff")
     : false;
@@ -651,8 +774,20 @@ export function projectRenewalStage(
             : "The current rent needs a check"
         : step.id === "complete" && scopedContext.sourceRenewal && !lane.complete
           ? `RentVine now reports lease end ${formatCalendarDate(scopedContext.sourceRenewal.sourceDateIso)}; this cycle recorded ${formatCalendarDate(scopedContext.sourceRenewal.recordedDateIso)}`
-          : null);
-    return { ...base, state: stateFor(), detail, primary };
+          : step.id === "finish-up" && finishUp.length > 0
+            ? `${finishUp.filter((item) => item.done).length} of ${finishUp.length} items done${
+                verifiedUpdates.length
+                  ? `; ${verifiedUpdates.length} verified by the provider's receipt`
+                  : ""
+              }`
+            : null);
+    return {
+      ...base,
+      state: stateFor(),
+      detail,
+      primary,
+      ...(audience?.scheduled ? { scheduled: true } : {}),
+    };
   });
 
   const current = views.find((step) => step.id === currentStepId)!;
@@ -769,6 +904,7 @@ export function projectRenewalStage(
     handStatusLine,
     blocker,
     evidence,
+    finishUp,
   };
 }
 

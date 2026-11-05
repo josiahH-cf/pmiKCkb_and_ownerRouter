@@ -31,6 +31,7 @@ import type { WorkflowMimeMessage } from "@/lib/gmail-runtime/workflow-mime";
 import { projectOutreachEvidence } from "@/lib/lease-renewal/outreach-evidence";
 import { projectRenewalStage } from "@/lib/lease-renewal/renewal-stage";
 import { emptyRenewalWorkspace } from "@/lib/lease-renewal/workspace-state";
+import { renewalWorkspaceDocId } from "@/lib/firestore/renewal-workspace";
 
 // S248 ARCH-S248-2, AC-S248-2, R-S248-10 and R-S248-12 against the real Firestore emulator and the
 // real communication service with an isolated mail client: a confirmed renewal Send that Gmail
@@ -60,7 +61,24 @@ beforeAll(async () => {
   vi.stubEnv("ENVIRONMENT_KIND", "production");
   vi.stubEnv("DATA_CONTEXT", "live");
 });
-beforeEach(async () => env.clearFirestore());
+beforeEach(async () => {
+  await env.clearFirestore();
+  // The lease's current work record, on the cycle every message here names.
+  await seedWorkRecord(LEASE, CYCLE);
+});
+
+async function seedWorkRecord(leaseId: string, cycleId: string) {
+  await db
+    .collection("lease_renewal_workspaces")
+    .doc(renewalWorkspaceDocId(leaseId))
+    .set(
+      emptyRenewalWorkspace(leaseId, cycleId, {
+        kind: "lease_end",
+        dateIso: "2026-12-31",
+        source: "RentVine lease end",
+      }),
+    );
+}
 afterAll(async () => {
   vi.unstubAllEnvs();
   await deleteApp(app);
@@ -335,6 +353,7 @@ describe("S248 outreach records from the confirmed renewal Send", () => {
         leaseId: LEASE,
         cycleId: CYCLE,
         audience: "owner",
+        sequenceId: record!.sequenceId,
         occurrenceId: record!.occurrenceId,
         reason: "This was a synthetic test message to the owner.",
         operationId,
@@ -351,6 +370,7 @@ describe("S248 outreach records from the confirmed renewal Send", () => {
         leaseId: LEASE,
         cycleId: CYCLE,
         audience: "owner",
+        sequenceId: record!.sequenceId,
         occurrenceId: record!.occurrenceId,
         reason: "This was a synthetic test message to the owner.",
         operationId,
@@ -385,6 +405,7 @@ describe("S248 outreach records from the confirmed renewal Send", () => {
         leaseId: LEASE,
         cycleId: CYCLE,
         audience: "owner",
+        sequenceId: (sent.sequence as CommunicationSequence).id,
         occurrenceId,
         reason: "Sent to the wrong owner contact.",
         operationId: randomUUID(),
@@ -401,6 +422,7 @@ describe("S248 outreach records from the confirmed renewal Send", () => {
           leaseId: OTHER_LEASE,
           cycleId: CYCLE,
           audience: "owner",
+          sequenceId: (sent.sequence as CommunicationSequence).id,
           occurrenceId,
           reason: "Wrong lease.",
           operationId: randomUUID(),
@@ -424,6 +446,7 @@ describe("S248 outreach records from the confirmed renewal Send", () => {
         leaseId: LEASE,
         cycleId: CYCLE,
         audience: "owner",
+        sequenceId: record!.sequenceId,
         occurrenceId: record!.occurrenceId,
         reason: "Synthetic correction.",
         operationId: randomUUID(),
@@ -435,12 +458,128 @@ describe("S248 outreach records from the confirmed renewal Send", () => {
     expect(afterSend.filter((name) => !before.includes(name))).toEqual(
       expect.arrayContaining([RENEWAL_OUTREACH_RECORD_COLLECTION]),
     );
-    expect(afterAll).toEqual(afterSend);
+    // A correction adds only its entry in the lease's staff activity history.
+    expect(afterAll.filter((name) => !afterSend.includes(name))).toEqual([
+      "lease_renewal_workspace_activity",
+    ]);
     for (const name of afterAll)
       expect(name).not.toMatch(/reminder|follow_up|followup|deadline|schedule/i);
     const sequence = (await f.store.get(authorized.id))!;
     // The communication itself gains no schedule or next due time from the record.
     expect(sequence.authorization?.schedule).toBeNull();
     expect(sequence.nextDueAtMs).toBeNull();
+  });
+  it("R-S248-10: a correction reads its communication exactly, for a lease with more than 50 of them", async () => {
+    const f = fixture({ recordWrite: "fails" });
+    const sent = await f.service.dispatch((await f.approve()).id);
+    const sequence = sent.sequence as CommunicationSequence;
+    // Sixty other communications for the same lease, sorted ahead of the real one.
+    const batch = db.batch();
+    for (let index = 0; index < 60; index += 1)
+      batch.set(
+        db.collection("gmail_communication_sequences").doc(`0000-filler-${index}`),
+        {
+          context: { ...sequence.context },
+          threads: [],
+          schemaVersion: "workflow-communication-sequence/v1",
+        },
+      );
+    await batch.commit();
+    const occurrenceId = /<pmi-([0-9a-f]{64})@/.exec(sequence.threads[0]!.rfcMessageId)![1]!;
+    const corrected = await correctRenewalOutreach(
+      actor,
+      {
+        leaseId: LEASE,
+        cycleId: CYCLE,
+        audience: "owner",
+        sequenceId: sequence.id,
+        occurrenceId,
+        reason: "Sent to the wrong owner contact.",
+        operationId: randomUUID(),
+      },
+      db,
+    );
+    expect(corrected.correction?.reason).toBe("Sent to the wrong owner contact.");
+  });
+
+  it("R-S248-10: a correction names the lease's current work record and writes one staff activity entry", async () => {
+    const f = fixture();
+    await f.service.dispatch((await f.approve()).id);
+    const [record] = await records();
+    const input = {
+      leaseId: LEASE,
+      audience: "owner" as const,
+      sequenceId: record!.sequenceId,
+      occurrenceId: record!.occurrenceId,
+      reason: "Synthetic correction.",
+    };
+    // A browser holding an older work record's cycle is refused, and nothing changes.
+    await expect(
+      correctRenewalOutreach(
+        actor,
+        { ...input, cycleId: OTHER_CYCLE, operationId: randomUUID() },
+        db,
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+    expect((await records())[0]!.correction).toBeNull();
+    const operationId = randomUUID();
+    await correctRenewalOutreach(actor, { ...input, cycleId: CYCLE, operationId }, db);
+    await correctRenewalOutreach(actor, { ...input, cycleId: CYCLE, operationId }, db);
+    const activity = (
+      await db
+        .collection("lease_renewal_workspace_activity")
+        .where("lease_id", "==", LEASE)
+        .get()
+    ).docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    expect(activity).toEqual([
+      expect.objectContaining({
+        id: operationId,
+        cycle_id: CYCLE,
+        actor_uid: actor.uid,
+        action: expect.objectContaining({
+          kind: "outreach_correction",
+          audience: "owner",
+          occurrenceId: record!.occurrenceId,
+          reason: "Synthetic correction.",
+        }),
+      }),
+    ]);
+  });
+
+  it("ARCH-S248-2: the record names the operation that authorized the send, never a later one", async () => {
+    const f = fixture();
+    const authorized = await f.approve();
+    const sent = await f.service.dispatch(authorized.id);
+    const [record] = await records();
+    expect(authorized.authorizationOperation).toEqual({
+      id: authorized.lastOperation.id,
+      revision: authorized.authorization!.revision,
+    });
+    expect(record!.authorization.operationId).toBe(authorized.authorizationOperation!.id);
+    // Rebuilt later from a communication whose last operation is no longer the confirmation.
+    const sequence = sent.sequence as CommunicationSequence;
+    const thread = sequence.threads[0]!;
+    const occurrenceId = /<pmi-([0-9a-f]{64})@/.exec(thread.rfcMessageId)![1]!;
+    const occurrence = {
+      id: occurrenceId,
+      sequenceId: sequence.id,
+      rfcMessageId: thread.rfcMessageId,
+      authorizationRevision: sequence.authorization!.revision,
+      payloadHash: sequence.authorization!.payloadHash,
+    };
+    const later = {
+      ...sequence,
+      lastOperation: { id: randomUUID(), hash: "f".repeat(64) },
+    };
+    expect(
+      outreachRecordForAcceptedSend(later, occurrence, thread.sentAtMs, Date.now())!
+        .authorization.operationId,
+    ).toBe(authorized.authorizationOperation!.id);
+    // A communication authorized before the operation was kept names none.
+    const { authorizationOperation: _, ...legacy } = later;
+    expect(
+      outreachRecordForAcceptedSend(legacy, occurrence, thread.sentAtMs, Date.now())!
+        .authorization.operationId,
+    ).toBeNull();
   });
 });

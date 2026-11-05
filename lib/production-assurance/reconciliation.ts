@@ -34,8 +34,16 @@ const MISMATCH_KEYS = [
 
 export function evaluateReconciliation(
   observation: ReconciliationObservation,
+  /**
+   * S248: rendered rows that state their renewal message evidence could not be read. They were
+   * compared under the staff record alone; any such row keeps the run from matching.
+   */
+  options: { readonly evidenceUnavailableRows?: number } = {},
 ): ReconciliationAssuranceEvidence {
   validateCounts(observation.counts);
+  const evidenceUnavailableRows = options.evidenceUnavailableRows ?? 0;
+  if (!Number.isSafeInteger(evidenceUnavailableRows) || evidenceUnavailableRows < 0)
+    throw new Error("Invalid reconciliation count for evidenceUnavailableRows.");
 
   if (observation.sourceDrift === "changed") {
     return { ...observation, state: "inconclusive_source_changed" };
@@ -53,7 +61,11 @@ export function evaluateReconciliation(
     observation.counts.sourceRecords !== observation.counts.projectedRecords ||
     observation.counts.projectedRecords !== observation.counts.renderedRecords ||
     MISMATCH_KEYS.some((key) => observation.counts[key] > 0);
-  return { ...observation, state: mismatch ? "mismatch" : "matched" };
+  if (mismatch) return { ...observation, state: "mismatch" };
+  return {
+    ...observation,
+    state: evidenceUnavailableRows > 0 ? "inconclusive_evidence_unavailable" : "matched",
+  };
 }
 
 export function emptyReconciliationCounts(): ReconciliationCounts {

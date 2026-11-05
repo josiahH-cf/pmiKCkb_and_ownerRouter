@@ -492,8 +492,10 @@ function NowCard({
   // The one primary action. A failed read is the thing to resolve first; a step waiting on someone
   // else asks staff to record what happened; every other step has its own action.
   const blocker = isCurrent ? stage.blocker : null;
+  // A scheduled first message has not gone out: the step shows its schedule and the message's
+  // own schedule controls, with nothing to record or send again yet.
   const recordWhatHappened =
-    shown.state === "waiting" && audience
+    shown.state === "waiting" && audience && !shown.scheduled
       ? { label: "Record what happened", target: `renewal-manual-${audience}_response` }
       : null;
   const primary = blocker ?? shown.primary ?? recordWhatHappened ?? definition.primary;
@@ -573,7 +575,7 @@ function NowCard({
             : `Needs verification: ${blocker.label}`}
         </p>
       ) : null}
-      {stage.check && isCurrent ? (
+      {stage.check && isCurrent && !shown.detail?.startsWith("Needs a check") ? (
         <p className="renewal-notice" data-renewal-field="needs-check" role="note">
           Needs a check: {stage.check.sentence}
         </p>
@@ -602,6 +604,20 @@ function NowCard({
             <dd>{definition.decides}</dd>
           </div>
         </dl>
+      ) : null}
+      {shown.id === "finish-up" && stage.finishUp.length > 0 ? (
+        // R-S248-7: each item in its own words: recorded by staff or verified by the receipt.
+        <ul aria-label="Finish up items" className="renewal-finish-up-items">
+          {stage.finishUp.map((item) => (
+            <li
+              data-renewal-finish-up-item={item.key}
+              data-renewal-finish-up-origin={item.origin ?? "open"}
+              key={item.key}
+            >
+              {item.label}: {item.detail}
+            </li>
+          ))}
+        </ul>
       ) : null}
       {/* S249 fills these named slots (the prepared numbers check, the stored comparison, Rent to
           recommend, the message preview, Review and send); each stays empty until it does. */}
@@ -637,6 +653,7 @@ function NowCard({
                     // A lease with no work record yet has no cycle to name.
                     cycleId: state?.cycleId ?? null,
                     audience: derived.record.audience,
+                    sequenceId: derived.record.sequenceId,
                     occurrenceId: derived.record.occurrenceId,
                     reason: reason.trim(),
                   },
@@ -692,7 +709,7 @@ function NowCard({
         </ul>
       ) : null}
       <div className="ui-row renewal-now-secondary">
-        {shown.state === "waiting" && audience ? (
+        {shown.state === "waiting" && audience && !shown.scheduled ? (
           <>
             {recordWhatHappened && primary !== recordWhatHappened ? (
               <Button

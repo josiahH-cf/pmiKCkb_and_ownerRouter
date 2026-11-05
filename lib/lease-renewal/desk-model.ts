@@ -267,6 +267,11 @@ export interface DeskLeaseSummaryBase {
    * view reads (S248 evidence included). Absent only when a caller did not project it.
    */
   renewalStage?: RenewalStageSummary;
+  /**
+   * S248: whether this row's renewal message evidence was read ("read") or its read failed
+   * ("unavailable", so the stage reads the staff record alone). Absent when no read was made.
+   */
+  outreachEvidence?: "read" | "unavailable";
   processVersion: string | null;
   workflowStepId: string | null;
   stageIndex: number;

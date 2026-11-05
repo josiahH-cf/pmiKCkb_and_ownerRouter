@@ -85,6 +85,15 @@ export function buildRenewalActionSnapshot(
         }
       : {}),
     manualLaneMounted: input.manualLaneMounted,
+    // S248: the same message evidence the desk row and the guided view read.
+    ...(workspace.renewalStageContext
+      ? {
+          outreach: {
+            input: workspace.renewalStageContext.outreach,
+            cycleDateIso: workspace.renewalStageContext.cycleDateIso ?? null,
+          },
+        }
+      : {}),
     manual: input.manualReadUnavailable
       ? { readable: false }
       : { readable: true, state: input.manualState ?? null },

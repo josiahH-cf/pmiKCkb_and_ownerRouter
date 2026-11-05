@@ -124,6 +124,14 @@ export async function claimLeaseScopedS113FieldUpdate(
           hashExecutionPreview(effect.effect.staffIntent)
       )
         return "blocked";
+      // S248 R-S248-11: a value from the app's confirmed send is claimable only while staff have
+      // not removed that message as the renewal outreach, read in this same transaction.
+      if (pending.derivedFrom) {
+        const outreach = await transaction.get(
+          db.collection("renewal_outreach_records").doc(pending.derivedFrom.occurrenceId),
+        );
+        if (outreach.exists && outreach.get("correction") != null) return "blocked";
+      }
     }
     const intent = parseSheetFieldIntent(effect.effect.staffIntent);
     if (

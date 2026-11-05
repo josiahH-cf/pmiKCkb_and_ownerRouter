@@ -31,7 +31,19 @@ type StageRow = Pick<
   | "moveOut"
   | "renewalTarget"
   | "workStatus"
+  | "endDateIso"
 > & { readonly followUp?: DeskLeaseRow["followUp"] };
+
+/** AC-S248-4: the lease's current cycle date, which places a message that named no cycle. */
+export function renewalStageCycleDateIso(
+  row: Pick<DeskLeaseRow, "renewalTarget" | "leaseTerm" | "endDateIso">,
+): string | null {
+  const target = row.renewalTarget;
+  if (target?.kind === "target") return target.cycleDateIso;
+  return row.leaseTerm.term === "month_to_month"
+    ? (row.leaseTerm.nextReviewIso ?? null)
+    : (row.endDateIso ?? null);
+}
 
 export function renewalStageContextFor(
   row: StageRow,
@@ -103,6 +115,7 @@ export function renewalStageContextFor(
         ? leaseWorkStatusLines(status).check
         : null,
     outreach,
+    cycleDateIso: renewalStageCycleDateIso(row),
   };
 }
 

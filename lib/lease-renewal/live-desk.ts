@@ -1864,6 +1864,10 @@ export async function loadLiveRenewalDesk(
       ): DeskLeaseRow => {
         const targeted: DeskLeaseRow = {
           ...row,
+          // S248: an evidence read that failed says so on the row; it never reads as no evidence.
+          ...(outreach
+            ? { outreachEvidence: outreach.readable ? "read" : "unavailable" }
+            : {}),
           renewalTarget: renewalTargetFor({
             view,
             classification,

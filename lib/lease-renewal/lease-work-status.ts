@@ -9,6 +9,7 @@ import { staffLaneGuidance } from "@/lib/lease-renewal/desk-guidance";
 import type { DeskLeaseRow } from "@/lib/lease-renewal/desk-model";
 import type { RenewalOverallStatus } from "@/lib/lease-renewal/desk-query-v2";
 import type { RenewalFollowUpProjection } from "@/lib/lease-renewal/follow-up-projection";
+import type { OutreachFill } from "@/lib/lease-renewal/outreach-evidence";
 import {
   manualRenewalSummary,
   type RenewalWorkspaceState,
@@ -214,6 +215,8 @@ export function focusLeaseWorkStatusInput(input: {
   readonly standingOwnerAuthority: boolean;
   readonly followUp: LeaseWorkStatusFollowUp | null;
   readonly sourceReadAtIso: string | null;
+  /** S248: the lease's message evidence read into the staff lane, as the desk row reads it. */
+  readonly evidence?: OutreachFill | null;
 }): LeaseWorkStatusInput {
   const shared = { followUp: input.followUp, sourceReadAtIso: input.sourceReadAtIso };
   if (!input.staffRecord.readable)
@@ -233,6 +236,7 @@ export function focusLeaseWorkStatusInput(input: {
     };
   const lane = manualRenewalSummary(input.staffRecord.state, {
     standingOwnerAuthority: input.standingOwnerAuthority,
+    evidence: input.evidence ?? null,
   });
   return {
     status: staffLaneGuidance(lane).status,

@@ -408,6 +408,11 @@ export interface RenewalWorkspaceState {
       proposalId?: string;
       executionId?: string;
       reason?: string;
+      /**
+       * S248 R-S248-11: the value comes from the app's own confirmed send, never a staff entry.
+       * It is bound to that exact message; absent on every staff-recorded value.
+       */
+      derivedFrom?: { sequenceId: string; occurrenceId: string };
     }
   >;
 }
@@ -731,6 +736,28 @@ export function manualActionSheetIntent(
           not_started: "Not started — recorded by staff",
         }[outcome] ?? outcome);
   return { field, value, source };
+}
+/** S248 R-S248-11: the words a Sheet value from the app's confirmed send carries. */
+export const DERIVED_SHEET_SOURCE_LABEL = "From the app's confirmed send";
+/**
+ * S248 R-S248-11: the operating Sheet value a derived outreach record prepares: the same field and
+ * the same Done the staff record of that activity prepares, attributed to the app's confirmed
+ * send. Null when the activity has no Sheet column (owner outreach), exactly as for staff.
+ */
+export function derivedOutreachSheetIntent(
+  activity: "owner_outreach" | "tenant_offer",
+): SheetFieldIntent | null {
+  const field = SHEET_ACTIVITY[activity];
+  if (!field) return null;
+  const shape = sheetFieldShape(field);
+  return {
+    field,
+    value:
+      shape === "yes_no" || shape === "boolean"
+        ? true
+        : "Done, from the app's confirmed send",
+    source: DERIVED_SHEET_SOURCE_LABEL,
+  };
 }
 /** S234 R-S234-5: each Working term's revision (0 when the term was never saved). */
 export interface WorkingTermRevisions {

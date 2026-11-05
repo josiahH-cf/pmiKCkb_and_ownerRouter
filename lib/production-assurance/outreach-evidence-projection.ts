@@ -6,7 +6,8 @@ import type { RenewalWorkspaceState } from "../lease-renewal/workspace-state";
  * projection: it reads the communication documents and the outreach record documents directly.
  *
  * - A message counts for a lease and an audience only when its context names this lease and that
- *   audience's renewal purpose and its notice scope names the work record's cycle.
+ *   audience's renewal purpose and its notice scope names the work record's cycle, or names no
+ *   cycle and its first send falls inside that cycle's own renewal window.
  * - The message's first settled send is its outreach unless staff removed it ("This was not the
  *   renewal outreach") or a delivery failure is correlated to one of its sends.
  * - The earliest counted send fills the outreach (owner) or the offer (tenant, sent under the
@@ -57,7 +58,7 @@ interface CountedSend {
 function countedSends(
   leaseId: string,
   cycleId: string,
-  /** Whether a message that named no cycle, first sent at this time, belongs to the record. */
+  /** Whether a message that named no cycle, first sent at this time, is in the cycle's window. */
   beforeRecord: (sentAtMs: number) => boolean,
   audience: "owner" | "tenant",
   sequences: readonly Raw[],
@@ -137,16 +138,47 @@ function replyCounts(
   return !(Number.isFinite(savedMs) && savedMs >= replyAtMs);
 }
 
+/** The calendar day of an instant in Central time. Independent of the app's business calendar. */
+const CENTRAL_DAY = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "America/Chicago",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+function centralDay(ms: number): string {
+  const parts = Object.fromEntries(
+    CENTRAL_DAY.formatToParts(new Date(ms)).map((part) => [part.type, part.value]),
+  );
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
+function dayPlus(dateIso: string, days: number): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateIso);
+  if (!match) return "";
+  const date = new Date(Date.UTC(+match[1]!, +match[2]! - 1, +match[3]!));
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
 /**
- * A message the app sent before the lease had a dated work record names no cycle. It belongs to a
- * lease-bound record, or to a dated record whose staff events all come after its first send and
- * whose date falls within 400 days after that send. Independent copy.
+ * A message whose notice scope named no cycle (reviewed before S233 recorded the cycle, or while
+ * the lease had no dated work record) belongs to the cycle whose own renewal window holds its
+ * first send, by Central calendar day. A dated record's window opens 120 days before its basis
+ * date (the Renewals desk horizon) and closes 60 days after it; a lease-bound record's opens 120
+ * days before its first staff event and stays open; a lease-bound record with no staff event yet
+ * counts none. Independent copy.
  */
-function independentBeforeRecordRule(
-  state: RenewalWorkspaceState,
-): (sentAtMs: number) => boolean {
+function independentCycleWindow(state: RenewalWorkspaceState): (sentAtMs: number) => boolean {
   const basis = state.basis as { kind: string; dateIso?: string };
-  if (basis.kind === "lease_bound") return () => true;
+  if (basis.kind !== "lease_bound") {
+    const opens = dayPlus(basis.dateIso ?? "", -120);
+    const closes = dayPlus(basis.dateIso ?? "", 60);
+    if (!opens || !closes) return () => false;
+    return (sentAtMs) => {
+      if (!Number.isFinite(sentAtMs)) return false;
+      const day = centralDay(sentAtMs);
+      return day >= opens && day <= closes;
+    };
+  }
   const recorded = [
     ...Object.values(state.activities).map((entry) => entry?.recordedAt),
     state.ownerResponse?.recordedAt,
@@ -156,13 +188,9 @@ function independentBeforeRecordRule(
   ]
     .map((value) => (typeof value === "string" ? Date.parse(value) : NaN))
     .filter((value) => !Number.isNaN(value));
-  const firstEvent = recorded.length ? Math.min(...recorded) : Number.POSITIVE_INFINITY;
-  const dateMs = Date.parse(`${basis.dateIso ?? ""}T12:00:00.000Z`);
-  return (sentAtMs) =>
-    sentAtMs < firstEvent &&
-    !Number.isNaN(dateMs) &&
-    dateMs - sentAtMs >= 0 &&
-    dateMs - sentAtMs <= 400 * 86_400_000;
+  if (!recorded.length) return () => false;
+  const opens = dayPlus(centralDay(Math.min(...recorded)), -120);
+  return (sentAtMs) => Number.isFinite(sentAtMs) && centralDay(sentAtMs) >= opens;
 }
 
 export function projectIndependentOutreachFill(
@@ -170,7 +198,7 @@ export function projectIndependentOutreachFill(
   sequences: readonly Raw[],
   records: readonly Raw[],
 ): IndependentOutreachFill {
-  const beforeRecord = independentBeforeRecordRule(state);
+  const beforeRecord = independentCycleWindow(state);
   const owner = countedSends(
     state.leaseId,
     state.cycleId,

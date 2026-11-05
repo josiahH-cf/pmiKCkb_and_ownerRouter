@@ -26,6 +26,11 @@ import {
 } from "@/lib/environment/descriptor";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
+import {
+  RENEWAL_WORKSPACE_COLLECTIONS,
+  currentRenewalWorkspaceState,
+  renewalWorkspaceHeadRefs,
+} from "@/lib/firestore/renewal-workspace";
 import type {
   CommunicationOccurrence,
   CommunicationSequence,
@@ -53,9 +58,13 @@ export interface RenewalOutreachRecordDocument extends StoredOutreachRecord {
   readonly origin: "app_send";
   readonly rfcMessageId: string;
   readonly gmailMessageId: string | null;
-  /** The staff confirmation that authorized the send: its operation, revision and payload. */
+  /**
+   * The staff confirmation that authorized the send: its revision and payload hash, which identify
+   * it exactly, and the operation that produced it when the communication kept it (null on a
+   * communication authorized before it was kept).
+   */
   readonly authorization: {
-    readonly operationId: string;
+    readonly operationId: string | null;
     readonly revision: number;
     readonly payloadHash: string;
     readonly approvedByUid: string;
@@ -172,7 +181,11 @@ export function outreachRecordForAcceptedSend(
     rfcMessageId: occurrence.rfcMessageId,
     gmailMessageId: occurrence.gmailMessageId ?? null,
     authorization: {
-      operationId: sequence.lastOperation.id,
+      // The operation that authorized this exact revision; never a later pause or transfer.
+      operationId:
+        sequence.authorizationOperation?.revision === occurrence.authorizationRevision
+          ? sequence.authorizationOperation.id
+          : null,
       revision: occurrence.authorizationRevision,
       payloadHash: occurrence.payloadHash,
       approvedByUid: authorization.approvedByUid,
@@ -344,6 +357,12 @@ export const CorrectRenewalOutreachSchema = z
     // Null while the lease has no work record yet; the record then names no cycle either.
     cycleId: z.string().uuid().nullable(),
     audience: z.enum(OUTREACH_AUDIENCES),
+    // The communication that holds the message, read exactly (never a bounded lease query).
+    sequenceId: z
+      .string()
+      .min(1)
+      .max(128)
+      .regex(/^[A-Za-z0-9_-]+$/),
     occurrenceId: z.string().regex(/^[0-9a-f]{64}$/),
     reason: z.string().trim().min(1).max(500),
     operationId: z.string().uuid(),
@@ -354,9 +373,10 @@ export type CorrectRenewalOutreachInput = z.infer<typeof CorrectRenewalOutreachS
 /**
  * R-S248-10 "This was not the renewal outreach": staff remove a derived outreach record with a
  * reason. The record stays, with the correction added to its history, so the step reopens and the
- * reason stays readable. A record the send path did not write is created from the delivery
- * evidence first, so a correction always has its record. Repeating the same operation changes
- * nothing.
+ * reason stays readable, and the lease's staff activity history gains one entry for it. A record
+ * the send path did not write is created from the delivery evidence first, so a correction always
+ * has its record. The correction names the lease's current work record (or none), and is refused
+ * when that record changed. Repeating the same operation changes nothing.
  */
 export async function correctRenewalOutreach(
   actor: AuthenticatedUser,
@@ -367,28 +387,51 @@ export async function correctRenewalOutreach(
   if (!can(actor.role, "edit") || isVerificationAccount(actor))
     throw new EditableLayerError("Renewals staff authority is required.", 403);
   assertMutationAllowed(requireEnvironmentDescriptor());
-  // The communication that holds this exact message, read outside the transaction (the record is
-  // what the transaction protects; the communication's settled sends never change).
-  const sequences = await db
-    .collection(SEQUENCE_COLLECTION)
-    .where("context.entityId", "==", input.leaseId)
-    .limit(50)
-    .get();
   const rfcMessageId = `<pmi-${input.occurrenceId}@pmikcmetro.com>`;
-  const holder = sequences.docs
-    .filter((doc) => !doc.get("purged"))
-    .map((doc) => ({ ...(doc.data() as CommunicationSequence), id: doc.id }))
-    .find((sequence) =>
-      sequence.threads?.some((thread) => thread.rfcMessageId === rfcMessageId),
-    );
   const ref = db.collection(RENEWAL_OUTREACH_RECORD_COLLECTION).doc(input.occurrenceId);
+  const holderRef = db.collection(SEQUENCE_COLLECTION).doc(input.sequenceId);
+  const heads = renewalWorkspaceHeadRefs(db, input.leaseId);
+  const activityRef = db
+    .collection(RENEWAL_WORKSPACE_COLLECTIONS.activity)
+    .doc(input.operationId);
   return db.runTransaction(async (tx) => {
-    const snapshot = await tx.get(ref);
+    const [snapshot, holderSnapshot, dated, leaseBound, priorActivity] = await Promise.all([
+      tx.get(ref),
+      tx.get(holderRef),
+      tx.get(heads.dated),
+      tx.get(heads.leaseBound),
+      tx.get(activityRef),
+    ]);
     let record = snapshot.exists
       ? (snapshot.data() as RenewalOutreachRecordDocument)
       : null;
+    const operations = (record as { correctionOperations?: string[] } | null)
+      ?.correctionOperations;
+    if (record && operations?.includes(input.operationId)) return storedRecord(record)!;
+    if (priorActivity.exists)
+      throw new EditableLayerError(
+        "This correction's identity was already used. Reload the lease.",
+        409,
+      );
+    // The lease's current work record: the correction names exactly that cycle, or none.
+    const current = currentRenewalWorkspaceState(db, input.leaseId, dated, leaseBound);
+    if ((current?.cycleId ?? null) !== input.cycleId)
+      throw new EditableLayerError(
+        "The lease's work record changed. Reload the lease and review the outreach again.",
+        409,
+      );
+    const holder =
+      holderSnapshot.exists && !holderSnapshot.get("purged")
+        ? ({
+            ...(holderSnapshot.data() as CommunicationSequence),
+            id: holderSnapshot.id,
+          } as CommunicationSequence)
+        : null;
     if (!record) {
-      const thread = holder?.threads.find((entry) => entry.rfcMessageId === rfcMessageId);
+      const thread =
+        holder && holder.context?.entityId === input.leaseId
+          ? holder.threads?.find((entry) => entry.rfcMessageId === rfcMessageId)
+          : undefined;
       const built =
         holder && thread
           ? outreachRecordForAcceptedSend(
@@ -414,6 +457,7 @@ export async function correctRenewalOutreach(
     }
     if (
       record.leaseId !== input.leaseId ||
+      record.sequenceId !== input.sequenceId ||
       (record.cycleId !== input.cycleId && record.cycleId !== null) ||
       record.audience !== input.audience
     )
@@ -421,9 +465,6 @@ export async function correctRenewalOutreach(
         "This outreach record belongs to another lease, cycle or audience. Reload the lease.",
         409,
       );
-    const operations = (record as { correctionOperations?: string[] })
-      .correctionOperations;
-    if (operations?.includes(input.operationId)) return storedRecord(record)!;
     if (record.correction)
       // Already removed; the earlier reason stands and nothing is added.
       return storedRecord(record)!;
@@ -435,6 +476,40 @@ export async function correctRenewalOutreach(
       correctionOperations: [...(operations ?? []), input.operationId],
     };
     tx.set(ref, next);
+    // R-S248-11: a Sheet value this message prepared and not yet confirmed is withdrawn with it;
+    // one already read back stays on record.
+    const derivedField = current
+      ? Object.entries(current.sourceUpdates).find(
+          ([, entry]) =>
+            entry.derivedFrom?.occurrenceId === input.occurrenceId &&
+            entry.state !== "verified",
+        )?.[0]
+      : undefined;
+    if (current && derivedField) {
+      const { [derivedField]: _withdrawn, ...sourceUpdates } = current.sourceUpdates;
+      const withdrawn = { ...current, revision: current.revision + 1, sourceUpdates };
+      tx.set(dated.exists ? heads.dated : heads.leaseBound, withdrawn);
+      tx.set(
+        db.collection(RENEWAL_WORKSPACE_COLLECTIONS.cycles).doc(current.cycleId),
+        withdrawn,
+      );
+    }
+    // The staff activity history the lease's other recorded work writes to.
+    tx.create(activityRef, {
+      lease_id: input.leaseId,
+      cycle_id: input.cycleId,
+      actor_uid: actor.uid,
+      recorded_at: new Date(nowMs).toISOString(),
+      action: {
+        kind: "outreach_correction",
+        audience: input.audience,
+        sequenceId: input.sequenceId,
+        occurrenceId: input.occurrenceId,
+        reason: input.reason,
+        ...(derivedField ? { withdrawnSourceUpdate: derivedField } : {}),
+      },
+      previous_revision: current?.revision ?? 0,
+    });
     return storedRecord(next)!;
   });
 }

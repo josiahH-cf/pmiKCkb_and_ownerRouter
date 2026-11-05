@@ -178,6 +178,13 @@ export interface CommunicationSequence
    * is kept beside the authorization, so the authorization's payload and replay binding are unchanged.
    */
   noticeCycleId?: string | null;
+  /**
+   * S248 ARCH-S248-2: the staff operation that produced the current authorization (a Send,
+   * Schedule or Resume), for the outreach record a send writes. Kept beside the authorization like
+   * the notice cycle, so the authorization's payload and replay binding are unchanged; absent on
+   * records authorized before it was kept.
+   */
+  authorizationOperation?: { id: string; revision: number };
   observation: {
     checkedAtMs: number;
     state: "current" | "unavailable";

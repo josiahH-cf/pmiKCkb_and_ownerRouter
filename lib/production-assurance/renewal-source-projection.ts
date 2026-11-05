@@ -1621,3 +1621,18 @@ export function independentContractReadsEvidence(
     INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER
   );
 }
+
+/**
+ * S248: a row read under the evidence-stage rules whose own `data-outreach-evidence` says the
+ * application could not read its renewal message evidence. Only that exact value counts; a missing
+ * or other value is read as evidence the row claims to hold.
+ */
+export function independentRowEvidenceUnavailable(
+  marker: string | null,
+  expected: IndependentExpectedContractMarker | undefined,
+  outreachEvidence: string | null,
+): boolean {
+  return (
+    independentContractReadsEvidence(marker, expected) && outreachEvidence === "unavailable"
+  );
+}

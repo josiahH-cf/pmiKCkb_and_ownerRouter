@@ -561,6 +561,10 @@ export class WorkflowCommunicationSequenceService {
           ...(target.noticeCycleId !== undefined
             ? { noticeCycleId: target.noticeCycleId }
             : {}),
+          authorizationOperation: {
+            id: input.operationId,
+            revision: authorization.revision,
+          },
           linkedThreads: [
             ...new Map(
               [...c.linkedThreads, ...linkedThreads].map((t) => [

@@ -32,6 +32,10 @@ import {
   type ManualActivity,
   type RenewalWorkspaceState,
 } from "@/lib/lease-renewal/workspace-state";
+import {
+  outreachFillFor,
+  type LeaseOutreachEvidence,
+} from "@/lib/lease-renewal/outreach-evidence";
 
 /**
  * S142: the dependency-aware renewal next-action projection for one lease and its current cycle.
@@ -98,6 +102,18 @@ export type RenewalActionManualInput =
   | { readonly readable: false }
   | { readonly readable: true; readonly state: RenewalWorkspaceState | null };
 
+/** The staff lane with the lease's message evidence, exactly as the desk row reads it. */
+function laneSummary(
+  snapshot: Pick<RenewalActionSnapshot, "outreach">,
+  state: RenewalWorkspaceState | null,
+  standing: boolean,
+) {
+  return manualRenewalSummary(state, {
+    standingOwnerAuthority: standing,
+    evidence: outreachFillFor(state, snapshot.outreach),
+  });
+}
+
 /** The serializable server facts the projection consumes; labels only, no customer values. */
 export interface RenewalActionSnapshot {
   readonly leaseId: string;
@@ -111,6 +127,11 @@ export interface RenewalActionSnapshot {
     manualRevision: number;
     reason: string;
   };
+  /**
+   * S248 (BEH-S248-1, S232): the lease's renewal message evidence, read into the staff lane the
+   * same way the desk row reads it, so Focus names the same next task. Absent: staff record only.
+   */
+  readonly outreach?: LeaseOutreachEvidence | null;
   /** The shared S82/S127 guidance for this lease, as the desk row carries it. */
   readonly guidance: {
     readonly status: RenewalOverallStatus;
@@ -489,9 +510,7 @@ function manualDrafts(
     snapshot.standingOwnerAuthority?.covered === true &&
     snapshot.standingOwnerAuthority.manualRevision === (state?.revision ?? 0);
   const summary =
-    state || standing
-      ? manualRenewalSummary(state, { standingOwnerAuthority: standing })
-      : null;
+    state || standing ? laneSummary(snapshot, state, standing) : null;
   const nonRenewal = manualNonRenewal(state);
   const ownerDeclined = state?.ownerResponse?.outcome === "declined_non_renewal";
   const satisfied = (key: ManualActivity) =>
@@ -993,9 +1012,7 @@ export function projectRenewalActions(
     snapshot.standingOwnerAuthority?.covered === true &&
     snapshot.standingOwnerAuthority.manualRevision === (state?.revision ?? 0);
   const summary =
-    state || standing
-      ? manualRenewalSummary(state, { standingOwnerAuthority: standing })
-      : null;
+    state || standing ? laneSummary(snapshot, state, standing) : null;
   const outcome: RenewalActionProjection["outcome"] =
     lane === "manual" && summary
       ? summary.complete
@@ -1040,7 +1057,7 @@ export function renewalGuidanceActionId(
   if (guidance.redirectLabel) return "issue.move_out_redirect";
   if (guidance.kind === "complete") return null;
   if (lane === "manual")
-    return `manual.${manualRenewalSummary(state, { standingOwnerAuthority: snapshot.standingOwnerAuthority?.covered === true && snapshot.standingOwnerAuthority.manualRevision === (state?.revision ?? 0) }).nextActivity}`;
+    return `manual.${laneSummary(snapshot, state, snapshot.standingOwnerAuthority?.covered === true && snapshot.standingOwnerAuthority.manualRevision === (state?.revision ?? 0)).nextActivity}`;
   // Staff records that could not be read: the reload leads until they can.
   if (snapshot.manualLaneMounted && !manual.readable) return "source.staff_records";
   const verifyIds = new Set(snapshot.process?.verify.map((substep) => substep.id) ?? []);

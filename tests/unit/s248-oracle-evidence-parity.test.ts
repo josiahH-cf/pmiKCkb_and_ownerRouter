@@ -250,16 +250,65 @@ const CASES: readonly Case[] = [
     sequences: [sequence({ cycleId: null })],
   },
   {
-    name: "sent before any work record, a renewal more than 400 days later",
+    name: "a message that named no cycle, outside the cycle's window before it",
     actions: [],
     basis: { kind: "lease_end", dateIso: "2028-06-30", source: "RentVine lease end" },
     sequences: [sequence({ cycleId: null })],
   },
   {
-    name: "a lease-bound record reads the messages that named no cycle",
+    // AC-S248-4: cycle A ended 10/31/2026 with its owner message and reply in October; cycle B
+    // ends 10/31/2027 and every staff event comes after that message.
+    name: "a previous cycle's message and reply never fill this cycle (12-month renewal)",
+    actions: [
+      {
+        action: outreach("not_started"),
+        atMs: Date.parse("2027-08-01T15:00:00.000Z"),
+      },
+    ],
+    basis: { kind: "lease_end", dateIso: "2027-10-31", source: "RentVine lease end" },
+    sequences: [
+      sequence({
+        cycleId: null,
+        sentAt: [Date.parse("2026-10-05T15:00:00.000Z")],
+        replyAt: [Date.parse("2026-10-07T15:00:00.000Z")],
+      }),
+    ],
+  },
+  {
+    name: "a previous cycle's message 13 months before this cycle's end",
     actions: [],
+    basis: { kind: "lease_end", dateIso: "2027-12-04", source: "RentVine lease end" },
+    sequences: [sequence({ cycleId: null })],
+  },
+  {
+    name: "a message that named no cycle, 55 days after the cycle date (carried over)",
+    actions: [{ action: outreach("not_started"), atMs: SENT - 30 * 24 * HOUR }],
+    basis: { kind: "lease_end", dateIso: "2026-09-10", source: "RentVine lease end" },
+    sequences: [sequence({ cycleId: null })],
+  },
+  {
+    name: "a message that named no cycle, 64 days after the cycle date",
+    actions: [],
+    basis: { kind: "lease_end", dateIso: "2026-09-01", source: "RentVine lease end" },
+    sequences: [sequence({ cycleId: null })],
+  },
+  {
+    name: "a lease-bound record reads the messages that named no cycle from its window",
+    actions: [{ action: outreach("not_started"), atMs: SENT + 24 * HOUR }],
     basis: { kind: "lease_bound", source: "No lease end reported" },
     sequences: [sequence({ cycleId: null, replyAt: [SENT + HOUR] })],
+  },
+  {
+    name: "a new lease-bound record inherits no message from 200 days before it",
+    actions: [{ action: outreach("not_started"), atMs: SENT + 200 * 24 * HOUR }],
+    basis: { kind: "lease_bound", source: "No lease end reported" },
+    sequences: [sequence({ cycleId: null, replyAt: [SENT + HOUR] })],
+  },
+  {
+    name: "a lease-bound record with no staff event counts no message",
+    actions: [],
+    basis: { kind: "lease_bound", source: "No lease end reported" },
+    sequences: [sequence({ cycleId: null })],
   },
   {
     name: "removed message that named no cycle",
@@ -453,6 +502,30 @@ describe("S248 the oracle derives the desk's evidence-stage facts independently"
       const records = entry.corrections?.(entry.sequences) ?? [];
       expect(oracleFacts(state, entry, records)).toEqual(appFacts(state, entry, records));
     });
+
+  it("AC-S248-4: a previous cycle's message changes nothing on this cycle in either projection", () => {
+    for (const name of [
+      "a previous cycle's message and reply never fill this cycle (12-month renewal)",
+      "a previous cycle's message 13 months before this cycle's end",
+      "a new lease-bound record inherits no message from 200 days before it",
+    ]) {
+      const entry = CASES.find((value) => value.name === name)!;
+      const state = stateFor(entry);
+      const expected = { nextActivity: "owner_outreach", awaited: null };
+      expect(appFacts(state, entry, [])).toEqual(expected);
+      expect(oracleFacts(state, entry, [])).toEqual(expected);
+    }
+    // Inside the window, before or after the record's first staff event, it fills both.
+    for (const name of [
+      "a message that named no cycle, 55 days after the cycle date (carried over)",
+      "sent before any work record, a staff event before the send",
+    ]) {
+      const entry = CASES.find((value) => value.name === name)!;
+      const state = stateFor(entry);
+      expect(appFacts(state, entry, []).nextActivity).toBe("owner_response");
+      expect(oracleFacts(state, entry, []).nextActivity).toBe("owner_response");
+    }
+  });
 
   it("covers every evidence state the app distinguishes", () => {
     const states = new Set<string>();

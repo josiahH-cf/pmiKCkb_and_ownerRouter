@@ -73,6 +73,7 @@ import {
   countIndependentWorkspaceDestinationMismatches,
   independentSourceDigest,
   independentContractReadsEvidence,
+  independentRowEvidenceUnavailable,
   independentRentVineCurrentRent,
   independentStaffLaneWaitingRule,
   independentWorkspaceExpected,
@@ -197,6 +198,11 @@ export interface RenderedProjectionRow extends IndependentRenewalSourceRow {
   readonly statusFilterHrefs: readonly (string | null)[];
   /** S156: the row's `data-guidance-contract`; null when the revision renders none. */
   readonly guidanceContract: string | null;
+  /**
+   * S248: the row's `data-outreach-evidence` ("read", "unavailable" or "none"); null when the
+   * revision renders none.
+   */
+  readonly outreachEvidence?: string | null;
 }
 
 /** One rule set's expectation over the same independently read sources. */
@@ -798,24 +804,27 @@ async function reconcileWithIndependentClients(
           beforeApplied.sourceDigest === afterApplied.sourceDigest
         ? "stable"
         : "changed";
-  const counts = compareProjectionRows(
+  const { counts, evidenceUnavailableRows } = compareProjectionRowsWithEvidence(
     before,
     rendered,
     options.role,
     options.origin,
     options.expectedGuidanceContract,
   );
-  const reconciliation = evaluateReconciliation({
-    rentvine: aggregateReadStates(before.rentvine, after.rentvine),
-    sheet: aggregateReadStates(before.sheet, after.sheet),
-    application: aggregateReadStates(
-      beforeApplied.decision,
-      rendered.application,
-      afterApplied.decision,
-    ),
-    sourceDrift,
-    counts,
-  });
+  const reconciliation = evaluateReconciliation(
+    {
+      rentvine: aggregateReadStates(before.rentvine, after.rentvine),
+      sheet: aggregateReadStates(before.sheet, after.sheet),
+      application: aggregateReadStates(
+        beforeApplied.decision,
+        rendered.application,
+        afterApplied.decision,
+      ),
+      sourceDrift,
+      counts,
+    },
+    { evidenceUnavailableRows },
+  );
   return reportForReconciliation(options, reconciliation);
 }
 
@@ -1877,6 +1886,7 @@ const RENEWAL_DOM_ATTRIBUTES = [
   "data-action-required-capability",
   "data-blocker-count",
   "data-guidance-contract",
+  "data-outreach-evidence",
 ] as const;
 
 /**
@@ -1958,6 +1968,7 @@ export async function readRowsFromPage(
         ),
       };
       const guidanceContract = await row.getAttribute("data-guidance-contract");
+      const outreachEvidence = await row.getAttribute("data-outreach-evidence");
       const expected = (
         resolveIndependentGuidanceContract(
           guidanceContract,
@@ -2144,6 +2155,7 @@ export async function readRowsFromPage(
           action,
           statusFilterHrefs,
           guidanceContract,
+          outreachEvidence,
         },
         invalidDestinations: rowInvalidDestinations,
         fieldMismatches: rowFieldMismatches,
@@ -2329,6 +2341,29 @@ export function compareProjectionRows(
   origin: string,
   expectedGuidanceContract?: IndependentExpectedContractMarker,
 ): ReconciliationCounts {
+  return compareProjectionRowsWithEvidence(
+    direct,
+    rendered,
+    role,
+    origin,
+    expectedGuidanceContract,
+  ).counts;
+}
+
+/**
+ * S248: the row comparison, with the rows whose renewal message evidence the application could
+ * not read. Such a row renders the staff record alone and says so; it is read under the staff
+ * lane without evidence, and the run reports it in its own class (never a pass) instead of one
+ * field mismatch per lease with an app send.
+ */
+export function compareProjectionRowsWithEvidence(
+  direct: DirectProjection,
+  rendered: RenderedProjection,
+  role: AssuranceRole,
+  origin: string,
+  expectedGuidanceContract?: IndependentExpectedContractMarker,
+): { readonly counts: ReconciliationCounts; readonly evidenceUnavailableRows: number } {
+  let evidenceUnavailableRows = 0;
   const counts = { ...emptyReconciliationCounts() };
   counts.sourceRecords = direct.sourceRecords;
   counts.projectedRecords = direct.projectedRecords;
@@ -2367,12 +2402,20 @@ export function compareProjectionRows(
         expectedGuidanceContract,
       );
       // Both expectations are built from the same source rows in the same order.
+      const evidenceUnavailable =
+        contract === "staff_lane" &&
+        independentRowEvidenceUnavailable(
+          observedRow.guidanceContract,
+          expectedGuidanceContract,
+          observedRow.outreachEvidence ?? null,
+        );
+      if (evidenceUnavailable) evidenceUnavailableRows += 1;
       const expectedRow =
         contract === "staff_lane"
           ? independentContractReadsEvidence(
               observedRow.guidanceContract,
               expectedGuidanceContract,
-            )
+            ) && !evidenceUnavailable
             ? evidenceStageExpected?.byKey.get(key)?.[index]
             : staffLaneExpected.byKey.get(key)?.[index]
           : expectedRows[index];
@@ -2395,7 +2438,7 @@ export function compareProjectionRows(
   for (const [key, actualRows] of observed.byKey) {
     if (!expected.byKey.has(key)) counts.unexpectedInApplication += actualRows.length;
   }
-  return counts;
+  return { counts, evidenceUnavailableRows };
 }
 
 /** The checks both rule sets share: identity, values, staff-record markers, disposition. */

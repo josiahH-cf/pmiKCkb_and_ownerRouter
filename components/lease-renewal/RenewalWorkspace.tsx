@@ -353,13 +353,27 @@ export function RenewalWorkspace({
   // S247: the Guided view opens by default wherever Focus view is offered, from the same stage
   // context the desk row's stage came from (the live page passes it; a sample lease builds it).
   const openView = initialRenewalWorkspaceView(viewParam, focusAvailable);
-  const stageContext =
+  const baseStageContext =
     workspace.renewalStageContext ??
     renewalStageContextFor(
       { ...summary, guidance: workspace.guidance },
       null,
       workspace.dataCurrency?.readAtIso ?? null,
     );
+  // R-S248-7: the confirmed RentVine updates this page read, each with whether its receipt is in.
+  const stageContext = rentChargeStatus
+    ? {
+        ...baseStageContext,
+        providerUpdates: rentChargeStatus
+          .filter((row) => row.destination === "rentvine")
+          .map((row) => ({
+            id: row.id,
+            label: row.label,
+            verified: row.state === "succeeded" || row.state === "verified",
+            stateLabel: row.stateLabel,
+          })),
+      }
+    : baseStageContext;
   const guidedPane = focusAvailable ? (
     <RenewalGuidedView
       canEdit={can(role, "edit")}
@@ -530,6 +544,14 @@ export function RenewalWorkspace({
                 >
                   <RenewalManualProvider
                     ownerApproval={ownerApprovalChoices}
+                    outreachEvidence={
+                      stageContext.outreach
+                        ? {
+                            input: stageContext.outreach,
+                            cycleDateIso: stageContext.cycleDateIso ?? null,
+                          }
+                        : null
+                    }
                     writebackPaused={sheetWritebackPaused}
                     unavailable={manualReadUnavailable}
                     leaseId={summary.id}

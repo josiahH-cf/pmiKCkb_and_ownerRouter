@@ -60,7 +60,7 @@ export interface FocusCheckOptions extends ProductionTarget {
 
 export interface LeaseFocusResult {
   readonly workspace: number;
-  readonly defaultView: "Full view" | "Focus view";
+  readonly defaultView: "Guided view";
   readonly focusTaskShown: boolean;
   readonly elementsNarrowedInFocus: number;
   readonly tasksChosenInFocus: number;
@@ -153,6 +153,21 @@ export function maskedRequest(method: string, url: string): string {
   return `${method.toUpperCase()} ${path}`;
 }
 
+/**
+ * S247: the lease view control has three buttons. Exactly one is pressed, and a lease opens in
+ * Guided view; any other default is a failure with its own code.
+ */
+export function resolveDefaultLeaseView(pressed: {
+  readonly guided: boolean;
+  readonly focus: boolean;
+  readonly full: boolean;
+}): "Guided view" {
+  const count = [pressed.guided, pressed.focus, pressed.full].filter(Boolean).length;
+  assert(count === 1, "view_default_not_exclusive");
+  assert(pressed.guided, "view_default_not_guided");
+  return "Guided view";
+}
+
 function assert(condition: unknown, code: string): asserts condition {
   if (!condition) throw new Error(code);
 }
@@ -241,27 +256,28 @@ export async function checkLease(
     await page
       .waitForLoadState("networkidle", { timeout: 20_000 })
       .catch(() => undefined);
+    const guided = page.getByRole("button", { name: "Guided view", exact: true });
     const full = page.getByRole("button", { name: "Full view", exact: true });
     const focus = page.getByRole("button", { name: "Focus view", exact: true });
     assert(
       (await page.getByRole("group", { name: "Lease view" }).count()) === 1,
       "focus_switch_not_one_group",
     );
-    // S152: a lease opens in Focus view. An earlier revision opens in Full view; either is one
-    // exclusive selected view, and the round trips below always start from Full view.
-    const fullPressed = (await full.getAttribute("aria-pressed")) === "true";
-    const focusPressed = (await focus.getAttribute("aria-pressed")) === "true";
-    assert(fullPressed !== focusPressed, "view_default_not_exclusive");
-    const defaultView = focusPressed ? ("Focus view" as const) : ("Full view" as const);
+    // S247: a lease opens in Guided view, the one pressed button of three; the round trips
+    // below always start from Full view.
+    const defaultView = resolveDefaultLeaseView({
+      guided: (await guided.getAttribute("aria-pressed")) === "true",
+      focus: (await focus.getAttribute("aria-pressed")) === "true",
+      full: (await full.getAttribute("aria-pressed")) === "true",
+    });
     const pane = page.getByRole("region", { name: "Focus view" });
-    if (focusPressed) {
-      assert((await pane.count()) === 1, "focus_pane_missing_by_default");
-      await full.click();
-      assert(
-        (await full.getAttribute("aria-pressed")) === "true",
-        "full_view_not_pressed",
-      );
-    }
+    assert(
+      (await page.getByRole("region", { name: "Guided view" }).count()) === 1,
+      "guided_pane_missing_by_default",
+    );
+    assert((await pane.count()) === 0, "focus_pane_present_in_guided_view");
+    await full.click();
+    assert((await full.getAttribute("aria-pressed")) === "true", "full_view_not_pressed");
     assert((await pane.count()) === 0, "focus_pane_present_in_full_view");
     const baseline = await settledSignature(page, inflight);
     const url = page.url();

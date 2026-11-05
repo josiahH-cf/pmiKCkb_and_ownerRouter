@@ -1,6 +1,10 @@
 import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
 import { isOperatingSheetWritebackPaused } from "@/lib/lease-renewal/sheet-writeback-policy";
-import { prepareWorkspaceSheetUpdate } from "@/lib/lease-renewal/workspace-sheet-sync";
+import {
+  prepareDerivedWorkspaceSheetUpdate,
+  prepareWorkspaceSheetUpdate,
+} from "@/lib/lease-renewal/workspace-sheet-sync";
+import { OUTREACH_AUDIENCES } from "@/lib/lease-renewal/outreach-evidence";
 import { SHEET_FIELD_LABELS } from "@/lib/lease-renewal/sheet-writeback/field-intent";
 import { listMarketObservations } from "@/lib/firestore/renewal-market-observations";
 import { assertSignaturesCompletable } from "@/lib/lease-documents/returned-state-service";
@@ -47,6 +51,22 @@ const Body = z.discriminatedUnion("operation", [
         ],
       ),
       eventId: z.string().uuid(),
+    })
+    .strict(),
+  // S248 R-S248-11: a derived outreach record prepares the same Sheet update a staff record
+  // prepares, bound to the exact message; applying it is confirmed separately.
+  z
+    .object({
+      operation: z.literal("prepare_derived_source"),
+      leaseId: z.string().regex(/^[1-9]\d*$/),
+      cycleId: z.string().uuid(),
+      audience: z.enum(OUTREACH_AUDIENCES),
+      sequenceId: z
+        .string()
+        .min(1)
+        .max(128)
+        .regex(/^[A-Za-z0-9_-]+$/),
+      occurrenceId: z.string().regex(/^[0-9a-f]{64}$/),
     })
     .strict(),
   StartRenewalCycleSchema.extend({ operation: z.literal("start_cycle") }),
@@ -97,6 +117,13 @@ export async function POST(request: Request) {
       return NextResponse.json({
         state: await prepareWorkspaceSheetUpdate(actor, input),
       });
+    if (input.operation === "prepare_derived_source") {
+      const { operation: _, ...value } = input;
+      return NextResponse.json({
+        state: await prepareDerivedWorkspaceSheetUpdate(actor, value),
+        writeback_paused: isOperatingSheetWritebackPaused(),
+      });
+    }
     if (input.operation === "start_cycle") {
       const { operation: _, ...value } = input;
       return NextResponse.json(
