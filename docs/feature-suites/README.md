@@ -1,5 +1,102 @@
 # Active feature suites
 
+## November 5 lease renewal one path — clarified specifications
+
+Handoff: **renewal-one-path-2026-11**, authored 2026-11-05. Sources: the November 4 staff
+walkthrough of real renewals (Bailey Whiting and Josiah Hunter; owner-held meeting notes, kept
+outside the repository), the owner's November 5 direction to simplify the renewal interface
+without removing any existing capability, source at `6491c06f`, and a read-only production
+observation of the default desk and one lease page on November 5 (no control activated; counts
+only). Authoring is **READY**; implementation is **NOT STARTED**; nothing here authorizes
+execution, release or a provider effect.
+
+The observation that drives the bundle: the default desk listed 38 rows for five leases staff were
+working; ten rows were leases RentVine reports closed; the leases worked on November 4, one with
+its owner message sent from the app and answered, still read "Owner outreach"; and three separate
+systems each named a next step. The end state is one accurate list, a guided default view per
+lease with one current step, work prepared before staff arrive, and evidence that moves the lease
+by itself. Every existing section, control, view, filter, saved view and collection stays reachable.
+
+On the same day the owner relayed the client's answers on the renewal forms (Dan) and asked that
+they join this batch, so that work held since the November 3 run can move. Three meanings are
+settled: the pet processing fee with its two amount blanks, the owner acknowledgment's explanation
+box, and the brochure's tenant initial boxes. Everything Dan left open stays open and is listed
+once in S253. The holds they narrow are U1, U2 and U4 in the [holds packet](../open-blockers.md).
+
+| Clarified outcome                                                 | Owning specification                                            | Finalized boundary                                                                                                                                  |
+| ----------------------------------------------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The desk shows only real renewal targets and what is still open   | [S246](renewal-working-batch-and-accurate-targets.md)           | One target definition; working month batch; closed leases counted with a reason; full table kept                                                    |
+| A lease opens on one page with one current step and nothing gated | [S247](renewal-one-path-lease-page.md)                          | One path definition and stage for desk, lease and assistant; guided view by default; Focus and Full view kept                                       |
+| Evidence the app holds moves the lease without a second entry     | [S248](renewal-evidence-driven-stage.md)                        | Confirmed send records outreach; reply and bounce change the next step; attributed and correctable                                                  |
+| Kickoff is prepared ahead and sent from one place                 | [S249](renewal-prepared-kickoff-and-one-message-route.md)       | Numbers, comparison, suggested rent and message ready; one message record; preparation starts when the batch opens                                  |
+| A standing owner agreement is set once and chosen on the lease    | [S250](renewal-standing-owner-agreements-by-portfolio.md)       | Portfolio agreement, selector, rent from the rule; owner step covered across cycles                                                                 |
+| Housing assistance is recorded once and sets its own order        | [S251](renewal-housing-assistance-path.md)                      | Optional lease fact; program first, then the owner's renewing answer, then rent only if a change is proposed                                        |
+| Staff prove the path on real work and the manual matches          | [S252](renewal-one-path-staff-walkthrough-and-help.md)          | Action budgets, rehearsal journey, November 4 defect ledger, weekly staff walkthrough, help update                                                  |
+| Confirmed form answers are built; open ones hold only themselves  | [S253](renewal-confirmed-form-answers-and-per-lease-content.md) | Pet fee, recorded deposit and total; per-lease owner explanation; tenant initial boxes; no default execution date                                   |
+| An outside session proves the owner's goals were met              | [S254](renewal-one-path-adversary-litmus.md)                    | Paste-ready handoff of 71 Yes/No checks grouped by goal; run unattended in the rehearsal; before and after measured; batch accepted only with no No |
+
+Owner decisions, answered on November 5, 2026. They settle the specifications; they do not start
+implementation.
+
+| Decision | Question                                                                                               | Owner answer                                                                                                                                                                                                                      |
+| -------- | ------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D-OP-1   | May the rent comparison start without a staff action for the working batch, once per lease per cycle?  | Yes, inside the monthly allowance. The router amendment ships in the same change as S249 R-S249-4.                                                                                                                                |
+| D-OP-2   | Is Send from the lease page the primary route, with Gmail draft, Schedule and Copy secondary?          | Yes.                                                                                                                                                                                                                              |
+| D-OP-3   | May one agreement cover every lease in an owner's portfolio for every cycle, with rent from its rule?  | Yes. A rent different from the rule returns the lease to the owner step.                                                                                                                                                          |
+| D-OP-4   | Is the working month the next calendar month, with the desk always opening on the batch?               | Yes. A saved view becomes a link.                                                                                                                                                                                                 |
+| D-OP-5   | Do closed and pending leases leave the batch by themselves with a counted reason?                      | Yes. Leases already renewed in RentVine ask for one confirmation.                                                                                                                                                                 |
+| D-OP-6   | Does one page replace the Focus and Full view switch?                                                  | Changed: the guided page is the default, and Focus view and Full view stay as options. Leases open in the same tab.                                                                                                               |
+| D-OP-7   | Is RentVine the basis for rent and dates in the numbers check, with a Sheet difference as information? | Yes.                                                                                                                                                                                                                              |
+| D-OP-8   | Does a confirmed send from the app record the outreach and move the stage?                             | Yes, attributed to the message and correctable.                                                                                                                                                                                   |
+| D-OP-9   | How does housing assistance change the path?                                                           | Optional field. Program first, then the owner's answer on renewing the tenant, then rent only if a change is proposed. The November 4 notes confirm the program contact and the owner's answer, not the order; S251 records that. |
+
+Recommended order: S246, then S247 with S248, then S249, then S250 and S251, then S252. S253
+changes only the documents files and runs beside that sequence. S254 runs last: a fresh session
+proves the built batch against the owner's goals. Each suite is independently buildable and states
+its behavior when a neighbor is absent.
+
+**Delivery plan.** The owner approved this batch on November 5, 2026. Approval settles the
+specifications and this plan; an implementation run starts on the owner's run instruction, after
+step 3.
+
+1. **Specifications first.** This bundle is documentation only: nine specification files, this
+   registry and the holds packet. It sits on its own branch cut from `main` at `6491c06f` and
+   merges as one docs-only pull request.
+2. **Another runner is active.** On November 5 it has three open pull requests against `main`:
+   #178 (information tip and notification bell), #179 (display and wording repairs) and
+   #180 (S113 journey timing). #180 edits other sections of the holds packet. #179 changes
+   `lib/lease-renewal/live-lease-cache.ts`, `app/globals.css` and
+   `tests/unit/s242-help-pages.test.tsx`, which S246, S247 and S252 also change. #180 changes
+   `tests/firestore/s113-sheet-route.test.ts`, the mounted lease journey that S247 to S249 will
+   need to update.
+3. **Merge order.** Those three merge, or the owner explicitly parks them, before any
+   implementation branch is cut. Whichever documentation change lands second merges `main` and
+   re-runs the documentation gates. No branch here rebases or edits another runner's branch.
+4. **Fresh worktrees.** Implementation runs in new worktrees cut from `main` after step 3: one for
+   the path lane (S246 to S252 in the order above, one pull request per suite or pair) and one for
+   the documents lane (S253). The lanes share only the help content, which S252 updates last.
+5. **One release queue.** `docs/loop-state.md`, `docs/status.md` and `docs/facts.md` are edited
+   only in a queue or closure commit made after the code is merged, and never while another
+   runner's queue is awaiting release. Each implementation run starts by listing open pull
+   requests and worktrees, and takes a file another open pull request changes only after that
+   request has merged.
+6. **Litmus last.** When the suites are built, the S254 handoff is pasted into a fresh session
+   with the candidate commit. That session runs unattended in the rehearsal, repairs inside S246
+   to S253 scope, and its report decides whether the batch is accepted. The staff verdict stays
+   with the weekly session.
+
+| Suite | Active contract                                                               | State                                                                                                                                                                                                         |
+| ----- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S246  | `docs/feature-suites/renewal-working-batch-and-accurate-targets.md`           | AUTHORING READY — intake 112; implementation NOT STARTED. Target definition, working batch, counted exclusions, same-tab entry, assistant parity.                                                             |
+| S247  | `docs/feature-suites/renewal-one-path-lease-page.md`                          | AUTHORING READY — intake 113; implementation NOT STARTED. Path definition, single stage projection, guided default view with a Now card; Focus and Full view kept.                                            |
+| S248  | `docs/feature-suites/renewal-evidence-driven-stage.md`                        | AUTHORING READY — intake 114; implementation NOT STARTED. Send, reply, bounce and source evidence move the stage; refines S232 R-S232-4.                                                                      |
+| S249  | `docs/feature-suites/renewal-prepared-kickoff-and-one-message-route.md`       | AUTHORING READY — intake 115; implementation NOT STARTED. Prepared kickoff, one message record, one route; automatic start approved (D-OP-1) and shipped with its router amendment.                           |
+| S250  | `docs/feature-suites/renewal-standing-owner-agreements-by-portfolio.md`       | AUTHORING READY — intake 116; implementation NOT STARTED. Portfolio agreements and lease selector; covered owner step approved (D-OP-3); revises S194 scope.                                                  |
+| S251  | `docs/feature-suites/renewal-housing-assistance-path.md`                      | AUTHORING READY — intake 117; implementation NOT STARTED. Optional lease fact, assisted order, rent choice, classification change.                                                                            |
+| S252  | `docs/feature-suites/renewal-one-path-staff-walkthrough-and-help.md`          | AUTHORING READY — intake 118; implementation NOT STARTED; runs after S246–S251. Budgets, journey, defect ledger, first full case, reported-item checks, staff walkthrough, help update.                       |
+| S253  | `docs/feature-suites/renewal-confirmed-form-answers-and-per-lease-content.md` | AUTHORING READY — intake 119; implementation NOT STARTED; independent documents lane. Applies the client's November 5 form answers; narrows U1, U2 and U4; eight open answers listed once.                    |
+| S254  | `docs/feature-suites/renewal-one-path-adversary-litmus.md`                    | AUTHORING READY — intake 120; implementation NOT STARTED; runs last, after S246–S253 are built. Fresh-session litmus handoff, November 5 mix fixture, shared report validator, repair loop, batch acceptance. |
+
 ## November 4 staff help hub and in-app help refresh — finalized specifications
 
 The owner clarified a staff training release on November 4: one in-app Help section that is the
@@ -340,6 +437,15 @@ separate and retain their exact evidence scopes.
 | 105          | [November/December renewal staff acceptance, evidence and blocker closure](renewal-novdec-staff-acceptance-and-evidence.md); S238                    | 2026-10-28 Clarify Features initialization (owner Obsidian inbox), series G — integrated staff acceptance and evidence                                              | in progress           | Human verdicts NOT RUN; provider-functional rows wait on C11–C13; the November 4 review is a planning step, not a job.                                                                                                                                                                        |
 | 106          | [Runnable Admin knowledge re-index handoff](admin-knowledge-reindex-handoff.md); S240                                                                | November 3 assessment, A-02                                                                                                                                         | ready                 | Authoring ready; implementation/delivery NOT STARTED. Pure command/importer compatibility and exact source inventory; no ingestion or release authorized.                                                                                                                                     |
 | 107          | [Existing owner-renewal process review and publication](owner-renewal-process-review-and-publication.md); S241                                       | November 3 owner Q4 acceptance, current process source and guarded assessment                                                                                       | ready                 | Authoring FINAL / READY; implementation/publication/delivery NOT STARTED. Reuse the fixed definition and existing Editor publication; no process run, send or ingestion authorized.                                                                                                           |
+| 112          | [Working batch and accurate renewal targets on the desk](renewal-working-batch-and-accurate-targets.md); S246                                        | November 4 staff walkthrough notes (owner-held) and November 5 owner direction, outcome A — accurate upcoming and unfinished targets                                | ready                 | Source inspected at `6491c06f`; read-only desk observation recorded as counts. D-OP-4 and D-OP-5 confirmed by the owner on November 5.                                                                                                                                                        |
+| 113          | [One renewal path per lease: one page, one current step](renewal-one-path-lease-page.md); S247                                                       | November 4 staff walkthrough notes (owner-held) and November 5 owner direction, outcome B — one entry point and one route without gating                            | ready                 | Adds a guided default view; Focus and Full view stay as options by owner decision D-OP-6.                                                                                                                                                                                                     |
+| 114          | [Evidence the app already holds moves the lease forward](renewal-evidence-driven-stage.md); S248                                                     | November 4 staff walkthrough notes (owner-held) and November 5 owner direction, outcome B — the next step is evident                                                | ready                 | Refines S232 R-S232-4; reuses S233 and S191 evidence. D-OP-8 confirmed by the owner.                                                                                                                                                                                                          |
+| 115          | [Renewal kickoff prepared ahead, with one message and one route](renewal-prepared-kickoff-and-one-message-route.md); S249                            | November 4 staff walkthrough notes (owner-held) and November 5 owner direction, outcome C — work done ahead and obvious to continue                                 | ready                 | D-OP-1 approved by the owner; the automatic start ships only with its router amendment. D-OP-2 and D-OP-7 confirmed.                                                                                                                                                                          |
+| 116          | [Standing owner agreements set once per owner portfolio](renewal-standing-owner-agreements-by-portfolio.md); S250                                    | November 4 staff walkthrough notes (owner-held), MKD portfolio discussion                                                                                           | ready                 | D-OP-3 approved by the owner: portfolio-wide agreements cover the owner step. Revises S194 agreement scope.                                                                                                                                                                                   |
+| 117          | [Housing assistance recorded once on the lease](renewal-housing-assistance-path.md); S251                                                            | November 4 staff walkthrough notes (owner-held), aligned decision on the housing assistance field                                                                   | ready                 | D-OP-9 sets the assisted order; one staff confirmation of "rent if needed" remains for the weekly session.                                                                                                                                                                                    |
+| 118          | [One-path renewal walkthrough, budgets, defect ledger and help update](renewal-one-path-staff-walkthrough-and-help.md); S252                         | November 4 staff walkthrough notes (owner-held), weekly session agreed for November 10                                                                              | ready                 | Runs after S246–S251; reuses S238 and S242–S245 methods; staff verdict NOT RUN until a session is held.                                                                                                                                                                                       |
+| 119          | [Confirmed form answers: pet fee and total, owner explanation, tenant initial boxes](renewal-confirmed-form-answers-and-per-lease-content.md); S253  | Client answers of November 5 (Dan), relayed by the owner; automatic staff meeting summary as reports to verify                                                      | ready                 | Independent of S246–S252; real forms still wait on U1 approval of each original and map; eight open answers listed in R-S253-11.                                                                                                                                                              |
+| 120          | [One-path renewal adversary litmus](renewal-one-path-adversary-litmus.md); S254                                                                      | Owner direction of November 5: an outside runner proves, unattended, that the batch met the original goals                                                          | ready                 | Runs after S246–S253 are built; the handoff, fixture and validator can be built first; the human verdict stays with the weekly session.                                                                                                                                                       |
 
 Batch 002 was explicitly selected for execution on 2026-09-30. S135–S140 are merged to `main` and S141's evidence map is recorded; run `ab803f8a` at `2ec46806` released it with batch 003 on 2026-10-01. S110's three-intent path served until that release. The overlapping unimplemented S88–S93/S101 assistant plans are superseded by S135–S138 where they conflict; preserve their files for provenance but never admit them as independent work. S94 stays a separate unexecuted proposal and S95 is superseded by S146/S147. Revised S87 belongs only to batch 005; it is not a dependency or grant for batch 002.
 

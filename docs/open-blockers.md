@@ -7,6 +7,9 @@ separate from the client asks; no client unblocker changed. Engineering fixes fo
 and TOOLING (3e538f10) and for S125, S235, S130-SCAN and GATES (5e4771bc) are on fix branch
 `claude/pmi-kc-implementation-review-74067f` (PR 173, merged as 173ad2a6) and were released by run
 74d79a9d at 323e8be3 on 2026-11-04; only the CI row stays open.
+Client answers received 2026-11-05 (Dan, relayed by the owner) narrow U1, U2 and U4; each section
+records what is settled and what is still asked. No hold was removed and no key, approval or
+publication changed.
 This is the canonical external/human hold register. The
 [assessment](evidence/current-application-gap-analysis-2026-11-03.md) and
 [implementation plan](plan.md) link to this same set. A hold blocks only its named output/effect;
@@ -153,6 +156,31 @@ brochure's unlabeled footer/signing purpose also needs a disposition; its unappr
 unfilled. Dan routes only those unresolved meanings to the actual document/financial authority. Engineering already owns
 the field coordinates, rotated-page geometry, repeated slots and protected signing regions.
 
+**Answers received 2026-11-05 (Dan, relayed by the owner).** Settled meanings: the ordinary pet
+processing fee is $50, not $150; the refundable deposit is separate and follows the pet screening
+result; on the pet agreement the first amount blank is the deposit and the second is the fee plus
+the deposit; the owner acknowledgment's large box holds an explanation written for that lease,
+which Bailey edits from a kept starting text; the brochure's four footer boxes are tenant initial
+boxes.
+Still asked, each holding only its own output:
+
+1. The owner acknowledgment's "Lease executed on" date. Dan called it ambiguous and named the
+   lease start date and the date sent as candidates. Neither is a default; the date stays blank.
+2. On the brochure: which tenant uses which box, unused boxes, more than four tenants, and the
+   agency selections and signing details, which Dan left to Bailey.
+3. Bailey's starting text for the owner explanation with one example, its inputs, author, reviewer
+   and when it is ready.
+4. The approved assistance-animal exceptions and wording, including emotional-support animals.
+   Dan described an exception for a registered service animal; no registration requirement is
+   added from that remark.
+5. Approved form versions, organization names, representatives and authorized signers. The owner
+   acknowledgment and the brochure print different organization names; both may be valid and they
+   are not made to match. A correction is named by form, page, exact replacement and signing role.
+
+A settled meaning still needs its exact original and map approved before a real form is prepared.
+[S253](feature-suites/renewal-confirmed-form-answers-and-per-lease-content.md) builds the settled
+items on synthetic forms and carries this open list.
+
 ### U2 — Resolve only missing case/policy facts (B-DL3, C07–C10)
 
 **Who acts:** engineering recovers existing facts/decisions; Dan answers or routes the residual
@@ -170,6 +198,15 @@ question to the actual source custodian, financial/document authority or signer.
    missing approved material/destination. The settled MKD percentage is not asked again; actual
    portfolio membership and standing direction still require evidence. Printed PDF amounts alone
    are not a published calculator policy.
+
+**Answers received 2026-11-05 (Dan, relayed by the owner).** The ordinary pet processing fee is a
+recovered decision for item 4: $50, charged together with a refundable deposit that follows the
+pet screening result, total equal to the two added. It enters the published charge policy through
+the existing Admin control under an authorized run, with this answer as its recorded source. Still
+asked: which screening result or schedule sets the deposit, who approves it and whether it is
+entered by hand; and what "every time" covers (each renewal, agreement, pet or another event).
+Until then staff record the deposit on the lease with its source, and a printed tier is still not
+policy. A price used on a test property is never a default for another lease or the company.
 
 **Engineering package complete:** the case has source-attributed facts, proposed applicable rules
 and precise remaining questions; approved configuration records provenance/version through S66.
@@ -240,6 +277,15 @@ published guidance or authorize customer/provider work. The remaining U4 case/hu
 3. Record actual usability/accuracy, phone/accessibility and recipient observations only when
    performed. Human Dotloop signing/returned evidence stays separate from upload and staff progress.
    Signed terms govern changes derived from them, not every ordinary source correction.
+
+**Asked 2026-11-05, not answered.** Dan did not resolve who approves the exact rent, dates and
+charges, how that approval is received and recorded, or who may approve or sign for the landlord;
+Dan found the first-lease question unclear, so it is asked again in plain terms. Bailey's meeting
+summary reports two app-based and two regular properties already selected for testing; the first
+full case is reconciled against those four before another is chosen, with its property and unit,
+lease end date, packet type, signers, fees, elections and disclosures confirmed
+([S252](feature-suites/renewal-one-path-staff-walkthrough-and-help.md) R-S252-9 and R-S252-10).
+This holds only the signature step of that case; every earlier step proceeds.
 
 **Done:** case-bound actual consent/authority and separate observed outcomes exist; unperformed
 claims remain NOT RUN. **Team verifies:** content/source/recipient/sender/policy binding,
