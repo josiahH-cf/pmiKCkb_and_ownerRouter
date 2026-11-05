@@ -16,7 +16,10 @@ import { hasSpaceAccess, type AuthenticatedUser } from "@/lib/auth/session";
 import { listApprovalQueue } from "@/lib/firestore/approval-queue";
 import type { ApprovalQueueItemRecord } from "@/lib/firestore/types";
 import { buildLiveRenewalConfig } from "@/lib/lease-renewal/live-config";
-import { revalidateStaleLiveLeaseSnapshot } from "@/lib/lease-renewal/live-lease-cache";
+import {
+  revalidateStaleLiveLeaseSnapshot,
+  settleLiveLeaseRefresh,
+} from "@/lib/lease-renewal/live-lease-cache";
 import { loadRenewalRunViews } from "@/lib/lease-renewal/renewal-review-board";
 import type { Severity } from "@/lib/lease-renewal/severity";
 import {
@@ -72,7 +75,22 @@ export interface AttentionQueueDependencies {
   readonly now: () => Date;
   /** Starts a stale lease revalidation without notice admission; see gatherAttentionQueue. */
   readonly revalidateLeaseSource?: (nowMs: number) => void;
+  /** Waits, bounded, for a lease read already in flight; resolves whether one settled. */
+  readonly settleLeaseRefresh?: (maxWaitMs: number) => Promise<boolean>;
 }
+
+export interface AttentionQueueOptions {
+  /**
+   * Set only for a person's explicit re-read (Try again, or the refresh after an inline Approve):
+   * wait at most this long for a lease read already in flight, such as the stale revalidation the
+   * gather starts, before the review read, so the answer reflects the refreshed source instead of
+   * the same stale one. The Dashboard's first render never waits.
+   */
+  readonly awaitLeaseRefreshMs?: number;
+}
+
+/** How long a re-read waits for an in-flight lease read; well inside the browser's 60 s wait. */
+export const ATTENTION_REREAD_LEASE_WAIT_MS = 30_000;
 
 const defaultDependencies: AttentionQueueDependencies = {
   listQueue: (user) => listApprovalQueue(user),
@@ -82,6 +100,7 @@ const defaultDependencies: AttentionQueueDependencies = {
     const config = buildLiveRenewalConfig();
     if (config.ok) revalidateStaleLiveLeaseSnapshot(config.rentvineClient, nowMs);
   },
+  settleLeaseRefresh: settleLiveLeaseRefresh,
 };
 
 function errorClass(error: unknown): string {
@@ -91,6 +110,7 @@ function errorClass(error: unknown): string {
 export async function gatherAttentionQueue(
   user: AuthenticatedUser,
   dependencies: AttentionQueueDependencies = defaultDependencies,
+  options: AttentionQueueOptions = {},
 ): Promise<AttentionQueue> {
   const canSeeRenewals = hasSpaceAccess(user, "renewals");
   // Before the admitted review read below: when the shared lease generation is stale, start its
@@ -104,9 +124,21 @@ export async function gatherAttentionQueue(
       // Best effort: the admitted review read keeps its own refresh behavior.
     }
   }
+  const loadViews = async () => {
+    if (!canSeeRenewals) return null;
+    const waitMs = options.awaitLeaseRefreshMs ?? 0;
+    if (waitMs > 0) {
+      try {
+        await dependencies.settleLeaseRefresh?.(waitMs);
+      } catch {
+        // Best effort: an unfinished refresh leaves the review read to report the source honestly.
+      }
+    }
+    return dependencies.loadRunViews(user);
+  };
   const [queueResult, viewsResult] = await Promise.allSettled([
     dependencies.listQueue(user),
-    canSeeRenewals ? dependencies.loadRunViews(user) : Promise.resolve(null),
+    loadViews(),
   ]);
 
   const unavailableFeeds: AttentionQueueFeed[] = [];

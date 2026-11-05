@@ -18,6 +18,7 @@ import {
 import type { RenewalReviewBoard } from "@/lib/approval/renewal-review";
 import type { WritebackApprovalQueue } from "@/lib/approval/writeback-approval-queue";
 import { isCurrentDecisionItem } from "@/lib/approval/current-work-eligibility";
+import { formatBusinessTimestamp } from "@/lib/date-display";
 import type { ApprovalQueueItemRecord, QueueItemStatus } from "@/lib/firestore/types";
 import { SEVERITY_ORDER } from "@/lib/lease-renewal/pipeline";
 import type { Severity } from "@/lib/lease-renewal/severity";
@@ -76,8 +77,9 @@ export function needsDecisionReadWarning(
       ? "Current decisions could not be checked. No eligible decision source answered."
       : "Some decision sources could not be read. The list may be incomplete.";
   const issue = inbox.renewalReviewIssue;
+  // S126: the read time is shown in the app's date and time convention, never as a raw ISO instant.
   return issue
-    ? `${warning} ${issue.message}${issue.sourceReadAtIso ? ` Source last read: ${issue.sourceReadAtIso}.` : ""}`
+    ? `${warning} ${issue.message}${issue.sourceReadAtIso ? ` Source last read: ${formatBusinessTimestamp(issue.sourceReadAtIso)}.` : ""}`
     : warning;
 }
 

@@ -36,6 +36,7 @@ import {
   MAINTENANCE_WAITING_ON_LABELS,
   type MaintenanceWaitingOnProjection,
 } from "@/lib/maintenance/waiting-on";
+import { isClosedWorkflowRun } from "@/lib/processes/run-next-action";
 import {
   OPEN_WORK_TASK_STATES,
   type WorkAccountabilitySnapshot,
@@ -329,7 +330,10 @@ export function projectProcessRead(input: {
       title: run.process_name,
       detail: [
         `Run · ${run.status}`,
-        run.next_action ? `Next: ${run.next_action}` : null,
+        // A closed run has no next action; its stored start-time value would name its first step.
+        !isClosedWorkflowRun(run.status) && run.next_action
+          ? `Next: ${run.next_action}`
+          : null,
         run.due_date ? `due ${formatCalendarDate(run.due_date.slice(0, 10))}` : null,
       ]
         .filter(Boolean)

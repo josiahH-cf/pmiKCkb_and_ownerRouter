@@ -39,8 +39,10 @@ const COLLECTIONS = {
   queueActivity: "approval_queue_activity",
 } as const;
 
-const BULK_EXECUTE_BLOCKED_MESSAGE =
-  "Bulk execute is not available until approved executable external-action runtime exists. No external write was attempted.";
+// Present behavior: the queue's bulk Execute skips every item; each approved action runs only from
+// its own workflow. The message is also the skipped item's Activity reason.
+export const BULK_EXECUTE_BLOCKED_MESSAGE =
+  "Bulk execute is not available in the Approval Queue. Each approved action runs from its own workflow. No external write was attempted.";
 const BULK_UNAVAILABLE_ITEM_MESSAGE = "Queue item is not available for this bulk action.";
 
 // Approval-critical fields snapshotted into Activity when an open item refreshes.

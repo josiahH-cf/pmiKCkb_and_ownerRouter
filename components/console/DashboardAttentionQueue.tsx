@@ -12,6 +12,7 @@ import { Suspense, use, useState } from "react";
 import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
 import { ConsoleApproveButton } from "@/components/console/ConsoleApproveButton";
 import type { AttentionAuthority, AttentionQueue } from "@/lib/attention/attention-queue";
+import { formatBusinessTimestamp } from "@/lib/date-display";
 
 const PREVIEW_ROWS = 5;
 
@@ -89,7 +90,7 @@ function AttentionQueueBody({
         <p className="muted" data-testid="renewal-review-issue">
           {queue.renewalReviewIssue.message}
           {queue.renewalReviewIssue.sourceReadAtIso
-            ? ` Source last read: ${queue.renewalReviewIssue.sourceReadAtIso}.`
+            ? ` Source last read: ${formatBusinessTimestamp(queue.renewalReviewIssue.sourceReadAtIso)}.`
             : ""}
         </p>
       ) : null}

@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import type { Role } from "@/lib/auth/roles";
 import {
+  BULK_EXECUTE_BLOCKED_MESSAGE,
   bulkTransitionApprovalQueueItems,
   classifyQueueRisk,
   createApprovalQueueItem,
@@ -737,7 +738,7 @@ describe("bulkTransitionApprovalQueueItems", () => {
     expect(activity.at(-1)?.action).toBe("unblocked");
   });
 
-  it("keeps bulk execute visible but guarded until executable runtime exists", async () => {
+  it("keeps bulk execute visible and skips every item without an external write", async () => {
     const item = await createApprovalQueueItem(
       editor,
       baseInput({ source_trigger_key: "bulk-execute" }),
@@ -752,6 +753,13 @@ describe("bulkTransitionApprovalQueueItems", () => {
 
     expect(result.summary).toMatchObject({ skipped: 1, updated: 0 });
     expect(result.results[0].message).toMatch(/No external write was attempted/);
+    // Litmus 2026-11-04: the refusal staff read in the bulk results and in Activity states present
+    // behavior, never a roadmap.
+    expect(result.results[0].message).toBe(BULK_EXECUTE_BLOCKED_MESSAGE);
+    expect(BULK_EXECUTE_BLOCKED_MESSAGE).toBe(
+      "Bulk execute is not available in the Approval Queue. Each approved action runs from its own workflow. No external write was attempted.",
+    );
+    expect(BULK_EXECUTE_BLOCKED_MESSAGE).not.toMatch(/\b(until|yet|exists|runtime)\b/i);
     const activity = await listApprovalQueueActivity(admin, item.id, db);
     expect(activity.at(-1)).toMatchObject({
       action: "skipped",

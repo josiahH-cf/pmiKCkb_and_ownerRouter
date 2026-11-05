@@ -5,6 +5,10 @@ import { formatBusinessTimestamp, formatCalendarDate } from "@/lib/date-display"
 import { useState } from "react";
 import Link from "next/link";
 import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
+import {
+  isClosedWorkflowRun,
+  workflowRunNextAction,
+} from "@/lib/processes/run-next-action";
 import type {
   ProcessDefinitionStep,
   WorkflowRunRecord,
@@ -32,7 +36,11 @@ export function WorkflowRunClient({
   const [notes, setNotes] = useState("");
   const [message, setMessage] = useState("Workflow run loaded.");
   const [isBusy, setIsBusy] = useState(false);
-  const isClosed = ["Completed", "Cancelled", "Failed"].includes(run.status);
+  const isClosed = isClosedWorkflowRun(run.status);
+  const nextAction = workflowRunNextAction(run, {
+    steps: initialSteps,
+    checks: initialChecks,
+  });
   const checksByStep = new Map(initialChecks.map((check) => [check.step_id, check]));
   const incompleteSteps = initialSteps.filter((step) => {
     const status = checksByStep.get(step.id)?.status;
@@ -93,7 +101,7 @@ export function WorkflowRunClient({
           </div>
           <div className="queue-detail-field">
             <span>Next Action</span>
-            <strong>{run.next_action}</strong>
+            <strong>{nextAction}</strong>
           </div>
           <div className="queue-detail-field">
             <span>Due Date</span>

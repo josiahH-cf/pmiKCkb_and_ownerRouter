@@ -6,7 +6,11 @@ import { requirePageCapability } from "@/lib/auth/page-guards";
 import { readServerConfig } from "@/lib/config/server";
 
 // In-app user role + space-scope management (console overhaul Slice D + S16). Admin-only. Degrades to a clear note if
-// the Admin SDK is unavailable in this session (matching the admin observability panel).
+// the Admin SDK is unavailable in this session (matching the admin observability panel). The note
+// gives staff their own next step; credential repair is engineering work, not a page instruction.
+const ADMIN_USERS_UNAVAILABLE_NOTE =
+  "The user roster could not be read in this session, so nobody is listed and nothing changed. Reload the page to try again, and report it with Feedback if it keeps happening.";
+
 export default async function AdminUsersPage() {
   const user = await requirePageCapability("manageAdmin");
   const config = readServerConfig();
@@ -16,8 +20,7 @@ export default async function AdminUsersPage() {
   try {
     users = await listAppUsers();
   } catch {
-    unavailableNote =
-      "The user roster is unavailable in this session. Refresh Google credentials (npm run auth:session) or check the Firebase Admin setup, then reload.";
+    unavailableNote = ADMIN_USERS_UNAVAILABLE_NOTE;
   }
 
   return (

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ProcessDefinitionRecord, WorkflowRunRecord } from "@/lib/firestore/types";
+import { workflowRunNextAction } from "@/lib/processes/run-next-action";
 
 /**
  * Read-only, advisory view of the process a Space carries (Spaces ⊇ Processes). It surfaces the
@@ -55,7 +56,7 @@ export function ProcessSummaryPanel({
         <ul className="compact-list">
           {runs.map((run) => (
             <li key={run.id}>
-              {run.status}: {run.next_action} · Definition version:{" "}
+              {run.status}: {workflowRunNextAction(run)} · Definition version:{" "}
               {run.definition_version_id ?? "Not pinned (draft)"}
             </li>
           ))}

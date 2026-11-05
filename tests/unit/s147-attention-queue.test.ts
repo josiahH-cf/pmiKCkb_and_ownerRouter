@@ -112,6 +112,60 @@ describe("S147 attention queue gather", () => {
     }
   });
 
+  // Litmus 2026-11-04: while the lease export was stale, Try again answered with the same stale
+  // read until the background refresh landed. A re-read now waits, bounded, for that refresh.
+  it("on a re-read, waits for the in-flight lease refresh between the revalidation and the review read", async () => {
+    const order: string[] = [];
+    const revalidateLeaseSource = vi.fn(() => {
+      order.push("revalidate");
+    });
+    const settleLeaseRefresh = vi.fn(async (maxWaitMs: number) => {
+      order.push(`settle:${maxWaitMs}`);
+      return true;
+    });
+    const loadRunViews = vi.fn(async () => {
+      order.push("review");
+      return [];
+    });
+    const queue = await gatherAttentionQueue(
+      admin,
+      deps({ loadRunViews, revalidateLeaseSource, settleLeaseRefresh }),
+      { awaitLeaseRefreshMs: 30_000 },
+    );
+    expect(order).toEqual(["revalidate", "settle:30000", "review"]);
+    expect(queue.state).toBe("ok");
+  });
+
+  it("never waits on the Dashboard's first render", async () => {
+    const settleLeaseRefresh = vi.fn(async () => true);
+    await gatherAttentionQueue(admin, deps({ settleLeaseRefresh }));
+    await gatherAttentionQueue(admin, deps({ settleLeaseRefresh }), {
+      awaitLeaseRefreshMs: 0,
+    });
+    expect(settleLeaseRefresh).not.toHaveBeenCalled();
+  });
+
+  it("still reads and reports the source when the wait fails or ends without a refresh", async () => {
+    for (const settleLeaseRefresh of [
+      vi.fn(async () => false),
+      vi.fn(async () => {
+        throw new Error("wait failed");
+      }),
+    ]) {
+      const loadRunViews = vi.fn(async () => {
+        throw new Error("synthetic stale source");
+      });
+      const queue = await gatherAttentionQueue(
+        admin,
+        deps({ loadRunViews, settleLeaseRefresh }),
+        { awaitLeaseRefreshMs: 30_000 },
+      );
+      expect(loadRunViews).toHaveBeenCalledTimes(1);
+      expect(queue.state).toBe("partial");
+      expect(queue.unavailableFeeds).toEqual(["renewal_reviews"]);
+    }
+  });
+
   it("keeps gathering when the revalidation cannot start", async () => {
     const queue = await gatherAttentionQueue(
       admin,

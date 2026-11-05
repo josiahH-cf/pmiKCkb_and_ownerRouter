@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import type { ApprovalQueueActor } from "@/lib/approval/queue";
-import { buildNeedsDecisionInbox } from "@/lib/approval/needs-decision-inbox";
+import {
+  buildNeedsDecisionInbox,
+  needsDecisionReadWarning,
+} from "@/lib/approval/needs-decision-inbox";
 import { buildRenewalReviewBoard } from "@/lib/approval/renewal-review";
 import { buildWritebackApprovalQueue } from "@/lib/approval/writeback-approval-queue";
 import type {
@@ -465,5 +468,40 @@ describe("buildNeedsDecisionInbox", () => {
       writebacksAwaiting: 0,
       queueItems: 0,
     });
+  });
+});
+
+describe("needsDecisionReadWarning", () => {
+  it("S126 (litmus 2026-11-04): names the source read time in the app's date and time convention", () => {
+    const warning = needsDecisionReadWarning({
+      readState: "partial",
+      renewalReviewIssue: {
+        code: "source_stale",
+        message: "The renewal source is stale.",
+        sourceReadAtIso: "2026-11-03T08:29:00.000Z",
+        overlayUnavailable: false,
+      },
+    });
+    expect(warning).toBe(
+      "Some decision sources could not be read. The list may be incomplete. The renewal source is stale. Source last read: 11/03/2026, 2:29 AM CST.",
+    );
+    expect(warning).not.toContain("2026-11-03T");
+  });
+
+  it("omits the read time when the source has none and stays silent after a complete read", () => {
+    expect(
+      needsDecisionReadWarning({
+        readState: "unavailable",
+        renewalReviewIssue: {
+          code: "source_read_error",
+          message: "A renewal source read did not complete.",
+          sourceReadAtIso: null,
+          overlayUnavailable: false,
+        },
+      }),
+    ).toBe(
+      "Current decisions could not be checked. No eligible decision source answered. A renewal source read did not complete.",
+    );
+    expect(needsDecisionReadWarning({ readState: "complete" })).toBeNull();
   });
 });
