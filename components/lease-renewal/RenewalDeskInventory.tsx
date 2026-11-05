@@ -137,13 +137,10 @@ function OwnedRenewalDeskInventory({
   async function choose(search: string, fromHistory = false) {
     const target = `${RENEWAL_DESK_ROUTE}?${search || "v=2"}`;
     const chosen = parseRenewalDeskQueryV2(new URLSearchParams(search));
-    // S246: another shared collection's saved leases are read by the server, never guessed here.
-    if (chosen.collection && chosen.collection !== query.collection) {
-      window.location.assign(target);
-      return;
-    }
     const readAt = Date.parse(view.dataCurrency.readAtIso);
     if (
+      // S246: another shared collection's saved leases are read by the server, never guessed here.
+      (chosen.collection && chosen.collection !== query.collection) ||
       !scopeKey ||
       !Number.isFinite(readAt) ||
       Date.now() - readAt > LEASE_EXPORT_TTL_MS

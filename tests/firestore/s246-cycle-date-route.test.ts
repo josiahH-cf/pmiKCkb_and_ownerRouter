@@ -96,6 +96,15 @@ afterAll(async () => {
   await testEnv.cleanup();
 });
 
+/** The parts of the route's JSON these checks read. */
+interface RouteBody {
+  readonly duplicate?: boolean;
+  readonly error?: string;
+  readonly decision?: Record<string, unknown>;
+  readonly state?: { readonly completion?: Record<string, unknown> | null } | null;
+  readonly writeback_paused?: boolean;
+}
+
 async function post(body: Record<string, unknown>) {
   const response = await POST(
     new Request("http://localhost/api/lease-renewal/workspace", {
@@ -104,10 +113,7 @@ async function post(body: Record<string, unknown>) {
       body: JSON.stringify(body),
     }),
   );
-  return {
-    status: response.status,
-    body: (await response.json()) as Record<string, any>,
-  };
+  return { status: response.status, body: (await response.json()) as RouteBody };
 }
 
 const choice = (
@@ -152,7 +158,7 @@ describe("S246 the two cycle date choices through the workspace route (BEH-S246-
     const saved = await post(choice("confirm_source_renewal", 2));
     expect(saved.status).toBe(200);
     expect(saved.body.duplicate).toBe(false);
-    expect(saved.body.state.completion).toMatchObject({
+    expect(saved.body.state?.completion).toMatchObject({
       eventId: OP(2),
       actorUid: editor.uid,
       source: `RentVine lease end ${SOURCE}`,
