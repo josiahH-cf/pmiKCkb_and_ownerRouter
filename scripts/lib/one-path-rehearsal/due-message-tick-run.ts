@@ -45,7 +45,7 @@ async function main() {
       const target = await resolveCommunicationTarget(actor, sequence.context);
       // Digests and counts only: whether the source the send was authorized on still matches.
       return {
-        authorizedSource: sequence.authorization.materialSourceHash,
+        authorizedSource: sequence.authorization?.materialSourceHash ?? null,
         currentSource: target.materialSourceHash,
         noticeCycleId: target.noticeCycleId,
         blockers: target.blockers,
@@ -62,7 +62,8 @@ async function main() {
   });
   const sequenceId = process.env.ONE_PATH_TICK_SEQUENCE ?? "";
   const diagnosis =
-    /^[0-9a-f-]{36}$/.test(sequenceId) && result.sent === 0
+    /^[0-9a-f-]{36}$/.test(sequenceId) &&
+    Number((result as { sent?: number }).sent ?? 0) === 0
       ? await diagnose(sequenceId)
       : null;
   process.stdout.write(`${JSON.stringify({ ...result, diagnosis })}\n`);

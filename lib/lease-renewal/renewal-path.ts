@@ -150,7 +150,8 @@ export const RENEWAL_PATH_DEFINITION: Readonly<
   "check-numbers": {
     id: "check-numbers",
     label: RENEWAL_PATH_LABELS["check-numbers"],
-    ready: "RentVine rent and dates beside the operating Sheet, with any difference to settle.",
+    ready:
+      "RentVine rent and dates beside the operating Sheet, with any difference to settle.",
     decides: "Whether the numbers agree, or which source is right for a difference.",
     controls: [
       "renewal-card-lease-term",
@@ -163,7 +164,8 @@ export const RENEWAL_PATH_DEFINITION: Readonly<
       "/api/lease-renewal/rentvine-writeback",
     ],
     primary: { label: "Correct a lease fact", target: "renewal-correct-a-fact" },
-    completion: "RentVine and the operating Sheet agree on the current rent, or staff resolved it.",
+    completion:
+      "RentVine and the operating Sheet agree on the current rent, or staff resolved it.",
     waiting: null,
     stage: "verifying_lease_and_rent",
     waitingStage: null,
@@ -274,7 +276,8 @@ export const RENEWAL_PATH_DEFINITION: Readonly<
     id: "finish-up",
     label: RENEWAL_PATH_LABELS["finish-up"],
     ready: "RentVine and operating Sheet updates and the remaining follow-ups.",
-    decides: "Each update to apply with its own confirmation, and each follow-up that applies.",
+    decides:
+      "Each update to apply with its own confirmation, and each follow-up that applies.",
     controls: [
       "renewal-rent-and-charges",
       "renewal-manual-insurance",
@@ -443,7 +446,10 @@ export function renewalPathSteps(variants: RenewalPathVariants): {
     steps.push({ id: "ask-owner", applies: true });
   }
   if (variants.nonRenewal) {
-    steps.push({ id: "offer-tenant", applies: variants.nonRenewal.source !== "rentvine" });
+    steps.push({
+      id: "offer-tenant",
+      applies: variants.nonRenewal.source !== "rentvine",
+    });
     steps.push({ id: "non-renewal-handoff", applies: true });
     steps.push({ id: "documents", applies: false });
     steps.push({ id: "finish-up", applies: false });

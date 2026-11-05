@@ -33,7 +33,9 @@ export function message(
     readonly occurrenceId?: string;
   } = {},
 ): LinkedRenewalMessageEvidence {
-  const occurrenceId = overrides.occurrenceId ?? `${"a".repeat(60)}${(counter += 1).toString(16).padStart(4, "0")}`;
+  const occurrenceId =
+    overrides.occurrenceId ??
+    `${"a".repeat(60)}${(counter += 1).toString(16).padStart(4, "0")}`;
   const acceptedAtMs =
     overrides.acceptedAtMs === undefined ? SENT_AT_MS : overrides.acceptedAtMs;
   return {
@@ -50,7 +52,9 @@ export function message(
         : [{ occurrenceId, sentAtMs: acceptedAtMs, senderEmail: SENDER }]),
     replies:
       overrides.replies ??
-      (overrides.replyAtMs ? [{ id: id("reply"), receivedAtMs: overrides.replyAtMs }] : []),
+      (overrides.replyAtMs
+        ? [{ id: id("reply"), receivedAtMs: overrides.replyAtMs }]
+        : []),
     failedDeliveries:
       overrides.failedDeliveries ??
       (overrides.bounceAtMs

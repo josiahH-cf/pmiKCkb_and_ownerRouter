@@ -554,7 +554,10 @@ export interface ManualEvidenceFill {
 
 export function manualRenewalSummary(
   state: RenewalWorkspaceState | null,
-  options: { standingOwnerAuthority?: boolean; evidence?: ManualEvidenceFill | null } = {},
+  options: {
+    standingOwnerAuthority?: boolean;
+    evidence?: ManualEvidenceFill | null;
+  } = {},
 ) {
   const standing = options.standingOwnerAuthority === true;
   const evidence = options.evidence ?? null;
