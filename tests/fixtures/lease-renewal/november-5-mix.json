@@ -1,0 +1,1917 @@
+{
+  "name": "November 5 mix",
+  "description": "S254 R-S254-2: one synthetic renewals desk of 38 leases in the rehearsal's RentVine transport shape (the rows tests/browser/renewal-novdec-journey-network.mjs serves). Only the group counts come from the November 5 observation; every name, address, date, amount and id is invented. Dates are anchored to anchorBusinessDate and the loader (scripts/lib/one-path-rehearsal/november-5-mix.mjs) shifts them by whole months, so the working month is always the next calendar month on the Central business date. Groups are read from the rows themselves: a status whose primaryLeaseStatusID is 3 is closed, a status with isPendingMoveOutStatus 1 is a move-out notice, isMonthToMonth 1 is month-to-month, and a recordedCycles date earlier than the lease's RentVine end date is a lease renewed in RentVine. The other leases are active fixed-term leases grouped by end month: the working month, the month before it (four leases that ended on its first four days with nothing recorded) and later. recordedCycles, roles and sheet are seed data beside the source rows: a recorded cycle is app state the rehearsal creates through the app's own save while the stand-in serves the recorded date, roles names the five working-month leases of the litmus handoff with the facts later suites seed for them, and sheet is the synthetic operating Sheet (a blank row for the prepared lease, an agreeing row for the covered lease, a row whose rent differs for the replied lease). The starting commit reads only leases and statuses.",
+  "anchorBusinessDate": "2026-11-05",
+  "statuses": [
+    {
+      "leaseStatus": {
+        "leaseStatusID": 1,
+        "name": "Pending",
+        "primaryLeaseStatusID": 1,
+        "isPendingMoveOutStatus": 0,
+        "isCompletedMoveOutStatus": 0
+      }
+    },
+    {
+      "leaseStatus": {
+        "leaseStatusID": 2,
+        "name": "Active",
+        "primaryLeaseStatusID": 2,
+        "isPendingMoveOutStatus": 0,
+        "isCompletedMoveOutStatus": 0
+      }
+    },
+    {
+      "leaseStatus": {
+        "leaseStatusID": 3,
+        "name": "Closed",
+        "primaryLeaseStatusID": 3,
+        "isPendingMoveOutStatus": 0,
+        "isCompletedMoveOutStatus": 0
+      }
+    },
+    {
+      "leaseStatus": {
+        "leaseStatusID": 4,
+        "name": "Notice Given",
+        "primaryLeaseStatusID": 2,
+        "isPendingMoveOutStatus": 1,
+        "isCompletedMoveOutStatus": 0
+      }
+    }
+  ],
+  "leases": [
+    {
+      "lease": {
+        "leaseID": 9101,
+        "startDate": "2026-01-01",
+        "endDate": "2026-12-31",
+        "leaseType": "Fixed Term",
+        "leaseStatusID": 2,
+        "tenants": [
+          {
+            "name": "Avery Example",
+            "contactID": 9301,
+            "email": "avery.example@example.invalid"
+          },
+          {
+            "name": "Blake Example",
+            "contactID": 9302,
+            "email": "blake.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9501,
+        "name": "Sample Place",
+        "streetNumber": "101",
+        "streetName": "Sample Pl",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9401,
+        "owners": [
+          {
+            "name": "Jordan Sample",
+            "email": "jordan.sample@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9201,
+        "rent": "1350.00",
+        "beds": 2,
+        "fullBaths": 2,
+        "halfBaths": 0,
+        "size": 800,
+        "postalCode": "00101"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9102,
+        "startDate": "2026-01-01",
+        "endDate": "2026-12-31",
+        "leaseType": "Fixed Term",
+        "leaseStatusID": 2,
+        "tenants": [
+          {
+            "name": "Casey Example",
+            "contactID": 9303,
+            "email": "casey.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9502,
+        "name": "Example Avenue",
+        "streetNumber": "102",
+        "streetName": "Example Ave",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9402,
+        "owners": [
+          {
+            "name": "Riley Example",
+            "email": "riley.example@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9202,
+        "rent": "1700.00",
+        "beds": 3,
+        "fullBaths": 1,
+        "halfBaths": 0,
+        "size": 900,
+        "postalCode": "00102"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9103,
+        "startDate": "2026-01-01",
+        "endDate": "2026-12-31",
+        "leaseType": "Fixed Term",
+        "leaseStatusID": 2,
+        "tenants": [
+          {
+            "name": "Devon Example",
+            "contactID": 9304,
+            "email": "devon.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9503,
+        "name": "Sample Street",
+        "streetNumber": "103",
+        "streetName": "Sample St",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9403,
+        "owners": [
+          {
+            "name": "Sam Sample",
+            "email": "sam.sample@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9203,
+        "rent": "1100.00",
+        "beds": 4,
+        "fullBaths": 2,
+        "halfBaths": 1,
+        "size": 1000,
+        "postalCode": "00103"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9104,
+        "startDate": "2026-01-01",
+        "endDate": "2026-12-31",
+        "leaseType": "Fixed Term",
+        "leaseStatusID": 2,
+        "tenants": [
+          {
+            "name": "Emery Example",
+            "contactID": 9305,
+            "email": "emery.example@example.invalid"
+          },
+          {
+            "name": "Finley Example",
+            "contactID": 9306,
+            "email": "finley.example@example.invalid"
+          },
+          {
+            "name": "Gray Example",
+            "contactID": 9307,
+            "email": "gray.example@example.invalid"
+          },
+          {
+            "name": "Harper Example",
+            "contactID": 9308,
+            "email": "harper.example@example.invalid"
+          },
+          {
+            "name": "Indigo Example",
+            "contactID": 9309,
+            "email": "indigo.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9504,
+        "name": "Example Lane",
+        "streetNumber": "104",
+        "streetName": "Example Ln",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9404,
+        "owners": [
+          {
+            "name": "Taylor Example"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9204,
+        "rent": "1450.00",
+        "beds": 1,
+        "fullBaths": 1,
+        "halfBaths": 0,
+        "size": 1100,
+        "postalCode": "00104"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9105,
+        "startDate": "2026-01-01",
+        "endDate": "2026-12-31",
+        "leaseType": "Fixed Term",
+        "leaseStatusID": 2,
+        "tenants": [
+          {
+            "name": "Jules Example",
+            "contactID": 9310,
+            "email": "jules.example@example.invalid"
+          },
+          {
+            "name": "Kai Example",
+            "contactID": 9311,
+            "email": "kai.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9505,
+        "name": "Sample Way",
+        "streetNumber": "105",
+        "streetName": "Sample Way",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9405,
+        "owners": [
+          {
+            "name": "Alex Sample",
+            "email": "alex.sample@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9205,
+        "rent": "1800.00",
+        "beds": 2,
+        "fullBaths": 2,
+        "halfBaths": 0,
+        "size": 1200,
+        "postalCode": "00105"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9106,
+        "startDate": "2025-11-02",
+        "endDate": "2026-11-01",
+        "leaseType": "Fixed Term",
+        "leaseStatusID": 2,
+        "tenants": [
+          {
+            "name": "Logan Example",
+            "contactID": 9312,
+            "email": "logan.example@example.invalid"
+          },
+          {
+            "name": "Morgan Example",
+            "contactID": 9313,
+            "email": "morgan.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9506,
+        "name": "Example Court",
+        "streetNumber": "106",
+        "streetName": "Example Ct",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9406,
+        "owners": [
+          {
+            "name": "Jamie Example",
+            "email": "jamie.example@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9206,
+        "rent": "1200.00",
+        "beds": 3,
+        "fullBaths": 1,
+        "halfBaths": 1,
+        "size": 1300,
+        "postalCode": "00106"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9107,
+        "startDate": "2025-11-03",
+        "endDate": "2026-11-02",
+        "leaseType": "Fixed Term",
+        "leaseStatusID": 2,
+        "tenants": [
+          {
+            "name": "Noel Example",
+            "contactID": 9314,
+            "email": "noel.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9507,
+        "name": "Sample Place",
+        "streetNumber": "107",
+        "streetName": "Sample Pl",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9407,
+        "owners": [
+          {
+            "name": "Robin Sample",
+            "email": "robin.sample@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9207,
+        "rent": "1550.00",
+        "beds": 4,
+        "fullBaths": 2,
+        "halfBaths": 0,
+        "size": 1400,
+        "postalCode": "00107"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9108,
+        "startDate": "2025-11-04",
+        "endDate": "2026-11-03",
+        "leaseType": "Fixed Term",
+        "leaseStatusID": 2,
+        "tenants": [
+          {
+            "name": "Oakley Example",
+            "contactID": 9315,
+            "email": "oakley.example@example.invalid"
+          },
+          {
+            "name": "Parker Example",
+            "contactID": 9316,
+            "email": "parker.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9508,
+        "name": "Example Avenue",
+        "streetNumber": "108",
+        "streetName": "Example Ave",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9408,
+        "owners": [
+          {
+            "name": "Drew Example",
+            "email": "drew.example@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9208,
+        "rent": "1900.00",
+        "beds": 1,
+        "fullBaths": 1,
+        "halfBaths": 0,
+        "size": 1500,
+        "postalCode": "00108"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9109,
+        "startDate": "2025-11-05",
+        "endDate": "2026-11-04",
+        "leaseType": "Fixed Term",
+        "leaseStatusID": 2,
+        "tenants": [
+          {
+            "name": "Quinn Example",
+            "contactID": 9317,
+            "email": "quinn.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9509,
+        "name": "Sample Street",
+        "streetNumber": "109",
+        "streetName": "Sample St",
+        "address2": "Unit 2",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9409,
+        "owners": [
+          {
+            "name": "Corey Sample",
+            "email": "corey.sample@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9209,
+        "rent": "1300.00",
+        "beds": 2,
+        "fullBaths": 2,
+        "halfBaths": 1,
+        "size": 700,
+        "postalCode": "00109"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9110,
+        "startDate": "2026-02-01",
+        "endDate": "2027-01-31",
+        "leaseType": "Fixed Term",
+        "leaseStatusID": 2,
+        "tenants": [
+          {
+            "name": "Reese Example",
+            "contactID": 9318,
+            "email": "reese.example@example.invalid"
+          },
+          {
+            "name": "Sage Example",
+            "contactID": 9319,
+            "email": "sage.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9510,
+        "name": "Example Lane",
+        "streetNumber": "110",
+        "streetName": "Example Ln",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9401,
+        "owners": [
+          {
+            "name": "Jordan Sample",
+            "email": "jordan.sample@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9210,
+        "rent": "1650.00",
+        "beds": 3,
+        "fullBaths": 1,
+        "halfBaths": 0,
+        "size": 800,
+        "postalCode": "00110"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9111,
+        "startDate": "2026-02-01",
+        "endDate": "2027-01-31",
+        "leaseType": "Fixed Term",
+        "leaseStatusID": 2,
+        "tenants": [
+          {
+            "name": "Tatum Example",
+            "contactID": 9320,
+            "email": "tatum.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9511,
+        "name": "Sample Way",
+        "streetNumber": "111",
+        "streetName": "Sample Way",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9411,
+        "owners": [
+          {
+            "name": "Dana Example",
+            "email": "dana.example@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9211,
+        "rent": "1050.00",
+        "beds": 4,
+        "fullBaths": 2,
+        "halfBaths": 0,
+        "size": 900,
+        "postalCode": "00111"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9112,
+        "startDate": "2026-02-01",
+        "endDate": "2027-01-31",
+        "leaseType": "Fixed Term",
+        "leaseStatusID": 2,
+        "tenants": [
+          {
+            "name": "Umber Example",
+            "contactID": 9321,
+            "email": "umber.example@example.invalid"
+          },
+          {
+            "name": "Vale Example",
+            "contactID": 9322,
+            "email": "vale.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9512,
+        "name": "Example Court",
+        "streetNumber": "112",
+        "streetName": "Example Ct",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9412,
+        "owners": [
+          {
+            "name": "Elliot Sample",
+            "email": "elliot.sample@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9212,
+        "rent": "1400.00",
+        "beds": 1,
+        "fullBaths": 1,
+        "halfBaths": 1,
+        "size": 1000,
+        "postalCode": "00112"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9113,
+        "startDate": "2026-02-01",
+        "endDate": "2027-01-31",
+        "leaseStatusID": 2,
+        "tags": "Housing choice voucher",
+        "tenants": [
+          {
+            "name": "Wren Example",
+            "contactID": 9323,
+            "email": "wren.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9513,
+        "name": "Sample Place",
+        "streetNumber": "113",
+        "streetName": "Sample Pl",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9413,
+        "owners": [
+          {
+            "name": "Frankie Example",
+            "email": "frankie.example@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9213,
+        "rent": "1750.00",
+        "beds": 2,
+        "fullBaths": 2,
+        "halfBaths": 0,
+        "size": 1100,
+        "postalCode": "00113"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9114,
+        "startDate": "2026-02-01",
+        "endDate": "2027-01-31",
+        "leaseType": "Fixed Term",
+        "leaseStatusID": 2,
+        "tenants": [
+          {
+            "name": "Xan Example",
+            "contactID": 9324,
+            "email": "xan.example@example.invalid"
+          },
+          {
+            "name": "Yael Example",
+            "contactID": 9325,
+            "email": "yael.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9514,
+        "name": "Example Avenue",
+        "streetNumber": "114",
+        "streetName": "Example Ave",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9414,
+        "owners": [
+          {
+            "name": "Gabe Sample",
+            "email": "gabe.sample@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9214,
+        "rent": "1150.00",
+        "beds": 3,
+        "fullBaths": 1,
+        "halfBaths": 0,
+        "size": 1200,
+        "postalCode": "00114"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9115,
+        "startDate": "2026-02-01",
+        "endDate": "2027-01-31",
+        "leaseType": "Fixed Term",
+        "leaseStatusID": 2,
+        "tenants": [
+          {
+            "name": "Zion Example",
+            "contactID": 9326,
+            "email": "zion.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9515,
+        "name": "Sample Street",
+        "streetNumber": "115",
+        "streetName": "Sample St",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9415,
+        "owners": [
+          {
+            "name": "Hollis Example",
+            "email": "hollis.example@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9215,
+        "rent": "1500.00",
+        "beds": 4,
+        "fullBaths": 2,
+        "halfBaths": 1,
+        "size": 1300,
+        "postalCode": "00115"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9116,
+        "startDate": "2026-02-01",
+        "endDate": "2027-01-31",
+        "leaseType": "Fixed Term",
+        "leaseStatusID": 2,
+        "tenants": [
+          {
+            "name": "Arden Example",
+            "contactID": 9327,
+            "email": "arden.example@example.invalid"
+          },
+          {
+            "name": "Briar Example",
+            "contactID": 9328,
+            "email": "briar.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9516,
+        "name": "Example Lane",
+        "streetNumber": "116",
+        "streetName": "Example Ln",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9416,
+        "owners": [
+          {
+            "name": "Ivory Sample",
+            "email": "ivory.sample@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9216,
+        "rent": "1850.00",
+        "beds": 1,
+        "fullBaths": 1,
+        "halfBaths": 0,
+        "size": 1400,
+        "postalCode": "00116"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9117,
+        "startDate": "2026-03-01",
+        "endDate": "2027-02-28",
+        "leaseType": "Fixed Term",
+        "leaseStatusID": 2,
+        "tenants": [
+          {
+            "name": "Cedar Example",
+            "contactID": 9329,
+            "email": "cedar.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9517,
+        "name": "Sample Way",
+        "streetNumber": "117",
+        "streetName": "Sample Way",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9417,
+        "owners": [
+          {
+            "name": "Jessie Example",
+            "email": "jessie.example@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9217,
+        "rent": "1250.00",
+        "beds": 2,
+        "fullBaths": 2,
+        "halfBaths": 0,
+        "size": 1500,
+        "postalCode": "00117"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9118,
+        "startDate": "2026-03-01",
+        "endDate": "2027-02-28",
+        "leaseType": "Fixed Term",
+        "leaseStatusID": 2,
+        "tenants": [
+          {
+            "name": "Dale Example",
+            "contactID": 9330,
+            "email": "dale.example@example.invalid"
+          },
+          {
+            "name": "Ellis Example",
+            "contactID": 9331,
+            "email": "ellis.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9518,
+        "name": "Example Court",
+        "streetNumber": "118",
+        "streetName": "Example Ct",
+        "address2": "Unit 2",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9418,
+        "owners": [
+          {
+            "name": "Kerry Sample",
+            "email": "kerry.sample@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9218,
+        "rent": "1600.00",
+        "beds": 3,
+        "fullBaths": 1,
+        "halfBaths": 1,
+        "size": 700,
+        "postalCode": "00118"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9119,
+        "startDate": "2026-03-01",
+        "endDate": "2027-02-28",
+        "leaseType": "Fixed Term",
+        "leaseStatusID": 2,
+        "tenants": [
+          {
+            "name": "Fern Example",
+            "contactID": 9332,
+            "email": "fern.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9519,
+        "name": "Sample Place",
+        "streetNumber": "119",
+        "streetName": "Sample Pl",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9419,
+        "owners": [
+          {
+            "name": "Lee Example",
+            "email": "lee.example@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9219,
+        "rent": "1000.00",
+        "beds": 4,
+        "fullBaths": 2,
+        "halfBaths": 0,
+        "size": 800,
+        "postalCode": "00119"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9120,
+        "startDate": "2026-03-01",
+        "endDate": "2027-02-28",
+        "leaseType": "Fixed Term",
+        "leaseStatusID": 2,
+        "tenants": [
+          {
+            "name": "Glenn Example",
+            "contactID": 9333,
+            "email": "glenn.example@example.invalid"
+          },
+          {
+            "name": "Haven Example",
+            "contactID": 9334,
+            "email": "haven.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9520,
+        "name": "Example Avenue",
+        "streetNumber": "120",
+        "streetName": "Example Ave",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9420,
+        "owners": [
+          {
+            "name": "Marty Sample",
+            "email": "marty.sample@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9220,
+        "rent": "1350.00",
+        "beds": 1,
+        "fullBaths": 1,
+        "halfBaths": 0,
+        "size": 900,
+        "postalCode": "00120"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9121,
+        "startDate": "2026-03-01",
+        "endDate": "2027-02-28",
+        "leaseType": "Fixed Term",
+        "leaseStatusID": 2,
+        "tenants": [
+          {
+            "name": "Ira Example",
+            "contactID": 9335,
+            "email": "ira.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9521,
+        "name": "Sample Street",
+        "streetNumber": "121",
+        "streetName": "Sample St",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9421,
+        "owners": [
+          {
+            "name": "Nat Example",
+            "email": "nat.example@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9221,
+        "rent": "1700.00",
+        "beds": 2,
+        "fullBaths": 2,
+        "halfBaths": 1,
+        "size": 1000,
+        "postalCode": "00121"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9122,
+        "startDate": "2025-11-03",
+        "endDate": "2026-11-02",
+        "leaseType": "Fixed Term",
+        "leaseStatusID": 3,
+        "tenants": [
+          {
+            "name": "Jade Example",
+            "contactID": 9336,
+            "email": "jade.example@example.invalid"
+          },
+          {
+            "name": "Kit Example",
+            "contactID": 9337,
+            "email": "kit.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9522,
+        "name": "Example Lane",
+        "streetNumber": "122",
+        "streetName": "Example Ln",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9422,
+        "owners": [
+          {
+            "name": "Ollie Sample",
+            "email": "ollie.sample@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9222,
+        "rent": "1100.00",
+        "beds": 3,
+        "fullBaths": 1,
+        "halfBaths": 0,
+        "size": 1100,
+        "postalCode": "00122"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9123,
+        "startDate": "2025-11-05",
+        "endDate": "2026-11-04",
+        "leaseType": "Fixed Term",
+        "leaseStatusID": 3,
+        "tenants": [
+          {
+            "name": "Lane Example",
+            "contactID": 9338,
+            "email": "lane.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9523,
+        "name": "Sample Way",
+        "streetNumber": "123",
+        "streetName": "Sample Way",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9423,
+        "owners": [
+          {
+            "name": "Pat Example",
+            "email": "pat.example@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9223,
+        "rent": "1450.00",
+        "beds": 4,
+        "fullBaths": 2,
+        "halfBaths": 0,
+        "size": 1200,
+        "postalCode": "00123"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9124,
+        "startDate": "2025-12-01",
+        "endDate": "2026-11-30",
+        "leaseType": "Fixed Term",
+        "leaseStatusID": 3,
+        "tenants": [
+          {
+            "name": "Marlow Example",
+            "contactID": 9339,
+            "email": "marlow.example@example.invalid"
+          },
+          {
+            "name": "Nico Example",
+            "contactID": 9340,
+            "email": "nico.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9524,
+        "name": "Example Court",
+        "streetNumber": "124",
+        "streetName": "Example Ct",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9424,
+        "owners": [
+          {
+            "name": "Ray Sample",
+            "email": "ray.sample@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9224,
+        "rent": "1800.00",
+        "beds": 1,
+        "fullBaths": 1,
+        "halfBaths": 1,
+        "size": 1300,
+        "postalCode": "00124"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9125,
+        "startDate": "2026-01-01",
+        "endDate": "2026-12-31",
+        "leaseType": "Fixed Term",
+        "leaseStatusID": 3,
+        "tenants": [
+          {
+            "name": "Onyx Example",
+            "contactID": 9341,
+            "email": "onyx.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9525,
+        "name": "Sample Place",
+        "streetNumber": "125",
+        "streetName": "Sample Pl",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9425,
+        "owners": [
+          {
+            "name": "Shay Example",
+            "email": "shay.example@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9225,
+        "rent": "1200.00",
+        "beds": 2,
+        "fullBaths": 2,
+        "halfBaths": 0,
+        "size": 1400,
+        "postalCode": "00125"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9126,
+        "startDate": "2026-01-01",
+        "endDate": "2026-12-31",
+        "leaseType": "Fixed Term",
+        "leaseStatusID": 3,
+        "tenants": [
+          {
+            "name": "Pax Example",
+            "contactID": 9342,
+            "email": "pax.example@example.invalid"
+          },
+          {
+            "name": "Remy Example",
+            "contactID": 9343,
+            "email": "remy.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9526,
+        "name": "Example Avenue",
+        "streetNumber": "126",
+        "streetName": "Example Ave",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9401,
+        "owners": [
+          {
+            "name": "Jordan Sample",
+            "email": "jordan.sample@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9226,
+        "rent": "1550.00",
+        "beds": 3,
+        "fullBaths": 1,
+        "halfBaths": 0,
+        "size": 1500,
+        "postalCode": "00126"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9127,
+        "startDate": "2026-01-01",
+        "endDate": "2026-12-31",
+        "leaseType": "Fixed Term",
+        "leaseStatusID": 3,
+        "tenants": [
+          {
+            "name": "Sky Example",
+            "contactID": 9344,
+            "email": "sky.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9527,
+        "name": "Sample Street",
+        "streetNumber": "127",
+        "streetName": "Sample St",
+        "address2": "Unit 2",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9427,
+        "owners": [
+          {
+            "name": "Toby Sample",
+            "email": "toby.sample@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9227,
+        "rent": "1900.00",
+        "beds": 4,
+        "fullBaths": 2,
+        "halfBaths": 1,
+        "size": 700,
+        "postalCode": "00127"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9128,
+        "startDate": "2026-01-01",
+        "endDate": "2026-12-31",
+        "leaseType": "Fixed Term",
+        "leaseStatusID": 3,
+        "tenants": [
+          {
+            "name": "Teal Example",
+            "contactID": 9345,
+            "email": "teal.example@example.invalid"
+          },
+          {
+            "name": "Uri Example",
+            "contactID": 9346,
+            "email": "uri.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9528,
+        "name": "Example Lane",
+        "streetNumber": "128",
+        "streetName": "Example Ln",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9428,
+        "owners": [
+          {
+            "name": "Ula Example",
+            "email": "ula.example@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9228,
+        "rent": "1300.00",
+        "beds": 1,
+        "fullBaths": 1,
+        "halfBaths": 0,
+        "size": 800,
+        "postalCode": "00128"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9129,
+        "startDate": "2026-02-01",
+        "endDate": "2027-01-31",
+        "leaseType": "Fixed Term",
+        "leaseStatusID": 3,
+        "tenants": [
+          {
+            "name": "Vesper Example",
+            "contactID": 9347,
+            "email": "vesper.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9529,
+        "name": "Sample Way",
+        "streetNumber": "129",
+        "streetName": "Sample Way",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9429,
+        "owners": [
+          {
+            "name": "Vic Sample",
+            "email": "vic.sample@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9229,
+        "rent": "1650.00",
+        "beds": 2,
+        "fullBaths": 2,
+        "halfBaths": 0,
+        "size": 900,
+        "postalCode": "00129"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9130,
+        "startDate": "2026-02-01",
+        "endDate": "2027-01-31",
+        "leaseType": "Fixed Term",
+        "leaseStatusID": 3,
+        "tenants": [
+          {
+            "name": "Wynn Example",
+            "contactID": 9348,
+            "email": "wynn.example@example.invalid"
+          },
+          {
+            "name": "Yarrow Example",
+            "contactID": 9349,
+            "email": "yarrow.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9530,
+        "name": "Example Court",
+        "streetNumber": "130",
+        "streetName": "Example Ct",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9430,
+        "owners": [
+          {
+            "name": "Wes Example",
+            "email": "wes.example@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9230,
+        "rent": "1050.00",
+        "beds": 3,
+        "fullBaths": 1,
+        "halfBaths": 1,
+        "size": 1000,
+        "postalCode": "00130"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9131,
+        "startDate": "2026-02-01",
+        "endDate": "2027-01-31",
+        "leaseType": "Fixed Term",
+        "leaseStatusID": 3,
+        "tenants": [
+          {
+            "name": "Zane Example",
+            "contactID": 9350,
+            "email": "zane.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9531,
+        "name": "Sample Place",
+        "streetNumber": "131",
+        "streetName": "Sample Pl",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9431,
+        "owners": [
+          {
+            "name": "Yuri Sample",
+            "email": "yuri.sample@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9231,
+        "rent": "1400.00",
+        "beds": 4,
+        "fullBaths": 2,
+        "halfBaths": 0,
+        "size": 1100,
+        "postalCode": "00131"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9132,
+        "startDate": "2026-01-01",
+        "endDate": "2027-12-31",
+        "leaseType": "Fixed Term",
+        "leaseStatusID": 2,
+        "tenants": [
+          {
+            "name": "Ash Example",
+            "contactID": 9351,
+            "email": "ash.example@example.invalid"
+          },
+          {
+            "name": "Bay Example",
+            "contactID": 9352,
+            "email": "bay.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9532,
+        "name": "Example Avenue",
+        "streetNumber": "132",
+        "streetName": "Example Ave",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9432,
+        "owners": [
+          {
+            "name": "Zed Example",
+            "email": "zed.example@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9232,
+        "rent": "1750.00",
+        "beds": 1,
+        "fullBaths": 1,
+        "halfBaths": 0,
+        "size": 1200,
+        "postalCode": "00132"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9133,
+        "startDate": "2026-01-01",
+        "endDate": "2027-12-31",
+        "leaseType": "Fixed Term",
+        "leaseStatusID": 2,
+        "tenants": [
+          {
+            "name": "Clove Example",
+            "contactID": 9353,
+            "email": "clove.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9533,
+        "name": "Sample Street",
+        "streetNumber": "133",
+        "streetName": "Sample St",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9433,
+        "owners": [
+          {
+            "name": "Addison Sample",
+            "email": "addison.sample@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9233,
+        "rent": "1150.00",
+        "beds": 2,
+        "fullBaths": 2,
+        "halfBaths": 1,
+        "size": 1300,
+        "postalCode": "00133"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9134,
+        "startDate": "2025-12-01",
+        "endDate": "2027-11-30",
+        "leaseType": "Fixed Term",
+        "leaseStatusID": 2,
+        "tenants": [
+          {
+            "name": "Dove Example",
+            "contactID": 9354,
+            "email": "dove.example@example.invalid"
+          },
+          {
+            "name": "Echo Example",
+            "contactID": 9355,
+            "email": "echo.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9534,
+        "name": "Example Lane",
+        "streetNumber": "134",
+        "streetName": "Example Ln",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9434,
+        "owners": [
+          {
+            "name": "Bailey Example",
+            "email": "bailey.example@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9234,
+        "rent": "1500.00",
+        "beds": 3,
+        "fullBaths": 1,
+        "halfBaths": 0,
+        "size": 1400,
+        "postalCode": "00134"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9135,
+        "startDate": "2024-12-10",
+        "endDate": "2025-12-09",
+        "leaseType": "Month to Month",
+        "leaseStatusID": 2,
+        "isMonthToMonth": "1",
+        "monthToMonthStartDate": "2025-12-10",
+        "tenants": [
+          {
+            "name": "Flint Example",
+            "contactID": 9356,
+            "email": "flint.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9535,
+        "name": "Sample Way",
+        "streetNumber": "135",
+        "streetName": "Sample Way",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9435,
+        "owners": [
+          {
+            "name": "Cameron Sample",
+            "email": "cameron.sample@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9235,
+        "rent": "1850.00",
+        "beds": 4,
+        "fullBaths": 2,
+        "halfBaths": 0,
+        "size": 1500,
+        "postalCode": "00135"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9136,
+        "startDate": "2024-12-15",
+        "endDate": "2025-12-14",
+        "leaseType": "Month to Month",
+        "leaseStatusID": 2,
+        "isMonthToMonth": "1",
+        "monthToMonthStartDate": "2025-12-15",
+        "tenants": [
+          {
+            "name": "Gale Example",
+            "contactID": 9357,
+            "email": "gale.example@example.invalid"
+          },
+          {
+            "name": "Heath Example",
+            "contactID": 9358,
+            "email": "heath.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9536,
+        "name": "Example Court",
+        "streetNumber": "136",
+        "streetName": "Example Ct",
+        "address2": "Unit 2",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9436,
+        "owners": [
+          {
+            "name": "Dakota Example",
+            "email": "dakota.example@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9236,
+        "rent": "1250.00",
+        "beds": 1,
+        "fullBaths": 1,
+        "halfBaths": 1,
+        "size": 700,
+        "postalCode": "00136"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9137,
+        "startDate": "2024-12-20",
+        "endDate": "2025-12-19",
+        "leaseType": "Month to Month",
+        "leaseStatusID": 2,
+        "isMonthToMonth": "1",
+        "monthToMonthStartDate": "2025-12-20",
+        "tenants": [
+          {
+            "name": "Isle Example",
+            "contactID": 9359,
+            "email": "isle.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9537,
+        "name": "Sample Place",
+        "streetNumber": "137",
+        "streetName": "Sample Pl",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9437,
+        "owners": [
+          {
+            "name": "Eden Sample",
+            "email": "eden.sample@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9237,
+        "rent": "1600.00",
+        "beds": 2,
+        "fullBaths": 2,
+        "halfBaths": 0,
+        "size": 800,
+        "postalCode": "00137"
+      }
+    },
+    {
+      "lease": {
+        "leaseID": 9138,
+        "startDate": "2026-01-01",
+        "endDate": "2026-12-31",
+        "leaseType": "Fixed Term",
+        "leaseStatusID": 4,
+        "noticeDate": "2026-10-28",
+        "expectedMoveOutDate": "2026-12-31",
+        "tenants": [
+          {
+            "name": "Juno Example",
+            "contactID": 9360,
+            "email": "juno.example@example.invalid"
+          },
+          {
+            "name": "Koa Example",
+            "contactID": 9361,
+            "email": "koa.example@example.invalid"
+          }
+        ]
+      },
+      "property": {
+        "propertyID": 9538,
+        "name": "Example Avenue",
+        "streetNumber": "138",
+        "streetName": "Example Ave",
+        "city": "Example City",
+        "stateID": "MO"
+      },
+      "portfolio": {
+        "portfolioID": 9438,
+        "owners": [
+          {
+            "name": "Frost Example",
+            "email": "frost.example@example.invalid"
+          }
+        ]
+      },
+      "unit": {
+        "unitID": 9238,
+        "rent": "1000.00",
+        "beds": 3,
+        "fullBaths": 1,
+        "halfBaths": 0,
+        "size": 900,
+        "postalCode": "00138"
+      }
+    }
+  ],
+  "recordedCycles": {
+    "9132": "2026-12-31",
+    "9133": "2026-12-31",
+    "9134": "2026-11-30"
+  },
+  "roles": {
+    "prepared": {
+      "leaseId": 9101,
+      "handoff": "stored comparison, verified owner recipient, signature and approved template; one ordinary pet",
+      "animals": [
+        {
+          "name": "Example Pet One",
+          "kind": "pet"
+        }
+      ]
+    },
+    "covered": {
+      "leaseId": 9102,
+      "handoff": "an active pre-approved standing agreement on its portfolio; two ordinary pets",
+      "animals": [
+        {
+          "name": "Example Pet Two",
+          "kind": "pet"
+        },
+        {
+          "name": "Example Pet Three",
+          "kind": "pet"
+        }
+      ],
+      "standingAgreement": {
+        "name": "Example Standing Agreement",
+        "rule": "Raise the current rent by 3 percent",
+        "percentIncrease": 3
+      }
+    },
+    "assisted": {
+      "leaseId": 9103,
+      "handoff": "Housing assistance set to Yes with a program name; an assistance animal",
+      "animals": [
+        {
+          "name": "Example Assistance Animal",
+          "kind": "assistance_animal"
+        }
+      ],
+      "housingAssistance": {
+        "program": "Example Housing Assistance Office"
+      }
+    },
+    "missingRecipient": {
+      "leaseId": 9104,
+      "handoff": "no verified owner recipient; five tenants",
+      "animals": []
+    },
+    "replied": {
+      "leaseId": 9105,
+      "handoff": "owner message already sent from the app, with an owner reply observed",
+      "animals": [],
+      "ownerReply": {
+        "text": "Example owner reply: please renew at the recommended rent for another twelve months."
+      }
+    }
+  },
+  "sheet": {
+    "rows": [
+      {
+        "leaseId": 9101,
+        "link": {
+          "column": 2,
+          "url": "https://pmikcmetro.rentvine.com/leases/9101"
+        },
+        "cells": [
+          "",
+          "",
+          "Avery Example & Blake Example",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      {
+        "leaseId": 9102,
+        "link": {
+          "column": 2,
+          "url": "https://pmikcmetro.rentvine.com/leases/9102"
+        },
+        "cells": [
+          "no",
+          "no",
+          "Casey Example",
+          "12/31/2026",
+          "$1,700",
+          "",
+          "no",
+          "no",
+          "no",
+          "no",
+          "no",
+          "no policy",
+          "no pet",
+          "no",
+          "no",
+          "no",
+          "n/a",
+          "n/a",
+          "n/a"
+        ]
+      },
+      {
+        "leaseId": 9105,
+        "link": {
+          "column": 2,
+          "url": "https://pmikcmetro.rentvine.com/leases/9105"
+        },
+        "cells": [
+          "no",
+          "no",
+          "Jules Example & Kai Example",
+          "12/31/2026",
+          "$1,750",
+          "",
+          "no",
+          "no",
+          "no",
+          "no",
+          "no",
+          "no policy",
+          "no pet",
+          "no",
+          "no",
+          "no",
+          "n/a",
+          "n/a",
+          "n/a"
+        ]
+      }
+    ]
+  }
+}
