@@ -257,4 +257,33 @@ describe("ConnectorSetupActions", () => {
       ),
     ).toBeVisible();
   });
+
+  it("states in the present tense that a connector has no in-app sign-in (litmus 2026-11-04)", async () => {
+    // The generic connect route answers provider_not_available for an OAuth connector the app
+    // has no sign-in for (QuickBooks today). The result says what is true now, never a roadmap.
+    fetchMock.mockImplementation(async () =>
+      jsonResponse({ connectorId: "quickbooks", status: "provider_not_available" }),
+    );
+    const navigate = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <ConnectorSetupActions
+        connectorId="quickbooks"
+        connectorName="QuickBooks"
+        method="oauth"
+        navigate={navigate}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Connect with QuickBooks" }));
+    const status = await screen.findByText(
+      "The app has no QuickBooks sign-in, so nothing was opened. Nothing was connected.",
+    );
+    expect(status).toBeVisible();
+    expect(status.textContent).not.toMatch(/\b(yet|not built|coming|soon|until)\b/i);
+    expect(navigate).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(String(fetchMock.mock.calls[0][0])).toBe(
+      "/api/connections/quickbooks/connect",
+    );
+  });
 });

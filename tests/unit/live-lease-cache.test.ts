@@ -17,6 +17,7 @@ import {
   refreshLiveLeaseSnapshotFromProvider,
   requireCurrentLeaseViews,
   revalidateStaleLiveLeaseSnapshot,
+  settleLiveLeaseRefresh,
 } from "@/lib/lease-renewal/live-lease-cache";
 import { bindNoticeAdmissionContext } from "@/lib/lease-renewal/notice-source-admission";
 
@@ -477,6 +478,85 @@ describe("revalidateStaleLiveLeaseSnapshot (Dashboard read order)", () => {
     ).toBe(true);
     await flushAsync();
     expect(calls).toBe(3);
+  });
+});
+
+// Litmus 2026-11-04: the Dashboard's Try again answered with the same stale read until the
+// background refresh landed. Its re-read waits, bounded, for the read already in flight.
+describe("settleLiveLeaseRefresh (attention re-read)", () => {
+  const STALE_AT = 1_000 + LEASE_EXPORT_TTL_MS + 1;
+
+  function heldReader(failRefresh = false) {
+    let release: (() => void) | null = null;
+    let calls = 0;
+    const listAllLeasesExport = vi.fn(async (): Promise<LeaseExportReadResult> => {
+      calls += 1;
+      if (calls > 1) {
+        await new Promise<void>((resolve) => (release = resolve));
+        if (failRefresh) throw new Error("provider down");
+      }
+      return { rows: [{ lease: { leaseID: calls } }], pages: 1, complete: true };
+    });
+    return {
+      client: { listAllLeasesExport },
+      listAllLeasesExport,
+      release: () => release?.(),
+    };
+  }
+
+  it("resolves false at once with nothing in flight and starts no read", async () => {
+    const { client, listAllLeasesExport } = reader();
+    await expect(settleLiveLeaseRefresh(1_000)).resolves.toBe(false);
+    await getLiveLeaseSnapshot(client, 1_000);
+    await expect(settleLiveLeaseRefresh(1_000)).resolves.toBe(false);
+    await expect(settleLiveLeaseRefresh(0)).resolves.toBe(false);
+    expect(listAllLeasesExport).toHaveBeenCalledTimes(1);
+  });
+
+  it("waits for the stale revalidation so the next read serves the refreshed generation", async () => {
+    const { client, listAllLeasesExport, release } = heldReader();
+    await getLiveLeaseSnapshot(client, 1_000);
+    expect(revalidateStaleLiveLeaseSnapshot(client, STALE_AT)).toBe(true);
+    // Without the wait the read still serves the stale generation.
+    const before = await getLiveLeaseSnapshot(client, STALE_AT + 1);
+    expect(before.currency.state).toBe("stale");
+    expect(before.snapshot.views[0].leaseID).toBe(1);
+
+    const settled = settleLiveLeaseRefresh(5_000);
+    await flushAsync();
+    release();
+    await expect(settled).resolves.toBe(true);
+    const after = await getLiveLeaseSnapshot(client, STALE_AT + 10);
+    expect(after.currency.state).toBe("fresh");
+    expect(after.snapshot.views[0].leaseID).toBe(2);
+    expect(listAllLeasesExport).toHaveBeenCalledTimes(2);
+  });
+
+  it("stops waiting at its bound and leaves the read in flight", async () => {
+    const { client, listAllLeasesExport, release } = heldReader();
+    await getLiveLeaseSnapshot(client, 1_000);
+    expect(revalidateStaleLiveLeaseSnapshot(client, STALE_AT)).toBe(true);
+    await expect(settleLiveLeaseRefresh(20)).resolves.toBe(false);
+    const served = await getLiveLeaseSnapshot(client, STALE_AT + 30);
+    expect(served.currency.refreshing).toBe(true);
+    expect(served.currency.state).toBe("stale");
+    expect(listAllLeasesExport).toHaveBeenCalledTimes(2);
+    release();
+    await flushAsync();
+  });
+
+  it("settles on a failed refresh without throwing, and the source stays honestly stale", async () => {
+    const { client, release } = heldReader(true);
+    await getLiveLeaseSnapshot(client, 1_000);
+    expect(revalidateStaleLiveLeaseSnapshot(client, STALE_AT)).toBe(true);
+    const settled = settleLiveLeaseRefresh(5_000);
+    await flushAsync();
+    release();
+    await expect(settled).resolves.toBe(true);
+    const after = await getLiveLeaseSnapshot(client, STALE_AT + 10);
+    expect(after.currency.state).toBe("stale");
+    expect(after.currency.lastError).toBe(true);
+    expect(after.snapshot.views[0].leaseID).toBe(1);
   });
 });
 

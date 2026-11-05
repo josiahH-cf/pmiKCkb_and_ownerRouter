@@ -118,7 +118,9 @@ function ConnectorOAuthSetup({
           `The ${connectorName} application configuration is incomplete. Nothing was opened.`,
         );
       } else if (body?.status === "provider_not_available") {
-        setMessage("This connector's sign-in isn't available yet.");
+        setMessage(
+          `The app has no ${connectorName} sign-in, so nothing was opened. Nothing was connected.`,
+        );
       } else if (!response.ok) {
         setMessage(body?.error ?? "That did not go through. Please try again.");
       } else if (

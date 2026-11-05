@@ -4590,10 +4590,20 @@ label.secondary-button:focus-within {
     page-break-inside: avoid;
   }
 
+  /* A heading never ends a printed page: Steps, Result, Controls and the other section headings
+     move to the next page with the step or text they introduce. */
   .help-step-title,
   .help-guide-header h1,
   .help-guide-header h2,
-  .help-print-section-title {
+  .help-print-section-title,
+  .help-body h1,
+  .help-body h2,
+  .help-body h3,
+  .help-body h4,
+  .help-print-manual h1,
+  .help-print-manual h2,
+  .help-print-manual h3,
+  .help-print-manual h4 {
     break-after: avoid;
     page-break-after: avoid;
   }

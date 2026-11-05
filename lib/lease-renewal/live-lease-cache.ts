@@ -310,6 +310,32 @@ export function revalidateStaleLiveLeaseSnapshot(
   return true;
 }
 
+/**
+ * Wait at most `maxWaitMs` for the lease read already in flight, such as the revalidation above, and
+ * report whether it settled (successfully or not). It starts no read, never throws and changes no
+ * cache state; with nothing in flight it resolves false at once. A person's explicit retry on a
+ * display-only surface uses it so its next read sees the refreshed generation instead of the same
+ * stale one it just showed.
+ */
+export async function settleLiveLeaseRefresh(maxWaitMs: number): Promise<boolean> {
+  const pending = inflight;
+  if (!pending || !Number.isFinite(maxWaitMs) || maxWaitMs <= 0) return false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      pending.then(
+        () => true,
+        () => true,
+      ),
+      new Promise<boolean>((resolve) => {
+        timer = setTimeout(() => resolve(false), maxWaitMs);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** The cached live read (views + completeness). Kept for callers that need no currency detail. */
 export interface LiveLeaseRead {
   views: RawLease[];

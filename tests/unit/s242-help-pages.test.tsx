@@ -256,6 +256,50 @@ describe("S242 BEH-S242-4 / AC-S242-6: print", () => {
     );
   });
 
+  // Litmus 2026-11-04: a printed guide could end a page with the "Steps" heading alone when the
+  // first step (kept whole) moved to the next page. Every help heading now keeps the break away
+  // from its own end, on a guide page and in the whole manual.
+  it("keeps every printed help heading with the content it introduces", () => {
+    const css = readFileSync(join(process.cwd(), "app/globals.css"), "utf8");
+    const opening = "@media print {";
+    const start = css.lastIndexOf(opening);
+    let depth = 0;
+    let end = -1;
+    for (let index = start; index < css.length && end < 0; index += 1) {
+      if (css[index] === "{") depth += 1;
+      if (css[index] === "}" && --depth === 0) end = index;
+    }
+    const print = css.slice(start + opening.length, end).replace(/\/\*[\s\S]*?\*\//g, "");
+    const keepWithNext = [...print.matchAll(/([^{}]+)\{([^}]*)\}/g)]
+      .filter(([, , body]) => /(^|;)\s*break-after:\s*avoid\s*;/.test(body))
+      .flatMap(([, selectors]) => selectors.split(","))
+      .map((selector) => selector.trim())
+      .filter(Boolean);
+    expect(keepWithNext.length).toBeGreaterThan(0);
+
+    const unguarded = (root: ParentNode) =>
+      [...root.querySelectorAll("h1, h2, h3, h4")]
+        .filter((heading) => !keepWithNext.some((selector) => heading.matches(selector)))
+        .map((heading) => `${heading.tagName} ${heading.textContent}`);
+
+    const manual = render(<HelpWholeManual servingCommit={COMMIT} />);
+    const manualHeadings = manual.container.querySelectorAll("h1, h2, h3, h4");
+    expect([...manualHeadings].some((heading) => heading.textContent === "Steps")).toBe(
+      true,
+    );
+    expect(unguarded(manual.container)).toEqual([]);
+    cleanup();
+
+    const guide = HELP_GUIDES[0];
+    const page = render(
+      <div className="help-body">
+        <HelpGuidePage guide={guide} servingCommit={COMMIT} />
+      </div>,
+    );
+    expect(screen.getByRole("heading", { level: 2, name: "Steps" })).toBeVisible();
+    expect(unguarded(page.container)).toEqual([]);
+  });
+
   it("the whole manual renders every guide, reference and the glossary in contents order", () => {
     const { container } = render(<HelpWholeManual servingCommit={COMMIT} />);
     const titles = [...container.querySelectorAll(".help-guide h2")].map(

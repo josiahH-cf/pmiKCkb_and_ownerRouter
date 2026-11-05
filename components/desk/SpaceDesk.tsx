@@ -19,6 +19,7 @@ import {
 } from "@/components/ui";
 import { SpaceDeskRunPanel } from "@/components/desk/SpaceDeskRunPanel";
 import { classifyConnector } from "@/lib/connections/connection-status";
+import { workflowRunNextAction } from "@/lib/processes/run-next-action";
 import { SPACE_CARD_STATE_LABEL } from "@/lib/space-card-state";
 import type { ConnectorDef } from "@/lib/connections/connector-catalog";
 import type {
@@ -104,7 +105,9 @@ export function SpaceDesk({
   });
   const currentIndex = firstOpen === -1 ? steps.length : firstOpen;
 
-  const nextAction = run ? run.next_action : "Start a run to begin the checklist.";
+  const nextAction = run
+    ? workflowRunNextAction(run, { steps: definition.steps, checks: stepChecks })
+    : "Start a run to begin the checklist.";
 
   return (
     <div className="ui-stack">

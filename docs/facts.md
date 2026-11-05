@@ -882,6 +882,19 @@ and their serving truth stays in the ledger above (F-S114 through F-S120). Ownin
   review is the next yearly anniversary of its month-to-month start date on or after the current
   month (2026-09-06 correction), not a fixed start date plus twelve months, which left long-running
   leases with a past date forever. Default kept unless the owner wants a different cadence.
+- **Confirm-with-default: the closed Dotloop key label (S34, from the S245 litmus).** Loop creation
+  and Document upload readiness read "Exact-key activation remains a separate authority hold" for
+  a closed key, and the documents guide quotes it. AC-S34-11 requires that hold label. Proposed:
+  amend R-S34-11/AC-S34-11 to "Exact action closed, so the app does not run it", with help V1.2
+  quoting it. Default kept: the current label.
+- **Confirm-with-default: three About panels on no route (S115, from the S245 litmus).** The
+  `owner-decision`, `tenant-offer` and `renewal-notice-draft` cards render only without staff
+  record state, which the live lease page never passes; the retired S115 About-control check in
+  `tests/unit/s115-section-help.test.tsx` pins them and help V1.1 lists them. Proposed: retire the
+  three ids, amend that check and drop their help V1.2 rows. Default kept.
+- **Confirm-with-default: the QuickBooks Connect button.** The app has no QuickBooks sign-in, and
+  the button's result now says so. Proposed: show QuickBooks without a Connect button, under the
+  voice rule that removes dead controls. Default kept: the button stays.
 - **Authorized sign-in domains.** The accepted S113 release replaced only its exact superseded
   candidate entry and read back the required origins under existing standing authority. Canonical
   authentication and the other configured domains were preserved; no broad pruning is authorized.
