@@ -122,12 +122,20 @@ describe("S166 durable account worklist view (emulator)", () => {
     try {
       const stored = await getRenewalDeskPreference({ ...pat }, getFirestore(second));
       expect(stored?.view).toBe(SAVED);
+      // S246 ARCH-S246-3: the ordinary entry opens the working batch and offers this view; the
+      // link that names it opens it exactly as saved.
       const entry = resolveRenewalDeskEntry({
         searchParams: {},
         storedView: stored?.view,
       });
-      expect(entry.source).toBe("saved");
-      expect(serializeRenewalDeskQueryV2(entry.state)).toBe(SAVED);
+      expect(entry.surface).toBe("batch");
+      expect(entry.savedView).toBe(SAVED);
+      const opened = resolveRenewalDeskEntry({
+        searchParams: new URLSearchParams(SAVED),
+        storedView: stored?.view,
+      });
+      expect(opened.source).toBe("saved");
+      expect(serializeRenewalDeskQueryV2(opened.state)).toBe(SAVED);
     } finally {
       await deleteApp(second);
     }
