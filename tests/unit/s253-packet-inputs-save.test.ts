@@ -5,6 +5,7 @@ import {
   OWNER_EXPLANATION_FACT,
   OWNER_EXPLANATION_MAX_LENGTH,
 } from "@/lib/lease-documents/owner-explanation";
+import { PET_FEE_CHARGE_ID } from "@/lib/lease-documents/pet-agreement-facts";
 import {
   PacketAnimalInputSchema,
   PacketInputsRecordSchema,
@@ -349,6 +350,60 @@ describe("S253 R-S253-7: the owner explanation is saved as staff typed it", () =
       revision: 2,
       cycleId: "c0000000-0000-4000-8000-000000000002",
     });
+  });
+});
+
+describe("S253 R-S253-5: the processing fee takes no per-lease override", () => {
+  const override = (chargeId: string) => ({
+    chargeId,
+    amountCents: 2_500,
+    reason: "Synthetic override reason",
+  });
+  const body = (chargeId: string) => ({
+    leaseId: "701",
+    operationId: op(4),
+    chargeOverrides: { expectedRevision: 0, entries: [override(chargeId)] },
+  });
+
+  it("refuses an override that names the pet processing fee, and says where the fee changes", () => {
+    const parsed = SavePacketInputsSchema.safeParse(body(PET_FEE_CHARGE_ID));
+    expect(parsed.success).toBe(false);
+    expect(parsed.error?.issues.map((issue) => issue.message)).toEqual([
+      "The pet processing fee is the published amount. An Admin changes it in the charge policy.",
+    ]);
+    // Outer spaces are trimmed before the name is read, so a padded name is refused too.
+    expect(SavePacketInputsSchema.safeParse(body(` ${PET_FEE_CHARGE_ID} `)).success).toBe(
+      false,
+    );
+    expect(() =>
+      save(
+        null,
+        {
+          chargeOverrides: {
+            expectedRevision: 0,
+            entries: [override(PET_FEE_CHARGE_ID)],
+          },
+        },
+        meta(40),
+      ),
+    ).toThrow();
+  });
+
+  it("still saves a deposit override with its reason", () => {
+    const chargeId = `animal:${ANIMAL}:refundable_deposit`;
+    expect(SavePacketInputsSchema.safeParse(body(chargeId)).success).toBe(true);
+    const { record } = save(
+      null,
+      { chargeOverrides: { expectedRevision: 0, entries: [override(chargeId)] } },
+      meta(41),
+    );
+    expect(record.chargeOverrides.entries).toEqual([
+      {
+        ...override(chargeId),
+        recordedAt: meta(41).nowIso,
+        recordedByUid: "editor-a",
+      },
+    ]);
   });
 });
 

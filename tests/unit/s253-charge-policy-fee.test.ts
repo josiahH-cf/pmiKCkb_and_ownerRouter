@@ -2,9 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
 import {
+  CHARGE_OVERRIDE_SOURCE_SYSTEM,
+  CHARGE_POLICY_SOURCE_SYSTEM,
   ChargePolicyContentSchema,
   PET_AGREEMENT_DEPOSIT_FACT,
   PET_AGREEMENT_TOTAL_FACT,
+  PET_FEE_CHARGE_ID,
   PET_PROCESSING_FEE_FACT,
   PublishChargePolicyInputSchema,
   calculateRenewalCharges,
@@ -241,6 +244,66 @@ describe("S253 total equals fee plus deposit, exact to the cent (R-S253-3, R-S25
     ]);
     expect(economicsHash(base)).not.toBe(economicsHash(otherDeposit));
     expect(economicsHash(base)).not.toBe(economicsHash(otherFee));
+  });
+
+  it("states the published fee on the charge, the facts and the total when a stored override names the fee", () => {
+    // R-S253-5: the fee is the published amount wherever it is stated. A per-lease override that
+    // names it changes nothing, so the approved economics and the prepared agreement agree.
+    const pet = animal(1, { deposit: deposit(10_000) });
+    const stored = (chargeId: string, amountCents: number) => ({
+      chargeId,
+      amountCents,
+      reason: "Synthetic override reason",
+      recordedAt: "2026-11-05T16:30:00.000Z",
+      recordedByUid: "editor-synthetic",
+    });
+    const withOverride = (overrides: ReturnType<typeof stored>[]) =>
+      calculateRenewalCharges({
+        leaseId: "701",
+        policy: policy(feeOnly()),
+        facts: NOT_ENROLLED,
+        animals: [pet],
+        overrides,
+      });
+    const calculated = withOverride([stored(PET_FEE_CHARGE_ID, 2_500)]);
+    expect(
+      calculated.charges.find((charge) => charge.chargeId === PET_FEE_CHARGE_ID),
+    ).toMatchObject({
+      applicable: true,
+      amountCents: 5_000,
+      source: { system: CHARGE_POLICY_SOURCE_SYSTEM },
+    });
+    expect(calculated.totals.one_time).toBe(5_000);
+    expect(calculated.petAgreement).toMatchObject({
+      feeCents: 5_000,
+      depositCents: 10_000,
+      totalCents: 15_000,
+    });
+    const fact = (key: string) =>
+      calculated.facts.find((entry) => entry.fieldKey === key)?.normalizedValue;
+    expect(fact(PET_PROCESSING_FEE_FACT)).toBe(50);
+    expect(fact(PET_AGREEMENT_TOTAL_FACT)).toBe(150);
+    expect(fact("charges.one_time_total")).toBe(50);
+    expect(economicsHash(calculated)).toBe(economicsHash(withOverride([])));
+
+    // The deposit keeps its override with a reason: the charge, the blank and the total follow it.
+    const depositOverride = withOverride([
+      stored(PET_FEE_CHARGE_ID, 2_500),
+      stored(`animal:${ANIMAL(1)}:refundable_deposit`, 20_000),
+    ]);
+    expect(depositOverride.petAgreement).toMatchObject({
+      feeCents: 5_000,
+      depositCents: 20_000,
+      totalCents: 25_000,
+    });
+    expect(
+      depositOverride.charges.find(
+        (charge) => charge.chargeId === `animal:${ANIMAL(1)}:refundable_deposit`,
+      ),
+    ).toMatchObject({
+      amountCents: 20_000,
+      source: { system: CHARGE_OVERRIDE_SOURCE_SYSTEM },
+    });
   });
 });
 

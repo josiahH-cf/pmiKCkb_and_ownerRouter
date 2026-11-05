@@ -44,6 +44,7 @@ import {
   OWNER_EXPLANATION_NEED,
   OWNER_EXPLANATION_TERMS_CHANGED,
 } from "@/lib/lease-documents/owner-explanation";
+import { normalizeParagraphText } from "@/lib/lease-documents/paragraph-text";
 import type { RenewalPacketSnapshot } from "@/lib/lease-documents/packet-types";
 import { formatBusinessTimestamp } from "@/lib/date-display";
 
@@ -1444,16 +1445,33 @@ function OwnerAcknowledgmentSection({
   const saved = explanation?.text ?? "";
   const revision = explanation?.revision ?? 0;
   const [draft, setDraft] = useState(saved);
-  const [seen, setSeen] = useState({ revision, saved });
+  // The saved version the text in the box was written over. A save names this revision. It moves
+  // forward only when the box holds no unsaved edits, when the saved text is the box's own text
+  // (this person's save), or when the person has seen a newer saved text and chosen.
+  const [base, setBase] = useState({ revision, saved });
   const [result, setResult] = useState<SaveResult | null>(null);
   const [busy, setBusy] = useState(false);
   const fieldId = useId();
-  // A reload that brings a different saved text replaces the box only while it has no unsaved
-  // edits; typed text is never replaced under the person writing it.
-  if (seen.revision !== revision || seen.saved !== saved) {
-    if (draft.trim() === seen.saved) setDraft(saved);
-    setSeen({ revision, saved });
+  // Compared as the server stores the text.
+  const typed = normalizeParagraphText(draft);
+  const unedited = typed === base.saved;
+  // Unsaved edits over an older version. A newer save holds text this person has not seen when
+  // the revision moved and the saved text is neither the box's own text (as after this person's
+  // save) nor the text it was written over. The typed text is never replaced under the person
+  // writing it, and the revision it was written over is kept with it: the store refuses a save
+  // that names the older revision, so the newer text is replaced only after the person chooses.
+  const newerSaved =
+    !unedited && base.revision !== revision && typed !== saved && saved !== base.saved;
+  if ((base.revision !== revision || base.saved !== saved) && !newerSaved) {
+    // A box without unsaved edits follows the saved text.
+    if (unedited && typed !== saved) setDraft(saved);
+    setBase({ revision, saved });
   }
+  const settleOn = (text: string) => {
+    setDraft(text);
+    setBase({ revision, saved });
+    setResult(null);
+  };
   // A response from before this section existed carries no explanation state.
   if (explanation === undefined) return null;
   if (explanation === null)
@@ -1499,6 +1517,33 @@ function OwnerAcknowledgmentSection({
           onChange={(event) => setDraft(event.target.value)}
         />
       </Field>
+      {newerSaved ? (
+        <div
+          className="ui-stack-tight"
+          data-renewal-field="owner-explanation-newer"
+          role="status"
+        >
+          <p>
+            Another operator saved a newer explanation. Your unsaved text is kept here.{" "}
+            {saved === ""
+              ? "The saved explanation is now empty."
+              : "The saved explanation reads:"}
+          </p>
+          {saved === "" ? null : (
+            <pre data-renewal-field="owner-explanation-newer-text">{saved}</pre>
+          )}
+          {canEdit ? (
+            <div className="ui-row">
+              <Button variant="tertiary" size="compact" onClick={() => settleOn(saved)}>
+                Use the saved text
+              </Button>
+              <Button variant="tertiary" size="compact" onClick={() => settleOn(draft)}>
+                Keep my text
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
       {canEdit ? (
         <div className="ui-row">
           {explanation.startingText !== "" && draft.trim() === "" ? (
@@ -1520,7 +1565,8 @@ function OwnerAcknowledgmentSection({
               setResult(
                 await save("ownerExplanation", {
                   ownerExplanation: {
-                    expectedRevision: revision,
+                    // The revision the text was written over, never a newer one read since.
+                    expectedRevision: base.revision,
                     text: draft.trim() === "" ? null : draft,
                   },
                 }),

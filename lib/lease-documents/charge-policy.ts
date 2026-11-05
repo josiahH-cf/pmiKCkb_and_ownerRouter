@@ -309,7 +309,14 @@ export function calculateRenewalCharges(input: {
   const charges: PacketCharge[] = [];
   const animals: AnimalChargeResult[] = [];
   const agreementApplicable: Record<string, boolean | null> = {};
-  const overrides = new Map(input.overrides.map((entry) => [entry.chargeId, entry]));
+  // S253 (R-S253-5): the pet processing fee is the published amount wherever it is stated, so the
+  // charge, the fee fact and the form total always agree. No per-lease override applies to it:
+  // the save refuses one, and a stored one changes nothing here.
+  const overrides = new Map(
+    input.overrides
+      .filter((entry) => entry.chargeId !== PET_FEE_CHARGE_ID)
+      .map((entry) => [entry.chargeId, entry]),
+  );
   const ordinaryPets = input.animals.filter((animal) => animal.treatment === "pet");
   if (!policy) {
     issues.push({

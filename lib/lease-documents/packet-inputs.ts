@@ -30,6 +30,7 @@ import {
   ownerExplanationState,
 } from "@/lib/lease-documents/owner-explanation";
 import { normalizeParagraphText } from "@/lib/lease-documents/paragraph-text";
+import { PET_FEE_CHARGE_ID } from "@/lib/lease-documents/pet-agreement-facts";
 
 export const PACKET_INPUTS_SCHEMA_VERSION = "renewal-packet-inputs/v1";
 /** The source system of a value staff entered or reviewed in the packet inputs. */
@@ -351,6 +352,16 @@ export const SavePacketInputsSchema = z
       !distinct(input.chargeOverrides.entries.map((entry) => entry.chargeId))
     )
       ctx.addIssue({ code: "custom", message: "One override per charge." });
+    // S253 (R-S253-5): the fee is published policy. A lease carries no amount of its own for it,
+    // so the charge an owner approves and the fee the prepared agreement states cannot differ.
+    if (
+      input.chargeOverrides?.entries.some((entry) => entry.chargeId === PET_FEE_CHARGE_ID)
+    )
+      ctx.addIssue({
+        code: "custom",
+        message:
+          "The pet processing fee is the published amount. An Admin changes it in the charge policy.",
+      });
   });
 export type SavePacketInputs = z.input<typeof SavePacketInputsSchema>;
 

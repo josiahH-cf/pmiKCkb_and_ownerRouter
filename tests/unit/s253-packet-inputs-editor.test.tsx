@@ -122,12 +122,15 @@ let current: PacketInputsView;
 let posts: Array<{ url: string; body: Record<string, unknown> }>;
 let gets: string[];
 let ownerSnapshot: Record<string, unknown> | null;
+/** When true the stand-in refuses an explanation save against an older revision, as the store does. */
+let enforceExplanationRevision: boolean;
 
 beforeEach(() => {
   current = view();
   posts = [];
   gets = [];
   ownerSnapshot = null;
+  enforceExplanationRevision = false;
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init?: RequestInit) => {
@@ -138,6 +141,29 @@ beforeEach(() => {
         });
       if ((init?.method ?? "GET") === "POST") {
         posts.push({ url, body: JSON.parse(String(init!.body)) });
+        const sent = posts.at(-1)!.body.ownerExplanation as
+          | { expectedRevision: number; text: string | null }
+          | undefined;
+        if (enforceExplanationRevision && sent) {
+          const held = current.ownerExplanation?.revision ?? 0;
+          if (sent.expectedRevision !== held)
+            return new Response(
+              JSON.stringify({
+                error: "SYNTHETIC refusal: a newer explanation is saved.",
+              }),
+              { status: 409, headers: { "content-type": "application/json" } },
+            );
+          // An accepted save is kept in its stored form and moves the revision on.
+          current = {
+            ...current,
+            ownerExplanation: explanation({
+              ...current.ownerExplanation,
+              text: sent.text === null ? null : sent.text.trim(),
+              revision: held + 1,
+              need: null,
+            }),
+          };
+        }
         return url.startsWith("/api/lease-renewal/packet-truth")
           ? json({ snapshot: ownerSnapshot })
           : json({ record: current.record });
@@ -439,6 +465,163 @@ describe("S253 R-S253-7: staff write this lease's explanation for the owner", ()
       },
     });
     await within(owner()).findByText("Saved.");
+  });
+
+  describe("a newer explanation saved by another person while this one is being written", () => {
+    const mine = "SYNTHETIC my unsaved text.";
+    const theirs = "SYNTHETIC newer text from another person.";
+    const saveButton = () =>
+      within(owner()).getByRole("button", { name: "Save explanation" });
+    const newer = () =>
+      owner().querySelector(
+        '[data-renewal-field="owner-explanation-newer"]',
+      ) as HTMLElement | null;
+    const sentExplanation = (index: number) => posts[index].body.ownerExplanation;
+
+    /** Open on revision 1, type unsaved text, then have another person save revision 2. */
+    async function writeOverAnOlderVersion() {
+      enforceExplanationRevision = true;
+      current = view({
+        ownerExplanation: explanation({
+          text: "SYNTHETIC saved first.",
+          revision: 1,
+          need: null,
+        }),
+      });
+      await openEditor();
+      fireEvent.change(box(), { target: { value: mine } });
+      current = view({
+        ownerExplanation: explanation({ text: theirs, revision: 2, need: null }),
+      });
+      // The save names revision 1, the store holds 2: it is refused and the view is read again.
+      fireEvent.click(saveButton());
+      await waitFor(() => expect(posts).toHaveLength(1));
+      expect(sentExplanation(0)).toEqual({ expectedRevision: 1, text: mine });
+      await waitFor(() => expect(newer()).not.toBeNull());
+    }
+
+    it("keeps the typed text and the revision it was written over, and shows the newer text", async () => {
+      await writeOverAnOlderVersion();
+      expect(box().value).toBe(mine);
+      expect(newer()!.textContent).toContain(theirs);
+      // Saving again without choosing still names revision 1, so the newer text is never
+      // replaced by a save that did not review it.
+      fireEvent.click(saveButton());
+      await waitFor(() => expect(posts).toHaveLength(2));
+      expect(sentExplanation(1)).toEqual({ expectedRevision: 1, text: mine });
+      expect(box().value).toBe(mine);
+    });
+
+    it("replaces the newer text only after the person chooses to keep their own", async () => {
+      await writeOverAnOlderVersion();
+      fireEvent.click(within(owner()).getByRole("button", { name: "Keep my text" }));
+      expect(newer()).toBeNull();
+      expect(box().value).toBe(mine);
+      fireEvent.click(saveButton());
+      await waitFor(() => expect(posts).toHaveLength(2));
+      expect(sentExplanation(1)).toEqual({ expectedRevision: 2, text: mine });
+    });
+
+    it("takes the newer saved text when the person chooses it, and sends nothing", async () => {
+      await writeOverAnOlderVersion();
+      fireEvent.click(
+        within(owner()).getByRole("button", { name: "Use the saved text" }),
+      );
+      expect(box().value).toBe(theirs);
+      expect(newer()).toBeNull();
+      expect(posts).toHaveLength(1);
+    });
+
+    it("follows a newer saved text by itself while the box holds no unsaved edits", async () => {
+      current = view({
+        ownerExplanation: explanation({
+          text: "SYNTHETIC saved first.",
+          revision: 1,
+          need: null,
+        }),
+      });
+      await openEditor();
+      expect(box().value).toBe("SYNTHETIC saved first.");
+      current = view({
+        ownerExplanation: explanation({ text: theirs, revision: 2, need: null }),
+      });
+      // Clearing and saving the unrelated starting state is not needed: any save reads the view
+      // again. Saving the unchanged explanation is the smallest one.
+      fireEvent.click(saveButton());
+      await waitFor(() => expect(box().value).toBe(theirs));
+      expect(newer()).toBeNull();
+    });
+
+    const savedFirst = () =>
+      view({
+        ownerExplanation: explanation({
+          text: "SYNTHETIC saved first.",
+          revision: 1,
+          need: null,
+        }),
+      });
+    const saveAnimals = () =>
+      fireEvent.click(within(animals()).getByRole("button", { name: "Save animals" }));
+
+    it("keeps the revision it was written over when another section's save reads the view again", async () => {
+      enforceExplanationRevision = true;
+      current = savedFirst();
+      await openEditor();
+      fireEvent.change(box(), { target: { value: mine } });
+      current = view({
+        ownerExplanation: explanation({ text: theirs, revision: 2, need: null }),
+      });
+      // Saving the animals reads the whole view again, with the newer explanation in it.
+      saveAnimals();
+      await waitFor(() => expect(newer()).not.toBeNull());
+      expect(box().value).toBe(mine);
+      expect(newer()!.textContent).toContain(theirs);
+      fireEvent.click(saveButton());
+      await waitFor(() => expect(posts).toHaveLength(2));
+      expect(sentExplanation(1)).toEqual({ expectedRevision: 1, text: mine });
+      expect(current.ownerExplanation?.text).toBe(theirs);
+    });
+
+    it("moves on with this person's own save, so the next save names the new revision", async () => {
+      enforceExplanationRevision = true;
+      current = savedFirst();
+      await openEditor();
+      fireEvent.change(box(), { target: { value: `  ${mine}  ` } });
+      fireEvent.click(saveButton());
+      await within(owner()).findByText("Saved.");
+      expect(current.ownerExplanation).toMatchObject({ text: mine, revision: 2 });
+      expect(newer()).toBeNull();
+      fireEvent.change(box(), { target: { value: `${mine} More.` } });
+      fireEvent.click(saveButton());
+      await waitFor(() => expect(posts).toHaveLength(2));
+      expect(sentExplanation(1)).toEqual({ expectedRevision: 2, text: `${mine} More.` });
+    });
+
+    it("keeps typed text without a choice when the saved text changes at the same revision", async () => {
+      // As when a new renewal begins: the earlier text no longer applies and nobody saved a
+      // newer one, so there is nothing to review and the save is accepted as written.
+      enforceExplanationRevision = true;
+      current = savedFirst();
+      await openEditor();
+      fireEvent.change(box(), { target: { value: mine } });
+      current = view({
+        ownerExplanation: explanation({
+          text: null,
+          revision: 1,
+          fromEarlierCycle: true,
+        }),
+      });
+      saveAnimals();
+      await within(owner()).findByText(/An explanation written for an earlier renewal/);
+      expect(newer()).toBeNull();
+      expect(box().value).toBe(mine);
+      fireEvent.click(saveButton());
+      await waitFor(() => expect(posts).toHaveLength(2));
+      expect(sentExplanation(1)).toEqual({ expectedRevision: 1, text: mine });
+      await waitFor(() =>
+        expect(current.ownerExplanation).toMatchObject({ text: mine, revision: 2 }),
+      );
+    });
   });
 
   it("shows the saved text as it prints in the box, in its paragraphs", async () => {
