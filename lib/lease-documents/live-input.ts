@@ -49,7 +49,10 @@ import {
 } from "./packet-assembly";
 import { PUBLICATION_COLLECTIONS } from "@/lib/publication/service";
 import { resolveStoredDataMode } from "@/lib/data-mode";
-import type { PacketEvaluationInput } from "./packet-types";
+import type { CalculatedCharges } from "./charge-policy";
+import { packetFormHolds } from "./form-holds";
+import { buildOwnerAcknowledgmentInput } from "./owner-acknowledgment";
+import type { LeaseArtifactCatalog, PacketEvaluationInput } from "./packet-types";
 import type { PacketInputsRecord } from "./packet-inputs";
 import type { RenewalWorkingRecord } from "@/lib/lease-renewal/working-record";
 import type { RawLease } from "@/lib/integrations/rentvine/client";
@@ -263,6 +266,12 @@ async function resolvePacketInputFromViews(
       "Enter the packet facts, people and animals for this lease in Packet inputs.",
     );
 
+  // S253 (R-S253-11): a form that waits on one named input holds only itself.
+  const formHolds = packetFormHolds({
+    catalog,
+    facts: assembled.facts,
+    calculated: assembled.calculated,
+  });
   const input: PacketEvaluationInput = {
     leaseId,
     transactionId,
@@ -271,7 +280,78 @@ async function resolvePacketInputFromViews(
     charges: assembled.charges,
     animals: assembled.animals,
     catalog,
+    ...(formHolds.length ? { formHolds } : {}),
   };
+  await markUnavailablePublications(input, catalog, observedAt, notices, db);
+  const recordHash = (doc: { data(): unknown }) =>
+    hashExecutionPreview((doc.data() as Record<string, unknown> | undefined) ?? {});
+  return {
+    input,
+    workspace,
+    leaseSourceHash,
+    sources,
+    inputs,
+    policy,
+    // S253: the Working terms a saved owner explanation is compared with.
+    working,
+    calculated: assembled.calculated,
+    contacts: assembled.contacts,
+    sourceFacts: source.facts,
+    sourceParties: source.parties,
+    replacedSourceFacts: assembled.replacedSourceFacts,
+    ownerApproval: approval.state,
+    ownerApprovalNotice: approvalNotice,
+    notices,
+    catalogRecordHash: recordHash(catalogDoc),
+    mappingRecordHash: recordHash(sourceDoc),
+    // S66: the claim and derived-file guards also bind the inputs the packet was evaluated from.
+    packetInputsRecordHash: recordHash(inputsDoc),
+    chargePolicyRecordHash: recordHash(policyDoc),
+    workingRecordHash: recordHash(workingDoc),
+  };
+}
+
+/**
+ * S253 (R-S253-7): the owner acknowledgment's evaluation input for a lease whose tenant input is
+ * already resolved. It reads the same resolved records and adds only the explanation staff wrote
+ * on this lease for its current cycle, then checks that each form the owner packet includes is
+ * still the exact active approved publication. Nothing is written.
+ */
+export async function resolveOwnerAcknowledgmentInput(
+  resolved: {
+    input: PacketEvaluationInput;
+    inputs: PacketInputsRecord | null;
+    workspace: { cycleId: string } | null;
+    calculated: Pick<CalculatedCharges, "petAgreement"> | null;
+    notices: string[];
+  },
+  observedAt: string,
+  db: Firestore = getAdminFirestore(),
+): Promise<PacketEvaluationInput> {
+  const input = buildOwnerAcknowledgmentInput({
+    tenant: resolved.input,
+    inputs: resolved.inputs,
+    cycleId: resolved.workspace?.cycleId ?? null,
+    calculated: resolved.calculated,
+  });
+  await markUnavailablePublications(
+    input,
+    input.catalog,
+    observedAt,
+    resolved.notices,
+    db,
+  );
+  return input;
+}
+
+/** Marks an included form inactive when its exact active approved publication cannot be shown. */
+async function markUnavailablePublications(
+  input: PacketEvaluationInput,
+  catalog: LeaseArtifactCatalog,
+  observedAt: string,
+  notices: string[],
+  db: Firestore,
+): Promise<void> {
   // Availability is scoped to the evaluated packet. An excluded form cannot block an unrelated renewal.
   const includedIds = new Set(
     evaluateRenewalPacket(input).manifest?.includedArtifacts.map((a) => a.artifactId) ??
@@ -317,28 +397,4 @@ async function resolvePacketInputFromViews(
       );
     }
   }
-  const recordHash = (doc: { data(): unknown }) =>
-    hashExecutionPreview((doc.data() as Record<string, unknown> | undefined) ?? {});
-  return {
-    input,
-    workspace,
-    leaseSourceHash,
-    sources,
-    inputs,
-    policy,
-    calculated: assembled.calculated,
-    contacts: assembled.contacts,
-    sourceFacts: source.facts,
-    sourceParties: source.parties,
-    replacedSourceFacts: assembled.replacedSourceFacts,
-    ownerApproval: approval.state,
-    ownerApprovalNotice: approvalNotice,
-    notices,
-    catalogRecordHash: recordHash(catalogDoc),
-    mappingRecordHash: recordHash(sourceDoc),
-    // S66: the claim and derived-file guards also bind the inputs the packet was evaluated from.
-    packetInputsRecordHash: recordHash(inputsDoc),
-    chargePolicyRecordHash: recordHash(policyDoc),
-    workingRecordHash: recordHash(workingDoc),
-  };
 }

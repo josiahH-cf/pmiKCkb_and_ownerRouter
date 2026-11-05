@@ -14,9 +14,13 @@ import {
   getCurrentPacketSnapshot,
   savePacketSnapshot,
 } from "@/lib/firestore/lease-document-packet-snapshots";
-import { resolveLivePacketInput } from "@/lib/lease-documents/live-input";
+import {
+  resolveLivePacketInput,
+  resolveOwnerAcknowledgmentInput,
+} from "@/lib/lease-documents/live-input";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { evaluateRenewalPacket } from "@/lib/lease-documents/evaluate-packet";
+import { isOwnerAcknowledgmentTransaction } from "@/lib/lease-documents/owner-acknowledgment";
 import type { PacketEvaluationInput } from "@/lib/lease-documents/packet-types";
 
 const PacketIdentitySchema = z
@@ -52,6 +56,14 @@ async function resolveCurrentInput(
   actor?: AuthenticatedUser,
 ): Promise<PacketEvaluationInput> {
   if (!actor) throw new Error("Authenticated packet resolver context is required.");
+  // S253: the owner acknowledgment of a lease is evaluated and saved as its own packet, from the
+  // same resolved records plus the explanation staff wrote for this lease. The tenant packet is
+  // never changed by it.
+  if (isOwnerAcknowledgmentTransaction(leaseId, transactionId))
+    return resolveOwnerAcknowledgmentInput(
+      await resolveLivePacketInput(actor, leaseId, leaseId, observedAt),
+      observedAt,
+    );
   return (await resolveLivePacketInput(actor, leaseId, transactionId, observedAt)).input;
 }
 

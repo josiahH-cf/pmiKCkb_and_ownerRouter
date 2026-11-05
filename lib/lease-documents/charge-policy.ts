@@ -10,6 +10,16 @@
 import { z } from "zod";
 
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
+import { chargePolicyOpenQuestionIssue } from "@/lib/lease-documents/form-open-questions";
+import {
+  PET_AGREEMENT_DEPOSIT_FACT,
+  PET_AGREEMENT_TOTAL_FACT,
+  PET_FEE_CHARGE_ID,
+  PET_FEE_UNITS,
+  PET_PROCESSING_FEE_FACT,
+  STAFF_DEPOSIT_SOURCE_SYSTEM,
+  type PetFeeUnit,
+} from "@/lib/lease-documents/pet-agreement-facts";
 import type {
   PacketAnimalInput,
   StoredChargeOverride,
@@ -25,6 +35,18 @@ export const CHARGE_POLICY_SOURCE_SYSTEM = "renewal_charge_policy";
 export const CHARGE_OVERRIDE_SOURCE_SYSTEM = "renewal_staff_override";
 export const RBP_ELECTION_KEY = "charges.resident_benefit_package.enrolled";
 export const INSURANCE_METHOD_KEY = "insurance.coverage_method";
+// S253: the pet agreement's fact names and fee units live in a client-safe module; the policy and
+// its calculator are their one writer.
+export {
+  PET_AGREEMENT_DEPOSIT_FACT,
+  PET_AGREEMENT_TOTAL_FACT,
+  PET_FEE_CHARGE_ID,
+  PET_FEE_UNITS,
+  PET_FEE_UNIT_LABELS,
+  PET_PROCESSING_FEE_FACT,
+  STAFF_DEPOSIT_SOURCE_SYSTEM,
+  type PetFeeUnit,
+} from "@/lib/lease-documents/pet-agreement-facts";
 
 const cents = z.number().int().nonnegative().max(10_000_000);
 
@@ -69,6 +91,23 @@ export const ChargePolicyContentSchema = z
       })
       .strict()
       .nullable(),
+    /**
+     * S253 (R-S253-2): the one ordinary pet processing fee, separate from every tier amount and
+     * from any deposit. An Admin publishes the amount with a note naming where it comes from; it
+     * is never a constant in this code, a seed or a figure read from a printed form. A policy may
+     * carry the fee alone. Absent on policies published before the fee existed.
+     */
+    petProcessingFee: z
+      .object({
+        amountCents: z.number().int().positive().max(10_000_000),
+        /** What one fee covers. Always stated; null means the business has not confirmed it. */
+        unit: z.enum(PET_FEE_UNITS).nullable(),
+        /** Where the amount comes from, in the publishing Admin's words. */
+        source: z.string().trim().min(3).max(300),
+      })
+      .strict()
+      .nullable()
+      .optional(),
   })
   .strict()
   .superRefine((content, ctx) => {
@@ -108,7 +147,17 @@ export const PublishChargePolicyInputSchema = z
     expectedVersion: z.number().int().nonnegative(),
     operationId: z.string().uuid(),
   })
-  .strict();
+  .strict()
+  .superRefine((input, ctx) => {
+    // S253 (R-S253-11): a value for an open question is refused at publication, never defaulted.
+    const issue = chargePolicyOpenQuestionIssue(input.content);
+    if (issue)
+      ctx.addIssue({
+        code: "custom",
+        path: ["content", "petProcessingFee", "unit"],
+        message: issue,
+      });
+  });
 
 /** Overlapping, unordered or gapped tiers are refused; a value never falls between two rules. */
 export function tierIssue(animals: ChargePolicyContent["animals"]): string | null {
@@ -158,7 +207,11 @@ export const CHARGE_CADENCE_LABELS: Readonly<Record<ChargeCadence, string>> = {
 export interface AnimalChargeResult {
   animalId: string;
   label: string;
-  status: "calculated" | "no_charge" | "needs_input";
+  /**
+   * S253: `needs_rule` is an assistance animal while no approved rule is published. It carries no
+   * fee, no deposit and no agreement decision: never charged, never free, never zero.
+   */
+  status: "calculated" | "no_charge" | "needs_input" | "needs_rule";
   tierLabel: string | null;
   amounts: Record<ChargeCadence, number | null>;
   overridden: ChargeCadence[];
@@ -168,6 +221,27 @@ export interface AnimalChargeResult {
 export interface ChargeIssue {
   scope: string;
   label: string;
+}
+
+/**
+ * S253 (R-S253-4, ARCH-S253-1): the pet agreement's amounts, made here and nowhere else. The first
+ * amount blank takes the deposit and the second takes the total; a map only places them.
+ */
+export interface PetAgreementAmounts {
+  /** The published processing fee; null until an Admin publishes one. */
+  feeCents: number | null;
+  /** What one fee covers; null until the business confirms it. */
+  feeUnit: PetFeeUnit | null;
+  /** The publishing Admin's note naming where the fee comes from. */
+  feeSource: string | null;
+  /** Animals recorded as pets on this lease. */
+  ordinaryPets: number;
+  /** The deposit for the first amount blank; null while any part of it is missing. */
+  depositCents: number | null;
+  /** The fee plus the deposit, exact to the cent; null while either part is missing. */
+  totalCents: number | null;
+  /** What is still needed before both blanks can be filled; empty when nothing is. */
+  needs: string[];
 }
 
 export interface CalculatedCharges {
@@ -181,9 +255,17 @@ export interface CalculatedCharges {
   issues: ChargeIssue[];
   /** Document facts for the totals and package/program amounts, in dollars. */
   facts: PacketFact[];
+  /** S253: the pet agreement's fee, deposit and total with what is still needed. */
+  petAgreement: PetAgreementAmounts;
+  /**
+   * S253 (R-S253-6): assistance animals waiting on the approved rule. Each holds only its own fee,
+   * deposit and agreement decision; the lease's ordinary pets and other forms go on.
+   */
+  heldAnimalIds: string[];
 }
 
 const KG_TO_LB = 2.20462262185;
+const PET_FEE_NEED = "An Admin has not published the pet processing fee.";
 
 function policySource(policy: ChargePolicyRecord, part: string): PacketSourceReference {
   return {
@@ -227,7 +309,15 @@ export function calculateRenewalCharges(input: {
   const charges: PacketCharge[] = [];
   const animals: AnimalChargeResult[] = [];
   const agreementApplicable: Record<string, boolean | null> = {};
-  const overrides = new Map(input.overrides.map((entry) => [entry.chargeId, entry]));
+  // S253 (R-S253-5): the pet processing fee is the published amount wherever it is stated, so the
+  // charge, the fee fact and the form total always agree. No per-lease override applies to it:
+  // the save refuses one, and a stored one changes nothing here.
+  const overrides = new Map(
+    input.overrides
+      .filter((entry) => entry.chargeId !== PET_FEE_CHARGE_ID)
+      .map((entry) => [entry.chargeId, entry]),
+  );
+  const ordinaryPets = input.animals.filter((animal) => animal.treatment === "pet");
   if (!policy) {
     issues.push({
       scope: "charges",
@@ -242,6 +332,19 @@ export function calculateRenewalCharges(input: {
       totals: { monthly: null, one_time: null, refundable_deposit: null },
       issues,
       facts: [],
+      petAgreement: {
+        feeCents: null,
+        feeUnit: null,
+        feeSource: null,
+        ordinaryPets: ordinaryPets.length,
+        depositCents:
+          ordinaryPets.length === 1
+            ? (ordinaryPets[0].deposit?.amountCents ?? null)
+            : null,
+        totalCents: null,
+        needs: ordinaryPets.length ? [PET_FEE_NEED] : [],
+      },
+      heldAnimalIds: [],
     };
   }
   const factValue = (key: string) => {
@@ -344,6 +447,11 @@ export function calculateRenewalCharges(input: {
   }
 
   const animalRules = policy.content.animals;
+  const fee = policy.content.petProcessingFee ?? null;
+  // S253: with the fee published and no tiers, a pet's deposit is the amount staff recorded for
+  // it, and an assistance animal waits for the approved rule. A policy with tiers prices as before.
+  const feeAlone = !animalRules && fee !== null;
+  const heldAnimalIds: string[] = [];
   for (const [index, animal] of input.animals.entries()) {
     const label = animalLabel(animal, index);
     const result: AnimalChargeResult = {
@@ -387,16 +495,78 @@ export function calculateRenewalCharges(input: {
           result.overridden.push(cadence);
       }
     };
-    if (!animalRules) {
+    if (feeAlone && animal.treatment === "assistance_animal") {
+      // S253 (R-S253-6): no charge and no decision exist for it at all, so nothing can read as
+      // charged, free or zero. It holds only itself.
       agreementApplicable[animal.animalId] = null;
-      needs("the published charge policy has no animal rules.");
+      result.status = "needs_rule";
+      result.reason =
+        "needs the approved rule for assistance animals. No fee, deposit or agreement decision is made until it is published.";
+      issues.push({
+        scope: "animal_agreement",
+        label: `${label}: needs the approved rule for assistance animals.`,
+      });
+      heldAnimalIds.push(animal.animalId);
+      animals.push(result);
+      continue;
+    }
+    if (feeAlone && animal.treatment === "pet") {
+      // S253 (R-S253-3): the deposit is the amount staff recorded for this pet, with where it
+      // came from. No tier, schedule or printed amount supplies it, and a missing one adds no
+      // charge: the pet agreement alone waits for it.
+      agreementApplicable[animal.animalId] = true;
+      const chargeId = `animal:${animal.animalId}:refundable_deposit`;
+      const recorded = animal.deposit ?? null;
+      const override = overrides.get(chargeId);
+      if (!recorded && !override) {
+        needs("record the refundable deposit and where it comes from.");
+        animals.push(result);
+        continue;
+      }
+      const packetCharge = charge(
+        chargeId,
+        "animal",
+        true,
+        recorded?.amountCents ?? null,
+        "refundable_deposit",
+        "animals:recorded_deposit",
+        {
+          animalId: animal.animalId,
+          targetArtifactKind: "animal_agreement",
+          ...(override || !recorded
+            ? {}
+            : {
+                source: {
+                  system: STAFF_DEPOSIT_SOURCE_SYSTEM,
+                  reference: `packet-inputs:${input.leaseId}:animals:${animal.animalId}:deposit`,
+                  retrievedAt: recorded.recordedAt ?? policy.publishedAt,
+                  version: String(policy.version),
+                },
+              }),
+        },
+      );
+      charges.push(packetCharge);
+      result.status = "calculated";
+      result.amounts.refundable_deposit = packetCharge.amountCents ?? null;
+      if (override) result.overridden.push("refundable_deposit");
+      result.reason = override
+        ? "The refundable deposit is the override recorded for this pet."
+        : "The refundable deposit is the amount staff recorded for this pet.";
+      animals.push(result);
+      continue;
+    }
+    // S253: name the lease's own missing fact before the policy's, so a fee-only policy never
+    // sends staff toward a deposit schedule that is still an open question.
+    if (animal.treatment === null) {
+      agreementApplicable[animal.animalId] = null;
+      needs("record whether this animal is a pet or an assistance animal.");
       emit(null, null);
       animals.push(result);
       continue;
     }
-    if (animal.treatment === null) {
+    if (!animalRules) {
       agreementApplicable[animal.animalId] = null;
-      needs("record whether this animal is a pet or an assistance animal.");
+      needs("the published charge policy has no animal rules.");
       emit(null, null);
       animals.push(result);
       continue;
@@ -456,6 +626,63 @@ export function calculateRenewalCharges(input: {
     animals.push(result);
   }
 
+  // S253 (R-S253-4): the pet agreement's deposit and total. One ordinary pet carries one fee
+  // under every reading of what a fee covers; more than one waits for that answer.
+  const untreated = input.animals.some((animal) => animal.treatment === null);
+  const petResults = ordinaryPets.map((animal) => ({
+    animal,
+    result: animals.find((entry) => entry.animalId === animal.animalId)!,
+  }));
+  const petDeposit = ({ animal, result }: (typeof petResults)[number]) =>
+    feeAlone || animalRules
+      ? result.amounts.refundable_deposit
+      : (animal.deposit?.amountCents ?? null);
+  const feeCount =
+    ordinaryPets.length === 0 || untreated
+      ? null
+      : ordinaryPets.length === 1 || fee?.unit === "agreement"
+        ? 1
+        : fee?.unit === "pet"
+          ? ordinaryPets.length
+          : null;
+  const petNeeds: string[] = [];
+  let petDepositCents: number | null = null;
+  if (ordinaryPets.length > 0) {
+    if (!fee) petNeeds.push(PET_FEE_NEED);
+    if (ordinaryPets.length > 1 && (fee?.unit ?? null) === null)
+      petNeeds.push(
+        "This agreement lists more than one ordinary pet. What one processing fee covers is an open question for the business, so the deposit and the total stay blank.",
+      );
+    else {
+      const deposits = petResults.map((entry) => petDeposit(entry));
+      for (const [index, entry] of petResults.entries())
+        if (deposits[index] === null)
+          petNeeds.push(
+            animalRules
+              ? `${entry.result.label}: ${entry.result.reason || "its deposit is not calculated yet."}`
+              : `${entry.result.label}: record the refundable deposit and where it comes from.`,
+          );
+      if (deposits.every((value) => value !== null))
+        petDepositCents = deposits.reduce<number>((sum, value) => sum + value!, 0);
+    }
+  }
+  const petTotalCents =
+    fee && feeCount !== null && petDepositCents !== null
+      ? fee.amountCents * feeCount + petDepositCents
+      : null;
+  if (fee && feeCount !== null)
+    charges.push(
+      charge(
+        PET_FEE_CHARGE_ID,
+        "other",
+        true,
+        fee.amountCents * feeCount,
+        "one_time",
+        "pet_processing_fee",
+        { targetArtifactKind: "animal_agreement" },
+      ),
+    );
+
   const totals: Record<ChargeCadence, number | null> = {
     monthly: 0,
     one_time: 0,
@@ -467,6 +694,14 @@ export function calculateRenewalCharges(input: {
     if (entry.applicable === null) totals[cadence] = null;
     else if (entry.applicable)
       totals[cadence] = totals[cadence]! + (entry.amountCents ?? 0);
+  }
+  // S253: a sum that leaves out an amount nobody knows would read as if that amount were zero.
+  if (fee && ordinaryPets.length > 0 && feeCount === null) totals.one_time = null;
+  if (feeAlone && petResults.some((entry) => petDeposit(entry) === null))
+    totals.refundable_deposit = null;
+  if (heldAnimalIds.length) {
+    totals.one_time = null;
+    totals.refundable_deposit = null;
   }
   const facts: PacketFact[] = [];
   const fact = (fieldKey: string, valueCents: number, part: string) =>
@@ -485,10 +720,40 @@ export function calculateRenewalCharges(input: {
     if (total !== null) fact(`charges.${cadence}_total`, total, `totals:${cadence}`);
   }
   for (const entry of charges) {
-    if (entry.kind === "animal" || !entry.applicable || entry.amountCents === undefined)
+    if (
+      (entry.kind !== "resident_benefit_package" && entry.kind !== "insurance") ||
+      !entry.applicable ||
+      entry.amountCents === undefined
+    )
       continue;
     fact(`charges.${entry.kind}.monthly`, entry.amountCents, entry.kind);
   }
+  // S253: the fee is a document fact whenever it is published; the deposit and the total exist
+  // only when every part of them is known. A policy without the fee carries none of the three, so
+  // a packet evaluated before the fee existed keeps its exact identity.
+  if (fee) fact(PET_PROCESSING_FEE_FACT, fee.amountCents, "pet_processing_fee");
+  if (fee && petDepositCents !== null) {
+    const own =
+      petResults.length === 1
+        ? charges.find(
+            (entry) =>
+              entry.chargeId ===
+              `animal:${petResults[0].animal.animalId}:refundable_deposit`,
+          )?.source
+        : undefined;
+    facts.push({
+      fieldKey: PET_AGREEMENT_DEPOSIT_FACT,
+      normalizedValue: dollars(petDepositCents),
+      displayValue: money(petDepositCents),
+      source: own ?? policySource(policy, "pet_agreement:deposit"),
+      confidence: "Verified",
+      applicability: "Applicable",
+      verifiedBy: own?.system ?? CHARGE_POLICY_SOURCE_SYSTEM,
+      blockingScope: "animal_agreement",
+    });
+  }
+  if (petTotalCents !== null)
+    fact(PET_AGREEMENT_TOTAL_FACT, petTotalCents, "pet_agreement:total");
   return {
     policyVersion: String(policy.version),
     charges,
@@ -497,6 +762,16 @@ export function calculateRenewalCharges(input: {
     totals,
     issues,
     facts,
+    petAgreement: {
+      feeCents: fee?.amountCents ?? null,
+      feeUnit: fee?.unit ?? null,
+      feeSource: fee?.source ?? null,
+      ordinaryPets: ordinaryPets.length,
+      depositCents: petDepositCents,
+      totalCents: petTotalCents,
+      needs: petNeeds,
+    },
+    heldAnimalIds,
   };
 }
 

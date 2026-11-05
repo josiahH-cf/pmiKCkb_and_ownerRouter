@@ -1,0 +1,126 @@
+{
+  "schemaVersion": "form-open-questions/v1",
+  "asOf": "2026-11-05",
+  "open": [
+    {
+      "id": "deposit_schedule",
+      "question": "Which pet screening result or schedule sets the refundable pet deposit, who approves it, and is it entered by hand or filled in automatically?",
+      "askedOf": "Dan",
+      "holdsOnly": "A deposit filled in without staff",
+      "worksMeanwhile": "A deposit staff record with its source",
+      "rules": ["no_shipped_deposit_schedule"]
+    },
+    {
+      "id": "every_time_covers",
+      "question": "The pet processing fee is charged every time. What does one fee cover: each renewal, each agreement, each pet or another event?",
+      "askedOf": "Dan",
+      "holdsOnly": "Totals for an agreement with more than one ordinary pet",
+      "worksMeanwhile": "One ordinary pet on one agreement",
+      "rules": ["charge_policy_fee_unit_unset"]
+    },
+    {
+      "id": "assistance_animal_rule",
+      "question": "What are the approved exceptions for assistance animals, including emotional-support animals, and what is their approved wording?",
+      "askedOf": "Dan, or the authority Dan names",
+      "holdsOnly": "Fee, deposit and agreement decision for an assistance animal",
+      "worksMeanwhile": "Ordinary pets on the same lease",
+      "rules": ["no_assistance_animal_registration"]
+    },
+    {
+      "id": "owner_explanation_starting_text",
+      "question": "What is the starting text for the owner acknowledgment explanation, with one example, the inputs it needs, who writes it, who reviews it and when it is ready?",
+      "askedOf": "Bailey",
+      "holdsOnly": "A prefilled starting text and any review step",
+      "worksMeanwhile": "Staff write the explanation on the lease",
+      "rules": ["no_shipped_starting_text"]
+    },
+    {
+      "id": "lease_executed_on",
+      "question": "Which date belongs in Lease executed on, on the owner acknowledgment?",
+      "askedOf": "Dan",
+      "holdsOnly": "Filling that date",
+      "worksMeanwhile": "The rest of the owner acknowledgment",
+      "rules": ["execution_date_stays_blank"]
+    },
+    {
+      "id": "tenant_initial_boxes",
+      "question": "On the brokerage brochure, which tenant uses which initial box, what happens to unused boxes, and how are initials collected for more than four tenants?",
+      "askedOf": "Bailey",
+      "holdsOnly": "Per-tenant initial guidance; a lease with more than four tenants",
+      "worksMeanwhile": "All four boxes left for initials",
+      "rules": ["tenant_initial_boxes_unassigned"]
+    },
+    {
+      "id": "agency_selections",
+      "question": "Which agency selections and signing details apply on the brokerage brochure for each case?",
+      "askedOf": "Bailey",
+      "holdsOnly": "Filled agency choices on the brochure",
+      "worksMeanwhile": "Choices left for the signer",
+      "rules": ["agency_selections_unfilled"]
+    },
+    {
+      "id": "organization_names_and_signers",
+      "question": "Which form versions are approved, and which organization names, representatives and authorized signers belong on each form?",
+      "askedOf": "Dan and the document authority",
+      "holdsOnly": "Any change to printed organization text; approval of that form's original",
+      "worksMeanwhile": "The per-form list of what each one prints",
+      "rules": ["printed_organization_text_unchanged"]
+    }
+  ],
+  "settled": [
+    {
+      "id": "pet_processing_fee_amount",
+      "item": "Pet agreement, processing fee",
+      "answer": "The ordinary pet processing fee is the one amount Dan confirmed, which differs from the amount in the printed form's text. An Admin publishes it in the charge policy with a note naming this answer.",
+      "answeredBy": "Dan",
+      "relayedBy": "the owner",
+      "date": "2026-11-05",
+      "scope": "Settles the fee for an ordinary pet. It approves no original, map, wording, deposit schedule or signer. The amount lives in the published charge policy and is kept out of this file."
+    },
+    {
+      "id": "pet_deposit_separate",
+      "item": "Pet agreement, refundable deposit",
+      "answer": "The refundable deposit is separate from the processing fee and depends on the pet screening result.",
+      "answeredBy": "Dan",
+      "relayedBy": "the owner",
+      "date": "2026-11-05",
+      "scope": "Settles that the deposit is its own amount. Which result or schedule sets it stays open as deposit_schedule."
+    },
+    {
+      "id": "pet_agreement_amount_blanks",
+      "item": "Pet agreement, the two amount blanks",
+      "answer": "The first amount blank is the deposit. The second is the processing fee plus the deposit.",
+      "answeredBy": "Dan",
+      "relayedBy": "the owner",
+      "date": "2026-11-05",
+      "scope": "Settles what each blank means for an ordinary pet. What one fee covers for more than one pet stays open as every_time_covers."
+    },
+    {
+      "id": "assistance_animal_statement",
+      "item": "Pet agreement, assistance animals",
+      "answer": "An exception was described for a registered service animal.",
+      "answeredBy": "Dan",
+      "relayedBy": "the owner",
+      "date": "2026-11-05",
+      "scope": "A description only. It adds no registration requirement, check, document request or wording. The approved rule stays open as assistance_animal_rule."
+    },
+    {
+      "id": "owner_acknowledgment_large_box",
+      "item": "Owner acknowledgment, large box",
+      "answer": "The box holds an explanation written for that lease. Bailey keeps a starting text and edits it for each lease.",
+      "answeredBy": "Dan",
+      "relayedBy": "the owner",
+      "date": "2026-11-05",
+      "scope": "Settles what the box is for. The starting text itself, its author, reviewer and timing stay open as owner_explanation_starting_text."
+    },
+    {
+      "id": "brochure_footer_boxes",
+      "item": "Brokerage brochure, footer",
+      "answer": "The four footer boxes are tenant initial boxes.",
+      "answeredBy": "Dan",
+      "relayedBy": "the owner",
+      "date": "2026-11-05",
+      "scope": "Settles what the boxes are. Box order, unused boxes and more than four tenants stay open as tenant_initial_boxes."
+    }
+  ]
+}

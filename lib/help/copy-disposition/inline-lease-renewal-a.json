@@ -36,6 +36,13 @@
   },
   {
     "kind": "inline",
+    "location": "components/lease-renewal/FilledArtifactPanel.tsx",
+    "text": "This form waits. The lease&apos;s other forms can be prepared.",
+    "describes": "Filled document status of a form that waits on one named input or a refused map",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
     "location": "components/lease-renewal/LeaseDecisionProjectionPanel.tsx",
     "text": "App decisions · provider updates require separate confirmation.",
     "describes": "Live renewal decision projection, separate from confirmed provider updates",
@@ -333,6 +340,48 @@
     "location": "components/lease-renewal/PacketInputsEditor.tsx",
     "text": "Calculated from charge policy version ……. Calculating writes no RentVine charge.",
     "describes": "Packet charges calculated from the charge policy without RentVine writes",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/PacketInputsEditor.tsx",
+    "text": "Write the explanation for this lease&apos;s owner. The owner acknowledgment prints exactly what you save here, in the paragraphs you type.",
+    "describes": "Owner acknowledgment section of the packet inputs, where staff write this lease's explanation",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/PacketInputsEditor.tsx",
+    "text": "An explanation written for an earlier renewal is kept on the record. This renewal needs its own.",
+    "describes": "Owner explanation that was written for an earlier renewal cycle of the lease",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/PacketInputsEditor.tsx",
+    "text": "Nothing is saved to print yet.",
+    "describes": "Owner explanation print preview before any text is saved",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/PacketInputsEditor.tsx",
+    "text": "The print preview appears once an approved owner acknowledgment places the explanation in a reviewed box.",
+    "describes": "Owner explanation print preview while no approved owner acknowledgment map places the text",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/PacketInputsEditor.tsx",
+    "text": "An approved owner acknowledgment form is needed before its file can be prepared.",
+    "describes": "Owner acknowledgment check when the catalog has no approved owner acknowledgment form",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/PacketInputsEditor.tsx",
+    "text": "This file can be prepared and inspected now. Sending it to the owner for signature waits for the fully signed tenant packet.",
+    "describes": "Owner acknowledgment file preparation before the tenant packet is fully signed",
     "disposition": "keep"
   },
   {

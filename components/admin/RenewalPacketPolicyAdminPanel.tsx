@@ -16,6 +16,15 @@ import type {
   ChargePolicyTier,
 } from "@/lib/lease-documents/charge-policy";
 import { FAMILY_USE_LABELS, type FamilyUse } from "@/lib/lease-documents/family-use";
+import {
+  FORM_OPEN_QUESTIONS,
+  isFormQuestionOpen,
+} from "@/lib/lease-documents/form-open-questions";
+import {
+  PET_FEE_UNITS,
+  PET_FEE_UNIT_LABELS,
+  type PetFeeUnit,
+} from "@/lib/lease-documents/pet-agreement-facts";
 import { businessDateIso } from "@/lib/lease-renewal/business-calendar";
 import type { FormFamilyUse } from "@/lib/lease-documents/packet-types";
 
@@ -59,7 +68,138 @@ export function RenewalPacketPolicyAdminPanel({
       </p>
       <FamilyUseEditor initial={initial.familyUse} />
       <ChargePolicyEditor initial={initial.chargePolicy} />
+      <OwnerExplanationStartingTextEditor />
+      <OpenFormQuestions />
     </article>
+  );
+}
+
+/**
+ * S253 (R-S253-7): the team's starting text for the owner acknowledgment explanation. It is read
+ * when an Admin opens it. The application ships none, and staff write each lease's explanation on
+ * that lease.
+ */
+function OwnerExplanationStartingTextEditor() {
+  const [state, setState] = useState<{
+    readable: boolean;
+    revision: number;
+    text: string;
+  } | null>(null);
+  const [draft, setDraft] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const url = "/api/admin/owner-explanation-starting-text";
+  const open = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const response = await fetch(url, { cache: "no-store" });
+      const value = (await response.json().catch(() => ({}))) as {
+        startingText?: { readable: boolean; revision: number; text: string };
+        error?: string;
+      };
+      if (!response.ok || !value.startingText)
+        setError(value.error ?? "The starting text could not be read.");
+      else {
+        setState(value.startingText);
+        setDraft(value.startingText.text);
+      }
+    } catch {
+      setError("The starting text could not be read. Reload to try again.");
+    }
+    setBusy(false);
+  };
+  const saveText = async () => {
+    if (!state) return;
+    setBusy(true);
+    setError(null);
+    setMessage(null);
+    const result = await post(url, {
+      text: draft,
+      expectedRevision: state.revision,
+      operationId: crypto.randomUUID(),
+    });
+    setBusy(false);
+    const next = result.value.startingText as typeof state | undefined;
+    if (!result.ok || !next) {
+      setError(String(result.value.error ?? "The starting text was not saved."));
+      return;
+    }
+    setState(next);
+    setDraft(next.text);
+    setMessage(
+      next.text === "" ? "The starting text is now empty." : "Starting text saved.",
+    );
+  };
+  return (
+    <div className="ui-stack-tight" data-owner-explanation-starting-text>
+      <h3>Owner explanation starting text</h3>
+      <p className="muted">
+        The text renewal staff may begin from when they write a lease&apos;s explanation
+        for the owner acknowledgment. Staff edit and save each explanation on its own
+        lease.
+      </p>
+      {state === null ? (
+        <Button variant="secondary" busy={busy} onClick={() => void open()}>
+          Open the starting text
+        </Button>
+      ) : !state.readable ? (
+        <p role="alert">The starting text is unreadable. Reload before changing it.</p>
+      ) : (
+        <>
+          <Field
+            label="Starting text"
+            htmlFor="owner-explanation-starting-text"
+            hint="Leave empty for no starting text. Paragraphs you type are kept."
+          >
+            <textarea
+              id="owner-explanation-starting-text"
+              rows={8}
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+            />
+          </Field>
+          <Button
+            variant="secondary"
+            busy={busy}
+            busyLabel="Saving…"
+            onClick={() => void saveText()}
+          >
+            Save the starting text
+          </Button>
+        </>
+      )}
+      {error ? <p role="alert">{error}</p> : null}
+      {message ? <p role="status">{message}</p> : null}
+    </div>
+  );
+}
+
+/**
+ * S253 (R-S253-11): the form questions the business has yet to answer, each with the one output it
+ * holds and what works meanwhile. The questions are ready to copy into a message a person sends;
+ * who each one is asked of stays in the checked list, and no person is named on the page.
+ */
+function OpenFormQuestions() {
+  return (
+    <details data-open-form-questions>
+      <summary>Open form questions ({FORM_OPEN_QUESTIONS.open.length})</summary>
+      <p className="muted">
+        Each question holds only its own output. Everything else on a lease goes on.
+      </p>
+      <ul className="ui-rows">
+        {FORM_OPEN_QUESTIONS.open.map((entry) => (
+          <li key={entry.id} data-open-form-question={entry.id}>
+            <strong>{entry.question}</strong>
+            <br />
+            <span className="muted">
+              Holds only: {entry.holdsOnly}. Works meanwhile: {entry.worksMeanwhile}.
+            </span>
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }
 
@@ -168,6 +308,18 @@ function ChargePolicyEditor({
   const [insurance, setInsurance] = useState(
     content?.insuranceProgram ? dollars(content.insuranceProgram.monthlyCents) : "",
   );
+  // S253 (R-S253-2): the pet processing fee is its own published amount with a source note. The
+  // fields start from the published version only; nothing fills them in for the Admin.
+  const [petFee, setPetFee] = useState(
+    content?.petProcessingFee ? dollars(content.petProcessingFee.amountCents) : "",
+  );
+  const [petFeeSource, setPetFeeSource] = useState(
+    content?.petProcessingFee?.source ?? "",
+  );
+  const [petFeeUnit, setPetFeeUnit] = useState<PetFeeUnit | "">(
+    content?.petProcessingFee?.unit ?? "",
+  );
+  const unitQuestionOpen = isFormQuestionOpen("every_time_covers");
   const [animalsOn, setAnimalsOn] = useState(Boolean(content?.animals));
   const [basis, setBasis] = useState<"weight_lb" | "fido_score">(
     content?.animals?.basis ?? "weight_lb",
@@ -211,6 +363,16 @@ function ChargePolicyEditor({
       if (parsed === null) throw new Error(`${label}: enter an amount.`);
       return parsed;
     };
+    const feeAmount = (value: string) => {
+      const parsed = money(value, "Pet processing fee");
+      if (parsed <= 0) throw new Error("Pet processing fee: enter an amount above zero.");
+      return parsed;
+    };
+    const feeSourceNote = (value: string) => {
+      if (value.trim().length < 3)
+        throw new Error("Pet processing fee: say where the amount comes from.");
+      return value.trim();
+    };
     try {
       return {
         residentBenefitPackage:
@@ -249,6 +411,17 @@ function ChargePolicyEditor({
                 basis === "weight_lb" && juvenile !== "" ? juvenile : null,
             }
           : null,
+        // An empty fee publishes a policy without one. What one fee covers stays unset while
+        // the business has not confirmed it: it has no default.
+        ...(petFee.trim() === ""
+          ? {}
+          : {
+              petProcessingFee: {
+                amountCents: feeAmount(petFee),
+                unit: unitQuestionOpen || petFeeUnit === "" ? null : petFeeUnit,
+                source: feeSourceNote(petFeeSource),
+              },
+            }),
       };
     } catch (caught) {
       return caught instanceof Error ? caught.message : "Check the amounts.";
@@ -323,6 +496,55 @@ function ChargePolicyEditor({
           onChange={(event) => setInsurance(event.target.value)}
         />
       </Field>
+      <Field
+        label="Pet processing fee"
+        htmlFor="policy-pet-fee"
+        hint="One amount for an ordinary pet, separate from any deposit. Leave empty when no fee is published."
+      >
+        <input
+          id="policy-pet-fee"
+          inputMode="decimal"
+          value={petFee}
+          onChange={(event) => setPetFee(event.target.value)}
+        />
+      </Field>
+      <Field
+        label="Where the pet processing fee comes from"
+        htmlFor="policy-pet-fee-source"
+        hint="Needed with the fee. Name who confirmed the amount and when."
+      >
+        <input
+          id="policy-pet-fee-source"
+          value={petFeeSource}
+          onChange={(event) => setPetFeeSource(event.target.value)}
+        />
+      </Field>
+      {unitQuestionOpen ? (
+        <p className="muted" data-pet-fee-unit="unset">
+          What one fee covers is still an open question for the business, so it stays
+          unset. An agreement for one ordinary pet totals without it; an agreement for
+          more than one waits for the answer.
+        </p>
+      ) : (
+        <Field
+          label="One pet processing fee covers"
+          htmlFor="policy-pet-fee-unit"
+          hint="Choose what the business confirmed. Until one is chosen, an agreement for more than one pet waits."
+        >
+          <select
+            id="policy-pet-fee-unit"
+            value={petFeeUnit}
+            onChange={(event) => setPetFeeUnit(event.target.value as PetFeeUnit | "")}
+          >
+            <option value="">Not confirmed</option>
+            {PET_FEE_UNITS.map((unit) => (
+              <option key={unit} value={unit}>
+                {PET_FEE_UNIT_LABELS[unit]}
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
       <label>
         <input
           type="checkbox"

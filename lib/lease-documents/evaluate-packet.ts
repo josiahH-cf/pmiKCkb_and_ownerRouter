@@ -86,6 +86,10 @@ export function evaluateRenewalPacket(input: PacketEvaluationInput): PacketEvalu
       blockers.push(...validateAnimals(input.animals));
     }
 
+    // S253: a hold travels with the packet only for a form the packet includes.
+    const formHolds = (input.formHolds ?? []).filter((hold) =>
+      artifactResolution.included.some((artifact) => artifact.kind === hold.artifactKind),
+    );
     manifest = {
       packetContext: context,
       audience,
@@ -95,6 +99,7 @@ export function evaluateRenewalPacket(input: PacketEvaluationInput): PacketEvalu
       participants: participantResolution.participants,
       charges: audience === "tenant" ? input.charges : [],
       animals: audience === "tenant" ? input.animals : [],
+      ...(formHolds.length ? { formHolds } : {}),
     };
   }
 
@@ -410,7 +415,14 @@ function resolveArtifacts(
     }
 
     included.push(artifactResult(active, "Included", predicate.reason));
-    const bound = bindArtifactFields(active, input.facts);
+    // S253 (R-S253-11): a value a form is held for waits with that form alone. It raises no packet
+    // blocker, so the packet's other forms go on; the held form itself is never prepared.
+    const held = new Set(
+      (input.formHolds ?? [])
+        .filter((hold) => hold.artifactKind === active.kind)
+        .map((hold) => hold.factKey),
+    );
+    const bound = bindArtifactFields(active, input.facts, held);
     fields.push(...bound.fields);
     blockers.push(...bound.blockers);
   }
@@ -420,6 +432,10 @@ function resolveArtifacts(
 
 /** The exact exclusion reason for a family the approved configuration marks not used. */
 export const FAMILY_NOT_USED_REASON = "Not used by the approved form configuration.";
+
+/** S253: why the animal agreement is undecided when only an assistance animal awaits its rule. */
+export const HELD_ANIMAL_REASON =
+  "An assistance animal needs the approved rule before its agreement decision is made.";
 
 function familyResult(
   requirement: { kind: PacketArtifactResult["kind"]; label: string },
@@ -439,13 +455,15 @@ function familyResult(
 function bindArtifactFields(
   artifact: LeaseArtifactVersion,
   facts: PacketFact[],
+  held: ReadonlySet<string> = new Set(),
 ): { fields: BoundPacketField[]; blockers: PacketBlocker[] } {
   const fields: BoundPacketField[] = [];
   const blockers: PacketBlocker[] = [];
   for (const binding of artifact.fieldBindings) {
     const selection = selectFact(facts, binding.factKey);
     if (!selection.fact) {
-      if (binding.required) blockers.push(...compactBlockers([selection.blocker]));
+      if (binding.required && !held.has(binding.factKey))
+        blockers.push(...compactBlockers([selection.blocker]));
       continue;
     }
     if (selection.conflict) {
@@ -496,7 +514,10 @@ function evaluatePredicate(
     };
   }
   if (predicate.kind === "any_animal_applicable") {
-    if (animals.some((animal) => animal.agreementApplicable === null)) {
+    // S253 (R-S253-6): an assistance animal waiting on the approved rule decides nothing and
+    // blocks nothing. The lease's other animals decide the agreement as before.
+    const decided = animals.filter((animal) => !animal.heldBy);
+    if (decided.some((animal) => animal.agreementApplicable === null)) {
       return {
         result: "unknown",
         reason: "Animal-agreement applicability needs verified policy treatment.",
@@ -509,7 +530,9 @@ function evaluatePredicate(
         ],
       };
     }
-    const applicable = animals.some((animal) => animal.agreementApplicable === true);
+    const applicable = decided.some((animal) => animal.agreementApplicable === true);
+    if (!applicable && decided.length !== animals.length)
+      return { result: "unknown", reason: HELD_ANIMAL_REASON, blockers: [] };
     return {
       result: applicable ? "include" : "exclude",
       reason: applicable
@@ -770,6 +793,8 @@ function validateAnimals(animals: PacketAnimal[]): PacketBlocker[] {
       continue;
     }
     ids.add(animal.animalId);
+    // S253: an assistance animal waiting on the approved rule holds only itself.
+    if (animal.heldBy) continue;
     if (animal.agreementApplicable === null || !animal.policyVersion) {
       blockers.push({
         code: "animal_fact_unavailable",

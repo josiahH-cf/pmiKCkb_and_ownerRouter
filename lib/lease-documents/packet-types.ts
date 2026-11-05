@@ -121,6 +121,22 @@ export interface PacketAnimal {
   agreementApplicable: boolean | null;
   chargeIds: string[];
   policyVersion?: string;
+  /**
+   * S253 (R-S253-6): an assistance animal waiting on the approved rule. It carries no fee, deposit
+   * or agreement decision and holds only itself: the packet's other animals and forms go on.
+   */
+  heldBy?: "assistance_animal_rule";
+}
+
+/**
+ * S253 (R-S253-11): one form waiting on one named input while the packet's other forms go on. A
+ * held form is never prepared; the label says what is needed in the words the lease shows.
+ */
+export interface PacketFormHold {
+  artifactKind: LeaseArtifactKind;
+  /** The mapped fact the form waits for. */
+  factKey: string;
+  label: string;
 }
 
 export const LEASE_ARTIFACT_KINDS = [
@@ -294,6 +310,8 @@ export interface PacketManifest {
   participants: PacketParticipant[];
   charges: PacketCharge[];
   animals: PacketAnimal[];
+  /** S253: the included forms that wait on a named input. Absent when none does. */
+  formHolds?: PacketFormHold[];
 }
 
 export interface PacketEvaluationInput {
@@ -305,6 +323,8 @@ export interface PacketEvaluationInput {
   charges: PacketCharge[];
   animals: PacketAnimal[];
   catalog: LeaseArtifactCatalog;
+  /** S253: forms that wait on a named input; each holds only itself. Absent when none does. */
+  formHolds?: PacketFormHold[];
   /** Exact prior execution evidence is accepted only for the owner-ack helper, never as a checkbox. */
   tenantCompletionProof?: AuthenticatedTenantCompletionProof;
   expectedTenantPacketHash?: string;

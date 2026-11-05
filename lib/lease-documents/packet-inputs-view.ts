@@ -9,7 +9,24 @@ import type {
   CalculatedCharges,
   ChargeCadence,
   ChargePolicyRecord,
+  PetAgreementAmounts,
 } from "@/lib/lease-documents/charge-policy";
+import { formNotesOf } from "@/lib/lease-documents/form-notes";
+import { ownerAcknowledgmentTransactionId } from "@/lib/lease-documents/owner-acknowledgment";
+import {
+  OWNER_EXPLANATION_FACT,
+  ownerExplanationState,
+  type OwnerExplanationState,
+} from "@/lib/lease-documents/owner-explanation";
+import {
+  layoutStaticParagraphs,
+  paragraphLayoutIssue,
+  staticRegionBox,
+} from "@/lib/lease-documents/static-pdf";
+import {
+  workingEntry,
+  type RenewalWorkingRecord,
+} from "@/lib/lease-renewal/working-record";
 import {
   OWNER_APPROVAL_NOTICES,
   type OwnerApprovalState,
@@ -59,6 +76,40 @@ export interface PacketInputsView {
   questions: PacketQuestion[];
   formFamilies: string[];
   notices: string[];
+  /**
+   * S253 (R-S253-4): the pet agreement's fee, deposit and total with what is still needed, as the
+   * calculator made them. Null when the current sources are unavailable.
+   */
+  petAgreement?: PetAgreementAmounts | null;
+  /**
+   * S253 (R-S253-3): where a pet's deposit comes from under the published policy: recorded by
+   * staff on the lease, or supplied by the policy's published tiers.
+   */
+  depositEntry?: "staff_record" | "published_tiers";
+  /** S253 (R-S253-7): the owner acknowledgment's explanation for this lease and cycle. */
+  ownerExplanation?: OwnerExplanationView | null;
+}
+
+/** The box a saved explanation prints in, laid out exactly as the filler sets it. */
+export interface OwnerExplanationPreview {
+  /** The lines as they print; an empty line separates two paragraphs. */
+  lines: string[];
+  /** How many lines the reviewed box holds at its reviewed text size. */
+  capacity: number;
+  /** Why the text cannot be set in the box, in the filler's own words; null when it fits. */
+  issue: string | null;
+}
+
+export interface OwnerExplanationView extends OwnerExplanationState {
+  /** The identity the owner acknowledgment of this lease is evaluated and saved under. */
+  transactionId: string;
+  /** The team's starting text an Admin saved; empty when none is saved. */
+  startingText: string;
+  /** Null until an approved owner acknowledgment places the explanation in a reviewed box. */
+  preview: OwnerExplanationPreview | null;
+  /** What the approved owner acknowledgment leaves blank and what it prints, as information. */
+  formNotes: string[];
+  printed: string[];
 }
 
 export interface ResolvedPacketForView {
@@ -71,6 +122,74 @@ export interface ResolvedPacketForView {
   /** S234 R-S234-3: the approval notice naming exactly what changed, when not current. */
   ownerApprovalNotice?: string | null;
   notices: string[];
+  /** S253: the lease's renewal cycle and Working terms, for the owner explanation's state. */
+  workspace?: { cycleId: string } | null;
+  working?: RenewalWorkingRecord | null;
+  policy?: ChargePolicyRecord | null;
+}
+
+const WORKING_TERM_FIELDS = ["terms_rent", "terms_effective_date", "terms_end_date"];
+
+/** When a renewal term of this lease was last recorded; null when none is, or a time is unreadable. */
+function termsChangedAt(working: RenewalWorkingRecord | null | undefined): string | null {
+  const times = WORKING_TERM_FIELDS.flatMap((field) => {
+    const entry = workingEntry(working, field);
+    return entry ? [entry.recordedAt] : [];
+  }).filter((time) => Number.isFinite(Date.parse(time)));
+  return times.length
+    ? times.reduce((latest, time) =>
+        Date.parse(time) > Date.parse(latest) ? time : latest,
+      )
+    : null;
+}
+
+function ownerExplanationView(
+  record: PacketInputsRecord | null,
+  resolved: ResolvedPacketForView,
+  startingText: string,
+): OwnerExplanationView {
+  const state = ownerExplanationState({
+    stored: record?.ownerExplanation,
+    cycleId: resolved.workspace?.cycleId ?? null,
+    termsChangedAt: termsChangedAt(resolved.working),
+  });
+  // The approved owner acknowledgment's own reviewed map decides the box and the form's notes.
+  const map =
+    resolved.input.catalog.artifacts.find(
+      (artifact) =>
+        artifact.kind === "owner_acknowledgment" &&
+        artifact.status === "active" &&
+        artifact.fillMapping,
+    )?.fillMapping?.map ?? null;
+  const field = map?.fields.find((entry) => entry.factKey === OWNER_EXPLANATION_FACT);
+  const region = map?.static?.regions.find(
+    (entry) =>
+      entry.fieldId === field?.fieldId &&
+      entry.slot === 0 &&
+      entry.format === "paragraphs",
+  );
+  let preview: OwnerExplanationPreview | null = null;
+  if (map?.static && region) {
+    const layout = layoutStaticParagraphs(
+      state.text ?? "",
+      staticRegionBox(map.static, region),
+    );
+    const issue = paragraphLayoutIssue(layout);
+    preview = {
+      lines: layout.lines.map((line) => line.text.trimEnd()),
+      capacity: layout.capacity,
+      issue: issue ? `${issue.charAt(0).toUpperCase()}${issue.slice(1)}` : null,
+    };
+  }
+  const notes = formNotesOf(map);
+  return {
+    ...state,
+    transactionId: ownerAcknowledgmentTransactionId(resolved.input.leaseId),
+    startingText,
+    preview,
+    formNotes: notes.notes,
+    printed: notes.printed,
+  };
 }
 
 function mapMeanings(input: PacketEvaluationInput): Map<string, string> {
@@ -86,6 +205,8 @@ export function buildPacketInputsView(input: {
   policy: { readable: boolean; record: ChargePolicyRecord | null };
   resolved: ResolvedPacketForView | null;
   unavailableReason?: string;
+  /** S253: the team's starting text for the owner explanation; empty when none is saved. */
+  startingText?: string;
 }): PacketInputsView {
   const { resolved } = input;
   const questions = new Map<string, PacketQuestion>();
@@ -176,5 +297,12 @@ export function buildPacketInputsView(input: {
       resolved?.input.catalog.formFamilies.map((family) => family.formFamily) ?? [],
     notices:
       resolved?.notices ?? (input.unavailableReason ? [input.unavailableReason] : []),
+    petAgreement: calculated?.petAgreement ?? null,
+    depositEntry: input.policy.record?.content.animals
+      ? "published_tiers"
+      : "staff_record",
+    ownerExplanation: resolved
+      ? ownerExplanationView(input.record, resolved, input.startingText ?? "")
+      : null,
   };
 }

@@ -17,6 +17,7 @@ import {
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
+import { getRenewalWorkspace } from "@/lib/firestore/renewal-workspace";
 import {
   PacketInputsRecordSchema,
   SavePacketInputsSchema,
@@ -116,6 +117,11 @@ export async function savePacketInputs(
   const requestHash = hashExecutionPreview({ actorUid: actor.uid, ...input });
   const head = packetInputsRef(db, input.leaseId);
   const event = db.collection(PACKET_INPUT_COLLECTIONS.activity).doc(input.operationId);
+  // S253 (R-S253-7): an explanation is written for the lease's current renewal cycle. The cycle
+  // is read only when an explanation is being saved; a lease with no cycle yet saves it for none.
+  const cycleId = input.ownerExplanation
+    ? ((await getRenewalWorkspace(actor, input.leaseId, db))?.cycleId ?? null)
+    : null;
   const outcome = await db.runTransaction(async (transaction) => {
     const [snapshot, prior] = await Promise.all([
       transaction.get(head),
@@ -137,6 +143,7 @@ export async function savePacketInputs(
       actorUid: actor.uid,
       nowIso: now,
       eventId: input.operationId,
+      cycleId,
     });
     if (planned.changed.length > 0) transaction.set(head, planned.record);
     transaction.create(event, {
