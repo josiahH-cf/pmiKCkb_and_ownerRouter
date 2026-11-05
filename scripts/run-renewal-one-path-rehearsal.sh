@@ -11,6 +11,8 @@
 #   bash scripts/run-renewal-one-path-rehearsal.sh --serve            stay up for a verification session
 #   bash scripts/run-renewal-one-path-rehearsal.sh --driver <file>    run a journey driver file
 #   bash scripts/run-renewal-one-path-rehearsal.sh --commit <sha> ... serve that commit's application
+#   bash scripts/run-renewal-one-path-rehearsal.sh --driver tests/browser/one-path-stand-in-proof-driver.mjs
+#                                                                     prove the stand-ins and control hooks through the app
 #
 # Options
 #   --commit <sha>     Serve the application as of that commit (for example the starting commit

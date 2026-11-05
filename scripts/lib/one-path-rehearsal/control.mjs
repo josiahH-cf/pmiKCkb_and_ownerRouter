@@ -112,7 +112,8 @@ function writeFlags(rehearsal, flags) {
 /**
  * L09: make one lease's RentVine status unreadable ("missing": the lease carries no status;
  * "unresolved": a status the status table does not hold), or readable again ("clear"). The app
- * reads RentVine again on its next refresh; the lease cache holds a read for up to a minute.
+ * shows the change after its next RentVine read: choose "Refresh data" on the desk, or call
+ * forceSourceRefresh from seeds.mjs in a driver.
  */
 export function setStatusUnreadable(rehearsal, leaseId, mode) {
   if (!["missing", "unresolved", "clear"].includes(mode))
@@ -163,19 +164,29 @@ export async function setComparisonAllowance(rehearsal, reached) {
   return { month, billedCalls: billed, allowance: REHEARSAL_COMPARISON_ALLOWANCE };
 }
 
-/** Requests the provider boundary refused, from the run's network log (L58). */
+/**
+ * Requests the provider boundary refused (L58), from every process of the run: the server, the
+ * rehearsal process itself (stand-ins, seeding and its browser) and the driver. Each entry says
+ * which of the three it came from.
+ */
 export function refusedConnections(rehearsal) {
-  const file = rehearsal.files.networkLog;
-  if (!existsSync(file)) return [];
-  return readFileSync(file, "utf8")
-    .split("\n")
-    .filter(Boolean)
-    .flatMap((line) => {
-      try {
-        const entry = JSON.parse(line);
-        return entry.refused ? [entry] : [];
-      } catch {
-        return [];
-      }
-    });
+  const logs = [
+    ["server", rehearsal.files.networkLog],
+    ["rehearsal", rehearsal.files.harnessNetworkLog],
+    ["driver", rehearsal.files.driverNetworkLog],
+  ];
+  return logs.flatMap(([from, file]) => {
+    if (!file || !existsSync(file)) return [];
+    return readFileSync(file, "utf8")
+      .split("\n")
+      .filter(Boolean)
+      .flatMap((line) => {
+        try {
+          const entry = JSON.parse(line);
+          return entry.refused ? [{ from, ...entry }] : [];
+        } catch {
+          return [];
+        }
+      });
+  });
 }

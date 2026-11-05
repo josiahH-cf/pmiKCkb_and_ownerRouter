@@ -201,7 +201,7 @@ async function noticeAdmission({ page, origin }) {
   const after = await waiting();
   return {
     state: "seeded",
-    detail: `The desk was read, RentVine was read again and the desk was read again; ${before} lease(s) waited on a fresh read before and ${after} after.`,
+    detail: `The desk was read, RentVine was read again and the desk was read again; the desk asked for a fresh read in ${before} place(s) before and ${after} after.`,
   };
 }
 

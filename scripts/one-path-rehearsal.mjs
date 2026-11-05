@@ -102,6 +102,8 @@ const files = {
   rentvineControl: join(output, "rentvine-control.json"),
   rentvineOutage: join(output, "synthetic-rentvine-outage"),
   networkLog: join(output, "network.jsonl"),
+  // The launcher points this process's own refusal log here.
+  harnessNetworkLog: join(output, "harness-network.jsonl"),
   standInLog: join(output, "stand-ins.jsonl"),
   serverLog: join(output, "server.log"),
   driverNetworkLog: join(output, "driver-network.jsonl"),
@@ -195,10 +197,7 @@ try {
     exitCode = await runDriver(rehearsal);
   }
 
-  const refused = [
-    ...refusedConnections(rehearsal),
-    ...refusedConnections({ files: { networkLog: files.driverNetworkLog } }),
-  ];
+  const refused = refusedConnections(rehearsal);
   const result = {
     event: "finished",
     servedCommit: served.commit,
@@ -245,14 +244,16 @@ function serving(rehearsal, servedCommit) {
     `  Origin:        ${rehearsal.origin}`,
     `  Commit:        ${servedCommit}${overlay ? " with uncommitted changes" : ""}${namedCommit ? `, harness files from ${harnessSha}` : ""}`,
     `  Business date: ${rehearsal.businessDate} (America/Chicago), working month ${rehearsal.workingMonth}`,
-    `  Sign in:       open ${rehearsal.origin}/sign-in and choose a local demo role: ${ROLES.join(", ")}.`,
-    `                 From a script, on a page of that origin: fetch("/api/auth/demo", {method: "POST", headers: {"content-type": "application/json"}, body: JSON.stringify({role: "Editor"})}).`,
+    `  Sign in:       Admin: open ${rehearsal.origin}/sign-in and choose "Continue in local demo mode".`,
+    `                 Editor or Approver (the local demo roles are ${ROLES.join(", ")}): on any page of that origin, from the browser console or a script, run`,
+    `                 fetch("/api/auth/demo", {method: "POST", headers: {"content-type": "application/json"}, body: JSON.stringify({role: "Editor"})})`,
+    `                 then reload. Signing in as another role the same way replaces the session.`,
     `  Role leases:   ${roleLine}`,
     `  Lease page:    ${rehearsal.origin}/lease-renewal/live/desk/lease/<lease id>`,
     `  Controls:      ${control} status`,
     `                 ${control} reply | next-send <mode> | bounce | send-draft | rewording <mode> | comparisons | allowance reached|open | status-unreadable <lease id> <mode> | rentvine-outage <path>|clear | mail | refused`,
     `  Logs:          server ${files.serverLog}`,
-    `                 refused connections ${files.networkLog}`,
+    `                 refused connections: "${control} refused" lists them from the server (${files.networkLog}), this process (${files.harnessNetworkLog}) and a driver (${files.driverNetworkLog})`,
     `                 stand-ins ${files.standInLog}`,
     `  Description:   ${join(output, REHEARSAL_FILE)}`,
     serveSeconds > 0

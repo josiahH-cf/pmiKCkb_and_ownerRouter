@@ -27,6 +27,7 @@ import {
   seedForms,
   sequenceStanding,
 } from "@/scripts/lib/one-path-rehearsal/seeds.mjs";
+import { LOCAL_ONLY_DEPLOY_VARIABLES } from "@/scripts/release-candidate.mjs";
 
 // S254 R-S254-4 / AC-S254-5 and S252 R-S252-2: the one-path rehearsal can reach nothing but
 // itself. The static half is here; each run's refused-connection log is the runtime half.
@@ -67,6 +68,8 @@ const runDir = (description = {}) => {
         rentvineControl: join(dir, "rentvine-control.json"),
         rentvineOutage: join(dir, "synthetic-rentvine-outage"),
         networkLog: join(dir, "network.jsonl"),
+        harnessNetworkLog: join(dir, "harness-network.jsonl"),
+        driverNetworkLog: join(dir, "driver-network.jsonl"),
       },
       ...description,
     }),
@@ -234,6 +237,17 @@ describe("S254: the provider boundary changes only when the rehearsal asks", () 
       "The rehearsal mail stand-in accepts example.invalid recipients only.",
     );
   });
+
+  it("a release refuses both variables that name a stand-in to the server", () => {
+    // The app reads REHEARSAL_STAND_IN_ORIGIN (the mail adapter's fence) and LOCAL_MODEL_BASE_URL.
+    for (const name of ["REHEARSAL_STAND_IN_ORIGIN", "LOCAL_MODEL_BASE_URL"])
+      expect(LOCAL_ONLY_DEPLOY_VARIABLES.presentIsFatal, name).toContain(name);
+    // ONE_PATH_REHEARSAL_* variables are read by the provider boundary preload only, which is a
+    // test file and is never part of a build.
+    expect(read("lib/environment/rehearsal-stand-in.ts")).not.toContain(
+      "ONE_PATH_REHEARSAL",
+    );
+  });
 });
 
 describe("S254: control hooks act on the rehearsal and nothing else", () => {
@@ -320,8 +334,26 @@ describe("S254: control hooks act on the rehearsal and nothing else", () => {
       ].join("\n"),
     );
     expect(refusedConnections(described)).toEqual([
-      { refused: "fetch", host: "example.invalid", path: "/" },
+      { from: "server", refused: "fetch", host: "example.invalid", path: "/" },
     ]);
+    // The rehearsal process and a driver keep their own logs; all three are read.
+    writeFileSync(
+      described.files.harnessNetworkLog,
+      `${JSON.stringify({ refused: "socket", host: "example.invalid", port: 443 })}\n`,
+    );
+    writeFileSync(
+      described.files.driverNetworkLog,
+      `${JSON.stringify({ refused: "fetch", host: "example.invalid", path: "/driver" })}\n`,
+    );
+    expect(refusedConnections(described).map((entry) => entry.from)).toEqual([
+      "server",
+      "rehearsal",
+      "driver",
+    ]);
+    // A description from before a log was named still reads the logs it names.
+    expect(
+      refusedConnections({ files: { networkLog: described.files.networkLog } }),
+    ).toHaveLength(1);
   });
 
   it("the command line names every hook the litmus needs", () => {

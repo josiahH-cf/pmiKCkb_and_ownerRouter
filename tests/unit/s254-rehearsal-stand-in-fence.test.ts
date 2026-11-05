@@ -36,7 +36,6 @@ import {
   createRehearsalStandInGmailClient,
   createRehearsalStandInGmailTransport,
 } from "@/lib/gmail-runtime/rehearsal-stand-in-client";
-import { LOCAL_ONLY_DEPLOY_VARIABLES } from "@/scripts/release-candidate.mjs";
 
 // S254 R-S254-4 / AC-S254-5: the rehearsal's mail stand-in is a Demo-owned adapter that can never
 // produce a live effect. It exists only when the descriptor is explicitly Demo with Demo data AND
@@ -188,9 +187,17 @@ describe("S254 fence: the stand-in exists only in the isolated rehearsal", () =>
   });
 
   it("the variable can never deploy: the release refuses it by name", () => {
-    expect(LOCAL_ONLY_DEPLOY_VARIABLES.presentIsFatal).toContain(
-      REHEARSAL_STAND_IN_ORIGIN_VAR,
+    // The list a release refuses when present. The exported list itself is asserted in
+    // tests/unit/s254-one-path-rehearsal-safety.test.mjs, which can import the release script.
+    const release = readFileSync(
+      join(process.cwd(), "scripts/release-candidate.mjs"),
+      "utf8",
     );
+    const presentIsFatal = release.slice(
+      release.indexOf("presentIsFatal: Object.freeze(["),
+      release.indexOf("trueIsFatal:"),
+    );
+    expect(presentIsFatal).toContain(`"${REHEARSAL_STAND_IN_ORIGIN_VAR}",`);
   });
 });
 

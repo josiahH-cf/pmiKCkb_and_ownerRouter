@@ -350,6 +350,29 @@ describe("S254 model stand-in (L10, L13, L44)", () => {
     expect(next.status).toBe("revised");
   });
 
+  it("a standing choice replaces a one-time choice that was not used yet", async () => {
+    await control("rewording", { mode: "echo", once: true });
+    const standing = await control("rewording", { mode: "accept" });
+    expect(standing.body).toEqual({ rewording: "accept", rewordingNext: null });
+    const result = await refineEmailDraft(input, {
+      provider: provider(),
+      model: "rehearsal-stand-in-model",
+    });
+    expect(result.status).toBe("revised");
+    // A standing echo stays until it is changed back.
+    await control("rewording", { mode: "echo" });
+    for (let request = 0; request < 2; request += 1)
+      expect(
+        (
+          await refineEmailDraft(input, {
+            provider: provider(),
+            model: "rehearsal-stand-in-model",
+          })
+        ).status,
+      ).toBe("refused");
+    await control("rewording", { mode: "accept" });
+  });
+
   it("gives an assistant question an empty plan, so the app's own interpreter answers", async () => {
     const response = await provider().generateText({
       purpose: "assistant.interpret",

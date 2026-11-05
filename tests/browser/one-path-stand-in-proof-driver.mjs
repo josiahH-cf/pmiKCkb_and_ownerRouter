@@ -165,11 +165,17 @@ try {
   const asked = (await standInState(rehearsal)).model.requests.slice(before);
   check(
     "the assistant answers a question about next month's renewals",
-    answer.status === 200 && asked.some((request) => request.kind === "plan"),
+    answer.status === 200 &&
+      asked.some((request) => request.kind === "plan") &&
+      Boolean(answer.body?.kind) &&
+      JSON.stringify(answer.body?.summary ?? "").length > 2,
     {
       status: answer.status,
       modelRequests: asked.map((request) => request.kind),
-      answerKeys: Object.keys(answer.body ?? {}).slice(0, 12),
+      kind: answer.body?.kind,
+      interpretedBy: answer.body?.interpretedBy,
+      summary: JSON.stringify(answer.body?.summary ?? null).slice(0, 300),
+      groups: Array.isArray(answer.body?.groups) ? answer.body.groups.length : null,
     },
   );
 

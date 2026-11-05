@@ -802,7 +802,11 @@ export async function startStandIns({ mix = null, logDir = null, port = 0 } = {}
       if (!REWORDING_MODES.includes(body?.mode))
         refuse(400, `Choose one of: ${REWORDING_MODES.join(", ")}.`);
       if (body.once) state.model.rewordingNext = body.mode;
-      else state.model.rewording = body.mode;
+      else {
+        // A standing choice also clears a one-time choice that has not been used yet.
+        state.model.rewording = body.mode;
+        state.model.rewordingNext = null;
+      }
       return {
         rewording: state.model.rewording,
         rewordingNext: state.model.rewordingNext,
