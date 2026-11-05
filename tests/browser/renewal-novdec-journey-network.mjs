@@ -8,6 +8,14 @@ import http from "node:http";
 import https from "node:https";
 import net from "node:net";
 
+import {
+  centralBusinessDate,
+  loadNovember5Mix,
+  mixSheetFixture,
+  readNovember5Mix,
+  rentvineStandInResponse,
+} from "../../scripts/lib/one-path-rehearsal/november-5-mix.mjs";
+
 const LOG = process.env.NOVDEC_JOURNEY_NETWORK_LOG;
 // S232 R-S232-5: while this file exists, the RentVine read of the path it names (for example
 // `leases/statuses`) fails as an outage would. The browser script writes and removes it; this
@@ -108,7 +116,34 @@ function detail(row) {
   };
 }
 
+// S254 R-S254-2: the one-path rehearsal's opt-in desk. Only while ONE_PATH_REHEARSAL_MIX names the
+// "November 5 mix" data file (tests/fixtures/lease-renewal/november-5-mix.json) are RentVine reads
+// answered from its 38 synthetic leases, with every date shifted by whole months to today's
+// Central business date, and does the Sheet stand-in below serve its rows. While the file
+// ONE_PATH_REHEARSAL_RENTVINE_CONTROL names exists, its flags apply to each read: the recorded
+// cycle dates in place of the current ones, or one lease's status made unreadable. Unset, every
+// response is exactly the three-lease one above. Reads only, as ever.
+const MIX_FIXTURE = process.env.ONE_PATH_REHEARSAL_MIX
+  ? readNovember5Mix(process.env.ONE_PATH_REHEARSAL_MIX)
+  : null;
+const MIX_CONTROL = process.env.ONE_PATH_REHEARSAL_RENTVINE_CONTROL;
+let loadedMix = null;
+function mix() {
+  const date = process.env.ONE_PATH_REHEARSAL_BUSINESS_DATE || centralBusinessDate();
+  if (loadedMix?.businessDate !== date) loadedMix = loadNovember5Mix(MIX_FIXTURE, date);
+  return loadedMix;
+}
+function mixFlags() {
+  if (!MIX_CONTROL || !existsSync(MIX_CONTROL)) return {};
+  try {
+    return JSON.parse(readFileSync(MIX_CONTROL, "utf8"));
+  } catch {
+    return {};
+  }
+}
+
 function rentvine(url) {
+  if (MIX_FIXTURE) return rentvineStandInResponse(mix(), url, mixFlags()).body;
   const path = url.pathname.replace(/^\/api\/manager\//, "").replace(/\/$/, "");
   if (path === "leases/export") {
     const page = Number(url.searchParams.get("page") ?? 1);
@@ -194,6 +229,16 @@ function readSheetFixture(path) {
       );
   return fixture;
 }
+// The Sheet this process serves: the one-path mix's rows while that desk is loaded, otherwise the
+// help rehearsal's opt-in rows, otherwise none.
+function sheetFixture() {
+  if (!MIX_FIXTURE) return SHEET_FIXTURE;
+  const sheet = mixSheetFixture(mix());
+  for (const row of sheet.rows)
+    if (!Array.isArray(row.cells) || row.cells.length !== HEADER.length)
+      throw new Error(`The mix Sheet row for ${row.leaseId} must fill the header.`);
+  return sheet;
+}
 // The grid layer of the opt-in Sheet: each row's RentVine link attached to its cell, no notes.
 function sheetRowData(rows) {
   return [HEADER, ...rows.map((row) => row.cells)].map((cells, rowIndex) => ({
@@ -218,13 +263,14 @@ function google(host, method, url) {
   if (host === "iamcredentials.googleapis.com" && url.pathname.endsWith(":signJwt"))
     return { keyId: "synthetic-journey", signedJwt: "synthetic.journey.jwt" };
   if (host === "sheets.googleapis.com" && method === "GET") {
+    const sheet = sheetFixture();
     if (url.pathname.endsWith("/values:batchGet"))
       return {
         valueRanges: url.searchParams.getAll("ranges").map((range) => ({
           range,
           majorDimension: "ROWS",
           // Both value render options read the same text: no opt-in cell holds a formula.
-          values: [HEADER, ...(SHEET_FIXTURE?.rows ?? []).map((row) => row.cells)],
+          values: [HEADER, ...(sheet?.rows ?? []).map((row) => row.cells)],
         })),
       };
     if (/^\/v4\/spreadsheets\/[^/]+$/.test(url.pathname))
@@ -232,9 +278,7 @@ function google(host, method, url) {
         sheets: [
           {
             properties: { sheetId: 0, title: "Lease Renewal" },
-            data: [
-              { rowData: SHEET_FIXTURE ? sheetRowData(SHEET_FIXTURE.rows ?? []) : [] },
-            ],
+            data: [{ rowData: sheet ? sheetRowData(sheet.rows ?? []) : [] }],
           },
         ],
       };
@@ -290,6 +334,14 @@ https.request = function guardedHttpsRequest(input, options, callback) {
   );
 };
 
+// S254: the one-path rehearsal's comparison stand-in. Only while ONE_PATH_REHEARSAL_STAND_IN_ORIGIN
+// names the rehearsal's own stand-in process on 127.0.0.1 are RentCast reads answered there; unset,
+// that host is refused and logged like every other.
+const RENTCAST_HOST = "api.rentcast.io";
+const STAND_IN = process.env.ONE_PATH_REHEARSAL_STAND_IN_ORIGIN;
+if (STAND_IN && !/^http:\/\/127\.0\.0\.1:\d{1,5}$/.test(STAND_IN))
+  throw new Error("The one-path stand-in origin must be http://127.0.0.1 with a port.");
+
 const realFetch = globalThis.fetch;
 globalThis.fetch = async function guardedFetch(input, init) {
   const url = new URL(
@@ -329,6 +381,20 @@ globalThis.fetch = async function guardedFetch(input, init) {
       found: body !== undefined,
     });
     return respond(body);
+  }
+  if (STAND_IN && url.hostname === RENTCAST_HOST) {
+    // S254: the comparison stand-in answers RentCast reads. Only the path and query are passed
+    // on; no header, key or body leaves this process, and nothing but a read is answered.
+    if ((init?.method ?? "GET").toUpperCase() !== "GET") {
+      record({ refused: "rentcast_write", path: url.pathname });
+      throw new TypeError("The comparison stand-in answers reads only.");
+    }
+    record({ served: "rentcast_stand_in", path: url.pathname });
+    return realFetch(`${STAND_IN}/rentcast${url.pathname}${url.search}`, {
+      method: "GET",
+      headers: { accept: "application/json" },
+      redirect: "error",
+    });
   }
   if (!loopback(url.hostname)) {
     record({ refused: "fetch", host: url.hostname, path: url.pathname });
