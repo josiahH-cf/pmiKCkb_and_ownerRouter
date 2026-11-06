@@ -484,7 +484,10 @@ export function currentStaffActivity(state: RenewalWorkspaceState, key: ManualAc
 export function staffOwnerOutcome(
   state: RenewalWorkspaceState | null | undefined,
   endDateIso?: string | null,
-): Exclude<NonNullable<RenewalWorkspaceState["ownerResponse"]>["outcome"], "renew_tenant"> | null {
+): Exclude<
+  NonNullable<RenewalWorkspaceState["ownerResponse"]>["outcome"],
+  "renew_tenant"
+> | null {
   if (!state?.ownerResponse) return null;
   const basis = workBasisDateIso(state.basis);
   if (endDateIso !== undefined && basis !== null && basis !== endDateIso) return null;

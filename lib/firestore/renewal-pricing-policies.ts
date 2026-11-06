@@ -423,7 +423,10 @@ export class RenewalPricingPolicyStore {
         ]);
         if ((old.exists ? old.get("version") : 0) !== expectedVersion) conflict();
         if (!policy.exists)
-          throw new EditableLayerError("The agreement's pricing rule does not exist.", 409);
+          throw new EditableLayerError(
+            "The agreement's pricing rule does not exist.",
+            409,
+          );
         if (old.exists && old.get("portfolioId") !== input.portfolioId)
           throw new EditableLayerError(
             "An agreement keeps its portfolio. Record a new agreement for another portfolio.",
@@ -625,7 +628,8 @@ export class RenewalPricingPolicyStore {
             this.db.collection(RENEWAL_PRICING_COLLECTIONS.standingAgreements).doc(value),
           ),
       );
-      for (const d of rows) if (d.exists) standingAgreements.push(parseStandingAgreement(d.data()!));
+      for (const d of rows)
+        if (d.exists) standingAgreements.push(parseStandingAgreement(d.data()!));
     }
     const policyIds = [
       ...new Set([

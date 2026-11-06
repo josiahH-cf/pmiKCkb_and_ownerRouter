@@ -145,9 +145,8 @@ describe("S250 ARCH-S250-1: the standing agreement kind", () => {
     void recordedAt;
     // The S194 exact record requires a cycle date, a lease list and exact terms.
     expect(StandingOwnerAgreementInputSchema.safeParse(input).success).toBe(false);
-    const { StandingAgreementInputSchema } = await import(
-      "@/lib/lease-renewal/standing-agreement"
-    );
+    const { StandingAgreementInputSchema } =
+      await import("@/lib/lease-renewal/standing-agreement");
     expect(StandingAgreementInputSchema.safeParse(input).success).toBe(true);
     expect(Object.keys(input)).not.toEqual(
       expect.arrayContaining(["cycleDate", "leaseIds", "terms"]),
@@ -209,7 +208,9 @@ describe("S250 R-S250-4: the rent to recommend is the rule applied to the curren
       );
       expect(resolved.proposal?.amount, words).toBe(amount);
       expect(resolved.authority).toMatchObject({ covered: true, amount, rule: words });
-      expect(resolved.authority.basis).toContain("applied to the current rent of $1,700.00");
+      expect(resolved.authority.basis).toContain(
+        "applied to the current rent of $1,700.00",
+      );
     }
   });
 
@@ -450,9 +451,8 @@ describe("S250 R-S250-9: existing records keep their meaning", () => {
 
 describe("S250 BEH-S250-5 / AC-S250-4: a rule change applies forward only", () => {
   it("a changed rule changes later proposals; a rent adopted from the earlier rule keeps its value and is named as built on it", async () => {
-    const { adoptedStandingRule, standingRuleContext } = await import(
-      "@/lib/lease-renewal/standing-agreement"
-    );
+    const { adoptedStandingRule, standingRuleContext } =
+      await import("@/lib/lease-renewal/standing-agreement");
     const before = resolve(lease("9102", "2026-12-31"));
     const changed = snapshot({
       policies: [

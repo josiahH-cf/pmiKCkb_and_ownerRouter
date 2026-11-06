@@ -319,12 +319,16 @@ export function WorkingMoneyField({ field, label, hint, source }: WorkingFieldPr
           value={displayText}
         />
       </Field>
-      {prefill && !entry ? (
+      {prefill && !entry && prefill.standing ? (
         <p className="muted">
-          {prefill.standing
-            ? `Prefilled from ${prefill.standing.name}, rule v${prefill.standing.policyVersion}. ${prefill.standing.basis}`
-            : `Prefilled from policy v${prefill.policyVersion}. ${prefill.reason}`}{" "}
-          This amount is saved when you leave or submit the field.
+          Prefilled from {prefill.standing.name}, rule v{prefill.standing.policyVersion}.{" "}
+          {prefill.standing.basis} This amount is saved when you leave or submit the
+          field.
+        </p>
+      ) : prefill && !entry ? (
+        <p className="muted">
+          Prefilled from policy v{prefill.policyVersion}. {prefill.reason} This amount is
+          saved when you leave or submit the field.
         </p>
       ) : null}
       <AutosaveStatus

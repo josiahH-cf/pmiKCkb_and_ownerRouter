@@ -856,7 +856,8 @@ function toLiveSummary(
       : undefined;
   // S251: the lease's Housing assistance fact, from the working record this render read.
   const housingFact = working ? housingAssistanceFact(working) : null;
-  const assisted = housingFact?.status === "yes" ? { program: housingFact.program } : null;
+  const assisted =
+    housingFact?.status === "yes" ? { program: housingFact.program } : null;
   // Source expiry or incomplete membership cannot establish an applicable standing agreement.
   if (
     renewalPricing?.authority.covered &&

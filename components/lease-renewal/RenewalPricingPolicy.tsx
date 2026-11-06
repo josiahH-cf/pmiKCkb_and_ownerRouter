@@ -264,7 +264,8 @@ export function PricingBasisChooser({ context }: Readonly<{ context: "now" | "pa
     if (!view || !choice || !scope) return;
     const sourceId = scope === "lease" ? c.leaseId : portfolioId;
     if (!sourceId) return;
-    const assignment = scope === "lease" ? view.leaseAssignment : view.portfolioAssignment;
+    const assignment =
+      scope === "lease" ? view.leaseAssignment : view.portfolioAssignment;
     void post(
       {
         action: "pricing_basis",
@@ -330,7 +331,9 @@ export function PricingBasisChooser({ context }: Readonly<{ context: "now" | "pa
             <label className="ui-row" key={value}>
               <input
                 checked={scope === value}
-                disabled={!c.canEdit || pending || (value === "portfolio" && !portfolioId)}
+                disabled={
+                  !c.canEdit || pending || (value === "portfolio" && !portfolioId)
+                }
                 name={`${htmlId}-scope`}
                 onChange={() => setScope(value)}
                 type="radio"
@@ -470,8 +473,8 @@ export function StandingRuleNotice() {
   return (
     <div className="ui-stack-tight" data-renewal-field="standing-earlier-rule">
       <p className="renewal-notice" role="note">
-        {STANDING_AGREEMENT_WORDS.earlierRule}. The working rent and the message built on it
-        keep their value until you rebuild them.
+        {STANDING_AGREEMENT_WORDS.earlierRule}. The working rent and the message built on
+        it keep their value until you rebuild them.
       </p>
       {amount !== null && working?.canEdit ? (
         <p>

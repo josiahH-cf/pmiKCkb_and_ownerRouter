@@ -317,7 +317,9 @@ export function classifyRenewalCohort(
       term: termProjection.term,
       termProjection,
       // S251 R-S251-10: a suggestion only; it changes no disposition below.
-      ...(housingAssistanceMention(lease) ? { housingAssistanceMention: true as const } : {}),
+      ...(housingAssistanceMention(lease)
+        ? { housingAssistanceMention: true as const }
+        : {}),
     };
 
     if (termProjection.term === "month_to_month") {

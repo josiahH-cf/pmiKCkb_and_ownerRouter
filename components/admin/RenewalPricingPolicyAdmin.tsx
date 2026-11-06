@@ -665,9 +665,9 @@ function PortfolioStandingAgreementEditor({
     <section aria-label="Standing agreements by owner portfolio" className="ui-stack">
       <h3>Standing agreements by owner portfolio</h3>
       <p className="muted">
-        An owner agrees once to a pricing rule for every renewal in their portfolio. Staff then
-        choose it on a lease as its Pricing basis for this lease only or for every lease in
-        this owner&rsquo;s portfolio.
+        An owner agrees once to a pricing rule for every renewal in their portfolio. Staff
+        then choose it on a lease as its Pricing basis for this lease only or for every
+        lease in this owner&rsquo;s portfolio.
       </p>
       {rows.length ? (
         <ul aria-label="Recorded standing agreements">
@@ -675,7 +675,11 @@ function PortfolioStandingAgreementEditor({
             <li key={row.id}>
               {row.name}: {row.rule ?? "rule not in effect"}, portfolio {row.portfolioId},
               version {row.version}
-              {row.revoked ? ", revoked" : row.active ? ", in effect" : ", not in effect"}{" "}
+              {row.revoked
+                ? ", revoked"
+                : row.active
+                  ? ", in effect"
+                  : ", not in effect"}{" "}
               <button className="text-link" onClick={() => edit(row.id)} type="button">
                 Edit
               </button>

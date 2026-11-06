@@ -796,7 +796,9 @@ export function projectRenewalStage(
   const satisfied = satisfiedFor(evaluation);
   const owner = audienceStep(evaluation, "owner");
   const tenant = audienceStep(evaluation, "tenant");
-  const assistedAnswer = variants.housingAssistance ? assistedAnswerStep(evaluation) : null;
+  const assistedAnswer = variants.housingAssistance
+    ? assistedAnswerStep(evaluation)
+    : null;
   const ownerAnswer = state?.ownerResponse?.outcome ?? null;
   const documents = activityStepState(evaluation, DOCUMENT_ACTIVITIES);
   const followUps = activityStepState(evaluation, FOLLOW_UP_ACTIVITIES);

@@ -37,7 +37,9 @@ export function pricingPolicyDependencies(actor: AuthenticatedUser) {
       ...new Set(
         (await read())
           .filter((v) => leasePortfolioId(v) === id)
-          .flatMap((v) => projectRenewalDeskIdentity(v).owners.map((owner) => owner.label))
+          .flatMap((v) =>
+            projectRenewalDeskIdentity(v).owners.map((owner) => owner.label),
+          )
           .filter((label) => label.trim() && label !== "Needs Verification"),
       ),
     ],

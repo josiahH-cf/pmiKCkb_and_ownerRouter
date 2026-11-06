@@ -2,7 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { classifyRenewalCohort } from "@/lib/lease-renewal/cohort";
 import { runKickoffPreparation } from "@/lib/lease-renewal/kickoff-preparation-service";
-import { kickoffFactsFor, UNREAD_KICKOFF_SUPPORT } from "@/lib/lease-renewal/kickoff-facts";
+import {
+  kickoffFactsFor,
+  UNREAD_KICKOFF_SUPPORT,
+} from "@/lib/lease-renewal/kickoff-facts";
 import { renewalPathSteps } from "@/lib/lease-renewal/renewal-path";
 import { renewalBatchRowTags } from "@/lib/lease-renewal/renewal-batch-row";
 import {

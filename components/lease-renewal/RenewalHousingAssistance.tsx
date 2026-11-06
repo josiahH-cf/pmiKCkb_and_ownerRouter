@@ -292,7 +292,8 @@ export function AssistedRenewalControls({
   return (
     <div className="ui-stack" data-renewal-assisted-controls>
       <p className="muted">
-        {assistedProgramContactLabel(program)} first, recorded as the program contact above.
+        {assistedProgramContactLabel(program)} first, recorded as the program contact
+        above.
       </p>
       <section
         aria-label="Ask the owner whether to renew this tenant"
@@ -302,8 +303,8 @@ export function AssistedRenewalControls({
       >
         <h3>Ask the owner whether to renew this tenant</h3>
         <p className="muted">
-          Record the contact you made with the owner another way, or send the standard owner
-          message.
+          Record the contact you made with the owner another way, or send the standard
+          owner message.
           {recordedAnswerLabel ? ` Recorded: ${recordedAnswerLabel}.` : ""}
           {recordedAnswer === "approved_terms"
             ? " The owner approved the terms, which answers renewing and the rent together."
@@ -367,7 +368,8 @@ export function AssistedRenewalControls({
         {recordedRent ? (
           <p className="muted" data-renewal-field="assisted-rent-recorded">
             Recorded:{" "}
-            {ASSISTED_RENT_CHOICES.find((option) => option.value === recordedRent)?.label}.
+            {ASSISTED_RENT_CHOICES.find((option) => option.value === recordedRent)?.label}
+            .
           </p>
         ) : null}
         <fieldset className="ui-stack-tight">

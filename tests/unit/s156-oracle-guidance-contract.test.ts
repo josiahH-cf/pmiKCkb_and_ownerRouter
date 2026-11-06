@@ -29,6 +29,7 @@ import {
   INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER,
   INDEPENDENT_ONE_STATUS_CONTRACT_MARKER,
   INDEPENDENT_STAFF_LANE_CONTRACT_MARKER,
+  INDEPENDENT_VARIANTS_CONTRACT_MARKER,
   PRODUCTION_RECONCILIATION_DESK_VIEW,
   countIndependentContractMarkerMismatches,
   independentStaffLaneWaitingRule,
@@ -493,7 +494,13 @@ describe("S156 oracle: the contract marker selects exactly one rule set", () => 
     // earlier serving revision.
     expect(INDEPENDENT_ONE_STATUS_CONTRACT_MARKER).toBe("s232-one-status");
     expect(INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER).toBe("s248-evidence-stage");
-    expect(INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER).toBe(DESK_GUIDANCE_CONTRACT);
+    // S250/S251: this checkout renders the variants marker; S248's stays recognised for an
+    // earlier serving revision.
+    expect(INDEPENDENT_VARIANTS_CONTRACT_MARKER).toBe("s251-variants");
+    expect(INDEPENDENT_VARIANTS_CONTRACT_MARKER).toBe(DESK_GUIDANCE_CONTRACT);
+    expect(resolveIndependentGuidanceContract(INDEPENDENT_VARIANTS_CONTRACT_MARKER)).toBe(
+      "staff_lane",
+    );
     expect(
       resolveIndependentGuidanceContract(INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER),
     ).toBe("staff_lane");
@@ -1021,8 +1028,9 @@ describe("S156 oracle: the independent rules equal the rules the application ren
         });
         const destination =
           "destination" in rendered.action ? rendered.action.destination : null;
-        // S248: the rendered marker is this checkout's evidence-stage contract.
-        expect(rendered.contract).toBe(INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER);
+        // S248: the rendered marker was the evidence-stage contract. S250/S251: this checkout
+        // renders the variants contract, which reads the same rules with the variant facts.
+        expect(rendered.contract).toBe(INDEPENDENT_VARIANTS_CONTRACT_MARKER);
         expect(rendered.blockers).toEqual([]);
         expect(expected.markerMismatches).toBe(0);
         expect(expected.overallStatus).toBe(rendered.overallStatus);

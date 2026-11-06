@@ -626,7 +626,9 @@ export function RenewalManualSection({
         (key !== "non_renewal_handoff" || summary.nonRenewal || moveOutInitiated) &&
         // S251 R-S251-4: the program contact is part of the path only with Housing assistance
         // Yes; a record staff already made stays visible.
-        (key !== "program_contact" || Boolean(assisted) || Boolean(state?.activities[key])),
+        (key !== "program_contact" ||
+          Boolean(assisted) ||
+          Boolean(state?.activities[key])),
     )
     .map(([key]) => key as ManualActivity);
   // S120 (R120.1): the outreach or delivery record comes before the response it precedes in
@@ -785,7 +787,10 @@ function ActivityForm({ activity }: { activity: ManualActivity }) {
   const workingRecord = useRenewalWorkingRecord();
   const isNext =
     manualRenewalSummary(state, {
-      standingOwnerAuthority: standingAuthorityCurrent(pricing?.view, state?.revision ?? 0),
+      standingOwnerAuthority: standingAuthorityCurrent(
+        pricing?.view,
+        state?.revision ?? 0,
+      ),
       evidence: outreachFillFor(state, context.outreachEvidence),
       housingAssistance: housingAssistanceVariant(workingRecord?.record),
     }).nextActivity === activity;

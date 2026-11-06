@@ -200,7 +200,9 @@ export function RenewalWorkingBatch({
   const tagFilter: RenewalBatchTagFilter | null = query.tag ?? null;
   const shownRows = useMemo(
     () =>
-      tagFilter ? rows.filter((row) => row.tags.some((tag) => tag.key === tagFilter)) : rows,
+      tagFilter
+        ? rows.filter((row) => row.tags.some((tag) => tag.key === tagFilter))
+        : rows,
     [rows, tagFilter],
   );
   const partition = useMemo(

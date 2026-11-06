@@ -395,7 +395,8 @@ export const RENEWAL_PATH_DEFINITION: Readonly<
   "assisted-owner-renewal-answer": {
     id: "assisted-owner-renewal-answer",
     label: RENEWAL_PATH_LABELS["assisted-owner-renewal-answer"],
-    ready: "The standard owner message, or the contact you made with the owner another way.",
+    ready:
+      "The standard owner message, or the contact you made with the owner another way.",
     decides: "Renew, Do not renew or No answer yet, as the owner answers.",
     controls: ["renewal-card-message-owner", ASSISTED_CONTROL_IDS.renewalAnswer],
     handlers: [...MESSAGE_ROUTES, WORKSPACE_ROUTE],

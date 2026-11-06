@@ -139,7 +139,9 @@ export function RenewalGuidedView({
           standingAgreement: standingCovered
             ? {
                 label:
-                  pricing?.view?.authority.label ?? context.standingAgreement?.label ?? null,
+                  pricing?.view?.authority.label ??
+                  context.standingAgreement?.label ??
+                  null,
                 reason:
                   pricing?.view?.authority.reason ??
                   context.standingAgreement?.reason ??

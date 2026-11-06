@@ -168,7 +168,9 @@ const OWNER_DECIDES = "so the owner decides this renewal";
  * rent is untouched or equal to it. Every other answer returns the owner step with the reason in
  * words (R-S250-6).
  */
-export function standingAgreementCoverage(input: StandingCoverageInput): StandingCoverage {
+export function standingAgreementCoverage(
+  input: StandingCoverageInput,
+): StandingCoverage {
   const a = input.agreement;
   const refuse = (
     reason: string,
