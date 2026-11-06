@@ -454,9 +454,9 @@ try {
     `L33 (covered lease ${covered}): while its standing agreement covers it, opening the batch looks up no comparison for it`,
     !coveredPosts.includes(String(covered)) &&
       (whileCovered[String(covered)] ?? 0) === 0 &&
-      coveredOpen.rows?.find((row) => row.lease === String(covered))?.tags.includes(
-        "standing_agreement",
-      ) === true,
+      coveredOpen.rows
+        ?.find((row) => row.lease === String(covered))
+        ?.tags.includes("standing_agreement") === true,
     { coveredPosts, whileCovered, coveredOpen },
   );
   /** Type a rent to recommend on the lease's Now card and wait for its save to answer. */

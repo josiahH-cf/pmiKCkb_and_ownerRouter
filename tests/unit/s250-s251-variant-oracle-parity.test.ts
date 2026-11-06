@@ -527,7 +527,6 @@ describe("S250 standing coverage: the app's one coverage function and the oracle
   });
 });
 
-
 // ---- The staff lane ------------------------------------------------------------------------
 
 const CYCLE_ID = "b4bc3b81-c402-4f62-a2e2-c605c67867fb";
@@ -782,8 +781,18 @@ describe("S194 exact kind: the cycle the agreement is matched against", () => {
   })();
   it.each([
     ["the RentVine end date", "2026-12-31", null, "2026-12-31"],
-    ["no RentVine end date: the staff record's dated basis", "Needs Verification", leaseEnd, CYCLE],
-    ["no RentVine end date and a lease-bound record", "Needs Verification", leaseBound, null],
+    [
+      "no RentVine end date: the staff record's dated basis",
+      "Needs Verification",
+      leaseEnd,
+      CYCLE,
+    ],
+    [
+      "no RentVine end date and a lease-bound record",
+      "Needs Verification",
+      leaseBound,
+      null,
+    ],
     ["no RentVine end date and no record", "", null, null],
   ] as const)("%s", (_name, endDate, record, expected) => {
     expect(independentPricingCycleDate(endDate, record)).toBe(expected);

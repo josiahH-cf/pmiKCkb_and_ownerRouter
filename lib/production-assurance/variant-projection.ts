@@ -180,7 +180,11 @@ function ruleRent(
 }
 
 /** One policy version's rent for the current rent, or null when it gives none today. */
-function policyRent(policy: Raw, currentRent: number | null, today: string): number | null {
+function policyRent(
+  policy: Raw,
+  currentRent: number | null,
+  today: string,
+): number | null {
   const through = policy.effectiveThrough;
   if (
     policy.enabled !== true ||
@@ -347,7 +351,8 @@ export function independentExactCovered(
   );
   if (current.length !== 1) return false;
   const agreement = current[0]!;
-  const policyOf = (id: string) => text(asRecord(documents.assignments.get(id))?.policyId);
+  const policyOf = (id: string) =>
+    text(asRecord(documents.assignments.get(id))?.policyId);
   const selected =
     policyOf(`lease_${lease.leaseId}`) ?? policyOf(`portfolio_${lease.portfolioId}`);
   const policy = selected

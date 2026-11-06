@@ -99,7 +99,11 @@ export function kickoffPreparationDeps(
       // S250: whether a standing agreement covers the owner step on this read, from the one
       // coverage function over the same lease read and working record. A pricing read that fails
       // cannot confirm it either way, so the automatic start waits.
-      const coverage = await readRenewalPricingForViews(actor, [view], new Date(nowMs)).then(
+      const coverage = await readRenewalPricingForViews(
+        actor,
+        [view],
+        new Date(nowMs),
+      ).then(
         (pricing) => {
           const facts = pricing.facts[0];
           if (!facts) return { ownerStepCoverage: null, coveredBy: null };
@@ -109,14 +113,19 @@ export function kickoffPreparationDeps(
               ...facts,
               cycleDate:
                 facts.cycleDate ??
-                (manual && manual.basis.kind !== "lease_bound" ? manual.basis.dateIso : null),
+                (manual && manual.basis.kind !== "lease_bound"
+                  ? manual.basis.dateIso
+                  : null),
             },
             effectiveRenewalTerms(working.record).complete,
             pricing.today,
             { workingRent: workingRenewalTerms(working.record).rent },
           ).authority;
           return authority.covered
-            ? { ownerStepCoverage: "covered" as const, coveredBy: authority.label ?? null }
+            ? {
+                ownerStepCoverage: "covered" as const,
+                coveredBy: authority.label ?? null,
+              }
             : { ownerStepCoverage: null, coveredBy: null };
         },
         () => ({ ownerStepCoverage: "unconfirmed" as const, coveredBy: null }),

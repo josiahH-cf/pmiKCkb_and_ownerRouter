@@ -307,7 +307,12 @@ function s246Sources(options: S246DeskOptions) {
     },
     currency: {
       state: options.currency ?? "fresh",
-      ageMs: options.currency === "expired" ? 16 * 60_000 : options.currency === "stale" ? 90_000 : 0,
+      ageMs:
+        options.currency === "expired"
+          ? 16 * 60_000
+          : options.currency === "stale"
+            ? 90_000
+            : 0,
       readAtMs: Date.parse(readTs),
       refreshing: options.currency === "stale",
       lastError: false,

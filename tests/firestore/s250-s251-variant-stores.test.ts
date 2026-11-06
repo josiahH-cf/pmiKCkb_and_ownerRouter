@@ -85,7 +85,10 @@ const standing = (policyId: string, portfolioId = PORTFOLIO): StandingAgreementI
 
 let env: RulesTestEnvironment, app: App, db: Firestore, store: RenewalPricingPolicyStore;
 beforeAll(async () => {
-  env = await initializeTestEnvironment({ projectId, firestore: FIRESTORE_EMULATOR_TARGET });
+  env = await initializeTestEnvironment({
+    projectId,
+    firestore: FIRESTORE_EMULATOR_TARGET,
+  });
   app = initializeApp({ projectId }, `s250-${process.pid}`);
   db = getFirestore(app);
   vi.stubEnv("ENVIRONMENT_KIND", "production");
@@ -165,7 +168,9 @@ describe("S250 standing agreements: set once for the portfolio, chosen on the le
     const second = await resolve("116");
     expect(first).toMatchObject({ covered: true, kind: "standing", amount: 1751 });
     expect(second).toMatchObject({ covered: true, kind: "standing", amount: 1545 });
-    expect((await db.collection(RENEWAL_PRICING_COLLECTIONS.agreements).get()).size).toBe(0);
+    expect((await db.collection(RENEWAL_PRICING_COLLECTIONS.agreements).get()).size).toBe(
+      0,
+    );
     // R-S250-5: a typed different rent leaves the agreement, with the reason in words.
     const typed = await resolve("115", 1800);
     expect(typed.covered).toBe(false);

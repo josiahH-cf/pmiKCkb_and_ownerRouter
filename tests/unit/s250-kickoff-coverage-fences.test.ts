@@ -119,7 +119,10 @@ describe("S250 server fence: the automatic start looks up no lease a standing ag
 
   it("a lease that left the rule (or never had one) is an ordinary target", async () => {
     for (const ownerStepCoverage of [null, undefined]) {
-      const { deps, lookup } = harness({ ...LEASE, ownerStepCoverage } as KickoffLeaseRead);
+      const { deps, lookup } = harness({
+        ...LEASE,
+        ownerStepCoverage,
+      } as KickoffLeaseRead);
       expect(await runKickoffPreparation(STAFF, automatic, deps)).toMatchObject({
         status: "prepared",
       });
@@ -254,7 +257,9 @@ async function desk(options: Parameters<typeof loadS246Desk>[0] = {}) {
   const targets = rows
     .filter(
       (entry) =>
-        entry.kickoff?.needsComparison && !entry.kickoff.allowanceReached && entry.canOpen,
+        entry.kickoff?.needsComparison &&
+        !entry.kickoff.allowanceReached &&
+        entry.canOpen,
     )
     .map((entry) => entry.leaseId);
   return { authority: s246Row(view, COVERED).renewalPricing?.authority, row, targets };
@@ -297,7 +302,11 @@ describe("S250 desk: coverage keeps its identity, and only a lease that needs a 
 
   it("a working record that could not be read says coverage could not be confirmed and is no target", async () => {
     const { authority, targets } = await desk({ working: undefined });
-    expect(authority).toMatchObject({ covered: false, unconfirmed: true, kind: "standing" });
+    expect(authority).toMatchObject({
+      covered: false,
+      unconfirmed: true,
+      kind: "standing",
+    });
     expect(targets).not.toContain(COVERED);
   });
 
