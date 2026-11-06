@@ -27,6 +27,9 @@
 #   --driver <file>    Run this driver file (path inside the repository) in place of the smoke
 #                      driver. Arguments after -- are passed to it.
 #   --no-seeds         Load the source leases only; skip every app-state seed.
+#   --hold-automatic-comparison
+#                      Keep the rehearsal's automatic preparation setting off, including after
+#                      resets. Use for audits that must never trigger an automatic comparison.
 #   --no-mail-adapter  Serve without the Demo-owned mail adapter (S249): the server is then outside
 #                      the rehearsal exemption, as a verification session's server is, so the
 #                      automatic start never fires in an automated browser and sends and Gmail
@@ -93,7 +96,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --overlay) overlay=true ;;
     --commit) commit="${2:?--commit needs a commit}"; shift ;;
-    --serve | --no-seeds | --no-mail-adapter) args+=("$1") ;;
+    --serve | --no-seeds | --no-mail-adapter | --hold-automatic-comparison) args+=("$1") ;;
     --driver) driver_file="${2:?--driver needs a file}"; args+=("$1" "$2"); shift ;;
     --serve-for) args+=("$1" "${2:?--serve-for needs seconds}"); shift ;;
     --) shift; args+=(-- "$@"); break ;;

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -60,6 +60,38 @@ afterEach(() => {
 });
 
 describe("S247 R-S247-9: unsaved typing survives a reload", () => {
+  it("keeps a newer entry made while the old typing is waiting to return", async () => {
+    renderPage();
+    await userEvent.setup().type(screen.getByLabelText("Reason to include"), "Old text");
+    act(() => window.dispatchEvent(new Event("pagehide")));
+    cleanup();
+    navigation("reload");
+    vi.useFakeTimers();
+    try {
+      renderPage();
+      fireEvent.change(screen.getByLabelText("Reason to include"), {
+        target: { value: "New text" },
+      });
+      fireEvent.input(screen.getByLabelText("Reason to include"));
+      await act(() => vi.advanceTimersByTimeAsync(2000));
+      expect(screen.getByLabelText("Reason to include")).toHaveValue("New text");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps the complete field value when it is longer than 5,000 characters", () => {
+    renderPage();
+    const field = screen.getByLabelText("Reason to include");
+    const value = "x".repeat(6000);
+    fireEvent.change(field, { target: { value } });
+    field.focus();
+    act(() => window.dispatchEvent(new Event("pagehide")));
+    expect(
+      JSON.parse(window.sessionStorage.getItem("renewal-lease-continuity")!).typed.value,
+    ).toBe(value);
+  });
+
   it("puts the words back into the field the person was still in, as their own entry", async () => {
     renderPage();
     const user = userEvent.setup();

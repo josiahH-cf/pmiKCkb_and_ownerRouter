@@ -79,7 +79,6 @@ interface KeptPlace {
 
 /** Field types whose typing a reload keeps; a password or a choice control is never kept. */
 const KEPT_INPUT_TYPES = new Set(["", "text", "search", "number", "tel", "url", "email"]);
-const KEPT_TEXT_LIMIT = 5000;
 
 type TypedField = { readonly id: string; readonly value: string };
 
@@ -95,7 +94,7 @@ function typedField(): TypedField | null {
     (element instanceof HTMLInputElement && KEPT_INPUT_TYPES.has(element.type));
   if (!text || !element.id || element.disabled || element.readOnly) return null;
   if (!element.closest("main")) return null;
-  return { id: element.id, value: element.value.slice(0, KEPT_TEXT_LIMIT) };
+  return { id: element.id, value: element.value };
 }
 
 function isTypedField(value: unknown): value is TypedField {
@@ -116,16 +115,32 @@ function restoreTypedField(typed: TypedField): () => void {
   const startedAt = Date.now();
   let seenAt: number | null = null;
   let seenValue: string | null = null;
-  let timer: number | null = window.setTimeout(function check() {
+  let timer: number | null = null;
+  const stop = () => {
+    if (timer !== null) window.clearTimeout(timer);
+    timer = null;
+    document.removeEventListener("input", entry, true);
+    document.removeEventListener("keydown", stop, true);
+    document.removeEventListener("pointerdown", stop, true);
+  };
+  const entry = (event: Event) => {
+    if (event.target instanceof HTMLElement && event.target.id === typed.id) stop();
+  };
+  // A person who resumes work first keeps their newer entry and focus.
+  document.addEventListener("input", entry, true);
+  document.addEventListener("keydown", stop, true);
+  document.addEventListener("pointerdown", stop, true);
+  timer = window.setTimeout(function check() {
     timer = null;
     const element = document.getElementById(typed.id);
     const field =
-      element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement
+      element instanceof HTMLTextAreaElement ||
+      (element instanceof HTMLInputElement && KEPT_INPUT_TYPES.has(element.type))
         ? element
         : null;
     const now = Date.now();
     if (field && !field.disabled && !field.readOnly && !field.closest("[hidden]")) {
-      if (field.value === typed.value) return;
+      if (field.value === typed.value) return stop();
       if (seenValue !== field.value) {
         // The page is still filling the field; wait until it holds still.
         seenValue = field.value;
@@ -139,17 +154,16 @@ function restoreTypedField(typed: TypedField): () => void {
           field,
           typed.value,
         );
+        stop();
         field.dispatchEvent(new Event("input", { bubbles: true }));
         focusProgrammatically(field);
         return;
       }
     }
     if (now - startedAt < 20_000) timer = window.setTimeout(check, 250);
+    else stop();
   }, 250);
-  return () => {
-    if (timer !== null) window.clearTimeout(timer);
-    timer = null;
-  };
+  return stop;
 }
 
 /** The place this tab kept on unload, taken once, and only on a reload of the same address. */

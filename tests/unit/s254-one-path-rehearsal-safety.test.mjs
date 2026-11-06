@@ -81,6 +81,28 @@ afterEach(() => {
 });
 
 describe("S254: the rehearsal runs only in a disposable worktree against loopback emulators", () => {
+  it("keeps automatic comparisons off after seeds and resets when the audit holds them", async () => {
+    const requests = [];
+    const page = {
+      evaluate: async (_fn, request) => {
+        requests.push(request);
+        return { status: 200, body: { enabled: true, version: 1 } };
+      },
+    };
+    const step = SEED_STEPS.find((entry) => entry.name === "automatic-start-restored");
+    const results = await runSeeds(
+      { page, rehearsal: { automaticComparisonHeld: true } },
+      [step],
+    );
+    expect(results[0].state).toBe("seeded");
+    expect(requests.filter((entry) => entry.body?.enabled !== undefined)).toEqual([
+      expect.objectContaining({
+        path: "/api/lease-renewal/kickoff-settings",
+        body: expect.objectContaining({ enabled: false, expectedVersion: 1 }),
+      }),
+    ]);
+  });
+
   it("the launcher checks a commit out under /tmp and keeps evidence in private local state", () => {
     expect(launcher).toMatch(
       /root=\$\(mktemp -d \/tmp\/pmi-kc-one-path-rehearsal-XXXXXX\)/,

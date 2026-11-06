@@ -76,7 +76,10 @@ is No and every UNVERIFIED check names its evidence gap.
   is measured. On the starting commit the kickoff follows that commit's own in-app guides.
 - **R-S254-4 — Unattended execution.** The runner works only in the rehearsal with its local
   roles and stand-ins, never asks a question mid-run, and turns a needed decision into a blocker
-  row while it continues with the independent checks.
+  row while it continues with the independent checks. When the owner's audit instruction forbids
+  triggering automatic comparisons, use `--hold-automatic-comparison` on the rehearsal. It keeps
+  the reviewed setting off after initial seeding and every reset. Report the automatic-start
+  observation in L33 as UNVERIFIED with that boundary; the check itself remains unchanged.
 - **R-S254-5 — Reporting.** For every check the runner reports Yes or No with concise observed
   evidence, or UNVERIFIED with the reason and what would resolve it. It separates initial
   failures, repairs, final observations and remaining blockers. The report is committed as

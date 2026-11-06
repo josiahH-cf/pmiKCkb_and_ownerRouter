@@ -589,11 +589,13 @@ export const SEED_STEPS = [
   {
     name: "automatic-start-restored",
     suite: "S249",
-    run: ({ page }) =>
+    run: ({ page, rehearsal }) =>
       automaticStartSetting(
         page,
-        true,
-        "Rehearsal seeding finished: automatic preparation returns to its shipped default.",
+        rehearsal.automaticComparisonHeld !== true,
+        rehearsal.automaticComparisonHeld
+          ? "Rehearsal audit: automatic comparisons stay off for this verification."
+          : "Rehearsal seeding finished: automatic preparation returns to its shipped default.",
       ),
   },
 ];

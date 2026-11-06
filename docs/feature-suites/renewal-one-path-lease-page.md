@@ -85,7 +85,9 @@ or staff-record read failure shows on the Now card as the thing to resolve; it n
   derived stage shows both in one line. "Add a note" sits on the Now card.
 - **R-S247-9 — Keeps its place.** A lease opens in the same tab. After a reload or a release the
   page returns to the same view, step and scroll position, and unsaved typing is kept by the
-  existing autosave and retained-input behavior.
+  existing autosave and retained-input behavior. A reload retains the complete focused text
+  field in that tab for that lease. If the person resumes typing or navigating before restoration,
+  their newer input and focus take precedence. Password and choice controls are never retained.
 - **R-S247-10 — Fits the screen.** At 1280 by 800 the header, path strip and the Now card's primary
   action are visible without scrolling for the first four steps. At 390 wide the primary action is
   within two screen heights. Both themes, keyboard order and status announcements follow the
