@@ -80,7 +80,39 @@ interface KeptPlace {
 /** Field types whose typing a reload keeps; a password or a choice control is never kept. */
 const KEPT_INPUT_TYPES = new Set(["", "text", "search", "number", "tel", "url", "email"]);
 
-type TypedField = { readonly id: string; readonly value: string };
+type TypedField = { readonly id: string; readonly name?: string; readonly value: string };
+type TextField = HTMLInputElement | HTMLTextAreaElement;
+
+function isTextField(element: Element | null): element is TextField {
+  return (
+    element instanceof HTMLTextAreaElement ||
+    (element instanceof HTMLInputElement && KEPT_INPUT_TYPES.has(element.type))
+  );
+}
+
+function fieldName(field: TextField): string {
+  const words = field.labels?.[0]?.textContent ?? field.getAttribute("aria-label") ?? "";
+  return words.replace(/\s+/g, " ").trim();
+}
+
+function usableField(field: TextField): boolean {
+  return (
+    !field.disabled &&
+    !field.readOnly &&
+    !field.closest("[hidden], [inert], [data-renewal-focus-hidden]")
+  );
+}
+
+/** A reload can change a React-generated id. A unique visible name keeps the same field. */
+function findTypedField(typed: TypedField): TextField | null {
+  const fields = [...document.querySelectorAll("main input, main textarea")].filter(
+    (element): element is TextField => isTextField(element) && usableField(element),
+  );
+  if (!typed.name) return fields.find((field) => field.id === typed.id) ?? null;
+  const named = fields.filter((field) => fieldName(field) === typed.name);
+  if (named.length === 1) return named[0];
+  return named.find((field) => field.id === typed.id) ?? null;
+}
 
 /**
  * R-S247-9: the typing in the field the person is still in when the page unloads. A field saves
@@ -89,12 +121,11 @@ type TypedField = { readonly id: string; readonly value: string };
  */
 function typedField(): TypedField | null {
   const element = document.activeElement;
-  const text =
-    element instanceof HTMLTextAreaElement ||
-    (element instanceof HTMLInputElement && KEPT_INPUT_TYPES.has(element.type));
-  if (!text || !element.id || element.disabled || element.readOnly) return null;
-  if (!element.closest("main")) return null;
-  return { id: element.id, value: element.value };
+  if (!isTextField(element) || !usableField(element) || !element.closest("main"))
+    return null;
+  const name = fieldName(element);
+  if (!element.id && !name) return null;
+  return { id: element.id, name, value: element.value };
 }
 
 function isTypedField(value: unknown): value is TypedField {
@@ -102,6 +133,8 @@ function isTypedField(value: unknown): value is TypedField {
     typeof value === "object" &&
     value !== null &&
     typeof (value as TypedField).id === "string" &&
+    ((value as TypedField).name === undefined ||
+      typeof (value as TypedField).name === "string") &&
     typeof (value as TypedField).value === "string"
   );
 }
@@ -124,7 +157,7 @@ function restoreTypedField(typed: TypedField): () => void {
     document.removeEventListener("pointerdown", stop, true);
   };
   const entry = (event: Event) => {
-    if (event.target instanceof HTMLElement && event.target.id === typed.id) stop();
+    if (event.target instanceof Element && findTypedField(typed) === event.target) stop();
   };
   // A person who resumes work first keeps their newer entry and focus.
   document.addEventListener("input", entry, true);
@@ -132,14 +165,9 @@ function restoreTypedField(typed: TypedField): () => void {
   document.addEventListener("pointerdown", stop, true);
   timer = window.setTimeout(function check() {
     timer = null;
-    const element = document.getElementById(typed.id);
-    const field =
-      element instanceof HTMLTextAreaElement ||
-      (element instanceof HTMLInputElement && KEPT_INPUT_TYPES.has(element.type))
-        ? element
-        : null;
+    const field = findTypedField(typed);
     const now = Date.now();
-    if (field && !field.disabled && !field.readOnly && !field.closest("[hidden]")) {
+    if (field) {
       if (field.value === typed.value) return stop();
       if (seenValue !== field.value) {
         // The page is still filling the field; wait until it holds still.

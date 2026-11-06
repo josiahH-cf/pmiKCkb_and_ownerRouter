@@ -14,13 +14,16 @@ import { RenewalFocusViewProvider } from "@/components/lease-renewal/RenewalFocu
 
 const LEASE_PATH = "/lease-renewal/live/desk/lease/fixture-lease";
 
-function Field({ onEntry }: Readonly<{ onEntry: (value: string) => void }>) {
+function Field({
+  onEntry,
+  fieldId,
+}: Readonly<{ onEntry: (value: string) => void; fieldId: string }>) {
   const [value, setValue] = useState("");
   return (
     <main>
-      <label htmlFor="fixture-reason">Reason to include</label>
+      <label htmlFor={fieldId}>Reason to include</label>
       <input
-        id="fixture-reason"
+        id={fieldId}
         onChange={(event) => {
           setValue(event.target.value);
           onEntry(event.target.value);
@@ -33,10 +36,10 @@ function Field({ onEntry }: Readonly<{ onEntry: (value: string) => void }>) {
   );
 }
 
-function renderPage(onEntry = vi.fn()) {
+function renderPage(onEntry = vi.fn(), fieldId = "fixture-reason") {
   render(
     <RenewalFocusViewProvider>
-      <Field onEntry={onEntry} />
+      <Field onEntry={onEntry} fieldId={fieldId} />
     </RenewalFocusViewProvider>,
   );
   return onEntry;
@@ -60,6 +63,68 @@ afterEach(() => {
 });
 
 describe("S247 R-S247-9: unsaved typing survives a reload", () => {
+  it("finds the same uniquely named field when the rendered id changes on reload", async () => {
+    renderPage(undefined, "before-reload");
+    await userEvent
+      .setup()
+      .type(screen.getByLabelText("Reason to include"), "Kept through a changed id");
+    act(() => window.dispatchEvent(new Event("pagehide")));
+    cleanup();
+    navigation("reload");
+    const entries = renderPage(undefined, "after-reload");
+    await waitFor(
+      () =>
+        expect(screen.getByLabelText("Reason to include")).toHaveValue(
+          "Kept through a changed id",
+        ),
+      { timeout: 4000 },
+    );
+    expect(entries).toHaveBeenLastCalledWith("Kept through a changed id");
+  });
+
+  it("keeps a newer entry in a field whose id changed", async () => {
+    renderPage(undefined, "before-reload");
+    await userEvent
+      .setup()
+      .type(screen.getByLabelText("Reason to include"), "Earlier entry");
+    act(() => window.dispatchEvent(new Event("pagehide")));
+    cleanup();
+    navigation("reload");
+    renderPage(undefined, "after-reload");
+    fireEvent.change(screen.getByLabelText("Reason to include"), {
+      target: { value: "Newer entry" },
+    });
+    fireEvent.input(screen.getByLabelText("Reason to include"));
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 1800)));
+    expect(screen.getByLabelText("Reason to include")).toHaveValue("Newer entry");
+  });
+
+  it("leaves ambiguous fields alone when neither retains the saved id", async () => {
+    renderPage(undefined, "before-reload");
+    await userEvent
+      .setup()
+      .type(screen.getByLabelText("Reason to include"), "Earlier entry");
+    act(() => window.dispatchEvent(new Event("pagehide")));
+    cleanup();
+    navigation("reload");
+    render(
+      <RenewalFocusViewProvider>
+        <main>
+          <label htmlFor="one">Reason to include</label>
+          <input id="one" defaultValue="First current entry" />
+          <label htmlFor="two">Reason to include</label>
+          <input id="two" defaultValue="Second current entry" />
+        </main>
+      </RenewalFocusViewProvider>,
+    );
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 1800)));
+    expect(
+      screen
+        .getAllByLabelText("Reason to include")
+        .map((field) => (field as HTMLInputElement).value),
+    ).toEqual(["First current entry", "Second current entry"]);
+  });
+
   it("keeps a newer entry made while the old typing is waiting to return", async () => {
     renderPage();
     await userEvent.setup().type(screen.getByLabelText("Reason to include"), "Old text");

@@ -594,8 +594,8 @@ function NowCard({
       return;
     }
     // S254 L49: the agreed numbers continue to the next step on this lease's own path.
-    if ("continueTo" in primary && primary.continueTo) {
-      choose(primary.continueTo);
+    if (shown.primary?.continueTo) {
+      choose(shown.primary.continueTo);
       return;
     }
     if (

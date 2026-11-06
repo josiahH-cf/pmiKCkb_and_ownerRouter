@@ -3,7 +3,7 @@
 
 # S250 — Standing owner agreements set once per owner portfolio and chosen on the lease
 
-> Status: AUTHORING READY — intake 116; implementation merged in PR #189 at `daf8ee05`. November 6 UX repairs and qualification continue on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. D-OP-3 remains settled and S194 policies, prefill and history are kept. This specification grants no provider effect.
+> Status: AUTHORING READY: intake 116; implementation merged in PR #189 at `daf8ee05`. November 6 UX repairs and qualification continue on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. D-OP-3 remains settled and S194 policies, prefill and history are kept. This specification grants no provider effect.
 
 **Goal.**
 

@@ -47,14 +47,18 @@ and performs an evidence-led UX review on `codex/renewal-one-path-ux`, cut from 
 The shared Windows main remains at `a7356547` with its untracked owner files untouched.
 
 - Included the prior runner's three unmerged repairs `147c9d8a`, `d42d7a15`, `f18a5bc0`: stage
-  party wording, compact path layout and retained typing. New repair work continues in the same PR.
+  party wording, compact path layout and retained typing, plus the later `c107a075` applicable-path
+  continuation and `120b4966` settled help picture. New repair work continues in the same PR.
 - Isolated rehearsal only; automatic comparisons are held off with
   `--hold-automatic-comparison`, including resets. Fresh-session L01–L71 observations retain
   their exact scopes. No human verdict, provider effect or release acceptance is inferred.
 - Deliver the review as a pull request after `bash scripts/verify.sh` and exact-head CI pass.
   The owner merges, releases and deploys; older handoff merge/release instructions do not apply.
 - The prior build handoff reports unguarded child-process connection attempts on November 5,
-  fixed in the merged harness. Those historical claims are separate from this guarded audit.
+  fixed in the merged harness. Initial audit isolation also had outer-CLI/normalized-socket
+  gaps, reproduced offline and repaired; final rehearsals require the strengthened guard.
+- Initial cleanup failed on a concurrent shared Vitest cache write. Preserve that failed run;
+  all remaining dependency-using checks run serially with rehearsals. See the UX review evidence.
 - Human verdict NOT RUN. Real-provider, mailbox, physical-device and client-answer limits remain.
 
 ## Exact remaining boundaries
@@ -81,15 +85,15 @@ The shared Windows main remains at `a7356547` with its untracked owner files unt
 Release is held for the owner after this review's PR, final litmus evidence and qualification.
 These are merged source commits, not delivery claims; no release action is authorized in this review.
 
-1. S246 working batch and accurate targets — `64a12692`.
-2. S247 guided lease path — `20d55104`.
-3. S248 evidence-driven stage — `20d55104`.
-4. S249 prepared kickoff and one message route — `aec5a309`.
-5. S250 standing owner agreements — `daf8ee05`.
-6. S251 housing assistance path — `daf8ee05`.
-7. S252 engineering walkthrough and help — `2187cf09`.
-8. S253 confirmed form answers — `95858eef`.
-9. S254 harness and validator; final litmus evidence pending review — `6b0a71a5`.
+1. S246 working batch and accurate targets: `64a12692`.
+2. S247 guided lease path: `20d55104`.
+3. S248 evidence-driven stage: `20d55104`.
+4. S249 prepared kickoff and one message route: `aec5a309`.
+5. S250 standing owner agreements: `daf8ee05`.
+6. S251 housing assistance path: `daf8ee05`.
+7. S252 engineering walkthrough and help: `2187cf09`.
+8. S253 confirmed form answers: `95858eef`.
+9. S254 harness and validator; final litmus evidence pending review: `6b0a71a5`.
 
 The S245 fix batch at `5b5c65c6` remains the last recorded production delivery. Never reuse a
 consumed permit or receipt. The stopped original native owner and archived runs remain untouched.

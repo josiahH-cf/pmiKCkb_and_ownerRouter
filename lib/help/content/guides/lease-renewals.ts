@@ -306,7 +306,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         route: LEASE,
         where: "Guided view, the Now card on Check the numbers",
         result:
-          "After Check the numbers the path asks you to contact the named program about the renewal process, then Ask the owner whether to renew this tenant (Renew, Do not renew or No answer yet), then Rent for this renewal (Keep the current rent or Propose a change), with nothing chosen for you. Keep the current rent leaves the comparison and the owner's rent decision out of the path, Propose a change brings them in, and Do not renew moves the lease to the non-renewal handoff.",
+          "Once the numbers agree, Continue names and opens the program-contact step. The path asks you to contact the named program about the renewal process, then Ask the owner whether to renew this tenant (Renew, Do not renew or No answer yet), then Rent for this renewal (Keep the current rent or Propose a change), with nothing chosen for you. Keep the current rent leaves the comparison and the owner's rent decision out of the path, Propose a change brings them in, and Do not renew moves the lease to the non-renewal handoff.",
         effect: "saves-in-app",
         note: "After Yes is chosen, Program name is required. An empty name shows what to enter, and the choice saves when the name is complete. The desk row carries the Housing assistance tag. Animal follow-up records the outside work staff actually did; charges and agreements for an assistance animal wait for the approved rule. When RentVine wording mentions housing assistance and the field is unset, the lease reads RentVine mentions housing assistance. Set the field? and nothing changes until you set it.",
       },

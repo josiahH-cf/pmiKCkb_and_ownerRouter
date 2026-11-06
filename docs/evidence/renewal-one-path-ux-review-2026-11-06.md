@@ -1,7 +1,7 @@
 # Renewal one-path UX review, November 6, 2026
 
 This review resumes the November 5 S246 to S254 build and tests the product in the synthetic
-November 5 mix. It includes the merged batch and the three previously unmerged Claude repairs.
+November 5 mix. It includes the merged batch and all five previously unmerged Claude repairs.
 The owner requests pull requests only. No merge, release, deployment, production read, real
 provider operation, mailbox operation or billed comparison is part of this review.
 
@@ -22,6 +22,14 @@ Human verdict: NOT RUN, no human observer.
 - Claude's clean local branch held `147c9d8a`, `d42d7a15` and `f18a5bc0`. Those repairs were
   cherry-picked as `04bfd687`, `d7618793` and `b22c2dde`. Their original branch was preserved.
   The focused recovery/guard strengthening was committed as `9fdf624c`.
+- A later read of the original lane found `c107a075`, agreed-numbers continuation on the lease's
+  applicable path. It was included as `01152fcd`; its original branch and commits remain intact.
+- The original lane later added `120b4966`, waiting for the settled prepared Now card before
+  framing its help picture. It was included as `87908f80`, followed by its four curated picture
+  updates `d76dc72e`, included as `9102ed63`. Final help capture is pending.
+- The remaining uncommitted generated-ID field lookup was backed up privately and integrated
+  with complete-text recovery, legacy snapshot compatibility and cancellation for newer input.
+  The original working file is untouched. The existing 20-second recovery window is preserved.
 - A fresh independent S254 session received the brief, candidate source and starting baseline
   `6491c06f3773e92c0bd811d4360371523e24d643`. It used the actual app with Editor and Admin
   rehearsal actors. It recorded expectations before observations. Initial observations use
@@ -69,7 +77,7 @@ executed; an implementation alone is not marked verified.
 | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | UX-001 | The inherited stage fallback omitted who owns an unrecorded next step. Staff must infer the responsible party.                                                                                                                                                                                          | P02,P03,P04; SC02,03              | Included Claude's explicit PMI KC team wording. Preserve the stage model and record the party in its existing line.                                                                                                                                                                                                                               | Implemented; final rewalk pending.                                                                                                                                     |
 | UX-002 | The inherited wide path type wrapped the assisted path into three rows before core work.                                                                                                                                                                                                                | P08,P11,P15; SC03,07              | Included Claude's compact path type and spacing, preserving every step and full labels.                                                                                                                                                                                                                                                           | Implemented; final viewport rewalk pending.                                                                                                                            |
-| UX-003 | Reload recovery silently truncated a focused entry at 5,000 characters and could overwrite new typing after reload.                                                                                                                                                                                     | P05,P12,P13; SC04,05,10           | Included Claude's reload continuity and retained the full string. Any new input, key or pointer action cancels delayed field recovery. Passwords remain excluded; only same-path reload within ten minutes is eligible.                                                                                                                           | Focused tests passed; final rewalk pending.                                                                                                                            |
+| UX-003 | Reload recovery truncated a focused entry at 5,000 characters, could overwrite newer typing, and could lose the field when its generated ID changed.                                                                                                                                                    | P05,P12,P13,P14; SC04,05,09,10    | Include the inherited continuity and late name lookup, retain complete text, match a unique visible name or retained ID, keep legacy snapshots readable, and cancel delayed recovery on new input/key/pointer activity. Ambiguous targets keep their current values; passwords remain excluded.                                                   | Focused eight-case recovery tests and typecheck passed; final actual reload rewalk pending.                                                                            |
 | UX-004 | The actual covered-owner Now card said no message was needed while its prominent action still said Send the owner message; its ready/decision text also asked for owner outreach.                                                                                                                       | P02,P07,P09; AP03,09; SC03,06,08  | Use Continue to Offer the tenant, show coverage in existing ready/decision lines, retain all optional owner message tools. D-OP agreement authority is unchanged.                                                                                                                                                                                 | Implemented; final rewalk pending.                                                                                                                                     |
 | UX-005 | Choosing Housing assistance Yes with blank Program produced no specific error or saved value. Required was false on the live field.                                                                                                                                                                     | P02,P05,P12,P16; AP07; SC04,05    | Mark Program required for Yes, explain what saves it, show a blur error, and explicitly confirm successful saves. Apply the shared component in both locations.                                                                                                                                                                                   | Focused tests passed; final rewalk pending.                                                                                                                            |
 | UX-006 | Working-batch questions selected all leases or My Work; an explicit December query initially included a move-out and returned 6 while the desk showed 5. Later fresh evidence returned 5.                                                                                                               | P03,P09,P12; SC02,08              | Recognize the user's batch terms, preserve explicit renewal-task queries, and await one bounded coherent source refresh for assistant targets or report unreadable evidence. No fabricated target state.                                                                                                                                          | Focused parity/stale/failure tests passed; final rewalk pending.                                                                                                       |
@@ -81,6 +89,8 @@ executed; an implementation alone is not marked verified.
 | UX-012 | The comparison lines inserted an em dash into owner message copy.                                                                                                                                                                                                                                       | P09; SC08                         | Use a colon in the existing generated line and update its pinned expectation.                                                                                                                                                                                                                                                                     | Focused content test passed.                                                                                                                                           |
 | UX-013 | Default rehearsal seeds enabled the automatic comparison, conflicting with this audit's explicit boundary. The app entry needed a fail-closed preload assertion, and the shell's port/config helpers and outer Firebase CLI did not inherit that guard.                                                 | P07,P12; safety boundary          | Add --hold-automatic-comparison and preserve it across reset. The one-path, help and November/December wrappers load the guard before their first Node helper; each inherited preload self-checks and records readiness before its entrypoint. Keep existing heap bounds. Use manual synthetic preparation where allowed. L33 remains UNVERIFIED. | 32 focused safety checks passed, including an outer process and inherited child refusing a reserved invalid provider host. Final wrapper rewalk pending.               |
 | UX-014 | An offline sentinel test against the original preload found that two net.createConnection overloads reached the base socket method because Node forwarded a normalized options array. This invalidates a broad isolation claim for initial runs; it does not establish that a real connection occurred. | P07,P12; safety boundary          | Inspect normalized and direct socket arguments before DNS/connect, retain loopback and Unix behavior, and self-assert the preload. The test uses an offline base method and a reserved invalid hostname, so it creates no provider connection.                                                                                                    | Fail-first: 2 failures/30 passes against the original guard, including missing per-process readiness; repaired guard: 32 passes. Final strengthened rehearsal pending. |
+| UX-015 | The additional Claude repair records that agreed Check the numbers always continued to Compare market rent, including on the assisted path where that step was outside the path.                                                                                                                        | P02,P07,P09,P13; SC03,08,10       | Include c107a075, deriving the continuation from the next applicable path step and naming that destination. The standard comparison continuation is kept; the assisted primary continues to program contact. S251 R4 and Help record the same behavior.                                                                                           | Included with its focused regression; independent final primary-action rewalk and full gate pending.                                                                   |
+| UX-016 | The later Claude scene repair records that the first cold Guided help picture could capture Send the owner message and Reading the pricing basis before the prepared card settled, contradicting its caption.                                                                                           | P02,P09; SC08                     | Include 120b4966. The existing scene action waits for Review and send before framing; it changes no application action or verification bound.                                                                                                                                                                                                     | Included; final synthetic capture and picture review pending.                                                                                                          |
 
 Preserved by decision: exact review/confirmation, the required Gmail banner, stale authored wording,
 who-approved validation, role/Space and Action Registry checks, blank unsettled legal fields,
@@ -111,7 +121,7 @@ goals while retaining their original authority and meaning.
 - S249 R7 describes the existing S161 authored-wording preservation and in-place resolver; R9
   describes the banner-only comparison normalization and post-created evidence refresh.
 - S250 R5 specifies the covered-owner continuation and retained optional message tools.
-- S251 R2 records required-program feedback in both existing placements.
+- S251 R2 records required-program feedback in both existing placements; R4 records the applicable-path continuation and its assisted program-contact label.
 - S253 R6 records Animal follow-up and Animal charges and agreement, their former names and
   preserved records/predicates. Its client-answer, fee, originals/maps and legal holds are unchanged.
 - S254 R4 records the explicit audit hold and L33 UNVERIFIED boundary. No L01 to L71 text,
@@ -146,6 +156,35 @@ goals while retaining their original authority and meaning.
 
 ## Verification record
 
-In progress. Focused checks, final-source browser rewalk, help captures, isolated journey, full
-`bash scripts/verify.sh`, report validation, exact-head CI and cleanup will be recorded with
-their actual outcomes before the pull request is delivered. No final gate pass is implied here.
+- The retained-typing, rehearsal-safety, batch-view and working-batch focused run passed 70 tests
+  across four files on `9fdf624c`. This establishes their test scope, not a complete user walk.
+- The new exact-name Full-view presentation fixture was captured through its mounted test; the
+  prior S181/S244 fixtures remain byte-preserved. The explicit animal-task name migration keeps
+  every previous control/heading in the preservation comparison.
+- The first repair-focused run had 81 passes and two new test-assertion failures: an outdated
+  control-map count and a locator for a region the tenant editor does not name. Both assertions
+  were corrected to the actual contract. The later 14-file repair run passed all 135 tests.
+- Initial standalone typecheck exhausted Node's default 2 GB heap. A 4 GB run then identified an
+  invalid test-only Testing Library `exact` option; it was removed. The subsequent 4 GB
+  typecheck exited zero. No application or assurance time/memory bound was raised.
+- The later inherited applicable-path action exposed a TypeScript union integration error. It
+  now reads the typed step action directly. The eight-file focused rerun passed 268 tests and
+  typecheck passed. Integrating the uncommitted generated-ID lookup then passed all 38 tests
+  across recovery, Guided view and housing assistance, followed by another zero-error typecheck.
+- Static help control names (830), help content (3,143 strings), copy voice, active-document
+  paths (273) and context freshness passed on the repaired source at that point. Existing past
+  fact review dates remained warnings; they were not refreshed through forbidden production
+  probes. These checks will run again on the final tree.
+- The offline guard proof against the original source failed two checks (30 passed): normalized
+  socket calls reached an offline sentinel and per-process readiness was absent. The repaired
+  guard passed all 32 checks. No live socket or provider was used in that proof. Two earlier WSL
+  launch attempts timed out before the proof started; the later completed runs supply its result.
+- Initial independent rehearsal `20261106T180800Z-9fdf624c` had an inner exit zero and an outer
+  exit one on shared-cache mutation. Its initial report has 41 Yes, six No and 24 UNVERIFIED;
+  it is unaccepted. Isolation limitations and that failed qualification are retained.
+- The fresh historical baseline directly observed 37 default table rows, including ten Closed,
+  against nine candidate default rows (four carried, five working-month). Both loaded all 38
+  source leases. The baseline reached nine required actions plus one optional action across three tabs before its Demo provider gate refused Send. Its exact review/confirmation and completed kickoff are UNVERIFIED; the protected gate was preserved. The strengthened baseline wrapper exited zero with 21 guarded Node PIDs and two refused registry lookups.
+- Final-source browser rewalk, help capture/control checks, the existing isolated journey,
+  `bash scripts/verify.sh`, report validation, exact-head CI and final cleanup are pending.
+  No final gate pass or acceptance is implied by the focused results above.

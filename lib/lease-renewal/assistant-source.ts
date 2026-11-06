@@ -111,16 +111,21 @@ export async function runRenewalAssistantSource(
           // A stale generation cannot settle its move-out evidence. Wait for the same current
           // source read before the assistant states batch membership, rather than counting a
           // known non-renewal as an ordinary target while that read is being refreshed.
-          return options.aiContext && read.currency.state !== "fresh"
-            ? readCoherentRenewalDisplaySource(
-                user,
-                liveConfig.rentvineClient,
-                now.getTime(),
-                {
-                  sourceRefreshAfter: Math.max(now.getTime(), sourceRefreshAfter ?? 0),
-                },
-              )
-            : read;
+          if (!options.aiContext) return read;
+          const usable = (value: typeof read) =>
+            value.currency.state === "fresh" && value.statusTable.status === "available";
+          if (usable(read)) return read;
+          const refreshed = await readCoherentRenewalDisplaySource(
+            user,
+            liveConfig.rentvineClient,
+            now.getTime(),
+            {
+              sourceRefreshAfter: Math.max(now.getTime(), sourceRefreshAfter ?? 0),
+            },
+          );
+          // Display reads preserve old lease visibility on an admission/read failure. That
+          // fallback is explicitly unavailable evidence, so it cannot settle assistant targets.
+          return usable(refreshed) ? refreshed : undefined;
         }),
       );
     } catch {

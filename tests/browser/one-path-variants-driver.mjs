@@ -239,12 +239,24 @@ export async function runVariants() {
     await open(covered, "?step=ask-owner");
     const coveredLine = `Covered by ${AGREEMENT}: no owner message needed`;
     const askOwnerDetail = squash(await now().textContent());
+    const coveredPrimary = now().locator("[data-renewal-now-primary]");
+    const coveredPrimaryText = squash(await coveredPrimary.textContent());
+    if (coveredPrimaryText === "Continue to Offer the tenant") {
+      await coveredPrimary.click();
+      await page.waitForTimeout(800);
+    }
     check(
       "Ask the owner reads Covered by the agreement and the path continues at Offer the tenant (L46)",
       askOwnerDetail.includes(coveredLine) &&
         (await stepState("Ask the owner")) === "covered" &&
-        (await current()) === "Offer the tenant",
-      { current: await current(), askOwner: await stepState("Ask the owner") },
+        (await current()) === "Offer the tenant" &&
+        coveredPrimaryText === "Continue to Offer the tenant" &&
+        (await now().getAttribute("data-renewal-now-step")) === "offer-tenant",
+      {
+        current: await current(),
+        askOwner: await stepState("Ask the owner"),
+        primary: coveredPrimaryText,
+      },
     );
     await chooseStep("Compare market rent");
     const rentField = page.locator("#renewal-now-rent-to-recommend");
@@ -399,6 +411,17 @@ export async function runVariants() {
     await open(assisted);
     const assistedSteps = await stripSteps();
     const after = assistedSteps.slice(assistedSteps.indexOf("Check the numbers") + 1, 4);
+    await chooseStep("Check the numbers");
+    const numbersPrimary = now().locator("[data-renewal-now-primary]");
+    const numbersPrimaryText = squash(await numbersPrimary.textContent());
+    if (
+      numbersPrimaryText === `Continue to Contact ${PROGRAM} about the renewal process`
+    ) {
+      await numbersPrimary.click();
+      await page.waitForTimeout(800);
+    }
+    const continuedToProgram =
+      (await now().getAttribute("data-renewal-now-step")) === "assisted-program-contact";
     await chooseStep("Ask the owner whether to renew this tenant");
     const answerRegion = page.locator("#renewal-assisted-renewal-answer");
     const answerOptions = (
@@ -411,19 +434,28 @@ export async function runVariants() {
     ).map(squash);
     check(
       "the assisted lease's steps after Check the numbers are the program contact, the renewing question and the rent, none preselected (L49)",
-      JSON.stringify(after) ===
-        JSON.stringify([
-          `Contact ${PROGRAM} about the renewal process`,
-          "Ask the owner whether to renew this tenant",
-          "Rent for this renewal",
-        ]) &&
+      continuedToProgram &&
+        numbersPrimaryText ===
+          `Continue to Contact ${PROGRAM} about the renewal process` &&
+        JSON.stringify(after) ===
+          JSON.stringify([
+            `Contact ${PROGRAM} about the renewal process`,
+            "Ask the owner whether to renew this tenant",
+            "Rent for this renewal",
+          ]) &&
         JSON.stringify(answerOptions) ===
           JSON.stringify(["Renew", "Do not renew", "No answer yet"]) &&
         JSON.stringify(rentOptions) ===
           JSON.stringify(["Keep the current rent", "Propose a change"]) &&
         (await answerRegion.locator("input:checked").count()) === 0 &&
         (await rentRegion.locator("input:checked").count()) === 0,
-      { after, answerOptions, rentOptions },
+      {
+        after,
+        answerOptions,
+        rentOptions,
+        numbersPrimary: numbersPrimaryText,
+        continuedToProgram,
+      },
     );
 
     // 7. L50 with L33: Keep, then Propose; the comparison requests before and after Propose.

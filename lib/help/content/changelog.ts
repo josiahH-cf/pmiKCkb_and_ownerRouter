@@ -11,9 +11,9 @@ export const HELP_CHANGELOG: readonly HelpChangelogEntry[] = [
     version: "V2.1",
     date: "2026-11-06",
     summary:
-      "V2.1, a covered owner step continues to the tenant offer, Housing assistance names the required program, Owner reply shows the linked message, changed facts expose the authored-wording recovery controls, Animal follow-up keeps the existing staff record, and reload recovery keeps newer typing",
+      "V2.1, a covered owner step continues to the tenant offer, agreed numbers continue along the lease's own path, Housing assistance names the required program, Owner reply shows the linked message, changed facts expose the authored-wording recovery controls, Animal follow-up keeps the existing staff record, and reload recovery keeps newer typing",
     affectedGuides: ["work-a-renewal"],
-    contentDigest: "8de51f440fdfec4e4f055edc521bbd7d3496688c2fc19a5888d4f4640f46dd73",
+    contentDigest: "35fe170d5987c1f583c3c17e69861c2c9a94bb7b7aaa77c154dc25eb332941a6",
   },
   {
     version: "V2.0",

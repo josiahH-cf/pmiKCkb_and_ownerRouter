@@ -3,7 +3,7 @@
 
 # S251 — Housing assistance recorded once on the lease, with its own renewal order
 
-> Status: AUTHORING READY — intake 117; implementation merged in PR #189 at `daf8ee05`. November 6 UX repairs and qualification continue on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. D-OP-9 remains settled: program, owner renewing answer, then rent when a change is proposed. This specification grants no provider effect.
+> Status: AUTHORING READY: intake 117; implementation merged in PR #189 at `daf8ee05`. November 6 UX repairs and qualification continue on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. D-OP-9 remains settled: program, owner renewing answer, then rent when a change is proposed. This specification grants no provider effect.
 
 **Goal.**
 
@@ -55,7 +55,9 @@ operating Sheet.
   with its history kept.
 - **R-S251-4 — The program first.** With Yes, the step after the numbers check is "Contact
   {program} about the renewal process". Staff record its outcome, the date and what the program
-  requires as notes, with the existing activity form.
+  requires as notes, with the existing activity form. Once the numbers agree, their primary
+  action names and opens that next applicable step. The standard path continues to Compare
+  market rent; a step outside this lease's path is never its continuation.
 - **R-S251-5 — Then the owner's answer on renewing.** The next step is "Ask the owner whether to
   renew this tenant". Staff record Renew, Do not renew or No answer yet, with who answered, how and
   when. Do not renew moves the lease to the existing non-renewal handoff.

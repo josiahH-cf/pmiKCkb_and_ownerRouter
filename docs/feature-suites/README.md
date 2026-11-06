@@ -58,43 +58,43 @@ The build sequence is complete in source: S254 harness #184, S253 #185, S246 #18
 combined tree and records each remaining evidence gap. Source merge and synthetic verification
 establish neither deployment nor staff acceptance.
 
-**Delivery plan.** The owner approved this batch on November 5, 2026. Approval settles the
-specifications and this plan; an implementation run starts on the owner's run instruction, after
-step 3.
+**Delivery plan.** The owner approved this batch on November 5, 2026. Its source build is complete
+in the merged requests above. The November 6 instruction continues the review and repair loop
+with the following delivery boundaries.
 
-1. **Specifications first.** This bundle is documentation only: nine specification files, this
-   registry and the holds packet. It sits on its own branch cut from `main` at `6491c06f` and
-   merges as one docs-only pull request.
+1. **Specifications first, completed.** The nine specifications, registry and holds packet were
+   prepared from `6491c06f` and merged in the documentation-only PR #181. `6491c06f` remains
+   the litmus's starting baseline; the implemented candidate is compared with it.
 2. **Concurrent work.** The earlier #178–#180 work and the batch's #184–#190 are merged. The
    November 6 resume found no open pull requests. List open requests again before taking a file
    another runner may own, and wait for any overlapping request to merge before editing it.
 3. **Review delivery.** The November 6 owner instruction requires the UX repairs as pull requests
    with a green full gate and exact-head CI. The owner merges, releases and deploys. Older build
    handoffs that told a runner to merge or release do not authorize those actions in this review.
-4. **Fresh worktrees.** Implementation runs in new worktrees cut from `main` after step 3: one for
-   the path lane (S246 to S252 in the order above, one pull request per suite or pair) and one for
-   the documents lane (S253). The lanes share only the help content, which S252 updates last.
-5. **One release queue.** `docs/loop-state.md`, `docs/status.md` and `docs/facts.md` are edited
-   only in a queue or closure commit made after the code is merged, and never while another
-   runner's queue is awaiting release. Each implementation run starts by listing open pull
-   requests and worktrees, and takes a file another open pull request changes only after that
-   request has merged.
-6. **Litmus last.** When the suites are built, the S254 handoff is pasted into a fresh session
-   with the candidate commit. That session runs unattended in the rehearsal, repairs inside S246
-   to S253 scope, and its report decides whether the batch is accepted. The staff verdict stays
-   with the weekly session.
+4. **Fresh worktree.** The resumed review uses `codex/renewal-one-path-ux`, cut from current main
+   `2187cf09`, and includes all five prior unmerged litmus repairs. Shared owner files and the
+   old worktrees remain untouched. The already merged path and document lanes establish source
+   provenance, with no new lane or provider authority inferred.
+5. **One release queue.** The current facts, status and loop state distinguish merged source,
+   review qualification, pending repair PR and owner release. They claim no delivery for this
+   review. List open requests before taking a file; take an overlapping request's file only after
+   it merges. The owner handles the release queue after the review PR.
+6. **Litmus last.** The fresh S254 session tests the combined candidate, records every check and
+   its scope, and rewalks repairs in the rehearsal. Automatic comparison is held off by the
+   November 6 hard limit; that check remains UNVERIFIED. A failed or unknown check is never
+   rewritten as an observed pass. The staff verdict stays with the weekly session.
 
-| Suite | Active contract                                                               | State                                                                                                                                                                                                         |
-| ----- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| S246  | `docs/feature-suites/renewal-working-batch-and-accurate-targets.md`           | AUTHORING READY — intake 112; implementation NOT STARTED. Target definition, working batch, counted exclusions, same-tab entry, assistant parity.                                                             |
-| S247  | `docs/feature-suites/renewal-one-path-lease-page.md`                          | AUTHORING READY — intake 113; implementation NOT STARTED. Path definition, single stage projection, guided default view with a Now card; Focus and Full view kept.                                            |
-| S248  | `docs/feature-suites/renewal-evidence-driven-stage.md`                        | AUTHORING READY — intake 114; implementation NOT STARTED. Send, reply, bounce and source evidence move the stage; refines S232 R-S232-4.                                                                      |
-| S249  | `docs/feature-suites/renewal-prepared-kickoff-and-one-message-route.md`       | AUTHORING READY — intake 115; implementation NOT STARTED. Prepared kickoff, one message record, one route; automatic start approved (D-OP-1) and shipped with its router amendment.                           |
-| S250  | `docs/feature-suites/renewal-standing-owner-agreements-by-portfolio.md`       | AUTHORING READY — intake 116; implementation NOT STARTED. Portfolio agreements and lease selector; covered owner step approved (D-OP-3); revises S194 scope.                                                  |
-| S251  | `docs/feature-suites/renewal-housing-assistance-path.md`                      | AUTHORING READY — intake 117; implementation NOT STARTED. Optional lease fact, assisted order, rent choice, classification change.                                                                            |
-| S252  | `docs/feature-suites/renewal-one-path-staff-walkthrough-and-help.md`          | AUTHORING READY — intake 118; implementation NOT STARTED; runs after S246–S251. Budgets, journey, defect ledger, first full case, reported-item checks, staff walkthrough, help update.                       |
-| S253  | `docs/feature-suites/renewal-confirmed-form-answers-and-per-lease-content.md` | AUTHORING READY — intake 119; implementation NOT STARTED; independent documents lane. Applies the client's November 5 form answers; narrows U1, U2 and U4; eight open answers listed once.                    |
-| S254  | `docs/feature-suites/renewal-one-path-adversary-litmus.md`                    | AUTHORING READY — intake 120; implementation NOT STARTED; runs last, after S246–S253 are built. Fresh-session litmus handoff, November 5 mix fixture, shared report validator, repair loop, batch acceptance. |
+| Suite | Active contract                                                               | State                                                                                                                                                                                                                                 |
+| ----- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S246  | `docs/feature-suites/renewal-working-batch-and-accurate-targets.md`           | AUTHORING READY; implementation merged in #186 at 64a12692. Working batch, accurate targets and assistant parity are under the resumed UX review; release pending.                                                                    |
+| S247  | `docs/feature-suites/renewal-one-path-lease-page.md`                          | AUTHORING READY; implementation merged in #187 at 20d55104. Guided path and Now card preserve Focus and Full; resumed UX qualification and release pending.                                                                           |
+| S248  | `docs/feature-suites/renewal-evidence-driven-stage.md`                        | AUTHORING READY; implementation merged in #187 at 20d55104. Attributed evidence drives the stage with correction and staff reconciliation; resumed qualification and release pending.                                                 |
+| S249  | `docs/feature-suites/renewal-prepared-kickoff-and-one-message-route.md`       | AUTHORING READY; implementation merged in #188 at aec5a309. Prepared kickoff and one reviewed message route; D-OP-1 remains settled. Automatic comparison is held off during this audit; release pending.                             |
+| S250  | `docs/feature-suites/renewal-standing-owner-agreements-by-portfolio.md`       | AUTHORING READY; implementation merged in #189 at daf8ee05. Portfolio agreements and Pricing basis; D-OP-3 remains settled. Resumed UX qualification and release pending.                                                             |
+| S251  | `docs/feature-suites/renewal-housing-assistance-path.md`                      | AUTHORING READY; implementation merged in #189 at daf8ee05. Optional assistance fact, program-first path and explicit rent choice; resumed UX qualification and release pending.                                                      |
+| S252  | `docs/feature-suites/renewal-one-path-staff-walkthrough-and-help.md`          | AUTHORING READY; implementation merged in #190 at 2187cf09. Journey, budgets, twenty-row ledger and help V2.0 built; resumed independent review and help V2.1 qualification pending. Staff verdict NOT RUN; release pending.          |
+| S253  | `docs/feature-suites/renewal-confirmed-form-answers-and-per-lease-content.md` | AUTHORING READY; implementation merged in #185 at 95858eef. Confirmed form-answer behavior and synthetic filler built; exact real-original/map/legal and eight client-answer holds remain. Resumed qualification and release pending. |
+| S254  | `docs/feature-suites/renewal-one-path-adversary-litmus.md`                    | AUTHORING READY; harness and validator merged in #184 at 6b0a71a5. Fresh-session litmus resumed on the combined candidate; final observations and repair qualification pending. Human verdict NOT RUN; release pending.               |
 
 ## November 4 staff help hub and in-app help refresh — finalized specifications
 

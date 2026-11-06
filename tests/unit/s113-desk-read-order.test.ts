@@ -155,6 +155,27 @@ describe("S113 fresh desk read scheduling", () => {
     expect(fixture.project).not.toHaveBeenCalled();
   });
 
+  it.each(["stale", "status_unavailable"] as const)(
+    "keeps a display fallback with %s evidence out of an assistant target answer",
+    async (reason) => {
+      setup();
+      fixture.snapshot.mockResolvedValue(
+        reason === "stale"
+          ? { ...snapshot, currency: { ...snapshot.currency, state: "stale" } }
+          : { ...snapshot, statusTable: { status: "unavailable" } },
+      );
+      const result = await runRenewalAssistantSource(
+        actor,
+        new Date("2026-09-10T16:00:00Z"),
+        null,
+        { aiContext: true },
+      );
+      expect(result.outcome.status).toBe("read_error");
+      expect(fixture.snapshot).toHaveBeenCalledTimes(2);
+      expect(fixture.project).not.toHaveBeenCalled();
+    },
+  );
+
   it.each(["snapshot", "sheet"] as const)(
     "S168 stops waiting for a stalled primary %s and reports read_error",
     async (source) => {

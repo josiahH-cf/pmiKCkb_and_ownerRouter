@@ -3,7 +3,7 @@
 
 # S253 — Confirmed form answers: pet fee and total, owner explanation, tenant initial boxes
 
-> Status: AUTHORING READY — intake 119; implementation merged in PR #185 at `95858eef`. November 6 synthetic UX qualification continues on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. Real original/map approval and every client answer still open remain in U1, U2 and U4. This specification grants no publication or provider effect.
+> Status: AUTHORING READY: intake 119; implementation merged in PR #185 at `95858eef`. November 6 synthetic UX qualification continues on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. Real original/map approval and every client answer still open remain in U1, U2 and U4. This specification grants no publication or provider effect.
 
 **Goal.**
 

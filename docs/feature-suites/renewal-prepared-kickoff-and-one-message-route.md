@@ -3,7 +3,7 @@
 
 # S249 — Renewal kickoff prepared ahead, with one message and one route to send it
 
-> Status: AUTHORING READY — intake 115; implementation merged in PR #188 at `aec5a309`, including the D-OP-1 router amendment. November 6 UX repairs and qualification continue on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. D-OP-1, D-OP-2 and D-OP-7 remain settled. This specification grants no provider effect.
+> Status: AUTHORING READY: intake 115; implementation merged in PR #188 at `aec5a309`, including the D-OP-1 router amendment. November 6 UX repairs and qualification continue on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. D-OP-1, D-OP-2 and D-OP-7 remain settled. This specification grants no provider effect.
 
 **Goal.**
 

@@ -1,6 +1,6 @@
 # PMI KC facts
 
-Last reconciled: 2026-11-06 (one-path source and resumed UX review; production was not contacted).
+Last reconciled: 2026-11-06 (one-path source and resumed UX review; no new production readback).
 
 This ledger contains present truth. Historical detail is recoverable in Git and immutable run
 evidence; an earlier receipt never authorizes a new attempt.
@@ -10,8 +10,9 @@ evidence; an earlier receipt never authorizes a new attempt.
 Main `2187cf09fa0d5860919940448ae1ef55cd298f05` contains the S246–S253 source and S254 harness,
 merged through PRs #184–#190. GitHub showed no open pull requests at the review's start. The
 shared checkout remained at `a7356547` with its untracked owner files untouched. The new branch
-`codex/renewal-one-path-ux` includes the three prior unmerged litmus repairs and the resumed UX
-repair loop. Verification uses the isolated November 5 mix, local roles, emulator and stand-ins;
+`codex/renewal-one-path-ux` includes the three unmerged repairs found at intake and the later
+`c107a075` path-continuation and `120b4966` settled-help-picture repairs, with the resumed UX loop. Verification uses the
+isolated November 5 mix, local roles, emulator and stand-ins;
 `--hold-automatic-comparison` keeps automatic comparisons off after seeds and resets.
 
 This source state is separate from production. The review's delivery is a pull request with full
@@ -20,6 +21,14 @@ verdict remains NOT RUN. Real providers, mailbox outcomes, signatures, physical-
 and the open client answers are unverified in this review. The earlier build handoff's reported
 unguarded child-process attempts remain historical claims; this review makes no production read
 to investigate them and infers no provider outcome.
+
+The resumed audit found two more harness limits: outer Node helpers/CLI did not inherit the
+preload, and Node's normalized socket arguments bypassed its destination check. An offline
+sentinel reproduced the latter without a connection. The strengthened wrapper/preload passed
+32 focused checks, including inherited child refusal, and is required for final rehearsals.
+Initial isolation is unverified; no real-provider outcome is inferred from its logs. The initial
+long rehearsal also failed cleanup because a concurrent focused test wrote a shared Vitest cache.
+Its failure is preserved; remaining dependency-using checks run serially with rehearsals.
 
 ## November 5 S245 litmus fixes — delivered S87, S126, S147, S242 and S86 repairs
 

@@ -3,7 +3,7 @@
 
 # S248 — Evidence the app already holds moves the lease forward
 
-> Status: AUTHORING READY — intake 114; implementation merged in PR #187 at `20d55104`. November 6 UX qualification continues on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. D-OP-8 remains settled: evidence fills unrecorded work and a disagreement reads "Needs a check". This specification grants no provider effect.
+> Status: AUTHORING READY: intake 114; implementation merged in PR #187 at `20d55104`. November 6 UX qualification continues on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. D-OP-8 remains settled: evidence fills unrecorded work and a disagreement reads "Needs a check". This specification grants no provider effect.
 
 **Goal.**
 

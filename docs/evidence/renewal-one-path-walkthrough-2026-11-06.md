@@ -154,6 +154,13 @@ checks) runs in its own run with `--no-mail-adapter`: in `20261106T161242Z-f88ce
 
 ## Defect ledger and walkthrough matrix (R-S252-3 to R-S252-5, R-S252-9 to R-S252-11)
 
+Independent review on the resumed source contradicted N4-18's covered-owner primary (L46/L60):
+the earlier check verified the coverage label and current path, while the primary still asked to
+send. The UX repair and the strengthened variants driver now require Continue to Offer the
+tenant and activate it to check its destination. This updates the current checked ledger in
+place; the historical runs below retain their original scope and outcomes. Current independent
+observations are in `docs/evidence/renewal-one-path-ux-review-2026-11-06.md`.
+
 The ledger is checked data: `scripts/lib/one-path-walkthrough/defect-ledger.json`, checked by
 `scripts/lib/one-path-walkthrough/ledger-check.mjs` (`node scripts/check-one-path-defect-ledger.mjs`,
 and `tests/unit/s252-defect-ledger.test.ts`). The check resolves every owning id against its
