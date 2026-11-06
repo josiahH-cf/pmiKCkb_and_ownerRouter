@@ -35,6 +35,7 @@ import {
   pendingNoticeHash,
   type NoticeSafetyBasis,
 } from "@/lib/lease-renewal/notice-safety";
+import { NOTICE_GENERATION_NOT_READY } from "@/lib/lease-renewal/notice-source-error";
 
 const evidenceSchema = z
   .object({
@@ -409,7 +410,7 @@ function projectNoticeObservation(
     source.statusTable.status === "available" &&
     source.statusTable.noticeAdmitted === true;
   const reason = !ready
-    ? "Notice approval safety is unavailable or source generations conflict. Refresh the lease source and review again before drafting."
+    ? NOTICE_GENERATION_NOT_READY
     : disposition.state === "initiated" ||
         disposition.reason === "withdrawal_review_required"
       ? disposition.label

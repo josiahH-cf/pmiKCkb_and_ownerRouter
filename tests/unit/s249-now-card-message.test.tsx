@@ -19,11 +19,14 @@ import {
   useRenewalNowCard,
 } from "@/components/lease-renewal/RenewalNowCardContext";
 import {
+  COMPOSITION_REREAD_WAITS_MS,
+  onlyGenerationBeingReplaced,
   PreparedMessageSlot,
   type PreparedMessageData,
   type PreparedMessageHandlers,
 } from "@/components/lease-renewal/RenewalPreparedMessage";
 import { messageRevisionLabel } from "@/lib/lease-renewal/message-revision";
+import { NOTICE_GENERATION_NOT_READY } from "@/lib/lease-renewal/notice-source-error";
 import {
   projectRenewalPreparation,
   type RenewalKickoffFacts,
@@ -147,6 +150,8 @@ function mount(
 
 let fetchMock: ReturnType<typeof vi.fn>;
 const requests: Array<{ url: string; body: Record<string, unknown> | null }> = [];
+/** The blockers each composition read answers with, in order; none once the list is used up. */
+const compositionBlockers: string[][] = [];
 
 function respond(payload: unknown, status = 200) {
   return new Response(JSON.stringify(payload), {
@@ -157,6 +162,7 @@ function respond(payload: unknown, status = 200) {
 
 beforeEach(() => {
   requests.length = 0;
+  compositionBlockers.length = 0;
   fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const body = init?.body
       ? (JSON.parse(String(init.body)) as Record<string, unknown>)
@@ -175,7 +181,11 @@ beforeEach(() => {
             [{ text: "Our reviewed rental analysis suggests $1,420.00 per month." }],
           ],
         },
-        target: { to: ["owner@example.invalid"], cc: [] },
+        target: {
+          to: ["owner@example.invalid"],
+          cc: [],
+          blockers: compositionBlockers.shift() ?? [],
+        },
         reviewedTargetHash: "target-hash",
         messageRevision: "0a1b2c3d4e5f",
       });
@@ -269,6 +279,57 @@ describe("S249 the prepared owner message on the Now card", () => {
       schedule: null,
     });
     expect(requests.filter((entry) => entry.body?.action === "send")).toHaveLength(1);
+  });
+
+  it("BEH-S249-1: a review read while the lease read is being replaced is read again and then shown", async () => {
+    compositionBlockers.push([NOTICE_GENERATION_NOT_READY]);
+    mount();
+    await act(async () =>
+      fireEvent.click(await screen.findByRole("button", { name: "Review and send" })),
+    );
+    const dialog = await screen.findByRole("dialog", {}, { timeout: 4000 });
+    expect(dialog).toHaveTextContent("owner@example.invalid");
+    const reads = requests.filter((entry) =>
+      entry.url.startsWith("/api/gmail-hub/composition"),
+    );
+    expect(reads).toHaveLength(2);
+    // Reads only: nothing is sent before the one confirmation.
+    expect(requests.some((entry) => entry.body?.action === "send")).toBe(false);
+  });
+
+  it("BEH-S249-1: any other blocker is shown at once and the review is not read again", async () => {
+    compositionBlockers.push(["A verified owner recipient is needed."]);
+    mount();
+    await act(async () =>
+      fireEvent.click(await screen.findByRole("button", { name: "Review and send" })),
+    );
+    expect(
+      await screen.findByText(
+        "This message cannot be sent yet: A verified owner recipient is needed.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      requests.filter((entry) => entry.url.startsWith("/api/gmail-hub/composition")),
+    ).toHaveLength(1);
+    expect(requests.some((entry) => entry.url === "/api/gmail-hub/sequences")).toBe(
+      false,
+    );
+  });
+
+  it("the review is read again only for the replaced generation alone, a bounded few times", () => {
+    expect(onlyGenerationBeingReplaced([NOTICE_GENERATION_NOT_READY])).toBe(true);
+    expect(
+      onlyGenerationBeingReplaced([
+        NOTICE_GENERATION_NOT_READY,
+        "A verified owner recipient is needed.",
+      ]),
+    ).toBe(false);
+    expect(onlyGenerationBeingReplaced([])).toBe(false);
+    expect(onlyGenerationBeingReplaced(undefined)).toBe(false);
+    expect(COMPOSITION_REREAD_WAITS_MS.length).toBeLessThanOrEqual(3);
+    expect(COMPOSITION_REREAD_WAITS_MS.reduce((sum, ms) => sum + ms, 0)).toBeLessThan(
+      10_000,
+    );
   });
 
   it("R-S249-9: a Gmail draft made from an earlier revision reads older and offers its replacement", () => {

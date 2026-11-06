@@ -25,6 +25,7 @@ import type {
 import type { WorkflowCommunicationContext } from "@/lib/gmail-hub/workflow-context";
 import { BUSINESS_TIME_ZONE } from "@/lib/lease-renewal/business-calendar";
 import { messageRevisionLabel } from "@/lib/lease-renewal/message-revision";
+import { NOTICE_GENERATION_NOT_READY } from "@/lib/lease-renewal/notice-source-error";
 import type { RenewalPathStepId } from "@/lib/lease-renewal/renewal-path";
 import {
   KICKOFF_WORDS,
@@ -153,6 +154,20 @@ async function json<T>(url: string, body?: unknown): Promise<T> {
       status: response.status,
     });
   return payload;
+}
+
+/** How long to wait before each further read of the review while the lease read is replaced. */
+export const COMPOSITION_REREAD_WAITS_MS = [1_500, 3_000, 5_000] as const;
+
+/** True when the one thing holding the review is the lease generation being replaced. */
+export function onlyGenerationBeingReplaced(
+  blockers: readonly string[] | undefined,
+): boolean {
+  return (
+    blockers !== undefined &&
+    blockers.length === 1 &&
+    blockers[0] === NOTICE_GENERATION_NOT_READY
+  );
 }
 
 function tomorrowIso(): string {
@@ -310,14 +325,24 @@ function PreparedMessageBlock({
         );
         return;
       }
-      const composition = await json<{
-        context: WorkflowCommunicationContext;
-        initial: RichCommunicationMessage;
-        target: { to: string[]; cc: string[]; blockers?: string[] };
-        reviewedTargetHash: string;
-      }>(
-        `/api/gmail-hub/composition?purpose=${api.channel === "owner" ? "renewal_owner" : "renewal_tenant"}&lease=${encodeURIComponent(api.leaseId)}`,
-      );
+      const readComposition = () =>
+        json<{
+          context: WorkflowCommunicationContext;
+          initial: RichCommunicationMessage;
+          target: { to: string[]; cc: string[]; blockers?: string[] };
+          reviewedTargetHash: string;
+        }>(
+          `/api/gmail-hub/composition?purpose=${api.channel === "owner" ? "renewal_owner" : "renewal_tenant"}&lease=${encodeURIComponent(api.leaseId)}`,
+        );
+      let composition = await readComposition();
+      // A lease read older than a minute starts the next RentVine read, and the review made on the
+      // older one answers that the generation is being replaced. As the reason asks, the review is
+      // read again once that next read lands: reads only, a bounded few, and the server decides.
+      for (const waitMs of COMPOSITION_REREAD_WAITS_MS) {
+        if (!onlyGenerationBeingReplaced(composition.target.blockers)) break;
+        await new Promise((resolve) => setTimeout(resolve, waitMs));
+        composition = await readComposition();
+      }
       if (composition.target.blockers?.length) {
         setMessage(
           `This message cannot be sent yet: ${composition.target.blockers.join(" ")}`,

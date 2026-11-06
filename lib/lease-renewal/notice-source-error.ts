@@ -1,5 +1,13 @@
 import { EditableLayerError } from "@/lib/errors/editable-layer-error";
 
+/**
+ * The notice-safety reason a message read gives while its lease generation is being replaced (a
+ * read older than a minute starts the next RentVine read, whose admission supersedes it). A read
+ * made once that next read lands no longer gives it.
+ */
+export const NOTICE_GENERATION_NOT_READY =
+  "Notice approval safety is unavailable or source generations conflict. Refresh the lease source and review again before drafting.";
+
 /** Fixed, customer-free reasons for a refused notice admission, never provider error bodies. */
 export type RenewalNoticeSourceReason =
   | "lease_unavailable"
