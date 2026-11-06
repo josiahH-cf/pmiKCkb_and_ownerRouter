@@ -16,6 +16,7 @@ import {
   type ReactNode,
 } from "react";
 
+import type { FinishUpPreparation } from "@/lib/lease-renewal/finish-up-preparation";
 import type { NowCardSlot, RenewalPathStepId } from "@/lib/lease-renewal/renewal-path";
 import type { RenewalPreparation } from "@/lib/lease-renewal/renewal-preparation";
 
@@ -37,6 +38,8 @@ interface NowCardContextValue {
   readonly setPrimary: (step: RenewalPathStepId, primary: NowCardPrimary | null) => void;
   /** The one preparation projection the lease page was given (ARCH-S249-1). */
   readonly preparation: RenewalPreparation | null;
+  /** R-S249-14: Finish up's assembled source update previews; null where not assembled. */
+  readonly finishUp: FinishUpPreparation | null;
 }
 
 const Context = createContext<NowCardContextValue | null>(null);
@@ -50,8 +53,13 @@ export const nowSlotKey = (step: RenewalPathStepId, slot: NowCardSlot) =>
 
 export function RenewalNowCardProvider({
   preparation,
+  finishUp = null,
   children,
-}: Readonly<{ preparation: RenewalPreparation | null; children: ReactNode }>) {
+}: Readonly<{
+  preparation: RenewalPreparation | null;
+  finishUp?: FinishUpPreparation | null;
+  children: ReactNode;
+}>) {
   const [slots, setSlots] = useState<Record<string, HTMLElement | null>>({});
   const [primaries, setPrimaries] = useState<
     Partial<Record<RenewalPathStepId, NowCardPrimary>>
@@ -96,8 +104,8 @@ export function RenewalNowCardProvider({
     [],
   );
   const value = useMemo(
-    () => ({ slots, slotRef, primaries, setPrimary, preparation }),
-    [slots, slotRef, primaries, setPrimary, preparation],
+    () => ({ slots, slotRef, primaries, setPrimary, preparation, finishUp }),
+    [slots, slotRef, primaries, setPrimary, preparation, finishUp],
   );
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }

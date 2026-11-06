@@ -17,6 +17,7 @@ import { RenewalNoticeSourceError } from "./notice-source-error";
 import { RentVineError } from "@/lib/integrations/rentvine/client";
 import { manualNonRenewalReason } from "./notice-safety";
 import {
+  getCreatedMessageDrafts,
   getCurrentMessageDraft,
   getPreviousMessageDrafts,
 } from "@/lib/firestore/renewal-message-drafts";
@@ -70,6 +71,7 @@ import {
 } from "@/lib/lease-renewal/desk-identity";
 import {
   composeRenewalMessage,
+  ownerSuggestionSentence,
   type RenewalMessageFacts,
 } from "@/lib/lease-renewal/renewal-message-content";
 import { emptyMessagePreparationInputs } from "@/lib/lease-renewal/renewal-message-preparation";
@@ -164,6 +166,23 @@ export function observationPreparation(
     recordedByUid: "stored-comparison",
     revision: 0,
   };
+}
+
+/**
+ * S249 R-S249-5 (J): the prefilled rent to recommend a composed owner message carries: a proposal
+ * (agreement or comparison) whose approved suggestion sentence is in the message text as composed.
+ */
+export function carriedRecommendationOf(
+  channel: "owner" | "tenant",
+  rent: { value: number | null; origin: string | null; basis: string },
+  suggested: { value: number; kind?: string } | null,
+  plainText: string,
+): { value: number; origin: "agreement" | "comparison"; basis: string } | null {
+  if (channel !== "owner" || suggested?.kind !== "proposal") return null;
+  if (rent.origin !== "agreement" && rent.origin !== "comparison") return null;
+  const sentence = ownerSuggestionSentence(suggested.value);
+  if (!sentence || !plainText.includes(sentence)) return null;
+  return { value: suggested.value, origin: rent.origin, basis: rent.basis };
 }
 
 /** The label a message's working terms carry as their source. */
@@ -349,6 +368,14 @@ export async function currentRenewalMessage(
         return [null, []] as const;
       })
     : [null, []];
+  // S249 R-S249-9: the drafts whose creation is recorded, so a cancelled preview never hides the
+  // draft that is in Gmail. An unreadable list reads as none known (the attempt notice above says
+  // the history is unreadable when it is).
+  const createdDrafts = workspace
+    ? await getCreatedMessageDrafts(actor, leaseId, workspace.cycleId, channel, db).catch(
+        () => null,
+      )
+    : null;
   const availableCompScreenshot =
     channel === "owner"
       ? await db
@@ -626,6 +653,17 @@ export async function currentRenewalMessage(
   return {
     /** S249 R-S249-5: the rent to recommend and its basis, as the Now card reads it. */
     rentToRecommend,
+    /**
+     * S249 R-S249-5 (J): the prefilled figure this composed owner message actually carries, so a
+     * send makes exactly that figure the staff reviewed recommendation. Null when the figure is
+     * typed, absent, or edited out of the wording.
+     */
+    carriedRecommendation: carriedRecommendationOf(
+      channel,
+      rentToRecommend,
+      marketEvidence.suggestedRent,
+      content.plainText,
+    ),
     /** S249 ARCH-S249-2: the revision of this message record (subject and body). */
     messageRevision: messageRevisionOf({
       subject: content.subject,
@@ -639,6 +677,8 @@ export async function currentRenewalMessage(
       ? compScreenshotDraftAttachmentIdentity(availableCompScreenshot)
       : null,
     draftAttempt,
+    /** S249 R-S249-9: the last created Gmail draft and how many earlier ones it replaced. */
+    createdDrafts,
     previousDraftAttempts,
     draftJournalAvailable,
     senderEmail: actor.email,

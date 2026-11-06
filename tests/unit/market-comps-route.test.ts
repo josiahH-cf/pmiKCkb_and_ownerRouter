@@ -10,6 +10,9 @@ const harness = vi.hoisted(() => ({
   gateOpen: { current: true },
   usage: { current: 0 },
   incrementCalls: [] as number[],
+  // S249: places reserved under the allowance before dispatch, by reservation id.
+  held: new Map<string, "in_flight" | "uncertain">(),
+  settled: [] as string[],
   lookupMock: vi.fn(),
   lookupTrendMock: vi.fn(),
   queryError: { current: null as unknown },
@@ -84,6 +87,40 @@ vi.mock("@/lib/firestore/rentcast-usage", async (importOriginal) => {
         harness.usage.current += by;
         return { monthKey, billedCalls: harness.usage.current };
       },
+      // S249: the in-memory twin of the store's transactional check-and-reserve. A billed call
+      // moves its place into the billed count (recorded as an increment of one, as before).
+      reserveMonth: async (
+        monthKey: string,
+        input: { allowance: number; reservationId: string },
+      ) => {
+        const usage = () => ({
+          monthKey,
+          billedCalls: harness.usage.current,
+          heldCalls: harness.held.size,
+        });
+        if (harness.usage.current + harness.held.size >= input.allowance)
+          return { reserved: false, usage: usage() };
+        harness.held.set(input.reservationId, "in_flight");
+        return { reserved: true, usage: usage() };
+      },
+      settleReservation: async (monthKey: string, id: string, outcome: string) => {
+        harness.settled.push(outcome);
+        if (harness.held.get(id) === "in_flight") {
+          if (outcome === "uncertain") harness.held.set(id, "uncertain");
+          else {
+            harness.held.delete(id);
+            if (outcome === "billed") {
+              harness.incrementCalls.push(1);
+              harness.usage.current += 1;
+            }
+          }
+        }
+        return {
+          monthKey,
+          billedCalls: harness.usage.current,
+          heldCalls: harness.held.size,
+        };
+      },
     }),
   };
 });
@@ -115,6 +152,7 @@ import {
   resetMarketCompsCacheForTests,
 } from "@/app/api/lease-renewal/market-comps/route";
 import { setAuthResolverForTest } from "@/lib/auth/session";
+import { readRuntimeActionSuspension } from "@/lib/firestore/runtime-action-suspensions";
 import { MarketCompQueryResolutionError } from "@/lib/lease-renewal/market-comp-query-basis";
 import { RENTCAST_MONTHLY_ALLOWANCE_DEFAULT } from "@/lib/lease-renewal/rentcast-quota";
 
@@ -144,6 +182,8 @@ beforeEach(() => {
   harness.gateOpen.current = true;
   harness.usage.current = 0;
   harness.incrementCalls.length = 0;
+  harness.held.clear();
+  harness.settled.length = 0;
   harness.queryError.current = null;
   harness.queryBasis.current = {
     leaseId: "L1",
@@ -350,5 +390,52 @@ describe("market-comps route (S59 RentCast path)", () => {
     });
     expect(json).not.toHaveBeenCalled();
     expect(harness.lookupMock).not.toHaveBeenCalled();
+  });
+
+  // S249 (cost safety): the allowance place is reserved before dispatch and released only when
+  // the provider provably made no billed call.
+  it("reserves the place before dispatch, so a lookup at the last place refused by the reservation makes no call", async () => {
+    harness.usage.current = RENTCAST_MONTHLY_ALLOWANCE_DEFAULT - 1;
+    // Another session holds the last place while its call is in flight.
+    harness.held.set("other-session", "in_flight");
+    const json = await (await POST(req({ leaseId: "L1" }))).json();
+    expect(json).toMatchObject({ reason: "out_of_allowance", providerCalled: false });
+    expect(harness.lookupMock).not.toHaveBeenCalled();
+  });
+
+  it("a timeout keeps its place held (it may have been billed); a non-2xx answer releases it", async () => {
+    harness.lookupMock.mockResolvedValueOnce({
+      source: "RentCast",
+      confidence: "Needs Verification",
+      reason: "timeout",
+    });
+    await POST(req({ leaseId: "L1" }));
+    expect(harness.settled).toEqual(["uncertain"]);
+    expect([...harness.held.values()]).toEqual(["uncertain"]);
+    harness.lookupMock.mockResolvedValueOnce({
+      source: "RentCast",
+      confidence: "Needs Verification",
+      reason: "http_error",
+      httpStatus: 429,
+    });
+    resetMarketCompsCacheForTests();
+    const json = await (await POST(req({ leaseId: "L1" }))).json();
+    expect(harness.settled).toEqual(["uncertain", "released"]);
+    expect(json.quota).toMatchObject({ used: 1 });
+    expect(harness.incrementCalls).toEqual([]);
+  });
+
+  it("a runtime suspension that closes the gate after the place was reserved releases it and says no call was made", async () => {
+    // Clear at the route's first check, suspended at the gated call itself.
+    vi.mocked(readRuntimeActionSuspension)
+      .mockResolvedValueOnce({ status: "clear" } as never)
+      .mockResolvedValueOnce({ status: "suspended" } as never);
+    const res = await POST(req({ leaseId: "L1" }));
+    const json = await res.json();
+    expect(res.ok).toBe(false);
+    expect(json).toMatchObject({ providerCalled: false });
+    expect(harness.lookupMock).not.toHaveBeenCalled();
+    expect(harness.settled).toEqual(["released"]);
+    expect(harness.held.size).toBe(0);
   });
 });

@@ -3,8 +3,13 @@
 // automatic start off needs no release and touches no environment key. The owner approved the
 // automatic start, so with nothing saved it reads as on. With it off, no billed comparison starts
 // without a staff action, and "Prepare this batch" stays available.
+//
+// Change history (G): every saved change writes one audit row in the same transaction, the way
+// the publication policy does (`publication_policy_audit`): who, when, why, and the setting
+// before and after. A refused change writes nothing. The history is app metadata only.
 
 import type { Firestore } from "firebase-admin/firestore";
+import { v7 as uuidv7 } from "uuid";
 
 import { isVerificationAccount } from "@/lib/auth/canary-policy";
 import { can } from "@/lib/auth/roles";
@@ -14,6 +19,19 @@ import { EditableLayerError } from "@/lib/firestore/errors";
 
 export const KICKOFF_SETTINGS_COLLECTION = "app_settings";
 export const KICKOFF_AUTOMATIC_START_DOC = "renewal_kickoff_automatic_start";
+/** One row per saved change of the automatic-start setting (G). */
+export const KICKOFF_SETTING_AUDIT_COLLECTION = "renewal_kickoff_setting_audit";
+
+export interface KickoffSettingAuditRow {
+  readonly setting: typeof KICKOFF_AUTOMATIC_START_DOC;
+  readonly action: "changed";
+  readonly actorUid: string;
+  readonly actorEmail: string;
+  readonly at: string;
+  readonly reason: string;
+  readonly before: { readonly enabled: boolean; readonly version: number };
+  readonly after: { readonly enabled: boolean; readonly version: number };
+}
 
 /** The shipped state: on (owner decision D-OP-1, November 5, 2026). */
 export const KICKOFF_AUTOMATIC_START_DEFAULT = true;
@@ -84,6 +102,7 @@ export async function saveKickoffAutomaticStart(
       400,
     );
   const ref = db.collection(KICKOFF_SETTINGS_COLLECTION).doc(KICKOFF_AUTOMATIC_START_DOC);
+  const auditRef = db.collection(KICKOFF_SETTING_AUDIT_COLLECTION).doc(uuidv7());
   return db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     const current = settingOf(snap.exists ? snap.data() : undefined);
@@ -92,14 +111,40 @@ export async function saveKickoffAutomaticStart(
         "The setting changed since it was shown. Read it again before changing it.",
         409,
       );
+    const at = input.nowIso ?? new Date().toISOString();
     const next = {
       enabled: input.enabled,
       version: current.version + 1,
-      updated_at: input.nowIso ?? new Date().toISOString(),
+      updated_at: at,
       updated_by: actor.uid,
       reason,
     };
     tx.set(ref, next);
+    // G: the change and its history row commit together, or neither does.
+    const row: KickoffSettingAuditRow = {
+      setting: KICKOFF_AUTOMATIC_START_DOC,
+      action: "changed",
+      actorUid: actor.uid,
+      actorEmail: actor.email.toLowerCase(),
+      at,
+      reason,
+      before: { enabled: current.enabled, version: current.version },
+      after: { enabled: next.enabled, version: next.version },
+    };
+    tx.create(auditRef, row);
     return settingOf(next);
   });
+}
+
+/** The setting's change history, newest first, bounded. Reads only. */
+export async function listKickoffSettingHistory(
+  limit = 20,
+  db: Firestore = getAdminFirestore(),
+): Promise<KickoffSettingAuditRow[]> {
+  const rows = await db
+    .collection(KICKOFF_SETTING_AUDIT_COLLECTION)
+    .orderBy("at", "desc")
+    .limit(Math.max(1, Math.min(100, limit)))
+    .get();
+  return rows.docs.map((row) => row.data() as KickoffSettingAuditRow);
 }

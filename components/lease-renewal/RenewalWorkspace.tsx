@@ -44,6 +44,7 @@ import {
 } from "@/components/lease-renewal/RenewalFocusViewPane";
 import { RenewalGuidedView } from "@/components/lease-renewal/RenewalGuidedView";
 import { RenewalNowCardProvider } from "@/components/lease-renewal/RenewalNowCardContext";
+import type { FinishUpPreparation } from "@/lib/lease-renewal/finish-up-preparation";
 import { renewalStageContextFor } from "@/lib/lease-renewal/renewal-stage-context";
 import { initialRenewalWorkspaceView } from "@/lib/lease-renewal/workspace-view";
 import { buildRenewalActionSnapshot } from "@/lib/lease-renewal/renewal-action-snapshot";
@@ -197,6 +198,7 @@ export function RenewalWorkspace({
   policyMaterial = null,
   policySheetValue = null,
   policyTodayIso = null,
+  finishUpPreparation = null,
 }: Readonly<{
   compScreenshotExecutable?: boolean;
   packetSnapshot?: RenewalPacketSnapshot | null;
@@ -265,6 +267,11 @@ export function RenewalWorkspace({
   workStatus?: RenewalWorkStatusPanelInput | null;
   /** S127/S128: operating-Sheet writes paused by owner policy; stated as a policy pause, never a failure. */
   sheetWritebackPaused?: boolean;
+  /**
+   * S249 R-S249-14 / L42: Finish up's RentVine and Sheet update previews, assembled from the final
+   * working terms and this page's reads. Read only; null where the page did not assemble them.
+   */
+  finishUpPreparation?: FinishUpPreparation | null;
 }>) {
   const { summary } = workspace;
   const dataExpired = workspace.dataCurrency?.state === "expired";
@@ -728,6 +735,7 @@ export function RenewalWorkspace({
   // preparation projection and its one message record.
   return (
     <RenewalNowCardProvider
+      finishUp={finishUpPreparation}
       key={summary.id}
       preparation={stageContext.preparation ?? null}
     >

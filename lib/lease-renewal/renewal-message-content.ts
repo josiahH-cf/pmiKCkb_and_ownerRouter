@@ -76,6 +76,22 @@ export function responseRequestParagraph(
 }
 
 /** Replace only the named fields; unresolved authoring tokens never reach copy. */
+/**
+ * S249 R-S249-5: the approved suggestion sentence an owner message states for a rent to
+ * recommend, exactly as the composition writes it; null for an amount a message cannot carry.
+ */
+export function ownerSuggestionSentence(value: number): string | null {
+  const parsed = messageMoney.safeParse(value);
+  return parsed.success
+    ? fillSuppliedCopy(SUPPLIED_RENEWAL_COPY.owner.suggestion, {
+        suggested_rent: parsed.data.toLocaleString("en-US", {
+          style: "currency",
+          currency: "USD",
+        }),
+      })
+    : null;
+}
+
 function fillSuppliedCopy(template: string, values: Record<string, string>): string {
   return template.replace(/\{\{([a-z_]+)\}\}/g, (_match, key: string) => {
     if (!(key in values)) throw new Error(`Missing supplied-copy field ${key}.`);
@@ -167,6 +183,16 @@ export const ManagedMessageSignatureSchema = z
   .strict();
 export type ManagedMessageSignature = z.infer<typeof ManagedMessageSignatureSchema>;
 
+/**
+ * What staff-typed prose in a message may not carry: control characters, template tokens, links,
+ * email addresses, amounts and digits. Those belong in the labeled fact fields, which are sourced.
+ * S249: the edited wording and the "Reason to include" share this one guard.
+ */
+export const FACT_FIELD_CONTENT =
+  /[\u0000-\u001f\u007f]|\{\{|\}\}|https?:\/\/|www\.|@|\$|\d/;
+export const FACT_FIELD_REFUSAL =
+  "Keep amounts, dates, links and contacts in their labeled fact fields.";
+
 /** Editable prose is bounded separately from sourced facts; source changes preserve it for review. */
 export const RenewalMessageEditsSchema = z
   .object({
@@ -174,11 +200,7 @@ export const RenewalMessageEditsSchema = z
       .string()
       .trim()
       .max(700)
-      .refine(
-        (value) =>
-          !/[\u0000-\u001f\u007f]|\{\{|\}\}|https?:\/\/|www\.|@|\$|\d/.test(value),
-        "Keep amounts, dates, links and contacts in their labeled fact fields.",
-      ),
+      .refine((value) => !FACT_FIELD_CONTENT.test(value), FACT_FIELD_REFUSAL),
   })
   .strict();
 export type RenewalMessageEdits = z.infer<typeof RenewalMessageEditsSchema>;
@@ -435,7 +457,16 @@ export function composeRenewalMessage(
         : money(facts.suggestedRent?.value);
     if (suggested) {
       sourced(facts.suggestedRent!.source);
-      const reason = text(facts.recommendationReason);
+      // S249 (H): the reason carries the same guard as edited wording; one that does not pass it
+      // stays out of the message and the callout says what to take out.
+      const typedReason = text(facts.recommendationReason);
+      const reason =
+        typedReason && FACT_FIELD_CONTENT.test(typedReason) ? null : typedReason;
+      if (typedReason && !reason)
+        note(
+          "recommendationReason",
+          "The reason to include stays out of the message until amounts, dates, links and contacts are taken out of it.",
+        );
       add(
         `${fillSuppliedCopy(SUPPLIED_RENEWAL_COPY.owner.suggestion, {
           suggested_rent: suggested,

@@ -60,6 +60,7 @@ import { projectRentChargeOutcomes } from "@/lib/lease-renewal/rent-charge-outco
 import { projectCurrentBaseReadback } from "@/lib/lease-renewal/writeback/current-base-readback";
 import { futureRentTermsCurrent } from "@/lib/lease-renewal/writeback/future-rent-intent";
 import { effectiveRenewalTerms } from "@/lib/lease-renewal/effective-terms";
+import { assembleFinishUpPreparation } from "@/lib/lease-renewal/finish-up-preparation";
 import { loadSheetWritebackEffectStatuses } from "@/lib/lease-renewal/sheet-writeback/status";
 import { FirestoreExternalExecutionStore } from "@/lib/firestore/external-action-executions";
 import { getAdminFirestore } from "@/lib/firestore/admin";
@@ -587,6 +588,20 @@ export default async function LiveRenewalLeaseWorkspacePage({
       ? preparedSheetFieldsRead
       : unavailableRenewalAuxiliary("sheet_fields");
   const sheetFields = renewalAuxiliaryValue(sheetFieldsRead, null);
+  // S249 R-S249-14 / L42: Finish up's RentVine and Sheet update previews, assembled from the final
+  // working terms and the reads above. Assembly only: nothing is saved or written here; each
+  // update is applied through its existing control with its own confirmation.
+  const finishUpPreparation =
+    outcome.status === "ok"
+      ? assembleFinishUpPreparation({
+          leaseId,
+          terms: effectiveRenewalTerms(renewalAuxiliaryValue(workingRecordRead, null)),
+          inventory: chargeInventory,
+          sheet: sheetFieldsRead.status === "available" ? sheetFields : null,
+          identity: sourceUpdateIdentity,
+          readAtIso: readTimestamp,
+        })
+      : null;
   // S237 R-S237-5: what still differs, from this render's own RentVine and Sheet reads.
   const datesIntent = writebackProposal?.effects
     .flatMap((entry) =>
@@ -642,6 +657,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
           <RenewalWorkspace
             attemptSummary={attemptSummary}
             auxiliaryFailures={auxiliaryFailures}
+            finishUpPreparation={finishUpPreparation}
             sheetWritebackPaused={isOperatingSheetWritebackPaused()}
             policyMaterial={policyMaterial}
             policySheetValue={sheetFields?.row?.fieldValues?.rhino_renewed ?? null}

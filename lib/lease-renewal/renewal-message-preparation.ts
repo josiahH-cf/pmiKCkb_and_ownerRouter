@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  FACT_FIELD_CONTENT,
   MESSAGE_CHARGES,
   MessageChargeSchema,
   MessageLinkSchema,
@@ -11,16 +12,19 @@ import {
 } from "@/lib/lease-renewal/refined-message";
 
 const source = z.string().trim().min(1).max(240);
-/** One plain line: no control characters, no template tokens, at most 300 characters. */
+/** S249 (H): the refusal a reason that carries an amount, a date, a link or a contact reads. */
+export const RECOMMENDATION_REASON_REFUSAL =
+  "Keep amounts, dates, links and contacts out of the reason to include; the message states them in their labeled fact fields.";
+/**
+ * One plain line of at most 300 characters, under the same guard as edited wording: no amounts,
+ * digits, links, email addresses, template tokens or control characters.
+ */
 export const RecommendationReasonSchema = z
   .string()
   .trim()
   .min(1)
   .max(300)
-  .refine(
-    (value) => !/[\u0000-\u001f\u007f]|\{\{|\}\}/.test(value),
-    "Use one plain line without template tokens.",
-  );
+  .refine((value) => !FACT_FIELD_CONTENT.test(value), RECOMMENDATION_REASON_REFUSAL);
 export const MessagePreparationInputsSchema = z
   .object({
     edits: RenewalMessageEditsSchema,

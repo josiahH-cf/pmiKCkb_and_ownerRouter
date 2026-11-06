@@ -12,6 +12,12 @@
 // canary and the read-only smokes all set) unless the server says this process is the isolated
 // rehearsal, and the page has been visible and idle for a moment. The server applies its own
 // fences again for every lease.
+//
+// One loop per tab (C): a preparation loop belongs to the component that started it. It stops
+// when that component unmounts (the staff member leaves the batch), sends nothing further, and
+// never refreshes a page it no longer owns. Only one loop runs in a tab at a time: a remount waits
+// for a stopping loop to end and then starts again from the server's own state (the targets the
+// page was given, behind the server's per lease and cycle claim), never beside it.
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -129,6 +135,14 @@ function operationFor(target: KickoffTarget): string {
   return id;
 }
 
+/** The one preparation loop this tab runs; null when none runs (C). */
+let tabLoop: Promise<void> | null = null;
+
+/** Test seam: whether a preparation loop is running in this tab. */
+export function preparationLoopRunning(): boolean {
+  return tabLoop !== null;
+}
+
 interface LeaseOutcome {
   readonly leaseId: string;
   readonly address: string;
@@ -162,6 +176,16 @@ export function RenewalKickoffPreparation({
   const [outcomes, setOutcomes] = useState<LeaseOutcome[]>([]);
   const running = useRef(false);
   const started = useRef(false);
+  // C: stopped when this component leaves the page, so its loop sends nothing further.
+  const lifetime = useRef<AbortController | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    lifetime.current = controller;
+    return () => {
+      controller.abort();
+      if (lifetime.current === controller) lifetime.current = null;
+    };
+  }, []);
   const [confirming, setConfirming] = useState(false);
   const [reason, setReason] = useState("");
   const [settingNotice, setSettingNotice] = useState("");
@@ -170,12 +194,20 @@ export function RenewalKickoffPreparation({
 
   const prepare = useCallback(
     async (trigger: "staff" | "automatic", list: readonly KickoffTarget[]) => {
-      if (running.current || list.length === 0) return;
+      const signal = lifetime.current?.signal;
+      // One loop per tab, and only while this component is on the page.
+      if (!signal || signal.aborted || running.current || tabLoop || list.length === 0)
+        return;
       running.current = true;
+      let finished!: () => void;
+      tabLoop = new Promise<void>((resolve) => {
+        finished = resolve;
+      });
       setOutcomes([]);
       let stoppedAtAllowance = false;
       try {
         for (const [index, target] of list.entries()) {
+          if (signal.aborted) break;
           setRun({
             phase: "running",
             trigger,
@@ -193,6 +225,9 @@ export function RenewalKickoffPreparation({
                 trigger,
                 operationId: operationFor(target),
               }),
+              // Leaving the batch stops the wait here; the server finishes the one lookup it
+              // claimed, and its claim keeps it from running twice.
+              signal,
             });
             const body = (await response.json().catch(() => null)) as {
               status?: string;
@@ -209,6 +244,7 @@ export function RenewalKickoffPreparation({
                 "The preparation did not answer. Nothing was started twice.",
             };
           } catch {
+            if (signal.aborted) break;
             outcome = {
               leaseId: target.leaseId,
               address: target.address,
@@ -217,6 +253,7 @@ export function RenewalKickoffPreparation({
                 "The response did not arrive. Running the preparation again is safe: a lease is never looked up twice.",
             };
           }
+          if (signal.aborted) break;
           setOutcomes((previous) => [...previous, outcome]);
           if (outcome.status === "allowance_reached") {
             // Nothing further is requested; the remaining leases read the allowance words.
@@ -238,8 +275,13 @@ export function RenewalKickoffPreparation({
         }
       } finally {
         running.current = false;
-        setRun({ phase: "done", trigger, stoppedAtAllowance });
-        router.refresh();
+        tabLoop = null;
+        finished();
+        // A page this component no longer owns is never refreshed by it.
+        if (!signal.aborted) {
+          setRun({ phase: "done", trigger, stoppedAtAllowance });
+          router.refresh();
+        }
       }
     },
     [router],
@@ -265,7 +307,11 @@ export function RenewalKickoffPreparation({
     const controller = new AbortController();
     let begun = false;
     void waitUntilVisibleAndIdle(controller.signal)
-      .then(() => {
+      .then(async () => {
+        // A loop still stopping (an earlier mount of this view) ends first; this one then starts
+        // from the server's state, never beside it.
+        if (tabLoop) await tabLoop;
+        if (controller.signal.aborted) return;
         begun = true;
         return prepare("automatic", latestTargets.current);
       })

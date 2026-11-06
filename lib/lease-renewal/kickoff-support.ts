@@ -15,6 +15,7 @@ import { RENEWAL_WORKSPACE_COLLECTIONS } from "@/lib/firestore/renewal-workspace
 import {
   createRentcastUsageStore,
   rentcastMonthKey,
+  rentcastUsedCalls,
 } from "@/lib/firestore/rentcast-usage";
 import { listKickoffPreparations } from "@/lib/firestore/renewal-kickoff-preparations";
 import type {
@@ -100,7 +101,8 @@ export async function readKickoffSupport(
     signature,
     templateApproved: publication ? publication.status === "approved" : null,
     allowanceReached: usage
-      ? evaluateRentcastQuota(usage.billedCalls, resolveRentcastAllowance()).exhausted
+      ? evaluateRentcastQuota(rentcastUsedCalls(usage), resolveRentcastAllowance())
+          .exhausted
       : null,
     preparationsByLease: preparations,
   };

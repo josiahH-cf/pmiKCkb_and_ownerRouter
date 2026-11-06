@@ -67,7 +67,10 @@ export async function POST(request: Request) {
           ? { observationId: payload.observationId }
           : {}),
         ...(typeof payload.cached === "boolean" ? { cached: payload.cached } : {}),
+        ...(typeof payload.billed === "boolean" ? { billed: payload.billed } : {}),
         ...(typeof payload.error === "string" ? { error: payload.error } : {}),
+        // S249: the route says so when it refused before the provider could be called.
+        ...(payload.providerCalled === false ? { providerCalled: false as const } : {}),
       };
     };
     const result = await runKickoffPreparation(

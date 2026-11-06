@@ -83,13 +83,16 @@ describe("S249 R-S249-1 numbers check (D-OP-7: RentVine is the basis)", () => {
   });
 
   it("names the one difference to settle with its existing fix control", () => {
-    const check = renewalNumbersCheck({ ...NUMBERS, rentCharges: [1400] });
+    const check = renewalNumbersCheck({ ...NUMBERS, workingRent: 1400 });
     expect(check.state).toBe("difference");
     if (check.state !== "difference") throw new Error("expected a difference");
     expect(check.line).toBe(
-      "The RentVine rent charge is $1,400 and the lease rent is $1,350",
+      "Your working current rent is $1,400 and RentVine reports $1,350",
     );
     expect(check.fix.target).toBe("renewal-rent-and-charges");
+    // S249 review fix E (ARCH-S249-1): the rent charges are not part of the shared check on any
+    // surface (the desk reads none); the lease page states them as a separate fact.
+    expect(renewalNumbersCheck({ ...NUMBERS, rentCharges: [1400] }).state).toBe("agree");
   });
 
   it("names a working rent that differs from RentVine, and nothing else", () => {
@@ -286,7 +289,7 @@ describe("S249 the stage reads the preparation (R-S249-1, R-S249-2)", () => {
   it("names the one difference on Check the numbers", () => {
     const preparation = projectRenewalPreparation({
       ...FACTS,
-      numbers: { ...NUMBERS, rentCharges: [1400] },
+      numbers: { ...NUMBERS, workingRent: 1400 },
     });
     const stage = projectRenewalStage(null, {
       ...context,
@@ -295,7 +298,7 @@ describe("S249 the stage reads the preparation (R-S249-1, R-S249-2)", () => {
     });
     expect(stage.currentStepId).toBe("check-numbers");
     expect(stage.steps.find((step) => step.id === "check-numbers")?.detail).toBe(
-      "The RentVine rent charge is $1,400 and the lease rent is $1,350",
+      "Your working current rent is $1,400 and RentVine reports $1,350",
     );
   });
 });

@@ -3,6 +3,7 @@ import {
   assertCompCaptureAllowed,
   captureMarketObservation,
 } from "@/lib/firestore/renewal-market-observations";
+import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { resolveRenewalWorkBasis } from "@/lib/lease-renewal/workspace-cycle-context";
 import { z } from "zod";
@@ -14,6 +15,8 @@ import { readServerConfig } from "@/lib/config/server";
 import {
   createRentcastUsageStore,
   rentcastMonthKey,
+  rentcastUsedCalls,
+  type RentcastReservationOutcome,
   type RentcastUsageStore,
 } from "@/lib/firestore/rentcast-usage";
 import {
@@ -85,7 +88,29 @@ async function readQuota(
   monthKey: string,
 ): Promise<RentcastQuotaView> {
   const usage = await store.readMonth(monthKey);
-  return evaluateRentcastQuota(usage.billedCalls, resolveRentcastAllowance());
+  return evaluateRentcastQuota(rentcastUsedCalls(usage), resolveRentcastAllowance());
+}
+
+/**
+ * S249: provider reasons that prove no billed call happened: the provider returned before any
+ * request (no key, no address) or answered with a non-2xx status, which RentCast never bills.
+ * A timeout or a lost connection is not on this list: the call may have been billed.
+ */
+const PROVABLY_UNBILLED_REASONS: ReadonlySet<string> = new Set([
+  "missing_key",
+  "missing_address",
+  "http_error",
+  "insufficient_comparables",
+]);
+
+function reservationOutcome(result: {
+  readonly billed?: boolean;
+  readonly reason?: string;
+}): RentcastReservationOutcome {
+  if (result.billed === true) return "billed";
+  return result.reason && PROVABLY_UNBILLED_REASONS.has(result.reason)
+    ? "released"
+    : "uncertain";
 }
 
 function referenceProjection(queryBasis: MarketCompQueryBasis, cached: boolean) {
@@ -105,6 +130,8 @@ function referenceProjection(queryBasis: MarketCompQueryBasis, cached: boolean) 
  * are enforced before a call; the manual adapter needs no provider gate and echoes operator input.
  */
 async function marketCompsResponse(request: Request) {
+  // S249: false until the live lookup begins, so every refusal before it says no call was made.
+  let providerDispatched = false;
   try {
     const user = await requireCapabilityInSpace(
       renewalRoleCapability("request_reference_comps"),
@@ -135,6 +162,7 @@ async function marketCompsResponse(request: Request) {
           error:
             "This lease has no 5-digit zip on file, so a market-trend lookup has nothing to query.",
           error_type: "missing_postal_code",
+          providerCalled: false,
         },
         { status: 400 },
       );
@@ -193,7 +221,7 @@ async function marketCompsResponse(request: Request) {
       });
     }
 
-    if (quota.exhausted) {
+    const outOfAllowance = (view: RentcastQuotaView) => {
       // AC-S59-5: an explicit out-of-allowance refusal, no call made, hand entry still available.
       const refusal: MarketCompResult = {
         source: RENTCAST_MARKET_COMP_SOURCE,
@@ -202,10 +230,22 @@ async function marketCompsResponse(request: Request) {
       };
       return NextResponse.json({
         ...refusal,
-        quota,
+        quota: view,
         ...referenceProjection(queryBasis, false),
+        providerCalled: false,
       });
-    }
+    };
+    if (quota.exhausted) return outOfAllowance(quota);
+
+    // S249 (cost safety): check the allowance and reserve this call's place in one transaction
+    // BEFORE dispatch, so two sessions at the last place cannot both call. Refused: no call made.
+    const allowance = resolveRentcastAllowance();
+    const reservationId = randomUUID();
+    const reservation = await store.reserveMonth(monthKey, { allowance, reservationId });
+    if (!reservation.reserved)
+      return outOfAllowance(
+        evaluateRentcastQuota(rentcastUsedCalls(reservation.usage), allowance),
+      );
 
     const provider = new RentCastMarketCompProvider({
       ...(config.rentcastApiKey ? { apiKey: config.rentcastApiKey } : {}),
@@ -213,24 +253,44 @@ async function marketCompsResponse(request: Request) {
       compCount: queryBasis.policy.requestedCompCount,
       lookupSubjectAttributes: queryBasis.policy.lookupSubjectAttributes,
     });
-    const lookup = async () =>
-      body.operation === "trend"
+    const lookup = async () => {
+      // From here the provider may be called; before it, every refusal provably made no call.
+      providerDispatched = true;
+      return body.operation === "trend"
         ? provider.lookupTrend(queryBasis.trendPostalCode as string)
         : provider.lookup({
             addressLabel: queryBasis.addressLabel,
             ...queryBasis.query,
           });
-    const result = await runProductionRuntimeGatedAction(
-      RENTCAST_LISTINGS_ACTION_KEY,
-      lookup,
-    );
-
-    // AC-S59-4: the counter increments only on a real billed call — never on a cache hit and never
-    // on a refusal that made no request. Billed mirrors RentCast's own billing (one 2xx with body).
-    if (result.billed) {
-      const usage = await store.incrementMonth(monthKey, 1);
-      quota = evaluateRentcastQuota(usage.billedCalls, resolveRentcastAllowance());
+    };
+    let result: MarketCompResult | MarketTrendResult;
+    try {
+      result = await runProductionRuntimeGatedAction(
+        RENTCAST_LISTINGS_ACTION_KEY,
+        lookup,
+      );
+    } catch (error) {
+      // The gate refused before the lookup began (released), or the lookup itself broke after it
+      // may have reached the provider (held). A failed settle leaves the place held.
+      await store
+        .settleReservation(
+          monthKey,
+          reservationId,
+          providerDispatched ? "uncertain" : "released",
+        )
+        .catch(() => undefined);
+      throw error;
     }
+
+    // AC-S59-4: the billed count grows only on a real billed call — never on a cache hit and never
+    // on a refusal that made no request. Billed mirrors RentCast's own billing (one 2xx with body).
+    // S249: a provably unbilled answer releases its place; an unknown outcome keeps it held.
+    const usage = await store.settleReservation(
+      monthKey,
+      reservationId,
+      reservationOutcome(result),
+    );
+    quota = evaluateRentcastQuota(rentcastUsedCalls(usage), allowance);
     if (result.confidence === "Likely") {
       writeCompCache(cacheKey, result, nowMs);
     }
@@ -240,9 +300,12 @@ async function marketCompsResponse(request: Request) {
       ...referenceProjection(queryBasis, false),
     });
   } catch (error) {
+    // S249: a refusal before the lookup began says so, so a caller holding a once-per-cycle
+    // claim can tell "nothing was called or billed" from an outcome that may have been billed.
+    const notCalled = providerDispatched ? {} : { providerCalled: false };
     if (error instanceof MarketCompQueryResolutionError) {
       return NextResponse.json(
-        { error: error.message, error_type: error.code },
+        { error: error.message, error_type: error.code, ...notCalled },
         { status: error.status },
       );
     }
@@ -258,11 +321,17 @@ async function marketCompsResponse(request: Request) {
               ? error.message
               : "Live market-comp lookup is unavailable until the RentCast action has owner-approved permission. Enter your own comp numbers instead.",
           error_type: error.code,
+          ...notCalled,
         },
         { status: error.status },
       );
     }
-    return apiErrorResponse(error);
+    const response = apiErrorResponse(error);
+    if (providerDispatched) return response;
+    return NextResponse.json(
+      { ...((await response.json().catch(() => ({}))) as object), ...notCalled },
+      { status: response.status },
+    );
   }
 }
 
@@ -302,13 +371,17 @@ export async function POST(request: Request) {
     );
     if (!response.ok) return response;
     const payload = await response.json();
+    // S249: whether the provider was called answers this request; the retained evidence is the
+    // provider's result as before.
+    const retained: Record<string, unknown> = { ...payload };
+    delete retained.providerCalled;
     try {
       const observationId = await captureMarketObservation(
         actor,
         leaseId,
         capture,
         body.operation === "trend" ? "trend" : "comps",
-        payload,
+        retained,
         undefined,
         () => resolveRenewalWorkBasis(actor, leaseId),
       );

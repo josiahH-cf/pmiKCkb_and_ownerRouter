@@ -38,3 +38,54 @@ export function messageRevisionOf(message: {
 export function messageRevisionLabel(revision: string): string {
   return revision.slice(0, 6).toUpperCase();
 }
+
+/**
+ * S249 R-S249-9: what the card says about the unsent Gmail draft. It reads the last CREATED
+ * draft: one confirmed here, else the last one whose creation the server recorded. The draft
+ * head (the newest attempt) moves as soon as a replacement is previewed, so it is read only for
+ * a draft recorded before the created-draft list existed. `earlierRemain` stays true once a
+ * created draft was replaced: the app never deletes a Gmail draft, so the earlier one is still
+ * in Gmail.
+ */
+export function gmailDraftSignal(input: {
+  readonly createdHere: string | null;
+  readonly replacedHere: boolean;
+  readonly created: {
+    readonly latest: {
+      readonly executionId: string;
+      readonly subject: string;
+      readonly body: string;
+    };
+    readonly earlier: number;
+  } | null;
+  readonly head: {
+    readonly executionId: string;
+    readonly outcome: { readonly status: string; readonly resolution?: string } | null;
+    readonly preview?: { readonly subject: string; readonly body: string } | null;
+  } | null;
+}): {
+  readonly createdRevision: string | null;
+  readonly createdExecutionId: string | null;
+  readonly earlierRemain: boolean;
+} {
+  const headCreated =
+    input.head?.outcome?.status === "created" ||
+    (input.head?.outcome?.status === "reconciliation" &&
+      input.head.outcome.resolution === "created");
+  const recorded = input.created?.latest
+    ? {
+        revision: messageRevisionOf(input.created.latest),
+        executionId: input.created.latest.executionId,
+      }
+    : headCreated && input.head?.preview
+      ? {
+          revision: messageRevisionOf(input.head.preview),
+          executionId: input.head.executionId,
+        }
+      : null;
+  return {
+    createdRevision: input.createdHere ?? recorded?.revision ?? null,
+    createdExecutionId: recorded?.executionId ?? null,
+    earlierRemain: input.replacedHere || (input.created?.earlier ?? 0) > 0,
+  };
+}

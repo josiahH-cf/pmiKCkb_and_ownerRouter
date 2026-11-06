@@ -26,6 +26,10 @@ import type { WorkflowCommunicationContext } from "@/lib/gmail-hub/workflow-cont
 import { BUSINESS_TIME_ZONE } from "@/lib/lease-renewal/business-calendar";
 import { messageRevisionLabel } from "@/lib/lease-renewal/message-revision";
 import { NOTICE_GENERATION_NOT_READY } from "@/lib/lease-renewal/notice-source-error";
+import {
+  RECOMMENDATION_REASON_REFUSAL,
+  RecommendationReasonSchema,
+} from "@/lib/lease-renewal/renewal-message-preparation";
 import type { RenewalPathStepId } from "@/lib/lease-renewal/renewal-path";
 import {
   KICKOFF_WORDS,
@@ -109,6 +113,8 @@ export interface PreparedMessageApi {
     readonly pending: boolean;
     /** The revision a created Gmail draft carries; null when none was created from this record. */
     readonly createdRevision: string | null;
+    /** True once a created Gmail draft was replaced: the earlier one is still in Gmail. */
+    readonly earlierRemain?: boolean;
     readonly preview: {
       readonly subject: string;
       readonly body: string;
@@ -135,7 +141,44 @@ interface ReviewState {
   readonly cc: readonly string[];
   readonly subject: string;
   readonly body: string;
+  /**
+   * R-S249-5: the prefilled rent to recommend the reviewed message carries, as the server composed
+   * it; null when the message carries a typed figure or none. This, never the page's own
+   * projection, is what a send makes the staff reviewed recommendation.
+   */
+  readonly carriedRecommendation: CarriedRecommendation | null;
 }
+
+/** The prefilled rent to recommend a composed owner message carries (the server's own words). */
+export interface CarriedRecommendation {
+  readonly value: number;
+  readonly origin: "agreement" | "comparison";
+  readonly basis: string;
+}
+
+/** One save of the communication draft: the exact request, reused as is when it is retried. */
+interface PendingSave {
+  readonly body: {
+    readonly action: "save";
+    readonly draft: {
+      readonly id: string;
+      readonly context: WorkflowCommunicationContext;
+      readonly initial: RichCommunicationMessage;
+      readonly followUp: null;
+    };
+    readonly expectedVersion: number;
+    readonly operationId: string;
+  };
+}
+
+/** True when a failed request may still have been applied at the server (no answer, or a 5xx). */
+export function outcomeUnknown(error: unknown): boolean {
+  const status = (error as { status?: unknown } | null)?.status;
+  return typeof status !== "number" || status >= 500;
+}
+
+/** How many times a save whose answer was lost is sent again, identically, before stopping. */
+export const SAVE_RETRIES = 2;
 
 async function json<T>(url: string, body?: unknown): Promise<T> {
   const response = await fetchWithDeadline(
@@ -252,6 +295,8 @@ function PreparedMessageBlock({
   });
   const [signatureNotice, setSignatureNotice] = useState("");
   const sequenceRef = useRef<{ id: string; version: number } | null>(null);
+  // A communication draft save whose answer has not arrived: sent again as is before anything new.
+  const pendingSave = useRef<PendingSave | null>(null);
   const trigger = useRef<HTMLButtonElement | null>(null);
   const typedRent = workingRenewalTerms(working?.record ?? null).rent;
   const live = useMemo(
@@ -313,6 +358,14 @@ function PreparedMessageBlock({
   const missingWords = needs.filter((item) => !item.ready && item.missing);
   const staleDraft =
     api.draft.createdRevision !== null && api.draft.createdRevision !== api.revision;
+  // H: the reason carries the same guard as edited wording, and says what to take out.
+  const reasonCheck = api.reason.trim()
+    ? RecommendationReasonSchema.safeParse(api.reason)
+    : null;
+  const reasonRefusal =
+    reasonCheck && !reasonCheck.success
+      ? (reasonCheck.error.issues[0]?.message ?? RECOMMENDATION_REASON_REFUSAL)
+      : null;
 
   /** Save the message, read the lease composition and save the communication draft for review. */
   const prepareReview = async (mode: "send" | "schedule") => {
@@ -331,6 +384,7 @@ function PreparedMessageBlock({
           initial: RichCommunicationMessage;
           target: { to: string[]; cc: string[]; blockers?: string[] };
           reviewedTargetHash: string;
+          carriedRecommendation?: CarriedRecommendation | null;
         }>(
           `/api/gmail-hub/composition?purpose=${api.channel === "owner" ? "renewal_owner" : "renewal_tenant"}&lease=${encodeURIComponent(api.leaseId)}`,
         );
@@ -349,28 +403,66 @@ function PreparedMessageBlock({
         );
         return;
       }
-      const save = async (prior: { id: string; version: number } | null) =>
-        json<{ sequence: CommunicationSequence; reviewedDraftHash: string }>(
-          "/api/gmail-hub/sequences",
-          {
-            action: "save",
-            draft: {
-              id: prior?.id ?? crypto.randomUUID(),
-              context: composition.context,
-              initial: composition.initial,
-              followUp: null,
-            },
-            expectedVersion: prior?.version ?? 0,
-            operationId: crypto.randomUUID(),
+      type Saved = { sequence: CommunicationSequence; reviewedDraftHash: string };
+      // One operation id per save attempt, reused unchanged on every retry, so a save whose
+      // answer was lost is answered with the record it already made (the server replays an
+      // operation it already applied). A lost answer never becomes a second sendable draft.
+      const send = async (pending: PendingSave): Promise<Saved> => {
+        pendingSave.current = pending;
+        for (let attempt = 0; ; attempt += 1) {
+          try {
+            const saved = await json<Saved>("/api/gmail-hub/sequences", pending.body);
+            pendingSave.current = null;
+            return saved;
+          } catch (error) {
+            if (!outcomeUnknown(error)) {
+              pendingSave.current = null;
+              throw error;
+            }
+            if (attempt >= SAVE_RETRIES)
+              throw new Error(
+                "The draft save did not answer. Choose Review and send again: the same save is sent again, so no second draft is made.",
+              );
+          }
+        }
+      };
+      const attemptFor = (
+        prior: { id: string; version: number } | null,
+      ): PendingSave => ({
+        body: {
+          action: "save",
+          draft: {
+            id: prior?.id ?? crypto.randomUUID(),
+            context: composition.context,
+            initial: composition.initial,
+            followUp: null,
           },
-        );
-      let saved;
+          expectedVersion: prior?.version ?? 0,
+          operationId: crypto.randomUUID(),
+        },
+      });
+      // A save left unanswered by an earlier attempt is settled first, by sending it again as it
+      // was: its record is then the one this review saves over.
+      if (pendingSave.current) {
+        try {
+          const replayed = await send(pendingSave.current);
+          sequenceRef.current = {
+            id: replayed.sequence.id,
+            version: replayed.sequence.version,
+          };
+        } catch (error) {
+          if (outcomeUnknown(error)) throw error;
+        }
+      }
+      let saved: Saved;
       try {
-        saved = await save(sequenceRef.current);
-      } catch {
-        // A communication already sent, scheduled or changed elsewhere starts a new one.
+        saved = await send(attemptFor(sequenceRef.current));
+      } catch (error) {
+        // A communication already sent, scheduled or changed elsewhere starts a new one; an
+        // answer that was lost is never read as that.
+        if (outcomeUnknown(error) || sequenceRef.current === null) throw error;
         sequenceRef.current = null;
-        saved = await save(null);
+        saved = await send(attemptFor(null));
       }
       sequenceRef.current = { id: saved.sequence.id, version: saved.sequence.version };
       const rendered = renderEditableCommunicationBody(saved.sequence.initial.paragraphs);
@@ -383,6 +475,7 @@ function PreparedMessageBlock({
         cc: composition.target.cc,
         subject: saved.sequence.initial.subject,
         body: rendered.plainText,
+        carriedRecommendation: composition.carriedRecommendation ?? null,
       });
     } catch (error) {
       setMessage(
@@ -432,24 +525,26 @@ function PreparedMessageBlock({
             ? "Sent. Gmail accepted the message; the lease now waits on the reply."
             : "The send is recorded, and Gmail has not confirmed it yet. The lease says what happens next.",
       );
-      // R-S249-5: a prefilled figure becomes the staff reviewed recommendation once it is sent.
+      // R-S249-5: a prefilled figure becomes the staff reviewed recommendation once it is sent:
+      // the figure the reviewed message carried, as the server composed it, never the page's own
+      // projection (which can differ from what was sent). A typed rent is never replaced.
+      const carried = review.carriedRecommendation;
       if (
         api.channel === "owner" &&
         accepted &&
-        live &&
-        live.rent.origin !== "typed" &&
-        live.rent.value !== null &&
+        carried &&
+        typedRent === null &&
         working?.canEdit
       )
         await working
-          .save("terms_rent", live.rent.value, {
+          .save("terms_rent", carried.value, {
             origin: "adopted_source",
             sourceLabel:
-              live.rent.origin === "agreement"
+              carried.origin === "agreement"
                 ? "Standing agreement"
                 : "Comparable-rent recommendation",
             context:
-              `Sent in the owner message, revision ${api.revision}. ${live.rent.basis}`.slice(
+              `Sent in the owner message, revision ${api.revision}. ${carried.basis}`.slice(
                 0,
                 1000,
               ),
@@ -526,6 +621,11 @@ function PreparedMessageBlock({
             <p className="muted">
               Placed in the message beside the rent, exactly as typed.
             </p>
+            {reasonRefusal ? (
+              <p data-renewal-field="reason-refused" role="alert">
+                {reasonRefusal}
+              </p>
+            ) : null}
           </div>
         </>
       ) : null}
@@ -665,6 +765,13 @@ function PreparedMessageBlock({
       ) : api.draft.createdRevision ? (
         <p className="muted" data-renewal-field="draft-current">
           The unsent Gmail draft carries this message revision.
+        </p>
+      ) : null}
+      {api.draft.earlierRemain ? (
+        // R-S249-9: the app never deletes a Gmail draft, so a replaced one is named until the
+        // staff member deletes it in Gmail.
+        <p className="renewal-notice" data-renewal-field="draft-earlier" role="note">
+          {KICKOFF_WORDS.earlierDraftRemains}
         </p>
       ) : null}
       {message || api.notice ? <p role="status">{message || api.notice}</p> : null}

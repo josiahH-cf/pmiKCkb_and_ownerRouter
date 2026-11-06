@@ -71,8 +71,19 @@ export interface KickoffLookupAnswer {
   readonly confidence?: string;
   readonly observationId?: string;
   readonly cached?: boolean;
+  /** True when the provider billed this lookup (one 2xx response with a body). */
+  readonly billed?: boolean;
   readonly error?: string;
+  /** False when the lookup was refused before the provider could be called (nothing billed). */
+  readonly providerCalled?: false;
 }
+
+/**
+ * S249: answered outcomes that prove nothing was billed and that are refusals, not results: the
+ * provider answered with a non-2xx status (RentCast bills only a 2xx response with a body). A
+ * timeout or a lost connection is not one of these: it may have been billed.
+ */
+const UNBILLED_REFUSAL_REASONS: ReadonlySet<string> = new Set(["http_error"]);
 
 export interface KickoffPreparationDeps {
   readonly automaticStartEnabled: () => Promise<boolean>;
@@ -245,13 +256,35 @@ export async function runKickoffPreparation(
       message: KICKOFF_WORDS.allowanceReached,
     };
   }
+  // S249: a refusal where nothing was billed releases the claim, so the cycle can still be
+  // prepared later: the lookup was refused before the provider could be called, or the provider
+  // answered with a status it never bills. A billed or ambiguous outcome keeps the claim.
+  const provablyUnbilled =
+    answer.billed !== true &&
+    (answer.providerCalled === false ||
+      (answer.ok && UNBILLED_REFUSAL_REASONS.has(answer.reason ?? "")));
+  if (provablyUnbilled) {
+    await deps.release({
+      leaseId: input.leaseId,
+      cycleKey,
+      operationId: input.operationId,
+    });
+    const why = answer.error ?? "The comparison provider refused the request.";
+    return {
+      ...base,
+      status: "failed",
+      cycleDateIso: cycleKey,
+      message: `${why.replace(/[.\s]+$/, "")}. Nothing was billed, so this lease can be prepared again.`,
+    };
+  }
   if (!answer.ok) {
+    // It may have reached the provider: the claim stays, so nothing repeats by itself.
     await deps.settle({
       leaseId: input.leaseId,
       cycleKey,
       operationId: input.operationId,
       state: "failed",
-      billed: false,
+      billed: null,
       reason: answer.error ?? "The comparison was refused.",
     });
     return {
@@ -261,7 +294,8 @@ export async function runKickoffPreparation(
       message: answer.error ?? "The comparison was refused.",
     };
   }
-  const billed = answer.cached !== true;
+  // A cached result costs nothing; otherwise the provider's own word, else billed (the safe read).
+  const billed = answer.cached !== true && answer.billed !== false;
   if (answer.confidence === "Likely" && answer.observationId) {
     await deps.settle({
       leaseId: input.leaseId,

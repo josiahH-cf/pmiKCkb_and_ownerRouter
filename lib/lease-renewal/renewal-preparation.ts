@@ -27,6 +27,8 @@ export const KICKOFF_WORDS = {
   copy: "Copy",
   draftOlder: "The Gmail draft is older than this message",
   replaceDraft: "Replace the Gmail draft",
+  earlierDraftRemains:
+    "An earlier, older Gmail draft of this message is still in your Gmail drafts. Delete it in Gmail so only the current draft is sent.",
   prepareBatch: "Prepare this batch",
   prepareLease: "Prepare this lease",
   useRevision: "Use this revision",
@@ -58,7 +60,12 @@ export interface RenewalPreparationFix {
 export interface RenewalNumbersFacts {
   /** The RentVine contractual rent (lease detail), or null when RentVine holds none. */
   readonly contractualRent: number | null;
-  /** The current RentVine rent-account charge amounts; null when they were not read. */
+  /**
+   * The current RentVine rent-account charge amounts; null when they were not read. ARCH-S249-1
+   * (E): the shared numbers item never reads them, because the desk has them for no lease
+   * without a per-lease RentVine read. Where a surface read them (the lease page) they give the
+   * separate charge check below, which leaves the shared item as it is.
+   */
   readonly rentCharges: readonly number[] | null;
   /** The RentVine lease end. */
   readonly leaseEndIso: string | null;
@@ -125,12 +132,20 @@ export interface RenewalKickoffFacts {
 
 // ---- Projection -----------------------------------------------------------------------------
 
+/**
+ * ARCH-S249-1 (E): what the shared numbers item says about the rent charges, the same words on the
+ * desk and on the lease page.
+ */
+export const NUMBERS_CHARGES_NOTE =
+  "This check reads the lease rent and dates; the rent charges are read in Rent and charges on the lease.";
+
 export type RenewalNumbersCheck =
   | {
       readonly state: "agree";
       readonly line: typeof KICKOFF_WORDS.numbersAgree;
       readonly sheetNotes: readonly string[];
       readonly facts: readonly string[];
+      readonly chargesNote: typeof NUMBERS_CHARGES_NOTE;
     }
   | {
       readonly state: "difference";
@@ -139,12 +154,26 @@ export type RenewalNumbersCheck =
       readonly fix: RenewalPreparationFix;
       readonly sheetNotes: readonly string[];
       readonly facts: readonly string[];
+      readonly chargesNote: typeof NUMBERS_CHARGES_NOTE;
     }
   | {
       readonly state: "unavailable";
       readonly line: string;
       readonly sheetNotes: readonly string[];
       readonly facts: readonly string[];
+      readonly chargesNote: typeof NUMBERS_CHARGES_NOTE;
+    };
+
+/**
+ * ARCH-S249-1 (E): the lease page's extra fact about the current rent charges, where it read
+ * them. It never changes the shared numbers item, the kickoff items or what is ready to send.
+ */
+export type RenewalChargeCheck =
+  | { readonly state: "agree"; readonly line: string }
+  | {
+      readonly state: "difference";
+      readonly line: string;
+      readonly fix: RenewalPreparationFix;
     };
 
 export interface RenewalComparisonView {
@@ -194,6 +223,8 @@ export interface RenewalKickoffItem {
 export interface RenewalPreparation {
   readonly version: typeof RENEWAL_PREPARATION_VERSION;
   readonly numbers: RenewalNumbersCheck;
+  /** The extra charge fact, where the surface read the charges (the lease page); else null. */
+  readonly charges: RenewalChargeCheck | null;
   readonly comparison: RenewalComparisonView;
   readonly rent: RenewalRentView;
   /** Every kickoff item, in the order the Now card lists them. */
@@ -234,16 +265,17 @@ export function renewalNumbersCheck(facts: RenewalNumbersFacts): RenewalNumbersC
     );
   const shown: string[] = [];
   if (rentvine !== null) shown.push(`RentVine rent ${money(rentvine)}`);
-  const charges = (facts.rentCharges ?? []).filter(usable);
-  if (charges.length === 1) shown.push(`rent charge ${money(charges[0]!)}`);
   if (facts.leaseEndIso) shown.push(`lease end ${formatCalendarDate(facts.leaseEndIso)}`);
   if (usable(facts.workingRent)) shown.push(`working rent ${money(facts.workingRent)}`);
+  // E: the rent charges are not read here on any surface (see NUMBERS_CHARGES_NOTE).
+  const chargesNote = NUMBERS_CHARGES_NOTE;
   if (!facts.sourceReadable)
     return {
       state: "unavailable",
       line: "The RentVine read is not current, so the numbers are checked once it is refreshed",
       sheetNotes,
       facts: shown,
+      chargesNote,
     };
   const difference = (line: string, fix: RenewalPreparationFix): RenewalNumbersCheck => ({
     state: "difference",
@@ -251,24 +283,13 @@ export function renewalNumbersCheck(facts: RenewalNumbersFacts): RenewalNumbersC
     fix,
     sheetNotes,
     facts: shown,
+    chargesNote,
   });
   if (rentvine === null)
     return difference("RentVine has no current rent for this lease", {
       label: "Correct a lease fact",
       target: KICKOFF_FIX_TARGETS.correctFact,
     });
-  if (facts.rentCharges !== null) {
-    if (charges.length > 1)
-      return difference(
-        `RentVine lists ${charges.length} current rent charges; one is expected`,
-        { label: "Review rent and charges", target: KICKOFF_FIX_TARGETS.rentAndCharges },
-      );
-    if (charges.length === 1 && !sameMoney(charges[0]!, rentvine))
-      return difference(
-        `The RentVine rent charge is ${money(charges[0]!)} and the lease rent is ${money(rentvine)}`,
-        { label: "Review rent and charges", target: KICKOFF_FIX_TARGETS.rentAndCharges },
-      );
-  }
   if (usable(facts.workingRent) && !sameMoney(facts.workingRent, rentvine))
     return difference(
       `Your working current rent is ${money(facts.workingRent)} and RentVine reports ${money(rentvine)}`,
@@ -279,7 +300,52 @@ export function renewalNumbersCheck(facts: RenewalNumbersFacts): RenewalNumbersC
       label: "Correct a lease fact",
       target: KICKOFF_FIX_TARGETS.correctFact,
     });
-  return { state: "agree", line: KICKOFF_WORDS.numbersAgree, sheetNotes, facts: shown };
+  return {
+    state: "agree",
+    line: KICKOFF_WORDS.numbersAgree,
+    sheetNotes,
+    facts: shown,
+    chargesNote,
+  };
+}
+
+/**
+ * ARCH-S249-1 (E): the extra fact about the current rent charges where a surface read them: one
+ * current rent charge matching the RentVine lease rent, or the difference with Rent and charges
+ * as its fix. Null where they were not read (the desk) or RentVine holds no lease rent.
+ */
+export function renewalChargeCheck(
+  facts: Pick<RenewalNumbersFacts, "contractualRent" | "rentCharges">,
+): RenewalChargeCheck | null {
+  if (facts.rentCharges === null || !usable(facts.contractualRent)) return null;
+  const rentvine = facts.contractualRent;
+  const charges = facts.rentCharges.filter(usable);
+  const fix = {
+    label: "Review rent and charges",
+    target: KICKOFF_FIX_TARGETS.rentAndCharges,
+  };
+  if (charges.length === 0)
+    return {
+      state: "difference",
+      line: "RentVine lists no current rent charge for this lease",
+      fix,
+    };
+  if (charges.length > 1)
+    return {
+      state: "difference",
+      line: `RentVine lists ${charges.length} current rent charges; one is expected`,
+      fix,
+    };
+  return sameMoney(charges[0]!, rentvine)
+    ? {
+        state: "agree",
+        line: `Rent charges: the one current rent charge is ${money(charges[0]!)}, the same as the lease rent`,
+      }
+    : {
+        state: "difference",
+        line: `The RentVine rent charge is ${money(charges[0]!)} and the lease rent is ${money(rentvine)}`,
+        fix,
+      };
 }
 
 function comparisonView(facts: RenewalComparisonFacts): RenewalComparisonView {
@@ -517,6 +583,7 @@ export function projectRenewalPreparation(
   return {
     version: RENEWAL_PREPARATION_VERSION,
     numbers,
+    charges: renewalChargeCheck(facts.numbers),
     comparison,
     rent,
     items,

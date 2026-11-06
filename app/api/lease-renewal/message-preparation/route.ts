@@ -77,6 +77,7 @@ function publicPreparation(current: Current) {
     messageRevision: current.messageRevision,
     availableCompScreenshot: current.availableCompScreenshot,
     draftAttempt: current.draftAttempt,
+    createdDrafts: current.createdDrafts,
     previousDraftAttempts: current.previousDraftAttempts,
     senderEmail: current.senderEmail,
     signatureOrigin: current.signatureOrigin,

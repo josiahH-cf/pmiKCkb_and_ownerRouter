@@ -60,7 +60,10 @@ import {
 import { formatRecipientsForCopy } from "@/lib/lease-renewal/recipient-resolution";
 import { GEMINI_IN_GMAIL_HINT } from "@/lib/email-refinement/hint";
 import { RefineWithAi } from "@/components/email/RefineWithAi";
-import { messageRevisionOf } from "@/lib/lease-renewal/message-revision";
+import {
+  gmailDraftSignal,
+  messageRevisionOf,
+} from "@/lib/lease-renewal/message-revision";
 import {
   PreparedMessageSlot,
   type PreparedMessageData,
@@ -121,6 +124,15 @@ interface Preparation {
     outcome: RenewalNoticeDraftOutcome | null;
     /** The exact draft the attempt prepared; its revision says whether it is older (S249). */
     preview?: { subject: string; body: string } | null;
+  } | null;
+  /**
+   * S249 R-S249-9: the last Gmail draft whose creation is recorded, and how many earlier created
+   * drafts it replaced (each still in the sender's Gmail). The draft head above moves to a new
+   * attempt as soon as it is previewed, so the "older" signal reads this.
+   */
+  createdDrafts?: {
+    latest: { executionId: string; subject: string; body: string; recordedAt: string };
+    earlier: number;
   } | null;
   /** S249 ARCH-S249-2: the saved message record's revision. */
   messageRevision?: string;
@@ -393,8 +405,15 @@ function MessagePreparationEditor({
     [notice, setNotice] = useState("");
   const [confirming, setConfirming] = useState(false);
   const [outcome, setOutcome] = useState<RenewalNoticeDraftOutcome | null>(null);
-  // S249 R-S249-9: the message revision the unsent Gmail draft created here carries.
+  // S249 R-S249-9: the message revision the unsent Gmail draft created here carries, and whether
+  // creating it replaced an earlier created draft (which stays in Gmail).
   const [createdDraftRevision, setCreatedDraftRevision] = useState<string | null>(null);
+  const [replacedHere, setReplacedHere] = useState(false);
+  // What the card reads as the created draft when a create is confirmed (kept current below).
+  const knownCreated = useRef<{ revision: string | null; executionId: string | null }>({
+    revision: null,
+    executionId: null,
+  });
   // A lost preview response may have saved the wording. Retry the same request identity while
   // its exact local state and expected revision match; never invent another save on uncertainty.
   const previewSaveIdentity = useRef<{ key: string; operationId: string } | null>(null);
@@ -963,13 +982,20 @@ function MessagePreparationEditor({
       previewSaveIdentity.current = null;
       setOutcome(parsed);
       if (parsed.status === "blocked") setNotice(parsed.reasons.join(" "));
-      if (parsed.status === "created" && confirmedPreview)
-        setCreatedDraftRevision(
-          messageRevisionOf({
-            subject: confirmedPreview.subject,
-            body: confirmedPreview.body,
-          }),
-        );
+      if (parsed.status === "created" && confirmedPreview) {
+        const made = messageRevisionOf({
+          subject: confirmedPreview.subject,
+          body: confirmedPreview.body,
+        });
+        // A confirmed replacement: the earlier created draft stays in Gmail, and the card keeps
+        // saying so.
+        if (
+          knownCreated.current.revision !== null &&
+          knownCreated.current.executionId !== parsed.executionId
+        )
+          setReplacedHere(true);
+        setCreatedDraftRevision(made);
+      }
       if (parsed.status === "created")
         setNotice(
           kind === "reconcile"
@@ -1031,16 +1057,21 @@ function MessagePreparationEditor({
   const shownRevision = shownContent
     ? messageRevisionOf({ subject: shownContent.subject, body: shownContent.plainText })
     : null;
-  const attemptOutcome = current?.draftAttempt?.outcome ?? null;
-  const attemptCreated =
-    attemptOutcome?.status === "created" ||
-    (attemptOutcome?.status === "reconciliation" &&
-      attemptOutcome.resolution === "created");
-  const draftRevision =
-    createdDraftRevision ??
-    (attemptCreated && current?.draftAttempt?.preview
-      ? messageRevisionOf(current.draftAttempt.preview)
-      : null);
+  // R-S249-9: the signal reads the last CREATED draft, never the draft head, which moves to a new
+  // attempt at its preview: a cancelled replacement leaves the created draft reading older.
+  const draftSignal = gmailDraftSignal({
+    createdHere: createdDraftRevision,
+    replacedHere,
+    created: current?.createdDrafts ?? null,
+    head: current?.draftAttempt ?? null,
+  });
+  const draftRevision = draftSignal.createdRevision;
+  useEffect(() => {
+    knownCreated.current = {
+      revision: draftSignal.createdRevision,
+      executionId: draftSignal.createdExecutionId,
+    };
+  }, [draftSignal.createdRevision, draftSignal.createdExecutionId]);
   /** Save what is on screen; true once the saved message reads back as shown. */
   async function flush(): Promise<boolean> {
     if (!canEdit || !currentRef.current) return false;
@@ -1115,6 +1146,7 @@ function MessagePreparationEditor({
             available: canDraft,
             pending,
             createdRevision: draftRevision,
+            earlierRemain: draftSignal.earlierRemain,
             preview:
               outcome?.status === "preview"
                 ? {
@@ -1429,8 +1461,10 @@ function MessagePreparationEditor({
                 </p>
                 <p>{outcome.subject}</p>
                 <div className="draft-box">{outcome.body}</div>
-                {current.draftAttempt?.outcome?.status === "created" &&
-                current.draftAttempt.executionId !== outcome.executionId ? (
+                {(current.createdDrafts?.latest &&
+                  current.createdDrafts.latest.executionId !== outcome.executionId) ||
+                (current.draftAttempt?.outcome?.status === "created" &&
+                  current.draftAttempt.executionId !== outcome.executionId) ? (
                   <p role="note">
                     A Gmail draft from an earlier version of this message already exists.
                     Creating this one adds a second, separate unsent draft; the app cannot

@@ -39,6 +39,31 @@ export function PreparedNumbersCheck({
           {note}
         </p>
       ))}
+      <p className="muted" data-renewal-field="numbers-charges-note">
+        {numbers.chargesNote}
+      </p>
+      {preparation.charges ? (
+        // E: the lease page's own charge read, an extra fact beside the shared check.
+        <p data-renewal-charges={preparation.charges.state}>
+          {preparation.charges.line}.
+          {preparation.charges.state === "difference" ? (
+            <>
+              {" "}
+              <Button
+                onClick={() =>
+                  preparation.charges?.state === "difference"
+                    ? focusRenewalDashboardControl(preparation.charges.fix.target)
+                    : undefined
+                }
+                size="compact"
+                variant="secondary"
+              >
+                {preparation.charges.fix.label}
+              </Button>
+            </>
+          ) : null}
+        </p>
+      ) : null}
       {numbers.state === "difference" ? (
         <p>
           <Button

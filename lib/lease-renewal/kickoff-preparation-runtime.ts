@@ -14,6 +14,7 @@ import { getRenewalWorkspace } from "@/lib/firestore/renewal-workspace";
 import {
   createRentcastUsageStore,
   rentcastMonthKey,
+  rentcastUsedCalls,
 } from "@/lib/firestore/rentcast-usage";
 import { leaseViewId } from "@/lib/integrations/rentvine/lease-mapper";
 import { readCoherentRenewalDisplaySource } from "@/lib/lease-renewal/admitted-notice-source";
@@ -101,7 +102,7 @@ export function kickoffPreparationDeps(
       const usage = await createRentcastUsageStore(actor).readMonth(
         rentcastMonthKey(Date.now()),
       );
-      return evaluateRentcastQuota(usage.billedCalls, resolveRentcastAllowance())
+      return evaluateRentcastQuota(rentcastUsedCalls(usage), resolveRentcastAllowance())
         .exhausted;
     },
     claim: (input) => claimKickoffPreparation(input),

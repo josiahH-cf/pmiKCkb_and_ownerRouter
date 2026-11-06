@@ -48,6 +48,7 @@ import {
   StoredComparisonSummary,
 } from "./RenewalKickoffFields";
 import { PrepareThisLeaseButton } from "./RenewalKickoffPreparation";
+import { FinishUpSourcePreviews } from "./RenewalFinishUpPreviews";
 
 /**
  * S247 R-S247-4 to R-S247-10: the Guided view. A path strip names every step of this lease's
@@ -653,6 +654,10 @@ function NowCard({
             </li>
           ))}
         </ul>
+      ) : null}
+      {shown.id === "finish-up" && shown.state !== "not_part" && nowCard?.finishUp ? (
+        // R-S249-14 / L42: the source update previews the final terms call for. Read only.
+        <FinishUpSourcePreviews preparation={nowCard.finishUp} />
       ) : null}
       {/* S249 fills these named slots from the one preparation projection (the numbers check,
           the stored comparison, Rent to recommend) and from the lease's one message record (the
