@@ -15,6 +15,8 @@ import type {
 } from "@/lib/lease-renewal/finish-up-preparation";
 import { focusRenewalDashboardControl } from "./RenewalDashboardNavigation";
 import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
+import { useRenewalPricingPolicy } from "./RenewalPricingPolicy";
+import { adoptedStandingRule } from "@/lib/lease-renewal/standing-agreement";
 import { SourceUpdatePreview } from "./SourceUpdatePreview";
 
 export const FINISH_UP_WORDS = {
@@ -89,6 +91,17 @@ export function FinishUpSourcePreviews({
   preparation,
 }: Readonly<{ preparation: FinishUpPreparation }>) {
   const working = useRenewalWorkingRecord();
+  const pricing = useRenewalPricingPolicy();
+  // S250 R-S250-8: where the final rent is the standing agreement's rule, the previews name the
+  // rule as their basis: the agreement still covers the lease, or the rent was adopted from it.
+  const authority = pricing?.view?.authority;
+  const rentEntry = working?.record?.fields.terms_rent ?? null;
+  const ruleBasis =
+    authority?.covered && authority.kind === "standing" && authority.basis
+      ? authority.basis
+      : rentEntry && adoptedStandingRule(rentEntry)
+        ? (rentEntry.sourceLabel ?? null)
+        : null;
   const live = working
     ? effectiveRenewalTerms(working.record ?? null).complete
     : undefined;
@@ -116,6 +129,11 @@ export function FinishUpSourcePreviews({
             {formatCalendarDate(terms.effectiveDate)} to{" "}
             {formatCalendarDate(terms.endDate)}.
           </p>
+          {ruleBasis ? (
+            <p className="muted" data-renewal-field="finish-up-rule-basis">
+              Basis for the rent: {ruleBasis}
+            </p>
+          ) : null}
           {changed ? (
             <p className="renewal-notice" role="note">
               {FINISH_UP_WORDS.changed}

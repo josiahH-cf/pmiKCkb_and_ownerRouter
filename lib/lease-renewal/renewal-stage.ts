@@ -83,8 +83,13 @@ export interface RenewalStageContext {
     readonly label: string | null;
     readonly reason: string;
   } | null;
-  /** S251 slot; null until that suite records the lease fact. */
+  /** S251: the lease's Housing assistance Yes fact with its program; null for No or not set. */
   readonly housingAssistance: { readonly program: string } | null;
+  /**
+   * S251 R-S251-10: RentVine text mentions housing assistance while the fact is not set. A
+   * suggestion only: it changes no step, stage or order.
+   */
+  readonly housingAssistanceMention?: true;
   /**
    * Check the numbers: the shared desk guidance's rent verification and the open differences.
    * S249 R-S249-1: where the preparation projection was made, these come from its numbers check

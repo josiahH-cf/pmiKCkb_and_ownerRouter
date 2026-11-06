@@ -27,6 +27,7 @@ type StageRow = Pick<
   | "staffRecordUnavailable"
   | "renewalPricing"
   | "housingAssistance"
+  | "housingAssistanceMention"
   | "openConflicts"
   | "leaseTerm"
   | "moveOut"
@@ -85,6 +86,9 @@ export function renewalStageContextFor(
       row.housingAssistance?.status === "yes"
         ? { program: row.housingAssistance.program }
         : null,
+    ...(row.housingAssistanceMention && !row.housingAssistance
+      ? { housingAssistanceMention: true as const }
+      : {}),
     // S249 R-S249-1 (D-OP-7): where the preparation projection was made, the numbers check reads
     // RentVine as the basis and a Sheet difference is information; else the S157 guidance.
     numbers: row.kickoff

@@ -48,8 +48,12 @@ import {
   type RenewalBatchCountGroup,
   type RenewalBatchGroup,
   type RenewalBatchQuery,
+  type RenewalBatchTagFilter,
 } from "@/lib/lease-renewal/renewal-batch";
-import type { RenewalBatchRowView } from "@/lib/lease-renewal/renewal-batch-row";
+import {
+  RENEWAL_BATCH_TAG_LABELS,
+  type RenewalBatchRowView,
+} from "@/lib/lease-renewal/renewal-batch-row";
 import { KICKOFF_WORDS } from "@/lib/lease-renewal/renewal-preparation";
 import { fetchWithDeadline } from "@/lib/ui/fetch-lifetime";
 import {
@@ -192,16 +196,27 @@ export function RenewalWorkingBatch({
   );
   const month = query.month ?? defaultMonth;
   const openGroup = query.group;
-  const partition = useMemo(() => partitionRenewalBatch(rows, month), [rows, month]);
+  // S251 R-S251-11: the additive `tag` key narrows every group to rows carrying that tag.
+  const tagFilter: RenewalBatchTagFilter | null = query.tag ?? null;
+  const shownRows = useMemo(
+    () =>
+      tagFilter ? rows.filter((row) => row.tags.some((tag) => tag.key === tagFilter)) : rows,
+    [rows, tagFilter],
+  );
+  const partition = useMemo(
+    () => partitionRenewalBatch(shownRows, month),
+    [shownRows, month],
+  );
 
   // The return value a lease link carries: the plain batch omits it, like the default table view.
   const continuation = useMemo(() => {
     const value = serializeRenewalBatchQuery({
       month: month === defaultMonth ? null : month,
       group: openGroup,
+      tag: tagFilter,
     });
     return value === "" ? null : value;
-  }, [month, defaultMonth, openGroup]);
+  }, [month, defaultMonth, openGroup, tagFilter]);
 
   const batchQueryFor = useCallback(
     (next: {
@@ -212,9 +227,10 @@ export function RenewalWorkingBatch({
       return {
         month: nextMonth === defaultMonth ? null : nextMonth,
         group: next.group === undefined ? openGroup : next.group,
+        tag: tagFilter,
       };
     },
-    [month, defaultMonth, openGroup],
+    [month, defaultMonth, openGroup, tagFilter],
   );
 
   // A plain history entry, with no state of its own, so the app router keeps its own address in
@@ -386,6 +402,23 @@ export function RenewalWorkingBatch({
           )}
         </nav>
       </div>
+
+      {tagFilter ? (
+        <p className="renewal-batch-tag-filter" data-batch-tag-filter={tagFilter}>
+          Showing leases tagged {RENEWAL_BATCH_TAG_LABELS[tagFilter]}.{" "}
+          <a
+            className="text-link renewal-batch-inline-link"
+            href={renewalBatchHref({ ...batchQueryFor({}), tag: null })}
+            onClick={(event) => {
+              if (!plainLeftClick(event)) return;
+              event.preventDefault();
+              showBatch(renewalBatchHref({ ...batchQueryFor({}), tag: null }), "push");
+            }}
+          >
+            Show every lease
+          </a>
+        </p>
+      ) : null}
 
       {outcome && confirming === null ? (
         <Notice tone={outcome.tone} urgent={outcome.tone === "error"}>
@@ -748,6 +781,15 @@ function BatchRow({
       ) : null}
       {row.statusNote ? (
         <span className="renewal-batch-status-note">{row.statusNote}</span>
+      ) : null}
+      {row.suggestion ? (
+        // S251 R-S251-10: RentVine wording that mentions housing assistance is a suggestion only.
+        <span
+          className="muted renewal-batch-suggestion"
+          data-batch-suggestion="housing_assistance"
+        >
+          {row.suggestion}
+        </span>
       ) : null}
       {workRow && row.kickoff && row.kickoffGroup === "missing" && kickoffFixHref ? (
         // S249 R-S249-11: the missing input, named, opening the lease where its fix is.

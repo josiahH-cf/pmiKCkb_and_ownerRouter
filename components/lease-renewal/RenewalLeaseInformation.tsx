@@ -18,6 +18,7 @@ import {
   RenewalCopyValue,
 } from "@/components/lease-renewal/RenewalCopyValue";
 import { RenewalWorkStatusControl } from "@/components/lease-renewal/RenewalWorkStatusControl";
+import { HousingAssistanceField } from "@/components/lease-renewal/RenewalHousingAssistance";
 import type { RenewalWorkStatusPanelInput } from "@/lib/lease-renewal/work-status";
 import {
   EXTERNAL_LINK_REL,
@@ -264,6 +265,13 @@ export function RenewalLeaseInformation({
           </Row>
         </dl>
       </section>
+
+      {/* S251 R-S251-1 / R-S251-2: the lease's Housing assistance fact, saved on the lease-bound
+          working record. It renders only inside that record's provider (the lease page). */}
+      <HousingAssistanceField
+        mention={summary.housingAssistanceMention === true}
+        placement="lease-information"
+      />
 
       {/* S119/S164: the staff work status and its running log of status changes and notes are
           app-owned staff information beside the derived status. */}

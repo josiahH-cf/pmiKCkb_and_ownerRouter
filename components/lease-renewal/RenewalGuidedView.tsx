@@ -40,7 +40,16 @@ import {
 import { useRenewalFocusView } from "./RenewalFocusViewContext";
 import type { RenewalFocusFacts } from "./RenewalFocusViewPane";
 import { useRenewalManualWorkspace } from "./RenewalManualWorkspace";
-import { useRenewalPricingPolicy } from "./RenewalPricingPolicy";
+import {
+  PricingBasisChooser,
+  StandingAgreementSummary,
+  StandingRuleNotice,
+  standingAuthorityCurrent,
+  useRenewalPricingPolicy,
+} from "./RenewalPricingPolicy";
+import { HousingAssistanceField } from "./RenewalHousingAssistance";
+import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
+import { housingAssistanceVariant } from "@/lib/lease-renewal/working-record";
 import { nowSlotKey, useRenewalNowCard } from "./RenewalNowCardContext";
 import {
   PreparedNumbersCheck,
@@ -106,13 +115,19 @@ export function RenewalGuidedView({
   const view = useRenewalFocusView();
   const manual = useRenewalManualWorkspace();
   const pricing = useRenewalPricingPolicy();
+  const working = useRenewalWorkingRecord();
   const state = manual?.state ?? null;
   const readUnavailable = manual?.readUnavailable ?? context.staffRecordUnavailable;
-  // S194: standing authority binds to this exact staff record revision, as Focus reads it.
+  // S194: exact authority binds to this exact staff record revision, as Focus reads it; an S250
+  // standing agreement covers by its rule and the working rent (the one coverage function).
   const standingCovered = pricing?.view
-    ? pricing.view.authority.covered === true &&
-      pricing.view.manualRevision === (state?.revision ?? 0)
+    ? standingAuthorityCurrent(pricing.view, state?.revision ?? 0)
     : context.standingAgreement !== null;
+  // S251: the lease's live Housing assistance fact, so a save on this page reorders the path.
+  const housingAssistance =
+    working && !working.readUnavailable
+      ? housingAssistanceVariant(working.record)
+      : context.housingAssistance;
   const stage = useMemo(
     () =>
       projectRenewalStage(
@@ -120,9 +135,11 @@ export function RenewalGuidedView({
         {
           ...context,
           staffRecordUnavailable: readUnavailable,
+          housingAssistance,
           standingAgreement: standingCovered
             ? {
-                label: context.standingAgreement?.label ?? null,
+                label:
+                  pricing?.view?.authority.label ?? context.standingAgreement?.label ?? null,
                 reason:
                   pricing?.view?.authority.reason ??
                   context.standingAgreement?.reason ??
@@ -132,7 +149,7 @@ export function RenewalGuidedView({
         },
         { standingCovered },
       ),
-    [state, context, readUnavailable, standingCovered, pricing],
+    [state, context, readUnavailable, standingCovered, pricing, housingAssistance],
   );
   // The step shown: one chosen on this page, else the one a reload returns to (R-S247-9), else
   // the one the address names (an older `step` value names the path step that holds it,
@@ -692,6 +709,23 @@ function NowCard({
             </div>
           ))
         : null}
+      {/* S251 R-S251-1 / R-S251-2: "Housing assistance" is recorded on Check the numbers. */}
+      {shown.id === "check-numbers" && shown.state !== "not_part" ? (
+        <HousingAssistanceField
+          mention={context.housingAssistanceMention === true}
+          placement="now"
+        />
+      ) : null}
+      {/* S250 R-S250-3 / R-S250-8: the pricing basis where the rent and the owner's decision are
+          worked: the agreement in force, a message built on an earlier rule, and the chooser. */}
+      {(shown.id === "compare-market" || shown.id === "ask-owner") &&
+      shown.state !== "not_part" ? (
+        <div className="ui-stack-tight" data-renewal-now-pricing-basis>
+          <StandingAgreementSummary />
+          <StandingRuleNotice />
+          {canEdit ? <PricingBasisChooser context="now" /> : null}
+        </div>
+      ) : null}
       {derived ? (
         <div className="ui-stack-tight" data-renewal-derived={derived.record.activity}>
           <p className="muted" data-renewal-field="derived-origin">

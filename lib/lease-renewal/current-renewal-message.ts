@@ -40,6 +40,14 @@ import {
 import { getRenewalWorkingRecord } from "@/lib/firestore/renewal-working-record";
 import { operationalCurrentRent } from "@/lib/lease-renewal/current-rent";
 import { effectiveRenewalTerms } from "@/lib/lease-renewal/effective-terms";
+import { RenewalPricingPolicyStore } from "@/lib/firestore/renewal-pricing-policies";
+import { readRenewalPricingForViews } from "@/lib/lease-renewal/pricing-policy-read";
+import { resolveRenewalPricing } from "@/lib/lease-renewal/renewal-pricing-policy";
+import {
+  workingRenewalTerms,
+  type RenewalWorkingRecord,
+} from "@/lib/lease-renewal/working-record";
+import type { RawLease } from "@/lib/integrations/rentvine/client";
 import type { RenewalChargeInventory } from "@/lib/lease-renewal/writeback/charge-inventory-model";
 import { getRenewalResourceLocations } from "@/lib/firestore/renewal-resource-locations";
 import { readBusinessProfile } from "@/lib/firestore/presentation-settings";
@@ -225,6 +233,47 @@ function messageSourceFailure(error: unknown): never {
  * A lease with no work record yet still reads a complete, editable message; its first save
  * establishes the record. Authored subject and body are returned exactly as saved.
  */
+/**
+ * S250 R-S250-4 / R-S250-8: the covering standing agreement's rent with its basis in words, from
+ * the one coverage function over the same verified lease read. A stale source, a failed read or
+ * a lease the agreement does not cover gives none, and the message keeps its other proposals.
+ */
+async function standingAgreementRent(
+  actor: AuthenticatedUser,
+  lease: RawLease,
+  working: RenewalWorkingRecord | null,
+  nowMs: number,
+  fresh: boolean,
+  db: Firestore,
+): Promise<{ value: number; basis: string } | null> {
+  if (!fresh) return null;
+  try {
+    const pricing = await readRenewalPricingForViews(
+      actor,
+      [lease],
+      new Date(nowMs),
+      new RenewalPricingPolicyStore(db),
+    );
+    const facts = pricing.facts[0];
+    if (!facts) return null;
+    const authority = resolveRenewalPricing(
+      pricing.snapshot,
+      facts,
+      effectiveRenewalTerms(working).complete,
+      pricing.today,
+      { workingRent: workingRenewalTerms(working).rent },
+    ).authority;
+    return authority.covered &&
+      authority.kind === "standing" &&
+      typeof authority.amount === "number" &&
+      authority.basis
+      ? { value: authority.amount, basis: authority.basis }
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function currentRenewalMessage(
   actor: AuthenticatedUser,
   leaseId: string,
@@ -483,7 +532,14 @@ export async function currentRenewalMessage(
   // the comparison-based suggestion. The same function the Now card and the desk read.
   const rentToRecommend = renewalRentToRecommend({
     typedRent: typedRecommendation(workingRecord, workspace),
-    agreementRent: null,
+    agreementRent: await standingAgreementRent(
+      actor,
+      lease,
+      workingRecord,
+      nowMs,
+      leaseRead.currency.state === "fresh",
+      db,
+    ),
     comparison: stored ? { state: "stored", comparison: stored } : { state: "none" },
     currentRent: leaseCurrentRent(lease) ?? null,
   });

@@ -346,12 +346,25 @@ export function renewalBatchSummary(month: string, count: number): string {
 /** The batch's own URL keys. They name no table view, so a URL with only these opens the batch. */
 export const RENEWAL_BATCH_MONTH_PARAM = "batch";
 export const RENEWAL_BATCH_GROUP_PARAM = "group";
+/**
+ * S251 R-S251-11: an additive key that narrows the batch to rows carrying one tag. Every earlier
+ * key keeps its meaning, and a URL without it reads exactly as before.
+ */
+export const RENEWAL_BATCH_TAG_PARAM = "tag";
+export const RENEWAL_BATCH_TAG_FILTERS = [
+  "standing_agreement",
+  "housing_assistance",
+  "needs_check",
+] as const;
+export type RenewalBatchTagFilter = (typeof RENEWAL_BATCH_TAG_FILTERS)[number];
 
 export interface RenewalBatchQuery {
   /** Null means the default working month for today. */
   readonly month: string | null;
   /** The count group whose rows are open; null when none is. */
   readonly group: RenewalBatchCountGroup | null;
+  /** S251: the tag the rows are narrowed to; absent or null shows every row. */
+  readonly tag?: RenewalBatchTagFilter | null;
 }
 
 type SearchParamRecord = Record<string, string | string[] | undefined>;
@@ -376,17 +389,22 @@ export function parseRenewalBatchQuery(
   input: URLSearchParams | SearchParamRecord = {},
 ): RenewalBatchQuery {
   const month = firstValue(input, RENEWAL_BATCH_MONTH_PARAM);
+  const tag = firstValue(input, RENEWAL_BATCH_TAG_PARAM);
   return {
     month: isRenewalBatchMonth(month) ? month : null,
     group: countGroup(firstValue(input, RENEWAL_BATCH_GROUP_PARAM)),
+    ...((RENEWAL_BATCH_TAG_FILTERS as readonly string[]).includes(tag ?? "")
+      ? { tag: tag as RenewalBatchTagFilter }
+      : {}),
   };
 }
 
-/** Canonical batch query: the month first, then the open group; "" for the plain batch. */
+/** Canonical batch query: the month first, then the open group, then a tag; "" for the plain batch. */
 export function serializeRenewalBatchQuery(query: RenewalBatchQuery): string {
   const params = new URLSearchParams();
   if (query.month) params.set(RENEWAL_BATCH_MONTH_PARAM, query.month);
   if (query.group) params.set(RENEWAL_BATCH_GROUP_PARAM, query.group);
+  if (query.tag) params.set(RENEWAL_BATCH_TAG_PARAM, query.tag);
   return params.toString();
 }
 
@@ -410,7 +428,10 @@ export function validateRenewalBatchContinuation(
     keys.length === 0 ||
     new Set(keys).size !== keys.length ||
     keys.some(
-      (key) => key !== RENEWAL_BATCH_MONTH_PARAM && key !== RENEWAL_BATCH_GROUP_PARAM,
+      (key) =>
+        key !== RENEWAL_BATCH_MONTH_PARAM &&
+        key !== RENEWAL_BATCH_GROUP_PARAM &&
+        key !== RENEWAL_BATCH_TAG_PARAM,
     )
   )
     return null;
