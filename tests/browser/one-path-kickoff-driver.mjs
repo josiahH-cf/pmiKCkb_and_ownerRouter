@@ -68,11 +68,6 @@ const check = (name, passed, observed) => {
   checks.push({ name, passed: Boolean(passed), observed });
   process.stdout.write(`${passed ? "ok  " : "FAIL"} ${name}\n`);
 };
-/** A check that depends on a suite not built yet: recorded with what was seen, never a pass. */
-const pending = (name, suite, observed) => {
-  checks.push({ name, passed: null, pending: suite, observed });
-  process.stdout.write(`PEND ${name} (waits on ${suite})\n`);
-};
 /** The driver's current phase, so each write the page makes names when it happened. */
 let phase = "start";
 const keysOf = (text) => {
