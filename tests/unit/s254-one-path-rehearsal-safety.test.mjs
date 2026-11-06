@@ -379,6 +379,8 @@ describe("S254: control hooks act on the rehearsal and nothing else", () => {
 describe("S254: seeds and drivers", () => {
   it("names every seed, built or waiting on its suite", () => {
     expect(SEED_STEPS.map((step) => [step.name, step.suite])).toEqual([
+      // S249: the automatic start is held for the seeds and restored after them.
+      ["automatic-start-held", "S249"],
       ["recorded-cycles", "S246"],
       ["notice-admission", "S254"],
       ["replied-owner-message", "S249"],
@@ -387,6 +389,7 @@ describe("S254: seeds and drivers", () => {
       // S249 built this step; it was waiting on "S248".
       ["prepared-kickoff", "S249"],
       ["forms", "S253"],
+      ["automatic-start-restored", "S249"],
     ]);
   });
 

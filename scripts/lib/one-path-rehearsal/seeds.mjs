@@ -7,6 +7,9 @@
 // EXTENSION POINTS. A later suite replaces a "not built" step below with its own, keeping the
 // name, or adds one. Each step receives { page, mix, rehearsal, origin } and returns
 // { state: "seeded" | "skipped" | "not_built", detail }.
+//   automatic-start-held / automatic-start-restored   built here (S249): an Admin turns the
+//                           reviewed automatic start off for the seeds (they open the desk) and
+//                           back on to its shipped default after them.
 //   recorded-cycles         built here: the three leases renewed in RentVine get a work record
 //                           whose cycle date is the earlier, recorded one.
 //   notice-admission        built here: the desk is read, RentVine is read again and the desk is
@@ -333,6 +336,43 @@ async function preparedKickoff({ page, mix }) {
   };
 }
 
+/**
+ * S249: the seeding browser opens the desk (notice admission), and opening the working batch
+ * starts the comparison by itself. So that seeding leaves every lease as the mix describes it, an
+ * Admin turns the reviewed setting off in the app for the seeds and back on to its shipped default
+ * after them; nothing else about the setting changes. A commit without the setting answers 404.
+ */
+async function automaticStartSetting(page, enabled, why) {
+  await switchDemoRole(page, "Admin");
+  try {
+    const current = await route(page, "/api/lease-renewal/kickoff-settings");
+    if (current.status === 404)
+      return {
+        state: "not_built",
+        detail: "The served commit has no automatic start setting.",
+      };
+    if (current.status !== 200) return { state: "skipped", detail: refusal(current) };
+    if (current.body?.enabled === enabled)
+      return {
+        state: "seeded",
+        detail: `Automatic preparation already ${enabled ? "on" : "off"}.`,
+      };
+    const saved = await route(page, "/api/lease-renewal/kickoff-settings", {
+      enabled,
+      expectedVersion: current.body?.version ?? 0,
+      reason: why,
+    });
+    return saved.status === 200
+      ? {
+          state: "seeded",
+          detail: `Automatic preparation turned ${enabled ? "on" : "off"}.`,
+        }
+      : { state: "skipped", detail: refusal(saved) };
+  } finally {
+    await switchDemoRole(page, "Editor");
+  }
+}
+
 const notBuilt = (suite, what) => async () => ({
   state: "not_built",
   detail: `${suite} seeds this once it is built: ${what}.`,
@@ -401,6 +441,16 @@ export async function seedForms({ mix, rehearsal }, overrides = {}) {
 }
 
 export const SEED_STEPS = [
+  {
+    name: "automatic-start-held",
+    suite: "S249",
+    run: ({ page }) =>
+      automaticStartSetting(
+        page,
+        false,
+        "Rehearsal seeding: the seeds open the desk; leases stay as the mix describes them.",
+      ),
+  },
   { name: "recorded-cycles", suite: "S246", run: recordedCycles },
   { name: "notice-admission", suite: "S254", run: noticeAdmission },
   { name: "replied-owner-message", suite: "S249", run: repliedOwnerMessage },
@@ -422,6 +472,16 @@ export const SEED_STEPS = [
   },
   { name: "prepared-kickoff", suite: "S249", run: preparedKickoff },
   { name: "forms", suite: "S253", run: (context) => seedForms(context) },
+  {
+    name: "automatic-start-restored",
+    suite: "S249",
+    run: ({ page }) =>
+      automaticStartSetting(
+        page,
+        true,
+        "Rehearsal seeding finished: automatic preparation returns to its shipped default.",
+      ),
+  },
 ];
 
 /** Run every seed in order. A seed that throws is reported as skipped with its message. */

@@ -60,6 +60,7 @@ const INTERNAL_SENTENCE = "The working offer remains a staff decision";
 
 const checks = [];
 const steps = [];
+const pageErrors = [];
 const check = (name, passed, observed) => {
   checks.push({ name, passed: Boolean(passed), observed });
   process.stdout.write(`${passed ? "ok  " : "FAIL"} ${name}\n`);
@@ -110,6 +111,14 @@ try {
   page.setDefaultTimeout(240_000);
   page.setDefaultNavigationTimeout(240_000);
   const writes = [];
+  // Errors the page throws, so a section that never shows names why.
+  page.on("pageerror", (error) =>
+    pageErrors.push(`${phase}: ${String(error?.message ?? error).slice(0, 400)}`),
+  );
+  page.on("console", (message) => {
+    if (message.type() === "error")
+      pageErrors.push(`${phase} console: ${message.text().slice(0, 400)}`);
+  });
   context.on("request", (request) => {
     const url = new URL(request.url());
     if (
@@ -164,8 +173,24 @@ try {
     await page.getByRole("group", { name: "Lease view", exact: true }).waitFor();
     await page.waitForTimeout(1500);
   };
+  /** Choose a step in the path strip and wait until the Now card shows it (one retry). */
   const chooseStep = async (name) => {
-    await strip().getByRole("button", { name, exact: true }).click();
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      await strip().getByRole("button", { name, exact: true }).click();
+      const shown = await page
+        .waitForFunction(
+          (step) =>
+            (
+              document.querySelector('[aria-label="Guided view"] [aria-label="Now"] h2')
+                ?.textContent ?? ""
+            ).endsWith(step),
+          name,
+          { timeout: 15_000 },
+        )
+        .then(() => true)
+        .catch(() => false);
+      if (shown) break;
+    }
     await page.waitForTimeout(600);
   };
   const toggleSetting = async (to) => {
@@ -242,19 +267,35 @@ try {
   // L29 (second half): a lease with no rent to recommend is asked for one on the Now card.
   await openLease(covered);
   await chooseStep("Ask the owner");
+  const nowHtml = () =>
+    now()
+      .evaluate((element) => element.innerHTML.replace(/\s+/g, " ").slice(0, 6000))
+      .catch(() => null);
+  const shownWithin = (locator, ms = 60_000) =>
+    locator
+      .first()
+      .waitFor({ timeout: ms })
+      .then(() => true)
+      .catch(() => false);
+  const askedShown = await shownWithin(
+    now().locator('[data-renewal-field="send-needs"]'),
+  );
   const asked = {
-    needs:
-      (await now().locator('[data-renewal-field="send-needs"]').textContent())?.trim() ??
-      "",
-    rent: await now().getByLabel("Rent to recommend").inputValue(),
-    basis: (
-      await now().locator('[data-renewal-field="rent-basis"]').first().textContent()
-    )?.trim(),
+    needs: askedShown
+      ? ((
+          await now().locator('[data-renewal-field="send-needs"]').textContent()
+        )?.trim() ?? "")
+      : "",
+    rent: await now()
+      .getByLabel("Rent to recommend")
+      .inputValue({ timeout: 5000 })
+      .catch(() => null),
+    pageErrors: pageErrors.slice(-5),
   };
   check(
     "L29: a lease with no rent to recommend is asked for one on the Now card before Send",
     asked.needs.includes("the rent to recommend") && asked.rent === "",
-    asked,
+    askedShown ? asked : { ...asked, nowHtml: await nowHtml() },
   );
 
   // L35 (first half): an Admin turns the reviewed setting off in the app (no release), and then
@@ -543,7 +584,15 @@ try {
   const composerRevision = /revision ([0-9A-F]{6})/.exec(
     (await composer.locator("[data-communication-message-revision]").textContent()) ?? "",
   )?.[1];
-  const composerBody = await composer.locator("main").textContent();
+  // The composer's editable body is a field; its value is the message text.
+  const composerBody = await composer.evaluate(() =>
+    [
+      document.body.innerText,
+      ...[...document.querySelectorAll("textarea, input, [contenteditable]")].map(
+        (field) => ("value" in field ? field.value : field.textContent) ?? "",
+      ),
+    ].join("\n"),
+  );
   await composer.close();
   check(
     'L27: changing "Rent to recommend" and "Reason to include" updates the one preview, and Review and send, Schedule, Create Gmail draft instead, Copy and the composer show that same message',
@@ -828,7 +877,7 @@ try {
 } finally {
   writeFileSync(
     join(runDir, "kickoff.json"),
-    `${JSON.stringify({ checks, steps }, null, 2)}\n`,
+    `${JSON.stringify({ checks, steps, pageErrors }, null, 2)}\n`,
   );
   await browser.close().catch(() => undefined);
 }
