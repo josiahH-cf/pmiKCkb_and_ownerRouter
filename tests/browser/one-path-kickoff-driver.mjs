@@ -624,8 +624,11 @@ try {
   const before = steps.length;
   // The run is long: the harness reads RentVine again first, as the seeds do, so the lease is
   // current the way it is on a working day (notice safety needs a fresh admitted read).
+  // As the notice-admission seed does: the desk is read, RentVine is read again and the desk is
+  // read again, so the status table (its 15 minute read) and the lease are admitted afresh.
+  await desk();
+  await page.waitForTimeout(3000);
   const refreshedBeforeSend = (await forceSourceRefresh(page)).body?.refreshed ?? false;
-  // As the notice-admission seed does: the desk reads the fresh RentVine read and admits it.
   await desk();
   await page.waitForTimeout(3000);
   act("open the lease");
