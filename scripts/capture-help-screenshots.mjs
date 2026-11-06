@@ -439,7 +439,11 @@ async function perform(page, action) {
     for (let press = 1; ; press += 1) {
       await button.click();
       await page.waitForTimeout(250);
-      const pressed = await button.getAttribute("aria-pressed");
+      // A button that opens something and goes away (Show anticipated work) is done.
+      if ((await button.count()) === 0) break;
+      const pressed = await button
+        .getAttribute("aria-pressed", { timeout: 2_000 })
+        .catch(() => null);
       if (pressed === null || pressed === "true") break;
       assert.ok(press < 10, `The ${argument} button did not take the press.`);
       await page.waitForTimeout(1000);
