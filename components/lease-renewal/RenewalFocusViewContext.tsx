@@ -17,7 +17,10 @@ import {
   isRenewalWorkspaceView,
   type RenewalWorkspaceView,
 } from "@/lib/lease-renewal/workspace-view";
-import { focusRenewalDashboardControl } from "./RenewalDashboardNavigation";
+import {
+  focusProgrammatically,
+  focusRenewalDashboardControl,
+} from "./RenewalDashboardNavigation";
 import { createFocusReveal, type FocusReveal } from "./renewal-focus-reveal";
 
 /**
@@ -71,6 +74,82 @@ interface KeptPlace {
   readonly y?: unknown;
   readonly view?: unknown;
   readonly step?: unknown;
+  readonly typed?: unknown;
+}
+
+/** Field types whose typing a reload keeps; a password or a choice control is never kept. */
+const KEPT_INPUT_TYPES = new Set(["", "text", "search", "number", "tel", "url", "email"]);
+const KEPT_TEXT_LIMIT = 5000;
+
+type TypedField = { readonly id: string; readonly value: string };
+
+/**
+ * R-S247-9: the typing in the field the person is still in when the page unloads. A field saves
+ * when it is left, and a reload does not leave it, so its words are kept in this tab with the
+ * place and put back as the same unsaved typing after the reload.
+ */
+function typedField(): TypedField | null {
+  const element = document.activeElement;
+  const text =
+    element instanceof HTMLTextAreaElement ||
+    (element instanceof HTMLInputElement && KEPT_INPUT_TYPES.has(element.type));
+  if (!text || !element.id || element.disabled || element.readOnly) return null;
+  if (!element.closest("main")) return null;
+  return { id: element.id, value: element.value.slice(0, KEPT_TEXT_LIMIT) };
+}
+
+function isTypedField(value: unknown): value is TypedField {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as TypedField).id === "string" &&
+    typeof (value as TypedField).value === "string"
+  );
+}
+
+/**
+ * Put kept typing back into its field as the person's own entry, once the field is shown and the
+ * page has stopped filling it. A field the person changes first, or one that already reads the
+ * same words, is left alone. Returns a function that stops waiting.
+ */
+function restoreTypedField(typed: TypedField): () => void {
+  const startedAt = Date.now();
+  let seenAt: number | null = null;
+  let seenValue: string | null = null;
+  let timer: number | null = window.setTimeout(function check() {
+    timer = null;
+    const element = document.getElementById(typed.id);
+    const field =
+      element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement
+        ? element
+        : null;
+    const now = Date.now();
+    if (field && !field.disabled && !field.readOnly && !field.closest("[hidden]")) {
+      if (field.value === typed.value) return;
+      if (seenValue !== field.value) {
+        // The page is still filling the field; wait until it holds still.
+        seenValue = field.value;
+        seenAt = now;
+      } else if (seenAt !== null && now - seenAt >= 1000) {
+        const prototype =
+          field instanceof HTMLTextAreaElement
+            ? HTMLTextAreaElement.prototype
+            : HTMLInputElement.prototype;
+        Object.getOwnPropertyDescriptor(prototype, "value")?.set?.call(
+          field,
+          typed.value,
+        );
+        field.dispatchEvent(new Event("input", { bubbles: true }));
+        focusProgrammatically(field);
+        return;
+      }
+    }
+    if (now - startedAt < 20_000) timer = window.setTimeout(check, 250);
+  }, 250);
+  return () => {
+    if (timer !== null) window.clearTimeout(timer);
+    timer = null;
+  };
 }
 
 /** The place this tab kept on unload, taken once, and only on a reload of the same address. */
@@ -206,6 +285,7 @@ export function RenewalFocusViewProvider({
             y: window.scrollY,
             view: current.current,
             step: stepRef.current,
+            typed: typedField(),
           }),
         );
       } catch {
@@ -214,6 +294,7 @@ export function RenewalFocusViewProvider({
     };
     let timer: number | null = null;
     let release: (() => void) | null = null;
+    let releaseTyped: (() => void) | null = null;
     // Read once per page: a mount that runs again (React's development double mount) reads the
     // same kept place instead of finding it already taken.
     if (kept.current === undefined) kept.current = readKeptPlace(here());
@@ -254,11 +335,13 @@ export function RenewalFocusViewProvider({
         release = stop;
         hold();
       }
+      if (isTypedField(saved.typed)) releaseTyped = restoreTypedField(saved.typed);
     }
     window.addEventListener("pagehide", save);
     return () => {
       window.removeEventListener("pagehide", save);
       release?.();
+      releaseTyped?.();
     };
     // Mount only.
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
