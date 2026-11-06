@@ -13,7 +13,7 @@ export const HELP_CHANGELOG: readonly HelpChangelogEntry[] = [
     summary:
       "V2.1, a covered owner step continues to the tenant offer, Housing assistance names the required program, Owner reply shows the linked message, changed facts expose the authored-wording recovery controls, Animal follow-up keeps the existing staff record, and reload recovery keeps newer typing",
     affectedGuides: ["work-a-renewal"],
-    contentDigest: "6b557996e707769bf5c77585dac2da72ba6d851fabe3fc930c04babc2f171d57",
+    contentDigest: "8de51f440fdfec4e4f055edc521bbd7d3496688c2fc19a5888d4f4640f46dd73",
   },
   {
     version: "V2.0",
