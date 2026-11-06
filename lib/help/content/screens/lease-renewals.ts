@@ -221,6 +221,15 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         who: "Renewal staff",
       },
       {
+        label: "← Renewals",
+        role: "link",
+        availability: "required",
+        source: ["app/lease-renewal/live/desk/page.tsx"],
+        does: "In All leases and filters, returns to the working batch.",
+        who: "Renewal staff",
+        actions: ALL_LEASES,
+      },
+      {
         label: "Shared lease collections",
         role: "link",
         availability: "required",

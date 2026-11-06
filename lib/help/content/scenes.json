@@ -101,7 +101,7 @@
       "region": "page",
       "frame": "viewport",
       "source": "rehearsal",
-      "alt": "The Renewals desk on the working batch: the working month and its lease count in words, then This batch.",
+      "alt": "The Renewals desk on the working batch: the lease count for the working month in words, Previous month and Next month, and Carried over above This batch.",
       "caption": "Renewals opens on the working batch for the working month."
     },
     {
@@ -153,7 +153,7 @@
       "frame": "viewport",
       "actions": ["click-button:Ask the owner"],
       "source": "rehearsal",
-      "alt": "The Now card on Ask the owner, with Review and send, the owner message, What sending needs and the message preview.",
+      "alt": "The Now card on Ask the owner, with Review and send and what sending still needs, the stored comparison line, Rent to recommend and Reason to include.",
       "caption": "Ask the owner on the Now card shows the prepared owner message and what sending needs."
     },
     {
@@ -170,7 +170,7 @@
       "region": "page",
       "frame": "viewport",
       "source": "rehearsal",
-      "alt": "All leases and filters: the Renewal worklist with its views, counts, filters and the first rows of the Renewal table.",
+      "alt": "All leases and filters: ← Renewals, the worklist views with their counts, the active filters and the Renewal table headings.",
       "caption": "All leases and filters keeps the worklist views, the filters and the Renewal table."
     },
     {
