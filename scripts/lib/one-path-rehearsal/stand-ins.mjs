@@ -816,6 +816,20 @@ export async function startStandIns({ mix = null, logDir = null, port = 0 } = {}
       state.comparison.requests = [];
       return { comparison: { requests: [] } };
     }
+    if (name === "reset") {
+      // S252: the journey driver starts a builder's phase from the rehearsal's starting state
+      // (scripts/lib/one-path-rehearsal/reset.mjs). Every kept message, draft, request and mode
+      // goes back to how the stand-ins start; the id counter keeps counting so no id repeats.
+      state.comparison.requests = [];
+      state.model.requests = [];
+      state.model.rewording = "accept";
+      state.model.rewordingNext = null;
+      state.mail.mailboxes = new Map();
+      state.mail.nextSend = "normal";
+      state.mail.refused = 0;
+      record({ standIn: "control", control: "reset" });
+      return describe();
+    }
     refuse(404, "The rehearsal has no such control.");
   }
 

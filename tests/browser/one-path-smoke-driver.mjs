@@ -17,6 +17,7 @@
 import assert from "node:assert/strict";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { chromium } from "playwright-core";
 
 import { resolveBrowserExecutable } from "../../scripts/lib/browser-executable.mjs";
@@ -63,110 +64,132 @@ const COUNT = `(() => {
   };
 })()`;
 
-const browser = await chromium.launch({
-  executablePath: resolveBrowserExecutable(),
-  headless: true,
-});
-let exitCode = 1;
-try {
-  const context = await browser.newContext({
-    viewport: { width: 1280, height: 800 },
-    timezoneId: "America/Chicago",
-    locale: "en-US",
+/**
+ * S252: the smoke count as a named, self-checking step. The journey driver
+ * (tests/browser/one-path-journey-driver.mjs) imports and runs this function; run alone, the file
+ * runs it once and exits with its result. Resolves with { exitCode, checks, result }.
+ */
+export async function runSmoke() {
+  const browser = await chromium.launch({
+    executablePath: resolveBrowserExecutable(),
+    headless: true,
   });
-  await context.route("**/*", (route) =>
-    new URL(route.request().url()).origin === origin
-      ? route.continue()
-      : route.abort("blockedbyclient"),
-  );
-  const page = await context.newPage();
-  page.setDefaultTimeout(240_000);
-  page.setDefaultNavigationTimeout(240_000);
-
-  await page.goto(`${origin}/sign-in`, { waitUntil: "domcontentloaded" });
-  const signedIn = await page.evaluate(
-    `fetch("/api/auth/demo",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({role:"Editor"})}).then(r=>r.ok)`,
-  );
-  assert.ok(signedIn, "Local demo Editor sign-in failed.");
-
-  // Renewals with no action: the bare route, as staff open it.
-  await page.goto(`${origin}/lease-renewal`, { waitUntil: "domcontentloaded" });
+  let exitCode = 1;
+  let result = null;
+  let failure = null;
   try {
-    await page.locator(`${ROW}, ${LEASE_LINK}`).first().waitFor({ state: "attached" });
-  } catch (error) {
-    writeFileSync(
-      join(runDir, "smoke-failure.txt"),
-      `${page.url()}\n${(await page.locator("body").innerText()).slice(0, 4000)}\n`,
+    const context = await browser.newContext({
+      viewport: { width: 1280, height: 800 },
+      timezoneId: "America/Chicago",
+      locale: "en-US",
+    });
+    await context.route("**/*", (route) =>
+      new URL(route.request().url()).origin === origin
+        ? route.continue()
+        : route.abort("blockedbyclient"),
     );
-    await page
-      .screenshot({ path: join(runDir, "smoke-failure.png") })
-      .catch(() => undefined);
-    throw error;
-  }
-  // The list fills in as its reads finish; count once two looks a moment apart agree.
-  let counted = await page.evaluate(COUNT);
-  for (let look = 0; look < 40; look += 1) {
-    await page.waitForTimeout(1500);
-    const next = await page.evaluate(COUNT);
-    const settled =
-      next.rows.length === counted.rows.length &&
-      next.linked.length === counted.linked.length;
-    counted = next;
-    if (settled && look >= 1) break;
-  }
+    const page = await context.newPage();
+    page.setDefaultTimeout(240_000);
+    page.setDefaultNavigationTimeout(240_000);
 
-  const rule = counted.rows.length
-    ? ROW_MARKERS.filter((marker) => counted.byMarker[marker].length).join(" and ")
-    : "lease links";
-  const listed = (counted.rows.length ? counted.rows : counted.linked).map(Number);
-  const groupOf = (leaseId) =>
-    Object.entries(rehearsal.groups).find(([, ids]) => ids.includes(leaseId))?.[0] ??
-    null;
-  const byGroup = {};
-  for (const leaseId of listed) {
-    const group = groupOf(leaseId) ?? "not_in_the_mix";
-    byGroup[group] = (byGroup[group] ?? 0) + 1;
-  }
-  const everyLease = Object.values(rehearsal.groups).flat();
-  const result = {
-    servedCommit: rehearsal.servedCommit,
-    overlay: rehearsal.overlay,
-    businessDate: rehearsal.businessDate,
-    workingMonth: rehearsal.workingMonth,
-    url: page.url().replace(origin, ""),
-    countingRule: rule,
-    rowsByMarker: Object.fromEntries(
-      ROW_MARKERS.map((marker) => [marker, counted.byMarker[marker].length]),
-    ),
-    defaultRows: listed.length,
-    byGroup,
-    closedLeasesListed: byGroup.closed ?? 0,
-    notListed: everyLease.filter((leaseId) => !listed.includes(leaseId)).sort(),
-    pageCount: counted.counted,
-    headings: counted.headings,
-    seeds: rehearsal.seeds.map((seed) => `${seed.name}: ${seed.state}`),
-  };
-  writeFileSync(join(runDir, "smoke.json"), `${JSON.stringify(result, null, 2)}\n`);
-  // What the page said, for whoever reads the count later. Synthetic values only.
-  writeFileSync(
-    join(runDir, "smoke-desk.txt"),
-    `${page.url().replace(origin, "")}\n${await page.locator("body").innerText()}\n`,
-  );
-  process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    await page.goto(`${origin}/sign-in`, { waitUntil: "domcontentloaded" });
+    const signedIn = await page.evaluate(
+      `fetch("/api/auth/demo",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({role:"Editor"})}).then(r=>r.ok)`,
+    );
+    assert.ok(signedIn, "Local demo Editor sign-in failed.");
 
-  assert.ok(listed.length > 0, "The default Renewals list shows no lease.");
-  assert.equal(
-    byGroup.not_in_the_mix ?? 0,
-    0,
-    "The default list shows a lease that is not in the November 5 mix.",
-  );
-  process.stdout.write(
-    `one-path smoke: ${listed.length} default row(s) on ${rehearsal.servedCommit.slice(0, 8)} (${rule}); ${result.closedLeasesListed} closed lease(s) listed.\n`,
-  );
-  exitCode = 0;
-} catch (error) {
-  process.stderr.write(`${String(error?.stack ?? error)}\n`);
-} finally {
-  await browser.close().catch(() => undefined);
+    // Renewals with no action: the bare route, as staff open it.
+    await page.goto(`${origin}/lease-renewal`, { waitUntil: "domcontentloaded" });
+    try {
+      await page.locator(`${ROW}, ${LEASE_LINK}`).first().waitFor({ state: "attached" });
+    } catch (error) {
+      writeFileSync(
+        join(runDir, "smoke-failure.txt"),
+        `${page.url()}\n${(await page.locator("body").innerText()).slice(0, 4000)}\n`,
+      );
+      await page
+        .screenshot({ path: join(runDir, "smoke-failure.png") })
+        .catch(() => undefined);
+      throw error;
+    }
+    // The list fills in as its reads finish; count once two looks a moment apart agree.
+    let counted = await page.evaluate(COUNT);
+    for (let look = 0; look < 40; look += 1) {
+      await page.waitForTimeout(1500);
+      const next = await page.evaluate(COUNT);
+      const settled =
+        next.rows.length === counted.rows.length &&
+        next.linked.length === counted.linked.length;
+      counted = next;
+      if (settled && look >= 1) break;
+    }
+
+    const rule = counted.rows.length
+      ? ROW_MARKERS.filter((marker) => counted.byMarker[marker].length).join(" and ")
+      : "lease links";
+    const listed = (counted.rows.length ? counted.rows : counted.linked).map(Number);
+    const groupOf = (leaseId) =>
+      Object.entries(rehearsal.groups).find(([, ids]) => ids.includes(leaseId))?.[0] ??
+      null;
+    const byGroup = {};
+    for (const leaseId of listed) {
+      const group = groupOf(leaseId) ?? "not_in_the_mix";
+      byGroup[group] = (byGroup[group] ?? 0) + 1;
+    }
+    const everyLease = Object.values(rehearsal.groups).flat();
+    result = {
+      servedCommit: rehearsal.servedCommit,
+      overlay: rehearsal.overlay,
+      businessDate: rehearsal.businessDate,
+      workingMonth: rehearsal.workingMonth,
+      url: page.url().replace(origin, ""),
+      countingRule: rule,
+      rowsByMarker: Object.fromEntries(
+        ROW_MARKERS.map((marker) => [marker, counted.byMarker[marker].length]),
+      ),
+      defaultRows: listed.length,
+      byGroup,
+      closedLeasesListed: byGroup.closed ?? 0,
+      notListed: everyLease.filter((leaseId) => !listed.includes(leaseId)).sort(),
+      pageCount: counted.counted,
+      headings: counted.headings,
+      seeds: rehearsal.seeds.map((seed) => `${seed.name}: ${seed.state}`),
+    };
+    writeFileSync(join(runDir, "smoke.json"), `${JSON.stringify(result, null, 2)}\n`);
+    // What the page said, for whoever reads the count later. Synthetic values only.
+    writeFileSync(
+      join(runDir, "smoke-desk.txt"),
+      `${page.url().replace(origin, "")}\n${await page.locator("body").innerText()}\n`,
+    );
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+
+    assert.ok(listed.length > 0, "The default Renewals list shows no lease.");
+    assert.equal(
+      byGroup.not_in_the_mix ?? 0,
+      0,
+      "The default list shows a lease that is not in the November 5 mix.",
+    );
+    process.stdout.write(
+      `one-path smoke: ${listed.length} default row(s) on ${rehearsal.servedCommit.slice(0, 8)} (${rule}); ${result.closedLeasesListed} closed lease(s) listed.\n`,
+    );
+    exitCode = 0;
+  } catch (error) {
+    failure = String(error?.stack ?? error);
+    process.stderr.write(`${failure}\n`);
+  } finally {
+    await browser.close().catch(() => undefined);
+  }
+  const checks = [
+    {
+      name: "the default Renewals list shows leases, every one of them from the November 5 mix",
+      passed: exitCode === 0,
+      observed: result ?? failure?.slice(0, 1500) ?? null,
+    },
+  ];
+  return { exitCode, checks, result };
 }
-process.exit(exitCode);
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const { exitCode } = await runSmoke();
+  process.exit(exitCode);
+}

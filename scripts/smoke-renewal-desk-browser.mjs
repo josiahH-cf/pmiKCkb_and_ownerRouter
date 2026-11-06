@@ -31,6 +31,8 @@ const DESK_INTERACTION_BUDGET_MS = 20_000;
 const WORKFLOW_ROW_SELECTOR =
   'tbody tr[data-workspace-available="true"]:is([data-disposition="actionable"], [data-retention-state="tracked_incomplete"])';
 const WORKING_BATCH_SELECTOR = 'section[aria-label="Working batch"]';
+// lib/lease-renewal/renewal-issues.ts NON_RENEWAL_HANDOFF_TARGET_ID: where the S124 handoff opens.
+const NON_RENEWAL_HANDOFF_TARGET_ID = "renewal-manual-non_renewal_handoff";
 const WORKING_BATCH_COUNT_GROUPS = [
   "renewed_in_rentvine",
   "month_to_month_reviews",
@@ -837,9 +839,18 @@ async function assertFullCohortIntegrity(page) {
           actionDestinationKind:
             actionCell?.getAttribute("data-action-destination-kind") ?? "",
           actionStepId: actionCell?.getAttribute("data-action-step-id") ?? "",
-          actionHrefs: [...(actionCell?.querySelectorAll("a") ?? [])].map(
-            (link) => link.href,
-          ),
+          // S252: the action cell also holds the S127 issue summary, whose only link is the S124
+          // non-renewal handoff for a confirmed move-out. That link is its own destination and is
+          // checked exactly below; it is never an action destination.
+          actionHrefs: [...(actionCell?.querySelectorAll("a") ?? [])]
+            .filter((link) => !link.closest(".renewal-issue-summary"))
+            .map((link) => link.href),
+          issueSummaries: [
+            ...(actionCell?.querySelectorAll(".renewal-issue-summary") ?? []),
+          ].map((summary) => ({
+            redirect: summary.getAttribute("data-renewal-primary-redirect") ?? "",
+            hrefs: [...summary.querySelectorAll("a")].map((link) => link.href),
+          })),
         };
       }),
     );
@@ -943,6 +954,29 @@ async function assertFullCohortIntegrity(page) {
     );
     if (row.blockers.length === 0 && expectedActionLinks === 1) {
       assertWorkspaceDestination(row.actionHrefs[0], row.id, row.actionStepId);
+    }
+
+    // At most one issue summary per row. A confirmed move-out redirects to the non-renewal handoff
+    // with exactly one link: this lease's workspace at the handoff's own place, in this tab. Any
+    // other summary is text only.
+    assert(
+      row.issueSummaries.length <= 1,
+      `Lease ${row.id} rendered more than one issue summary.`,
+    );
+    for (const summary of row.issueSummaries) {
+      const expectedHandoffLinks =
+        summary.redirect === "non_renewal_handoff" && row.workspaceAvailable ? 1 : 0;
+      assert(
+        summary.hrefs.length === expectedHandoffLinks,
+        `Lease ${row.id} rendered the wrong non-renewal handoff link cardinality.`,
+      );
+      if (expectedHandoffLinks === 1) {
+        assertWorkspaceDestination(summary.hrefs[0], row.id, "none");
+        assert(
+          new URL(summary.hrefs[0]).hash === `#${NON_RENEWAL_HANDOFF_TARGET_ID}`,
+          `Lease ${row.id} non-renewal handoff link does not open the handoff.`,
+        );
+      }
     }
   }
 }
