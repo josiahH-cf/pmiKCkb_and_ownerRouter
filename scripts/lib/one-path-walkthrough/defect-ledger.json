@@ -278,6 +278,7 @@
         "state": "verified",
         "evidence": [
           { "journey": "journey.layout" },
+          { "journey": "journey.layout-steps" },
           {
             "phase": "s247-s248-guided-path",
             "check": "the primary action is on the first screen at 1280 by 800 and within two screens at 390"
@@ -470,37 +471,37 @@
   "matrix": [
     {
       "row": "journey.desk-batch",
-      "model": "pass on the candidate rehearsal",
+      "model": "pass on the candidate rehearsal: 0 actions, 1 page, the five working-month leases under This batch",
       "human": "Human verdict: NOT RUN — no human observer"
     },
     {
       "row": "journey.open-lease",
-      "model": "pass on the candidate rehearsal",
+      "model": "pass on the candidate rehearsal: 1 action, 1 page, in the same tab",
       "human": "Human verdict: NOT RUN — no human observer"
     },
     {
       "row": "journey.kickoff-budget",
-      "model": "pass on the candidate rehearsal (3 actions, 1 page); fails on the starting commit",
+      "model": "pass on the candidate rehearsal: 3 actions, 1 page, review and confirmation shown; outside on the starting commit 6491c06f, followed from its own guides: 10 actions across 3 tabs (L24)",
       "human": "Human verdict: NOT RUN — no human observer"
     },
     {
       "row": "journey.send-evidence",
-      "model": "pass on the candidate rehearsal",
+      "model": "pass on the candidate rehearsal: 0 actions, 1 page, the lease reads Waiting on owner response",
       "human": "Human verdict: NOT RUN — no human observer"
     },
     {
       "row": "journey.owner-decision",
-      "model": "pass on the candidate rehearsal",
+      "model": "pass on the candidate rehearsal: 3 actions, 1 page, nothing preselected (6 actions on daf8ee05 before the Now card repair)",
       "human": "Human verdict: NOT RUN — no human observer"
     },
     {
       "row": "journey.one-next-step",
-      "model": "pass on the candidate rehearsal",
+      "model": "pass on the candidate rehearsal: one next step at every point from the desk to Complete, in Guided view, with no other page",
       "human": "Human verdict: NOT RUN — no human observer"
     },
     {
       "row": "journey.layout",
-      "model": "pass on the candidate rehearsal",
+      "model": "pass on the candidate rehearsal: the stage line, the path strip and the primary action on the first screen at 1280 by 800 on Check the numbers, Compare market rent, Ask the owner and Offer the tenant, and the primary action within two screens at 390 (journey.layout, journey.layout-steps)",
       "human": "Human verdict: NOT RUN — no human observer"
     },
     {

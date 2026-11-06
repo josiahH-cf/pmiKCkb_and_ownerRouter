@@ -1266,6 +1266,82 @@ async function journey(browser) {
     },
   );
 
+  // J18b L14 on each of the first four steps, not only the step a lease happens to be on: the
+  // missing-recipient lease, each step opened from the path strip (a read; nothing is recorded),
+  // read at the top of the page. At 1280 by 800 the stage line, the path strip and the Now card's
+  // primary action are on the first screen; at 390 wide the primary action is within two screens,
+  // with no sideways scroll.
+  const LAYOUT_STEPS = [
+    "Check the numbers",
+    "Compare market rent",
+    "Ask the owner",
+    "Offer the tenant",
+  ];
+  const viewportBefore = page.viewportSize();
+  const stepLayouts = [];
+  for (const [width, height, screens] of [
+    [1280, 800, 1],
+    [390, 844, 2],
+  ]) {
+    await page.setViewportSize({ width, height });
+    for (const label of LAYOUT_STEPS) {
+      await view.open(missingRecipient);
+      const stepButton = view.strip().getByRole("button", { name: label, exact: true });
+      if (await stepButton.count()) {
+        await stepButton.click();
+        log.read("layout", `path strip: ${label}`);
+        await page.waitForTimeout(800);
+      }
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await page.waitForTimeout(300);
+      const boxes = await page.evaluate(() => {
+        const box = (selector) => {
+          const element = document.querySelector(selector);
+          if (!element) return null;
+          const rect = element.getBoundingClientRect();
+          return { top: Math.round(rect.top), bottom: Math.round(rect.bottom) };
+        };
+        return {
+          scrollY: Math.round(window.scrollY),
+          overflow: document.documentElement.scrollWidth > window.innerWidth + 1,
+          stage: box('[aria-label="Guided view"] [data-renewal-field="stage-line"]'),
+          strip: box('[aria-label="Guided view"] nav[aria-label="Renewal path"]'),
+          primary: box('[aria-label="Guided view"] [data-renewal-now-primary]'),
+        };
+      });
+      stepLayouts.push({
+        width,
+        step: label,
+        heading: squash(
+          await view
+            .now()
+            .getByRole("heading", { level: 2 })
+            .textContent()
+            .catch(() => ""),
+        ),
+        limit: height * screens,
+        ...boxes,
+      });
+    }
+  }
+  if (viewportBefore) await page.setViewportSize(viewportBefore);
+  const onScreen = (box, limit) => Boolean(box) && box.top >= 0 && box.bottom <= limit;
+  check(
+    "journey.layout-steps",
+    "on Check the numbers, Compare market rent, Ask the owner and Offer the tenant the stage line, the path strip and the primary action are on the first screen at 1280 by 800, and the primary action is within two screens at 390 (L14)",
+    stepLayouts.length === LAYOUT_STEPS.length * 2 &&
+      stepLayouts.every(
+        (entry) =>
+          entry.scrollY === 0 &&
+          !entry.overflow &&
+          entry.heading.endsWith(entry.step) &&
+          onScreen(entry.primary, entry.limit) &&
+          (entry.width !== 1280 ||
+            (onScreen(entry.stage, entry.limit) && onScreen(entry.strip, entry.limit))),
+      ),
+    { lease: missingRecipient, stepLayouts },
+  );
+
   // J19 reload continuity (L18): the same view, step and place, and typing the existing autosave
   // keeps (R-S247-9: "unsaved typing is kept by the existing autosave") is there after the reload.
   // The missing-recipient lease's Ask the owner step: a Working monthly rent typed there saves when
