@@ -1095,9 +1095,11 @@ export function projectRenewalStage(
     if (evidenceLine) return `${label}: ${evidenceLine}`;
     if (currentStepId === "complete" && scopedContext.sourceRenewal)
       return `${label}: RentVine reports a later lease end`;
+    // R-S246-7: the line says who the lease waits on and since when. With nothing recorded there
+    // is no "since" date to give, so the line says so, as the S232 row line it replaced did.
     return recordedAtIso
       ? `${label}, waiting on ${TEAM}${since(recordedAtIso)}`
-      : `${label}, nothing recorded yet`;
+      : `${label}, waiting on ${TEAM}, nothing recorded yet`;
   })();
   const derived: RenewalDerivedFact[] = [fill.owner_outreach, fill.tenant_offer]
     .filter((record): record is DerivedOutreachRecord => record !== null)
