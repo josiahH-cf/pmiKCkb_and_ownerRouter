@@ -774,6 +774,7 @@ async function journey(browser) {
   const otherPages = [];
   mark = log.mark();
   let completed = false;
+  let tenantOffer = null;
   for (let round = 0; round < 24 && !completed; round += 1) {
     await view.open(prepared);
     const step = await view.currentStep();
@@ -810,28 +811,78 @@ async function journey(browser) {
     if (step === "offer-tenant") {
       const primary = view.now().locator("[data-renewal-now-primary]");
       const label = squash(await primary.textContent().catch(() => ""));
-      if (label === "Review and send" && (await primary.isEnabled())) {
+      const review = page
+        .getByRole("button", { name: "Review and send", exact: true })
+        .first();
+      const offerRecord = page.locator("details#renewal-manual-tenant_offer");
+      const offerDone = /:s*done/i.test(
+        squash(
+          await offerRecord
+            .locator("summary")
+            .textContent()
+            .catch(() => ""),
+        ),
+      );
+      points.at(-1).now = (await view.nowText()).slice(0, 600);
+      if (!tenantOffer && label === "Send the tenant offer") {
+        // The step's primary action brings the tenant offer's own controls into view.
         await primary.click();
+        log.act("path", "choice", "Send the tenant offer");
+        await page.waitForTimeout(1500);
+      }
+      if (!tenantOffer && (await review.isVisible()) && (await review.isEnabled())) {
+        await review.click();
         log.act("path", "choice", "Review and send (tenant offer)");
-        await reviewAndConfirm(
+        const sent = await reviewAndConfirm(
           page,
           "path",
           "send (tenant offer)",
           "Review and send",
           "Send this message",
         );
+        tenantOffer = sent.confirmShown ? "sent" : "review refused";
         await page.waitForTimeout(3000);
         continue;
       }
-      // Waiting on the tenant, or the offer is out: record what happened by hand.
+      if (
+        !tenantOffer &&
+        !offerDone &&
+        (await offerRecord.isVisible().catch(() => false))
+      ) {
+        // No send is offered for this lease's tenant offer: the hand record the app offers.
+        tenantOffer = "recorded by staff";
+        points.at(-1).tenantSend = {
+          review: await review.isVisible().catch(() => false),
+          reviewEnabled: await review.isEnabled().catch(() => false),
+          needs: squash(
+            await page
+              .locator('[data-renewal-field="send-needs"]')
+              .first()
+              .textContent()
+              .catch(() => ""),
+          ),
+        };
+        if (!(await offerRecord.evaluate((element) => element.open))) {
+          await offerRecord.locator("summary").click();
+          log.act("path", "choice", "open Tenant offer delivered");
+        }
+        await offerRecord.locator("select").first().selectOption("done");
+        log.act("path", "choice", "Tenant offer delivered: Done");
+        await page.waitForTimeout(3000);
+        continue;
+      }
+      // The offer is out: record the tenant's answer.
       const response = page.getByLabel("Tenant response", { exact: true });
-      if (await shownWithin(response, 10_000)) {
+      if (
+        (await shownWithin(response, 10_000)) &&
+        (await response.inputValue()) !== "accepted"
+      ) {
         await response.selectOption("accepted");
         log.act("path", "choice", "Tenant response: Accepted");
         await page.waitForTimeout(3000);
         continue;
       }
-      points.at(-1).stuck = { label, now: (await view.nowText()).slice(0, 500) };
+      points.at(-1).stuck = { label, tenantOffer, offerDone };
       break;
     }
     if (step === "documents" || step === "finish-up") {
@@ -862,7 +913,7 @@ async function journey(browser) {
     "journey.complete",
     "the prepared lease is taken from the desk to Complete on the guided path with hand records where a provider step is closed (L53)",
     completed,
-    { points, pathActions: pathCount, completedRow },
+    { points, tenantOffer, pathActions: pathCount, completedRow },
   );
   check(
     "journey.one-next-step",
