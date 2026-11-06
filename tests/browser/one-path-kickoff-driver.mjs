@@ -36,7 +36,6 @@ import {
   setRewording,
   standInState,
 } from "../../scripts/lib/one-path-rehearsal/control.mjs";
-import { forceSourceRefresh } from "../../scripts/lib/one-path-rehearsal/seeds.mjs";
 
 // The rehearsal's network boundary must be active in THIS process before anything runs.
 const fetchGuarded = globalThis.fetch?.name === "guardedFetch";
@@ -575,11 +574,16 @@ try {
     .evaluate(() => navigator.clipboard.readText())
     .catch(() => "");
   // A disabled delivery action is recorded with what the card says it needs; it is never waited on.
-  const needsNow = async () =>
-    (await now()
-      .locator('[data-renewal-field="send-needs"]')
-      .textContent()
-      .catch(() => null)) ?? null;
+  // Read at once: a card with nothing missing has no such line, and that is never waited on.
+  const needsNow = async () => {
+    const line = now().locator('[data-renewal-field="send-needs"]');
+    return (await line.count())
+      ? ((await line
+          .first()
+          .textContent({ timeout: 5000 })
+          .catch(() => null)) ?? null)
+      : null;
+  };
   const scheduleButton = now().getByRole("button", { name: "Schedule", exact: true });
   let scheduled = "";
   const scheduleEnabled = await scheduleButton.isEnabled();
@@ -660,24 +664,16 @@ try {
   // L23: the owner message is sent in three deliberate actions on one page: open the lease,
   // "Review and send", confirm. The exact review and the confirmation are both shown.
   const before = steps.length;
-  // The run is long: the harness reads RentVine again first, as the seeds do, so the lease is
-  // current the way it is on a working day (notice safety needs a fresh admitted read).
-  // As the notice-admission seed does: the desk is read, RentVine is read again and the desk is
-  // read again, so the status table (its 15 minute read) and the lease are admitted afresh.
-  await desk();
-  await page.waitForTimeout(3000);
-  markers.push(await noticeMarker(prepared, "after the first desk"));
-  const refreshedBeforeSend = (await forceSourceRefresh(page)).body?.refreshed ?? false;
-  markers.push(await noticeMarker(prepared, "after the refresh"));
-  await desk();
-  await page.waitForTimeout(3000);
-  markers.push(await noticeMarker(prepared, "after the second desk"));
   act("open the lease");
   await openLease(prepared);
   // The Now card takes its prepared message once the lease message has loaded.
   await shownWithin(now().locator("[data-renewal-message-revision]"));
   markers.push(await noticeMarker(prepared, "lease open"));
   const needsBeforeSend = await needsNow();
+  // The staff member reads the prepared message before choosing Review and send, here for longer
+  // than the lease read's one minute, so the review starts on an aging read as it does day to day
+  // and the review's own read of the replaced generation is part of what this check proves.
+  await page.waitForTimeout(65_000);
   act("choose Review and send");
   await now().locator("[data-renewal-now-primary]").click();
   const review = page.getByRole("dialog", { name: "Review and send" });
@@ -712,7 +708,6 @@ try {
       sendSteps,
       reviewShown,
       needsBeforeSend,
-      refreshedBeforeSend,
       markers,
       pages: context.pages().length,
       sent: sent.length,
