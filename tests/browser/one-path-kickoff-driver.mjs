@@ -14,7 +14,9 @@
 // any owner message (L29); a Gmail draft that reads older after an edit (L28, with the L40 line
 // where the served commit has it); the rewording accepted only on "Use this revision" and an
 // echoed rewording refused (L44); a signature set up on the Now card (L45); the tenant offer
-// prepared on its step (L42, the tenant half); and no refused connection (L58).
+// prepared on its step and, once the terms are final, Finish up's RentVine and operating Sheet
+// update previews with no write and each update behind its own confirmation (L42); and no
+// refused connection (L58).
 //
 // The comparison and mail stand-ins answer every provider call; the control hooks
 // (scripts/lib/one-path-rehearsal/control.mjs) set the allowance and the rewording. The result
@@ -904,6 +906,156 @@ try {
         tenant.document === 1 &&
         writes.length === 0,
       { ...tenant, writes, nowHtml: tenant.preview === 1 ? null : await nowHtml() },
+    );
+  });
+  await attempt("L42 (Finish up)", async () => {
+    await signIn("Editor");
+    phase = "L42 setup";
+    // The terms become final: the staff member saves the effective date and the end date in
+    // Working renewal terms (the rent is already saved by the send above), through the app's own
+    // working-record route. These are the setup writes; the check below counts none of them.
+    const read = await page.evaluate(async (leaseId) => {
+      const [working, message] = await Promise.all([
+        fetch(`/api/lease-renewal/working-record?leaseId=${leaseId}`).then((r) =>
+          r.json(),
+        ),
+        fetch(
+          `/api/lease-renewal/message-preparation?leaseId=${leaseId}&channel=owner`,
+        ).then((r) => r.json()),
+      ]);
+      return {
+        record: working.record ?? null,
+        leaseEnd: message.facts?.leaseEndDate ?? null,
+      };
+    }, prepared);
+    const end = String(read.leaseEnd ?? "");
+    assert.match(
+      end,
+      /^\d{4}-\d{2}-\d{2}$/,
+      "The prepared lease's end date was not read.",
+    );
+    const day = new Date(`${end}T12:00:00Z`);
+    day.setUTCDate(day.getUTCDate() + 1);
+    const effective = day.toISOString().slice(0, 10);
+    const termEnd = `${Number(effective.slice(0, 4)) + 1}${end.slice(4)}`;
+    const fields = {
+      ...(read.record?.fields?.terms_rent ? {} : { terms_rent: 1405 }),
+      terms_effective_date: effective,
+      terms_end_date: termEnd,
+    };
+    for (const [field, value] of Object.entries(fields)) {
+      const saved = await page.evaluate(
+        async ({ leaseId, field, value, expectedRevision }) =>
+          (
+            await fetch("/api/lease-renewal/working-record", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({
+                leaseId,
+                field,
+                value,
+                expectedRevision,
+                operationId: crypto.randomUUID(),
+              }),
+            })
+          ).ok,
+        {
+          leaseId: String(prepared),
+          field,
+          value,
+          expectedRevision: read.record?.fields?.[field]?.revision ?? 0,
+        },
+      );
+      assert.ok(saved, `Saving ${field} in Working renewal terms was refused.`);
+    }
+    act("Save the final working terms (setup)");
+    phase = "L42";
+    writes.length = 0;
+    await openLease(prepared);
+    await chooseStep("Finish up");
+    const previews = now().getByRole("region", {
+      name: "Source updates from the final terms",
+      exact: true,
+    });
+    await shownWithin(previews);
+    const rentvine = now().getByRole("region", {
+      name: "RentVine update preview",
+      exact: true,
+    });
+    const sheet = now().getByRole("region", {
+      name: "Operating Sheet update preview",
+      exact: true,
+    });
+    const observed = {
+      heading: (await now().getByRole("heading", { level: 2 }).textContent())?.trim(),
+      assembled: await previews.getAttribute("data-renewal-finish-up-previews"),
+      terms: (
+        await now().locator('[data-renewal-field="finish-up-terms"]').textContent()
+      )?.trim(),
+      rentvineState: await rentvine.getAttribute("data-renewal-finish-up-source"),
+      rentvinePreviews: await rentvine
+        .locator("[data-renewal-finish-up-preview]")
+        .evaluateAll((nodes) =>
+          nodes.map((node) => node.getAttribute("data-renewal-finish-up-preview")),
+        ),
+      rentvineExact: await rentvine.getByLabel("Exact update preview").count(),
+      rentvineText: (await rentvine.textContent())?.replace(/\s+/g, " ").slice(0, 600),
+      sheetState: await sheet.getAttribute("data-renewal-finish-up-source"),
+      sheetExact: await sheet.getByLabel("Exact update preview").count(),
+      sheetText: (await sheet.textContent())?.replace(/\s+/g, " ").slice(0, 600),
+      applyControls: await previews
+        .getByRole("button", {
+          name: "Review and apply in Rent and charges",
+          exact: true,
+        })
+        .count(),
+    };
+    const shownWrites = [...writes];
+    check(
+      "L42 (Finish up): once the terms are final, Finish up shows the RentVine update preview and the operating Sheet update preview from them, and showing them makes no write",
+      observed.heading === "Finish up" &&
+        observed.assembled === "assembled" &&
+        observed.rentvineState === "ready" &&
+        observed.rentvinePreviews.includes("rentvine-dates") &&
+        observed.rentvineExact >= 1 &&
+        observed.sheetState === "ready" &&
+        observed.sheetExact === 1 &&
+        shownWrites.length === 0,
+      {
+        ...observed,
+        writes: shownWrites,
+        nowHtml: observed.assembled ? null : await nowHtml(),
+      },
+    );
+    // Each update keeps its own exact confirmation: the apply control opens the existing
+    // controls in Rent and charges, and nothing is prepared, confirmed or written by it.
+    await previews
+      .getByRole("button", { name: "Review and apply in Rent and charges", exact: true })
+      .first()
+      .click();
+    act("Review and apply in Rent and charges");
+    await page.waitForTimeout(1500);
+    const area = page.getByRole("region", {
+      name: "Rent and charges working area",
+      exact: true,
+    });
+    const applied = {
+      areaVisible: await area.isVisible().catch(() => false),
+      rentvineConfirmations: await area
+        .getByRole("heading", { name: /RentVine updates/ })
+        .count(),
+      futureRentPrepare: await area
+        .getByText("Prepare future renewal rent in RentVine")
+        .count(),
+      writes: [...writes],
+    };
+    check(
+      "L42 (Finish up): each source update still asks for its own exact confirmation; the apply control opens the existing controls and writes nothing",
+      observed.applyControls >= 2 &&
+        applied.areaVisible &&
+        applied.rentvineConfirmations >= 1 &&
+        applied.writes.length === 0,
+      applied,
     );
   });
 
