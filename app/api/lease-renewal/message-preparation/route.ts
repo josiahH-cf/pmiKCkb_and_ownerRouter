@@ -21,7 +21,10 @@ import {
   RenewalDraftConfirmationSchema,
   RenewalDraftReconciliationSchema,
 } from "@/lib/lease-renewal/execution/renewal-notice-draft-contract";
-import { createGmailMailboxClient } from "@/lib/gmail-hub/dependencies";
+import {
+  createDescriptorBoundGmailRuntimeClient,
+  createGmailMailboxClient,
+} from "@/lib/gmail-hub/dependencies";
 import { resolveRehearsalStandIn } from "@/lib/environment/rehearsal-stand-in";
 import { requireEnvironmentDescriptor } from "@/lib/environment/descriptor";
 import { EditableLayerError } from "@/lib/firestore/errors";
@@ -177,14 +180,18 @@ export async function POST(request: Request) {
         draftStatus.preClaim = failure;
       },
       loadLease: async () => null,
-      // S249: the descriptor-bound Gmail client, except inside the isolated rehearsal, where the
-      // same factory returns the Demo-owned client that reaches only the loopback mail stand-in.
-      createGmailClient: (subject: string) =>
-        createGmailMailboxClient(
-          subject,
-          requireEnvironmentDescriptor(),
-          resolveRehearsalStandIn(),
-        ),
+      // S249: the descriptor-bound Gmail client, as before. Only when this process resolves the
+      // rehearsal's stand-in does the mailbox factory decide, and it returns the Demo-owned client
+      // that reaches only the loopback mail stand-in inside the isolated rehearsal.
+      createGmailClient: (subject: string) => {
+        const standIn = resolveRehearsalStandIn();
+        return standIn
+          ? createGmailMailboxClient(subject, requireEnvironmentDescriptor(), standIn)
+          : createDescriptorBoundGmailRuntimeClient(
+              subject,
+              requireEnvironmentDescriptor(),
+            );
+      },
       resolveCompScreenshotAttachment: async (
         leaseId: string,
         expected: RenewalDraftAttachmentIdentity,
