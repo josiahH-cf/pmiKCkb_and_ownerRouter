@@ -8,11 +8,19 @@
 // the same seed steps the harness runs at start (seeds.mjs), through the served app's routes, with
 // the recorded cycle dates served while they run, exactly as scripts/one-path-rehearsal.mjs does.
 // The Auth emulator's local demo accounts are kept. Nothing here reaches beyond this machine.
+//
+// What it cannot clear: the served app's own memory. The server's RentVine read is read again
+// before the seeds (as the harness's first read is), but its per-address comparison result cache
+// (lib/lease-renewal/rentcast-quota.ts, six hours) stays, so a lease looked up earlier in the run
+// is answered from that cache without a stand-in request. The journey orders its phases so that a
+// phase which counts comparison requests runs before anything else looks those leases up.
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import {
   clearEmulatorDocuments,
   clearRentvineFlags,
+  REHEARSAL_FILE,
   resetStandIns,
   setRecordingCycles,
   setRentvineOutage,
@@ -22,7 +30,7 @@ import {
   NOVEMBER_5_MIX_PATH,
   readNovember5Mix,
 } from "./november-5-mix.mjs";
-import { runSeeds } from "./seeds.mjs";
+import { forceSourceRefresh, runSeeds } from "./seeds.mjs";
 
 /** The mix as the running rehearsal loaded it (the same business date). */
 export function rehearsalMix(rehearsal) {
@@ -62,7 +70,35 @@ export async function resetRehearsalState({ rehearsal, browser }) {
       }).then((response) => response.ok),
     );
     if (!signedIn) throw new Error("Local demo Editor sign-in failed after the reset.");
-    return await runSeeds({ page, mix: rehearsalMix(rehearsal), rehearsal, origin });
+    // The server keeps its last RentVine read in memory, and that read showed the current dates.
+    // The seeds expect the server's first read to show the recorded cycle dates, as it does when
+    // the harness starts, so the server reads RentVine again now, while those dates are served.
+    const refreshed = await forceSourceRefresh(page);
+    const seeds = await runSeeds({
+      page,
+      mix: rehearsalMix(rehearsal),
+      rehearsal,
+      origin,
+    });
+    // A driver reads what the seeds made (for example the replied lease's message id) from
+    // rehearsal.json, so the description names this state's seeds; the first ones are kept beside.
+    const file = join(rehearsal.runDir, REHEARSAL_FILE);
+    const described = JSON.parse(readFileSync(file, "utf8"));
+    writeFileSync(
+      file,
+      `${JSON.stringify({ ...described, seedsAtStart: described.seedsAtStart ?? described.seeds, seeds }, null, 2)}\n`,
+    );
+    return [
+      {
+        name: "reset",
+        suite: "S252",
+        state: refreshed.body?.refreshed ? "seeded" : "skipped",
+        detail: refreshed.body?.refreshed
+          ? "Stand-ins, RentVine controls and the emulator cleared; RentVine read again with the recorded cycle dates."
+          : `RentVine was not read again before the seeds (HTTP ${refreshed.status}).`,
+      },
+      ...seeds,
+    ];
   } finally {
     // Whatever the seeds did, the desk is left reading the current RentVine dates.
     setRecordingCycles(rehearsal, false);

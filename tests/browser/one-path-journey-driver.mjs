@@ -7,8 +7,15 @@
 // does depends on what the rehearsal serves:
 //
 //   the candidate, with the mail adapter (the default)
-//     1. The smoke count (one-path-smoke-driver.mjs, imported).
-//     2. The journey on the "November 5 mix", in the R-S252-2 order: desk batch, the kickoff on
+//     Each builder's named, self-checking steps are imported and run unchanged, and every phase
+//     after the first starts from the rehearsal's starting state again
+//     (scripts/lib/one-path-rehearsal/reset.mjs). The served app answers a lease looked up earlier
+//     in the run from its own comparison cache, so the two phases that count comparison requests
+//     run first. In order:
+//     1. The S254 stand-in proof (one-path-stand-in-proof-driver.mjs), on the harness's state.
+//     2. The S249 kickoff (one-path-kickoff-driver.mjs).
+//     3. The S254 smoke count (one-path-smoke-driver.mjs), then on the same state:
+//        the journey on the "November 5 mix", in the R-S252-2 order: desk batch, the kickoff on
 //        the prepared lease FOLLOWED FROM THE IN-APP GUIDE (lib/help/content, read as data: L61),
 //        numbers, comparison, owner message, send evidence, owner reply, decision, tenant offer and
 //        the rest of the path to Complete (L53), the standing agreement variant (covered lease),
@@ -16,11 +23,11 @@
 //        change), values kept to their lease (AC-S252-5, L70), recipients (R-S252-11), the
 //        renewed-in-source closure (L04, BEH-S246-2), reload continuity (L18) and the release
 //        canary's own landmark predicates read against the rehearsal (R-S252-7).
-//     3. Each builder's named, self-checking steps, imported and run unchanged, each from the
-//        rehearsal's starting state (scripts/lib/one-path-rehearsal/reset.mjs): S249 kickoff,
-//        S247/S248 guided path, S250/S251 variants (Do not renew last, after every count), and
-//        the S254 stand-in proof.
-//     4. L58 over the whole run: every send, schedule, Gmail draft creation and source update the
+//     4. The S247/S248 guided path (one-path-guided-path-driver.mjs).
+//     5. The S250/S251 variants (one-path-variants-driver.mjs; Do not renew last, after every
+//        count).
+//     `-- --phases <name,...>` runs only the named phases, in this order.
+//     Then L58 over the whole run: every send, schedule, Gmail draft creation and source update the
 //        journey made showed its exact review and asked for its own confirmation, and the
 //        refused-connection log names no production host, provider or mailbox.
 //   the candidate with --no-mail-adapter
@@ -684,6 +691,7 @@ async function journey(browser) {
   // J08 the owner's decision from the observed reply (L36): at most three actions, nothing
   // preselected.
   mark = log.mark();
+  const decisionObserved = {};
   const decision = view.now().locator('[data-renewal-field="owner-decision-from-reply"]');
   const decisionShown = await shownWithin(decision, 30_000);
   const preselected = decisionShown
@@ -700,20 +708,48 @@ async function journey(browser) {
     const partyPreselected = await party.inputValue();
     await party.selectOption({ index: 1 });
     log.act("decision", "choice", "Who approved in this reply");
+    const saved = page
+      .waitForResponse(
+        (response) =>
+          response.request().method() === "POST" &&
+          new URL(response.url()).pathname === "/api/lease-renewal/workspace",
+        { timeout: 20_000 },
+      )
+      .then(async (response) => ({
+        status: response.status(),
+        body: await response.text().then((text) => text.slice(0, 400)),
+      }))
+      .catch(() => null);
     await decision
       .getByRole("button", { name: "Record this decision", exact: true })
       .click();
     log.act("decision", "confirmation", "Record this decision");
+    decisionObserved.saved = await saved;
+    decisionObserved.alert = squash(
+      await decision
+        .locator('[role="alert"]')
+        .textContent({ timeout: 2000 })
+        .catch(() => ""),
+    );
+    decisionObserved.partyPreselected = partyPreselected;
     effects.push({
       phase: "decision",
       kind: "staff record (owner decision)",
       reviewShown: true,
       confirmShown: true,
-      confirmed: true,
+      confirmed: decisionObserved.saved?.status === 200,
       partyPreselected,
     });
   }
   const afterDecision = await waitForStep(page, prepared, ["offer-tenant"], 45_000);
+  decisionObserved.afterDecision = afterDecision;
+  decisionObserved.now = (await view.nowText()).slice(0, 400);
+  check(
+    "journey.owner-decision-recorded",
+    "the decision chosen on the Now card is recorded through the staff record and the lease moves on to Offer the tenant (L36)",
+    decisionObserved.saved?.status === 200 && afterDecision === "offer-tenant",
+    decisionObserved,
+  );
   budget(
     "journey.owner-decision",
     "the owner's decision from an observed reply in at most three actions, nothing preselected",
@@ -1083,41 +1119,50 @@ async function journey(browser) {
     },
   );
 
-  // J19 reload continuity (L18): the same view, step and place, with typed text kept.
+  // J19 reload continuity (L18): the same view, step and place, and typing the existing autosave
+  // keeps (R-S247-9: "unsaved typing is kept by the existing autosave") is there after the reload.
+  // The missing-recipient lease's Ask the owner step: a Working monthly rent typed there saves when
+  // the person leaves the field, and the place is a scrolled Now card.
+  const KEPT_RENT = "1388";
   await view.open(missingRecipient);
-  await view
-    .strip()
-    .getByRole("button", { name: "Offer the tenant", exact: true })
-    .click();
+  await view.strip().getByRole("button", { name: "Ask the owner", exact: true }).click();
   await page.waitForTimeout(800);
-  const note = page.getByRole("textbox", { name: /note/i }).first();
-  let typedNote = null;
-  if (await shownWithin(note, 10_000)) {
-    typedNote = "Synthetic note kept across a reload.";
-    await note.fill(typedNote);
+  const keptField = page.getByLabel("Working monthly rent", { exact: true });
+  let typedRent = null;
+  if (await shownWithin(keptField, 15_000)) {
+    await keptField.fill(KEPT_RENT);
+    await keptField.blur();
+    log.optional("reload", "Working monthly rent (typed for L18)");
+    typedRent = KEPT_RENT;
+    await page.waitForTimeout(3000);
   }
   await page.mouse.wheel(0, 400);
   log.scroll("reload", "scroll 400 px");
-  await page.waitForTimeout(1500);
+  await page.waitForTimeout(2000);
   const placeBefore = await page.evaluate(() => Math.round(window.scrollY));
   await page.reload({ waitUntil: "domcontentloaded" });
   await view.guided().waitFor({ state: "visible" });
-  await page.waitForTimeout(4000);
+  await page.waitForTimeout(5000);
+  const digits = (value) =>
+    String(value ?? "")
+      .replace(/[^0-9]/g, "")
+      .replace(/00$/, "");
   const reloaded = {
     heading: squash(await view.now().getByRole("heading", { level: 2 }).textContent()),
     pressed: await view.viewButton("Guided view").getAttribute("aria-pressed"),
     scrollY: await page.evaluate(() => Math.round(window.scrollY)),
     placeBefore,
-    note: typedNote ? await note.inputValue().catch(() => null) : null,
+    kept: typedRent ? await keptField.inputValue().catch(() => null) : null,
   };
   check(
     "journey.reload-continuity",
-    "a reload in the middle of a step returns to the same view, step and place with typed text kept (L18)",
-    reloaded.heading.endsWith("Offer the tenant") &&
+    "a reload in the middle of a step returns to the same view, step and place, with typed text kept by the autosave (L18)",
+    reloaded.heading.endsWith("Ask the owner") &&
       reloaded.pressed === "true" &&
       Math.abs(reloaded.scrollY - placeBefore) <= 80 &&
-      (typedNote === null || reloaded.note === typedNote),
-    { ...reloaded, typedNote },
+      typedRent !== null &&
+      digits(reloaded.kept).startsWith(KEPT_RENT),
+    { ...reloaded, typedRent },
   );
 
   // J20 the release canary's own landmark predicates against the rehearsal (R-S252-7).
@@ -1144,7 +1189,10 @@ async function journey(browser) {
       (canary.leases ?? []).length === 4 &&
       (canary.leases ?? []).every((entry) => entry.landmarks === true) &&
       canary.visitsBareBatch === false &&
-      (canary.blockedMutations ?? []).length === 0,
+      // The development server's own error overlay posts stack frames to /__nextjs_*; that is
+      // not the app and a production build has no such route. Every other attempt counts.
+      (canary.blockedMutations ?? []).filter((entry) => !entry.includes(" /__nextjs_"))
+        .length === 0,
     canary,
   );
 
@@ -1395,6 +1443,29 @@ function refusedSummary() {
   return { refused: refused.length, hosts, aimed, unexplained };
 }
 
+/** The candidate's phases in their run order: [name, driver file, exported function]. */
+const CANDIDATE_PHASES = [
+  ["s254-stand-in-proof", "./one-path-stand-in-proof-driver.mjs", "runStandInProof"],
+  ["s249-kickoff", "./one-path-kickoff-driver.mjs", "runKickoff"],
+  ["s254-smoke", "./one-path-smoke-driver.mjs", "runSmoke"],
+  ["journey", null, null],
+  ["s247-s248-guided-path", "./one-path-guided-path-driver.mjs", "runGuidedPath"],
+  ["s250-s251-variants", "./one-path-variants-driver.mjs", "runVariants"],
+];
+// `-- --phases journey,s249-kickoff` runs only those phases (in the order above), for example
+// while a step is being repaired. A run with every phase is the evidence run.
+const phasesArgument = process.argv.indexOf("--phases");
+const selectedPhases =
+  phasesArgument >= 0 ? new Set(process.argv[phasesArgument + 1].split(",")) : null;
+const SELECTED = (name) => selectedPhases === null || selectedPhases.has(name);
+
+async function resetForJourney(browser) {
+  const seeds = await resetRehearsalState({ rehearsal, browser });
+  process.stdout.write(
+    `phase journey: reset and seeded (${seeds.map((seed) => `${seed.name}: ${seed.state}`).join(", ")})\n`,
+  );
+}
+
 const browser = await chromium.launch({
   executablePath: resolveBrowserExecutable(),
   headless: true,
@@ -1412,49 +1483,36 @@ try {
       { reset: false },
     );
   } else {
-    await builderPhase(browser, "s254-smoke", "./one-path-smoke-driver.mjs", "runSmoke", {
-      reset: false,
-    });
-    await journey(browser).catch((error) =>
-      check(
-        "journey.ran",
-        "the journey ran to its end",
-        false,
-        String(error?.stack ?? error).slice(0, 2000),
-      ),
-    );
-    await builderPhase(
-      browser,
-      "s249-kickoff",
-      "./one-path-kickoff-driver.mjs",
-      "runKickoff",
-    );
-    await builderPhase(
-      browser,
-      "s247-s248-guided-path",
-      "./one-path-guided-path-driver.mjs",
-      "runGuidedPath",
-    );
-    await builderPhase(
-      browser,
-      "s250-s251-variants",
-      "./one-path-variants-driver.mjs",
-      "runVariants",
-    );
-    await builderPhase(
-      browser,
-      "s254-stand-in-proof",
-      "./one-path-stand-in-proof-driver.mjs",
-      "runStandInProof",
-    );
+    // The order keeps one phase from spoiling the next. The served app answers a lease looked up
+    // earlier in the run from its own comparison cache (see reset.mjs), so the two phases that
+    // count comparison requests come first: the stand-in proof on the harness's starting state,
+    // then the S249 kickoff. Every later phase starts from the starting state again; the journey
+    // follows the smoke count on the same state.
+    let first = true;
+    for (const [name, file, exportName] of CANDIDATE_PHASES) {
+      if (!SELECTED(name)) continue;
+      if (name === "journey") {
+        if (!first && !SELECTED("s254-smoke")) await resetForJourney(browser);
+        await journey(browser).catch((error) =>
+          check(
+            "journey.ran",
+            "the journey ran to its end",
+            false,
+            String(error?.stack ?? error).slice(0, 2000),
+          ),
+        );
+      } else await builderPhase(browser, name, file, exportName, { reset: !first });
+      first = false;
+    }
     // L58 over the whole run.
-    check(
-      "journey.reviews-and-confirmations",
-      "every send, schedule, Gmail draft creation and staff completion the journey made showed its exact review and asked for its own confirmation (L58, AC-S252-1)",
-      effects.length > 0 &&
-        effects.every((entry) => entry.reviewShown && entry.confirmShown),
-      effects,
-    );
+    if (SELECTED("journey"))
+      check(
+        "journey.reviews-and-confirmations",
+        "every send, schedule, Gmail draft creation and staff completion the journey made showed its exact review and asked for its own confirmation (L58, AC-S252-1)",
+        effects.length > 0 &&
+          effects.every((entry) => entry.reviewShown && entry.confirmShown),
+        effects,
+      );
   }
   const refused = refusedSummary();
   check(
