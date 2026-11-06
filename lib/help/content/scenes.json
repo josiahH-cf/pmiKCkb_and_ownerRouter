@@ -118,16 +118,16 @@
       "region": "region:This batch",
       "frame": "viewport",
       "source": "rehearsal",
-      "alt": "This batch on a phone-width screen: each lease row with its address, tenants, end date, stage line and next step link.",
+      "alt": "This batch on a phone-width screen: Prepare this batch, then Ready for your review with the prepared lease's address, tenant, end date, stage line and its Send the owner message link.",
       "caption": "Each row's address or next step link opens the lease in this tab."
     },
     {
       "id": "lease-guided-view",
       "guide": "work-a-renewal",
       "step": "read-the-path",
-      "route": "/lease-renewal/live/desk/lease/[leaseId]",
+      "route": "/lease-renewal/live/desk/lease/5001",
       "role": "Editor",
-      "fixture": "Synthetic lease opened from the desk with no action",
+      "fixture": "Synthetic December lease prepared ahead: a stored comparison, published templates, the Editor's signature and a verified example.invalid owner address",
       "viewport": {
         "width": 1280,
         "height": 800
@@ -135,7 +135,7 @@
       "region": "region:Guided view",
       "frame": "viewport",
       "source": "rehearsal",
-      "alt": "Guided view: the stage line, the Renewal path from Check the numbers to Complete and the Now card below it.",
+      "alt": "Guided view: the stage line, the Renewal path from Check the numbers to Complete with Ask the owner as the current step, and the Now card below it with Review and send.",
       "caption": "A lease opens in Guided view with the Renewal path and one Now card."
     },
     {
@@ -144,17 +144,35 @@
       "step": "read-the-prepared-message",
       "route": "/lease-renewal/live/desk/lease/5001",
       "role": "Editor",
-      "fixture": "Synthetic December lease with a verified example.invalid owner address, Ask the owner chosen",
+      "fixture": "Synthetic December lease prepared ahead: a stored comparison, published templates, the Editor's signature and a verified example.invalid owner address",
       "viewport": {
         "width": 1280,
         "height": 800
       },
-      "region": "region:Now",
+      "region": "region:Owner message",
       "frame": "viewport",
       "actions": ["click-button:Ask the owner"],
       "source": "rehearsal",
-      "alt": "The Now card on Ask the owner, with Review and send and what sending still needs, the stored comparison line, Rent to recommend and Reason to include.",
+      "alt": "The prepared owner message on the Now card: the stored comparison with its five comparable listings, Rent to recommend, Reason to include and What sending needs with every item Ready.",
       "caption": "Ask the owner on the Now card shows the prepared owner message and what sending needs."
+    },
+    {
+      "id": "lease-review-and-send",
+      "guide": "work-a-renewal",
+      "step": "review-and-send",
+      "route": "/lease-renewal/live/desk/lease/5001",
+      "role": "Editor",
+      "fixture": "Synthetic December lease prepared ahead: a stored comparison, published templates, the Editor's signature and a verified example.invalid owner address, Review and send chosen",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "region": "dialog:Review and send",
+      "frame": "region",
+      "actions": ["click-button:Review and send", "scroll-to:heading:Review and send"],
+      "source": "rehearsal",
+      "alt": "Review and send for the prepared lease: From the Editor's address to the verified example owner address, the subject and the start of the exact message with the stored comparison.",
+      "caption": "Review and send shows the exact message with its sender and recipient; Send this message at its end is the one action that sends it."
     },
     {
       "id": "renewal-desk",
@@ -230,9 +248,9 @@
       "id": "market-rent-comparison",
       "guide": "compare-rent",
       "step": "open-market-comparison",
-      "route": "/lease-renewal/live/desk/lease/[leaseId]",
+      "route": "/lease-renewal/live/desk/lease/5001",
       "role": "Editor",
-      "fixture": "Synthetic lease in Guided view with Compare market rent chosen",
+      "fixture": "Synthetic December lease prepared ahead: a stored comparison, published templates, the Editor's signature and a verified example.invalid owner address, Compare market rent chosen",
       "viewport": {
         "width": 1280,
         "height": 800
@@ -241,7 +259,7 @@
       "frame": "viewport",
       "actions": ["click-button:Compare market rent"],
       "source": "rehearsal",
-      "alt": "The Now card on Compare market rent, with the step's next step, what is ready and the comparison controls.",
+      "alt": "The Now card on Compare market rent: the Compare market rent button, what is ready, the stored comparison with its five comparable listings, Rent to recommend and Pricing basis.",
       "caption": "Compare market rent on the Now card holds the comparison and the rent to recommend."
     },
     {
@@ -284,18 +302,18 @@
       "id": "owner-message-preparation",
       "guide": "owner-message",
       "step": "prepare-owner-message",
-      "route": "/lease-renewal/live/desk/lease/[leaseId]",
+      "route": "/lease-renewal/live/desk/lease/5001",
       "role": "Editor",
-      "fixture": "Synthetic lease workspace",
+      "fixture": "Synthetic December lease prepared ahead: a stored comparison, published templates, the Editor's signature and a verified example.invalid owner address, in Full view",
       "viewport": {
         "width": 1280,
         "height": 800
       },
       "region": "region:Owner message preparation",
       "frame": "viewport",
-      "actions": ["click-button:Full view"],
+      "actions": ["click-button:Full view", "wait-text:Copy the message"],
       "source": "rehearsal",
-      "alt": "Owner message preparation in Owner approval, with the subject, body and copy buttons.",
+      "alt": "Owner message preparation in Owner approval: Compose owner message in Communications, the lease's notes, then Copy the message with the Subject and To lines.",
       "caption": "The owner message is prepared from the lease facts and the saved comparison."
     },
     {

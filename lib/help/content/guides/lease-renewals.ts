@@ -120,6 +120,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
       },
       {
         id: "review-and-send",
+        scene: "lease-review-and-send",
         action: "Choose Review and send.",
         control: {
           label: "Review and send",
@@ -172,19 +173,20 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
       {
         id: "record-the-owner-decision",
         action:
-          "Choose Record the owner's decision, then choose the owner's answer in Owner response. For Approved, fill Who approved, How they approved and When they approved, then choose Record approval.",
+          "Choose Record the owner's decision. In The owner's decision, choose Approved in the reply received from the owner, Asked for a change or Declined / non-renewal. For Approved, choose Who approved in this reply; for a change, you can add What the owner asked to change. Then choose Record this decision.",
         control: {
-          label: "Record the owner's decision",
+          label: "Record this decision",
           role: "button",
           region: "region:Now",
           availability: "conditional",
-          source: ["lib/lease-renewal/workspace-state.ts"],
+          source: ["components/lease-renewal/RenewalOwnerDecisionFromReply.tsx"],
         },
         route: LEASE,
-        where: "Guided view, the Now card on Ask the owner",
+        where: "Guided view, the Now card on Ask the owner, once the owner replies",
         result:
-          "The answer saves with your name and time, and the path moves on to Offer the tenant. Owner response starts with no answer chosen, and a reply records no answer until you choose one.",
+          "The decision saves with your name and time, and the path moves on to Offer the tenant. An approval records who approved, the reply it came in and the time that reply was received. The owner's decision starts with no choice made, and a reply records a decision only when you choose one.",
         effect: "saves-in-app",
+        note: "Owner response in Full view records an approval from an authorized representative, another written channel or a conversation, with Who approved, How they approved and When they approved, then Record approval.",
       },
       {
         id: "offer-the-tenant",

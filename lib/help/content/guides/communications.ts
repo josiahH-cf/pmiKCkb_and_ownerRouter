@@ -302,7 +302,7 @@ export const COMMUNICATIONS_GUIDES: readonly HelpGuide[] = [
         result:
           "No response, Revision requested and Declined / non-renewal save when you choose them. Approved saves only through Record approval, and the recorded approval then reads who approved, how and when, with a line naming the Working terms it covers.",
         effect: "saves-in-app",
-        note: "How they approved offers Reply in this lease's renewal thread when a linked reply exists, Another written channel or Conversation. If the Working terms or charges change later, the line reads Owner approval no longer covers and names what changed; ask the owner again, then choose Record a new approval. Revision requested also asks What the owner asked to change.",
+        note: "After an owner reply, the Now card on Ask the owner records the decision from that reply: choose it in The owner's decision, choose Who approved in this reply for an approval, then Record this decision. Owner response here covers an authorized representative, another written channel or a conversation. How they approved offers Reply in this lease's renewal thread when a linked reply exists, Another written channel or Conversation. If the Working terms or charges change later, the line reads Owner approval no longer covers and names what changed; ask the owner again, then choose Record a new approval. Revision requested also asks What the owner asked to change.",
       },
     ],
     result:

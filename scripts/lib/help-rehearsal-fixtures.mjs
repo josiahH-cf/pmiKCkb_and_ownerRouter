@@ -7,6 +7,7 @@
 // queue item created through the same functions the app's routes call, and each result is read
 // back through the app's own readers before the rehearsal starts.
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
@@ -51,13 +52,20 @@ function demoActor(role, hostedDomain) {
   };
 }
 
-export async function seedHelpRehearsal() {
+// The one emulator-only Firestore handle every fixture write goes through.
+let helpApp = null;
+function helpFirestore() {
   assert.match(
     process.env.FIRESTORE_EMULATOR_HOST ?? "",
     /^127\.0\.0\.1:\d+$/,
     "Help rehearsal fixtures write only to the local Firestore emulator.",
   );
-  const db = getFirestore(initializeApp({ projectId: PROJECT_ID }, "help-rehearsal"));
+  helpApp ??= initializeApp({ projectId: PROJECT_ID }, "help-rehearsal");
+  return getFirestore(helpApp);
+}
+
+export async function seedHelpRehearsal() {
+  const db = helpFirestore();
   const now = new Date().toISOString();
   const put = (collection, id, data) => db.collection(collection).doc(id).set(data);
   const { ALLOWED_HD_DEFAULT } = await import("../../lib/constants.ts");
@@ -305,4 +313,188 @@ export async function seedHelpRehearsal() {
   for (const collection of await db.listCollections())
     seeded[collection.id] = (await collection.get()).size;
   return seeded;
+}
+
+// S252 R-S252-6 / L61: the help pictures of the kickoff show a prepared lease, as staff meet one on
+// the November 5 mix. Lease 5001 (Sample Pl, a verified example.invalid owner address) is prepared
+// ahead as the one-path rehearsal prepares its prepared lease
+// (scripts/lib/one-path-rehearsal/seeds.mjs, preparedKickoff). The served app's own routes do
+// what they can: an Approver publishes the owner and tenant templates, and the Editor's synthetic
+// signature is saved on the owner message, which keeps it for that sender and establishes the
+// lease's work record (its cycle). The synthetic lease has no full street address, so no
+// comparison lookup can run for it; its stored comparison for that cycle is written to the
+// emulator in the exact shape the comparison route's capture writes
+// (lib/firestore/renewal-market-observations.ts, captureMarketObservation), with the market basis
+// built by the app's own marketBasisFromCapturedResult. The numbers mirror the one-path
+// comparison stand-in (scripts/lib/one-path-rehearsal/stand-ins.mjs) around the lease's own rent.
+// The message is then saved once more on that basis, as staff save after a comparison. Nothing is
+// sent, no draft is made and no provider is reached.
+export const HELP_PREPARED_LEASE = "5001";
+// Lease 5001's synthetic unit (tests/browser/renewal-novdec-journey-network.mjs).
+const HELP_PREPARED_UNIT = Object.freeze({ rent: 1400, bedrooms: 3, bathrooms: 2 });
+
+const HELP_SEEDED_SIGNATURE = Object.freeze({
+  name: "Example Staff",
+  role: "PMI KC Metro (help rehearsal)",
+  phone: null,
+  hours: null,
+  website: null,
+  source: "Staff entry on the message",
+});
+
+// Page code is a plain string: this module runs under the TypeScript loader, whose name helpers do
+// not exist inside the browser.
+function routeFrom(page, path, body) {
+  const init =
+    body === undefined
+      ? "{}"
+      : `{method:"POST",headers:{"content-type":"application/json"},body:${JSON.stringify(JSON.stringify(body))}}`;
+  return page.evaluate(
+    `fetch(${JSON.stringify(path)},${init}).then(async (r) => ({ status: r.status, body: await r.json().catch(() => null) }))`,
+  );
+}
+
+const refusal = (answer) =>
+  `HTTP ${answer.status}${answer.body?.error ? `: ${String(answer.body.error).slice(0, 200)}` : ""}`;
+
+export async function seedHelpPreparedLease({
+  page,
+  signIn,
+  leaseId = HELP_PREPARED_LEASE,
+}) {
+  const notes = [];
+  await signIn("Approver");
+  for (const channel of ["owner", "tenant"]) {
+    const published = await routeFrom(page, "/api/lease-renewal/message-preparation", {
+      kind: "publish",
+      channel,
+    });
+    assert.equal(
+      published.status,
+      200,
+      `The ${channel} template was not published: ${refusal(published)}`,
+    );
+    notes.push(`${channel} template ${published.body?.status ?? "published"}`);
+  }
+  await signIn("Editor");
+  const first = await saveOwnerMessage(page, leaseId);
+  const cycleId = first.cycleId;
+  assert.match(
+    cycleId ?? "",
+    /^[0-9a-f-]{36}$/,
+    `Saving the owner message established no work record for lease ${leaseId}.`,
+  );
+  notes.push("the Editor's signature saved on the owner message");
+
+  const { ALLOWED_HD_DEFAULT } = await import("../../lib/constants.ts");
+  const { RENEWAL_WORKSPACE_COLLECTIONS } =
+    await import("../../lib/firestore/renewal-workspace.ts");
+  const { marketBasisFromCapturedResult } =
+    await import("../../lib/lease-renewal/market-observation.ts");
+  const result = helpComparisonResult(new Date());
+  const market = marketBasisFromCapturedResult(result);
+  assert.ok(
+    market.provider?.comps?.length === result.comparables.length,
+    "The synthetic comparison is not a usable provider basis.",
+  );
+  const db = helpFirestore();
+  const observation = db
+    .collection(RENEWAL_WORKSPACE_COLLECTIONS.observations)
+    .doc(randomUUID());
+  await observation.create({
+    lease_id: leaseId,
+    cycle_id: cycleId,
+    actor_uid: demoActor("Editor", ALLOWED_HD_DEFAULT).uid,
+    recorded_at: result.retrievedAt,
+    operation: "comps",
+    result,
+    market,
+  });
+  notes.push(
+    `a stored comparison for cycle ${cycleId} ($${market.provider.rangeLow} to $${market.provider.rangeHigh}, ${market.provider.compCount} comparables)`,
+  );
+
+  const second = await saveOwnerMessage(page, leaseId);
+  assert.equal(
+    second.cycleId,
+    cycleId,
+    `The owner message moved to another cycle after the comparison was stored.`,
+  );
+  assert.ok(
+    second.facts?.comps?.length === result.comparables.length && second.facts?.range,
+    `The owner message does not read the stored comparison for lease ${leaseId}.`,
+  );
+  assert.equal(
+    second.publication?.status,
+    "approved",
+    "The owner template is not approved for the prepared lease.",
+  );
+  notes.push(`the owner message saved at revision ${second.saved?.revision ?? "?"}`);
+  return { leaseId, cycleId, detail: `${notes.join("; ")}.` };
+}
+
+/** Read the lease's owner message and save it with the Editor's synthetic signature. */
+async function saveOwnerMessage(page, leaseId) {
+  const message = await routeFrom(
+    page,
+    `/api/lease-renewal/message-preparation?leaseId=${leaseId}&channel=owner`,
+  );
+  assert.equal(
+    message.status,
+    200,
+    `The owner message was not read: ${refusal(message)}`,
+  );
+  const saved = await routeFrom(page, "/api/lease-renewal/message-preparation", {
+    kind: "save",
+    leaseId,
+    channel: "owner",
+    ...(message.body.cycleId ? { cycleId: message.body.cycleId } : {}),
+    expectedRevision: message.body.saved?.revision ?? 0,
+    operationId: randomUUID(),
+    inputs: { ...message.body.inputs, signature: { ...HELP_SEEDED_SIGNATURE } },
+    bodyOverride: null,
+    subjectOverride: null,
+  });
+  assert.equal(saved.status, 200, `The owner message was not saved: ${refusal(saved)}`);
+  return saved.body;
+}
+
+/**
+ * A synthetic RentCast comparison in the normalized shape the comparison route stores: five
+ * Example comparables around lease 5001's own rent, retrieved now. It names no real address.
+ */
+function helpComparisonResult(now) {
+  const { rent, bedrooms, bathrooms } = HELP_PREPARED_UNIT;
+  const isoDaysAgo = (days) =>
+    new Date(now.getTime() - days * 86_400_000).toISOString().slice(0, 10);
+  const comparables = [-25, 25, 50, 75, 100].map((delta, index) => ({
+    rent: rent + delta,
+    correlation: Number((0.98 - index * 0.02).toFixed(2)),
+    distanceMiles: Number((0.3 + index * 0.4).toFixed(1)),
+    propertyType: "Single Family",
+    bedrooms,
+    bathrooms,
+    squareFootage: 1000 + (index - 2) * 50,
+    listedDate: isoDaysAgo(20 + index * 5),
+    lastSeenDate: isoDaysAgo(2 + index),
+    daysOld: 2 + index,
+    daysOnMarket: 18 + index * 5,
+  }));
+  return {
+    source: "RentCast",
+    confidence: "Likely",
+    rangeLow: rent - 50,
+    rangeHigh: rent + 150,
+    pointEstimate: rent + 50,
+    compCount: comparables.length,
+    comparables,
+    subjectProperty: {
+      propertyType: "Single Family",
+      bedrooms,
+      bathrooms,
+      squareFootage: 1000,
+    },
+    retrievedAt: now.toISOString(),
+    cached: false,
+  };
 }

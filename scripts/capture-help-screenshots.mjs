@@ -168,6 +168,33 @@ const browser = await chromium.launch({
   executablePath: resolveBrowserExecutable(),
   headless: true,
 });
+if (managed) {
+  // S252: the prepared lease (its templates, signature and stored comparison) before any scene.
+  const { seedHelpPreparedLease } = await import("./lib/help-rehearsal-fixtures.mjs");
+  const context = await browser.newContext({ timezoneId: "America/Chicago" });
+  await context.route("**/*", (route) =>
+    new URL(route.request().url()).origin === origin
+      ? route.continue()
+      : route.abort("blockedbyclient"),
+  );
+  const page = await context.newPage();
+  page.setDefaultTimeout(ROUTE_BUDGET_MS);
+  page.setDefaultNavigationTimeout(ROUTE_BUDGET_MS);
+  try {
+    const prepared = await seedHelpPreparedLease({
+      page,
+      signIn: (role) => signIn(page, role),
+    });
+    record({ event: "prepared-lease", ...prepared });
+    process.stdout.write(`prepared lease ${prepared.leaseId}: ${prepared.detail}\n`);
+  } catch (error) {
+    await browser.close().catch(() => undefined);
+    await shutdown();
+    throw error;
+  } finally {
+    await context.close().catch(() => undefined);
+  }
+}
 let exitCode = 0;
 try {
   if (mode === "serve") {

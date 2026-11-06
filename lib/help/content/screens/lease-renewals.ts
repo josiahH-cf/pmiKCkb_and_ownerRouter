@@ -454,6 +454,17 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         actions: ["click-button:Check the numbers"],
       },
       {
+        label: "The owner's decision",
+        role: "group",
+        region: "region:Now",
+        availability: "conditional",
+        source: ["components/lease-renewal/RenewalOwnerDecisionFromReply.tsx"],
+        does: "Shown on Ask the owner once the owner replies: Approved in that reply, Asked for a change or Declined / non-renewal, with none chosen; an approval names Who approved in this reply, and Record this decision saves the decision.",
+        who: "Renewal staff",
+        route: LEASE,
+        actions: ["click-button:Ask the owner"],
+      },
+      {
         label: "Full view",
         role: "button",
         region: "group:Lease view",
