@@ -116,7 +116,15 @@ describe("S250 R-S250-7: the message record itself reads Built on the earlier ru
       "components/lease-renewal/RenewalMessagePreparation.tsx",
       "utf8",
     );
-    expect(editor).toMatch(/ruleOverride\.current \?\? server\.ruleBasis/);
+    // Every autosave carries the rule shown, or the rebuild staff chose; a rebuild chosen while
+    // an earlier save is in flight is cleared only by the save that carried it.
+    expect(editor).toContain("const rebuild = ruleOverride.current;");
+    expect(editor).toMatch(
+      /savePayload\(local, server, rebuild \?\? server\.ruleBasis \?\? null\)/,
+    );
+    expect(editor).toContain(
+      "if (rebuild && ruleOverride.current === rebuild) ruleOverride.current = null;",
+    );
     expect(editor).toContain("onRebuildRule={rebuildRule}");
     expect(STANDING_AGREEMENT_WORDS.earlierRule).toBe("Built on the earlier rule");
   });

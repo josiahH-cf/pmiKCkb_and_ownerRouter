@@ -555,11 +555,9 @@ function MessagePreparationEditor({
         return saving.current;
       }
       const local = localRef.current;
-      const payload = savePayload(
-        local,
-        server,
-        ruleOverride.current ?? server.ruleBasis ?? null,
-      );
+      // A rebuild chosen while an earlier save was in flight stays chosen until a save carries it.
+      const rebuild = ruleOverride.current;
+      const payload = savePayload(local, server, rebuild ?? server.ruleBasis ?? null);
       const serialized = canonical(payload.value);
       if (!force && serialized === lastSavedRef.current) {
         // Nothing differs from what is stored, so an edit that was undone is no longer pending.
@@ -598,7 +596,7 @@ function MessagePreparationEditor({
             return;
           }
           outstanding.current = null;
-          ruleOverride.current = null;
+          if (rebuild && ruleOverride.current === rebuild) ruleOverride.current = null;
           currentRef.current = data;
           lastSavedRef.current = serialized;
           setCurrent(data);
