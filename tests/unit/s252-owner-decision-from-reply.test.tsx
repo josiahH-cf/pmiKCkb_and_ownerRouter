@@ -23,7 +23,8 @@ const CHOICES: OwnerApprovalChoices = {
     {
       sequenceId: SEQUENCE,
       evidenceId: "owner-mailbox:reply-1",
-      senderEmail: "owner@example.invalid",
+      // The staff mailbox whose thread holds the reply (S233 inbound evidence keeps no address).
+      senderEmail: "renewals@example.invalid",
       receivedAt: "2026-11-06T16:02:00.000Z",
     },
   ],
@@ -51,6 +52,19 @@ describe("S252 L36: the owner's decision from an observed reply", () => {
     expect(radios).toHaveLength(3);
     for (const radio of radios) expect(radio).not.toBeChecked();
     expect(screen.queryByLabelText(/Who approved in this reply/)).toBeNull();
+  });
+
+  it("names the staff mailbox the reply arrived in, as the S234 reply choice does, never as its sender", () => {
+    renderForm();
+    const approved = screen.getByRole("radio", {
+      name: /^Approved in the reply received/,
+    });
+    expect(approved).toHaveAccessibleName(
+      /^Approved in the reply received .+ in renewals@example\.invalid$/,
+    );
+    expect(
+      screen.queryByRole("radio", { name: /from renewals@example\.invalid/ }),
+    ).toBeNull();
   });
 
   it("records an approval from the reply in three deliberate actions with the S234 evidence", () => {

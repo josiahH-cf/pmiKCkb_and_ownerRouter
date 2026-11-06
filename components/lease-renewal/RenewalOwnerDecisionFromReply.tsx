@@ -18,9 +18,10 @@ const REPLY_PREFIX = "reply\u0000";
  * S252 (L36, R-S252-1, inside S248 BEH-S248-2): the owner's decision from an observed reply,
  * recorded on the Now card in at most three deliberate actions with nothing preselected.
  *
- * Choosing "Approved in the reply received {time} from {sender}" is one deliberate choice that
+ * Choosing "Approved in the reply received {time} in {mailbox}" is one deliberate choice that
  * names how the owner approved (that reply in this lease's renewal thread) and when (the time it
- * was received). Who approved is chosen from the lease's current owners of record. "Record this
+ * was received). The mailbox is the staff mailbox whose thread holds the reply, as the S234 reply
+ * choice reads ("Reply received {time} in {mailbox}"); the inbound evidence keeps no sender address. Who approved is chosen from the lease's current owners of record. "Record this
  * decision" records it through the same staff-record action the Owner response form uses, with
  * the same S234 approval evidence, and the server checks the party and the reply again. An
  * authorized representative or another channel stays on the Owner response form.
@@ -118,7 +119,7 @@ export function RenewalOwnerDecisionFromReply({
       {choices.replies.map((entry) =>
         option(
           `${REPLY_PREFIX}${entry.sequenceId}\u0000${entry.evidenceId}`,
-          `Approved in the reply received ${formatBusinessTimestamp(entry.receivedAt)} from ${entry.senderEmail}`,
+          `Approved in the reply received ${formatBusinessTimestamp(entry.receivedAt)} in ${entry.senderEmail}`,
         ),
       )}
       {option(REVISION, "Asked for a change")}
