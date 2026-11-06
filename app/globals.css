@@ -2324,7 +2324,10 @@ label.secondary-button:focus-within {
 }
 
 /* S247: the Guided view. The path strip is one wrapping row, so the stage, the strip and the Now
-   card's primary action fit the first screen at 1280 by 800 and within two screens at 390 wide. */
+   card's primary action fit the first screen at 1280 by 800 and within two screens at 390 wide.
+   Its steps use the compact size at every width: a variant path (S251's housing assistance path
+   has ten steps with long labels) then wraps to two rows at 1280 rather than three, which kept
+   the Now card's primary action below the first screen. */
 .renewal-guided {
   gap: var(--space-2);
 }
@@ -2357,6 +2360,7 @@ label.secondary-button:focus-within {
   color: inherit;
   cursor: pointer;
   font: inherit;
+  font-size: 0.875rem;
   padding: var(--space-1) var(--space-2);
 }
 
@@ -2375,7 +2379,8 @@ label.secondary-button:focus-within {
 }
 
 .renewal-path-state {
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
+  line-height: 1.25;
   padding-inline: var(--space-2);
 }
 
@@ -2441,14 +2446,6 @@ label.secondary-button:focus-within {
 
   .renewal-path-steps {
     gap: var(--space-1);
-  }
-
-  .renewal-path-button {
-    font-size: 0.875rem;
-  }
-
-  .renewal-path-state {
-    font-size: 0.75rem;
   }
 }
 
