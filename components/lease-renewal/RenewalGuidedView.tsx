@@ -593,8 +593,9 @@ function NowCard({
       else focusControl(blocker.target);
       return;
     }
-    if (primary.label === "Continue to Compare market rent") {
-      choose("compare-market");
+    // S254 L49: the agreed numbers continue to the next step on this lease's own path.
+    if ("continueTo" in primary && primary.continueTo) {
+      choose(primary.continueTo);
       return;
     }
     if (

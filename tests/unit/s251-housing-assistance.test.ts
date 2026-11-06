@@ -156,6 +156,30 @@ describe("S251 ARCH-S251-2 / AC-S251-1: the assisted order", () => {
     expect(standard.currentStepId).toBe("compare-market");
   });
 
+  it("agreed numbers continue to the next step on the lease's own path, never to a step outside it (S254 L49)", () => {
+    const checkNumbers = (context: RenewalStageContext) =>
+      projectRenewalStage(null, context).steps.find(
+        (step) => step.id === "check-numbers",
+      );
+    // On the assisted path the comparison is not part of the path until a change is proposed.
+    expect(checkNumbers(assistedContext)?.primary).toEqual({
+      label: `Continue to Contact ${PROGRAM} about the renewal process`,
+      target: expect.any(String),
+      continueTo: "assisted-program-contact",
+    });
+    expect(
+      projectRenewalStage(null, assistedContext).steps.find(
+        (step) => step.id === "compare-market",
+      )?.state,
+    ).toBe("not_part");
+    // The standard path keeps its own continuation to the comparison.
+    expect(checkNumbers(CONTEXT)?.primary).toEqual({
+      label: "Continue to Compare market rent",
+      target: "renewal-section-comps",
+      continueTo: "compare-market",
+    });
+  });
+
   it("after the program contact the owner's answer is next, and Do not renew moves the lease to the non-renewal handoff (BEH-S251-2)", () => {
     const contacted = apply(fresh(), {
       kind: "activity",

@@ -193,8 +193,15 @@ export interface RenewalPathStepView {
   readonly state: RenewalPathStepState;
   /** One line about this step's state; null when its label is enough. */
   readonly detail: string | null;
-  /** The step's one primary action, or null when the step asks for nothing. */
-  readonly primary: { readonly label: string; readonly target: string } | null;
+  /**
+   * The step's one primary action, or null when the step asks for nothing. `continueTo` names the
+   * path step the action moves to on the guided view (Check the numbers, once they agree).
+   */
+  readonly primary: {
+    readonly label: string;
+    readonly target: string;
+    readonly continueTo?: RenewalPathStepId;
+  } | null;
   readonly controls: readonly string[];
   /** A scheduled first message is not yet sent: nothing to send again or record about it. */
   readonly scheduled?: boolean;
@@ -908,16 +915,30 @@ export function projectRenewalStage(
     done: step.applies && doneFor(step.id),
   }));
   const currentStepId = currentStepFor(evaluation, pathSteps);
+  // S251 R-S251-4: the program contact step names the lease's own program.
+  const stepLabel = (id: RenewalPathStepId) =>
+    id === "assisted-program-contact"
+      ? assistedProgramContactLabel(variants.housingAssistance?.program)
+      : RENEWAL_PATH_DEFINITION[id].label;
+  // S254 L49: with the numbers agreed, Check the numbers continues to the next step on this
+  // lease's own path. On the housing assistance path the comparison joins only when a change is
+  // proposed, so the step after the numbers is the program contact.
+  const afterNumbers = pathSteps
+    .slice(pathSteps.findIndex((entry) => entry.id === "check-numbers") + 1)
+    .find((entry) => entry.applies);
+  const continueAfterNumbers = afterNumbers
+    ? {
+        label: `Continue to ${stepLabel(afterNumbers.id)}`,
+        target: RENEWAL_PATH_DEFINITION[afterNumbers.id].primary.target,
+        continueTo: afterNumbers.id,
+      }
+    : null;
 
   const views: RenewalPathStepView[] = pathSteps.map((step) => {
     const definition = RENEWAL_PATH_DEFINITION[step.id];
     const base = {
       id: step.id,
-      // S251 R-S251-4: the program contact step names the lease's own program.
-      label:
-        step.id === "assisted-program-contact"
-          ? assistedProgramContactLabel(variants.housingAssistance?.program)
-          : definition.label,
+      label: stepLabel(step.id),
       controls: definition.controls,
     };
     if (!step.applies)
@@ -972,10 +993,7 @@ export function projectRenewalStage(
           : step.id === "check-numbers"
             ? scopedContext.numbers.openDifferences > 0 || !scopedContext.numbers.verified
               ? definition.primary
-              : {
-                  label: "Continue to Compare market rent",
-                  target: "renewal-section-comps",
-                }
+              : (continueAfterNumbers ?? definition.primary)
             : step.id === "complete" && scopedContext.sourceRenewal && !lane.complete
               ? {
                   label: RENEWAL_STAGE_NEXT_STEP.confirmFinished,
