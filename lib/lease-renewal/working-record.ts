@@ -50,7 +50,31 @@ export const WorkingSheetCellSchema = z
   .strict();
 export type WorkingSheetCell = z.infer<typeof WorkingSheetCellSchema>;
 
-export type WorkingFieldKind = "money" | "date" | "sheet_row" | "sheet_cell";
+/**
+ * S251 R-S251-1: the optional housing assistance fact. Absent (or cleared) is "not set" and asks
+ * nothing; staff record No, or Yes with the program name and an optional contact and notes. It is
+ * application information only: it is never written to RentVine or the operating Sheet, and it is
+ * never inferred or saved from RentVine text.
+ */
+export const HousingAssistanceValueSchema = z.discriminatedUnion("status", [
+  z.object({ status: z.literal("no") }).strict(),
+  z
+    .object({
+      status: z.literal("yes"),
+      program: z.string().trim().min(1, "Name the housing program.").max(120),
+      contact: z.string().trim().min(1).max(200).optional(),
+      notes: z.string().trim().min(1).max(1000).optional(),
+    })
+    .strict(),
+]);
+export type HousingAssistanceValue = z.infer<typeof HousingAssistanceValueSchema>;
+
+export type WorkingFieldKind =
+  | "money"
+  | "date"
+  | "sheet_row"
+  | "sheet_cell"
+  | "housing_assistance";
 
 /** The fixed working fields. Sheet-cell lookups add one key per recognized Sheet field. */
 export const WORKING_FIELDS = {
@@ -59,6 +83,7 @@ export const WORKING_FIELDS = {
   terms_effective_date: { label: "Working renewal effective date", kind: "date" },
   terms_end_date: { label: "Working renewal end date", kind: "date" },
   sheet_row: { label: "Selected operating Sheet row", kind: "sheet_row" },
+  housing_assistance: { label: "Housing assistance", kind: "housing_assistance" },
 } as const satisfies Record<string, { label: string; kind: WorkingFieldKind }>;
 export type FixedWorkingField = keyof typeof WORKING_FIELDS;
 
@@ -71,7 +96,12 @@ export const SHEET_CELL_FIELD_PREFIX = "sheet_cell.";
  */
 export const SHEET_CELL_FIELDS = Object.keys(SHEET_FIELD_LABELS) as readonly string[];
 
-export type WorkingValue = number | string | WorkingSheetRow | WorkingSheetCell;
+export type WorkingValue =
+  | number
+  | string
+  | WorkingSheetRow
+  | WorkingSheetCell
+  | HousingAssistanceValue;
 
 /** The working-record key that holds the selected cell for one recognized Sheet field. */
 export function sheetCellWorkingField(field: string): string {
@@ -115,7 +145,9 @@ export function parseWorkingFieldValue(
         ? workingDate
         : kind === "sheet_row"
           ? WorkingSheetRowSchema
-          : WorkingSheetCellSchema;
+          : kind === "housing_assistance"
+            ? HousingAssistanceValueSchema
+            : WorkingSheetCellSchema;
   const parsed = schema.safeParse(value);
   return parsed.success
     ? { ok: true, value: parsed.data as WorkingValue }
@@ -180,6 +212,26 @@ function numberValue(record: RenewalWorkingRecord | null | undefined, field: str
 function dateValue(record: RenewalWorkingRecord | null | undefined, field: string) {
   const value = workingEntry(record, field)?.value;
   return typeof value === "string" ? value : null;
+}
+
+/**
+ * S251: the lease's housing assistance fact: "yes" with the program, "no", or null for not set
+ * (never saved, or cleared). It stays with the lease across renewal cycles until staff change it.
+ */
+export function housingAssistanceFact(
+  record: RenewalWorkingRecord | null | undefined,
+): HousingAssistanceValue | null {
+  const value = workingEntry(record, "housing_assistance")?.value ?? null;
+  const parsed = HousingAssistanceValueSchema.safeParse(value);
+  return parsed.success ? parsed.data : null;
+}
+
+/** The path's housing assistance variant: only Yes with a program changes the order. */
+export function housingAssistanceVariant(
+  record: RenewalWorkingRecord | null | undefined,
+): { readonly program: string } | null {
+  const fact = housingAssistanceFact(record);
+  return fact?.status === "yes" ? { program: fact.program } : null;
 }
 
 /** The working current rent staff entered or adopted, or null when none is held. */

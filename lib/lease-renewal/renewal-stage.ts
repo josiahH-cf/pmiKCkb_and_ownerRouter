@@ -14,6 +14,7 @@ import {
   MANUAL_ACTIVITIES,
   MANUAL_REQUIRED_RENEWAL,
   currentManualTenantOutcome,
+  currentRentChoice,
   emptyRenewalWorkspace,
   currentStaffActivity,
   manualActionLabel,
@@ -40,6 +41,7 @@ import {
 import {
   NOT_PART_OF_PATH_LABEL,
   RENEWAL_PATH_DEFINITION,
+  assistedProgramContactLabel,
   renewalPathSteps,
   type RenewalPathStepId,
   type RenewalPathVariants,
@@ -155,6 +157,8 @@ export interface RenewalFinishUpItem {
   readonly origin: RenewalFinishUpOrigin | null;
   /** The item's state in words, distinct for staff-recorded and provider-verified. */
   readonly detail: string;
+  /** S251 R-S251-9: the item is not part of this lease's path and asks for nothing. */
+  readonly notPart?: true;
 }
 
 /** R-S248-7: the words a Finish up item's state reads in. */
@@ -241,6 +245,7 @@ const STEP_FOR_ACTIVITY: Record<
   ManualActivity | "owner_response" | "tenant_response" | "complete",
   RenewalPathStepId
 > = {
+  program_contact: "assisted-program-contact",
   owner_outreach: "ask-owner",
   owner_response: "ask-owner",
   tenant_offer: "offer-tenant",
@@ -307,6 +312,8 @@ interface Evaluation {
 
 const satisfiedFor = (evaluation: Evaluation) => (key: ManualActivity) => {
   const { state, fill } = evaluation;
+  // S251 R-S251-9: without Housing assistance Yes the assisted-housing follow-up asks nothing.
+  if (key === "assisted_housing" && !evaluation.variants.housingAssistance) return true;
   if (!state) return false;
   if (manualActivitySatisfied(state, key)) return true;
   if (key === "owner_outreach") return Boolean(fill.owner_outreach);
@@ -497,6 +504,88 @@ function audienceStep(
   }
 }
 
+/**
+ * S251 R-S251-5: "Ask the owner whether to renew this tenant". Renew (or an approval of terms,
+ * which settles the answer and the rent together, R-S251-8) ends the step; Do not renew takes the
+ * lease to the existing non-renewal handoff. An outreach recorded or accepted for this cycle waits
+ * on the owner's answer; "No answer yet" keeps waiting.
+ */
+function assistedAnswerStep(evaluation: Evaluation): {
+  readonly state: RenewalPathStepState;
+  readonly stage: RenewalWorkStatus;
+  readonly nextStep: string;
+  readonly primary: { label: string; target: string } | null;
+  readonly detail: string | null;
+  readonly waiting: RenewalStageWaiting | null;
+  readonly scheduled?: boolean;
+} {
+  const { state, lane } = evaluation;
+  const definition = RENEWAL_PATH_DEFINITION["assisted-owner-renewal-answer"];
+  const answer = state?.ownerResponse?.outcome ?? null;
+  if (
+    answer === "renew_tenant" ||
+    answer === "approved_terms" ||
+    answer === "declined_non_renewal"
+  )
+    return {
+      state: "done",
+      stage: definition.stage,
+      nextStep: definition.primary.label,
+      primary: null,
+      detail:
+        answer === "declined_non_renewal"
+          ? "The owner does not want to renew this tenant."
+          : answer === "approved_terms"
+            ? "The owner approved the terms, which answers renewing and the rent together."
+            : "The owner wants to renew this tenant.",
+      waiting: null,
+    };
+  const satisfied = satisfiedFor(evaluation);
+  const evidence = evaluation.evidence.owner;
+  const sentence = audienceEvidenceSentence(evidence);
+  if (!satisfied("owner_outreach") && answer !== "no_response")
+    return {
+      state: "current",
+      stage: definition.stage,
+      nextStep: definition.label,
+      primary: definition.primary,
+      detail: sentence,
+      waiting: null,
+    };
+  if (lane.ownerReplied || lane.ownerRevisionRequested)
+    return {
+      state: "current",
+      stage: definition.waitingStage ?? definition.stage,
+      nextStep: definition.primary.label,
+      primary: definition.primary,
+      detail: sentence,
+      waiting: null,
+    };
+  const derived = evidence.derived;
+  const staffRecord = state ? currentStaffActivity(state, "owner_outreach") : null;
+  const sinceIso =
+    msIso(derived?.sentAtMs ?? null) ??
+    staffRecord?.occurredAt ??
+    staffRecord?.recordedAt ??
+    state?.ownerResponse?.occurredAt ??
+    state?.ownerResponse?.recordedAt ??
+    null;
+  return {
+    state: "waiting",
+    stage: definition.waitingStage ?? definition.stage,
+    nextStep: definition.primary.label,
+    primary: definition.primary,
+    detail: sentence,
+    waiting: {
+      party: "the owner",
+      sinceIso,
+      lastContactIso:
+        msIso(evidence.lastSentAtMs) ?? evaluation.context.lastContactAtIso ?? sinceIso,
+      watching: definition.waiting!.watching,
+    },
+  };
+}
+
 function activityStepState(
   evaluation: Evaluation,
   keys: readonly ManualActivity[],
@@ -519,7 +608,12 @@ function variantsFor(
         : null,
     monthToMonth: context.term.monthToMonth,
     standingAgreement: context.standingAgreement,
-    housingAssistance: context.housingAssistance,
+    housingAssistance: context.housingAssistance
+      ? {
+          program: context.housingAssistance.program,
+          rentChoice: currentRentChoice(state),
+        }
+      : null,
   };
 }
 
@@ -536,6 +630,17 @@ function finishUpItems(
   const { state, context } = evaluation;
   const satisfied = satisfiedFor(evaluation);
   const items: RenewalFinishUpItem[] = keys.map((key) => {
+    // S251 R-S251-9: the assisted-housing follow-up is part of the path only with Housing
+    // assistance Yes; otherwise it reads as not part of this lease's path and asks for nothing.
+    if (key === "assisted_housing" && !evaluation.variants.housingAssistance)
+      return {
+        key: `follow-up:${key}`,
+        label: MANUAL_ACTIVITIES[key].label,
+        done: true,
+        origin: null,
+        detail: NOT_PART_OF_PATH_LABEL,
+        notPart: true,
+      };
     const done = satisfied(key);
     return {
       key: `follow-up:${key}`,
@@ -576,6 +681,18 @@ function finishUpItems(
   return items;
 }
 
+/** S251 R-S251-6: the rent step's one line once a choice is recorded. */
+function assistedRentDetail(state: RenewalWorkspaceState | null): string | null {
+  if (state?.ownerResponse?.outcome === "approved_terms")
+    return "The owner approved the terms, which settles the rent for this renewal.";
+  const choice = currentRentChoice(state);
+  if (choice === "keep_current")
+    return "Keep the current rent: the working rent is the current rent, so the rent comparison and the owner's rent decision are not part of this lease's path.";
+  if (choice === "propose_change")
+    return "Propose a change: the prepared comparison, the recommendation and the owner's rent decision follow.";
+  return null;
+}
+
 /** The current step: the staff lane's step once work has started, else the first open one. */
 function currentStepFor(
   evaluation: Evaluation,
@@ -613,8 +730,17 @@ function currentStepFor(
     );
     if (first) return first.id;
   }
-  if (evaluation.variants.housingAssistance && laneStep === "ask-owner")
-    return "assisted-owner-renewal-answer";
+  const assisted = evaluation.variants.housingAssistance;
+  if (assisted && laneStep === "ask-owner") {
+    // S251 ARCH-S251-2: the owner step of the assisted order is the renewing answer, then the
+    // rent choice, then (only with Propose a change) the comparison and the owner's rent decision.
+    const answer = state?.ownerResponse?.outcome;
+    if (answer !== "renew_tenant" && answer !== "approved_terms")
+      return "assisted-owner-renewal-answer";
+    if (!assisted.rentChoice) return "assisted-rent";
+    const compare = steps.find((step) => step.id === "compare-market");
+    return compare?.applies && !compare.done ? "compare-market" : "ask-owner";
+  }
   return laneStep;
 }
 
@@ -648,6 +774,7 @@ export function projectRenewalStage(
   const lane = manualRenewalSummary(state, {
     standingOwnerAuthority: standingCovered,
     evidence: fill,
+    housingAssistance: context.housingAssistance,
   });
   const scopedContext: RenewalStageContext = standingCovered
     ? context
@@ -664,9 +791,12 @@ export function projectRenewalStage(
   const satisfied = satisfiedFor(evaluation);
   const owner = audienceStep(evaluation, "owner");
   const tenant = audienceStep(evaluation, "tenant");
+  const assistedAnswer = variants.housingAssistance ? assistedAnswerStep(evaluation) : null;
+  const ownerAnswer = state?.ownerResponse?.outcome ?? null;
   const documents = activityStepState(evaluation, DOCUMENT_ACTIVITIES);
   const followUps = activityStepState(evaluation, FOLLOW_UP_ACTIVITIES);
   const finishUp = finishUpItems(evaluation, FOLLOW_UP_ACTIVITIES);
+  const finishUpCounted = finishUp.filter((item) => !item.notPart);
   const verifiedUpdates = finishUp.filter((item) => item.origin === "provider_verified");
   const handoffDone = state
     ? manualActivitySatisfied(state, "non_renewal_handoff")
@@ -703,8 +833,14 @@ export function projectRenewalStage(
         return handoffDone;
       case "complete":
         return lane.complete;
+      // S251 ARCH-S251-2: the assisted order's predicates, over the staff record.
+      case "assisted-program-contact":
+        return state ? manualActivitySatisfied(state, "program_contact") : false;
+      case "assisted-owner-renewal-answer":
+        return assistedAnswer?.state === "done";
+      case "assisted-rent":
+        return Boolean(currentRentChoice(state)) || ownerAnswer === "approved_terms";
       default:
-        // S251 slots: their predicates arrive with that suite.
         return false;
     }
   };
@@ -718,7 +854,11 @@ export function projectRenewalStage(
     const definition = RENEWAL_PATH_DEFINITION[step.id];
     const base = {
       id: step.id,
-      label: definition.label,
+      // S251 R-S251-4: the program contact step names the lease's own program.
+      label:
+        step.id === "assisted-program-contact"
+          ? assistedProgramContactLabel(variants.housingAssistance?.program)
+          : definition.label,
       controls: definition.controls,
     };
     if (!step.applies)
@@ -742,7 +882,13 @@ export function projectRenewalStage(
         primary: null,
       };
     const audience =
-      step.id === "ask-owner" ? owner : step.id === "offer-tenant" ? tenant : null;
+      step.id === "ask-owner"
+        ? owner
+        : step.id === "offer-tenant"
+          ? tenant
+          : step.id === "assisted-owner-renewal-answer"
+            ? assistedAnswer
+            : null;
     const isCurrent = step.id === currentStepId;
     const stateFor = (): RenewalPathStepState => {
       if (step.done) return "done";
@@ -796,13 +942,15 @@ export function projectRenewalStage(
               : "The current rent needs a check"
           : step.id === "complete" && scopedContext.sourceRenewal && !lane.complete
             ? `RentVine now reports lease end ${formatCalendarDate(scopedContext.sourceRenewal.sourceDateIso)}; this cycle recorded ${formatCalendarDate(scopedContext.sourceRenewal.recordedDateIso)}`
-            : step.id === "finish-up" && finishUp.length > 0
-              ? `${finishUp.filter((item) => item.done).length} of ${finishUp.length} items done${
+            : step.id === "finish-up" && finishUpCounted.length > 0
+              ? `${finishUpCounted.filter((item) => item.done).length} of ${finishUpCounted.length} items done${
                   verifiedUpdates.length
                     ? `; ${verifiedUpdates.length} verified by the provider's receipt`
                     : ""
                 }`
-              : null);
+              : step.id === "assisted-rent"
+                ? assistedRentDetail(state)
+                : null);
     return {
       ...base,
       state: stateFor(),
@@ -819,7 +967,9 @@ export function projectRenewalStage(
       ? owner
       : currentStepId === "offer-tenant"
         ? tenant
-        : null;
+        : currentStepId === "assisted-owner-renewal-answer"
+          ? assistedAnswer
+          : null;
   // The one next step: the current step's primary action, or the staff lane's own wording.
   const nextStepLabel = (() => {
     if (audience) return audience.nextStep;
@@ -833,7 +983,8 @@ export function projectRenewalStage(
         : lane.complete
           ? "Review the recorded completion"
           : "Record staff completion";
-    return currentDefinition.label;
+    // The step's own label (the program contact names the lease's program).
+    return current.label;
   })();
   const stageKey: RenewalWorkStatus = (() => {
     if (audience) return audience.stage;
@@ -977,7 +1128,9 @@ export function summarizeRenewalStage(stage: RenewalStage): RenewalStageSummary 
     stage: stage.stage,
     stageLine: stage.stageLine,
     currentStepId: stage.currentStepId,
-    currentStepLabel: RENEWAL_PATH_DEFINITION[stage.currentStepId].label,
+    currentStepLabel:
+      stage.steps.find((step) => step.id === stage.currentStepId)?.label ??
+      RENEWAL_PATH_DEFINITION[stage.currentStepId].label,
     nextStep: stage.nextStep,
     needsCheck: stage.check !== null,
     checkDetail: stage.check?.sentence ?? null,

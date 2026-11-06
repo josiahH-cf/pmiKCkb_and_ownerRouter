@@ -83,6 +83,8 @@ const stateSchema = z
           "revision_requested",
           "declined_non_renewal",
           "no_response",
+          // S251: the owner wants to renew this tenant; the rent is decided separately.
+          "renew_tenant",
         ]),
         terms: RenewalTermsSchema.optional(),
         approvedWorkingTerms: ApprovedWorkingTermsSchema.optional(),
@@ -117,6 +119,11 @@ const stateSchema = z
         }),
       )
       .refine((value) => Object.keys(value).every((key) => key in MANUAL_ACTIVITIES)),
+    // S251 R-S251-6: "Rent for this renewal" on this cycle; absent on records made before S251.
+    rentChoice: staff
+      .extend({ choice: z.enum(["keep_current", "propose_change"]) })
+      .nullable()
+      .optional(),
     completion: staff.nullable(),
     preparation: z
       .object({

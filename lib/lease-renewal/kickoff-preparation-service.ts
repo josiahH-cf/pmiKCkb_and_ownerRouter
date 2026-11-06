@@ -61,8 +61,10 @@ export interface KickoffLeaseRead {
   readonly inWorkingBatch: boolean;
   /** The work record's cycle the lookup is stored under; null before one exists. */
   readonly workRecordCycleId: string | null;
-  /** S251 slot: the lease fact; null until that suite records it. */
+  /** S251: the lease's Housing assistance Yes fact; null when not set or No. */
   readonly housingAssistance: { readonly program: string } | null;
+  /** S251 R-S251-7: "Propose a change" is recorded for this cycle, which releases the hold. */
+  readonly rentChangeProposed?: boolean;
 }
 
 export interface KickoffLookupAnswer {
@@ -181,7 +183,12 @@ export async function runKickoffPreparation(
       "This lease has no renewal cycle date, so it cannot be prepared.",
     );
   const cycleKey = lease.cycleDateIso;
-  if (heldBackForHousingAssistance({ housingAssistance: lease.housingAssistance }))
+  if (
+    heldBackForHousingAssistance({
+      housingAssistance: lease.housingAssistance,
+      rentChangeProposed: lease.rentChangeProposed === true,
+    })
+  )
     return {
       ...base,
       status: "held_back",

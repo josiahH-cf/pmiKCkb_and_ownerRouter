@@ -48,8 +48,35 @@ export type CohortReason =
   /** S103: the lease term itself is unresolved, so the lease is never silently worked. */
   | "term_needs_review";
 
-/** How a skip signal's candidate values are matched. */
-export type SkipMatch = "truthy" | { containsAnyOf: string[] };
+/**
+ * How a skip signal's candidate values are matched. `unlessMatches` names wording that governs the
+ * same text instead, so the signal does not decide it.
+ */
+export type SkipMatch =
+  | "truthy"
+  | { containsAnyOf: string[]; unlessMatches?: RegExp | undefined };
+
+/**
+ * S251 R-S251-10: wording that mentions housing assistance in RentVine text: a voucher, Section 8
+ * or a housing assistance payment (HAP, as a whole word). It never decides a lease's place; it
+ * shows "RentVine mentions housing assistance. Set the field?" and nothing is saved from it.
+ */
+export const HOUSING_ASSISTANCE_WORDING =
+  /section\s?8|voucher|\bhap\b|housing assistance|housing choice/i;
+
+/** The keys the program signal reads, which are also where an assistance mention is read. */
+export const HOUSING_ASSISTANCE_MENTION_KEYS = [
+  "program",
+  "programName",
+  "leaseType",
+  "leaseTypeName",
+  "tags",
+  "status",
+] as const;
+
+/** The exact words the suggestion reads (R-S251-10). */
+export const HOUSING_ASSISTANCE_SUGGESTION =
+  "RentVine mentions housing assistance. Set the field?";
 
 export interface SkipSignal {
   /**
@@ -90,10 +117,15 @@ export const DEFAULT_COHORT_CONFIG: CohortConfig = {
       },
     },
     {
+      // S251 R-S251-10 (ARCH-S251-3): housing assistance wording (a voucher, Section 8, a housing
+      // assistance payment) is no longer a skip; it is a suggestion only (see
+      // `housingAssistanceMention`). "program" and "padsplit" keep their meaning when the text
+      // carries no assistance wording; where it does, the assistance wording governs that text.
       reason: "program",
       keys: ["program", "programName", "leaseType", "leaseTypeName", "tags", "status"],
       match: {
-        containsAnyOf: ["program", "padsplit", "section 8", "section8", "voucher", "hap"],
+        containsAnyOf: ["program", "padsplit"],
+        unlessMatches: HOUSING_ASSISTANCE_WORDING,
       },
     },
   ],
@@ -109,6 +141,8 @@ export interface CohortLease {
   /** S103: the one shared term projection; callers never reclassify a term from dates. */
   term: LeaseTerm;
   termProjection: LeaseTermProjection;
+  /** S251 R-S251-10: RentVine text mentions housing assistance. A suggestion only. */
+  housingAssistanceMention?: true;
 }
 
 export interface RenewalCohort {
@@ -204,7 +238,17 @@ function isTruthy(value: unknown): boolean {
 function signalMatches(value: unknown, match: SkipMatch): boolean {
   if (match === "truthy") return isTruthy(value);
   const text = String(value).toLowerCase();
+  if (match.unlessMatches?.test(text)) return false;
   return match.containsAnyOf.some((needle) => text.includes(needle.toLowerCase()));
+}
+
+/**
+ * S251 R-S251-10: true when the RentVine text the program signal reads (the first present key, as
+ * the signal reads it) mentions housing assistance. A suggestion only: it decides nothing.
+ */
+export function housingAssistanceMention(lease: RawLease): boolean {
+  const hit = firstPresent(lease, [...HOUSING_ASSISTANCE_MENTION_KEYS]);
+  return hit !== null && HOUSING_ASSISTANCE_WORDING.test(String(hit.value));
 }
 
 function matchedSkipReason(
@@ -272,6 +316,8 @@ export function classifyRenewalCohort(
       endDateIso,
       term: termProjection.term,
       termProjection,
+      // S251 R-S251-10: a suggestion only; it changes no disposition below.
+      ...(housingAssistanceMention(lease) ? { housingAssistanceMention: true as const } : {}),
     };
 
     if (termProjection.term === "month_to_month") {

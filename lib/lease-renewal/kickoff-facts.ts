@@ -11,7 +11,10 @@ import type {
   RenewalKickoffFacts,
   RenewalStoredComparison,
 } from "@/lib/lease-renewal/renewal-preparation";
-import type { RenewalWorkspaceState } from "@/lib/lease-renewal/workspace-state";
+import {
+  currentRentChoice,
+  type RenewalWorkspaceState,
+} from "@/lib/lease-renewal/workspace-state";
 import type { RenewalChargeInventory } from "@/lib/lease-renewal/writeback/charge-inventory-model";
 import {
   workingRenewalTerms,
@@ -59,9 +62,10 @@ export const UNREAD_KICKOFF_SUPPORT: KickoffSupportRead = Object.freeze({
 });
 
 /**
- * S251 seam: a lease marked housing assistance is held back until a rent change is proposed.
- * Preparation asks this one predicate before any billed lookup. Until S251 records the fact the
- * input is null, so nothing is held back.
+ * S251 R-S251-7 (ARCH-S251-4): a lease marked Housing assistance Yes is held back until "Propose
+ * a change" is recorded for this cycle. Preparation asks this one predicate before any billed
+ * lookup; S251 supplies the fact (the working record) and the rent choice (the staff record). A
+ * staff member can still run a comparison by hand at any time with the lease's own control.
  */
 export function heldBackForHousingAssistance(input: {
   readonly housingAssistance: { readonly program: string } | null | undefined;
@@ -193,9 +197,9 @@ export interface KickoffFactsInput {
   readonly support: KickoffSupportRead;
   /** The current RentVine rent charges, where this surface read them (the lease page). */
   readonly rentCharges?: readonly number[] | null;
-  /** S251 slot. */
+  /** S251: the lease's Housing assistance Yes fact, from its working record. */
   readonly housingAssistance?: { readonly program: string } | null;
-  /** S250 slot: the covering standing agreement's rent, with its basis in words. */
+  /** S250: the covering standing agreement's rent, with its basis in words. */
   readonly agreementRent?: { readonly value: number; readonly basis: string } | null;
 }
 
@@ -213,7 +217,11 @@ export function kickoffFactsFor(input: KickoffFactsInput): RenewalKickoffFacts {
       : null;
   const comparison: RenewalComparisonFacts = stored
     ? { state: "stored", comparison: stored }
-    : heldBackForHousingAssistance({ housingAssistance: input.housingAssistance })
+    : heldBackForHousingAssistance({
+          housingAssistance: input.housingAssistance,
+          // S251 R-S251-7: Propose a change, recorded for this cycle, releases the hold.
+          rentChangeProposed: currentRentChoice(input.manual) === "propose_change",
+        })
       ? { state: "held_back", reason: HOUSING_ASSISTANCE_HOLD_REASON }
       : outcome?.state === "no_usable"
         ? { state: "no_usable", reason: outcome.reason ?? "no usable comparables" }

@@ -19,6 +19,7 @@ import { hashExecutionPreview } from "@/lib/execution/preview-hash";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
+  HousingAssistanceValueSchema,
   RENEWAL_WORKING_RECORD_SCHEMA_VERSION,
   WORKING_VALUE_ORIGINS,
   parseWorkingFieldValue,
@@ -40,6 +41,8 @@ const storedValue = z.union([
   z.string(),
   z.object({ tabTitle: z.string(), rowNumber: z.number() }).strict(),
   z.object({ tabTitle: z.string(), cell: z.string() }).strict(),
+  // S251: the housing assistance fact (No, or Yes with the program).
+  HousingAssistanceValueSchema,
 ]);
 const entrySchema = z
   .object({

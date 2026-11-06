@@ -25,9 +25,12 @@ import {
   type AutosaveState,
 } from "./AutosaveStatus";
 import {
+  standingAuthorityCurrent,
   useRenewalPricingPolicy,
   useStandingOwnerAuthority,
 } from "./RenewalPricingPolicy";
+import { housingAssistanceVariant } from "@/lib/lease-renewal/working-record";
+import { AssistedRenewalControls } from "./RenewalHousingAssistance";
 import {
   WorkingDateField,
   WorkingMoneyField,
@@ -454,10 +457,13 @@ function ActiveManualProvider({
     }
   }
   const covered = useStandingOwnerAuthority(state?.revision ?? 0);
+  const workingRecord = useRenewalWorkingRecord();
   // S248: the same evidence fill the desk row reads; the recorded work card names its next step.
   const summary = manualRenewalSummary(state, {
     standingOwnerAuthority: covered,
     evidence: outreachFillFor(state, outreachEvidence),
+    // S251: the lease's Housing assistance Yes fact orders the assisted steps.
+    housingAssistance: housingAssistanceVariant(workingRecord?.record),
   });
   return (
     <Context.Provider
@@ -570,14 +576,18 @@ function CycleSourceDateNote({
   );
 }
 const ACTIVITIES_BEFORE_RESPONSE: readonly ManualActivity[] = [
+  "program_contact",
   "owner_outreach",
   "tenant_offer",
 ];
 export function RenewalManualSection({
   section,
   moveOutInitiated = false,
+  currentRent = null,
 }: {
   section: "owner" | "tenant" | "documents";
+  /** S251 R-S251-6: the current rent "Keep the current rent" records as the working rent. */
+  currentRent?: number | null;
   /**
    * S232 R-S232-5: RentVine shows a move-out notice. The page and its notice-timing issue direct
    * staff to the non-renewal handoff, so it is shown before any staff non-renewal is recorded.
@@ -586,14 +596,17 @@ export function RenewalManualSection({
 }) {
   const context = useRenewalManualWorkspace();
   const covered = useStandingOwnerAuthority(context?.state?.revision ?? 0);
+  const workingRecord = useRenewalWorkingRecord();
   if (!context) return null;
   const { state } = context;
   if (context.readUnavailable && !state)
     return <p>Reload current staff records above before recording work.</p>;
   const fill = outreachFillFor(state, context.outreachEvidence);
+  const assisted = housingAssistanceVariant(workingRecord?.record);
   const summary = manualRenewalSummary(state, {
     standingOwnerAuthority: covered,
     evidence: fill,
+    housingAssistance: assisted,
   });
   // S248 R-S248-11: a derived tenant offer with no Sheet value held for it yet.
   const derivedIntent = fill?.tenant_offer
@@ -610,7 +623,10 @@ export function RenewalManualSection({
     .filter(
       ([key, value]) =>
         value.section === section &&
-        (key !== "non_renewal_handoff" || summary.nonRenewal || moveOutInitiated),
+        (key !== "non_renewal_handoff" || summary.nonRenewal || moveOutInitiated) &&
+        // S251 R-S251-4: the program contact is part of the path only with Housing assistance
+        // Yes; a record staff already made stays visible.
+        (key !== "program_contact" || Boolean(assisted) || Boolean(state?.activities[key])),
     )
     .map(([key]) => key as ManualActivity);
   // S120 (R120.1): the outreach or delivery record comes before the response it precedes in
@@ -626,6 +642,11 @@ export function RenewalManualSection({
   return (
     <Card title={renewalCardTitle(`staff-work-${section}`, "Work recorded by staff")}>
       {beforeResponse.map(activityForm)}
+      {/* S251 R-S251-5 / R-S251-6: the owner's answer on renewing and the rent choice, shown only
+          for a lease whose Housing assistance fact is Yes. */}
+      {section === "owner" && assisted ? (
+        <AssistedRenewalControls currentRent={currentRent} />
+      ) : null}
       {section === "owner" ? <ResponseForm audience="owner" /> : null}
       {section === "tenant" ? <ResponseForm audience="tenant" /> : null}
       {afterResponse.map(activityForm)}
@@ -761,12 +782,12 @@ function ActivityForm({ activity }: { activity: ManualActivity }) {
     if (!touched.has("reason")) setReason(current?.reason ?? "");
     if (!touched.has("occurredAt")) setOccurredAt(toLocalDateTime(current?.occurredAt));
   }
+  const workingRecord = useRenewalWorkingRecord();
   const isNext =
     manualRenewalSummary(state, {
-      standingOwnerAuthority:
-        pricing?.view?.manualRevision === (state?.revision ?? 0) &&
-        pricing.view.authority.covered,
+      standingOwnerAuthority: standingAuthorityCurrent(pricing?.view, state?.revision ?? 0),
       evidence: outreachFillFor(state, context.outreachEvidence),
+      housingAssistance: housingAssistanceVariant(workingRecord?.record),
     }).nextActivity === activity;
   const key = `activity:${activity}`;
   // A typed detail that differs from the saved record is not saved yet.
@@ -940,6 +961,8 @@ function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
           ["approved_terms", "Approved"],
           ["revision_requested", "Revision requested"],
           ["declined_non_renewal", "Declined / non-renewal"],
+          // S251: the owner's "Renew" answer on an assisted lease, shown once it is recorded.
+          ...(current?.outcome === "renew_tenant" ? [["renew_tenant", "Renew"]] : []),
         ]
       : [
           ["awaiting_response", "Awaiting response"],
@@ -968,7 +991,8 @@ function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
               | "approved_terms"
               | "revision_requested"
               | "declined_non_renewal"
-              | "no_response",
+              | "no_response"
+              | "renew_tenant",
             ...common,
           }
         : {

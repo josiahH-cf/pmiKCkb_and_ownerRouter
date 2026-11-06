@@ -1,5 +1,6 @@
 import type { RenewalPreparation } from "@/lib/lease-renewal/renewal-preparation";
 import type { RenewalPricingProjection } from "@/lib/lease-renewal/renewal-pricing-policy";
+import type { HousingAssistanceValue } from "@/lib/lease-renewal/working-record";
 import type { CycleSourceDateChange } from "@/lib/lease-renewal/cycle-source-date";
 import type {
   MoveOutDisposition,
@@ -194,6 +195,13 @@ export interface DeskLeaseSummaryBase {
   /** S232 R-S232-4: the staff-record read failed for this render. */
   staffRecordUnavailable?: true;
   renewalPricing?: RenewalPricingProjection;
+  /**
+   * S251 R-S251-1: the lease's Housing assistance fact from its working record (No, or Yes with the
+   * program); absent when not set or when the working record was not read.
+   */
+  housingAssistance?: HousingAssistanceValue;
+  /** S251 R-S251-10: RentVine text mentions housing assistance; a suggestion only. */
+  housingAssistanceMention?: true;
   /**
    * S123: the recorded cycle basis compared with the lease end the provider reports now. Present
    * only when a manual cycle exists; the recorded basis is history and is never rewritten.

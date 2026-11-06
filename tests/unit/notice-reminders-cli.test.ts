@@ -12,7 +12,9 @@ import { getRenewalDeskView } from "@/tests/helpers/sample-desk";
 describe("notice-reminders Live-only input", () => {
   it("maps a caller-supplied desk view without constructing records", () => {
     const leases = reminderLeasesFromDesk(getRenewalDeskView());
-    expect(leases).toHaveLength(5);
+    // S251 R-S251-10: the sample's "Section 8 Program" lease is a renewal target with a housing
+    // assistance suggestion, so the sample batch maps six reminder leases (five before S251).
+    expect(leases).toHaveLength(6);
     expect(leases.every((lease) => lease.leaseEndDateIso !== null)).toBe(true);
   });
 
@@ -21,7 +23,7 @@ describe("notice-reminders Live-only input", () => {
       status: "ok" as const,
       view: getRenewalDeskView(),
     }));
-    await expect(loadLiveReminderLeases("2026-07-14", loader)).resolves.toHaveLength(5);
+    await expect(loadLiveReminderLeases("2026-07-14", loader)).resolves.toHaveLength(6);
     expect(loader).toHaveBeenCalledWith(
       [{ startIso: "2026-07-14", endIso: "2026-11-11" }],
       "2026-07-14T00:00:00.000Z",

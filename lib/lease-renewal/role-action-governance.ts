@@ -437,6 +437,22 @@ export const RENEWAL_GOVERNANCE_MATRIX = {
     roleDeniedReason: "Editor access is required to save renewal pricing terms.",
     safeNextAction: "Continue read-only or ask an Admin to review your role.",
   },
+  // S250 R-S250-3 / AC-S250-3: Editors apply or remove an existing standing agreement for one
+  // lease or for every lease in the owner's portfolio. Creating or changing an agreement or a
+  // policy stays Admin (the store's per-action check). It sends nothing, writes no provider rent
+  // and records no owner response.
+  apply_standing_agreement: {
+    label:
+      "Apply or remove an existing standing agreement for one lease or the owner's portfolio",
+    roleCapability: "edit",
+    effect: "app_owned_write",
+    externalRequirement: "none",
+    actionKeys: [],
+    exactConfirmation: false,
+    audit: "app_activity",
+    roleDeniedReason: "Editor access is required to choose the pricing basis.",
+    safeNextAction: "Continue read-only or ask an Admin to review your role.",
+  },
   save_shared_collection: {
     label: "Save a reviewed shared lease collection",
     roleCapability: "edit",
@@ -711,6 +727,12 @@ export const RENEWAL_CONTROL_INVENTORY = [
     source: "components/lease-renewal/RentSuggestionApproval.tsx",
     capability: "approve_pricing_suggestion",
     enforcementSources: ["app/api/lease-renewal/rent-suggestion/route.ts"],
+  },
+  {
+    control: "Save pricing basis",
+    source: "components/lease-renewal/RenewalPricingPolicy.tsx",
+    capability: "apply_standing_agreement",
+    enforcementSources: ["app/api/lease-renewal/pricing-policy/route.ts"],
   },
   {
     control: "Resolve source reconciliation",

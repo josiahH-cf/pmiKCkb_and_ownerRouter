@@ -26,6 +26,7 @@ type StageRow = Pick<
   | "staffRecordedAtIso"
   | "staffRecordUnavailable"
   | "renewalPricing"
+  | "housingAssistance"
   | "openConflicts"
   | "leaseTerm"
   | "moveOut"
@@ -71,10 +72,19 @@ export function renewalStageContextFor(
   return {
     leaseId: row.id,
     staffRecordUnavailable: row.staffRecordUnavailable === true,
+    // S250: a standing agreement names itself ("Covered by {agreement}"); the S194 exact kind
+    // keeps its own reason.
     standingAgreement: row.renewalPricing?.authority.covered
-      ? { label: null, reason: row.renewalPricing.authority.reason }
+      ? {
+          label: row.renewalPricing.authority.label ?? null,
+          reason: row.renewalPricing.authority.reason,
+        }
       : null,
-    housingAssistance: null,
+    // S251: the lease's Housing assistance Yes fact; No and not set follow the standard path.
+    housingAssistance:
+      row.housingAssistance?.status === "yes"
+        ? { program: row.housingAssistance.program }
+        : null,
     // S249 R-S249-1 (D-OP-7): where the preparation projection was made, the numbers check reads
     // RentVine as the basis and a Sheet difference is information; else the S157 guidance.
     numbers: row.kickoff
