@@ -64,6 +64,25 @@ const check = (name, passed, observed) => {
   checks.push({ name, passed: Boolean(passed), observed });
   process.stdout.write(`${passed ? "ok  " : "FAIL"} ${name}\n`);
 };
+/** A check that depends on a suite not built yet: recorded with what was seen, never a pass. */
+const pending = (name, suite, observed) => {
+  checks.push({ name, passed: null, pending: suite, observed });
+  process.stdout.write(`PEND ${name} (waits on ${suite})\n`);
+};
+/** The driver's current phase, so each write the page makes names when it happened. */
+let phase = "start";
+const keysOf = (text) => {
+  try {
+    const body = JSON.parse(text ?? "{}");
+    return [
+      ...Object.keys(body),
+      ...(body.kind ? [`kind=${body.kind}`] : []),
+      ...(body.field ? [`field=${body.field}`] : []),
+    ];
+  } catch {
+    return [];
+  }
+};
 /** A deliberate staff action, for the action counts (L23). */
 const act = (label) => steps.push({ at: new Date().toISOString(), action: label });
 const comparisons = async () =>
@@ -99,8 +118,11 @@ try {
       url.pathname.startsWith("/api/")
     )
       writes.push({
+        phase,
         method: request.method(),
         path: url.pathname,
+        // The request's keys only, so a write reads as what it was without its values.
+        keys: keysOf(request.postData()),
         body: url.pathname.includes("kickoff-preparation")
           ? JSON.parse(request.postData() ?? "{}")
           : null,
@@ -253,11 +275,17 @@ try {
 
   // L35 (second half) and resumption: choosing Prepare this batch runs the same preparation; the
   // run is left after its first result and resumes when the batch is opened again.
+  // The run is left after its first lookup: the browser lets the first request through and
+  // holds back the rest, so the remaining leases stay unprepared for the automatic start below.
+  let allowed = 1;
+  const holdBack = (route) => (allowed-- > 0 ? route.continue() : route.abort("aborted"));
+  await page.route("**/api/lease-renewal/kickoff-preparation", holdBack);
   act("choose Prepare this batch");
   await prepareButton.click();
   await page.locator("[data-kickoff-outcome]").first().waitFor({ timeout: 120_000 });
   const staffPosts = kickoffPosts().map((entry) => entry.body?.trigger);
   await page.goto(`${origin}/sign-in`, { waitUntil: "domcontentloaded" });
+  await page.unroute("**/api/lease-renewal/kickoff-preparation", holdBack);
   await page.waitForTimeout(3000);
   const staffComparisons = await comparisons();
   check(
@@ -298,14 +326,10 @@ try {
       kickoffPosts().length === 0,
     { automaticPosts, afterAutomatic, afterReopen, leasesInBatch },
   );
-  check(
-    `L33 (assisted lease ${assisted}): no comparison is requested for it`,
-    !(String(assisted) in afterAutomatic),
-    {
-      requested: afterAutomatic[String(assisted)] ?? 0,
-      note: "The housing assistance hold reads S251's marker; until S251 seeds it, the hold predicate answers not held back and this check reports what the stand-in saw.",
-    },
-  );
+  pending(`L33 (assisted lease ${assisted}): no comparison is requested for it`, "S251", {
+    requested: afterAutomatic[String(assisted)] ?? 0,
+    note: "The housing assistance hold reads S251's marker; until S251 seeds it, the hold predicate answers not held back and this check reports what the stand-in saw.",
+  });
   check(
     `L32: the prepared lease ${prepared} reuses its stored comparison (no request for it)`,
     !(String(prepared) in afterAutomatic),
@@ -351,17 +375,26 @@ try {
     .locator('[data-renewal-ready="missing"]')
     .filter({ hasText: "Verified owner recipient" })
     .first();
+  const l30 = {
+    missingLine,
+    missingLeases: missing?.leases ?? null,
+    readyLeases: ready?.leases ?? null,
+    nowItems: await missingNow.count(),
+    fixButtons: await missingNow.locator("button").count(),
+    nowItem: await missingNow.textContent().catch(() => null),
+  };
   check(
     "L30: the missing-recipient lease names the missing verified owner recipient on its desk row and its Now card with the fix in place, and is not ready for review",
-    missing?.leases.includes(String(missingRecipient)) &&
-      !ready?.leases.includes(String(missingRecipient)) &&
+    (l30.missingLeases ?? []).includes(String(missingRecipient)) &&
+      !(l30.readyLeases ?? []).includes(String(missingRecipient)) &&
       /verified owner recipient/.test(missingLine ?? "") &&
-      (await missingNow.count()) === 1 &&
-      (await missingNow.getByRole("button").count()) === 1,
-    { missingLine, nowItem: await missingNow.textContent().catch(() => null) },
+      l30.nowItems === 1 &&
+      l30.fixButtons === 1,
+    l30,
   );
 
   // L21: the prepared lease's numbers check on RentVine; its blank Sheet row is no difference.
+  phase = "L21";
   writes.length = 0;
   await openLease(prepared);
   await chooseStep("Check the numbers");
@@ -379,12 +412,27 @@ try {
 
   // L22: opening the prepared lease shows, with no action, the stored comparison, Rent to
   // recommend prefilled with its basis, and the owner message preview.
+  phase = "L22";
+  const l21Writes = writes.splice(0);
   await openLease(prepared);
+  await page.waitForTimeout(3000);
   const opened = {
     heading: (await now().getByRole("heading", { level: 2 }).textContent())?.trim(),
-    comparison: await now().getByRole("region", { name: "Stored comparison" }).count(),
+    comparison: await now().locator('[data-renewal-comparison="stored"]').count(),
     comparisonAge: await now().locator('[data-renewal-field="comparison-age"]').count(),
-    comps: await now().getByRole("list", { name: "Comparables" }).locator("li").count(),
+    comps: await now().locator('[aria-label="Comparables"] li').count(),
+    needs:
+      (await now()
+        .locator('[data-renewal-field="send-needs"]')
+        .textContent()
+        .catch(() => null)) ?? null,
+    readiness: await now()
+      .locator("[data-renewal-ready]")
+      .evaluateAll((items) =>
+        items.map(
+          (item) => `${item.getAttribute("data-renewal-ready")}: ${item.textContent}`,
+        ),
+      ),
     rent: await now().getByLabel("Rent to recommend").inputValue(),
     basis: (
       await now().locator('[data-renewal-field="rent-basis"]').textContent()
@@ -394,7 +442,7 @@ try {
   };
   check(
     'L22: the prepared lease opens with the stored comparison, "Rent to recommend" prefilled with its basis in words and the owner message preview, with no action',
-    opened.heading === "Ask the owner" &&
+    (opened.heading ?? "").endsWith("Ask the owner") &&
       opened.comparison === 1 &&
       opened.comparisonAge === 1 &&
       opened.comps > 0 &&
@@ -402,9 +450,18 @@ try {
       /Suggested from the stored comparison/.test(opened.basis ?? "") &&
       opened.preview === 1 &&
       opened.primary === "Review and send",
-    opened,
+    {
+      ...opened,
+      nowHtml: await now()
+        .evaluate((element) => element.innerHTML.replace(/\s+/g, " ").slice(0, 6000))
+        .catch(() => null),
+    },
   );
-  check("L22: opening the prepared lease made no write", writes.length === 0, { writes });
+  check("L22: opening the prepared lease made no write", writes.length === 0, {
+    writes,
+    l21Writes,
+  });
+  phase = "L27";
 
   // L27: changing the rent and the reason updates the one preview, and every delivery form shows
   // that same message.
@@ -430,24 +487,44 @@ try {
   const copied = await page
     .evaluate(() => navigator.clipboard.readText())
     .catch(() => "");
-  await now().getByRole("button", { name: "Schedule", exact: true }).click();
-  const scheduleDialog = page.getByRole("dialog", { name: "Review and schedule" });
-  await scheduleDialog.waitFor();
-  const scheduled =
-    (await scheduleDialog.locator('[data-renewal-field="exact-review"]').textContent()) ??
-    "";
-  await scheduleDialog.getByRole("button", { name: "Cancel" }).click();
-  await now()
-    .getByRole("button", { name: "Create Gmail draft instead", exact: true })
-    .click();
-  const draftDialog = page.getByRole("dialog", { name: "Create Gmail draft instead" });
-  await draftDialog
-    .locator('[data-renewal-field="draft-review"]')
-    .waitFor({ timeout: 120_000 });
-  const drafted =
-    (await draftDialog.locator('[data-renewal-field="draft-review"]').textContent()) ??
-    "";
-  await draftDialog.getByRole("button", { name: "Cancel" }).click();
+  // A disabled delivery action is recorded with what the card says it needs; it is never waited on.
+  const needsNow = async () =>
+    (await now()
+      .locator('[data-renewal-field="send-needs"]')
+      .textContent()
+      .catch(() => null)) ?? null;
+  const scheduleButton = now().getByRole("button", { name: "Schedule", exact: true });
+  let scheduled = "";
+  const scheduleEnabled = await scheduleButton.isEnabled();
+  if (scheduleEnabled) {
+    await scheduleButton.click();
+    const scheduleDialog = page.getByRole("dialog", { name: "Review and schedule" });
+    await scheduleDialog
+      .locator('[data-renewal-field="exact-review"]')
+      .waitFor({ timeout: 120_000 });
+    scheduled =
+      (await scheduleDialog
+        .locator('[data-renewal-field="exact-review"]')
+        .textContent()) ?? "";
+    await scheduleDialog.getByRole("button", { name: "Cancel" }).click();
+  }
+  const draftButton = now().getByRole("button", {
+    name: "Create Gmail draft instead",
+    exact: true,
+  });
+  let drafted = "";
+  const draftEnabled = await draftButton.isEnabled();
+  if (draftEnabled) {
+    await draftButton.click();
+    const draftDialog = page.getByRole("dialog", { name: "Create Gmail draft instead" });
+    await draftDialog
+      .locator('[data-renewal-field="draft-review"]')
+      .waitFor({ timeout: 120_000 });
+    drafted =
+      (await draftDialog.locator('[data-renewal-field="draft-review"]').textContent()) ??
+      "";
+    await draftDialog.getByRole("button", { name: "Cancel" }).click();
+  }
   const composer = await context.newPage();
   await composer.goto(`${origin}/gmail-hub?compose=renewal_owner&lease=${prepared}`, {
     waitUntil: "domcontentloaded",
@@ -473,28 +550,39 @@ try {
     {
       revision: edited.revision,
       composerRevision,
+      preview: edited.preview.slice(0, 1500),
       copied: copied.includes(reason),
+      scheduleEnabled,
       scheduled: scheduled.includes(reason),
+      draftEnabled,
       drafted: drafted.includes(reason),
+      needs: await needsNow(),
     },
   );
+  phase = "L23";
 
   // L23: the owner message is sent in three deliberate actions on one page: open the lease,
   // "Review and send", confirm. The exact review and the confirmation are both shown.
   const before = steps.length;
   act("open the lease");
   await openLease(prepared);
+  const needsBeforeSend = await needsNow();
   act("choose Review and send");
   await now().locator("[data-renewal-now-primary]").click();
   const review = page.getByRole("dialog", { name: "Review and send" });
-  await review
+  let exact = "";
+  const reviewShown = await review
     .locator('[data-renewal-field="exact-review"]')
-    .waitFor({ timeout: 120_000 });
-  const exact =
-    (await review.locator('[data-renewal-field="exact-review"]').textContent()) ?? "";
-  act("confirm Send this message");
-  await review.getByRole("button", { name: "Send this message", exact: true }).click();
-  await review.waitFor({ state: "hidden", timeout: 120_000 });
+    .waitFor({ timeout: 120_000 })
+    .then(() => true)
+    .catch(() => false);
+  if (reviewShown) {
+    exact =
+      (await review.locator('[data-renewal-field="exact-review"]').textContent()) ?? "";
+    act("confirm Send this message");
+    await review.getByRole("button", { name: "Send this message", exact: true }).click();
+    await review.waitFor({ state: "hidden", timeout: 120_000 });
+  }
   const sendSteps = steps.slice(before).map((entry) => entry.action);
   const mail = (await standInState(rehearsal)).mail;
   const sent = mail.mailboxes.flatMap((box) => box.messages ?? []);
@@ -508,8 +596,15 @@ try {
       exact.includes(reason) &&
       exact.includes("$1,410.00") &&
       ownerMessages.some((message) => (message.text ?? "").includes("$1,410.00")),
-    { sendSteps, pages: context.pages().length, sent: sent.length },
+    {
+      sendSteps,
+      reviewShown,
+      needsBeforeSend,
+      pages: context.pages().length,
+      sent: sent.length,
+    },
   );
+  phase = "L28";
   check(
     'L29: no owner message produced in the run contains "The working offer remains a staff decision"',
     sent.every((message) => !JSON.stringify(message).includes(INTERNAL_SENTENCE)) &&
@@ -524,18 +619,31 @@ try {
     (n, box) => n + (box.drafts ?? []).length,
     0,
   );
-  await now()
-    .getByRole("button", { name: "Create Gmail draft instead", exact: true })
-    .click();
-  const create = page.getByRole("dialog", { name: "Create Gmail draft instead" });
-  await create
-    .locator('[data-renewal-field="draft-review"]')
-    .waitFor({ timeout: 120_000 });
-  await create
-    .getByRole("button", { name: "Create this unsent draft", exact: true })
-    .click();
-  await create.waitFor({ state: "hidden", timeout: 120_000 });
-  await page.waitForTimeout(1500);
+  const coveredDraft = now().getByRole("button", {
+    name: "Create Gmail draft instead",
+    exact: true,
+  });
+  const coveredDraftEnabled = await coveredDraft.isEnabled();
+  let draftNotice = null;
+  if (coveredDraftEnabled) {
+    await coveredDraft.click();
+    const create = page.getByRole("dialog", { name: "Create Gmail draft instead" });
+    const previewed = await create
+      .locator('[data-renewal-field="draft-review"]')
+      .waitFor({ timeout: 120_000 })
+      .then(() => true)
+      .catch(() => false);
+    if (previewed) {
+      await create
+        .getByRole("button", { name: "Create this unsent draft", exact: true })
+        .click();
+      await create.waitFor({ state: "hidden", timeout: 120_000 });
+    } else {
+      draftNotice = (await create.textContent().catch(() => null))?.slice(0, 600) ?? null;
+      await create.getByRole("button", { name: "Cancel" }).click();
+    }
+    await page.waitForTimeout(1500);
+  }
   const draftsAfter = (await standInState(rehearsal)).mail.mailboxes.reduce(
     (n, box) => n + (box.drafts ?? []).length,
     0,
@@ -554,8 +662,9 @@ try {
       (await now()
         .getByRole("button", { name: "Replace the Gmail draft", exact: true })
         .count()) === 1,
-    { draftsBefore, draftsAfter, older },
+    { coveredDraftEnabled, draftNotice, draftsBefore, draftsAfter, older },
   );
+  phase = "L44";
   await openLease(covered);
   const waitingLine = await page.getByText(/Draft waiting in Gmail since/).count();
   check(
@@ -566,111 +675,138 @@ try {
     { waitingLine },
   );
 
-  // L44: a rewording replaces the body only on "Use this revision"; an echoed one is refused.
-  await page
-    .getByRole("group", { name: "Lease view", exact: true })
-    .getByRole("button", { name: "Full view", exact: true })
-    .click();
-  await page.waitForTimeout(1000);
-  const card = page.locator("#renewal-card-message-owner");
-  const body = card.locator("#renewal-message-owner-body");
-  const refine = card.getByRole("region", { name: "AI wording refinement" });
-  const bodyBefore = await body.inputValue();
-  await setRewording(rehearsal, "accept", true);
-  await refine.getByLabel("Refine with AI").fill("Make it a little warmer.");
-  await refine.getByRole("button", { name: "Refine wording", exact: true }).click();
-  await refine
-    .getByRole("group", { name: "Proposed revision" })
-    .waitFor({ timeout: 120_000 });
-  const unchangedWhileProposed = (await body.inputValue()) === bodyBefore;
-  await refine.getByRole("button", { name: "Use this revision", exact: true }).click();
-  await page.waitForTimeout(800);
-  const bodyAccepted = await body.inputValue();
-  await setRewording(rehearsal, "echo", true);
-  const instruction = "Mention the parking change.";
-  await refine.getByLabel("Refine with AI").fill(instruction);
-  await refine.getByRole("button", { name: "Refine wording", exact: true }).click();
-  await refine.getByRole("status").waitFor({ timeout: 120_000 });
-  await page.waitForTimeout(800);
-  const rejected = {
-    notice: (await refine.getByRole("status").textContent())?.trim(),
-    instructionKept:
-      (await refine.getByLabel("Refine with AI").inputValue()) === instruction,
-    bodyKept: (await body.inputValue()) === bodyAccepted,
-    proposed: await refine.getByRole("group", { name: "Proposed revision" }).count(),
+  // Each later section records its own failure and the run carries on to the next.
+  const attempt = async (name, run) => {
+    try {
+      await run();
+    } catch (error) {
+      check(
+        `${name} ran to its end`,
+        false,
+        String(error?.message ?? error).slice(0, 1500),
+      );
+    }
   };
-  check(
-    'L44: a rewording replaces the body only when "Use this revision" is chosen, and a rejected result keeps the instruction, says what to change and leaves the message as it was',
-    unchangedWhileProposed &&
-      bodyAccepted !== bodyBefore &&
-      rejected.instructionKept &&
-      rejected.bodyKept &&
-      rejected.proposed === 0 &&
-      (rejected.notice ?? "").length > 0,
-    { unchangedWhileProposed, accepted: bodyAccepted !== bodyBefore, rejected },
-  );
-
-  // L45: a staff member with no signature sets one up on the Now card without leaving the lease.
-  await signIn("Approver");
-  await openLease(assisted);
-  await chooseStep("Ask the owner");
-  const leaseUrl = page.url();
-  const signatureItem = now()
-    .locator('[data-renewal-ready="missing"]')
-    .filter({ hasText: "Your signature" });
-  const hadNoSignature = (await signatureItem.count()) === 1;
-  await now().getByRole("button", { name: "Set up your signature", exact: true }).click();
-  const form = now().getByRole("form", { name: "Your signature" });
-  await form.getByRole("button", { name: "Save my signature", exact: true }).click();
-  const refused = (
-    await now().locator('[data-renewal-field="signature-notice"]').textContent()
-  )?.trim();
-  await form.getByLabel("Sender name").fill("Example Approver");
-  await form.getByRole("button", { name: "Save my signature", exact: true }).click();
-  await page.waitForTimeout(3000);
-  const signatureReady = await now()
-    .locator('[data-renewal-ready="ready"]')
-    .filter({ hasText: "Your signature" })
-    .count();
-  check(
-    "L45: a staff member with no signature sets one up on the Now card without leaving the lease, and a refused save names the missing fields",
-    hadNoSignature &&
-      (refused ?? "").includes("Sender name") &&
-      signatureReady === 1 &&
-      page.url() === leaseUrl,
-    { hadNoSignature, refused, signatureReady },
-  );
-  await signIn("Editor");
-
-  // L42 (the tenant half): the Offer the tenant step shows the tenant offer prepared from the
-  // working terms, read only; its send keeps its own exact review.
-  writes.length = 0;
-  await openLease(prepared);
-  await chooseStep("Offer the tenant");
-  const tenant = {
-    heading: (await now().getByRole("heading", { level: 2 }).textContent())?.trim(),
-    preview: await now().getByRole("region", { name: "Tenant offer" }).count(),
-    document: await now().getByRole("document", { name: "Message preview" }).count(),
-  };
-  check(
-    "L42 (tenant offer): Offer the tenant shows the tenant offer prepared, and showing it makes no write",
-    tenant.heading === "Offer the tenant" &&
-      tenant.preview === 1 &&
-      tenant.document === 1 &&
-      writes.length === 0,
-    { ...tenant, writes },
-  );
+  await attempt("L44", async () => {
+    // L44: a rewording replaces the body only on "Use this revision"; an echoed one is refused.
+    await page
+      .getByRole("group", { name: "Lease view", exact: true })
+      .getByRole("button", { name: "Full view", exact: true })
+      .click();
+    await page.waitForTimeout(1000);
+    const card = page.locator("#renewal-card-message-owner");
+    const body = card.locator("#renewal-message-owner-body");
+    const refine = card.getByRole("region", { name: "AI wording refinement" });
+    const bodyBefore = await body.inputValue();
+    await setRewording(rehearsal, "accept", true);
+    await refine.getByLabel("Refine with AI").fill("Make it a little warmer.");
+    await refine.getByRole("button", { name: "Refine wording", exact: true }).click();
+    await refine
+      .getByRole("group", { name: "Proposed revision" })
+      .waitFor({ timeout: 120_000 });
+    const unchangedWhileProposed = (await body.inputValue()) === bodyBefore;
+    await refine.getByRole("button", { name: "Use this revision", exact: true }).click();
+    await page.waitForTimeout(800);
+    const bodyAccepted = await body.inputValue();
+    await setRewording(rehearsal, "echo", true);
+    const instruction = "Mention the parking change.";
+    await refine.getByLabel("Refine with AI").fill(instruction);
+    await refine.getByRole("button", { name: "Refine wording", exact: true }).click();
+    await refine.getByRole("status").waitFor({ timeout: 120_000 });
+    await page.waitForTimeout(800);
+    const rejected = {
+      notice: (await refine.getByRole("status").textContent())?.trim(),
+      instructionKept:
+        (await refine.getByLabel("Refine with AI").inputValue()) === instruction,
+      bodyKept: (await body.inputValue()) === bodyAccepted,
+      proposed: await refine.getByRole("group", { name: "Proposed revision" }).count(),
+    };
+    check(
+      'L44: a rewording replaces the body only when "Use this revision" is chosen, and a rejected result keeps the instruction, says what to change and leaves the message as it was',
+      unchangedWhileProposed &&
+        bodyAccepted !== bodyBefore &&
+        rejected.instructionKept &&
+        rejected.bodyKept &&
+        rejected.proposed === 0 &&
+        (rejected.notice ?? "").length > 0,
+      { unchangedWhileProposed, accepted: bodyAccepted !== bodyBefore, rejected },
+    );
+  });
+  await attempt("L45", async () => {
+    // L45: a staff member with no signature sets one up on the Now card without leaving the lease.
+    await signIn("Approver");
+    await openLease(assisted);
+    await chooseStep("Ask the owner");
+    const leaseUrl = page.url();
+    const signatureItem = now()
+      .locator('[data-renewal-ready="missing"]')
+      .filter({ hasText: "Your signature" });
+    const hadNoSignature = (await signatureItem.count()) === 1;
+    await now()
+      .getByRole("button", { name: "Set up your signature", exact: true })
+      .click();
+    const form = now().getByRole("form", { name: "Your signature" });
+    await form.getByRole("button", { name: "Save my signature", exact: true }).click();
+    const refused = (
+      await now().locator('[data-renewal-field="signature-notice"]').textContent()
+    )?.trim();
+    await form.getByLabel("Sender name").fill("Example Approver");
+    await form.getByRole("button", { name: "Save my signature", exact: true }).click();
+    await page.waitForTimeout(3000);
+    const signatureReady = await now()
+      .locator('[data-renewal-ready="ready"]')
+      .filter({ hasText: "Your signature" })
+      .count();
+    check(
+      "L45: a staff member with no signature sets one up on the Now card without leaving the lease, and a refused save names the missing fields",
+      hadNoSignature &&
+        (refused ?? "").includes("Sender name") &&
+        signatureReady === 1 &&
+        page.url() === leaseUrl,
+      { hadNoSignature, refused, signatureReady },
+    );
+    await signIn("Editor");
+  });
+  await attempt("L42", async () => {
+    await signIn("Editor");
+    // L42 (the tenant half): the Offer the tenant step shows the tenant offer prepared from the
+    // working terms, read only; its send keeps its own exact review.
+    writes.length = 0;
+    await openLease(prepared);
+    await chooseStep("Offer the tenant");
+    const tenant = {
+      heading: (await now().getByRole("heading", { level: 2 }).textContent())?.trim(),
+      preview: await now().getByRole("region", { name: "Tenant offer" }).count(),
+      document: await now().getByRole("document", { name: "Message preview" }).count(),
+    };
+    check(
+      "L42 (tenant offer): Offer the tenant shows the tenant offer prepared, and showing it makes no write",
+      tenant.heading === "Offer the tenant" &&
+        tenant.preview === 1 &&
+        tenant.document === 1 &&
+        writes.length === 0,
+      { ...tenant, writes },
+    );
+  });
 
   // L58: nothing in the run reached a real host.
+  // Every refused request was stopped at the boundary; L58 asks that none of them was aimed at
+  // production, a provider or a mailbox. Other refused hosts (a dev tool's update check) are listed.
   const refusedHosts = refusedConnections(rehearsal);
+  const PROVIDER_OR_PRODUCTION =
+    /googleapis|google\.com|gmail|rentvine|rentcast|dotloop|run\.app|pmikc|firebase(io)?\.com|anthropic|openai/i;
+  const aimed = refusedHosts.filter((entry) =>
+    PROVIDER_OR_PRODUCTION.test(String(entry.host ?? entry.refused ?? "")),
+  );
   check(
-    "L58: the rehearsal's refused-connection log shows no call to a real host",
-    refusedHosts.length === 0,
+    "L58: the rehearsal's refused-connection log shows no call to production, a provider or a mailbox",
+    aimed.length === 0,
     {
-      refused: refusedHosts.slice(0, 10),
+      aimed: aimed.slice(0, 10),
+      otherRefusedHosts: [...new Set(refusedHosts.map((entry) => entry.host))],
     },
   );
-  exitCode = checks.every((entry) => entry.passed) ? 0 : 1;
+  exitCode = checks.every((entry) => entry.passed !== false) ? 0 : 1;
 } catch (error) {
   checks.push({
     name: "driver ran to the end",

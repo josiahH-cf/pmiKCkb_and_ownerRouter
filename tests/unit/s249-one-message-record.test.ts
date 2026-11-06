@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   composeRenewalMessage,
+  markedValuesIn,
   MESSAGE_CHARGES,
   type RenewalMessageFacts,
 } from "@/lib/lease-renewal/renewal-message-content";
@@ -249,5 +250,56 @@ describe("S249 R-S249-11: readiness on the Now card", () => {
     expect(rent?.ready).toBe(false);
     expect(rent?.fix?.target).toBe(KICKOFF_FIX_TARGETS.rentToRecommend);
     expect(sendReady(preparation)).toBe(false);
+  });
+});
+
+describe("S249 R-S249-11: complete marked values are read from the message text", () => {
+  it("names each fact the text still marks, once, and nothing for a callout without a marker", () => {
+    const content = composeRenewalMessage(
+      ownerFacts({
+        range: null,
+        signature: null,
+        firstNames: [],
+        names: ["Example Owner"],
+      }),
+    );
+    const marked = markedValuesIn(`${content.subject}\n${content.plainText}`);
+    expect(marked).toEqual(
+      expect.arrayContaining([
+        "low comparable rent",
+        "high comparable rent",
+        "sender signature",
+      ]),
+    );
+    expect(new Set(marked).size).toBe(marked.length);
+    // The general greeting is a callout, not a marked value.
+    expect(content.missing.some((entry) => entry.field === "names")).toBe(true);
+    expect(marked.some((fact) => /name/i.test(fact))).toBe(false);
+  });
+
+  it("reads none in a complete message", () => {
+    const content = composeRenewalMessage(
+      ownerFacts({
+        suggestedRent: { value: 1425, source: "Example basis", kind: "proposal" },
+        comps: [
+          {
+            address: "Comparable 1",
+            rent: 1400,
+            source: "reviewed:comp",
+            url: "https://example.invalid/comp",
+          },
+        ],
+        signature: {
+          name: "Example Staff",
+          email: "example-staff@pmikcmetro.com",
+          role: "PMI KC Metro",
+          phone: null,
+          hours: null,
+          website: null,
+          source: "managed:current-staff",
+        },
+      }),
+    );
+    expect(markedValuesIn(`${content.subject}\n${content.plainText}`)).toEqual([]);
   });
 });

@@ -13,6 +13,7 @@ import {
   type RenewalNumbersFacts,
 } from "@/lib/lease-renewal/renewal-preparation";
 import { orderThisBatch, thisBatchParts } from "@/lib/lease-renewal/renewal-batch";
+import { kickoffFactsFor } from "@/lib/lease-renewal/kickoff-facts";
 import {
   projectRenewalStage,
   type RenewalStageContext,
@@ -328,5 +329,61 @@ describe("S249 R-S249-13 This batch ordering", () => {
     expect(parts.ready.map((row) => row.key)).toEqual(["ready"]);
     expect(parts.missing.map((row) => row.key)).toEqual(["missing"]);
     expect(parts.other.map((row) => row.key)).toEqual(["waiting", "plain"]);
+  });
+});
+
+describe("S249 ARCH-S249-3: a cycle whose one lookup already ran is not offered again", () => {
+  const base = {
+    leaseId: "9102",
+    cycleDateIso: "2026-12-31",
+    contractualRent: 1350,
+    leaseEndIso: "2026-12-31",
+    workingCurrentRent: null,
+    address: "102 Sample Street",
+    dataCheck: [],
+    manual: null,
+    working: null,
+    sourceReadable: true,
+    ownerRecipient: { state: "ready" as const },
+  };
+  const support = (state: "claimed" | "failed" | null) => ({
+    observationsByLease: new Map(),
+    signature: true,
+    templateApproved: true,
+    allowanceReached: false,
+    preparationsByLease: state
+      ? new Map([["9102", { cycleKey: "2026-12-31", state, reason: null }]])
+      : new Map(),
+  });
+
+  it("with no claim the lease needs its comparison", () => {
+    const facts = kickoffFactsFor({ ...base, support: support(null) });
+    expect(facts.comparison).toEqual({ state: "none" });
+  });
+
+  it.each(["claimed", "failed"] as const)(
+    "a %s claim for this cycle reads as already run, and the batch does not offer it again",
+    (state) => {
+      const facts = kickoffFactsFor({ ...base, support: support(state) });
+      expect(facts.comparison).toEqual({ state: "none", attempted: true });
+      const view = projectRenewalPreparation(facts).comparison;
+      expect(view.attempted).toBe(true);
+      expect(view.line).toBe(
+        "This cycle's comparison already ran once and stored no result",
+      );
+    },
+  );
+
+  it("a claim for an earlier cycle does not count for this one", () => {
+    const facts = kickoffFactsFor({
+      ...base,
+      support: {
+        ...support(null),
+        preparationsByLease: new Map([
+          ["9102", { cycleKey: "2025-12-31", state: "failed" as const, reason: null }],
+        ]),
+      },
+    });
+    expect(facts.comparison).toEqual({ state: "none" });
   });
 });

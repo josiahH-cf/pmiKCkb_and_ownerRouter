@@ -221,7 +221,11 @@ export function kickoffFactsFor(input: KickoffFactsInput): RenewalKickoffFacts {
           ? { state: "unreadable" }
           : input.support.allowanceReached === true
             ? { state: "allowance_reached" }
-            : { state: "none" };
+            : // ARCH-S249-3: this cycle's one claimed lookup already ran (or is running), so the
+              // batch never offers it to the automatic start again.
+              outcome
+              ? { state: "none", attempted: true }
+              : { state: "none" };
   return {
     numbers: {
       contractualRent: input.contractualRent,

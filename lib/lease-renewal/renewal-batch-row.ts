@@ -269,7 +269,7 @@ function kickoffFor(row: DeskLeaseRow): {
       line: kickoffRowLine(preparation),
       missing: preparation.missing,
       needsComparison:
-        preparation.comparison.state === "none" ||
+        (preparation.comparison.state === "none" && !preparation.comparison.attempted) ||
         preparation.comparison.state === "allowance_reached",
       allowanceReached: preparation.comparison.state === "allowance_reached",
       cycleDateIso:

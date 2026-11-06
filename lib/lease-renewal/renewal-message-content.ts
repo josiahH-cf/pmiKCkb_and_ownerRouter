@@ -270,6 +270,25 @@ export function hasMissingValueMarker(text: string): boolean {
 }
 
 /**
+ * S249 R-S249-11: the facts the text still marks with a named fill-in marker, once each, in order.
+ * A callout that leaves no marker in the text (a general greeting) is not a marked value.
+ */
+export function markedValuesIn(text: string): string[] {
+  const prefix = UNVERIFIED_PLACEHOLDER.split("<fact>")[0];
+  const found: string[] = [];
+  let at = text.indexOf(`[${prefix}`);
+  while (at >= 0) {
+    const start = at + 1 + prefix.length;
+    const end = text.indexOf("]", start);
+    if (end < 0) break;
+    const fact = text.slice(start, end).trim();
+    if (fact && !found.includes(fact)) found.push(fact);
+    at = text.indexOf(`[${prefix}`, end);
+  }
+  return found;
+}
+
+/**
  * S163: the first names a greeting uses, and the people whose first name the source does not
  * record. Nothing is split, guessed or carried over from a display or company name.
  */

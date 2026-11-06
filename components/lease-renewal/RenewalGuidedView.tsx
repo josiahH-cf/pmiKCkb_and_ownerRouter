@@ -672,7 +672,8 @@ function NowCard({
               {preparation && slot === "stored-comparison" ? (
                 <StoredComparisonSummary
                   action={
-                    preparation.comparison.state === "none" ? (
+                    preparation.comparison.state === "none" &&
+                    !preparation.comparison.attempted ? (
                       <PrepareThisLeaseButton canPrepare={canEdit} leaseId={leaseId} />
                     ) : null
                   }

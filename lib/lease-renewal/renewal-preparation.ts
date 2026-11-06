@@ -91,7 +91,8 @@ export interface RenewalStoredComparison {
 /** R-S249-2: the comparison for this lease and cycle. */
 export type RenewalComparisonFacts =
   | { readonly state: "stored"; readonly comparison: RenewalStoredComparison }
-  | { readonly state: "none" }
+  /** None stored. `attempted`: this cycle's one claimed lookup already ran (or is running). */
+  | { readonly state: "none"; readonly attempted?: boolean }
   /** No lookup ran because this month's allowance is reached (R-S249-3). */
   | { readonly state: "allowance_reached" }
   /** A lookup ran for this cycle and returned nothing usable (S121 stays separate). */
@@ -157,6 +158,8 @@ export interface RenewalComparisonView {
   readonly ageLine: string | null;
   /** The existing own-figures entry when no comparison is stored. */
   readonly fix: RenewalPreparationFix | null;
+  /** True when this cycle's one claimed lookup already ran; nothing starts it again by itself. */
+  readonly attempted?: boolean;
 }
 
 export type RenewalRentOrigin = "typed" | "agreement" | "comparison";
@@ -341,11 +344,15 @@ function comparisonView(facts: RenewalComparisonFacts): RenewalComparisonView {
     default:
       return {
         state: "none",
-        line: "No comparison is stored for this cycle yet",
+        line:
+          facts.state === "none" && facts.attempted
+            ? "This cycle's comparison already ran once and stored no result"
+            : "No comparison is stored for this cycle yet",
         stored: null,
         firstComps: [],
         ageLine: null,
         fix: ownFigures,
+        ...(facts.state === "none" && facts.attempted ? { attempted: true } : {}),
       };
   }
 }

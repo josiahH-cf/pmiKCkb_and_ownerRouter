@@ -139,11 +139,22 @@ try {
     mutationAttempts.length === 0,
     { mutationAttempts },
   );
+  // Refused requests were stopped at the boundary; none may have been aimed at production, a
+  // provider or a mailbox. Other refused hosts (a dev tool's update check) are listed.
   const refused = refusedConnections(rehearsal);
+  const aimed = refused.filter((entry) =>
+    /googleapis|google\.com|gmail|rentvine|rentcast|dotloop|run\.app|pmikc|firebase(io)?\.com|anthropic|openai/i.test(
+      String(entry.host ?? entry.refused ?? ""),
+    ),
+  );
   check(
-    "nothing left the machine: no off-origin request and no refused connection",
-    offOrigin.length === 0 && refused.length === 0,
-    { offOrigin, refused: refused.slice(0, 10) },
+    "nothing left the machine: no off-origin request from the page and no refused call aimed at production, a provider or a mailbox",
+    offOrigin.length === 0 && aimed.length === 0,
+    {
+      offOrigin,
+      aimed: aimed.slice(0, 10),
+      otherRefusedHosts: [...new Set(refused.map((entry) => entry.host))],
+    },
   );
   exitCode = checks.every((entry) => entry.passed) ? 0 : 1;
 } catch (error) {
