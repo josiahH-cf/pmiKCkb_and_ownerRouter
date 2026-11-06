@@ -277,7 +277,9 @@ async function verifyDeskReturn() {
 
   // From the working batch: the row's link opens the lease in this tab, and Back to renewals
   // returns to the same working month with the same lease listed.
-  await page.goto(`${baseUrl}/lease-renewal/live/desk`, { waitUntil: "domcontentloaded" });
+  await page.goto(`${baseUrl}/lease-renewal/live/desk`, {
+    waitUntil: "domcontentloaded",
+  });
   const batch = page.getByRole("region", { name: "Working batch", exact: true });
   await batch.waitFor();
   const month = await batch.getAttribute("data-batch-month");

@@ -20,12 +20,8 @@
     "scope": "",
     "availability": "required",
     "expectation": "Read-only date filter in All leases and filters.",
-    "source": [
-      "components/lease-renewal/RenewalDeskTable.tsx"
-    ],
-    "actions": [
-      "click-link:All leases and filters"
-    ]
+    "source": ["components/lease-renewal/RenewalDeskTable.tsx"],
+    "actions": ["click-link:All leases and filters"]
   },
   {
     "step": "3",
@@ -39,9 +35,7 @@
       "components/admin/NoticeRulesAdminPanel.tsx",
       "components/admin/RenewalPacketPolicyAdminPanel.tsx"
     ],
-    "actions": [
-      "click-link:All leases and filters"
-    ]
+    "actions": ["click-link:All leases and filters"]
   },
   {
     "step": "4",
@@ -51,12 +45,8 @@
     "scope": "",
     "availability": "conditional",
     "expectation": "Filter through the desk URL in All leases and filters.",
-    "source": [
-      "components/lease-renewal/RenewalDeskTable.tsx"
-    ],
-    "actions": [
-      "click-link:All leases and filters"
-    ]
+    "source": ["components/lease-renewal/RenewalDeskTable.tsx"],
+    "actions": ["click-link:All leases and filters"]
   },
   {
     "step": "5",
@@ -79,9 +69,7 @@
     "scope": "",
     "availability": "required",
     "expectation": "Retain the same filtered desk.",
-    "source": [
-      "components/lease-renewal/RenewalDeskReturnLink.tsx"
-    ]
+    "source": ["components/lease-renewal/RenewalDeskReturnLink.tsx"]
   },
   {
     "step": "7",
@@ -130,9 +118,7 @@
     "scope": "navigation:Renewal dashboard sections",
     "availability": "required",
     "expectation": "Inspect this section without advancing work.",
-    "source": [
-      "components/lease-renewal/RenewalDashboardNavigation.tsx"
-    ]
+    "source": ["components/lease-renewal/RenewalDashboardNavigation.tsx"]
   },
   {
     "step": "11",
@@ -155,9 +141,7 @@
     "scope": "",
     "availability": "conditional",
     "expectation": "The exact lease record on the configured RentVine host, independent of any Sheet link.",
-    "source": [
-      "components/lease-renewal/RenewalWorkspace.tsx"
-    ]
+    "source": ["components/lease-renewal/RenewalWorkspace.tsx"]
   },
   {
     "step": "13",
@@ -167,9 +151,7 @@
     "scope": "",
     "availability": "conditional",
     "expectation": "The configured source Sheet.",
-    "source": [
-      "components/lease-renewal/RenewalWorkspace.tsx"
-    ]
+    "source": ["components/lease-renewal/RenewalWorkspace.tsx"]
   },
   {
     "step": "14",
@@ -179,9 +161,7 @@
     "scope": "region:Correct a lease fact",
     "availability": "required",
     "expectation": "Choose a supported business fact.",
-    "source": [
-      "components/lease-renewal/RenewalCorrections.tsx"
-    ]
+    "source": ["components/lease-renewal/RenewalCorrections.tsx"]
   },
   {
     "step": "15",
@@ -230,9 +210,7 @@
     "scope": "article:Review Sheet updates",
     "availability": "conditional",
     "expectation": "Applies the one reviewed Sheet change once; this is its exact confirmation, followed by readback and a receipt.",
-    "source": [
-      "components/lease-renewal/OperatingSheetPanel.tsx"
-    ]
+    "source": ["components/lease-renewal/OperatingSheetPanel.tsx"]
   },
   {
     "step": "19",
@@ -242,9 +220,7 @@
     "scope": "article:Review Sheet updates",
     "availability": "conditional",
     "expectation": "Recover an uncertain Sheet attempt by reading fresh Sheet state; nothing is retried.",
-    "source": [
-      "components/lease-renewal/OperatingSheetPanel.tsx"
-    ]
+    "source": ["components/lease-renewal/OperatingSheetPanel.tsx"]
   },
   {
     "step": "20",
@@ -267,9 +243,7 @@
     "scope": "region:Owner message preparation",
     "availability": "conditional",
     "expectation": "Copy reviewed formatted owner wording.",
-    "source": [
-      "components/lease-renewal/RenewalMessagePreparation.tsx"
-    ]
+    "source": ["components/lease-renewal/RenewalMessagePreparation.tsx"]
   },
   {
     "step": "22",
@@ -279,9 +253,7 @@
     "scope": "region:Owner message preparation",
     "availability": "conditional",
     "expectation": "Preview an exact unsent draft.",
-    "source": [
-      "components/lease-renewal/RenewalMessagePreparation.tsx"
-    ]
+    "source": ["components/lease-renewal/RenewalMessagePreparation.tsx"]
   },
   {
     "step": "23",
@@ -304,9 +276,7 @@
     "scope": "region:Tenant message preparation",
     "availability": "conditional",
     "expectation": "Copy the current-cycle tenant message.",
-    "source": [
-      "components/lease-renewal/RenewalMessagePreparation.tsx"
-    ]
+    "source": ["components/lease-renewal/RenewalMessagePreparation.tsx"]
   },
   {
     "step": "25",
@@ -355,9 +325,7 @@
     "scope": "region:Document preparation and signature handoff",
     "availability": "required",
     "expectation": "Current gates and saved exact attempts.",
-    "source": [
-      "components/lease-renewal/RenewalDocumentHandoff.tsx"
-    ]
+    "source": ["components/lease-renewal/RenewalDocumentHandoff.tsx"]
   },
   {
     "step": "29",
@@ -367,9 +335,7 @@
     "scope": "region:Document preparation and signature handoff",
     "availability": "conditional",
     "expectation": "Exact preview only when document gates pass.",
-    "source": [
-      "components/lease-renewal/RenewalDocumentHandoff.tsx"
-    ]
+    "source": ["components/lease-renewal/RenewalDocumentHandoff.tsx"]
   },
   {
     "step": "30",
@@ -392,9 +358,7 @@
     "scope": "",
     "availability": "required",
     "expectation": "One of three read-only answers, a clarification, or unavailable state.",
-    "source": [
-      "components/ask/AskForm.tsx"
-    ]
+    "source": ["components/ask/AskForm.tsx"]
   },
   {
     "step": "37",
@@ -404,9 +368,7 @@
     "scope": "region:Renewal resource links",
     "availability": "required",
     "expectation": "Persistent labeled blank or reviewed location.",
-    "source": [
-      "lib/lease-documents/artifact-catalog.ts"
-    ],
+    "source": ["lib/lease-documents/artifact-catalog.ts"],
     "sourceText": "Approved standard lease"
   },
   {
@@ -417,9 +379,7 @@
     "scope": "region:Renewal resource links",
     "availability": "required",
     "expectation": "Persistent labeled blank or reviewed location.",
-    "source": [
-      "lib/lease-documents/artifact-catalog.ts"
-    ],
+    "source": ["lib/lease-documents/artifact-catalog.ts"],
     "sourceText": "Approved renewal extension"
   },
   {
@@ -430,9 +390,7 @@
     "scope": "region:Renewal resource links",
     "availability": "required",
     "expectation": "Persistent labeled blank or reviewed location.",
-    "source": [
-      "lib/lease-documents/artifact-catalog.ts"
-    ],
+    "source": ["lib/lease-documents/artifact-catalog.ts"],
     "sourceText": "Approved animal agreement"
   },
   {
@@ -443,9 +401,7 @@
     "scope": "region:Renewal resource links",
     "availability": "required",
     "expectation": "Persistent labeled blank or reviewed location.",
-    "source": [
-      "lib/lease-documents/artifact-catalog.ts"
-    ],
+    "source": ["lib/lease-documents/artifact-catalog.ts"],
     "sourceText": "Approved lead-based-paint disclosure"
   },
   {
@@ -456,9 +412,7 @@
     "scope": "region:Renewal resource links",
     "availability": "required",
     "expectation": "Persistent labeled blank or reviewed location.",
-    "source": [
-      "lib/lease-documents/artifact-catalog.ts"
-    ],
+    "source": ["lib/lease-documents/artifact-catalog.ts"],
     "sourceText": "Approved city addendum"
   },
   {
@@ -469,9 +423,7 @@
     "scope": "region:Renewal resource links",
     "availability": "required",
     "expectation": "Persistent labeled blank or reviewed location.",
-    "source": [
-      "lib/lease-documents/artifact-catalog.ts"
-    ],
+    "source": ["lib/lease-documents/artifact-catalog.ts"],
     "sourceText": "Approved HOA artifact"
   },
   {
@@ -482,9 +434,7 @@
     "scope": "region:Renewal resource links",
     "availability": "required",
     "expectation": "Persistent labeled blank or reviewed location.",
-    "source": [
-      "lib/lease-documents/artifact-catalog.ts"
-    ],
+    "source": ["lib/lease-documents/artifact-catalog.ts"],
     "sourceText": "Approved owner acknowledgment"
   },
   {
@@ -495,9 +445,7 @@
     "scope": "region:Renewal resource links",
     "availability": "required",
     "expectation": "Recorded source location; separate applicability and legal approval.",
-    "source": [
-      "lib/lease-documents/artifact-catalog.ts"
-    ],
+    "source": ["lib/lease-documents/artifact-catalog.ts"],
     "sourceText": "Approved KCRAR additional disclosures"
   },
   {
@@ -508,9 +456,7 @@
     "scope": "region:Renewal resource links",
     "availability": "required",
     "expectation": "Recorded source location; separate applicability and legal approval.",
-    "source": [
-      "lib/lease-documents/artifact-catalog.ts"
-    ],
+    "source": ["lib/lease-documents/artifact-catalog.ts"],
     "sourceText": "Approved brokerage disclosure brochure"
   },
   {
@@ -521,9 +467,7 @@
     "scope": "region:Renewal resource links",
     "availability": "required",
     "expectation": "Recorded source location; separate applicability and legal approval.",
-    "source": [
-      "lib/lease-documents/artifact-catalog.ts"
-    ],
+    "source": ["lib/lease-documents/artifact-catalog.ts"],
     "sourceText": "Approved insurance program addendum"
   },
   {
@@ -560,9 +504,7 @@
     "scope": "complementary:Lease information",
     "availability": "conditional",
     "expectation": "Copy every source-backed tenant address once the panel is open.",
-    "source": [
-      "components/lease-renewal/RenewalCopyValue.tsx"
-    ],
+    "source": ["components/lease-renewal/RenewalCopyValue.tsx"],
     "sourceText": "Copy all {audience} emails"
   },
   {
@@ -573,9 +515,7 @@
     "scope": "region:Lease details",
     "availability": "required",
     "expectation": "Plain-language help for the section opens beside the heading; nothing changes.",
-    "source": [
-      "lib/lease-renewal/section-help.ts"
-    ],
+    "source": ["lib/lease-renewal/section-help.ts"],
     "aboutId": "section-lease-details"
   },
   {
@@ -586,9 +526,7 @@
     "scope": "region:Lease details",
     "availability": "required",
     "expectation": "Help explains what recording a term changes in the app and that RentVine is not edited.",
-    "source": [
-      "lib/lease-renewal/section-help.ts"
-    ],
+    "source": ["lib/lease-renewal/section-help.ts"],
     "aboutId": "lease-term"
   },
   {
@@ -599,9 +537,7 @@
     "scope": "region:Correct a lease fact",
     "availability": "required",
     "expectation": "Help names the input, the destination and the separate confirmation.",
-    "source": [
-      "lib/lease-renewal/section-help.ts"
-    ],
+    "source": ["lib/lease-renewal/section-help.ts"],
     "aboutId": "correct-a-fact"
   },
   {
@@ -612,9 +548,7 @@
     "scope": "region:Owner approval",
     "availability": "required",
     "expectation": "Help gives the communicate-then-record sequence; the app sends nothing.",
-    "source": [
-      "lib/lease-renewal/section-help.ts"
-    ],
+    "source": ["lib/lease-renewal/section-help.ts"],
     "aboutId": "section-owner"
   },
   {
@@ -625,9 +559,7 @@
     "scope": "region:Documents and completion",
     "availability": "required",
     "expectation": "Help separates staff-recorded work from provider-verified completion.",
-    "source": [
-      "lib/lease-renewal/section-help.ts"
-    ],
+    "source": ["lib/lease-renewal/section-help.ts"],
     "aboutId": "section-documents"
   },
   {
@@ -638,9 +570,7 @@
     "scope": "region:Owner message preparation",
     "availability": "conditional",
     "expectation": "Copy the complete To/Cc set the draft carries; a missing party refuses instead.",
-    "source": [
-      "components/lease-renewal/RenewalMessagePreparation.tsx"
-    ]
+    "source": ["components/lease-renewal/RenewalMessagePreparation.tsx"]
   },
   {
     "step": "53",
@@ -650,9 +580,7 @@
     "scope": "article:Review Sheet updates",
     "availability": "conditional",
     "expectation": "Prepare the complete owner address set from RentVine into the Owner emails column.",
-    "source": [
-      "components/lease-renewal/OperatingSheetPanel.tsx"
-    ],
+    "source": ["components/lease-renewal/OperatingSheetPanel.tsx"],
     "sourceText": "Preview {view.label} update"
   },
   {
@@ -663,9 +591,7 @@
     "scope": "article:Review Sheet updates",
     "availability": "conditional",
     "expectation": "Prepare the complete tenant address set from RentVine into the Tenant emails column.",
-    "source": [
-      "components/lease-renewal/OperatingSheetPanel.tsx"
-    ],
+    "source": ["components/lease-renewal/OperatingSheetPanel.tsx"],
     "sourceText": "Preview {view.label} update"
   },
   {
@@ -676,9 +602,7 @@
     "scope": "region:Lease details",
     "availability": "required",
     "expectation": "The one working area: values, charges, intents and destination status.",
-    "source": [
-      "components/lease-renewal/RenewalWorkspace.tsx"
-    ]
+    "source": ["components/lease-renewal/RenewalWorkspace.tsx"]
   },
   {
     "step": "56",
@@ -688,9 +612,7 @@
     "scope": "region:Rent and charges working area",
     "availability": "required",
     "expectation": "Jumps to the working current rent for a value that is wrong today.",
-    "source": [
-      "components/lease-renewal/RentAndCharges.tsx"
-    ]
+    "source": ["components/lease-renewal/RentAndCharges.tsx"]
   },
   {
     "step": "57",
@@ -713,9 +635,7 @@
     "scope": "region:Rent and charges working area",
     "availability": "required",
     "expectation": "Per-destination saved, prepared, applied, read-back or mismatch state.",
-    "source": [
-      "components/lease-renewal/RenewalCurrentRent.tsx"
-    ]
+    "source": ["components/lease-renewal/RenewalCurrentRent.tsx"]
   },
   {
     "step": "59",
@@ -725,9 +645,7 @@
     "scope": "region:Rent and charges working area",
     "availability": "conditional",
     "expectation": "Only with working renewal terms and a reviewed schedule.",
-    "source": [
-      "components/lease-renewal/RenewalFutureRent.tsx"
-    ]
+    "source": ["components/lease-renewal/RenewalFutureRent.tsx"]
   },
   {
     "step": "60",
@@ -737,9 +655,7 @@
     "scope": "article:Review RentVine updates",
     "availability": "conditional",
     "expectation": "Applies the one reviewed RentVine change once; this is its exact confirmation, followed by readback and a receipt.",
-    "source": [
-      "components/lease-renewal/RentvineUpdatesPanel.tsx"
-    ]
+    "source": ["components/lease-renewal/RentvineUpdatesPanel.tsx"]
   },
   {
     "step": "61",
@@ -749,9 +665,7 @@
     "scope": "article:Review RentVine updates",
     "availability": "conditional",
     "expectation": "Read the current state of each prepared RentVine effect again; nothing is applied.",
-    "source": [
-      "components/lease-renewal/RentvineUpdatesPanel.tsx"
-    ]
+    "source": ["components/lease-renewal/RentvineUpdatesPanel.tsx"]
   },
   {
     "step": "62",
@@ -761,9 +675,7 @@
     "scope": "region:Market rent comparison",
     "availability": "conditional",
     "expectation": "RentCast's own report for the resolved address, known unit attributes and the radius above; a missing address is named instead.",
-    "source": [
-      "components/lease-renewal/RenewalProgressControls.tsx"
-    ]
+    "source": ["components/lease-renewal/RenewalProgressControls.tsx"]
   },
   {
     "step": "63",
@@ -773,9 +685,7 @@
     "scope": "region:Market rent comparison",
     "availability": "conditional",
     "expectation": "The retained lookup's exact query on RentCast's site, not a copy of the saved result.",
-    "source": [
-      "components/lease-renewal/RenewalProgressControls.tsx"
-    ]
+    "source": ["components/lease-renewal/RenewalProgressControls.tsx"]
   },
   {
     "step": "64",
@@ -785,9 +695,7 @@
     "scope": "region:Staff status and Status log",
     "availability": "conditional",
     "expectation": "Choose where the work stands; the choice saves by itself with your identity and time, and nothing else changes.",
-    "source": [
-      "lib/lease-renewal/work-status.ts"
-    ]
+    "source": ["lib/lease-renewal/work-status.ts"]
   },
   {
     "step": "65",
@@ -797,9 +705,7 @@
     "scope": "region:Staff status and Status log",
     "availability": "conditional",
     "expectation": "Write context beneath the status; the note saves by itself as one log entry and the status stays as it is.",
-    "source": [
-      "lib/lease-renewal/work-status-notes.ts"
-    ]
+    "source": ["lib/lease-renewal/work-status-notes.ts"]
   },
   {
     "step": "66",
@@ -822,12 +728,8 @@
     "scope": "",
     "availability": "conditional",
     "expectation": "Filter the table by the saved staff status, including Not recorded, inside Filter status.",
-    "source": [
-      "lib/lease-renewal/work-status.ts"
-    ],
-    "actions": [
-      "click-link:All leases and filters"
-    ]
+    "source": ["lib/lease-renewal/work-status.ts"],
+    "actions": ["click-link:All leases and filters"]
   },
   {
     "step": "68",
@@ -838,9 +740,7 @@
     "availability": "required",
     "who": "Admin",
     "expectation": "The lease shows each shared entry's current state and opens its exact Connections entry; no edit form is repeated per lease.",
-    "source": [
-      "components/lease-renewal/RenewalResourceLinksSummary.tsx"
-    ]
+    "source": ["components/lease-renewal/RenewalResourceLinksSummary.tsx"]
   },
   {
     "step": "69",
@@ -850,9 +750,7 @@
     "scope": "region:Owner message preparation",
     "availability": "conditional",
     "expectation": "Present while the message carries Needs Verification markers; each item links to the control that resolves it.",
-    "source": [
-      "components/lease-renewal/RenewalMessagePreparation.tsx"
-    ]
+    "source": ["components/lease-renewal/RenewalMessagePreparation.tsx"]
   },
   {
     "step": "70",
@@ -862,9 +760,7 @@
     "scope": "region:Tenant message preparation",
     "availability": "required",
     "expectation": "Its help names the exact paragraph the wording replaces; the current paragraph is shown under it.",
-    "source": [
-      "components/lease-renewal/RenewalMessagePreparation.tsx"
-    ]
+    "source": ["components/lease-renewal/RenewalMessagePreparation.tsx"]
   },
   {
     "step": "71",
@@ -874,9 +770,7 @@
     "scope": "region:Document preparation and signature handoff",
     "availability": "required",
     "expectation": "Property, parties, lease end, approved terms and pending source updates with their origin and links; nothing is filled into a PDF or Dotloop.",
-    "source": [
-      "components/lease-renewal/RenewalDocumentHandoff.tsx"
-    ]
+    "source": ["components/lease-renewal/RenewalDocumentHandoff.tsx"]
   },
   {
     "step": "72",
@@ -886,9 +780,7 @@
     "scope": "region:Renewal resource links",
     "availability": "required",
     "expectation": "Persistent labeled blank or reviewed location, maintained once for every lease.",
-    "source": [
-      "lib/lease-renewal/resource-locations.ts"
-    ]
+    "source": ["lib/lease-renewal/resource-locations.ts"]
   },
   {
     "step": "73",
@@ -898,9 +790,7 @@
     "scope": "",
     "availability": "required",
     "expectation": "The working month's batch, the view the bare Renewals address opens.",
-    "source": [
-      "components/lease-renewal/RenewalWorkingBatch.tsx"
-    ]
+    "source": ["components/lease-renewal/RenewalWorkingBatch.tsx"]
   },
   {
     "step": "74",
@@ -910,9 +800,7 @@
     "scope": "region:Working batch",
     "availability": "required",
     "expectation": "The working month's leases; a row's address or next step link opens the lease in this tab.",
-    "source": [
-      "lib/lease-renewal/renewal-batch.ts"
-    ]
+    "source": ["lib/lease-renewal/renewal-batch.ts"]
   },
   {
     "step": "75",
@@ -922,9 +810,7 @@
     "scope": "region:Working batch",
     "availability": "required",
     "expectation": "Opens the full lease table with its views, filters, sorts and URL keys.",
-    "source": [
-      "components/lease-renewal/RenewalWorkingBatch.tsx"
-    ]
+    "source": ["components/lease-renewal/RenewalWorkingBatch.tsx"]
   },
   {
     "step": "76",
@@ -934,9 +820,7 @@
     "scope": "region:Working batch",
     "availability": "conditional",
     "expectation": "Opens a saved worklist view; the bare route never applies one by itself.",
-    "source": [
-      "components/lease-renewal/RenewalWorkingBatch.tsx"
-    ]
+    "source": ["components/lease-renewal/RenewalWorkingBatch.tsx"]
   },
   {
     "step": "77",
@@ -946,9 +830,7 @@
     "scope": "region:This batch",
     "availability": "conditional",
     "expectation": "Runs the batch preparation one lease at a time when chosen.",
-    "source": [
-      "lib/lease-renewal/renewal-preparation.ts"
-    ]
+    "source": ["lib/lease-renewal/renewal-preparation.ts"]
   },
   {
     "step": "78",
@@ -958,9 +840,7 @@
     "scope": "group:Lease view",
     "availability": "required",
     "expectation": "The default lease view: the path strip and one Now card.",
-    "source": [
-      "lib/lease-renewal/workspace-view.ts"
-    ],
+    "source": ["lib/lease-renewal/workspace-view.ts"],
     "actions": []
   },
   {
@@ -971,9 +851,7 @@
     "scope": "group:Lease view",
     "availability": "required",
     "expectation": "One task at a time; switching views saves nothing.",
-    "source": [
-      "lib/lease-renewal/workspace-view.ts"
-    ],
+    "source": ["lib/lease-renewal/workspace-view.ts"],
     "actions": []
   },
   {
@@ -984,9 +862,7 @@
     "scope": "region:Guided view",
     "availability": "required",
     "expectation": "Every step of this lease's path with its state; choosing a step saves nothing.",
-    "source": [
-      "components/lease-renewal/RenewalGuidedView.tsx"
-    ],
+    "source": ["components/lease-renewal/RenewalGuidedView.tsx"],
     "actions": []
   },
   {
@@ -997,9 +873,7 @@
     "scope": "region:Guided view",
     "availability": "required",
     "expectation": "The step being worked, with one primary action and the step's own controls in place.",
-    "source": [
-      "components/lease-renewal/RenewalGuidedView.tsx"
-    ],
+    "source": ["components/lease-renewal/RenewalGuidedView.tsx"],
     "actions": []
   },
   {
@@ -1010,9 +884,7 @@
     "scope": "region:Now",
     "availability": "required",
     "expectation": "Opens the note box in Staff status and Status log.",
-    "source": [
-      "components/lease-renewal/RenewalGuidedView.tsx"
-    ],
+    "source": ["components/lease-renewal/RenewalGuidedView.tsx"],
     "actions": []
   },
   {
@@ -1023,9 +895,7 @@
     "scope": "region:Now",
     "availability": "required",
     "expectation": "Opens Work status (recorded by staff); a hand-set status that differs from the stage shows both.",
-    "source": [
-      "components/lease-renewal/RenewalGuidedView.tsx"
-    ],
+    "source": ["components/lease-renewal/RenewalGuidedView.tsx"],
     "actions": []
   },
   {
@@ -1036,9 +906,7 @@
     "scope": "region:Guided view",
     "availability": "required",
     "expectation": "Shows the owner message step on the Now card.",
-    "source": [
-      "lib/lease-renewal/renewal-path.ts"
-    ],
+    "source": ["lib/lease-renewal/renewal-path.ts"],
     "actions": []
   },
   {
@@ -1049,12 +917,8 @@
     "scope": "region:Now",
     "availability": "conditional",
     "expectation": "Opens the exact review of the prepared owner message; nothing is sent until Send this message.",
-    "source": [
-      "lib/lease-renewal/renewal-preparation.ts"
-    ],
-    "actions": [
-      "click-button:Ask the owner"
-    ]
+    "source": ["lib/lease-renewal/renewal-preparation.ts"],
+    "actions": ["click-button:Ask the owner"]
   },
   {
     "step": "86",
@@ -1064,11 +928,7 @@
     "scope": "region:Now",
     "availability": "conditional",
     "expectation": "The stored comparison, Rent to recommend, Reason to include and the message preview.",
-    "source": [
-      "components/lease-renewal/RenewalPreparedMessage.tsx"
-    ],
-    "actions": [
-      "click-button:Ask the owner"
-    ]
+    "source": ["components/lease-renewal/RenewalPreparedMessage.tsx"],
+    "actions": ["click-button:Ask the owner"]
   }
 ]

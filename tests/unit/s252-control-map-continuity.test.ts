@@ -47,9 +47,9 @@ describe("S252 L54: the starting commit's control map rows are all still found",
     const result = renewalControlMapContinuity(starting.rows, RENEWAL_CONTROL_MAP);
     expect(result.problems).toEqual([]);
     expect(result.rows).toHaveLength(70);
-    expect(result.rows.every((row) => row.state === "kept" || row.state === "renamed")).toBe(
-      true,
-    );
+    expect(
+      result.rows.every((row) => row.state === "kept" || row.state === "renamed"),
+    ).toBe(true);
   });
 
   it("every rename names the old label and role it replaced and a different new name", () => {
@@ -71,7 +71,9 @@ describe("S252 L54: the starting commit's control map rows are all still found",
 
   it("a renamed row without its recorded old name fails", () => {
     const renamed = RENEWAL_CONTROL_MAP.map((row) =>
-      row.step === "4" ? { ...row, control: "Apply the month", formerly: undefined } : row,
+      row.step === "4"
+        ? { ...row, control: "Apply the month", formerly: undefined }
+        : row,
     );
     expect(renewalControlMapContinuity(starting.rows, renamed).problems).toEqual([
       'Starting control map row 4 (button "Apply month" on /lease-renewal) is now button "Apply the month" with no recorded former name.',

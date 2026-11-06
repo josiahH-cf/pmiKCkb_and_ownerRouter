@@ -65,9 +65,7 @@
       },
       "region": "page",
       "frame": "viewport",
-      "actions": [
-        "click-button:Operations"
-      ],
+      "actions": ["click-button:Operations"],
       "source": "rehearsal",
       "alt": "The Operations menu open in the top bar, listing Lease Renewal and Internal Processes with their descriptions.",
       "caption": "Each top bar menu lists its destinations with a short description."
@@ -153,11 +151,9 @@
       },
       "region": "region:Now",
       "frame": "viewport",
-      "actions": [
-        "click-button:Ask the owner"
-      ],
+      "actions": ["click-button:Ask the owner"],
       "source": "rehearsal",
-      "alt": "The Now card on Ask the owner, with its next step, the owner message, What sending needs and the message preview.",
+      "alt": "The Now card on Ask the owner, with Review and send, the owner message, What sending needs and the message preview.",
       "caption": "Ask the owner on the Now card shows the prepared owner message and what sending needs."
     },
     {
@@ -207,9 +203,7 @@
       },
       "region": "css:.renewal-workspace-toolbar",
       "frame": "region",
-      "actions": [
-        "click-button:Full view"
-      ],
+      "actions": ["click-button:Full view"],
       "source": "rehearsal",
       "alt": "The lease workspace header in Full view, with the lease identity, the Lease view switch, Lease information, Process guide and the section links.",
       "caption": "Full view shows every section with links to each one."
@@ -227,9 +221,7 @@
       },
       "region": "heading:Lease details",
       "frame": "viewport",
-      "actions": [
-        "click-button:Full view"
-      ],
+      "actions": ["click-button:Full view"],
       "source": "rehearsal",
       "alt": "The Lease details section with its About button and the Lease term card.",
       "caption": "Lease details shows the facts the app read from RentVine and the operating Sheet."
@@ -247,9 +239,7 @@
       },
       "region": "region:Now",
       "frame": "viewport",
-      "actions": [
-        "click-button:Compare market rent"
-      ],
+      "actions": ["click-button:Compare market rent"],
       "source": "rehearsal",
       "alt": "The Now card on Compare market rent, with the step's next step, what is ready and the comparison controls.",
       "caption": "Compare market rent on the Now card holds the comparison and the rent to recommend."
@@ -267,9 +257,7 @@
       },
       "region": "heading:Tenant offer and response",
       "frame": "viewport",
-      "actions": [
-        "click-button:Full view"
-      ],
+      "actions": ["click-button:Full view"],
       "source": "rehearsal",
       "alt": "The Tenant offer and response section with Tenant message preparation.",
       "caption": "Tenant offer and response holds the tenant message, delivery and response."
@@ -287,9 +275,7 @@
       },
       "region": "region:Update status by destination",
       "frame": "viewport",
-      "actions": [
-        "click-button:Full view"
-      ],
+      "actions": ["click-button:Full view"],
       "source": "rehearsal",
       "alt": "Update status by destination in Rent and charges, one row per destination.",
       "caption": "Update status by destination shows what is saved, prepared and applied."
@@ -307,9 +293,7 @@
       },
       "region": "region:Owner message preparation",
       "frame": "viewport",
-      "actions": [
-        "click-button:Full view"
-      ],
+      "actions": ["click-button:Full view"],
       "source": "rehearsal",
       "alt": "Owner message preparation in Owner approval, with the subject, body and copy buttons.",
       "caption": "The owner message is prepared from the lease facts and the saved comparison."
@@ -345,9 +329,7 @@
       },
       "region": "region:Document preparation and signature handoff",
       "frame": "viewport",
-      "actions": [
-        "click-button:Full view"
-      ],
+      "actions": ["click-button:Full view"],
       "source": "rehearsal",
       "alt": "Document preparation and signature handoff with the Dotloop line and the readiness rows.",
       "caption": "The readiness rows say which packet actions are available."
@@ -501,9 +483,7 @@
       },
       "region": "page",
       "frame": "viewport",
-      "actions": [
-        "click-button:Notifications"
-      ],
+      "actions": ["click-button:Notifications"],
       "source": "rehearsal",
       "alt": "The Notifications panel open from the top bar.",
       "caption": "Notifications opens from the top bar on every page."
@@ -513,46 +493,32 @@
     {
       "role": "Admin",
       "route": "/",
-      "actions": [
-        "click-button:My Work Contains current page"
-      ]
+      "actions": ["click-button:My Work Contains current page"]
     },
     {
       "role": "Admin",
       "route": "/lease-renewal/live/desk/lease/[leaseId]",
-      "actions": [
-        "click-button:Full view"
-      ]
+      "actions": ["click-button:Full view"]
     },
     {
       "role": "Admin",
       "route": "/lease-renewal/live/desk/lease/[leaseId]",
-      "actions": [
-        "click-button:Full view",
-        "click-button:Lease information"
-      ]
+      "actions": ["click-button:Full view", "click-button:Lease information"]
     },
     {
       "role": "Admin",
       "route": "/lease-renewal/live/desk/lease/[leaseId]",
-      "actions": [
-        "click-button:Full view",
-        "click-button:Process guide"
-      ]
+      "actions": ["click-button:Full view", "click-button:Process guide"]
     },
     {
       "role": "Editor",
       "route": "/lease-renewal/live/desk/lease/[leaseId]",
-      "actions": [
-        "click-button:Full view"
-      ]
+      "actions": ["click-button:Full view"]
     },
     {
       "role": "Editor",
       "route": "/",
-      "actions": [
-        "click-button:Admin"
-      ]
+      "actions": ["click-button:Admin"]
     },
     {
       "role": "Editor",
@@ -577,10 +543,7 @@
     {
       "role": "Admin",
       "route": "/lease-renewal/live/desk",
-      "actions": [
-        "click-link:All leases and filters",
-        "open-summary:Filter renewal date"
-      ]
+      "actions": ["click-link:All leases and filters", "open-summary:Filter renewal date"]
     },
     {
       "role": "Editor",
@@ -600,9 +563,7 @@
     {
       "role": "Editor",
       "route": "/lease-renewal/live/desk/lease/5001",
-      "actions": [
-        "click-button:Focus view"
-      ]
+      "actions": ["click-button:Focus view"]
     },
     {
       "role": "Editor",

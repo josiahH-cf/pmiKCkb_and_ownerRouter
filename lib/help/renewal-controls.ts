@@ -67,7 +67,13 @@ export function renewalControlMapContinuity(
     const row = byStep.get(old.step);
     const was = `${old.role} "${old.control}" on ${old.page}`;
     if (!row) {
-      rows.push({ step: old.step, page: old.page, was: old.control, now: null, state: "gone" });
+      rows.push({
+        step: old.step,
+        page: old.page,
+        was: old.control,
+        now: null,
+        state: "gone",
+      });
       problems.push(
         `Starting control map row ${old.step} (${was}) is gone from the current map.`,
       );
