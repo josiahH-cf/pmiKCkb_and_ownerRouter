@@ -55,6 +55,17 @@ const API_EXPECTATIONS = [
     "POST",
     "manage_follow_up_attention",
   ],
+  [
+    "app/api/lease-renewal/kickoff-preparation/route.ts",
+    "POST",
+    "request_reference_comps",
+  ],
+  ["app/api/lease-renewal/kickoff-settings/route.ts", "GET", "read_workspace"],
+  [
+    "app/api/lease-renewal/kickoff-settings/route.ts",
+    "POST",
+    "manage_renewal_configuration",
+  ],
   ["app/api/lease-renewal/market-comps/route.ts", "POST", "request_reference_comps"],
   ["app/api/lease-renewal/packet-truth/route.ts", "GET", "read_workspace"],
   ["app/api/lease-renewal/packet-truth/route.ts", "POST", "save_packet_truth"],

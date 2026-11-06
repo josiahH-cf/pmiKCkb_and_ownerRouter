@@ -24,8 +24,10 @@ import {
   createPartyFilterResolver,
   readPartyFilterKeyConfig,
 } from "@/lib/lease-renewal/party-filter-key";
-import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
-import { can } from "@/lib/auth/roles";
+import {
+  hasRenewalRoleAuthority,
+  renewalRoleCapability,
+} from "@/lib/lease-renewal/role-action-governance";
 import { isVerificationAccount } from "@/lib/auth/canary-policy";
 import { resolveRehearsalStandIn } from "@/lib/environment/rehearsal-stand-in";
 import { readKickoffAutomaticStart } from "@/lib/firestore/renewal-kickoff-settings";
@@ -188,7 +190,9 @@ export default async function LiveRenewalDeskPage({
     entry.surface === "batch"
       ? await readKickoffAutomaticStart().catch(() => null)
       : null;
-  const canPrepare = can(user.role, "edit") && !isVerificationAccount(user);
+  const canPrepare =
+    hasRenewalRoleAuthority("request_reference_comps", user.role) &&
+    !isVerificationAccount(user);
   const batch =
     entry.surface === "batch" && outcome.status === "ok"
       ? {
@@ -198,7 +202,9 @@ export default async function LiveRenewalDeskPage({
               ? {
                   enabled: automaticStart.enabled,
                   version: automaticStart.version,
-                  canChange: user.role === "Admin" && !isVerificationAccount(user),
+                  canChange:
+                    hasRenewalRoleAuthority("manage_renewal_configuration", user.role) &&
+                    !isVerificationAccount(user),
                 }
               : null,
             rehearsal: resolveRehearsalStandIn() !== null,

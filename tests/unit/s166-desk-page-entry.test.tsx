@@ -90,6 +90,13 @@ vi.mock("@/lib/lease-renewal/renewal-batch-row", () => ({
   projectRenewalBatchRows: (rows: readonly { id: string }[]) =>
     rows.map((row) => ({ leaseId: row.id })),
 }));
+// S249: the batch reads the one reviewed automatic-start setting; this file never saves it.
+vi.mock("@/lib/firestore/renewal-kickoff-settings", () => ({
+  readKickoffAutomaticStart: async () => ({ enabled: true, version: 1 }),
+  saveKickoffAutomaticStart: async () => {
+    throw new Error("Opening the worklist must never save the automatic-start setting.");
+  },
+}));
 vi.mock("@/lib/firestore/renewal-desk-preferences", () => ({
   deskPreferenceModeFor: () => "saved",
   getRenewalDeskPreference: async (actor: AuthenticatedUser) => {

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
-import { requireCapability, requireCapabilityInSpace } from "@/lib/auth/session";
+import { requireCapabilityInSpace } from "@/lib/auth/session";
 import {
   assertMutationAllowed,
   requireEnvironmentDescriptor,
@@ -14,8 +14,8 @@ import {
 import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
 
 // S249 ARCH-S249-4: the one reviewed setting for the automatic start of batch preparation. Staff
-// read it; an Admin changes it in the app, bound to the version shown, with a reason. Changing it
-// needs no release and no environment key.
+// read it; an Admin changes it in the app (the renewal configuration authority), bound to the
+// version shown, with a reason. Changing it needs no release and no environment key.
 
 const SaveSchema = z
   .object({
@@ -38,7 +38,10 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const actor = await requireCapability("manageAdmin");
+    const actor = await requireCapabilityInSpace(
+      renewalRoleCapability("manage_renewal_configuration"),
+      "renewals",
+    );
     const input = await parseJsonBody(request, SaveSchema);
     assertMutationAllowed(requireEnvironmentDescriptor());
     return NextResponse.json(await saveKickoffAutomaticStart(actor, input), { headers });
