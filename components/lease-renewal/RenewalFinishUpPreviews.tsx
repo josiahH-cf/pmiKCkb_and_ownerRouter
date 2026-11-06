@@ -16,7 +16,7 @@ import type {
 import { focusRenewalDashboardControl } from "./RenewalDashboardNavigation";
 import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
 import { useRenewalPricingPolicy } from "./RenewalPricingPolicy";
-import { adoptedStandingRule } from "@/lib/lease-renewal/standing-agreement";
+import { standingRuleBasis } from "@/lib/lease-renewal/standing-agreement";
 import { SourceUpdatePreview } from "./SourceUpdatePreview";
 
 export const FINISH_UP_WORDS = {
@@ -94,14 +94,10 @@ export function FinishUpSourcePreviews({
   const pricing = useRenewalPricingPolicy();
   // S250 R-S250-8: where the final rent is the standing agreement's rule, the previews name the
   // rule as their basis: the agreement still covers the lease, or the rent was adopted from it.
-  const authority = pricing?.view?.authority;
-  const rentEntry = working?.record?.fields.terms_rent ?? null;
-  const ruleBasis =
-    authority?.covered && authority.kind === "standing" && authority.basis
-      ? authority.basis
-      : rentEntry && adoptedStandingRule(rentEntry)
-        ? (rentEntry.sourceLabel ?? null)
-        : null;
+  const ruleBasis = standingRuleBasis(
+    pricing?.view?.authority,
+    working?.record?.fields.terms_rent ?? null,
+  );
   const live = working
     ? effectiveRenewalTerms(working.record ?? null).complete
     : undefined;

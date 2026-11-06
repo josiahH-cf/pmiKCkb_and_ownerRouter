@@ -22,6 +22,7 @@ import {
 import {
   housingAssistanceFact,
   workingEntry,
+  workingRenewalTerms,
   type HousingAssistanceValue,
 } from "@/lib/lease-renewal/working-record";
 import { currentRentChoice } from "@/lib/lease-renewal/workspace-state";
@@ -29,6 +30,25 @@ import { useRenewalManualWorkspace } from "./RenewalManualWorkspace";
 import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
 
 const FIELD = "housing_assistance";
+
+const usd = (amount: number) =>
+  `$${amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+
+/**
+ * S251 R-S251-6: whether "Keep the current rent" would replace a working rent staff already
+ * saved (a different amount). Such a replacement is asked for first, never made silently.
+ */
+export function keepCurrentRentReplaces(
+  savedWorkingRent: number | null,
+  currentRent: number | null,
+): boolean {
+  return (
+    savedWorkingRent !== null &&
+    currentRent !== null &&
+    currentRent > 0 &&
+    Math.abs(savedWorkingRent - currentRent) >= 0.005
+  );
+}
 
 /** The words the field and the desk read (R-S251-1). */
 export const HOUSING_ASSISTANCE_WORDS = {
@@ -240,11 +260,15 @@ export function AssistedRenewalControls({
   const [when, setWhen] = useState("");
   const [rent, setRent] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
+  // A working rent staff already saved is never replaced without asking.
+  const [confirmReplace, setConfirmReplace] = useState(false);
   if (!manual) return null;
   const fact = housingAssistanceFact(working?.record);
   const program = fact?.status === "yes" ? fact.program : null;
   const recordedAnswer = manual.state?.ownerResponse?.outcome ?? null;
   const recordedRent = currentRentChoice(manual.state);
+  const savedWorkingRent = workingRenewalTerms(working?.record ?? null).rent;
+  const replaces = keepCurrentRentReplaces(savedWorkingRent, currentRent);
   async function recordAnswer() {
     if (!manual || !answer) return;
     const occurredAt = toIso(when);
@@ -261,15 +285,33 @@ export function AssistedRenewalControls({
       setNotice("The owner's answer was not recorded yet. Your choice is kept.");
     }
   }
-  async function recordRent() {
+  /**
+   * Record the rent choice. Keep the current rent with a different working rent already saved
+   * asks first: replace it with the current rent, or record the choice and keep the saved rent.
+   */
+  async function recordRent(replaceSaved?: boolean) {
     if (!manual || !rent) return;
+    if (rent === "keep_current" && replaces && replaceSaved === undefined) {
+      setConfirmReplace(true);
+      return;
+    }
+    setConfirmReplace(false);
     try {
       await manual.record({
         kind: "rent_choice",
         choice: rent as "keep_current" | "propose_change",
       });
+      if (rent === "keep_current" && replaceSaved === false)
+        setNotice(
+          "Recorded: keep the current rent. The working rent you saved stays as it is; change it in Working renewal terms when you are ready.",
+        );
       // Keep sets the working rent to the current rent as a recorded staff choice.
-      if (rent === "keep_current" && working && currentRent !== null && currentRent > 0) {
+      else if (
+        rent === "keep_current" &&
+        working &&
+        currentRent !== null &&
+        currentRent > 0
+      ) {
         const ok = await working.save("terms_rent", currentRent, {
           origin: "adopted_source",
           sourceLabel: "RentVine contractual base rent",
@@ -380,7 +422,10 @@ export function AssistedRenewalControls({
                 checked={rent === option.value}
                 disabled={manual.pending}
                 name={`${id}-rent`}
-                onChange={() => setRent(option.value)}
+                onChange={() => {
+                  setRent(option.value);
+                  setConfirmReplace(false);
+                }}
                 type="radio"
                 value={option.value}
               />
@@ -397,6 +442,36 @@ export function AssistedRenewalControls({
             Record the rent choice
           </Button>
         </p>
+        {confirmReplace && savedWorkingRent !== null && currentRent !== null ? (
+          <div
+            className="ui-stack-tight"
+            data-renewal-field="assisted-rent-replace"
+            role="group"
+            aria-label="Replace the saved working rent?"
+          >
+            <p>
+              The working rent you saved is {usd(savedWorkingRent)}. Keep the current rent
+              sets it to {usd(currentRent)}.
+            </p>
+            <p className="ui-row">
+              <Button
+                disabled={manual.pending}
+                onClick={() => void recordRent(true)}
+                size="compact"
+              >
+                Replace it with the current rent
+              </Button>
+              <Button
+                disabled={manual.pending}
+                onClick={() => void recordRent(false)}
+                size="compact"
+                variant="secondary"
+              >
+                Keep the saved working rent
+              </Button>
+            </p>
+          </div>
+        ) : null}
       </section>
       {notice ? <p role="status">{notice}</p> : null}
     </div>

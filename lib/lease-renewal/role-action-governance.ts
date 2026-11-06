@@ -778,6 +778,28 @@ export const RENEWAL_CONTROL_INVENTORY = [
     enforcementSources: ["app/api/lease-renewal/workspace/route.ts"],
   },
   {
+    // S251 R-S251-5: "Ask the owner whether to renew this tenant" (Renew, Do not renew, No answer
+    // yet), recorded on the existing owner response.
+    control: "Record the owner's answer on renewing an assisted lease",
+    source: "components/lease-renewal/RenewalHousingAssistance.tsx",
+    capability: "save_renewal_progress",
+    enforcementSources: ["app/api/lease-renewal/workspace/route.ts"],
+  },
+  {
+    // S251 R-S251-6: "Rent for this renewal" (Keep the current rent, Propose a change).
+    control: "Record the rent choice for an assisted lease",
+    source: "components/lease-renewal/RenewalHousingAssistance.tsx",
+    capability: "save_renewal_progress",
+    enforcementSources: ["app/api/lease-renewal/workspace/route.ts"],
+  },
+  {
+    // S251 R-S251-6: Keep the current rent sets the working rent, asking first over a saved one.
+    control: "Set the working rent to the current rent when keeping it",
+    source: "components/lease-renewal/RenewalHousingAssistance.tsx",
+    capability: "save_working_record",
+    enforcementSources: ["app/api/lease-renewal/working-record/route.ts"],
+  },
+  {
     control: "Prepare filled output from reviewed source values",
     source: "components/lease-renewal/FilledArtifactPanel.tsx",
     capability: "prepare_filled_artifact",
@@ -846,6 +868,14 @@ export const RENEWAL_CONTROL_INVENTORY = [
   {
     control: "Save a working value or working renewal term",
     source: "components/lease-renewal/RenewalWorkingRecord.tsx",
+    capability: "save_working_record",
+    enforcementSources: ["app/api/lease-renewal/working-record/route.ts"],
+  },
+  {
+    // S251 R-S251-1 / ARCH-S251-1: the lease's Housing assistance fact (not set, No, or Yes with
+    // the program), saved by itself on the lease-bound working record with who and when.
+    control: "Save the Housing assistance field",
+    source: "components/lease-renewal/RenewalHousingAssistance.tsx",
     capability: "save_working_record",
     enforcementSources: ["app/api/lease-renewal/working-record/route.ts"],
   },

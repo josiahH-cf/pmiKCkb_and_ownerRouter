@@ -244,6 +244,20 @@ export class RenewalPricingPolicyStore {
       .get();
     return d.exists ? (d.data() as RenewalPricingPolicy) : null;
   }
+  /** S250 R-S250-7: one recorded version of a policy (every version is kept), or null. */
+  async policyVersion(a: AuthenticatedUser, policyId: string, version: number) {
+    assertActor(a, "read");
+    z.string().uuid().parse(policyId);
+    z.number().int().positive().parse(version);
+    const d = await this.db
+      .collection(RENEWAL_PRICING_COLLECTIONS.versions)
+      .doc(`${policyId}_${version}`)
+      .get();
+    if (!d.exists) return null;
+    const { policyId: _, ...policy } = d.data()!;
+    void _;
+    return policy as RenewalPricingPolicy;
+  }
   async assignment(a: AuthenticatedUser, scope: "portfolio" | "lease", sourceId: string) {
     assertActor(a, "read");
     id.parse(sourceId);
@@ -549,6 +563,20 @@ export class RenewalPricingPolicyStore {
         return next;
       },
     );
+  }
+  /**
+   * S250 R-S250-9: every recorded S194 exact per-cycle agreement (its current version), for the
+   * Admin list beside the standing agreements. Bounded; a read past the bound asks for review.
+   */
+  async allExactAgreements(a: AuthenticatedUser) {
+    assertActor(a, "read");
+    const rows = await this.db
+      .collection(RENEWAL_PRICING_COLLECTIONS.agreements)
+      .limit(101)
+      .get();
+    if (rows.size > 100)
+      throw new EditableLayerError("Agreement history needs a bounded review.", 409);
+    return rows.docs.map((d) => d.data() as StandingOwnerAgreement);
   }
   async agreements(a: AuthenticatedUser, leaseId: string) {
     assertActor(a, "read");

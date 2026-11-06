@@ -12,6 +12,9 @@ import type {
   StandingAgreement,
   StandingAgreementInput,
 } from "@/lib/lease-renewal/standing-agreement";
+import type { OwnerPolicyRule } from "@/lib/firestore/owner-policy-rules";
+const usd = (amount: number) =>
+  `$${amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
 const blank: RenewalPricingPolicyInput = {
   id: "",
   name: "",
@@ -29,7 +32,12 @@ function pricingAdminFailure(error: unknown, fallback: string) {
     ? error.message
     : waitFailureMessage(error, fallback);
 }
-export function RenewalPricingPolicyAdmin() {
+export function RenewalPricingPolicyAdmin({
+  olderRules = [],
+}: Readonly<{
+  /** S250 R-S250-9: the older (S62) portfolio rules, listed beside the standing agreements. */
+  olderRules?: readonly OwnerPolicyRule[];
+}> = {}) {
   const [policies, setPolicies] = useState<RenewalPricingPolicy[]>([]),
     [cursor, setCursor] = useState<string | null>(null),
     [policy, setPolicy] = useState(blank),
@@ -300,6 +308,7 @@ export function RenewalPricingPolicyAdmin() {
         policies={policies}
         command={command}
         pending={pending}
+        olderRules={olderRules}
       />
       <StandingAgreementEditor policies={policies} command={command} pending={pending} />
       {message ? <p role="status">{message}</p> : null}
@@ -575,16 +584,19 @@ function PortfolioStandingAgreementEditor({
   policies,
   command,
   pending,
+  olderRules,
 }: Readonly<{
   policies: RenewalPricingPolicy[];
   command: (
     input: object,
   ) => Promise<{ standingAgreement?: StandingAgreement } | undefined>;
   pending: boolean;
+  olderRules: readonly OwnerPolicyRule[];
 }>) {
   const [agreement, setAgreement] = useState(emptyPortfolioAgreement),
     [version, setVersion] = useState(0),
     [rows, setRows] = useState<PortfolioAgreementRow[]>([]),
+    [exactRows, setExactRows] = useState<StandingOwnerAgreement[] | null>(null),
     [notice, setNotice] = useState("");
   const read = useCallback(async () => {
     try {
@@ -595,6 +607,7 @@ function PortfolioStandingAgreementEditor({
           p.error ?? "Standing agreements could not be read.",
         );
       setRows(p.standingAgreements ?? []);
+      setExactRows(p.exactAgreements ?? []);
     } catch (e) {
       setNotice(pricingAdminFailure(e, "Standing agreements could not be read."));
     }
@@ -688,6 +701,44 @@ function PortfolioStandingAgreementEditor({
         </ul>
       ) : (
         <p className="muted">No standing agreement is recorded yet.</p>
+      )}
+      {/* R-S250-9: the records that keep working as they do today, beside the new ones. */}
+      <h4>Exact per-cycle agreements</h4>
+      <p>
+        Each covers only its listed leases, one cycle and its exact rent and dates, as
+        before. Inspect or revoke one under Standing owner authority below.
+      </p>
+      {exactRows === null ? null : exactRows.length ? (
+        <ul aria-label="Exact per-cycle agreements">
+          {exactRows.map((row) => (
+            <li key={row.id}>
+              Portfolio {row.portfolioId}, leases {row.leaseIds.join(", ")}, cycle{" "}
+              {formatCalendarDate(row.cycleDate)}: {usd(row.terms.rent)} from{" "}
+              {formatCalendarDate(row.terms.effectiveDate)} to{" "}
+              {formatCalendarDate(row.terms.endDate)}, version {row.version}
+              {row.revoked ? ", revoked" : `, until ${formatCalendarDate(row.expiresOn)}`}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>No exact per-cycle agreement is recorded.</p>
+      )}
+      <h4>Older portfolio rules</h4>
+      <p>
+        Legacy rules retain their original values and history. A reusable assignment
+        replaces their future proposal basis; it does not rewrite an old approval.
+      </p>
+      {olderRules.length ? (
+        <ul aria-label="Older portfolio rules">
+          {olderRules.map((rule) => (
+            <li key={rule.portfolioId}>
+              Portfolio {rule.portfolioId}: +{rule.percent}%, effective{" "}
+              {formatCalendarDate(rule.effectiveFrom)}. {rule.note}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>No older portfolio rule is recorded.</p>
       )}
       {text("name", "Agreement name")}
       <Field htmlFor="standing-policy" label="Pricing rule">

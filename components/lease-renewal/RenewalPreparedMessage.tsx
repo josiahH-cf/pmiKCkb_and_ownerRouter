@@ -44,6 +44,11 @@ import { focusRenewalDashboardControl } from "./RenewalDashboardNavigation";
 import { RentToRecommendField, StoredComparisonSummary } from "./RenewalKickoffFields";
 import { nowSlotKey, useRenewalNowCard } from "./RenewalNowCardContext";
 import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
+import { useRenewalPricingPolicy } from "./RenewalPricingPolicy";
+import {
+  STANDING_AGREEMENT_WORDS,
+  standingRuleBasis,
+} from "@/lib/lease-renewal/standing-agreement";
 
 export interface PreparedSignatureFields {
   readonly name: string;
@@ -61,6 +66,7 @@ export type PreparedMessageData = Omit<
   | "copy"
   | "openComposer"
   | "draft"
+  | "rebuildRule"
 > & {
   readonly draft: Omit<
     PreparedMessageApi["draft"],
@@ -78,6 +84,8 @@ export interface PreparedMessageHandlers {
   readonly onOpenComposer: PreparedMessageApi["openComposer"];
   readonly onDraftPreview: PreparedMessageApi["draft"]["requestPreview"];
   readonly onDraftCreate: PreparedMessageApi["draft"]["create"];
+  /** S250 R-S250-7: save the message on the agreement's current rule. */
+  readonly onRebuildRule?: PreparedMessageApi["rebuildRule"];
 }
 
 export interface PreparedMessageApi {
@@ -95,6 +103,18 @@ export interface PreparedMessageApi {
   readonly templateApproved: boolean;
   /** When the message record was last saved. */
   readonly lastEditedAt: string | null;
+  /**
+   * S250 R-S250-7: the message record was built on an earlier version of the standing
+   * agreement's rule and keeps that rule's rent; null otherwise.
+   */
+  readonly earlierRule?: {
+    readonly agreement: string;
+    readonly earlier: string;
+    readonly current: string;
+    readonly currentRent: number;
+  } | null;
+  /** S250 R-S250-7: rebuild the message on the current rule (a deliberate choice). */
+  readonly rebuildRule?: () => Promise<void>;
   /** The marked values the message still carries, in its own words. */
   readonly marked: readonly string[];
   readonly signaturePresent: boolean;
@@ -260,11 +280,13 @@ export function PreparedMessageSlot({
   onOpenComposer,
   onDraftPreview,
   onDraftCreate,
+  onRebuildRule,
 }: Readonly<{ data: PreparedMessageData } & PreparedMessageHandlers>) {
   const nowCard = useRenewalNowCard();
   const step = STEP_FOR_CHANNEL[data.channel];
   const api: PreparedMessageApi = {
     ...data,
+    ...(onRebuildRule ? { rebuildRule: onRebuildRule } : {}),
     saveSignature: onSaveSignature,
     setReason: onReasonChange,
     commitReason: onReasonCommit,
@@ -311,6 +333,15 @@ function PreparedMessageBlock({
 }>) {
   const router = useRouter();
   const working = useRenewalWorkingRecord();
+  const pricing = useRenewalPricingPolicy();
+  // S250 R-S250-8: the tenant offer names the standing agreement's rule as the rent's basis.
+  const ruleBasis =
+    api.channel === "tenant"
+      ? standingRuleBasis(
+          pricing?.view?.authority,
+          working?.record?.fields.terms_rent ?? null,
+        )
+      : null;
   const base = useId();
   const [review, setReview] = useState<ReviewState | null>(null);
   const [busy, setBusy] = useState(false);
@@ -659,6 +690,33 @@ function PreparedMessageBlock({
             ) : null}
           </div>
         </>
+      ) : null}
+      {ruleBasis ? (
+        <p className="muted" data-renewal-field="tenant-offer-rule-basis">
+          Basis for the rent: {ruleBasis}
+        </p>
+      ) : null}
+      {api.earlierRule ? (
+        // S250 R-S250-7: a rule change applies forward only; this message keeps its rule's rent.
+        <div className="ui-stack-tight" data-renewal-field="message-earlier-rule">
+          <p className="renewal-notice" role="note">
+            {STANDING_AGREEMENT_WORDS.earlierRule}: this message keeps the rent from the
+            earlier rule of {api.earlierRule.agreement} ({api.earlierRule.earlier}). The
+            current rule is {api.earlierRule.current}.
+          </p>
+          {api.canEdit && api.rebuildRule ? (
+            <p>
+              <Button
+                disabled={busy}
+                onClick={() => void api.rebuildRule?.()}
+                size="compact"
+                variant="secondary"
+              >
+                {STANDING_AGREEMENT_WORDS.rebuild}
+              </Button>
+            </p>
+          ) : null}
+        </div>
       ) : null}
       <ul aria-label="What sending needs" className="renewal-now-readiness">
         {needs.map((item) => (

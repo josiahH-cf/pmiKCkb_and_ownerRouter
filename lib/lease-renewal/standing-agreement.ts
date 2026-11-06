@@ -304,6 +304,37 @@ export function standingRuleContext(input: {
     1000,
   );
 }
+/**
+ * R-S250-8: the standing agreement's rule as the basis of the renewal rent, in words: the rule
+ * the agreement covers the lease by now, else the rule a saved working rent was adopted from.
+ * Null when the rent is not the rule's (typed, or from a comparison). The tenant offer and the
+ * source update previews show it.
+ */
+export function standingRuleBasis(
+  authority:
+    | {
+        readonly covered: boolean;
+        readonly kind?: string;
+        readonly basis?: string;
+      }
+    | null
+    | undefined,
+  rentEntry:
+    | {
+        readonly origin: string;
+        readonly context?: string;
+        readonly sourceLabel?: string;
+      }
+    | null
+    | undefined,
+): string | null {
+  if (authority?.covered && authority.kind === "standing" && authority.basis)
+    return authority.basis;
+  return rentEntry && adoptedStandingRule(rentEntry)
+    ? (rentEntry.sourceLabel ?? null)
+    : null;
+}
+
 /** The rule a working rent was adopted from, or null when it was typed or adopted elsewhere. */
 export function adoptedStandingRule(entry: {
   readonly origin: string;

@@ -74,6 +74,9 @@ function publicPreparation(current: Current) {
   return {
     // S249: the rent to recommend with its basis, and the message record's revision.
     rentToRecommend: current.rentToRecommend,
+    // S250 R-S250-7: the agreement rule the shown rent was built on, and an earlier one kept.
+    ruleBasis: current.ruleBasis,
+    earlierRule: current.earlierRule,
     messageRevision: current.messageRevision,
     availableCompScreenshot: current.availableCompScreenshot,
     draftAttempt: current.draftAttempt,
@@ -299,6 +302,8 @@ export async function POST(request: Request) {
                 }
               : null,
           subjectOverride: current.subjectOverride,
+          // R-S250-7: the new revision keeps the rule the message was built on.
+          ruleBasis: current.ruleBasis,
         },
         input.leaseId,
       );

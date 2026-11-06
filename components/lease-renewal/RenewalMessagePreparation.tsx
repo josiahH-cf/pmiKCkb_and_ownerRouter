@@ -52,6 +52,7 @@ import {
   MessagePreparationInputsSchema,
   type MessagePreparationInputs,
   type MessagePreparationRecord,
+  type MessageRuleBasis,
 } from "@/lib/lease-renewal/renewal-message-preparation";
 import {
   RenewalNoticeDraftOutcomeSchema,
@@ -138,6 +139,16 @@ interface Preparation {
   } | null;
   /** S249 ARCH-S249-2: the saved message record's revision. */
   messageRevision?: string;
+  /** S250 R-S250-7: the agreement rule the shown rent was built on; every save carries it. */
+  ruleBasis?: MessageRuleBasis | null;
+  /** S250 R-S250-7: the message keeps an earlier rule's rent; the current one is offered. */
+  earlierRule?: {
+    agreement: string;
+    earlier: string;
+    current: string;
+    currentRent: number;
+    currentBasis: MessageRuleBasis;
+  } | null;
   senderEmail: string;
   /** The work record this message is stored under; null until its first save establishes one. */
   cycleId: string | null;
@@ -333,7 +344,12 @@ interface LocalMessage {
 }
 
 /** What one save would store for the local message, and what is still unfinished in it. */
-function savePayload(local: LocalMessage, server: Preparation) {
+function savePayload(
+  local: LocalMessage,
+  server: Preparation,
+  /** S250 R-S250-7: a rebuild names the current rule; otherwise the rule shown is kept. */
+  ruleBasis: MessageRuleBasis | null = server.ruleBasis ?? null,
+) {
   const effective = savableInputs(local.inputs, server.inputs);
   const unfinished = [...effective.unfinished];
   const savedBody = savedOverride(server.bodyOverride ?? null).override;
@@ -359,6 +375,7 @@ function savePayload(local: LocalMessage, server: Preparation) {
           ? subject.data
           : (server.subjectOverride ?? null)
         : null,
+      ruleBasis,
     },
   };
 }
@@ -425,6 +442,8 @@ function MessagePreparationEditor({
   // Local entries the server has not confirmed, or cannot store yet. A refresh never replaces them.
   const touchedRef = useRef(false);
   const currentRef = useRef<Preparation | null>(null);
+  // S250 R-S250-7: "Rebuild with the current rule" saves the message on the current rule.
+  const ruleOverride = useRef<MessageRuleBasis | null>(null);
   const localRef = useRef<LocalMessage>({ inputs, override, subjectText });
   const lastSavedRef = useRef("");
   const outstanding = useRef<{ payload: string; id: string } | null>(null);
@@ -536,7 +555,11 @@ function MessagePreparationEditor({
         return saving.current;
       }
       const local = localRef.current;
-      const payload = savePayload(local, server);
+      const payload = savePayload(
+        local,
+        server,
+        ruleOverride.current ?? server.ruleBasis ?? null,
+      );
       const serialized = canonical(payload.value);
       if (!force && serialized === lastSavedRef.current) {
         // Nothing differs from what is stored, so an edit that was undone is no longer pending.
@@ -575,6 +598,7 @@ function MessagePreparationEditor({
             return;
           }
           outstanding.current = null;
+          ruleOverride.current = null;
           currentRef.current = data;
           lastSavedRef.current = serialized;
           setCurrent(data);
@@ -626,6 +650,16 @@ function MessagePreparationEditor({
     if (commitTick > 0) void runAutosave();
   }, [commitTick, runAutosave]);
   const commit = () => setCommitTick((tick) => tick + 1);
+  /**
+   * S250 R-S250-7: save the message on the agreement's current rule, a deliberate choice. Until
+   * then a message built on the earlier rule keeps that rule's rent.
+   */
+  async function rebuildRule() {
+    const target = currentRef.current?.earlierRule?.currentBasis;
+    if (!target) return;
+    ruleOverride.current = target;
+    await runAutosave(true);
+  }
   /** Try again after a failure. After a conflict, read the other person's save first, then save this entry. */
   async function retryAutosave() {
     if (autosave.phase === "failed" && autosave.conflict)
@@ -1154,6 +1188,7 @@ function MessagePreparationEditor({
           senderEmail: current.senderEmail,
           templateApproved: current.publication.status === "approved",
           lastEditedAt: current.saved?.updatedAt ?? null,
+          earlierRule: current.earlierRule ?? null,
           marked,
           signaturePresent: Boolean(payload?.effective.signature),
           reason: inputs.recommendationReason ?? "",
@@ -1202,6 +1237,7 @@ function MessagePreparationEditor({
             change({ ...inputs, recommendationReason: value || null })
           }
           onReasonCommit={commit}
+          onRebuildRule={rebuildRule}
           onSaveSignature={saveSignature}
         />
       ) : null}

@@ -24,14 +24,41 @@ import {
 } from "@/lib/firestore/renewal-workspace";
 import {
   MessagePreparationRecordSchema,
+  MessageRuleBasisSchema,
   SaveMessagePreparationSchema,
+  type MessageRuleBasis,
 } from "@/lib/lease-renewal/renewal-message-preparation";
 import type { RenewalWorkBasis } from "@/lib/lease-renewal/workspace-state";
 
 export const MESSAGE_PREPARATION_COLLECTIONS = {
   head: "renewal_message_preparations",
   activity: "renewal_message_preparation_activity",
+  // S250 R-S250-7: the agreement rule each saved revision was built on, beside the record (the
+  // record's own stored shape is unchanged, so an earlier release still reads it).
+  ruleBases: "renewal_message_rule_bases",
 } as const;
+
+/**
+ * S250 R-S250-7: the agreement rule the message's saved revision was built on; null when that
+ * revision recorded none (or was saved before this existed).
+ */
+export async function getMessageRuleBasis(
+  actor: AuthenticatedUser,
+  leaseId: string,
+  cycleId: string,
+  channel: "owner" | "tenant",
+  revision: number,
+  db: Firestore = getAdminFirestore(),
+): Promise<MessageRuleBasis | null> {
+  assertActor(actor);
+  const snapshot = await db
+    .collection(MESSAGE_PREPARATION_COLLECTIONS.ruleBases)
+    .doc(identity(leaseId, cycleId, channel))
+    .get();
+  if (!snapshot.exists || snapshot.get("revision") !== revision) return null;
+  const parsed = MessageRuleBasisSchema.nullable().safeParse(snapshot.get("ruleBasis"));
+  return parsed.success ? parsed.data : null;
+}
 function identity(leaseId: string, cycleId: string, channel: "owner" | "tenant") {
   return hashExecutionPreview({ leaseId, cycleId, channel });
 }
@@ -201,6 +228,22 @@ export async function saveMessagePreparation(
       subject: input.subjectOverride ?? null,
       now,
     });
+    // S250 R-S250-7: the agreement rule this revision was built on, kept beside the record.
+    if (input.ruleBasis !== undefined)
+      transaction.set(
+        db
+          .collection(MESSAGE_PREPARATION_COLLECTIONS.ruleBases)
+          .doc(identity(input.leaseId, cycleId, input.channel)),
+        {
+          leaseId: input.leaseId,
+          cycleId,
+          channel: input.channel,
+          revision: record.revision,
+          ruleBasis: input.ruleBasis,
+          recordedAt: now,
+          recordedByUid: actor.uid,
+        },
+      );
     // S120: the sender's own signature is retained for reuse on their next lease or cycle.
     retainSenderSignature(transaction, db, actor, record);
     transaction.create(audit, {

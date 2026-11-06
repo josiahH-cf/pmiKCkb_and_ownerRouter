@@ -107,13 +107,18 @@ export async function GET(request: Request) {
     const catalog = await store.list(actor, q.after ?? null);
     const today = businessDateIso(new Date());
     if (q.standing === "all") {
-      const agreements = await store.standingAgreements(actor, null);
+      // R-S250-9: the S194 exact per-cycle agreements are listed beside the standing ones.
+      const [agreements, exactAgreements] = await Promise.all([
+        store.standingAgreements(actor, null),
+        store.allExactAgreements(actor),
+      ]);
       return NextResponse.json(
         {
           ...catalog,
           standingAgreements: agreements.map((agreement) =>
             standingAgreementView(agreement, catalog.policies, today),
           ),
+          exactAgreements,
         },
         { headers },
       );
