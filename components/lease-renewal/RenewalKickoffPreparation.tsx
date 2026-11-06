@@ -1,0 +1,415 @@
+"use client";
+
+// S249 R-S249-3 / R-S249-4: batch preparation on the Renewals desk. "Prepare this batch" runs, for
+// each lease in the working batch with no stored comparison for its cycle, the existing comparison
+// lookup one lease at a time in the signed-in staff member's own session, with visible progress.
+// A reload part-way is safe: the server's claim lets no lease and cycle be looked up twice without
+// a staff member asking again, so running again picks up the leases still waiting.
+//
+// The automatic start (D-OP-1) is the ONLY code path that can call the preparation without a
+// click. It starts once per page load, only when every client fence holds: the reviewed setting is
+// on, the page is driven by a person (never `navigator.webdriver`, which Playwright, the release
+// canary and the read-only smokes all set) unless the server says this process is the isolated
+// rehearsal, and the page has been visible and idle for a moment. The server applies its own
+// fences again for every lease.
+
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+import { Button, ConfirmationDialog } from "@/components/ui";
+import { KICKOFF_WORDS } from "@/lib/lease-renewal/renewal-preparation";
+import { fetchWithDeadline } from "@/lib/ui/fetch-lifetime";
+
+export const KICKOFF_PREPARATION_ROUTE = "/api/lease-renewal/kickoff-preparation";
+const OPERATIONS_KEY = "pmi-kc:renewal-kickoff:operations";
+/** How long the page must stay visible and idle before the automatic start sends anything. */
+export const AUTOMATIC_START_IDLE_MS = 1500;
+
+export interface KickoffTarget {
+  readonly leaseId: string;
+  readonly address: string;
+  readonly cycleDateIso: string | null;
+}
+
+export interface KickoffPreparationProps {
+  /** The working batch's leases with no stored comparison for their cycle. */
+  readonly targets: readonly KickoffTarget[];
+  /** The account may run a comparison lookup (Editor or higher; never a verification identity). */
+  readonly canPrepare: boolean;
+  /** The reviewed automatic-start setting, as the server read it. */
+  readonly automaticStart: {
+    readonly enabled: boolean;
+    readonly version: number;
+    readonly canChange: boolean;
+  } | null;
+  /** True only when the server resolved the isolated rehearsal's stand-in for this process. */
+  readonly rehearsal: boolean;
+}
+
+/**
+ * ARCH-S249-4 client fence (1): the automatic start may begin only when the setting is on, the
+ * account may prepare, there is something to prepare, and the page is not driven by automation
+ * unless the server named the process the isolated rehearsal.
+ */
+export function automaticStartAllowed(input: {
+  readonly enabled: boolean;
+  readonly canPrepare: boolean;
+  readonly targets: number;
+  readonly webdriver: boolean;
+  readonly rehearsal: boolean;
+}): boolean {
+  if (!input.enabled || !input.canPrepare || input.targets === 0) return false;
+  if (input.webdriver && !input.rehearsal) return false;
+  return true;
+}
+
+/** ARCH-S249-4 client fence (3): resolve once the page has been visible and idle for a moment. */
+export function waitUntilVisibleAndIdle(
+  signal: AbortSignal,
+  idleMs: number = AUTOMATIC_START_IDLE_MS,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const cleanup = () => {
+      if (timer) clearTimeout(timer);
+      document.removeEventListener("visibilitychange", restart);
+      for (const name of ["pointerdown", "keydown", "wheel", "touchstart"] as const)
+        window.removeEventListener(name, restart);
+      signal.removeEventListener("abort", abort);
+    };
+    const abort = () => {
+      cleanup();
+      reject(new DOMException("Stopped", "AbortError"));
+    };
+    function restart() {
+      if (timer) clearTimeout(timer);
+      timer = null;
+      if (document.visibilityState !== "visible") return;
+      timer = setTimeout(() => {
+        cleanup();
+        resolve();
+      }, idleMs);
+    }
+    if (signal.aborted) {
+      abort();
+      return;
+    }
+    signal.addEventListener("abort", abort, { once: true });
+    document.addEventListener("visibilitychange", restart);
+    for (const name of ["pointerdown", "keydown", "wheel", "touchstart"] as const)
+      window.addEventListener(name, restart, { passive: true });
+    restart();
+  });
+}
+
+function rememberedOperations(): Record<string, string> {
+  try {
+    const raw = window.sessionStorage.getItem(OPERATIONS_KEY);
+    const parsed = raw ? (JSON.parse(raw) as unknown) : null;
+    return parsed && typeof parsed === "object" ? (parsed as Record<string, string>) : {};
+  } catch {
+    return {};
+  }
+}
+
+/** One operation id per lease and cycle, kept for the visit, so a retried request is the same one. */
+function operationFor(target: KickoffTarget): string {
+  const key = `${target.leaseId}:${target.cycleDateIso ?? "none"}`;
+  const known = rememberedOperations();
+  if (known[key]) return known[key]!;
+  const id = crypto.randomUUID();
+  try {
+    window.sessionStorage.setItem(
+      OPERATIONS_KEY,
+      JSON.stringify({ ...known, [key]: id }),
+    );
+  } catch {
+    // Storage can be unavailable; the server's claim still prevents a second lookup.
+  }
+  return id;
+}
+
+interface LeaseOutcome {
+  readonly leaseId: string;
+  readonly address: string;
+  readonly status: string;
+  readonly message: string;
+}
+
+type RunState =
+  | { readonly phase: "idle" }
+  | {
+      readonly phase: "running";
+      readonly trigger: "staff" | "automatic";
+      readonly index: number;
+      readonly total: number;
+      readonly address: string;
+    }
+  | {
+      readonly phase: "done";
+      readonly trigger: "staff" | "automatic";
+      readonly stoppedAtAllowance: boolean;
+    };
+
+export function RenewalKickoffPreparation({
+  targets,
+  canPrepare,
+  automaticStart,
+  rehearsal,
+}: KickoffPreparationProps) {
+  const router = useRouter();
+  const [run, setRun] = useState<RunState>({ phase: "idle" });
+  const [outcomes, setOutcomes] = useState<LeaseOutcome[]>([]);
+  const running = useRef(false);
+  const started = useRef(false);
+  const [confirming, setConfirming] = useState(false);
+  const [reason, setReason] = useState("");
+  const [settingNotice, setSettingNotice] = useState("");
+  const [settingBusy, setSettingBusy] = useState(false);
+  const confirmTrigger = useRef<HTMLButtonElement | null>(null);
+
+  const prepare = useCallback(
+    async (trigger: "staff" | "automatic", list: readonly KickoffTarget[]) => {
+      if (running.current || list.length === 0) return;
+      running.current = true;
+      setOutcomes([]);
+      let stoppedAtAllowance = false;
+      try {
+        for (const [index, target] of list.entries()) {
+          setRun({
+            phase: "running",
+            trigger,
+            index: index + 1,
+            total: list.length,
+            address: target.address,
+          });
+          let outcome: LeaseOutcome;
+          try {
+            const response = await fetchWithDeadline(KICKOFF_PREPARATION_ROUTE, {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({
+                leaseId: target.leaseId,
+                trigger,
+                operationId: operationFor(target),
+              }),
+            });
+            const body = (await response.json().catch(() => null)) as {
+              status?: string;
+              message?: string;
+              error?: string;
+            } | null;
+            outcome = {
+              leaseId: target.leaseId,
+              address: target.address,
+              status: body?.status ?? (response.ok ? "failed" : "refused"),
+              message:
+                body?.message ??
+                body?.error ??
+                "The preparation did not answer. Nothing was started twice.",
+            };
+          } catch {
+            outcome = {
+              leaseId: target.leaseId,
+              address: target.address,
+              status: "failed",
+              message:
+                "The response did not arrive. Running the preparation again is safe: a lease is never looked up twice.",
+            };
+          }
+          setOutcomes((previous) => [...previous, outcome]);
+          if (outcome.status === "allowance_reached") {
+            // Nothing further is requested; the remaining leases read the allowance words.
+            stoppedAtAllowance = true;
+            for (const rest of list.slice(index + 1))
+              setOutcomes((previous) => [
+                ...previous,
+                {
+                  leaseId: rest.leaseId,
+                  address: rest.address,
+                  status: "allowance_reached",
+                  message: KICKOFF_WORDS.allowanceReached,
+                },
+              ]);
+            break;
+          }
+          // The automatic start stops at the first refusal of its own authority.
+          if (trigger === "automatic" && outcome.status === "refused") break;
+        }
+      } finally {
+        running.current = false;
+        setRun({ phase: "done", trigger, stoppedAtAllowance });
+        router.refresh();
+      }
+    },
+    [router],
+  );
+
+  // R-S249-4: the automatic start. Once per page load, only behind every client fence.
+  const targetKey = targets.map((target) => target.leaseId).join(",");
+  const latestTargets = useRef(targets);
+  useEffect(() => {
+    latestTargets.current = targets;
+  });
+  useEffect(() => {
+    if (started.current) return;
+    const allowed = automaticStartAllowed({
+      enabled: automaticStart?.enabled === true,
+      canPrepare,
+      targets: latestTargets.current.length,
+      webdriver: typeof navigator !== "undefined" && navigator.webdriver === true,
+      rehearsal,
+    });
+    if (!allowed) return;
+    started.current = true;
+    const controller = new AbortController();
+    void waitUntilVisibleAndIdle(controller.signal)
+      .then(() => prepare("automatic", latestTargets.current))
+      .catch(() => {
+        started.current = false;
+      });
+    return () => controller.abort();
+  }, [automaticStart?.enabled, canPrepare, rehearsal, targetKey, prepare]);
+
+  async function changeSetting() {
+    if (!automaticStart || settingBusy) return;
+    setSettingBusy(true);
+    setSettingNotice("");
+    try {
+      const response = await fetchWithDeadline("/api/lease-renewal/kickoff-settings", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          enabled: !automaticStart.enabled,
+          expectedVersion: automaticStart.version,
+          reason: reason.trim(),
+        }),
+      });
+      const body = (await response.json().catch(() => null)) as { error?: string } | null;
+      if (!response.ok) {
+        setSettingNotice(body?.error ?? "The setting was not changed.");
+        return;
+      }
+      setConfirming(false);
+      setReason("");
+      setSettingNotice(
+        automaticStart.enabled
+          ? "Automatic preparation is off. Prepare this batch still runs it when chosen."
+          : "Automatic preparation is on.",
+      );
+      router.refresh();
+    } catch {
+      setSettingNotice(
+        "The response did not arrive. Read the setting again before changing it.",
+      );
+    } finally {
+      setSettingBusy(false);
+    }
+  }
+
+  const busy = run.phase === "running";
+  const allowanceStops = outcomes.filter((entry) => entry.status === "allowance_reached");
+  return (
+    <section
+      aria-label="Batch preparation"
+      className="ui-stack-tight renewal-batch-preparation"
+      data-kickoff-automatic={automaticStart?.enabled ? "on" : "off"}
+      data-kickoff-targets={targets.length}
+    >
+      <p className="muted renewal-batch-note">
+        {targets.length === 0
+          ? "Every lease in this batch has its comparison stored for this cycle."
+          : `${targets.length} ${targets.length === 1 ? "lease has" : "leases have"} no stored comparison yet.`}{" "}
+        {automaticStart?.enabled
+          ? "Preparation starts by itself when a staff member opens this batch, at most once per lease each cycle and within the monthly allowance."
+          : "Automatic preparation is off; choose Prepare this batch to run it."}
+      </p>
+      <div className="ui-row">
+        {canPrepare ? (
+          <Button
+            busy={busy}
+            busyLabel="Preparing…"
+            data-kickoff-prepare
+            disabled={busy || targets.length === 0}
+            onClick={() => void prepare("staff", targets)}
+            size="compact"
+            variant="secondary"
+          >
+            {KICKOFF_WORDS.prepareBatch}
+          </Button>
+        ) : null}
+        {automaticStart?.canChange ? (
+          <Button
+            onClick={(event) => {
+              confirmTrigger.current = event.currentTarget;
+              setConfirming(true);
+            }}
+            size="compact"
+            variant="tertiary"
+          >
+            {automaticStart.enabled
+              ? "Turn automatic preparation off"
+              : "Turn automatic preparation on"}
+          </Button>
+        ) : null}
+      </div>
+      {run.phase === "running" ? (
+        <p data-kickoff-progress role="status">
+          Preparing {run.index} of {run.total}: {run.address}
+        </p>
+      ) : null}
+      {run.phase === "done" ? (
+        <p data-kickoff-progress role="status">
+          {run.stoppedAtAllowance
+            ? `Preparation stopped: ${KICKOFF_WORDS.allowanceReached}. ${allowanceStops.length} ${allowanceStops.length === 1 ? "lease reads" : "leases read"} it and can take your own figures.`
+            : "Preparation finished for this batch."}
+        </p>
+      ) : null}
+      {outcomes.length > 0 ? (
+        <ul
+          aria-label="Preparation results"
+          className="renewal-batch-preparation-results"
+        >
+          {outcomes.map((entry) => (
+            <li
+              data-kickoff-outcome={entry.status}
+              key={`${entry.leaseId}:${entry.status}`}
+            >
+              {entry.address}: {entry.message}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {settingNotice ? <p role="status">{settingNotice}</p> : null}
+      <ConfirmationDialog
+        busy={settingBusy}
+        busyLabel="Saving…"
+        confirmDisabled={!reason.trim()}
+        error={confirming && settingNotice ? settingNotice : undefined}
+        confirmLabel={
+          automaticStart?.enabled
+            ? "Turn automatic preparation off"
+            : "Turn automatic preparation on"
+        }
+        description={
+          automaticStart?.enabled
+            ? "With it off, no comparison starts unless a staff member chooses Prepare this batch or runs a lease's own comparison."
+            : "With it on, opening the working batch starts the existing comparison for each lease with none stored, once per lease each cycle and within the monthly allowance."
+        }
+        onCancel={() => setConfirming(false)}
+        onConfirm={() => void changeSetting()}
+        open={confirming}
+        title="Change automatic preparation?"
+        triggerRef={confirmTrigger}
+      >
+        <label htmlFor="renewal-kickoff-setting-reason">Why this changes</label>
+        <input
+          id="renewal-kickoff-setting-reason"
+          maxLength={500}
+          onChange={(event) => setReason(event.target.value)}
+          value={reason}
+        />
+      </ConfirmationDialog>
+    </section>
+  );
+}

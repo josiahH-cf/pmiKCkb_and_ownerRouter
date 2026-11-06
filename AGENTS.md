@@ -539,6 +539,8 @@ persistent labeled link-entry boxes now, with blank pending-team states. Verifie
 supplied or hardcoded later when applicable. Missing values do not block S113 implementation/release;
 only the exact resource-dependent output waits for real content and its existing execution contract.
 
+Owner-approved 2026-11-05: for leases in the Renewals working batch, the app may start the existing RentCast comparison when a staff member opens the batch, at most once per lease per renewal cycle and within the monthly allowance. This adds no send, Gmail draft, schedule, provider write or Action Registry key.
+
 S113 (`docs/feature-suites/renewal-workflow-consolidation.md`) is the completed product implementation:
 F1 dashboard/facts, F2 corrections/source updates, F3 comps/messages, F4 manual progress, then F5
 integrated verification. New automation and Dotloop/signature execution are outside this program;
