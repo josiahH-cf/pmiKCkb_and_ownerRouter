@@ -13,7 +13,8 @@ import {
 type Ledger = ReturnType<typeof readDefectLedger>;
 const committed = (): Ledger => JSON.parse(JSON.stringify(readDefectLedger()));
 const rowOf = (ledger: Ledger, id: string) =>
-  ledger.rows.find((row: { id: string }) => row.id === id);
+  ledger.rows.find((row: { id: string }) => row.id === id)!;
+const resultOf = (ledger: Ledger, id: string) => rowOf(ledger, id).result!;
 
 describe("S252 defect ledger", () => {
   it("the committed ledger passes: twenty November 4 rows, two outside rows, seven reported rows", () => {
@@ -68,18 +69,18 @@ describe("S252 defect ledger", () => {
 
   it("a verified row must name evidence that exists: a journey step, a builder check or a test", () => {
     const step = committed();
-    rowOf(step, "N4-16").result.evidence = [{ journey: "journey.no-such-step" }];
+    resultOf(step, "N4-16").evidence = [{ journey: "journey.no-such-step" }];
     expect(checkDefectLedger(step).join("\n")).toMatch(/no step journey\.no-such-step/);
     const builder = committed();
-    rowOf(builder, "N4-09").result.evidence = [
+    resultOf(builder, "N4-09").evidence = [
       { phase: "s249-kickoff", check: "L99: a check nobody wrote" },
     ];
     expect(checkDefectLedger(builder).join("\n")).toMatch(/has no check named "L99/);
     const test = committed();
-    rowOf(test, "N4-04").result.evidence = [{ test: "tests/unit/no-such.test.ts" }];
+    resultOf(test, "N4-04").evidence = [{ test: "tests/unit/no-such.test.ts" }];
     expect(checkDefectLedger(test).join("\n")).toMatch(/does not exist/);
     const none = committed();
-    rowOf(none, "N4-04").result.evidence = [];
+    resultOf(none, "N4-04").evidence = [];
     expect(checkDefectLedger(none).join("\n")).toMatch(/names no journey step or test/);
   });
 
