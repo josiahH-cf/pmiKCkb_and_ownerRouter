@@ -47,6 +47,7 @@ const LEASES = [
       startDate: "2025-12-01",
       endDate: "2026-11-30",
       leaseType: "Fixed Term",
+      leaseStatusID: 1,
       tenants: [{ name: "Sam Example" }, { name: "Riley Example" }],
     },
     property: {
@@ -64,6 +65,7 @@ const LEASES = [
       startDate: "2026-01-01",
       endDate: "2026-12-31",
       leaseType: "Fixed Term",
+      leaseStatusID: 1,
       // S233 R-S233-9: a verified tenancy (unit and tenant contact ids), so notice safety can read
       // ready and the owner composer's Schedule reaches the server.
       tenants: [{ name: "Casey Example", contactID: 7001 }],
@@ -155,6 +157,7 @@ function rentvine(url) {
         leaseStatus: {
           leaseStatusID: 1,
           name: "Active",
+          primaryLeaseStatusID: 2,
           isPendingMoveOutStatus: 0,
           isCompletedMoveOutStatus: 0,
         },
@@ -162,6 +165,7 @@ function rentvine(url) {
       {
         leaseStatus: {
           leaseStatusID: 2,
+          primaryLeaseStatusID: 2,
           name: "Notice Given",
           isPendingMoveOutStatus: 1,
           isCompletedMoveOutStatus: 0,

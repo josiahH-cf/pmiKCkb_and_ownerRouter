@@ -168,6 +168,16 @@ read-only canary and independent oracle now also require action-before-context o
 unchanged viewport budgets require a fresh committed-source browser check; prototype geometry
 is diagnostic evidence only.
 
+UX-025, observed while visually reviewing the `351ace2c` Help capture: ordinary prepared-lease
+pictures showed "RentVine status unavailable" and "pending or closed lease (Active)". The
+three-lease Help/older-journey fixture declared Active names but omitted their export status IDs
+and the catalog's primary status IDs. The app correctly kept the missing evidence unknown.
+This teaches a misleading ordinary flow (P02, P09; SC02, SC08). The fixture now explicitly
+identifies its two Active leases and supplies primary status 2 for its Active and move-out-notice
+catalog rows, matching the already complete November 5 mix. Production status classification,
+unknown-state behavior and the refusal guard are preserved. All 27 earlier captures succeeded
+as captures; those ordinary-flow pixels are superseded by a fresh capture on the corrected source.
+
 Preserved by decision: exact review/confirmation, the required Gmail banner, stale authored wording,
 who-approved validation, role/Space and Action Registry checks, blank unsettled legal fields,
 assistance-animal holds, existing controls/views/filters/collections/old links, historical failed
@@ -227,6 +237,9 @@ goals while retaining their original authority and meaning.
 - Keep the full housing program labels and all header utilities. Move supporting duplicate
   context after the Now action and use tighter Guided spacing and wrapping phone-header rows;
   the measured failure supports this layout change without a label change or a weaker bound.
+- Correct the Help fixture's missing canonical status fields, rather than hiding the app's
+  truthful missing-evidence warnings. Ordinary-flow pictures should carry the complete synthetic
+  facts they claim to illustrate.
 - Treat a supplied numeric lease reference as an exact lookup in the current actor's read, with
   the same filter in its table link. Keep ordinary address and free-text matching.
 - Preserve source-evidence re-review even when the visible draft wording is unchanged. The

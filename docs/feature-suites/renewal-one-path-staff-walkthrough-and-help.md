@@ -94,7 +94,8 @@ deployed before the walkthrough; the rehearsal runs before release.
   from the rehearsal; the help version increases; "What changed" names the change; and the help
   coverage, control, screenshot and content gates pass. Prior help-picture URLs continue to the
   current same-named pictures through same-origin redirects; the current-only asset-folder gate
-  stays intact.
+  stays intact. An ordinary-flow picture uses complete synthetic source status fields consistent
+  with its declared Active lease; unavailable-evidence pictures retain their explicit error state.
 - **R-S252-7 — Assurance follows the screens.** The release canary landmarks and the reconciliation
   oracle are updated in the same change as the default view and status rules they read, and the
   read-only desk and lease smokes are updated deliberately, never loosened.
