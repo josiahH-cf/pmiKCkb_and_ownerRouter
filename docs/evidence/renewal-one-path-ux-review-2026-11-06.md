@@ -27,7 +27,8 @@ Human verdict: NOT RUN, no human observer.
   applicable path. It was included as `01152fcd`; its original branch and commits remain intact.
 - The original lane later added `120b4966`, waiting for the settled prepared Now card before
   framing its help picture. It was included as `87908f80`, followed by its four curated picture
-  updates `d76dc72e`, included as `9102ed63`. Final help capture is pending.
+  updates `d76dc72e`, included as `9102ed63`. All 27 current Help pictures were subsequently
+  recaptured from `fdaf9614`, with every recorded PNG hash checked before copying.
 - The remaining uncommitted generated-ID field lookup and its regression were inspected and integrated
   with complete-text recovery, legacy snapshot compatibility and cancellation for newer input.
   The original working file is untouched. The existing 20-second recovery window is preserved.
@@ -259,9 +260,19 @@ goals while retaining their original authority and meaning.
   production contact, including opening the production Renewals desk: left undone by hard limit.
   Synthetic stand-in outcomes do not prove a real provider, mailbox or customer result.
 - Automatic comparison from an automated browser or verification session: left undone by hard
-  limit. The reviewed setting stays off; L33 is UNVERIFIED. No test claims the forbidden action ran.
-- Identity, roles, security settings, Action Registry keys, budgets, guardrails and protected paths:
-  unchanged. auth:ensure was omitted because this task expressly forbids its real-provider probes.
+  limit. The one-path rehearsal's audit setting stays off; L33 is UNVERIFIED. Help and the existing
+  journey retain the webdriver/non-rehearsal fence. No test claims the forbidden action ran.
+- Identity, roles, security settings, Action Registry keys, budgets, permanent action/cost
+  guardrails and protected paths: unchanged. The local rehearsal's refusal boundary was
+  strengthened. auth:ensure was omitted because this task forbids its real-provider probes.
+- Removing a control, section, view, filter, saved view, collection, old link, review or
+  confirmation: left undone by hard limit. Focus/Full and their exact review gates are preserved.
+- Production release assurance: read-only code only, with its landmarks and independent oracle
+  updated together. No live assurance run, mutation or bound relaxation was performed.
+- Customer values and raw audit screenshots in Git, protected-path pushes, broad staging,
+  force pushes, rewritten history, tags and branch deletion: left undone by hard limit.
+  The only committed pictures are curated synthetic product Help assets. Staging names files
+  explicitly on the branch cut from fetched current main.
 - Real originals, legal/map approval, unsettled client answers, signing and human judgment: no
   verdict invented. They retain their exact independent holds. Staff walkthrough remains NOT RUN.
 - Physical phone and assistive-technology use by a person: UNVERIFIED. Chromium emulation,
@@ -324,6 +335,25 @@ goals while retaining their original authority and meaning.
   Typecheck at 3 GB, 832 Help labels, 3,147 Help strings, copy voice and all 273 active document
   paths passed. The tested native files matched the Windows source hashes for all 16 changed
   paths before this evidence-only update.
-- Final-source browser rewalk, help capture/control checks, the existing isolated journey,
-  `bash scripts/verify.sh`, report validation, exact-head CI and final cleanup are pending.
-  No final gate pass or acceptance is implied by the focused results above.
+- No final gate pass or acceptance is implied by the focused results above. Subsequent
+  committed-source checkpoints and their remaining qualification follow.
+- The later layout-focused run passed 62 tests across six files, including Full/Focus
+  preservation and stricter canary/oracle failure cases. Typecheck at 3 GB, 832 Help controls,
+  3,147 Help strings, copy voice and 273 active document paths passed.
+- Committed-source checkpoint `351ace2c` passed 16 assisted and 16 standard step/width/theme
+  measurements. Full long-program primary bounds were 775/777 px on desktop and 1,579.3/1,586.3
+  px on phone for Numbers/program contact, in both themes. All five fresh default entries passed
+  the local canary and independent actual-DOM oracle with zero mismatches. Phone menus stayed
+  within the viewport; Escape returned to their triggers and Tab reached the retained utilities.
+  Controller/wrapper exited zero, 18 guarded Node PIDs were recorded, only two public npm
+  requests were refused, and the browser/helper/emulators and temporary worktree were removed.
+- The first all-scene Help capture on `351ace2c` captured 27/27 and exited zero. Visual review
+  found UX-025's incomplete ordinary-flow fixture, so those pixels are superseded. Its fixture
+  correction passed all 32 existing rehearsal-safety checks plus copy voice and document paths.
+- Fresh Help capture `20261106T221921Z-fdaf9614` captured all 27 scenes with zero uncaptured,
+  source and served SHA `fdaf9614cfcaf4913271b684791486f3051db28d`, and no overlay. All 27
+  PNG hashes matched the run record; 17 files changed and ten were byte-identical. The corrected
+  prepared Guided image has no missing-status/move-out warning. Root inspected all 27 in contact
+  sheets and the key changed screens at full size. Wrapper exited zero and emulators stopped;
+  22 guarded Node PIDs and only two refused public npm requests were recorded. Final guide walk,
+  Help control browser check, existing journey, canonical verify and exact-head CI remain pending.
