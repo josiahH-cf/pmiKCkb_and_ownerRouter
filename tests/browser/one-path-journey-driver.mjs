@@ -690,6 +690,32 @@ async function journey(browser) {
     { reply, sendRecord, now: replyNow.slice(0, 400), next: replyNext },
   );
 
+  // J07b the working terms the decision approves. The prepared kickoff fills the rent from the
+  // sent message; the effective date and the term end date are the staff member's two entries in
+  // Working renewal terms, logged in their own phase so they are not counted as the decision.
+  const preparedEnd = mix.leases.find((row) => row.lease.leaseID === Number(prepared))
+    ?.lease.endDate;
+  const termsObserved = { preparedEnd };
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(preparedEnd ?? ""))) {
+    const day = new Date(`${preparedEnd}T12:00:00Z`);
+    day.setUTCDate(day.getUTCDate() + 1);
+    const effective = day.toISOString().slice(0, 10);
+    const termEnd = `${Number(effective.slice(0, 4)) + 1}${preparedEnd.slice(4)}`;
+    for (const [name, value] of [
+      ["Working effective date", effective],
+      ["Working term end date", termEnd],
+    ]) {
+      const field = page.getByLabel(name, { exact: true });
+      if (!(await shownWithin(field, 15_000))) continue;
+      await field.fill(value);
+      await field.blur();
+      log.act("terms", "entry", name);
+      termsObserved[name] = value;
+      await page.waitForTimeout(2500);
+    }
+  }
+  await view.open(prepared);
+
   // J08 the owner's decision from the observed reply (L36): at most three actions, nothing
   // preselected.
   mark = log.mark();
@@ -810,12 +836,14 @@ async function journey(browser) {
     }
     if (step === "offer-tenant") {
       const primary = view.now().locator("[data-renewal-now-primary]");
+      // The tenant offer is the lease's one tenant message record, which loads after the page;
+      // its Review and send becomes the Now card's primary once it has loaded.
+      await shownWithin(view.now().locator("[data-renewal-message-revision]"), 60_000);
+      await page.waitForTimeout(1000);
       const label = squash(await primary.textContent().catch(() => ""));
-      const review = page
-        .getByRole("button", { name: "Review and send", exact: true })
-        .first();
+      const review = primary;
       const offerRecord = page.locator("details#renewal-manual-tenant_offer");
-      const offerDone = /:s*done/i.test(
+      const offerDone = /:\s*done\b/i.test(
         squash(
           await offerRecord
             .locator("summary")
@@ -824,13 +852,7 @@ async function journey(browser) {
         ),
       );
       points.at(-1).now = (await view.nowText()).slice(0, 600);
-      if (!tenantOffer && label === "Send the tenant offer") {
-        // The step's primary action brings the tenant offer's own controls into view.
-        await primary.click();
-        log.act("path", "choice", "Send the tenant offer");
-        await page.waitForTimeout(1500);
-      }
-      if (!tenantOffer && (await review.isVisible()) && (await review.isEnabled())) {
+      if (!tenantOffer && label === "Review and send" && (await review.isEnabled())) {
         await review.click();
         log.act("path", "choice", "Review and send (tenant offer)");
         const sent = await reviewAndConfirm(
@@ -913,7 +935,7 @@ async function journey(browser) {
     "journey.complete",
     "the prepared lease is taken from the desk to Complete on the guided path with hand records where a provider step is closed (L53)",
     completed,
-    { points, tenantOffer, pathActions: pathCount, completedRow },
+    { points, tenantOffer, termsObserved, pathActions: pathCount, completedRow },
   );
   check(
     "journey.one-next-step",
