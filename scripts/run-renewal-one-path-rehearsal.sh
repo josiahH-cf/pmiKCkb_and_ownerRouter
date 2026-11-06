@@ -181,6 +181,10 @@ elif $overlay; then
     rm -f "$root/worktree/$file"
   done
 fi
+# Every Node process, including the port/config helpers and outer Firebase CLI, inherits the
+# boundary. The preload asserts its own installation before each process reaches its entrypoint.
+source "$root/worktree/scripts/lib/one-path-rehearsal/network-guard.sh"
+enable_rehearsal_network_guard "$root/worktree" "$output"
 free_port() {
   node -e 'const s=require("net").createServer();s.listen(0,"127.0.0.1",()=>{console.log(s.address().port);s.close()})'
 }

@@ -422,3 +422,10 @@ net.Socket.prototype.connect = function guardedConnect(...args) {
   }
   return connect.apply(this, args);
 };
+
+if (
+  globalThis.fetch?.name !== "guardedFetch" ||
+  net.Socket.prototype.connect.name !== "guardedConnect"
+)
+  throw new Error("The rehearsal network guard could not be installed.");
+record({ event: "network_guard_ready" });

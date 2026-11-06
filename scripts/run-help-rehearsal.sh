@@ -55,6 +55,8 @@ if $overlay; then
     rm -f "$root/worktree/$file"
   done
 fi
+source "$root/worktree/scripts/lib/one-path-rehearsal/network-guard.sh"
+enable_rehearsal_network_guard "$root/worktree" "$output"
 port=$(node -e 'const s=require("net").createServer();s.listen(0,"127.0.0.1",()=>{console.log(s.address().port);s.close()})')
 config="$root/firebase.json"
 node -e 'const fs=require("fs");const [cfg,port,cwd]=process.argv.slice(1);fs.writeFileSync(cfg,JSON.stringify({firestore:{rules:cwd+"/firestore.rules",indexes:cwd+"/firestore.indexes.json"},emulators:{singleProjectMode:true,firestore:{host:"127.0.0.1",port:Number(port)},ui:{enabled:false}}}))' "$config" "$port" "$root/worktree"

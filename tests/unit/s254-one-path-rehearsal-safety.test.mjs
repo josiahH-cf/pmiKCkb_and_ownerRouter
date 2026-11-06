@@ -1,4 +1,5 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -81,6 +82,42 @@ afterEach(() => {
 });
 
 describe("S254: the rehearsal runs only in a disposable worktree against loopback emulators", () => {
+  it("guards the outer CLI and its inherited Node children before they can dispatch", () => {
+    const output = runDir();
+    const result = spawnSync(
+      "bash",
+      [
+        "-c",
+        `
+      set -e
+      source "$1/scripts/lib/one-path-rehearsal/network-guard.sh"
+      enable_rehearsal_network_guard "$1" "$2"
+      node --input-type=module -e '
+        import { execFileSync } from "node:child_process";
+        const proof = execFileSync(process.execPath, ["--input-type=module", "-e", "try { await fetch(\\"https://provider.example.invalid/test\\"); process.exit(7); } catch (error) { if (!error.message.includes(\\"refuses network access\\")) throw error; console.log(globalThis.fetch.name); }"], { encoding: "utf8" });
+        process.stdout.write(proof);
+      '
+    `,
+        "guard-proof",
+        process.cwd(),
+        output,
+      ],
+      { encoding: "utf8", timeout: 15_000 },
+    );
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.stdout).toContain("guardedFetch");
+    const log = readFileSync(join(output, "harness-network.jsonl"), "utf8");
+    expect(log).toContain('"refused":"fetch"');
+    expect(
+      new Set(
+        log
+          .trim()
+          .split("\n")
+          .map((line) => JSON.parse(line).pid),
+      ).size,
+    ).toBeGreaterThanOrEqual(3);
+  });
+
   it("keeps automatic comparisons off after seeds and resets when the audit holds them", async () => {
     const requests = [];
     const page = {
