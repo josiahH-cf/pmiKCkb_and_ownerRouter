@@ -11,6 +11,11 @@ import { projectRenewalDeskIdentity } from "@/lib/lease-renewal/desk-identity";
 import { listLeaseOwnerReplies } from "@/lib/gmail-hub/sequence-store";
 import { readLeaseOutreachEvidence } from "@/lib/firestore/renewal-outreach-records";
 import { UNREADABLE_OUTREACH_EVIDENCE_INPUT } from "@/lib/lease-renewal/outreach-evidence";
+import { readKickoffSupport } from "@/lib/lease-renewal/kickoff-support";
+import {
+  UNREAD_KICKOFF_SUPPORT,
+  currentRentChargeAmounts,
+} from "@/lib/lease-renewal/kickoff-facts";
 import type { OwnerApprovalChoices } from "@/lib/lease-renewal/owner-approval-evidence";
 import { readRenewalPricingForViews } from "@/lib/lease-renewal/pricing-policy-read";
 import { RenewalDeskReturnLink } from "@/components/lease-renewal/RenewalDeskReturnLink";
@@ -55,6 +60,7 @@ import { projectRentChargeOutcomes } from "@/lib/lease-renewal/rent-charge-outco
 import { projectCurrentBaseReadback } from "@/lib/lease-renewal/writeback/current-base-readback";
 import { futureRentTermsCurrent } from "@/lib/lease-renewal/writeback/future-rent-intent";
 import { effectiveRenewalTerms } from "@/lib/lease-renewal/effective-terms";
+import { assembleFinishUpPreparation } from "@/lib/lease-renewal/finish-up-preparation";
 import { loadSheetWritebackEffectStatuses } from "@/lib/lease-renewal/sheet-writeback/status";
 import { FirestoreExternalExecutionStore } from "@/lib/firestore/external-action-executions";
 import { getAdminFirestore } from "@/lib/firestore/admin";
@@ -212,6 +218,10 @@ export default async function LiveRenewalLeaseWorkspacePage({
   const outreachEvidencePromise = withReadDeadline(() =>
     readLeaseOutreachEvidence(leaseId),
   ).catch(() => null);
+  // S249: the same preparation read the desk makes, for this one lease, with the same wait.
+  const kickoffSupportPromise = withReadDeadline(() =>
+    readKickoffSupport(user, [leaseId]),
+  ).catch(() => UNREAD_KICKOFF_SUPPORT);
   // Independent genuine reads start after both access guards, alongside the lease snapshot.
   // Every result retains its typed failure; there is no cache or provider effect on navigation.
   const supportingReads = Promise.all([
@@ -476,6 +486,12 @@ export default async function LiveRenewalLeaseWorkspacePage({
     cycleDateDecision,
     // S248: unreadable evidence derives nothing; the stage then reads the staff record alone.
     (await outreachEvidencePromise) ?? UNREADABLE_OUTREACH_EVIDENCE_INPUT,
+    {
+      support: await kickoffSupportPromise,
+      rentCharges: currentRentChargeAmounts(
+        renewalAuxiliaryValue(chargeInventoryRead, null),
+      ),
+    },
   );
   const dispositions = renewalAuxiliaryValue(dispositionsRead, []);
   const writebackProposal = renewalAuxiliaryValue(writebackProposalRead, null);
@@ -572,6 +588,20 @@ export default async function LiveRenewalLeaseWorkspacePage({
       ? preparedSheetFieldsRead
       : unavailableRenewalAuxiliary("sheet_fields");
   const sheetFields = renewalAuxiliaryValue(sheetFieldsRead, null);
+  // S249 R-S249-14 / L42: Finish up's RentVine and Sheet update previews, assembled from the final
+  // working terms and the reads above. Assembly only: nothing is saved or written here; each
+  // update is applied through its existing control with its own confirmation.
+  const finishUpPreparation =
+    outcome.status === "ok"
+      ? assembleFinishUpPreparation({
+          leaseId,
+          terms: effectiveRenewalTerms(renewalAuxiliaryValue(workingRecordRead, null)),
+          inventory: chargeInventory,
+          sheet: sheetFieldsRead.status === "available" ? sheetFields : null,
+          identity: sourceUpdateIdentity,
+          readAtIso: readTimestamp,
+        })
+      : null;
   // S237 R-S237-5: what still differs, from this render's own RentVine and Sheet reads.
   const datesIntent = writebackProposal?.effects
     .flatMap((entry) =>
@@ -627,6 +657,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
           <RenewalWorkspace
             attemptSummary={attemptSummary}
             auxiliaryFailures={auxiliaryFailures}
+            finishUpPreparation={finishUpPreparation}
             sheetWritebackPaused={isOperatingSheetWritebackPaused()}
             policyMaterial={policyMaterial}
             policySheetValue={sheetFields?.row?.fieldValues?.rhino_renewed ?? null}

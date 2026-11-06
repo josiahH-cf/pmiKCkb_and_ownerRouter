@@ -263,6 +263,72 @@ export async function getCurrentMessageDraft(
     throw error;
   }
 }
+/** S249 R-S249-9: the unsent Gmail drafts actually created for one lease, cycle and audience. */
+export interface CreatedMessageDrafts {
+  /** The last created draft: what it carries, so the card can say whether it is older. */
+  readonly latest: {
+    readonly executionId: string;
+    readonly subject: string;
+    readonly body: string;
+    readonly recordedAt: string;
+  };
+  /** How many earlier created drafts it replaced; each one is still in the sender's Gmail. */
+  readonly earlier: number;
+}
+
+const successfulOutcome = (value: unknown) => {
+  const outcome = value as RenewalNoticeDraftOutcome | undefined;
+  return (
+    outcome?.status === "created" ||
+    (outcome?.status === "reconciliation" && outcome.resolution === "created")
+  );
+};
+
+/**
+ * S249 R-S249-9: the drafts whose creation is recorded (a successful outcome on the exact saved
+ * attempt), newest last created first. The draft head moves to a new attempt as soon as it is
+ * previewed, so the "older" signal reads this instead: a preview that was cancelled never hides
+ * the draft that is in Gmail. Only the signed-in sender's own drafts are read (the drafts live in
+ * that sender's mailbox). Reads only.
+ */
+export async function getCreatedMessageDrafts(
+  actor: AuthenticatedUser,
+  leaseId: string,
+  cycleId: string,
+  channel: "owner" | "tenant",
+  db: Firestore = getAdminFirestore(),
+): Promise<CreatedMessageDrafts | null> {
+  if (!can(actor.role, "read")) return null;
+  const rows = await db
+    .collection(MESSAGE_DRAFT_COLLECTIONS.snapshots)
+    .where("leaseId", "==", leaseId)
+    .get();
+  const created = rows.docs
+    .map((doc) => doc.data() as Partial<DraftSnapshot>)
+    .filter(
+      (row) =>
+        row.cycleId === cycleId &&
+        row.channel === channel &&
+        row.actorUid === actor.uid &&
+        row.preview?.status === "ready" &&
+        typeof row.executionId === "string" &&
+        typeof row.recordedAt === "string" &&
+        successfulOutcome(row.outcome),
+    )
+    .sort((left, right) => right.recordedAt!.localeCompare(left.recordedAt!));
+  const latest = created[0];
+  if (!latest) return null;
+  return {
+    latest: {
+      executionId: latest.executionId!,
+      subject: latest.preview!.subject,
+      body: latest.preview!.body,
+      recordedAt: latest.recordedAt!,
+    },
+    earlier: created.length - 1,
+  };
+}
+
 /** Previous cycles retain recoverable attempts. A new cycle never erases an uncertain mailbox effect. */
 export async function getPreviousMessageDrafts(
   actor: AuthenticatedUser,

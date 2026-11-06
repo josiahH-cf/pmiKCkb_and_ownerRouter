@@ -151,6 +151,9 @@ const EXPECTED_LIVE_CONFIG_CALLS = [
   "lib/lease-documents/live-input.ts:resolveLivePacketInput:buildLiveRentVineConfig",
   "lib/lease-renewal/current-renewal-message.ts:currentRenewalMessage:buildLiveRenewalConfig",
   "lib/lease-renewal/current-renewal-message.ts:currentRenewalMessage:buildLiveRentVineConfig",
+  // S249 ARCH-S249-3: the batch preparation reads one lease's display source to check it is in
+  // the working batch before the existing comparison route runs; it constructs readers only.
+  "lib/lease-renewal/kickoff-preparation-runtime.ts:readLease:buildLiveRentVineConfig",
   "lib/lease-renewal/workspace-cycle-context.ts:resolveRenewalCycleBasis:buildLiveRentVineConfig",
   // S154: the work-basis read when a first save establishes a lease's work record (read-only).
   "lib/lease-renewal/workspace-cycle-context.ts:resolveRenewalWorkBasis:buildLiveRentVineConfig",

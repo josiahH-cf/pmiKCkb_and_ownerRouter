@@ -379,14 +379,63 @@ describe("S254: control hooks act on the rehearsal and nothing else", () => {
 describe("S254: seeds and drivers", () => {
   it("names every seed, built or waiting on its suite", () => {
     expect(SEED_STEPS.map((step) => [step.name, step.suite])).toEqual([
+      // S249: the automatic start is held for the seeds and restored after them.
+      ["automatic-start-held", "S249"],
       ["recorded-cycles", "S246"],
       ["notice-admission", "S254"],
       ["replied-owner-message", "S249"],
       ["standing-agreement", "S250"],
       ["housing-assistance", "S251"],
-      ["prepared-kickoff", "S248"],
+      // S249 built this step; it was waiting on "S248".
+      ["prepared-kickoff", "S249"],
       ["forms", "S253"],
+      ["automatic-start-restored", "S249"],
     ]);
+  });
+
+  it("S249: the prepared kickoff seed goes through the app's routes and sends nothing", async () => {
+    const mix = loadNovember5Mix(readNovember5Mix(), "2026-11-05");
+    const calls = [];
+    const page = {
+      evaluate: async (_fn, arg) => {
+        if (!arg?.path) return "00000000-0000-4000-8000-000000000001";
+        calls.push({ path: arg.path, body: arg.body });
+        if (arg.path.startsWith("/api/lease-renewal/message-preparation?"))
+          return {
+            status: 200,
+            body: {
+              cycleId: null,
+              saved: null,
+              inputs: { edits: { responseRequest: "" } },
+            },
+          };
+        if (arg.path === "/api/lease-renewal/kickoff-preparation")
+          return { status: 200, body: { status: "prepared", billed: true } };
+        return { status: 200, body: { status: "approved" } };
+      },
+    };
+    const step = SEED_STEPS.find((entry) => entry.name === "prepared-kickoff");
+    const result = await step.run({ page, mix });
+    expect(result.state).toBe("seeded");
+    expect(
+      calls.map((call) =>
+        `${call.path} ${call.body?.kind ?? call.body?.role ?? ""}`.trim(),
+      ),
+    ).toEqual([
+      "/api/auth/demo Approver",
+      "/api/lease-renewal/message-preparation publish",
+      "/api/lease-renewal/message-preparation publish",
+      "/api/auth/demo Editor",
+      "/api/lease-renewal/kickoff-preparation",
+      "/api/lease-renewal/message-preparation?leaseId=9101&channel=owner",
+      "/api/lease-renewal/message-preparation save",
+    ]);
+    expect(calls[4].body).toMatchObject({ leaseId: "9101", trigger: "staff" });
+    expect(calls[6].body.inputs.signature.name).toBe("Example Staff");
+    // Nothing here drafts, sends, schedules or writes a provider.
+    expect(
+      calls.some((call) => /sequences|draft|writeback|rentvine/.test(call.path)),
+    ).toBe(false);
   });
 
   it("a seed a commit cannot take is reported, and the others still run", async () => {
@@ -419,16 +468,11 @@ describe("S254: seeds and drivers", () => {
     const waiting = await runSeeds(
       {},
       SEED_STEPS.filter((step) =>
-        ["standing-agreement", "housing-assistance", "prepared-kickoff"].includes(
-          step.name,
-        ),
+        ["standing-agreement", "housing-assistance"].includes(step.name),
       ),
     );
-    expect(waiting.map((result) => result.state)).toEqual([
-      "not_built",
-      "not_built",
-      "not_built",
-    ]);
+    // S249 built "prepared-kickoff"; the other two wait on S250 and S251.
+    expect(waiting.map((result) => result.state)).toEqual(["not_built", "not_built"]);
   });
 
   it("the forms seed gets the five role leases with their tenants and animals", () => {

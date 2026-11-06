@@ -686,6 +686,21 @@ export const RENEWAL_CONTROL_INVENTORY = [
     enforcementSources: ["app/api/lease-renewal/market-comps/route.ts"],
   },
   {
+    control: "Prepare this batch or this lease (and the reviewed automatic start)",
+    source: "components/lease-renewal/RenewalKickoffPreparation.tsx",
+    capability: "request_reference_comps",
+    enforcementSources: [
+      "app/api/lease-renewal/kickoff-preparation/route.ts",
+      "app/api/lease-renewal/market-comps/route.ts",
+    ],
+  },
+  {
+    control: "Turn the automatic start of batch preparation on or off",
+    source: "components/lease-renewal/RenewalKickoffPreparation.tsx",
+    capability: "manage_renewal_configuration",
+    enforcementSources: ["app/api/lease-renewal/kickoff-settings/route.ts"],
+  },
+  {
     control: "Store comp screenshot",
     source: "components/lease-renewal/RenewalProgressControls.tsx",
     capability: "screenshot_store",
@@ -951,6 +966,24 @@ export const RENEWAL_ROUTE_INVENTORY = [
     source: "app/api/lease-renewal/follow-up-attention/route.ts",
     method: "POST",
     capability: "manage_follow_up_attention",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/kickoff-preparation/route.ts",
+    method: "POST",
+    capability: "request_reference_comps",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/kickoff-settings/route.ts",
+    method: "GET",
+    capability: "read_workspace",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/kickoff-settings/route.ts",
+    method: "POST",
+    capability: "manage_renewal_configuration",
   },
   {
     kind: "api",

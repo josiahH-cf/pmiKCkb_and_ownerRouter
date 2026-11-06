@@ -87,6 +87,7 @@ import {
 } from "@/lib/lease-renewal/outreach-evidence";
 import {
   deskRowRenewalStage,
+  renewalStageCycleDateIso,
   renewalStageContextFor,
 } from "@/lib/lease-renewal/renewal-stage-context";
 import {
@@ -94,6 +95,12 @@ import {
   summarizeRenewalStage,
 } from "@/lib/lease-renewal/renewal-stage";
 import { projectLifecycleCategory } from "@/lib/lease-renewal/lifecycle-category";
+import {
+  kickoffFactsFor,
+  type KickoffSupportRead,
+} from "@/lib/lease-renewal/kickoff-facts";
+import { projectRenewalPreparation } from "@/lib/lease-renewal/renewal-preparation";
+import { resolveSeparatedRenewalDraftRecipient } from "@/lib/lease-renewal/execution/renewal-draft-preview";
 import {
   projectMoveOutDisposition,
   type LeaseStatusTableRead,
@@ -964,7 +971,7 @@ function toLiveSummary(
  * signal, the move-out disposition and the staff record, so the desk, the lease page and the
  * assistant carry the same verdict. R-S246-12: an unreadable status never excludes the lease.
  */
-function renewalTargetFor(input: {
+export function renewalTargetFor(input: {
   readonly view: RawLease;
   readonly classification: CohortLease;
   readonly moveOut: MoveOutDisposition | undefined;
@@ -1700,6 +1707,23 @@ function outreachInputFor(
   return read.byLease.get(leaseId) ?? EMPTY_OUTREACH_EVIDENCE_INPUT;
 }
 
+/** S249 R-S249-11: a verified owner recipient on RentVine, from the same resolution a send uses. */
+function ownerRecipientFact(
+  view: RawLease,
+): { state: "ready" } | { state: "missing"; reasons: string[] } | null {
+  try {
+    const result = resolveSeparatedRenewalDraftRecipient({
+      lease: view,
+      channel: "owner",
+    });
+    return result.status === "ready"
+      ? { state: "ready" }
+      : { state: "missing", reasons: [...result.reasons] };
+  } catch {
+    return null;
+  }
+}
+
 export interface RenewalDeskWorkStatusRead {
   readonly available: boolean;
   readonly byLease: ReadonlyMap<string, RenewalWorkStatusRecord>;
@@ -1772,6 +1796,11 @@ export async function loadLiveRenewalDesk(
    * means not attempted (the staff record alone guides); unavailable derives nothing.
    */
   outreachRead?: RenewalDeskOutreachRead,
+  /**
+   * S249: the bulk read behind each row's preparation projection (stored comparisons, signature,
+   * template, allowance, batch outcomes). Absent means not attempted: no row carries a projection.
+   */
+  kickoffSupport?: KickoffSupportRead,
 ): Promise<LiveRenewalDeskResult> {
   if (!config.ok) return { status: config.reason };
   try {
@@ -1880,10 +1909,34 @@ export async function loadLiveRenewalDesk(
               : undefined,
           }),
         };
+        // S249 ARCH-S249-1: the one preparation projection, from this row's own facts and the
+        // desk's one bulk read of stored comparisons. Absent when the caller did not read them.
+        const prepared: DeskLeaseRow =
+          kickoffSupport && row.id
+            ? {
+                ...targeted,
+                kickoff: projectRenewalPreparation(
+                  kickoffFactsFor({
+                    leaseId: row.id,
+                    cycleDateIso: renewalStageCycleDateIso(targeted),
+                    contractualRent: row.currentRent,
+                    leaseEndIso: row.endDateIso,
+                    workingCurrentRent: row.workingCurrentRent,
+                    address: row.addressLabel,
+                    dataCheck: effectiveDataCheck?.items ?? null,
+                    manual,
+                    working,
+                    sourceReadable: complete && currency.state !== "expired",
+                    ownerRecipient: ownerRecipientFact(view),
+                    support: kickoffSupport,
+                  }),
+                ),
+              }
+            : targeted;
         return {
-          ...targeted,
+          ...prepared,
           renewalStage: deskRowRenewalStage(
-            targeted,
+            prepared,
             manual,
             outreach,
             toDeskCurrency(currency).readAtIso,
@@ -2176,6 +2229,11 @@ export async function loadLiveRenewalLeaseWorkspace(
   cycleDateDecision?: RenewalCycleDateDecision | null,
   /** S248: this lease's linked renewal message evidence; absent means not read. */
   outreach?: LeaseOutreachEvidenceInput | null,
+  /** S249: the preparation projection's bulk read and this page's current rent charges. */
+  kickoffSupport?: {
+    readonly support: KickoffSupportRead;
+    readonly rentCharges?: readonly number[] | null;
+  },
 ): Promise<LiveRenewalLeaseWorkspaceResult> {
   if (!config.ok) return { status: config.reason };
   try {
@@ -2377,9 +2435,30 @@ export async function loadLiveRenewalLeaseWorkspace(
       readComplete: complete,
     };
     const guidance = buildDeskLeaseGuidance(guidanceInput);
+    // S249 ARCH-S249-1: the same preparation projection the desk row carries, with the current
+    // RentVine rent charges where this page read them.
+    const kickoff = kickoffSupport
+      ? projectRenewalPreparation(
+          kickoffFactsFor({
+            leaseId,
+            cycleDateIso: renewalStageCycleDateIso(deskSummary),
+            contractualRent: deskSummary.currentRent,
+            leaseEndIso: deskSummary.endDateIso,
+            workingCurrentRent: deskSummary.workingCurrentRent,
+            address: deskSummary.addressLabel,
+            dataCheck,
+            manual,
+            working,
+            sourceReadable: complete && currency.state !== "expired",
+            ownerRecipient: ownerRecipientFact(view),
+            support: kickoffSupport.support,
+            rentCharges: kickoffSupport.rentCharges ?? null,
+          }),
+        )
+      : undefined;
     // S247 ARCH-S247-1: the same stage context and projection the desk row is given.
     const renewalStageContext = renewalStageContextFor(
-      { ...deskSummary, guidance },
+      { ...deskSummary, guidance, ...(kickoff ? { kickoff } : {}) },
       outreach ?? null,
       toDeskCurrency(currency).readAtIso,
     );
@@ -2389,7 +2468,7 @@ export async function loadLiveRenewalLeaseWorkspace(
       }),
     );
     const workspace: RenewalLeaseWorkspace = {
-      summary: { ...deskSummary, renewalStage },
+      summary: { ...deskSummary, renewalStage, ...(kickoff ? { kickoff } : {}) },
       renewalStageContext,
       // S104: the desk row and this workspace read ONE guidance projection, from the same builder
       // and the same process/data-check/rent inputs, so the two surfaces cannot disagree about

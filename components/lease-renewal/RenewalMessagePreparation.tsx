@@ -33,6 +33,7 @@ import {
 } from "@/components/lease-renewal/RenewalDashboardNavigation";
 import {
   composeRenewalMessage,
+  markedValuesIn,
   MESSAGE_CHARGES,
   MessageChargeSchema,
   RenewalMessageEditsSchema,
@@ -47,6 +48,7 @@ import {
 } from "@/lib/lease-renewal/message-readiness";
 import {
   emptyMessagePreparationInputs,
+  RecommendationReasonSchema,
   MessagePreparationInputsSchema,
   type MessagePreparationInputs,
   type MessagePreparationRecord,
@@ -58,6 +60,15 @@ import {
 import { formatRecipientsForCopy } from "@/lib/lease-renewal/recipient-resolution";
 import { GEMINI_IN_GMAIL_HINT } from "@/lib/email-refinement/hint";
 import { RefineWithAi } from "@/components/email/RefineWithAi";
+import {
+  gmailDraftSignal,
+  messageRevisionOf,
+} from "@/lib/lease-renewal/message-revision";
+import {
+  PreparedMessageSlot,
+  type PreparedMessageData,
+  type PreparedSignatureFields,
+} from "@/components/lease-renewal/RenewalPreparedMessage";
 import {
   AuthoredSubjectSchema,
   RefinedBodySchema,
@@ -111,7 +122,20 @@ interface Preparation {
     state: string;
     recoveryAvailable: boolean;
     outcome: RenewalNoticeDraftOutcome | null;
+    /** The exact draft the attempt prepared; its revision says whether it is older (S249). */
+    preview?: { subject: string; body: string } | null;
   } | null;
+  /**
+   * S249 R-S249-9: the last Gmail draft whose creation is recorded, and how many earlier created
+   * drafts it replaced (each still in the sender's Gmail). The draft head above moves to a new
+   * attempt as soon as it is previewed, so the "older" signal reads this.
+   */
+  createdDrafts?: {
+    latest: { executionId: string; subject: string; body: string; recordedAt: string };
+    earlier: number;
+  } | null;
+  /** S249 ARCH-S249-2: the saved message record's revision. */
+  messageRevision?: string;
   senderEmail: string;
   /** The work record this message is stored under; null until its first save establishes one. */
   cycleId: string | null;
@@ -263,6 +287,15 @@ function savableInputs(
     if (parsed.success) signature = parsed.data;
     else unfinished.push("Sender signature");
   }
+  // S249 R-S249-6: the optional one-line reason; blank is no reason, an unusable one is unfinished.
+  let recommendationReason = saved.recommendationReason ?? null;
+  const typedReason = raw.recommendationReason?.trim() ?? "";
+  if (!typedReason) recommendationReason = null;
+  else {
+    const parsed = RecommendationReasonSchema.safeParse(typedReason);
+    if (parsed.success) recommendationReason = parsed.data;
+    else unfinished.push("Reason to include");
+  }
   return {
     inputs: {
       edits: edits.success ? edits.data : saved.edits,
@@ -284,6 +317,8 @@ function savableInputs(
           }
         : null,
       signature,
+      // Present only when there is one, so a message without a reason saves exactly as before.
+      ...(recommendationReason ? { recommendationReason } : {}),
     },
     unfinished,
   };
@@ -370,6 +405,15 @@ function MessagePreparationEditor({
     [notice, setNotice] = useState("");
   const [confirming, setConfirming] = useState(false);
   const [outcome, setOutcome] = useState<RenewalNoticeDraftOutcome | null>(null);
+  // S249 R-S249-9: the message revision the unsent Gmail draft created here carries, and whether
+  // creating it replaced an earlier created draft (which stays in Gmail).
+  const [createdDraftRevision, setCreatedDraftRevision] = useState<string | null>(null);
+  const [replacedHere, setReplacedHere] = useState(false);
+  // What the card reads as the created draft when a create is confirmed (kept current below).
+  const knownCreated = useRef<{ revision: string | null; executionId: string | null }>({
+    revision: null,
+    executionId: null,
+  });
   // A lost preview response may have saved the wording. Retry the same request identity while
   // its exact local state and expected revision match; never invent another save on uncertainty.
   const previewSaveIdentity = useRef<{ key: string; operationId: string } | null>(null);
@@ -672,6 +716,7 @@ function MessagePreparationEditor({
               ]
             : [],
         charges: effective.charges,
+        recommendationReason: effective.recommendationReason ?? null,
         leaseOrigin: effective.leaseOrigin,
         insuranceTransition: effective.insuranceTransition,
         otherChargesComparison: effective.otherChargesComparison,
@@ -835,6 +880,8 @@ function MessagePreparationEditor({
     setPending(true);
     setConfirming(false);
     setNotice("");
+    const confirmedPreview =
+      kind === "create" && outcome?.status === "preview" ? outcome : null;
     try {
       let preview: Record<string, unknown> = {};
       let savedWith: string | null = null;
@@ -935,6 +982,20 @@ function MessagePreparationEditor({
       previewSaveIdentity.current = null;
       setOutcome(parsed);
       if (parsed.status === "blocked") setNotice(parsed.reasons.join(" "));
+      if (parsed.status === "created" && confirmedPreview) {
+        const made = messageRevisionOf({
+          subject: confirmedPreview.subject,
+          body: confirmedPreview.body,
+        });
+        // A confirmed replacement: the earlier created draft stays in Gmail, and the card keeps
+        // saying so.
+        if (
+          knownCreated.current.revision !== null &&
+          knownCreated.current.executionId !== parsed.executionId
+        )
+          setReplacedHere(true);
+        setCreatedDraftRevision(made);
+      }
       if (parsed.status === "created")
         setNotice(
           kind === "reconcile"
@@ -992,6 +1053,114 @@ function MessagePreparationEditor({
     Boolean(current?.retainedSignature) &&
     canonical(signature ?? null) !== canonical(current?.retainedSignature ?? null);
   const channelLabel = channel === "owner" ? "Owner" : "Tenant";
+  // S249 ARCH-S249-2: the Now card's preview and delivery actions read this same message.
+  const shownRevision = shownContent
+    ? messageRevisionOf({ subject: shownContent.subject, body: shownContent.plainText })
+    : null;
+  // R-S249-9: the signal reads the last CREATED draft, never the draft head, which moves to a new
+  // attempt at its preview: a cancelled replacement leaves the created draft reading older.
+  const draftSignal = gmailDraftSignal({
+    createdHere: createdDraftRevision,
+    replacedHere,
+    created: current?.createdDrafts ?? null,
+    head: current?.draftAttempt ?? null,
+  });
+  const draftRevision = draftSignal.createdRevision;
+  useEffect(() => {
+    knownCreated.current = {
+      revision: draftSignal.createdRevision,
+      executionId: draftSignal.createdExecutionId,
+    };
+  }, [draftSignal.createdRevision, draftSignal.createdExecutionId]);
+  /** Save what is on screen; true once the saved message reads back as shown. */
+  async function flush(): Promise<boolean> {
+    if (!canEdit || !currentRef.current) return false;
+    if (saving.current) await saving.current;
+    await runAutosave();
+    if (saving.current) await saving.current;
+    const latest = currentRef.current;
+    const value = latest ? savePayload(localRef.current, latest) : null;
+    return Boolean(
+      value &&
+      !value.wordingUnfinished &&
+      canonical(value.value) === lastSavedRef.current,
+    );
+  }
+  /** R-S249-11: the sender's own signature, set up on the Now card; a refusal names what is missing. */
+  function saveSignature(fields: PreparedSignatureFields): string | null {
+    const name = fields.name.trim();
+    const role = fields.role.trim();
+    const phone = fields.phone.trim();
+    const missing = [
+      ...(name ? [] : ["Sender name"]),
+      ...(name.length > 240 ? ["Sender name (240 characters at most)"] : []),
+      ...(role.length > 240
+        ? ["Approved role / organization (240 characters at most)"]
+        : []),
+      ...(phone.length > 240 ? ["Verified phone (240 characters at most)"] : []),
+    ];
+    if (missing.length) return `To save your signature, add: ${missing.join(", ")}.`;
+    change({
+      ...inputs,
+      signature: {
+        name,
+        role: role || null,
+        phone: phone || null,
+        hours: null,
+        website: null,
+        source: STAFF_ENTRY_SOURCE,
+      },
+    });
+    commit();
+    return null;
+  }
+  // R-S249-11: the values the shown message still marks in its own text.
+  const marked = shownContent
+    ? markedValuesIn(`${shownContent.subject}\n${shownContent.plainText}`)
+    : [];
+  const preparedData: PreparedMessageData | null =
+    current && shownContent && shownRevision
+      ? {
+          channel,
+          leaseId,
+          canEdit,
+          subject: shownContent.subject,
+          plainText: shownContent.plainText,
+          htmlBody: shownContent.htmlBody,
+          revision: shownRevision,
+          to: current.recipients?.status === "ready" ? current.recipients.to : null,
+          cc: current.recipients?.status === "ready" ? current.recipients.cc : [],
+          recipientReasons:
+            current.recipients?.status === "blocked" ? current.recipients.reasons : [],
+          senderEmail: current.senderEmail,
+          templateApproved: current.publication.status === "approved",
+          lastEditedAt: current.saved?.updatedAt ?? null,
+          marked,
+          signaturePresent: Boolean(payload?.effective.signature),
+          reason: inputs.recommendationReason ?? "",
+          composerHref: workflowComposerHref({
+            leaseId,
+            purpose: channel === "owner" ? "renewal_owner" : "renewal_tenant",
+          }),
+          draft: {
+            available: canDraft,
+            pending,
+            createdRevision: draftRevision,
+            earlierRemain: draftSignal.earlierRemain,
+            preview:
+              outcome?.status === "preview"
+                ? {
+                    subject: outcome.subject,
+                    body: outcome.body,
+                    to: [outcome.recipient.to, ...(outcome.recipient.cc ?? [])].join(
+                      ", ",
+                    ),
+                  }
+                : null,
+          },
+          notice,
+        }
+      : null;
   return (
     <Card
       title={renewalCardTitle(
@@ -1001,6 +1170,22 @@ function MessagePreparationEditor({
       ariaLabel={`${channelLabel} message preparation`}
       id={`renewal-card-message-${channel}`}
     >
+      {/* S249: the Now card's prepared message, rendered into its slots from this one record. */}
+      {preparedData ? (
+        <PreparedMessageSlot
+          data={preparedData}
+          onCopy={() => copy("formatted")}
+          onDraftCreate={() => draft("create")}
+          onDraftPreview={() => draft("preview")}
+          onFlush={flush}
+          onOpenComposer={(event) => void openComposer(event)}
+          onReasonChange={(value) =>
+            change({ ...inputs, recommendationReason: value || null })
+          }
+          onReasonCommit={commit}
+          onSaveSignature={saveSignature}
+        />
+      ) : null}
       <a
         className="primary-button"
         target="_blank"
@@ -1276,8 +1461,10 @@ function MessagePreparationEditor({
                 </p>
                 <p>{outcome.subject}</p>
                 <div className="draft-box">{outcome.body}</div>
-                {current.draftAttempt?.outcome?.status === "created" &&
-                current.draftAttempt.executionId !== outcome.executionId ? (
+                {(current.createdDrafts?.latest &&
+                  current.createdDrafts.latest.executionId !== outcome.executionId) ||
+                (current.draftAttempt?.outcome?.status === "created" &&
+                  current.draftAttempt.executionId !== outcome.executionId) ? (
                   <p role="note">
                     A Gmail draft from an earlier version of this message already exists.
                     Creating this one adds a second, separate unsent draft; the app cannot

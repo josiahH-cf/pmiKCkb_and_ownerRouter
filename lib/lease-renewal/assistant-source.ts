@@ -8,6 +8,8 @@ import { sheetRowBindingsFromWorkingRecords } from "@/lib/lease-renewal/sheet-lo
 import { listRenewalWorkStatuses } from "@/lib/firestore/renewal-work-status";
 import { listRenewalCycleDateDecisions } from "@/lib/firestore/renewal-cycle-date-decisions";
 import { readRenewalOutreachEvidence } from "@/lib/firestore/renewal-outreach-records";
+import { readKickoffSupport } from "@/lib/lease-renewal/kickoff-support";
+import { UNREAD_KICKOFF_SUPPORT } from "@/lib/lease-renewal/kickoff-facts";
 // S110: the Renewals desk orchestration, extracted so exactly one code path produces the desk rows.
 //
 // The desk page and the assistant both call this. That is the whole point: a parity test can compare
@@ -127,6 +129,7 @@ export async function runRenewalAssistantSource(
     timingBasis,
     cycleDateDecisions,
     outreachEvidence,
+    kickoffSupport,
   ] = await measureRead("renewal.supporting", () =>
     Promise.all([
       readRenewalAuxiliary("progress", () => listAllRenewalProgress(user)),
@@ -192,6 +195,21 @@ export async function runRenewalAssistantSource(
             const leaseId = leaseViewId(view);
             return leaseId ? [leaseId] : [];
           }),
+        );
+      }).catch(() => null),
+      // S249: one read behind every row's preparation projection: the loaded leases' stored
+      // comparisons, the signed-in sender's signature, the owner template and the allowance. Each
+      // part that fails reads as unknown; this read never throws.
+      withReadDeadline(async () => {
+        const source = await leaseRead;
+        if (!source) throw new Error("Source unavailable");
+        return readKickoffSupport(
+          user,
+          source.snapshot.views.flatMap((view) => {
+            const leaseId = leaseViewId(view);
+            return leaseId ? [leaseId] : [];
+          }),
+          { nowMs: now.getTime() },
         );
       }).catch(() => null),
     ]),
@@ -264,6 +282,7 @@ export async function runRenewalAssistantSource(
           outreachEvidence
             ? { available: true, byLease: outreachEvidence }
             : { available: false, byLease: new Map() },
+          kickoffSupport ?? UNREAD_KICKOFF_SUPPORT,
         );
 
   return {

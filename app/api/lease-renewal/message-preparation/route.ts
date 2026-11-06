@@ -21,7 +21,11 @@ import {
   RenewalDraftConfirmationSchema,
   RenewalDraftReconciliationSchema,
 } from "@/lib/lease-renewal/execution/renewal-notice-draft-contract";
-import { createDescriptorBoundGmailRuntimeClient } from "@/lib/gmail-hub/dependencies";
+import {
+  createDescriptorBoundGmailRuntimeClient,
+  createGmailMailboxClient,
+} from "@/lib/gmail-hub/dependencies";
+import { resolveRehearsalStandIn } from "@/lib/environment/rehearsal-stand-in";
 import { requireEnvironmentDescriptor } from "@/lib/environment/descriptor";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
@@ -68,8 +72,12 @@ const command = z.discriminatedUnion("kind", [
 type Current = Awaited<ReturnType<typeof currentRenewalMessage>>;
 function publicPreparation(current: Current) {
   return {
+    // S249: the rent to recommend with its basis, and the message record's revision.
+    rentToRecommend: current.rentToRecommend,
+    messageRevision: current.messageRevision,
     availableCompScreenshot: current.availableCompScreenshot,
     draftAttempt: current.draftAttempt,
+    createdDrafts: current.createdDrafts,
     previousDraftAttempts: current.previousDraftAttempts,
     senderEmail: current.senderEmail,
     signatureOrigin: current.signatureOrigin,
@@ -173,8 +181,18 @@ export async function POST(request: Request) {
         draftStatus.preClaim = failure;
       },
       loadLease: async () => null,
-      createGmailClient: (subject: string) =>
-        createDescriptorBoundGmailRuntimeClient(subject, requireEnvironmentDescriptor()),
+      // S249: the descriptor-bound Gmail client, as before. Only when this process resolves the
+      // rehearsal's stand-in does the mailbox factory decide, and it returns the Demo-owned client
+      // that reaches only the loopback mail stand-in inside the isolated rehearsal.
+      createGmailClient: (subject: string) => {
+        const standIn = resolveRehearsalStandIn();
+        return standIn
+          ? createGmailMailboxClient(subject, requireEnvironmentDescriptor(), standIn)
+          : createDescriptorBoundGmailRuntimeClient(
+              subject,
+              requireEnvironmentDescriptor(),
+            );
+      },
       resolveCompScreenshotAttachment: async (
         leaseId: string,
         expected: RenewalDraftAttachmentIdentity,

@@ -76,6 +76,22 @@ export function responseRequestParagraph(
 }
 
 /** Replace only the named fields; unresolved authoring tokens never reach copy. */
+/**
+ * S249 R-S249-5: the approved suggestion sentence an owner message states for a rent to
+ * recommend, exactly as the composition writes it; null for an amount a message cannot carry.
+ */
+export function ownerSuggestionSentence(value: number): string | null {
+  const parsed = messageMoney.safeParse(value);
+  return parsed.success
+    ? fillSuppliedCopy(SUPPLIED_RENEWAL_COPY.owner.suggestion, {
+        suggested_rent: parsed.data.toLocaleString("en-US", {
+          style: "currency",
+          currency: "USD",
+        }),
+      })
+    : null;
+}
+
 function fillSuppliedCopy(template: string, values: Record<string, string>): string {
   return template.replace(/\{\{([a-z_]+)\}\}/g, (_match, key: string) => {
     if (!(key in values)) throw new Error(`Missing supplied-copy field ${key}.`);
@@ -167,6 +183,16 @@ export const ManagedMessageSignatureSchema = z
   .strict();
 export type ManagedMessageSignature = z.infer<typeof ManagedMessageSignatureSchema>;
 
+/**
+ * What staff-typed prose in a message may not carry: control characters, template tokens, links,
+ * email addresses, amounts and digits. Those belong in the labeled fact fields, which are sourced.
+ * S249: the edited wording and the "Reason to include" share this one guard.
+ */
+export const FACT_FIELD_CONTENT =
+  /[\u0000-\u001f\u007f]|\{\{|\}\}|https?:\/\/|www\.|@|\$|\d/;
+export const FACT_FIELD_REFUSAL =
+  "Keep amounts, dates, links and contacts in their labeled fact fields.";
+
 /** Editable prose is bounded separately from sourced facts; source changes preserve it for review. */
 export const RenewalMessageEditsSchema = z
   .object({
@@ -174,11 +200,7 @@ export const RenewalMessageEditsSchema = z
       .string()
       .trim()
       .max(700)
-      .refine(
-        (value) =>
-          !/[\u0000-\u001f\u007f]|\{\{|\}\}|https?:\/\/|www\.|@|\$|\d/.test(value),
-        "Keep amounts, dates, links and contacts in their labeled fact fields.",
-      ),
+      .refine((value) => !FACT_FIELD_CONTENT.test(value), FACT_FIELD_REFUSAL),
   })
   .strict();
 export type RenewalMessageEdits = z.infer<typeof RenewalMessageEditsSchema>;
@@ -209,8 +231,11 @@ export interface RenewalMessageFacts {
   suggestedRent: {
     value: number;
     source: string;
-    kind?: "working_offer" | "provider_reference" | "reviewed";
+    /** S249: "proposal" is the agreement or comparison figure prefilled as Rent to recommend. */
+    kind?: "working_offer" | "provider_reference" | "reviewed" | "proposal";
   } | null;
+  /** S249 R-S249-6: the optional "Reason to include", placed beside the recommendation as typed. */
+  recommendationReason?: string | null;
   comps: Array<{
     address: string;
     rent: number;
@@ -264,6 +289,25 @@ export function missingValueMarker(fact: string): string {
 /** True when text still carries at least one named fill-in marker. */
 export function hasMissingValueMarker(text: string): boolean {
   return text.includes(`[${UNVERIFIED_PLACEHOLDER.split("<fact>")[0]}`);
+}
+
+/**
+ * S249 R-S249-11: the facts the text still marks with a named fill-in marker, once each, in order.
+ * A callout that leaves no marker in the text (a general greeting) is not a marked value.
+ */
+export function markedValuesIn(text: string): string[] {
+  const prefix = UNVERIFIED_PLACEHOLDER.split("<fact>")[0];
+  const found: string[] = [];
+  let at = text.indexOf(`[${prefix}`);
+  while (at >= 0) {
+    const start = at + 1 + prefix.length;
+    const end = text.indexOf("]", start);
+    if (end < 0) break;
+    const fact = text.slice(start, end).trim();
+    if (fact && !found.includes(fact)) found.push(fact);
+    at = text.indexOf(`[${prefix}`, end);
+  }
+  return found;
 }
 
 /**
@@ -404,17 +448,29 @@ export function composeRenewalMessage(
     if (sparse) add(sparse);
     const trend = text(facts.trend);
     if (trend) add(trend);
-    const suggested = money(facts.suggestedRent?.value);
+    // S249 R-S249-5 / R-S249-6 / R-S249-10: the rent to recommend uses the approved suggestion
+    // wording, with the staff member's reason beside it exactly as typed. A provider estimate on its
+    // own is reference context and never reaches the owner; internal working language never does.
+    const suggested =
+      facts.suggestedRent?.kind === "provider_reference"
+        ? null
+        : money(facts.suggestedRent?.value);
     if (suggested) {
       sourced(facts.suggestedRent!.source);
+      // S249 (H): the reason carries the same guard as edited wording; one that does not pass it
+      // stays out of the message and the callout says what to take out.
+      const typedReason = text(facts.recommendationReason);
+      const reason =
+        typedReason && FACT_FIELD_CONTENT.test(typedReason) ? null : typedReason;
+      if (typedReason && !reason)
+        note(
+          "recommendationReason",
+          "The reason to include stays out of the message until amounts, dates, links and contacts are taken out of it.",
+        );
       add(
-        facts.suggestedRent!.kind === "working_offer"
-          ? `Our working renewal offer is ${suggested} per month.`
-          : facts.suggestedRent!.kind === "provider_reference"
-            ? `${facts.suggestedRent!.source}: ${suggested} per month. The working offer remains a staff decision.`
-            : fillSuppliedCopy(SUPPLIED_RENEWAL_COPY.owner.suggestion, {
-                suggested_rent: suggested,
-              }),
+        `${fillSuppliedCopy(SUPPLIED_RENEWAL_COPY.owner.suggestion, {
+          suggested_rent: suggested,
+        })}${reason ? ` ${reason}` : ""}`,
       );
     }
     add(SUPPLIED_RENEWAL_COPY.owner.consideration);

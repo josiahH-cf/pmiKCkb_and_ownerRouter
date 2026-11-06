@@ -70,6 +70,21 @@ const isProductionBuild = (value: string | undefined) =>
   value?.trim().toLowerCase() === "production";
 
 /**
+ * S249: the stand-in only when this process's descriptor is the one the isolated rehearsal runs
+ * under (Demo with Demo data); else null. A stand-in beside any other descriptor is ignored.
+ */
+export function rehearsalStandInFor(
+  descriptor: { readonly environmentKind: string; readonly dataContext: string },
+  standIn: RehearsalStandIn | null,
+): RehearsalStandIn | null {
+  return standIn !== null &&
+    descriptor.environmentKind === "demo" &&
+    descriptor.dataContext === "demo"
+    ? standIn
+    : null;
+}
+
+/**
  * The rehearsal's stand-in for this process, or null. Only the record passed in is read for the
  * origin and the descriptor; the process's own `NODE_ENV` is checked as well, so a production
  * build is refused whatever record a caller supplies.

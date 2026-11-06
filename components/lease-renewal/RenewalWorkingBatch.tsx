@@ -44,12 +44,18 @@ import {
   renewalBatchSummary,
   serializeRenewalBatchQuery,
   shiftRenewalBatchMonth,
+  thisBatchParts,
   type RenewalBatchCountGroup,
   type RenewalBatchGroup,
   type RenewalBatchQuery,
 } from "@/lib/lease-renewal/renewal-batch";
 import type { RenewalBatchRowView } from "@/lib/lease-renewal/renewal-batch-row";
+import { KICKOFF_WORDS } from "@/lib/lease-renewal/renewal-preparation";
 import { fetchWithDeadline } from "@/lib/ui/fetch-lifetime";
+import {
+  RenewalKickoffPreparation,
+  type KickoffPreparationProps,
+} from "./RenewalKickoffPreparation";
 
 const WORKSPACE_ROUTE = "/api/lease-renewal/workspace";
 const BATCH_URL_EVENT = "pmi:renewal-batch-url";
@@ -83,6 +89,8 @@ export interface RenewalWorkingBatchProps {
   readonly recordingPaused?: boolean;
   /** False when staff's keep-working choices could not be read for this render. */
   readonly decisionsAvailable?: boolean;
+  /** S249: batch preparation and its automatic start; absent where the desk did not offer it. */
+  readonly kickoff?: Omit<KickoffPreparationProps, "targets"> | null;
 }
 
 function subscribeToUrl(onChange: () => void): () => void {
@@ -168,6 +176,7 @@ export function RenewalWorkingBatch({
   canRecord = false,
   recordingPaused = false,
   decisionsAvailable = true,
+  kickoff = null,
 }: RenewalWorkingBatchProps) {
   const router = useRouter();
   const panelId = useId();
@@ -398,6 +407,26 @@ export function RenewalWorkingBatch({
         emptyText={`Nothing is listed for ${renewalBatchMonthInWords(month)}.`}
         group="this_batch"
         rows={partition.groups.this_batch}
+        preparation={
+          kickoff && month === defaultMonth ? (
+            <RenewalKickoffPreparation
+              {...kickoff}
+              targets={partition.groups.this_batch.flatMap((row) =>
+                row.kickoff?.needsComparison &&
+                !row.kickoff.allowanceReached &&
+                row.canOpen
+                  ? [
+                      {
+                        leaseId: row.leaseId,
+                        address: row.unit ? `${row.address}, ${row.unit}` : row.address,
+                        cycleDateIso: row.kickoff.cycleDateIso,
+                      },
+                    ]
+                  : [],
+              )}
+            />
+          ) : null
+        }
       />
 
       <section aria-label="Other leases" className="ui-stack renewal-batch-others">
@@ -586,14 +615,31 @@ function BatchList({
   continuation,
   note,
   emptyText,
+  preparation = null,
 }: Readonly<{
   group: "carried_over" | "this_batch";
   rows: readonly RenewalBatchRowView[];
   continuation: string | null;
   note?: string;
   emptyText?: string;
+  /** S249: "Prepare this batch" and its progress, under "This batch". */
+  preparation?: ReactNode;
 }>) {
   const label = RENEWAL_BATCH_GROUP_LABELS[group];
+  // S249 R-S249-13: under "This batch", leases ready for review list first with a count, then
+  // leases missing an input with the input named, then waiting and finished leases.
+  const parts =
+    group === "this_batch" &&
+    rows.some((row) => row.kickoffGroup === "ready" || row.kickoffGroup === "missing")
+      ? thisBatchParts(rows)
+      : null;
+  const list = (items: readonly RenewalBatchRowView[]) => (
+    <ul className="renewal-batch-rows">
+      {items.map((row) => (
+        <BatchRow continuation={continuation} group={group} key={row.key} row={row} />
+      ))}
+    </ul>
+  );
   return (
     <section
       aria-label={label}
@@ -603,14 +649,34 @@ function BatchList({
     >
       <h2 className="renewal-batch-heading">{label}</h2>
       {note ? <p className="muted renewal-batch-note">{note}</p> : null}
+      {preparation}
       {rows.length === 0 ? (
         <p className="muted renewal-batch-note">{emptyText}</p>
+      ) : parts ? (
+        (
+          [
+            ["ready", KICKOFF_WORDS.readyForReview, parts.ready],
+            ["missing", KICKOFF_WORDS.needsAnInput, parts.missing],
+            ["other", KICKOFF_WORDS.waitingOrDone, parts.other],
+          ] as const
+        ).map(([part, heading, items]) =>
+          items.length === 0 ? null : (
+            <section
+              aria-label={heading}
+              className="ui-stack-tight renewal-batch-part"
+              data-batch-part={part}
+              data-batch-part-count={items.length}
+              key={part}
+            >
+              <h3 className="renewal-batch-subheading">
+                {heading} ({items.length})
+              </h3>
+              {list(items)}
+            </section>
+          ),
+        )
       ) : (
-        <ul className="renewal-batch-rows">
-          {rows.map((row) => (
-            <BatchRow continuation={continuation} group={group} key={row.key} row={row} />
-          ))}
-        </ul>
+        list(rows)
       )}
     </section>
   );
@@ -641,6 +707,15 @@ function BatchRow({
         deskView: continuation,
       })}${workRow && row.nextStep.controlId ? `#${row.nextStep.controlId}` : ""}`
     : null;
+  // The Now card of the step that holds the fix: comparison figures, or the owner message's items.
+  const kickoffFixHref =
+    row.canOpen && row.kickoff
+      ? buildWorkspaceHref({
+          leaseId: row.leaseId,
+          step: row.kickoff.allowanceReached ? "compare-market" : "ask-owner",
+          deskView: continuation,
+        })
+      : null;
   return (
     <li
       className="renewal-batch-row"
@@ -673,6 +748,19 @@ function BatchRow({
       ) : null}
       {row.statusNote ? (
         <span className="renewal-batch-status-note">{row.statusNote}</span>
+      ) : null}
+      {workRow && row.kickoff && row.kickoffGroup === "missing" && kickoffFixHref ? (
+        // S249 R-S249-11: the missing input, named, opening the lease where its fix is.
+        <Link
+          className="text-link renewal-batch-kickoff"
+          data-batch-kickoff="missing"
+          href={kickoffFixHref}
+          prefetch={false}
+        >
+          {row.kickoff.allowanceReached
+            ? `${row.kickoff.line}. ${KICKOFF_WORDS.ownFigures}`
+            : row.kickoff.line}
+        </Link>
       ) : null}
       {workRow && row.tags.length > 0 ? (
         <ul aria-label="Tags" className="renewal-batch-tags">

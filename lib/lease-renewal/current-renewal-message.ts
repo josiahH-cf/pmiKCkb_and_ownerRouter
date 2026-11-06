@@ -17,6 +17,7 @@ import { RenewalNoticeSourceError } from "./notice-source-error";
 import { RentVineError } from "@/lib/integrations/rentvine/client";
 import { manualNonRenewalReason } from "./notice-safety";
 import {
+  getCreatedMessageDrafts,
   getCurrentMessageDraft,
   getPreviousMessageDrafts,
 } from "@/lib/firestore/renewal-message-drafts";
@@ -70,6 +71,7 @@ import {
 } from "@/lib/lease-renewal/desk-identity";
 import {
   composeRenewalMessage,
+  ownerSuggestionSentence,
   type RenewalMessageFacts,
 } from "@/lib/lease-renewal/renewal-message-content";
 import { emptyMessagePreparationInputs } from "@/lib/lease-renewal/renewal-message-preparation";
@@ -82,6 +84,21 @@ import { usableRenewalResourceUrl } from "@/lib/lease-renewal/resource-locations
 import { ownerDraftMarketFromBasis } from "@/lib/lease-renewal/owner-draft";
 import { businessDateIso } from "@/lib/lease-renewal/business-calendar";
 import { resolveSeparatedRenewalDraftRecipient } from "@/lib/lease-renewal/execution/renewal-draft-preview";
+import { listMarketObservations } from "@/lib/firestore/renewal-market-observations";
+import {
+  storedComparisonFor,
+  typedRecommendation,
+} from "@/lib/lease-renewal/kickoff-facts";
+import {
+  marketBasisFromCapturedResult,
+  type RenewalMarketObservation,
+} from "@/lib/lease-renewal/market-observation";
+import { messageRevisionOf } from "@/lib/lease-renewal/message-revision";
+import {
+  renewalRentToRecommend,
+  type RenewalStoredComparison,
+} from "@/lib/lease-renewal/renewal-preparation";
+import type { RenewalWorkspaceState } from "@/lib/lease-renewal/workspace-state";
 
 /**
  * S116 (R116.4): the complete same-audience recipient set the message will carry, from the same
@@ -122,6 +139,50 @@ export interface MessageChargeInventoryLine {
   startDate: string | null;
   current: boolean | null;
   sourceRef: string;
+}
+
+/**
+ * S249 R-S249-2: a stored lookup with no saved preparation, read as the preparation the message
+ * draws its range and comparables from. Read only: nothing is saved by reading it.
+ */
+export function observationPreparation(
+  observations: readonly RenewalMarketObservation[],
+  stored: RenewalStoredComparison,
+): NonNullable<RenewalWorkspaceState["preparation"]> | null {
+  const row = observations.find((entry) => entry.id === stored.observationId);
+  if (!row) return null;
+  const basis = marketBasisFromCapturedResult(row.result);
+  if (!basis.provider) return null;
+  return {
+    market: {
+      ...basis,
+      rangeLow: basis.provider.rangeLow,
+      rangeHigh: basis.provider.rangeHigh,
+      rangeBasis: "provider",
+    },
+    source: `${basis.provider.source} comparison stored ${row.recordedAt.slice(0, 10)}`,
+    observationId: row.id,
+    recordedAt: row.recordedAt,
+    recordedByUid: "stored-comparison",
+    revision: 0,
+  };
+}
+
+/**
+ * S249 R-S249-5 (J): the prefilled rent to recommend a composed owner message carries: a proposal
+ * (agreement or comparison) whose approved suggestion sentence is in the message text as composed.
+ */
+export function carriedRecommendationOf(
+  channel: "owner" | "tenant",
+  rent: { value: number | null; origin: string | null; basis: string },
+  suggested: { value: number; kind?: string } | null,
+  plainText: string,
+): { value: number; origin: "agreement" | "comparison"; basis: string } | null {
+  if (channel !== "owner" || suggested?.kind !== "proposal") return null;
+  if (rent.origin !== "agreement" && rent.origin !== "comparison") return null;
+  const sentence = ownerSuggestionSentence(suggested.value);
+  if (!sentence || !plainText.includes(sentence)) return null;
+  return { value: suggested.value, origin: rent.origin, basis: rent.basis };
 }
 
 /** The label a message's working terms carry as their source. */
@@ -307,6 +368,14 @@ export async function currentRenewalMessage(
         return [null, []] as const;
       })
     : [null, []];
+  // S249 R-S249-9: the drafts whose creation is recorded, so a cancelled preview never hides the
+  // draft that is in Gmail. An unreadable list reads as none known (the attempt notice above says
+  // the history is unreadable when it is).
+  const createdDrafts = workspace
+    ? await getCreatedMessageDrafts(actor, leaseId, workspace.cycleId, channel, db).catch(
+        () => null,
+      )
+    : null;
   const availableCompScreenshot =
     channel === "owner"
       ? await db
@@ -386,16 +455,60 @@ export async function currentRenewalMessage(
   const termsKnown =
     terms.rent !== null || terms.effectiveDate !== null || terms.endDate !== null;
   const termsSource = termsKnown ? WORKING_TERMS_MESSAGE_SOURCE : null;
-  const market = workspace?.preparation?.market;
+  // S249 R-S249-2: a stored comparison for this cycle reaches the message with no second run. The
+  // staff record's saved preparation comes first; else the newest stored lookup for the cycle.
+  const observations =
+    workspace && !workspace.preparation?.market.provider
+      ? await listMarketObservations(actor, leaseId, workspace.cycleId, db).catch(
+          () => [],
+        )
+      : [];
+  const stored = storedComparisonFor({
+    manual: workspace,
+    observations: observations.map((row) => ({
+      id: row.id,
+      leaseId,
+      cycleId: row.cycleId,
+      recordedAt: row.recordedAt,
+      result: row.result,
+    })),
+  });
+  const preparation =
+    workspace?.preparation?.market.provider || !stored
+      ? (workspace?.preparation ?? null)
+      : observationPreparation(observations, stored);
+  const market = preparation?.market;
   const ownerMarket = market ? ownerDraftMarketFromBasis(market) : {};
+  // S249 R-S249-5: the one "Rent to recommend": typed, else the covering agreement (S250), else
+  // the comparison-based suggestion. The same function the Now card and the desk read.
+  const rentToRecommend = renewalRentToRecommend({
+    typedRent: typedRecommendation(workingRecord, workspace),
+    agreementRent: null,
+    comparison: stored ? { state: "stored", comparison: stored } : { state: "none" },
+    currentRent: leaseCurrentRent(lease) ?? null,
+  });
   const marketEvidence = projectMessageMarketEvidence({
-    preparation: workspace?.preparation ?? null,
+    preparation,
     currentBaseRent: currentBaseRent?.value ?? null,
     selectedWorkingOffer:
       terms.rent !== null && termsSource
         ? { value: terms.rent, source: termsSource }
         : null,
   });
+  if (
+    rentToRecommend.value !== null &&
+    rentToRecommend.origin !== "typed" &&
+    (marketEvidence.suggestedRent === null ||
+      marketEvidence.suggestedRent.kind === "provider_reference")
+  )
+    marketEvidence.suggestedRent = {
+      value: rentToRecommend.value,
+      source:
+        rentToRecommend.origin === "agreement"
+          ? rentToRecommend.basis
+          : `Comparable-rent recommendation from ${stored?.source ?? "the stored comparison"}`,
+      kind: "proposal",
+    };
   notices.push(...marketEvidence.notices);
   const link = (id: string) => {
     const entry = resources?.entries[id];
@@ -432,6 +545,7 @@ export async function currentRenewalMessage(
       : null,
     range: marketEvidence.range,
     suggestedRent: marketEvidence.suggestedRent,
+    recommendationReason: inputs.recommendationReason ?? null,
     // The provider's measured attributes are retained; no street address is invented when absent.
     comps: (provider?.comps ?? []).map((comp, index) => ({
       address: `Comparable ${index + 1}${comp.bedrooms !== undefined ? `, ${comp.bedrooms} bedrooms` : ""}`,
@@ -476,7 +590,7 @@ export async function currentRenewalMessage(
       currentBaseRent,
       leaseEndDate: facts.leaseEndDate,
       ownerTerms: facts.ownerTerms,
-      preparation: workspace?.preparation ?? null,
+      preparation,
       resourceEntries: resources
         ? {
             insurance_flyer: resources.entries.insurance_flyer ?? null,
@@ -537,6 +651,24 @@ export async function currentRenewalMessage(
     saved?.signatureActorUid === actor.uid &&
     saved.signatureEmail?.toLowerCase() === actor.email.toLowerCase();
   return {
+    /** S249 R-S249-5: the rent to recommend and its basis, as the Now card reads it. */
+    rentToRecommend,
+    /**
+     * S249 R-S249-5 (J): the prefilled figure this composed owner message actually carries, so a
+     * send makes exactly that figure the staff reviewed recommendation. Null when the figure is
+     * typed, absent, or edited out of the wording.
+     */
+    carriedRecommendation: carriedRecommendationOf(
+      channel,
+      rentToRecommend,
+      marketEvidence.suggestedRent,
+      content.plainText,
+    ),
+    /** S249 ARCH-S249-2: the revision of this message record (subject and body). */
+    messageRevision: messageRevisionOf({
+      subject: content.subject,
+      body: content.plainText,
+    }),
     noticeBlock,
     /** S233 R-S233-1: the renewal cycle the notice scope names, so each message can say it. */
     noticeCycleId: noticeSafety.cycleId,
@@ -545,6 +677,8 @@ export async function currentRenewalMessage(
       ? compScreenshotDraftAttachmentIdentity(availableCompScreenshot)
       : null,
     draftAttempt,
+    /** S249 R-S249-9: the last created Gmail draft and how many earlier ones it replaced. */
+    createdDrafts,
     previousDraftAttempts,
     draftJournalAvailable,
     senderEmail: actor.email,

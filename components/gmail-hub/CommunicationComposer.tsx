@@ -37,6 +37,7 @@ import {
 import { BUSINESS_TIME_ZONE } from "@/lib/lease-renewal/business-calendar";
 import { useMinuteClock } from "@/components/hooks/useMinuteClock";
 import { workflowEntityHref } from "@/lib/gmail-hub/workflow-context";
+import { messageRevisionLabel } from "@/lib/lease-renewal/message-revision";
 
 interface SequencePayload {
   sequence: CommunicationSequence;
@@ -64,6 +65,8 @@ interface Composition {
   target: { label: string; to: string[]; cc: string[]; blockers?: string[] };
   attachmentNotice: string | null;
   reviewedTargetHash: string;
+  /** S249: the lease message record revision a renewal composition was made from. */
+  messageRevision?: string;
 }
 const emptyFollowUp = () =>
   ({
@@ -120,6 +123,7 @@ export function CommunicationComposer({
     };
   }, [authenticatedEmail]);
   const [saveNeedsRetry, setSaveNeedsRetry] = useState(false);
+  const [messageRevision, setMessageRevision] = useState<string | null>(null);
   const [thread, setThread] = useState<GmailThreadView | null>(null);
   const [threadMailbox, setThreadMailbox] = useState<string | null>(null);
   const threadGeneration = useRef(0);
@@ -293,6 +297,7 @@ export function CommunicationComposer({
           setTarget(p.target);
           setReviewedTargetHash(p.reviewedTargetHash);
           setAttachmentNotice(p.attachmentNotice);
+          setMessageRevision(p.messageRevision ?? null);
           setStatus("Saving draft…");
         }
         currentDraft.current = next;
@@ -618,6 +623,12 @@ export function CommunicationComposer({
         Open linked{" "}
         {draft.context.entityType === "renewal_lease" ? "lease" : "maintenance ticket"}
       </a>
+      {messageRevision ? (
+        // S249 ARCH-S249-2: the lease's one message record this draft started from.
+        <p data-communication-message-revision={messageRevision}>
+          From the lease message, revision {messageRevisionLabel(messageRevision)}.
+        </p>
+      ) : null}
       <p>
         Responsible sender: <strong>{sequence?.senderEmail ?? authenticatedEmail}</strong>
       </p>

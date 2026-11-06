@@ -28,7 +28,7 @@ export interface MessageMarketEvidence {
   suggestedRent: {
     value: number;
     source: string;
-    kind?: "working_offer" | "provider_reference" | "reviewed";
+    kind?: "working_offer" | "provider_reference" | "reviewed" | "proposal";
   } | null;
   /** Replaces the generic range requirement when the saved range is only the starting rule. */
   rangeRequirement: string | null;
