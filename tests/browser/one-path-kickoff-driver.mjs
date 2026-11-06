@@ -856,9 +856,10 @@ try {
   await attempt("L45", async () => {
     // L45: a staff member with no signature sets one up on the Now card without leaving the lease.
     await signIn("Approver");
-    // S251: the assisted lease's Ask the owner joins its path only with Propose a change, so the
-    // owner message is set up on the covered lease, whose owner message also has no signature.
-    await openLease(covered);
+    // S250/S251: the assisted lease's Ask the owner joins its path only with Propose a change and
+    // the covered lease's is covered, so the signature is set up on the missing-recipient lease,
+    // whose owner message is open on the Now card and has no signature either.
+    await openLease(missingRecipient);
     await chooseStep("Ask the owner");
     await shownWithin(now().locator("[data-renewal-message-revision]"));
     const leaseUrl = page.url();
