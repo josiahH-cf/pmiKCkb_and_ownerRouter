@@ -83,6 +83,12 @@ export interface RenewalStageContext {
     readonly label: string | null;
     readonly reason: string;
   } | null;
+  /**
+   * S250 R-S250-6: a standing agreement is the lease's pricing basis but does not cover it now (a
+   * typed rent different from the rule, an ended, revoked or unverifiable agreement, a conflict).
+   * The lease returns to Ask the owner with this reason in words.
+   */
+  readonly standingLeft?: { readonly reason: string } | null;
   /** S251: the lease's Housing assistance Yes fact with its program; null for No or not set. */
   readonly housingAssistance: { readonly program: string } | null;
   /**
@@ -723,7 +729,9 @@ function currentStepFor(
     started ||
     evidence.owner.state !== "none" ||
     evidence.tenant.state !== "none" ||
-    Boolean(context.standingAgreement);
+    Boolean(context.standingAgreement) ||
+    // R-S250-6: leaving the rule returns the lease to Ask the owner, not to the comparison.
+    Boolean(context.standingLeft);
   if (!progressed) {
     const first = steps.find(
       (step) =>
@@ -957,7 +965,11 @@ export function projectRenewalStage(
                 }`
               : step.id === "assisted-rent"
                 ? assistedRentDetail(state)
-                : null);
+                : step.id === "ask-owner" &&
+                    scopedContext.standingLeft &&
+                    owner.state !== "done"
+                  ? scopedContext.standingLeft.reason
+                  : null);
     return {
       ...base,
       state: stateFor(),

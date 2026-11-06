@@ -81,6 +81,11 @@ export function renewalStageContextFor(
           reason: row.renewalPricing.authority.reason,
         }
       : null,
+    // S250 R-S250-6: an applied agreement that does not cover the lease now, with its reason.
+    ...(row.renewalPricing?.authority.kind === "standing" &&
+    !row.renewalPricing.authority.covered
+      ? { standingLeft: { reason: row.renewalPricing.authority.reason } }
+      : {}),
     // S251: the lease's Housing assistance Yes fact; No and not set follow the standard path.
     housingAssistance:
       row.housingAssistance?.status === "yes"

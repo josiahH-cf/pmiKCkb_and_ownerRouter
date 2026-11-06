@@ -136,6 +136,14 @@ export function RenewalGuidedView({
           ...context,
           staffRecordUnavailable: readUnavailable,
           housingAssistance,
+          // S250 R-S250-6: an applied agreement that no longer covers returns the owner step.
+          standingLeft:
+            pricing?.view?.authority.kind === "standing" &&
+            !pricing.view.authority.covered
+              ? { reason: pricing.view.authority.reason }
+              : pricing?.view
+                ? null
+                : (context.standingLeft ?? null),
           standingAgreement: standingCovered
             ? {
                 label:

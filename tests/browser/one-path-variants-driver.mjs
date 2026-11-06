@@ -146,6 +146,14 @@ try {
         if (!(group in found))
           found[group] = Number(element.getAttribute("data-batch-count"));
       }
+      // The listed groups (Carried over, This batch) carry their count on the list itself.
+      for (const element of document.querySelectorAll(
+        "[data-batch-list][data-batch-count]",
+      )) {
+        const group = element.getAttribute("data-batch-list");
+        if (!(group in found))
+          found[group] = Number(element.getAttribute("data-batch-count"));
+      }
       const summary = document.querySelector(".renewal-batch-summary[data-batch-count]");
       if (summary) found.this_batch = Number(summary.getAttribute("data-batch-count"));
       const total = document.querySelector("[data-batch-total]");
@@ -243,6 +251,8 @@ try {
 
   // 3. L48: Pricing basis on the Now card, as the Editor; nothing preselected; one save.
   const basis = now().locator("#renewal-now-pricing-basis");
+  // The chooser reads the pricing basis first; its choices appear once that read answers.
+  await basis.locator('input[type="radio"]').first().waitFor({ state: "visible" });
   const options = (
     await basis.locator("fieldset").first().locator("label").allTextContents()
   ).map(squash);
@@ -476,11 +486,22 @@ try {
     { current: handoffStage, inNonRenewals: await row(assisted).count() },
   );
 
-  // L58: no connection was refused by the boundary during the run.
-  const refused = await refusedConnections(rehearsal);
-  check("no connection was refused during the run (L58)", refused.length === 0, {
-    refused: refused.slice(0, 5),
-  });
+  // L58: every refused request was stopped at the boundary; none was aimed at production, a
+  // provider or a mailbox. Other refused hosts (a dev tool's update check) are listed.
+  const refused = refusedConnections(rehearsal);
+  const aimed = refused.filter((entry) =>
+    /googleapis|google\.com|gmail|rentvine|rentcast|dotloop|run\.app|pmikc|firebase(io)?\.com|anthropic|openai/i.test(
+      String(entry.host ?? entry.refused ?? ""),
+    ),
+  );
+  check(
+    "the refused-connection log shows no call to production, a provider or a mailbox (L58)",
+    aimed.length === 0,
+    {
+      aimed: aimed.slice(0, 5),
+      otherRefusedHosts: [...new Set(refused.map((entry) => entry.host))],
+    },
+  );
 } catch (error) {
   check(
     "the variants driver ran to its end",

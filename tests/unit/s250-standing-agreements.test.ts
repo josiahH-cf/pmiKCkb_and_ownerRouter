@@ -310,6 +310,21 @@ describe("S250 BEH-S250-3: the owner step reads covered and the path continues a
     };
     const stage = projectRenewalStage(null, context, { standingCovered: true });
     expect(stage.currentStepId).toBe("offer-tenant");
+    // R-S250-6 / BEH-S250-4: a typed rent off the rule returns the lease to Ask the owner with
+    // the reason in words (not back to the comparison).
+    const typed = resolve(lease("9102", "2026-12-31"), snapshot(), 1800);
+    expect(typed.authority).toMatchObject({ covered: false, kind: "standing" });
+    const left = projectRenewalStage(null, {
+      ...context,
+      standingAgreement: null,
+      standingLeft: { reason: typed.authority.reason },
+    });
+    expect(left.currentStepId).toBe("ask-owner");
+    expect(left.steps.find((step) => step.id === "ask-owner")).toMatchObject({
+      state: "current",
+      detail: typed.authority.reason,
+    });
+    expect(typed.authority.reason).toContain("$1,800.00 differs from $1,751");
     expect(stage.steps.find((step) => step.id === "ask-owner")).toMatchObject({
       state: "covered",
       detail: "Covered by Example Standing Agreement: no owner message needed",
