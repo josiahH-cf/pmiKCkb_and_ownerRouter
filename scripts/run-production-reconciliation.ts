@@ -18,7 +18,8 @@ import {
 } from "../lib/production-assurance/outreach-evidence-projection";
 import {
   independentHousingAssistance,
-  independentStandingCovered,
+  independentOwnerStepCovered,
+  independentPricingCycleDate,
   projectIndependentVariantManualRenewal,
   readIndependentVariantDocuments,
   type IndependentVariantDocuments,
@@ -236,6 +237,11 @@ export interface DirectProjection extends ContractDirectProjection {
   readonly evidenceStage?: ContractDirectProjection;
   /** S250/S251: the evidence-stage expectation with the variant rules, for the variants marker. */
   readonly variants?: ContractDirectProjection;
+  /**
+   * S248 under the variants marker: the variant rules with no evidence fill, for a row that says
+   * the app could not read its renewal message evidence. Absent on an older projection.
+   */
+  readonly variantsWithoutEvidence?: ContractDirectProjection;
   readonly sourceRecords: number;
   readonly projectedRecords: number;
   readonly rentvine: SourceReadState;
@@ -1063,6 +1069,8 @@ async function readDirectProjection(
     readsEvidence = false,
     /** S250/S251: also read the variant facts (needs the evidence and variant documents). */
     readsVariants = false,
+    /** S248 under the variants marker: false leaves the oracle's evidence fill out. */
+    variantEvidence = true,
   ): ContractDirectProjection => {
     const emptyDecisions: IndependentDecisionFacts = {
       resolutions: [],
@@ -1097,6 +1105,7 @@ async function readDirectProjection(
           leaseDetails,
           contract,
           readsVariants,
+          variantEvidence,
         );
       } catch {
         decision = "unavailable";
@@ -1109,6 +1118,7 @@ async function readDirectProjection(
           leaseDetails,
           contract,
           readsVariants,
+          variantEvidence,
         );
       }
     }
@@ -1125,11 +1135,14 @@ async function readDirectProjection(
   const staffLane = projectContract("staff_lane");
   const evidenceStage = projectContract("staff_lane", true);
   const variants = projectContract("staff_lane", true, true);
+  // S248 under the variants marker: the expectation for a row the app rendered without evidence.
+  const variantsWithoutEvidence = projectContract("staff_lane", true, true, false);
   return {
     ...predecessor,
     staffLane,
     evidenceStage,
     variants,
+    variantsWithoutEvidence,
     sourceRecords: rentvineRead.ok ? rentvineRead.value.rows.length : 0,
     projectedRecords: predecessor.rows.length,
     rentvine: rentvineRead.ok
@@ -1157,6 +1170,8 @@ export function buildExpectedProjectionRows(
   contract: IndependentGuidanceContract = "predecessor",
   /** S250/S251: the staff lane with the variant facts and the S251 program skip signal. */
   variants = false,
+  /** S248 under the variants marker: false projects the variant lane with no evidence fill. */
+  variantEvidence = true,
 ): ExpectedProjectionRow[] {
   const manualRecords =
     contract === "staff_lane"
@@ -1192,25 +1207,29 @@ export function buildExpectedProjectionRows(
       if (!variantInputs) return null;
       const portfolioId =
         leaseIdCounts.get(row.leaseId) === 1 ? independentPortfolioId(sourceRow) : null;
-      const standingCovered = independentStandingCovered(
+      const state = variantInputs.states.get(row.leaseId) ?? null;
+      // S194 and S250: the owner step is covered by the lease's one exact agreement or by its
+      // standing agreement, each read from the stored records (the desk's `authority.covered`).
+      const standingCovered = independentOwnerStepCovered(
         {
           leaseId: row.leaseId,
           portfolioId,
           currentRent: independentRentVineCurrentRent(sourceRow, leaseDetails),
-          cycleDate: row.endDate || null,
+          cycleDate: independentPricingCycleDate(row.endDate, state),
         },
         variantInputs.documents,
         referenceDateIso,
       );
       return projectIndependentVariantManualRenewal(
-        variantInputs.states.get(row.leaseId) ?? null,
+        state,
         {
           standingCovered,
           housingAssistance: independentHousingAssistance(
             variantInputs.documents.workingRecords.get(row.leaseId),
           ),
         },
-        variantInputs.fills.get(row.leaseId),
+        // S248: a row the app rendered without its evidence is expected without it too.
+        variantEvidence ? variantInputs.fills.get(row.leaseId) : undefined,
       );
     };
     const manual =
@@ -2475,8 +2494,12 @@ export function compareProjectionRowsWithEvidence(
   const evidenceStageExpected = direct.evidenceStage
     ? indexRows(direct.evidenceStage.rows)
     : null;
-  // S250/S251: a row with the variants marker is read under the variant rules.
+  // S250/S251: a row with the variants marker is read under the variant rules; S248's rule holds
+  // there too: a row whose evidence the app could not read is read under them without evidence.
   const variantsExpected = direct.variants ? indexRows(direct.variants.rows) : null;
+  const variantsWithoutEvidenceExpected = direct.variantsWithoutEvidence
+    ? indexRows(direct.variantsWithoutEvidence.rows)
+    : null;
   const observed = indexRows(rendered.rows);
   counts.duplicateApplicationKeys = observed.duplicates;
   for (const [key, expectedRows] of expected.byKey) {
@@ -2513,7 +2536,9 @@ export function compareProjectionRowsWithEvidence(
           observedRow.guidanceContract,
           expectedGuidanceContract,
         )
-          ? variantsExpected?.byKey.get(key)?.[index]
+          ? evidenceUnavailable
+            ? variantsWithoutEvidenceExpected?.byKey.get(key)?.[index]
+            : variantsExpected?.byKey.get(key)?.[index]
           : contract === "staff_lane"
             ? independentContractReadsEvidence(
                 observedRow.guidanceContract,

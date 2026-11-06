@@ -1,7 +1,14 @@
+import { createHash } from "node:crypto";
+
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { classifyRenewalCohort } from "@/lib/lease-renewal/cohort";
 import { DESK_GUIDANCE_CONTRACT } from "@/lib/lease-renewal/desk-guidance";
+import { effectiveRenewalTerms } from "@/lib/lease-renewal/effective-terms";
+import {
+  workingRenewalTerms,
+  type RenewalWorkingRecord,
+} from "@/lib/lease-renewal/working-record";
 import {
   resolveRenewalPricing,
   type PricingAssignment,
@@ -25,7 +32,8 @@ import {
 } from "@/lib/production-assurance/renewal-source-projection";
 import {
   independentHousingAssistance,
-  independentStandingCovered,
+  independentOwnerStepCovered,
+  independentPricingCycleDate,
   independentVariantSkipSignal,
   projectIndependentVariantManualRenewal,
   type IndependentVariantDocuments,
@@ -96,7 +104,10 @@ const assignment = (
     recordedAt: "2026-11-01T15:00:00.000Z",
     standing,
   }) as PricingAssignment;
-const exactAgreement = (rent: number): StandingOwnerAgreement =>
+const exactAgreement = (
+  rent: number,
+  overrides: Partial<StandingOwnerAgreement> = {},
+): StandingOwnerAgreement =>
   ({
     id: "4e5f6071-8293-4da4-9eb5-cf6a7b8c9dae",
     policyId: POLICY_ID,
@@ -112,6 +123,7 @@ const exactAgreement = (rent: number): StandingOwnerAgreement =>
     version: 1,
     recordedByUid: "synthetic-admin",
     recordedAt: "2026-10-01T16:00:00.000Z",
+    ...overrides,
   }) as StandingOwnerAgreement;
 
 interface CoverageCase {
@@ -120,11 +132,38 @@ interface CoverageCase {
   readonly standingAgreements?: readonly Record<string, unknown>[];
   readonly policies?: readonly RenewalPricingPolicy[];
   readonly exact?: readonly StandingOwnerAgreement[];
-  readonly legacy?: Record<string, unknown>;
+  /** The older (S62) portfolio rule, as `owner_policy_rules` stores it. */
+  readonly olderRule?: Record<string, unknown>;
   readonly workingRent?: number | null;
+  /** The working effective and end dates (with the rent, the complete working terms). */
+  readonly workingDates?: { readonly effective: string; readonly end: string };
   readonly portfolioId?: string | null;
   readonly currentRent?: number | null;
+  readonly cycleDate?: string;
+  /** The desk's answer this fixture must reach, so the matrix proves both kinds. */
+  readonly expectKind?: "exact" | "standing" | null;
 }
+/** The id the pricing store gives an older portfolio rule (its legacy policy). */
+const legacyPolicyId = (portfolioId: string) => {
+  const h = createHash("sha256")
+    .update(JSON.stringify(["legacy-renewal-policy", portfolioId]))
+    .digest("hex");
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-8${h.slice(13, 16)}-a${h.slice(17, 20)}-${h.slice(20, 32)}`;
+};
+const OLDER_RULE = {
+  id: PORTFOLIO,
+  portfolio_id: PORTFOLIO,
+  kind: "flat_percent_increase",
+  percent: 3,
+  effective_from: "2026-10-01",
+  note: "Synthetic older rule",
+  updated_by_uid: "synthetic-admin",
+  updated_at: "2026-10-01T15:00:00.000Z",
+};
+const TERMS_DATES = { effective: "2027-01-01", end: "2027-12-31" } as const;
+const SECOND_POLICY_ID = "5f607182-93a4-4eb5-8fc6-d07b8c9daebf";
+const SECOND_AGREEMENT_ID = "60718293-a4b5-4fc6-9d07-e18c9daebfc0";
+const portfolioPolicy = assignment("portfolio", PORTFOLIO, null, POLICY_ID);
 const portfolioAgreement = assignment("portfolio", PORTFOLIO, {
   kind: "agreement",
   agreementId: AGREEMENT_ID,
@@ -219,30 +258,229 @@ const COVERAGE_CASES: readonly CoverageCase[] = [
     name: "a plain policy assignment and no basis choice",
     assignments: [assignment("portfolio", PORTFOLIO, null, POLICY_ID)],
   },
+  // ---- S194's exact per-lease, per-cycle kind (R-S250-9: it keeps working as it does today) ----
+  {
+    name: "S194 exact: one current agreement covers its lease, cycle and exact terms",
+    assignments: [portfolioPolicy],
+    exact: [exactAgreement(1751)],
+    workingRent: 1751,
+    workingDates: TERMS_DATES,
+    expectKind: "exact",
+  },
+  {
+    name: "S194 exact: the lease's own policy assignment selects the agreement's policy",
+    assignments: [assignment("lease", LEASE, null, POLICY_ID)],
+    exact: [exactAgreement(1751)],
+    workingRent: 1751,
+    workingDates: TERMS_DATES,
+    expectKind: "exact",
+  },
+  {
+    name: "S194 exact: the working rent differs from the agreement",
+    assignments: [portfolioPolicy],
+    exact: [exactAgreement(1751)],
+    workingRent: 1760,
+    workingDates: TERMS_DATES,
+  },
+  {
+    name: "S194 exact: the working dates differ from the agreement",
+    assignments: [portfolioPolicy],
+    exact: [exactAgreement(1751)],
+    workingRent: 1751,
+    workingDates: { effective: "2027-02-01", end: "2027-12-31" },
+  },
+  {
+    name: "S194 exact: the working terms are incomplete",
+    assignments: [portfolioPolicy],
+    exact: [exactAgreement(1751)],
+    workingRent: 1751,
+  },
+  {
+    name: "S194 exact: the policy has a newer version than the agreement names",
+    assignments: [portfolioPolicy],
+    policies: [policy(), policy({ version: 2, updatedAt: "2026-10-15T15:00:00.000Z" })],
+    exact: [exactAgreement(1751)],
+    workingRent: 1751,
+    workingDates: TERMS_DATES,
+  },
+  {
+    name: "S194 exact: the agreement names another lease's cycle",
+    assignments: [portfolioPolicy],
+    exact: [exactAgreement(1751, { cycleDate: "2027-01-31" })],
+    workingRent: 1751,
+    workingDates: TERMS_DATES,
+  },
+  {
+    name: "S194 exact: the agreement expired",
+    assignments: [portfolioPolicy],
+    exact: [exactAgreement(1751, { expiresOn: "2026-11-01" })],
+    workingRent: 1751,
+    workingDates: TERMS_DATES,
+  },
+  {
+    name: "S194 exact: the agreement was revoked",
+    assignments: [portfolioPolicy],
+    exact: [exactAgreement(1751, { revoked: true })],
+    workingRent: 1751,
+    workingDates: TERMS_DATES,
+  },
+  {
+    name: "S194 exact: two current agreements for the lease conflict",
+    assignments: [portfolioPolicy],
+    exact: [
+      exactAgreement(1751),
+      exactAgreement(1751, { id: "7a8b9cad-becf-4d0e-8f1a-2b3c4d5e6f70" }),
+    ],
+    workingRent: 1751,
+    workingDates: TERMS_DATES,
+  },
+  {
+    name: "S194 exact: the lease is outside the agreement's portfolio",
+    assignments: [portfolioPolicy],
+    exact: [exactAgreement(1751, { portfolioId: "9401" })],
+    workingRent: 1751,
+    workingDates: TERMS_DATES,
+  },
+  {
+    name: "S194 exact: no policy is assigned and no older rule applies",
+    assignments: [],
+    exact: [exactAgreement(1751)],
+    workingRent: 1751,
+    workingDates: TERMS_DATES,
+  },
+  {
+    name: "S194 exact: only the older portfolio rule applies, and the agreement names a stored policy",
+    assignments: [],
+    olderRule: OLDER_RULE,
+    exact: [exactAgreement(1751)],
+    workingRent: 1751,
+    workingDates: TERMS_DATES,
+  },
+  {
+    name: "S194 exact: the agreement names the older portfolio rule's policy",
+    assignments: [],
+    olderRule: OLDER_RULE,
+    exact: [exactAgreement(1751, { policyId: legacyPolicyId(PORTFOLIO) })],
+    workingRent: 1751,
+    workingDates: TERMS_DATES,
+    expectKind: "exact",
+  },
+  {
+    name: "S194 exact: an older rule not yet in effect",
+    assignments: [],
+    olderRule: { ...OLDER_RULE, effective_from: "2026-12-01" },
+    exact: [exactAgreement(1751, { policyId: legacyPolicyId(PORTFOLIO) })],
+    workingRent: 1751,
+    workingDates: TERMS_DATES,
+  },
+  {
+    name: "S194 exact covers while a standing agreement chosen on the portfolio has another rent",
+    assignments: [
+      assignment(
+        "portfolio",
+        PORTFOLIO,
+        { kind: "agreement", agreementId: SECOND_AGREEMENT_ID },
+        POLICY_ID,
+      ),
+    ],
+    policies: [
+      policy(),
+      policy({ id: SECOND_POLICY_ID, name: "Sample five percent rule", value: 5 }),
+    ],
+    standingAgreements: [
+      agreement({ id: SECOND_AGREEMENT_ID, policyId: SECOND_POLICY_ID }),
+    ],
+    exact: [exactAgreement(1751)],
+    workingRent: 1751,
+    workingDates: TERMS_DATES,
+    expectKind: "exact",
+  },
+  {
+    name: "S194 exact and S250 standing agree on the rent: either covers",
+    assignments: [
+      assignment(
+        "portfolio",
+        PORTFOLIO,
+        { kind: "agreement", agreementId: AGREEMENT_ID },
+        POLICY_ID,
+      ),
+    ],
+    exact: [exactAgreement(1751)],
+    workingRent: 1751,
+    workingDates: TERMS_DATES,
+    expectKind: "exact",
+  },
 ];
 
-function appCovered(c: CoverageCase): boolean {
+/** The working record document as stored, with the fields this fixture sets. */
+function workingDocument(c: CoverageCase, housing?: unknown) {
+  return {
+    leaseId: LEASE,
+    revision: 1,
+    fields: {
+      ...(c.workingRent != null
+        ? { terms_rent: { value: c.workingRent, revision: 1 } }
+        : {}),
+      ...(c.workingDates
+        ? {
+            terms_effective_date: { value: c.workingDates.effective, revision: 1 },
+            terms_end_date: { value: c.workingDates.end, revision: 1 },
+          }
+        : {}),
+      ...(housing !== undefined ? { housing_assistance: { value: housing } } : {}),
+    },
+  };
+}
+
+function appAuthority(c: CoverageCase) {
+  const portfolioId = c.portfolioId === null ? "" : (c.portfolioId ?? PORTFOLIO);
+  const olderRule = c.olderRule;
+  const legacy =
+    olderRule &&
+    typeof olderRule.effective_from === "string" &&
+    olderRule.effective_from <= TODAY &&
+    !c.assignments.some((a) => a.scope === "portfolio" && a.policyId)
+      ? {
+          [PORTFOLIO]: {
+            id: legacyPolicyId(PORTFOLIO),
+            version: 1,
+            name: `Portfolio ${PORTFOLIO} legacy rule`,
+            kind: "percentage",
+            value: olderRule.percent,
+            effectiveFrom: olderRule.effective_from,
+            effectiveThrough: null,
+            enabled: true,
+            purpose: olderRule.note || "Legacy pricing rule",
+            updatedByUid: olderRule.updated_by_uid,
+            updatedAt: olderRule.updated_at ?? "",
+          },
+        }
+      : {};
   const snapshot = {
     assignments: [...c.assignments],
     policies: [...(c.policies ?? [policy()])],
     agreements: [...(c.exact ?? [])],
-    legacyPolicies: c.legacy ?? {},
+    legacyPolicies: legacy,
     standingAgreements: [...(c.standingAgreements ?? [agreement()])],
   } as unknown as RenewalPricingSnapshot;
   const fact: VerifiedPricingLease = {
     leaseId: LEASE,
-    portfolioId: c.portfolioId === null ? "" : (c.portfolioId ?? PORTFOLIO),
+    portfolioId,
     currentRent: c.currentRent === undefined ? 1700 : c.currentRent,
-    cycleDate: CYCLE,
+    cycleDate: c.cycleDate ?? CYCLE,
     rentSource: "RentVine contractual base rent",
   };
-  const authority = resolveRenewalPricing(snapshot, fact, null, TODAY, {
-    workingRent: c.workingRent ?? null,
-  }).authority;
-  // The variants oracle mirrors the S250 standing kind; the S194 exact kind is not modelled.
-  expect(authority.kind ?? "standing", c.name).not.toBe("exact");
-  return authority.covered;
+  // The desk's own reading of the working record (live-desk.ts): the complete terms and the rent.
+  const working = workingDocument(c) as unknown as RenewalWorkingRecord;
+  return resolveRenewalPricing(
+    snapshot,
+    fact,
+    effectiveRenewalTerms(working).complete,
+    TODAY,
+    { workingRent: workingRenewalTerms(working).rent },
+  ).authority;
 }
+const appCovered = (c: CoverageCase): boolean => appAuthority(c).covered;
 
 function documentsFor(c: CoverageCase, housing?: unknown): IndependentVariantDocuments {
   return {
@@ -254,29 +492,18 @@ function documentsFor(c: CoverageCase, housing?: unknown): IndependentVariantDoc
     ),
     policyVersions: (c.policies ?? [policy()]).map((p) => ({ ...p, policyId: p.id })),
     exactAgreements: (c.exact ?? []).map((g) => ({ ...g })),
-    workingRecords: new Map([
-      [
-        LEASE,
-        {
-          leaseId: LEASE,
-          revision: 1,
-          fields: {
-            ...(c.workingRent != null ? { terms_rent: { value: c.workingRent } } : {}),
-            ...(housing !== undefined ? { housing_assistance: { value: housing } } : {}),
-          },
-        },
-      ],
-    ]),
+    workingRecords: new Map([[LEASE, workingDocument(c, housing)]]),
+    olderRules: new Map(c.olderRule ? [[PORTFOLIO, { ...c.olderRule }]] : []),
   };
 }
 
 function oracleCovered(c: CoverageCase): boolean {
-  return independentStandingCovered(
+  return independentOwnerStepCovered(
     {
       leaseId: LEASE,
       portfolioId: c.portfolioId === null ? null : (c.portfolioId ?? PORTFOLIO),
       currentRent: c.currentRent === undefined ? 1700 : c.currentRent,
-      cycleDate: CYCLE,
+      cycleDate: c.cycleDate ?? CYCLE,
     },
     documentsFor(c),
     TODAY,
@@ -287,12 +514,21 @@ describe("S250 standing coverage: the app's one coverage function and the oracle
   for (const c of COVERAGE_CASES)
     it(c.name, () => {
       expect(oracleCovered(c)).toBe(appCovered(c));
+      if (c.expectKind !== undefined) {
+        const authority = appAuthority(c);
+        expect(authority.covered ? authority.kind : null).toBe(c.expectKind);
+      }
     });
-  it("the matrix holds both answers", () => {
+  it("the matrix holds both answers and both kinds", () => {
     const answers = new Set(COVERAGE_CASES.map(appCovered));
     expect(answers).toEqual(new Set([true, false]));
+    const kinds = new Set(
+      COVERAGE_CASES.map(appAuthority).flatMap((a) => (a.covered ? [a.kind] : [])),
+    );
+    expect(kinds).toEqual(new Set(["exact", "standing"]));
   });
 });
+
 
 // ---- The staff lane ------------------------------------------------------------------------
 
@@ -514,8 +750,50 @@ describe("S251 staff lane: the app's summary and the oracle agree on every compa
       });
 });
 
+// S194's exact kind feeds the same one boolean to the staff summary, so every compared lane
+// attribute follows it: each staff record under an exact agreement reads the same in both.
+describe("S194 exact kind: the staff lane the desk derives from it matches the oracle's", () => {
+  const exactCovered = COVERAGE_CASES.find((c) => c.expectKind === "exact")!;
+  const exactRefused = COVERAGE_CASES.find(
+    (c) => c.name === "S194 exact: the working rent differs from the agreement",
+  )!;
+  for (const c of [exactCovered, exactRefused])
+    for (const [name, build] of STATE_CASES)
+      it(`${c.name}: ${name}`, () => {
+        const s = build();
+        const app = manualRenewalSummary(s, { standingOwnerAuthority: appCovered(c) });
+        const oracle =
+          projectIndependentVariantManualRenewal(s, {
+            standingCovered: oracleCovered(c),
+            housingAssistance: null,
+          }) ?? INDEPENDENT_UNRECORDED_STAFF_LANE;
+        expect(oracle.nextActivity).toBe(app.nextActivity);
+        expect(oracle.complete).toBe(app.complete);
+        if (!app.complete)
+          expect(oracle.awaitedParty ?? null).toBe(
+            app.waitingParty === "staff" ? null : app.waitingParty,
+          );
+      });
+});
+
+describe("S194 exact kind: the cycle the agreement is matched against", () => {
+  // The desk reads the RentVine lease end, else the staff record's dated basis (live-desk.ts).
+  const leaseEnd = state(() => undefined)();
+  const leaseBound = state((s) => {
+    s.basis = { kind: "lease_bound", source: "Synthetic lease-bound record" };
+  })();
+  it.each([
+    ["the RentVine end date", "2026-12-31", null, "2026-12-31"],
+    ["no RentVine end date: the staff record's dated basis", "Needs Verification", leaseEnd, CYCLE],
+    ["no RentVine end date and a lease-bound record", "Needs Verification", leaseBound, null],
+    ["no RentVine end date and no record", "", null, null],
+  ] as const)("%s", (_name, endDate, record, expected) => {
+    expect(independentPricingCycleDate(endDate, record)).toBe(expected);
+  });
+});
+
 describe("S251 program skip signal: the cohort and the oracle agree", () => {
-  const CASES: readonly Record<string, string>[] = [
+  const CASES: readonly Record<string, unknown>[] = [
     { tags: "Housing choice voucher" },
     { leaseType: "Section 8 Program" },
     { program: "HAP contract" },
@@ -526,6 +804,11 @@ describe("S251 program skip signal: the cohort and the oracle agree", () => {
     { leaseType: "Fixed Term" },
     { notes: "Owner hold through spring" },
     {},
+    // A present field that is not a word: an empty list is present, so the search stops there.
+    { tags: [], status: "Program lease" },
+    { program: [], leaseType: "Rental program" },
+    { tags: "   ", status: "Program lease" },
+    { program: 0, leaseType: "Rental program" },
   ];
   for (const fields of CASES)
     it(JSON.stringify(fields), () => {

@@ -1258,4 +1258,70 @@ describe("S248 oracle: a row whose renewal message evidence could not be read", 
     expect(result.evidenceUnavailableRows).toBe(LEASE_IDS.length - 1);
     expect(verdict(result)).toBe("mismatch");
   });
+
+  // S250/S251: the variants marker reads the same evidence, so the same rule holds under it. The
+  // variants expectation with the oracle's evidence moves one lease on; the one without it is
+  // what a row renders when the app's own evidence read failed.
+  const variantsDirect: DirectProjection = {
+    ...DIRECT,
+    variants: { rows: evidenceRows, decision: "complete", sourceDigest: "variants" },
+    variantsWithoutEvidence: {
+      rows: STAFF_LANE_ROWS,
+      decision: "complete",
+      sourceDigest: "variants-without-evidence",
+    },
+  };
+  const variantsRendered = (outreachEvidence: string): RenderedProjection => {
+    const base = page(STAFF_LANE_RENDER, () => INDEPENDENT_VARIANTS_CONTRACT_MARKER);
+    return { ...base, rows: base.rows.map((row) => ({ ...row, outreachEvidence })) };
+  };
+
+  it("S251: under the variants marker a row whose evidence was unavailable is read without it, in its own class", () => {
+    const read = compareProjectionRowsWithEvidence(
+      variantsDirect,
+      variantsRendered("read"),
+      "Admin",
+      ORIGIN,
+    );
+    expect(mismatches(read.counts)).toBeGreaterThan(0);
+    expect(verdict(read)).toBe("mismatch");
+    const unavailable = compareProjectionRowsWithEvidence(
+      variantsDirect,
+      variantsRendered("unavailable"),
+      "Admin",
+      ORIGIN,
+    );
+    expect(mismatches(unavailable.counts)).toBe(0);
+    expect(unavailable.evidenceUnavailableRows).toBe(LEASE_IDS.length);
+    expect(verdict(unavailable)).toBe("inconclusive_evidence_unavailable");
+  });
+
+  it("S251: under the variants marker a genuine mismatch on another row still fails the run", () => {
+    const base = variantsRendered("unavailable");
+    const broken: RenderedProjection = {
+      ...base,
+      rows: base.rows.map((row) =>
+        row.leaseId === moved ? { ...row, outreachEvidence: "read" } : row,
+      ),
+    };
+    const result = compareProjectionRowsWithEvidence(
+      variantsDirect,
+      broken,
+      "Admin",
+      ORIGIN,
+    );
+    expect(result.evidenceUnavailableRows).toBe(LEASE_IDS.length - 1);
+    expect(verdict(result)).toBe("mismatch");
+  });
+
+  it("S251: the variants expectation without evidence is projected from the same rows with no evidence fill", () => {
+    // Without a variants-without-evidence projection the row is unread, never a pass.
+    const missing = compareProjectionRowsWithEvidence(
+      { ...variantsDirect, variantsWithoutEvidence: undefined },
+      variantsRendered("unavailable"),
+      "Admin",
+      ORIGIN,
+    );
+    expect(mismatches(missing.counts)).toBeGreaterThan(0);
+  });
 });

@@ -21,6 +21,7 @@ const COLLECTIONS = {
   standingAgreements: "renewal_standing_agreements",
   exactAgreements: "renewal_standing_owner_agreements",
   workingRecords: "lease_renewal_working_records",
+  olderRules: "owner_policy_rules",
 } as const;
 
 /** S251 R-S251-10: wording that names housing assistance; a suggestion only, never a skip. */
@@ -34,10 +35,16 @@ const HOUSING_ASSISTANCE_WORDS =
 export function independentVariantSkipSignal(
   lease: Readonly<Record<string, unknown>>,
 ): boolean {
+  // The first field that is present: only a missing value, null or a blank string is passed over
+  // (an empty list or a number is present, as the cohort reads it).
   const first = (keys: readonly string[]): string | null => {
     for (const key of keys) {
       const value = lease[key];
-      if (value !== undefined && value !== null && String(value).trim() !== "")
+      if (
+        value !== undefined &&
+        value !== null &&
+        !(typeof value === "string" && value.trim() === "")
+      )
         return String(value).toLowerCase();
     }
     return null;
@@ -78,22 +85,29 @@ export interface IndependentVariantDocuments {
   readonly standingAgreements: ReadonlyMap<string, Raw>;
   /** Every stored policy version. */
   readonly policyVersions: readonly Raw[];
-  /** S194 exact agreements, for the conflict rule. */
+  /** S194 exact agreements (current heads), for their own coverage and the conflict rule. */
   readonly exactAgreements: readonly Raw[];
   /** Working record heads by lease id. */
   readonly workingRecords: ReadonlyMap<string, Raw>;
+  /**
+   * The older (S62) portfolio rules by document id (the portfolio id): a portfolio with no policy
+   * assignment proposes from its rule, which is the policy an S194 exact agreement is checked
+   * against there. Absent reads as none recorded.
+   */
+  readonly olderRules?: ReadonlyMap<string, Raw>;
 }
 
 export async function readIndependentVariantDocuments(
   firestore: Firestore,
 ): Promise<IndependentVariantDocuments> {
-  const [assignments, standing, policies, exact, working] = await Promise.all(
+  const [assignments, standing, policies, exact, working, older] = await Promise.all(
     [
       COLLECTIONS.assignments,
       COLLECTIONS.standingAgreements,
       COLLECTIONS.policyVersions,
       COLLECTIONS.exactAgreements,
       COLLECTIONS.workingRecords,
+      COLLECTIONS.olderRules,
     ].map((name) => firestore.collection(name).get()),
   );
   const workingRecords = new Map<string, Raw>();
@@ -110,6 +124,7 @@ export async function readIndependentVariantDocuments(
     policyVersions: policies!.docs.map((d) => d.data()),
     exactAgreements: exact!.docs.map((d) => d.data()),
     workingRecords,
+    olderRules: new Map(older!.docs.map((d) => [d.id, d.data()])),
   };
 }
 
@@ -137,14 +152,13 @@ function workingRent(workingRecord: Raw | null | undefined): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
-/** The rule's rent: the policy's newest version in effect today, rounded to whole dollars. */
-function ruleRent(
+/** A policy's newest stored version whose start date has come (the app's selection rule). */
+function newestStartedVersion(
   versions: readonly Raw[],
   policyId: string,
-  currentRent: number | null,
   today: string,
-): number | null {
-  const policy = versions
+): Raw | undefined {
+  return versions
     .filter(
       (entry) =>
         entry.id === policyId &&
@@ -152,7 +166,21 @@ function ruleRent(
         entry.effectiveFrom <= today,
     )
     .sort((left, right) => Number(right.version) - Number(left.version))[0];
-  if (!policy) return null;
+}
+
+/** The rule's rent: the policy's newest version in effect today, rounded to whole dollars. */
+function ruleRent(
+  versions: readonly Raw[],
+  policyId: string,
+  currentRent: number | null,
+  today: string,
+): number | null {
+  const policy = newestStartedVersion(versions, policyId, today);
+  return policy ? policyRent(policy, currentRent, today) : null;
+}
+
+/** One policy version's rent for the current rent, or null when it gives none today. */
+function policyRent(policy: Raw, currentRent: number | null, today: string): number | null {
   const through = policy.effectiveThrough;
   if (
     policy.enabled !== true ||
@@ -237,6 +265,152 @@ export function independentStandingCovered(
   if (conflict) return false;
   const working = workingRent(documents.workingRecords.get(lease.leaseId));
   return working === null || Math.abs(working - rent) < 0.005;
+}
+
+/** The working record's three renewal terms, when all are saved and in order; else null. */
+function completeWorkingTerms(
+  workingRecord: Raw | null | undefined,
+): { rent: number; effectiveDate: string; endDate: string } | null {
+  const fields = asRecord(workingRecord?.fields);
+  const rent = asRecord(fields?.terms_rent)?.value;
+  const effectiveDate = asRecord(fields?.terms_effective_date)?.value;
+  const endDate = asRecord(fields?.terms_end_date)?.value;
+  return typeof rent === "number" &&
+    typeof effectiveDate === "string" &&
+    typeof endDate === "string" &&
+    endDate > effectiveDate
+    ? { rent, effectiveDate, endDate }
+    : null;
+}
+
+/**
+ * The policy a portfolio's older (S62) rule proposes from when no policy is assigned: a whole
+ * percentage of the current rent from its effective date, under the stable id the pricing store
+ * gives it (a hash of the portfolio id). An S194 exact agreement is checked against it there.
+ */
+function independentOlderRulePolicy(
+  rule: Raw | undefined,
+  portfolioId: string,
+  today: string,
+): Raw | null {
+  if (!rule) return null;
+  const percent = rule.percent;
+  const effectiveFrom = text(rule.effective_from);
+  if (
+    text(rule.portfolio_id) === null ||
+    rule.kind !== "flat_percent_increase" ||
+    typeof percent !== "number" ||
+    !Number.isFinite(percent) ||
+    percent <= 0 ||
+    percent > 100 ||
+    !effectiveFrom ||
+    effectiveFrom > today.slice(0, 10)
+  )
+    return null;
+  const h = createHash("sha256")
+    .update(JSON.stringify(["legacy-renewal-policy", portfolioId]))
+    .digest("hex");
+  return {
+    id: `${h.slice(0, 8)}-${h.slice(8, 12)}-8${h.slice(13, 16)}-a${h.slice(17, 20)}-${h.slice(20, 32)}`,
+    version: 1,
+    kind: "percentage",
+    value: percent,
+    effectiveFrom,
+    effectiveThrough: null,
+    enabled: true,
+  };
+}
+
+/**
+ * S194: whether the lease's one current exact per-lease, per-cycle agreement covers it. The
+ * agreement must be the only current one naming this lease and cycle, belong to the lease's
+ * verified portfolio, carry its evidence reference, name the policy version the lease's assignment
+ * selects (the lease's own assignment over the portfolio's, else the portfolio's older rule), and
+ * the complete working terms must equal both the agreement's terms and the rule's rent.
+ */
+export function independentExactCovered(
+  lease: IndependentVariantLease,
+  documents: IndependentVariantDocuments,
+  today: string,
+): boolean {
+  if (!lease.portfolioId || !lease.cycleDate) return false;
+  const current = documents.exactAgreements.filter(
+    (entry) =>
+      Array.isArray(entry.leaseIds) &&
+      entry.leaseIds.includes(lease.leaseId) &&
+      entry.revoked !== true &&
+      typeof entry.effectiveFrom === "string" &&
+      entry.effectiveFrom <= today &&
+      typeof entry.expiresOn === "string" &&
+      entry.expiresOn >= today &&
+      entry.cycleDate === lease.cycleDate,
+  );
+  if (current.length !== 1) return false;
+  const agreement = current[0]!;
+  const policyOf = (id: string) => text(asRecord(documents.assignments.get(id))?.policyId);
+  const selected =
+    policyOf(`lease_${lease.leaseId}`) ?? policyOf(`portfolio_${lease.portfolioId}`);
+  const policy = selected
+    ? newestStartedVersion(documents.policyVersions, selected, today)
+    : independentOlderRulePolicy(
+        documents.olderRules?.get(lease.portfolioId),
+        lease.portfolioId,
+        today,
+      );
+  if (!policy) return false;
+  if (
+    agreement.portfolioId !== lease.portfolioId ||
+    !text(agreement.evidenceRef)?.trim() ||
+    agreement.policyId !== policy.id ||
+    agreement.policyVersion !== policy.version ||
+    !Number.isSafeInteger(agreement.version) ||
+    Number(agreement.version) < 1 ||
+    !text(agreement.recordedByUid) ||
+    !text(agreement.recordedAt)
+  )
+    return false;
+  const rent = policyRent(policy, lease.currentRent, today);
+  const terms = completeWorkingTerms(documents.workingRecords.get(lease.leaseId));
+  const agreed = asRecord(agreement.terms);
+  return (
+    rent !== null &&
+    terms !== null &&
+    rent === terms.rent &&
+    agreed?.rent === terms.rent &&
+    agreed.effectiveDate === terms.effectiveDate &&
+    agreed.endDate === terms.endDate
+  );
+}
+
+/**
+ * The one owner-step coverage the desk reads: S194's exact kind, else S250's standing agreement
+ * (the desk's `authority.covered`). Read from the stored records only.
+ */
+export function independentOwnerStepCovered(
+  lease: IndependentVariantLease,
+  documents: IndependentVariantDocuments,
+  today: string,
+): boolean {
+  return (
+    independentExactCovered(lease, documents, today) ||
+    independentStandingCovered(lease, documents, today)
+  );
+}
+
+/**
+ * The cycle an exact agreement is matched against: the RentVine lease end, else the staff
+ * record's dated basis (a lease-bound record has none).
+ */
+export function independentPricingCycleDate(
+  rentvineEndDate: string | null | undefined,
+  state: Pick<RenewalWorkspaceState, "basis"> | null | undefined,
+): string | null {
+  if (rentvineEndDate && /^\d{4}-\d{2}-\d{2}$/.test(rentvineEndDate))
+    return rentvineEndDate;
+  const basis = state?.basis as { kind?: string; dateIso?: unknown } | undefined;
+  return basis && basis.kind !== "lease_bound" && typeof basis.dateIso === "string"
+    ? basis.dateIso
+    : null;
 }
 
 const LANE_ORDER = [
