@@ -143,7 +143,7 @@ export interface MessageChargeInventoryLine {
  * S249 R-S249-2: a stored lookup with no saved preparation, read as the preparation the message
  * draws its range and comparables from. Read only: nothing is saved by reading it.
  */
-function observationPreparation(
+export function observationPreparation(
   observations: readonly RenewalMarketObservation[],
   stored: RenewalStoredComparison,
 ): NonNullable<RenewalWorkspaceState["preparation"]> | null {

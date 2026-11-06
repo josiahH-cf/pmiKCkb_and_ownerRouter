@@ -430,8 +430,12 @@ export function OwnerDecisionForm({
   const [compLookup, setCompLookup] = useState<CompLookup | null>(
     preparation?.initialLookup ?? null,
   );
+  // S249: a retained lookup shown when the lease opens is not a finished lookup, so showing it
+  // saves nothing; a lookup run here still links its evidence by itself.
+  const hydratedLookupId = useRef<string | null>(null);
   useEffect(() => {
     if (!lookupTouched.current && preparation?.initialLookup) {
+      hydratedLookupId.current = preparation.initialLookup.observationId ?? null;
       setCompLookup(preparation.initialLookup);
       applyProviderDefaults(preparation.initialLookup);
     }
@@ -1122,6 +1126,7 @@ export function OwnerDecisionForm({
   useEffect(() => {
     if (!preparing || lookupKey === savedLookupKey.current) return;
     savedLookupKey.current = lookupKey;
+    if (hydratedLookupId.current && lookupKey === `${hydratedLookupId.current}:`) return;
     unsavedRef.current = true;
     void autosaveLatest.current?.();
   }, [lookupKey, preparing]);

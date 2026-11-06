@@ -263,12 +263,19 @@ export function RenewalKickoffPreparation({
     if (!allowed) return;
     started.current = true;
     const controller = new AbortController();
+    let begun = false;
     void waitUntilVisibleAndIdle(controller.signal)
-      .then(() => prepare("automatic", latestTargets.current))
-      .catch(() => {
-        started.current = false;
-      });
-    return () => controller.abort();
+      .then(() => {
+        begun = true;
+        return prepare("automatic", latestTargets.current);
+      })
+      .catch(() => undefined);
+    // A wait that is stopped before anything was sent (the effect re-running, as React's strict
+    // development mode does on mount) leaves the one automatic start available to the next run.
+    return () => {
+      controller.abort();
+      if (!begun) started.current = false;
+    };
   }, [automaticStart?.enabled, canPrepare, rehearsal, targetKey, prepare]);
 
   async function changeSetting() {

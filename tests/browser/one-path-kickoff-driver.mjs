@@ -197,6 +197,12 @@ try {
   };
   /** Wait until the batch preparation has nothing running and has stayed so for a moment. */
   const preparationSettled = async (maxMs = 180_000) => {
+    // The automatic start waits for the page to be visible and idle; let it begin first.
+    await page
+      .locator("[data-kickoff-progress], [data-kickoff-outcome]")
+      .first()
+      .waitFor({ timeout: 60_000 })
+      .catch(() => undefined);
     const started = Date.now();
     let quietSince = Date.now();
     while (Date.now() - started < maxMs) {
@@ -375,6 +381,8 @@ try {
     .locator('[data-renewal-ready="missing"]')
     .filter({ hasText: "Verified owner recipient" })
     .first();
+  // The item is filled once the lease's message has loaded.
+  await missingNow.waitFor({ timeout: 60_000 }).catch(() => undefined);
   const l30 = {
     missingLine,
     missingLeases: missing?.leases ?? null,

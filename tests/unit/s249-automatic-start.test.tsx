@@ -9,6 +9,8 @@ import "@testing-library/jest-dom/vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
+import { StrictMode } from "react";
+
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -105,6 +107,18 @@ describe("S249 automatic start: fence (1) automation", () => {
     render(<RenewalKickoffPreparation {...props()} />);
     await settle(AUTOMATIC_START_IDLE_MS * 10);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("React's strict development mode (effects run twice on mount) still starts it, once", async () => {
+    render(
+      <StrictMode>
+        <RenewalKickoffPreparation {...props()} />
+      </StrictMode>,
+    );
+    await settle(AUTOMATIC_START_IDLE_MS + 50);
+    await settle(50);
+    await settle(AUTOMATIC_START_IDLE_MS * 4);
+    expect(preparationCalls().map((call) => call.leaseId)).toEqual(["9101", "9104"]);
   });
 
   it("inside the isolated rehearsal an automated browser does start it", async () => {
