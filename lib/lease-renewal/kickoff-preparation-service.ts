@@ -9,6 +9,8 @@
 //   1. a verification identity (lib/auth/canary-policy.ts) never starts a lookup;
 //   2. the automatic start is refused while the reviewed setting is off;
 //   3. the automatic start is refused for a lease outside the working batch;
+//   3a. the automatic start looks up no lease whose standing agreement covers its owner step (its
+//       rent comes from the rule, S250), and none whose coverage could not be confirmed;
 //   4. a lease held back for housing assistance (S251) is refused;
 //   5. a stored comparison for the cycle is reused, with no lookup;
 //   6. at the allowance nothing is looked up;
@@ -33,6 +35,8 @@ export type KickoffPreparationStatus =
   | "allowance_reached"
   | "already_claimed"
   | "held_back"
+  /** S250: a standing agreement covers the owner step, so nothing was looked up by itself. */
+  | "covered"
   | "refused"
   | "failed";
 
@@ -40,6 +44,7 @@ export type KickoffRefusalCode =
   | "verification_identity"
   | "automatic_start_off"
   | "outside_working_batch"
+  | "coverage_unconfirmed"
   | "no_cycle"
   | "source_unavailable";
 
@@ -61,8 +66,18 @@ export interface KickoffLeaseRead {
   readonly inWorkingBatch: boolean;
   /** The work record's cycle the lookup is stored under; null before one exists. */
   readonly workRecordCycleId: string | null;
-  /** S251 slot: the lease fact; null until that suite records it. */
+  /** S251: the lease's Housing assistance Yes fact; null when not set or No. */
   readonly housingAssistance: { readonly program: string } | null;
+  /** S251 R-S251-7: "Propose a change" is recorded for this cycle, which releases the hold. */
+  readonly rentChangeProposed?: boolean;
+  /**
+   * S250: "covered" when a standing agreement covers the owner step on this read, "unconfirmed"
+   * when coverage could not be read or confirmed; null or absent when nothing covers the lease
+   * (including a lease that left its rule).
+   */
+  readonly ownerStepCoverage?: "covered" | "unconfirmed" | null;
+  /** The covering agreement's name, for the words of a covered answer. */
+  readonly coveredBy?: string | null;
 }
 
 export interface KickoffLookupAnswer {
@@ -175,13 +190,33 @@ export async function runKickoffPreparation(
       "This lease is not in the working batch, so it was not prepared automatically.",
       lease.cycleDateIso,
     );
+  // S250: the automatic start buys no comparison a covered kickoff does not use. A staff member
+  // can still run one by hand at any time.
+  if (input.trigger === "automatic" && lease.ownerStepCoverage === "unconfirmed")
+    return refuse(
+      "coverage_unconfirmed",
+      "This lease's standing agreement could not be confirmed just now, so no comparison was started by itself.",
+      lease.cycleDateIso,
+    );
+  if (input.trigger === "automatic" && lease.ownerStepCoverage === "covered")
+    return {
+      ...base,
+      status: "covered",
+      cycleDateIso: lease.cycleDateIso,
+      message: `${lease.coveredBy ? `Covered by ${lease.coveredBy}` : "A standing agreement covers this lease"}: its rent comes from the agreement's rule, so no comparison was started by itself. Run the lease's own comparison when one is wanted.`,
+    };
   if (!lease.cycleDateIso)
     return refuse(
       "no_cycle",
       "This lease has no renewal cycle date, so it cannot be prepared.",
     );
   const cycleKey = lease.cycleDateIso;
-  if (heldBackForHousingAssistance({ housingAssistance: lease.housingAssistance }))
+  if (
+    heldBackForHousingAssistance({
+      housingAssistance: lease.housingAssistance,
+      rentChangeProposed: lease.rentChangeProposed === true,
+    })
+  )
     return {
       ...base,
       status: "held_back",

@@ -27,6 +27,10 @@ import {
 import { useRenewalPricingPolicy } from "./RenewalPricingPolicy";
 import { Button, Field } from "@/components/ui";
 import { parseCurrencyInput } from "@/lib/currency-input";
+import {
+  standingRuleContext,
+  standingRuleSourceLabel,
+} from "@/lib/lease-renewal/standing-agreement";
 import { formatBusinessTimestamp, formatCalendarDate } from "@/lib/date-display";
 import {
   workingEntry,
@@ -274,13 +278,22 @@ export function WorkingMoneyField({ field, label, hint, source }: WorkingFieldPr
       setDirty(false);
       return;
     }
+    // S250 R-S250-7: a rent adopted from a standing agreement names the rule version it came from,
+    // so a later rule change reads "Built on the earlier rule" instead of changing it.
+    const standing = prefill?.standing;
     const options =
       prefill && !dirty && parsed.value === prefill.value
-        ? {
-            origin: "adopted_source" as const,
-            sourceLabel: `Pricing policy v${prefill.policyVersion}`,
-            context: `${prefill.policyId}: ${prefill.reason}`.slice(0, 1000),
-          }
+        ? standing
+          ? {
+              origin: "adopted_source" as const,
+              sourceLabel: standingRuleSourceLabel(standing.name, standing.policyVersion),
+              context: standingRuleContext(standing),
+            }
+          : {
+              origin: "adopted_source" as const,
+              sourceLabel: `Pricing policy v${prefill.policyVersion}`,
+              context: `${prefill.policyId}: ${prefill.reason}`.slice(0, 1000),
+            }
         : undefined;
     if (await context!.save(field, parsed.value, options)) setDirty(false);
   }
@@ -306,7 +319,13 @@ export function WorkingMoneyField({ field, label, hint, source }: WorkingFieldPr
           value={displayText}
         />
       </Field>
-      {prefill && !entry ? (
+      {prefill && !entry && prefill.standing ? (
+        <p className="muted">
+          Prefilled from {prefill.standing.name}, rule v{prefill.standing.policyVersion}.{" "}
+          {prefill.standing.basis} This amount is saved when you leave or submit the
+          field.
+        </p>
+      ) : prefill && !entry ? (
         <p className="muted">
           Prefilled from policy v{prefill.policyVersion}. {prefill.reason} This amount is
           saved when you leave or submit the field.

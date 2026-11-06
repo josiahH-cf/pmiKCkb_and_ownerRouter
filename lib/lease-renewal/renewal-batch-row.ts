@@ -19,6 +19,7 @@ import {
   type RenewalBatchItem,
 } from "@/lib/lease-renewal/renewal-batch";
 import { RENTVINE_STATUS_UNAVAILABLE_LABEL } from "@/lib/lease-renewal/renewal-target";
+import { HOUSING_ASSISTANCE_SUGGESTION } from "@/lib/lease-renewal/cohort";
 import { RENEWAL_PATH_DEFINITION } from "@/lib/lease-renewal/renewal-path";
 import {
   kickoffOrderGroup,
@@ -166,12 +167,14 @@ export const RENEWAL_BATCH_TAG_LABELS: Record<RenewalBatchTagKey, string> = {
 };
 
 /**
- * The row's tags, at most three. Only what exists today is populated: a recorded standing owner
- * authority that covers this lease, and two waiting facts that disagree. The housing assistance
- * tag has no source yet, so it is never shown.
+ * The row's tags, at most three: a standing agreement that covers this lease (S250 R-S250-8), the
+ * lease's stored Housing assistance Yes fact (S251 R-S251-11; never RentVine wording), and two
+ * waiting facts that disagree.
  */
 export function renewalBatchRowTags(
-  row: Pick<DeskLeaseRow, "renewalPricing">,
+  row: Pick<DeskLeaseRow, "renewalPricing"> & {
+    readonly housingAssistance?: DeskLeaseRow["housingAssistance"];
+  },
   stage: Pick<RenewalBatchRowStage, "needsCheck" | "checkDetail">,
 ): RenewalBatchTag[] {
   const tags: RenewalBatchTag[] = [];
@@ -180,6 +183,12 @@ export function renewalBatchRowTags(
       key: "standing_agreement",
       label: RENEWAL_BATCH_TAG_LABELS.standing_agreement,
       detail: row.renewalPricing.authority.reason,
+    });
+  if (row.housingAssistance?.status === "yes")
+    tags.push({
+      key: "housing_assistance",
+      label: RENEWAL_BATCH_TAG_LABELS.housing_assistance,
+      detail: `Housing assistance: ${row.housingAssistance.program}, recorded by staff on this lease.`,
     });
   if (stage.needsCheck)
     tags.push({
@@ -209,6 +218,11 @@ export interface RenewalBatchRowView extends RenewalBatchItem {
   readonly tags: readonly RenewalBatchTag[];
   /** R-S246-12: "RentVine status unavailable" when the lease status could not be read. */
   readonly statusNote: string | null;
+  /**
+   * S251 R-S251-10: "RentVine mentions housing assistance. Set the field?" while the fact is not
+   * set and RentVine text mentions assistance. A suggestion only; it changes nothing.
+   */
+  readonly suggestion: string | null;
   /** The plain reason a lease sits in its count group, when the group label is not enough. */
   readonly reason: string | null;
   /**
@@ -263,14 +277,21 @@ function kickoffFor(row: DeskLeaseRow): {
     ownerStepStarted: ownerStepStarted(stage),
   });
   if (!preparation || group === "other") return { group, view: null };
+  // S250: a lease whose standing agreement covers the owner step takes its rent from the rule, so
+  // its kickoff needs no comparison; one whose coverage could not be confirmed on this read waits
+  // for a read that confirms it or not. Neither is handed to batch preparation. A lease that left
+  // the rule (a typed different rent) is an ordinary target.
+  const authority = row.renewalPricing?.authority;
+  const coverageFenced = authority?.covered === true || authority?.unconfirmed === true;
   return {
     group,
     view: {
       line: kickoffRowLine(preparation),
       missing: preparation.missing,
       needsComparison:
-        (preparation.comparison.state === "none" && !preparation.comparison.attempted) ||
-        preparation.comparison.state === "allowance_reached",
+        !coverageFenced &&
+        ((preparation.comparison.state === "none" && !preparation.comparison.attempted) ||
+          preparation.comparison.state === "allowance_reached"),
       allowanceReached: preparation.comparison.state === "allowance_reached",
       cycleDateIso:
         row.renewalTarget?.kind === "target" ? row.renewalTarget.cycleDateIso : null,
@@ -335,6 +356,10 @@ export function projectRenewalBatchRow(
     nextStep: stage.nextStep,
     tags: renewalBatchRowTags(row, stage),
     statusNote: target?.statusUnavailable ? RENTVINE_STATUS_UNAVAILABLE_LABEL : null,
+    suggestion:
+      row.housingAssistanceMention && !row.housingAssistance
+        ? HOUSING_ASSISTANCE_SUGGESTION
+        : null,
     reason: placement.kind === "fixed" ? placement.reason : null,
     sourceRenewal:
       target?.kind === "not_target" &&

@@ -75,6 +75,31 @@ export const RENEWAL_PATH_LABELS: Record<RenewalPathStepId, string> = {
 /** A step that does not apply reads this and asks for nothing (R-S247-2). */
 export const NOT_PART_OF_PATH_LABEL = "Not part of this lease's path";
 
+/** S251 R-S251-4: the program contact step names the lease's own program. */
+export function assistedProgramContactLabel(program: string | null | undefined): string {
+  const name = program?.trim();
+  return name
+    ? `Contact ${name} about the renewal process`
+    : RENEWAL_PATH_LABELS["assisted-program-contact"];
+}
+
+/** S251 R-S251-5 / R-S251-6: the exact choices the assisted steps offer; none is preselected. */
+export const ASSISTED_RENEWAL_ANSWERS = [
+  { value: "renew_tenant", label: "Renew" },
+  { value: "declined_non_renewal", label: "Do not renew" },
+  { value: "no_response", label: "No answer yet" },
+] as const;
+export const ASSISTED_RENT_CHOICES = [
+  { value: "keep_current", label: "Keep the current rent" },
+  { value: "propose_change", label: "Propose a change" },
+] as const;
+/** The Full view regions the assisted steps' own controls live in. */
+export const ASSISTED_CONTROL_IDS = {
+  programContact: "renewal-manual-program_contact",
+  renewalAnswer: "renewal-assisted-renewal-answer",
+  rentChoice: "renewal-assisted-rent-choice",
+} as const;
+
 /**
  * S249 fills these named places on the Now card. Until then each one is absent and the step
  * shows its existing controls.
@@ -352,11 +377,11 @@ export const RENEWAL_PATH_DEFINITION: Readonly<
     label: RENEWAL_PATH_LABELS["assisted-program-contact"],
     ready: "The housing program named on the lease.",
     decides: "When the program has been contacted about the renewal process.",
-    controls: ["renewal-manual-assisted_housing"],
+    controls: [ASSISTED_CONTROL_IDS.programContact],
     handlers: [WORKSPACE_ROUTE],
     primary: {
       label: "Record the program contact",
-      target: "renewal-manual-assisted_housing",
+      target: ASSISTED_CONTROL_IDS.programContact,
     },
     completion: "The program contact recorded by staff.",
     waiting: null,
@@ -370,13 +395,14 @@ export const RENEWAL_PATH_DEFINITION: Readonly<
   "assisted-owner-renewal-answer": {
     id: "assisted-owner-renewal-answer",
     label: RENEWAL_PATH_LABELS["assisted-owner-renewal-answer"],
-    ready: "The owner message asking whether to renew this tenant.",
+    ready:
+      "The standard owner message, or the contact you made with the owner another way.",
     decides: "Renew, Do not renew or No answer yet, as the owner answers.",
-    controls: ["renewal-card-message-owner", "renewal-manual-owner_response"],
+    controls: ["renewal-card-message-owner", ASSISTED_CONTROL_IDS.renewalAnswer],
     handlers: [...MESSAGE_ROUTES, WORKSPACE_ROUTE],
     primary: {
       label: "Record the owner's answer",
-      target: "renewal-manual-owner_response",
+      target: ASSISTED_CONTROL_IDS.renewalAnswer,
     },
     completion: "The owner's answer recorded by staff.",
     waiting: {
@@ -395,17 +421,17 @@ export const RENEWAL_PATH_DEFINITION: Readonly<
     label: RENEWAL_PATH_LABELS["assisted-rent"],
     ready: "The current rent and, when a change is proposed, the prepared comparison.",
     decides: "Keep the current rent or propose a change.",
-    controls: ["renewal-section-comps", "renewal-working-terms"],
-    handlers: [WORKSPACE_ROUTE],
-    primary: { label: "Choose the rent", target: "renewal-working-terms" },
+    controls: [ASSISTED_CONTROL_IDS.rentChoice],
+    handlers: [WORKSPACE_ROUTE, "/api/lease-renewal/working-record"],
+    primary: { label: "Choose the rent", target: ASSISTED_CONTROL_IDS.rentChoice },
     completion: "The rent choice recorded for this renewal.",
     waiting: null,
     stage: "preparing_market_comparison",
     waitingStage: null,
     next: "offer-tenant",
     processStepId: "owner-decision",
-    sectionId: "comps",
-    slots: ["stored-comparison", "rent-to-recommend"],
+    sectionId: "owner",
+    slots: [],
   },
 };
 
@@ -417,13 +443,22 @@ export interface RenewalPathVariants {
   /** A recorded decline, or a RentVine move-out notice: the later steps become the handoff. */
   readonly nonRenewal: { readonly source: "recorded" | "rentvine" } | null;
   readonly monthToMonth: boolean;
-  /** S250 slot. Today the existing standing owner authority (S194) fills it. */
+  /**
+   * S250 slot: the owner step covered by a standing agreement (S250's portfolio agreement, or the
+   * S194 exact kind, whose label is null).
+   */
   readonly standingAgreement: {
     readonly label: string | null;
     readonly reason: string;
   } | null;
-  /** S251 slot. Null until that suite records the lease fact. */
-  readonly housingAssistance: { readonly program: string } | null;
+  /**
+   * S251 slot: the lease's Housing assistance fact when it is Yes, with this cycle's rent choice.
+   * "Propose a change" brings the comparison and the owner's rent decision into the path.
+   */
+  readonly housingAssistance: {
+    readonly program: string;
+    readonly rentChoice?: "keep_current" | "propose_change" | null;
+  } | null;
 }
 
 /** The path for one lease, in order, with the steps that are not part of it marked. */
@@ -435,12 +470,14 @@ export function renewalPathSteps(variants: RenewalPathVariants): {
   if (variants.monthToMonth) steps.push({ id: "month-to-month-review", applies: true });
   steps.push({ id: "check-numbers", applies: true });
   if (variants.housingAssistance) {
-    // S251: the program contact and the owner's renew-or-not answer come ahead of rent.
+    // S251: the program contact and the owner's renew-or-not answer come ahead of rent; the
+    // comparison and the owner's rent decision join the path only when a change is proposed.
+    const proposed = variants.housingAssistance.rentChoice === "propose_change";
     steps.push({ id: "assisted-program-contact", applies: true });
     steps.push({ id: "assisted-owner-renewal-answer", applies: true });
     steps.push({ id: "assisted-rent", applies: true });
-    steps.push({ id: "compare-market", applies: false });
-    steps.push({ id: "ask-owner", applies: false });
+    steps.push({ id: "compare-market", applies: proposed });
+    steps.push({ id: "ask-owner", applies: proposed });
   } else {
     steps.push({ id: "compare-market", applies: true });
     steps.push({ id: "ask-owner", applies: true });

@@ -16,8 +16,11 @@
 //                           read again, so move-out evidence shows as it does day to day.
 //   replied-owner-message   built here: the replied lease's owner message is sent from the app
 //                           and an owner reply is delivered by the mail stand-in.
-//   standing-agreement      S250: the covered lease's portfolio agreement (roles.covered).
-//   housing-assistance      S251: Housing assistance Yes with the program name (roles.assisted).
+//   standing-agreement      built here (S250): as the Admin the rule policy and the covered
+//                           lease's agreement (roles.covered) are saved; as the Editor it is
+//                           applied to that lease's verified portfolio.
+//   housing-assistance      built here (S251): as the Editor, Housing assistance Yes with the
+//                           program name on the assisted lease (roles.assisted).
 //   prepared-kickoff        built here (S249): the prepared lease's stored comparison (through
 //                           "Prepare this lease"), the Editor's signature and the approved
 //                           owner and tenant templates (roles.prepared).
@@ -373,10 +376,133 @@ async function automaticStartSetting(page, enabled, why) {
   }
 }
 
-const notBuilt = (suite, what) => async () => ({
-  state: "not_built",
-  detail: `${suite} seeds this once it is built: ${what}.`,
-});
+const PRICING_ROUTE = "/api/lease-renewal/pricing-policy";
+const newId = (page) => page.evaluate(() => crypto.randomUUID());
+
+/**
+ * S250: the covered lease's owner agreement, set once for its verified portfolio. As the Admin
+ * (who alone records a policy or an agreement), the rule policy and "Example Standing Agreement"
+ * are saved through the served app's pricing route; as the Editor the agreement is chosen as the
+ * pricing basis for every lease in the owner's portfolio. The portfolio is the one RentVine
+ * verifies for the covered lease (9402 in the mix, which holds only that lease); a portfolio that
+ * holds the prepared lease is refused, so no other lease's path changes.
+ */
+async function standingAgreementSeed({ page, mix }) {
+  const covered = mix.roles.covered;
+  const leaseId = String(covered.leaseId);
+  const preparedId = String(mix.roles.prepared.leaseId);
+  const read = await route(page, `${PRICING_ROUTE}?leaseId=${leaseId}`);
+  if (read.status !== 200) return { state: "skipped", detail: refusal(read) };
+  if (!Array.isArray(read.body?.standingAgreements))
+    return {
+      state: "not_built",
+      detail: "The served commit has no standing agreements on the pricing route.",
+    };
+  const portfolioId = read.body?.source?.portfolioId;
+  if (typeof portfolioId !== "string" || !portfolioId)
+    return { state: "skipped", detail: `Lease ${leaseId} has no verified portfolio.` };
+  const prepared = await route(page, `${PRICING_ROUTE}?leaseId=${preparedId}`);
+  if (prepared.body?.source?.portfolioId === portfolioId)
+    return {
+      state: "skipped",
+      detail: `Portfolio ${portfolioId} also holds the prepared lease ${preparedId}; no agreement is applied there.`,
+    };
+  let agreementId;
+  await switchDemoRole(page, "Admin");
+  try {
+    const policy = await route(page, PRICING_ROUTE, {
+      action: "policy",
+      policy: {
+        id: await newId(page),
+        name: "Example three percent rule",
+        kind: "percentage",
+        value: covered.standingAgreement.percentIncrease,
+        effectiveFrom: "2026-10-01",
+        effectiveThrough: null,
+        enabled: true,
+        purpose: "Rehearsal: the rule of the covered lease's standing agreement.",
+      },
+      expectedVersion: 0,
+      operationId: await newId(page),
+    });
+    if (policy.status !== 200) return { state: "skipped", detail: refusal(policy) };
+    const agreement = await route(page, PRICING_ROUTE, {
+      action: "standing_agreement",
+      agreement: {
+        id: await newId(page),
+        name: covered.standingAgreement.name,
+        policyId: policy.body.policy.id,
+        portfolioId,
+        preApprovalStatement:
+          "The owner pre-approves every renewal in this portfolio at the recorded rule.",
+        effectiveFrom: "2026-10-01",
+        endsOn: null,
+        agreedBy: "Example Owner",
+        agreedHow: "Written instruction to the office",
+        agreedWhen: "October 1, 2026",
+        revoked: false,
+      },
+      expectedVersion: 0,
+      operationId: await newId(page),
+    });
+    if (agreement.status === 400)
+      return {
+        state: "not_built",
+        detail: `The served commit refuses a standing agreement (${refusal(agreement)}).`,
+      };
+    if (agreement.status !== 200) return { state: "skipped", detail: refusal(agreement) };
+    agreementId = agreement.body.standingAgreement.id;
+  } finally {
+    await switchDemoRole(page, "Editor");
+  }
+  const portfolio = await route(page, `${PRICING_ROUTE}?portfolioId=${portfolioId}`);
+  const applied = await route(page, PRICING_ROUTE, {
+    action: "pricing_basis",
+    scope: "portfolio",
+    sourceId: portfolioId,
+    choice: { kind: "agreement", agreementId },
+    expectedVersion: portfolio.body?.assignment?.version ?? 0,
+    operationId: await newId(page),
+    reason: "Rehearsal: the owner's standing agreement for this portfolio.",
+  });
+  if (applied.status !== 200) return { state: "skipped", detail: refusal(applied) };
+  const after = await route(page, `${PRICING_ROUTE}?leaseId=${leaseId}`);
+  const authority = after.body?.authority;
+  const covers = authority?.covered === true && authority?.kind === "standing";
+  return {
+    state: covers ? "seeded" : "skipped",
+    detail: `Portfolio ${portfolioId}: ${covered.standingAgreement.name} applied by the Editor; lease ${leaseId} ${covers ? `covered, the rule gives ${authority.amount}` : `not covered (${authority?.reason ?? "no authority read"})`}.`,
+  };
+}
+
+/**
+ * S251: Housing assistance Yes with the program name on the assisted lease, saved by the Editor
+ * on the lease-bound working record through the served app's route. It runs inside the held
+ * automatic start, so the batch never requests a comparison for the lease before the fact exists.
+ */
+async function housingAssistanceSeed({ page, mix }) {
+  const assisted = mix.roles.assisted;
+  const leaseId = String(assisted.leaseId);
+  const read = await route(page, `/api/lease-renewal/working-record?leaseId=${leaseId}`);
+  if (read.status !== 200) return { state: "skipped", detail: refusal(read) };
+  const saved = await route(page, "/api/lease-renewal/working-record", {
+    leaseId,
+    field: "housing_assistance",
+    value: { status: "yes", program: assisted.housingAssistance.program },
+    expectedRevision: read.body?.record?.fields?.housing_assistance?.revision ?? 0,
+    operationId: await newId(page),
+  });
+  if (saved.status === 400 || saved.status === 422)
+    return {
+      state: "not_built",
+      detail: `The served commit has no Housing assistance field (${refusal(saved)}).`,
+    };
+  if (saved.status !== 200) return { state: "skipped", detail: refusal(saved) };
+  return {
+    state: "seeded",
+    detail: `Lease ${leaseId}: Housing assistance Yes, ${assisted.housingAssistance.program}, saved by the Editor.`,
+  };
+}
 
 /**
  * The five role leases as S253's forms seed takes them: the lease id, how many tenants it has and
@@ -454,22 +580,10 @@ export const SEED_STEPS = [
   { name: "recorded-cycles", suite: "S246", run: recordedCycles },
   { name: "notice-admission", suite: "S254", run: noticeAdmission },
   { name: "replied-owner-message", suite: "S249", run: repliedOwnerMessage },
-  {
-    name: "standing-agreement",
-    suite: "S250",
-    run: notBuilt(
-      "S250",
-      "the covered lease's active standing agreement on its portfolio",
-    ),
-  },
-  {
-    name: "housing-assistance",
-    suite: "S251",
-    run: notBuilt(
-      "S251",
-      "Housing assistance Yes with the program name on the assisted lease",
-    ),
-  },
+  // S250 and S251 run inside the held automatic start (before automatic-start-restored), so
+  // opening the batch never requests a comparison for the assisted lease before its fact exists.
+  { name: "standing-agreement", suite: "S250", run: standingAgreementSeed },
+  { name: "housing-assistance", suite: "S251", run: housingAssistanceSeed },
   { name: "prepared-kickoff", suite: "S249", run: preparedKickoff },
   { name: "forms", suite: "S253", run: (context) => seedForms(context) },
   {

@@ -810,5 +810,19 @@
     "text": "Transient proposal only. Review every source and exact word, then prepare the exact mailbox, recipient, subject, and body confirmation.",
     "describes": "Not rendered by any staff route: Never-rendered AI reply proposal before the exact linked reply confirmation",
     "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/RenewalPricingPolicyAdmin.tsx",
+    "text": "An owner agrees once to a pricing rule for every renewal in their portfolio. Staff then choose it on a lease as its Pricing basis for this lease only or for every lease in this owner&rsquo;s portfolio.",
+    "describes": "Admin standing agreements by owner portfolio: what an agreement is and where staff choose it (S250)",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/RenewalPricingPolicyAdmin.tsx",
+    "text": "No standing agreement is recorded yet.",
+    "describes": "Admin standing agreements list with none recorded (S250)",
+    "disposition": "keep"
   }
 ]

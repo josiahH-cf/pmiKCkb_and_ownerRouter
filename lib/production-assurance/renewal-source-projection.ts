@@ -2,6 +2,10 @@ import { createHash } from "node:crypto";
 
 import type { SheetsBatchGetResponse } from "@/lib/google-sheets/sheet-to-grids";
 import { composeRentVineAddress } from "@/lib/integrations/rentvine/address";
+import {
+  INDEPENDENT_VARIANTS_CONTRACT_MARKER,
+  independentVariantSkipSignal,
+} from "./variant-projection";
 
 const PROOF_NOTE_PREFIX = "TEST — PMI KC writeback proof — ";
 const RENEWAL_SHEET_TITLE = "Lease Renewal";
@@ -28,6 +32,12 @@ export const INDEPENDENT_ONE_STATUS_CONTRACT_MARKER = "s232-one-status";
  * oracle's own independent evidence reading.
  */
 export const INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER = "s248-evidence-stage";
+/**
+ * S250/S251: the S248 evidence-stage rules with the variant facts: a standing agreement chosen as
+ * the lease's pricing basis covers the owner step, Housing assistance Yes reorders the staff lane,
+ * and housing assistance wording is no longer a program skip. Defined with the variant oracle.
+ */
+export { INDEPENDENT_VARIANTS_CONTRACT_MARKER };
 /** The rule set one desk row is verified under. */
 export type IndependentGuidanceContract = "predecessor" | "staff_lane";
 /** What a caller may require of every row: a staff-lane marker, or no marker at all. */
@@ -35,6 +45,7 @@ export type IndependentExpectedContractMarker =
   | typeof INDEPENDENT_STAFF_LANE_CONTRACT_MARKER
   | typeof INDEPENDENT_ONE_STATUS_CONTRACT_MARKER
   | typeof INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER
+  | typeof INDEPENDENT_VARIANTS_CONTRACT_MARKER
   | "none";
 
 /** The staff-lane waiting rule a marker names: S156's response step or S232's awaited party. */
@@ -43,7 +54,8 @@ export function independentStaffLaneWaitingRule(
   marker: string | null,
 ): IndependentStaffLaneWaitingRule {
   return marker === INDEPENDENT_ONE_STATUS_CONTRACT_MARKER ||
-    marker === INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER
+    marker === INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER ||
+    marker === INDEPENDENT_VARIANTS_CONTRACT_MARKER
     ? "awaited_party"
     : "response_step";
 }
@@ -530,12 +542,36 @@ export function independentMonthToMonthSignal(
 export function independentWorkspaceExpected(
   exportRow: Readonly<Record<string, unknown>>,
   leaseDetails: IndependentLeaseDetailMap = new Map(),
+  /** S251: the variant rules read housing assistance wording as a suggestion, never a skip. */
+  rules: "standard" | "variants" = "standard",
 ): boolean {
   const lease = asRecord(exportRow.lease) ?? exportRow;
   const leaseId = firstText(lease, ["leaseID", "leaseId", "id"]);
   if (leaseId === null) return false;
   if (independentMonthToMonthSignal(exportRow, leaseDetails).signal) return true;
-  return !hasDefinitiveSkipSignal(lease);
+  return rules === "variants"
+    ? !independentVariantSkipSignal(lease)
+    : !hasDefinitiveSkipSignal(lease);
+}
+
+/**
+ * S250: the export row's portfolio id, read from the row's own portfolio object or its id field.
+ * Null when absent; the caller requires the lease id to be unique in the read as well.
+ */
+export function independentPortfolioId(
+  exportRow: Readonly<Record<string, unknown>>,
+): string | null {
+  const lease = asRecord(exportRow.lease) ?? exportRow;
+  for (const source of [
+    asRecord(lease.portfolio),
+    lease,
+    asRecord(exportRow.portfolio),
+  ]) {
+    if (!source) continue;
+    const value = firstText(source, ["portfolioID", "portfolioId"]);
+    if (value !== null) return value.trim();
+  }
+  return null;
 }
 
 /** Exact value-free identity of one live-review current-rent decision. */
@@ -671,6 +707,7 @@ export function countIndependentContractMarkerMismatches(
     INDEPENDENT_STAFF_LANE_CONTRACT_MARKER,
     INDEPENDENT_ONE_STATUS_CONTRACT_MARKER,
     INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER,
+    INDEPENDENT_VARIANTS_CONTRACT_MARKER,
   ].map((value) => markers.filter((marker) => marker === value).length);
   const recognised = groups.reduce((sum, count) => sum + count, 0);
   return markers.length - recognised + (recognised - Math.max(...groups));
@@ -1616,9 +1653,20 @@ export function independentContractReadsEvidence(
   marker: string | null,
   expected?: IndependentExpectedContractMarker,
 ): boolean {
+  const selected = expected !== undefined ? expected : marker;
   return (
-    (expected !== undefined ? expected : marker) ===
-    INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER
+    selected === INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER ||
+    selected === INDEPENDENT_VARIANTS_CONTRACT_MARKER
+  );
+}
+
+/** S250/S251: a row read under the variant rules (which also read the app's evidence). */
+export function independentContractReadsVariants(
+  marker: string | null,
+  expected?: IndependentExpectedContractMarker,
+): boolean {
+  return (
+    (expected !== undefined ? expected : marker) === INDEPENDENT_VARIANTS_CONTRACT_MARKER
   );
 }
 

@@ -7,6 +7,10 @@ import {
   resolveWorkspacePath,
   workspaceSelectorsForPhase,
 } from "../../scripts/run-production-canary";
+import {
+  projectRenewalStage,
+  type RenewalStageContext,
+} from "../../lib/lease-renewal/renewal-stage";
 
 const names = [
   "Lease details",
@@ -239,6 +243,58 @@ describe("S113 candidate and captured predecessor workspace landmarks", () => {
         await hasRenewalWorkspaceLandmarks(guidedFixture(options)),
         JSON.stringify(options),
       ).toBe(false);
+  });
+
+  it("S250/S251: the lease landmark contract holds for the covered and the assisted variants", async () => {
+    const context: RenewalStageContext = {
+      leaseId: "9102",
+      staffRecordUnavailable: false,
+      standingAgreement: null,
+      housingAssistance: null,
+      numbers: { verified: true, openDifferences: 0 },
+      term: { monthToMonth: false, reviewNeeded: false },
+      moveOutInitiated: false,
+      sourceRenewal: null,
+      verification: null,
+      handStatus: null,
+      lastContactAtIso: null,
+      threadCheck: null,
+      outreach: null,
+    };
+    const covered = projectRenewalStage(
+      null,
+      {
+        ...context,
+        standingAgreement: {
+          label: "Example Standing Agreement",
+          reason: "Covered by Example Standing Agreement: no owner message needed",
+        },
+      },
+      { standingCovered: true },
+    );
+    const assisted = projectRenewalStage(null, {
+      ...context,
+      leaseId: "9103",
+      housingAssistance: { program: "Example Housing Assistance Office" },
+    });
+    for (const stage of [covered, assisted]) {
+      const steps = stage.steps.map((step) => step.label);
+      expect(steps[0]).toBe("Check the numbers");
+      expect(steps.at(-1)).toBe("Complete");
+      expect(stage.steps.filter((step) => step.id === stage.currentStepId)).toHaveLength(
+        1,
+      );
+      expect(await hasRenewalWorkspaceLandmarks(guidedFixture({ steps }))).toBe(true);
+    }
+    // The assisted order is in the strip the contract reads; the contract is not loosened.
+    expect(assisted.steps.map((step) => step.label)).toContain(
+      "Contact Example Housing Assistance Office about the renewal process",
+    );
+    expect(
+      await hasRenewalWorkspaceLandmarks(
+        guidedFixture({ steps: assisted.steps.map((step) => step.label).slice(1) }),
+      ),
+    ).toBe(false);
   });
 
   it("separates observed framework prefetch cancellation from failed navigation, API reads and mutations", () => {

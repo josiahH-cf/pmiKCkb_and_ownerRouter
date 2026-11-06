@@ -471,7 +471,7 @@ describe("S82 guidance and the suggested next action", () => {
     const guidance = buildDeskLeaseGuidance(input({ process: blockedProcess() }));
     expect(guidance.blockers).toEqual([]);
     expect(guidance.isBlocked).toBe(false);
-    expect(guidance.contract).toBe("s248-evidence-stage");
+    expect(guidance.contract).toBe("s251-variants");
     expect(guidance.action).toEqual({
       kind: "act",
       label: "Owner outreach",
@@ -489,7 +489,7 @@ describe("S82 guidance and the suggested next action", () => {
       buildDeskLeaseGuidance(input({ currencyState: "expired" })),
       buildDeskLeaseGuidance(input({ process: null })),
     ]) {
-      expect(guidance.contract).toBe("s248-evidence-stage");
+      expect(guidance.contract).toBe("s251-variants");
       expect(guidance.blockers).toEqual([]);
     }
   });

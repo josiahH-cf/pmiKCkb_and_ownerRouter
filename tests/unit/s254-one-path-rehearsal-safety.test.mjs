@@ -464,15 +464,25 @@ describe("S254: seeds and drivers", () => {
     ]);
   });
 
-  it("the steps later suites own say so until those suites add them", async () => {
-    const waiting = await runSeeds(
+  it("S250 and S251 built their steps, inside the held automatic start", async () => {
+    const order = SEED_STEPS.map((step) => step.name);
+    const at = (name) => order.indexOf(name);
+    // The hold comes first, so opening the desk (notice admission) starts no preparation, and
+    // both variant seeds run before the setting returns to its shipped default.
+    expect(at("automatic-start-held")).toBe(0);
+    expect(at("automatic-start-held")).toBeLessThan(at("notice-admission"));
+    expect(at("standing-agreement")).toBeLessThan(at("automatic-start-restored"));
+    expect(at("housing-assistance")).toBeLessThan(at("automatic-start-restored"));
+    expect(at("automatic-start-restored")).toBe(order.length - 1);
+    // Without a served page they report the refusal and the run carries on; neither is a
+    // "not built" placeholder any more (S249 built "prepared-kickoff" the same way).
+    const results = await runSeeds(
       {},
       SEED_STEPS.filter((step) =>
         ["standing-agreement", "housing-assistance"].includes(step.name),
       ),
     );
-    // S249 built "prepared-kickoff"; the other two wait on S250 and S251.
-    expect(waiting.map((result) => result.state)).toEqual(["not_built", "not_built"]);
+    expect(results.map((result) => result.state)).toEqual(["skipped", "skipped"]);
   });
 
   it("the forms seed gets the five role leases with their tenants and animals", () => {

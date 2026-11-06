@@ -14,6 +14,7 @@ import {
   leaseEndDateIso,
 } from "@/lib/integrations/rentvine/lease-mapper";
 import { resolveRenewalWorkBasis } from "./workspace-cycle-context";
+import { projectRenewalDeskIdentity } from "./desk-identity";
 /** This factory resolves actual source membership. A name match or caller's portfolio never qualifies. */
 export function pricingPolicyDependencies(actor: AuthenticatedUser) {
   const store = new RenewalPricingPolicyStore();
@@ -31,6 +32,17 @@ export function pricingPolicyDependencies(actor: AuthenticatedUser) {
   };
   const verifier: PricingSourceVerifier = {
     portfolio: async (id) => (await read()).some((v) => leasePortfolioId(v) === id),
+    // S250 R-S250-2: the owner names on the portfolio's current leases, as RentVine reports them.
+    portfolioOwners: async (id) => [
+      ...new Set(
+        (await read())
+          .filter((v) => leasePortfolioId(v) === id)
+          .flatMap((v) =>
+            projectRenewalDeskIdentity(v).owners.map((owner) => owner.label),
+          )
+          .filter((label) => label.trim() && label !== "Needs Verification"),
+      ),
+    ],
     lease: async (id) => {
       const matches = (await read()).filter((v) => leaseViewId(v) === id);
       if (matches.length !== 1)

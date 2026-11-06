@@ -661,6 +661,7 @@ export function RenewalWorkspace({
                             <RenewalManualSection
                               section={section.id}
                               moveOutInitiated={summary.moveOut?.state === "initiated"}
+                              currentRent={workspace.currentRent}
                             />
                           ) : null}
                           {section.id === "documents" ? resourceLocationsPanel : null}

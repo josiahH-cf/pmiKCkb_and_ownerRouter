@@ -45,9 +45,12 @@ export type {
  * owner or tenant has the move; a revision before this rendered "s156-staff-lane". S248: the same
  * rules with the app's own renewal message evidence filling the staff record (an accepted message
  * records the outreach or offer; an observed reply hands the move to the team); a revision before
- * this rendered "s232-one-status".
+ * this rendered "s232-one-status". S250/S251: the same rules with the variant facts (a standing
+ * agreement chosen as the pricing basis covers the owner step; Housing assistance Yes reorders the
+ * staff lane; housing assistance wording is no longer a program skip); a revision before this
+ * rendered "s248-evidence-stage".
  */
-export const DESK_GUIDANCE_CONTRACT = "s248-evidence-stage";
+export const DESK_GUIDANCE_CONTRACT = "s251-variants";
 
 /** Grounded control gates only; every other blocker link is plain phase navigation. */
 export const DESK_EVIDENCE_CAPABILITY: Readonly<Partial<Record<string, Capability>>> = {

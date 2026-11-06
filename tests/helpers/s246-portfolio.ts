@@ -18,6 +18,9 @@ import {
 } from "@/lib/lease-renewal/live-lease-cache";
 import type { RenewalLeaseWorkspace } from "@/lib/lease-renewal/desk-model";
 import type { LeaseOutreachEvidenceInput } from "@/lib/lease-renewal/outreach-evidence";
+import type { KickoffSupportRead } from "@/lib/lease-renewal/kickoff-facts";
+import type { RenewalPricingRead } from "@/lib/lease-renewal/renewal-pricing-policy";
+import type { RenewalWorkingRecord } from "@/lib/lease-renewal/working-record";
 import { RENEWAL_PROCESS_VERSION } from "@/lib/lease-renewal/renewal-process";
 import {
   RENEWAL_STAGE,
@@ -146,7 +149,9 @@ export function s246Rows(): Row[] {
     lease(111, { endDate: "2027-12-31" }, "Renewed Rd", "Kai Sample"),
     lease(
       112,
-      { endDate: "2026-12-31", program: "Housing voucher" },
+      // S251 R-S251-10: housing assistance wording is a suggestion only, so the program lease of
+      // this matrix uses program wording that keeps "Program lease".
+      { endDate: "2026-12-31", program: "PadSplit program" },
       "Program Pl",
       "Lane Sample",
     ),
@@ -250,6 +255,16 @@ export interface S246DeskOptions {
   readonly outreach?: ReadonlyMap<string, LeaseOutreachEvidenceInput>;
   /** S248: the evidence read failed for this render. */
   readonly outreachUnavailable?: boolean;
+  /** S250/S251: the bulk working-record read; absent means the desk did not read it. */
+  readonly working?: ReadonlyMap<string, RenewalWorkingRecord>;
+  /** S250: the bounded pricing read (assignments, policies, agreements). */
+  readonly pricing?: RenewalPricingRead;
+  /** S249: the preparation projection's bulk read; absent means not attempted. */
+  readonly kickoffSupport?: KickoffSupportRead;
+  /** The age state of the RentVine generation the desk reads; absent reads fresh. */
+  readonly currency?: "fresh" | "stale" | "expired";
+  /** False when the RentVine export read is incomplete; absent reads complete. */
+  readonly snapshotComplete?: boolean;
 }
 
 /** The synthetic sources and one lease generation both orchestrations read. */
@@ -285,16 +300,21 @@ function s246Sources(options: S246DeskOptions) {
   const snapshot: LiveLeaseSnapshotResult = {
     snapshot: {
       views,
-      complete: true,
+      complete: options.snapshotComplete ?? true,
       readAtMs: Date.parse(readTs),
       detailComplete: true,
       detailUnavailableCount: 0,
     },
     currency: {
-      state: "fresh",
-      ageMs: 0,
+      state: options.currency ?? "fresh",
+      ageMs:
+        options.currency === "expired"
+          ? 16 * 60_000
+          : options.currency === "stale"
+            ? 90_000
+            : 0,
       readAtMs: Date.parse(readTs),
-      refreshing: false,
+      refreshing: options.currency === "stale",
       lastError: false,
     },
   };
@@ -323,8 +343,8 @@ export async function loadS246Desk(
     undefined,
     undefined,
     undefined,
-    undefined,
-    undefined,
+    options.working,
+    options.pricing,
     options.decisions,
     options.outreach || options.outreachUnavailable
       ? {
@@ -332,6 +352,7 @@ export async function loadS246Desk(
           byLease: options.outreach ?? new Map(),
         }
       : undefined,
+    options.kickoffSupport,
   );
   if (result.status !== "ok") throw new Error(`desk load ${result.status}`);
   return result.view;
@@ -361,8 +382,8 @@ export async function loadS246Workspace(
     undefined,
     undefined,
     undefined,
-    undefined,
-    undefined,
+    options.working ? (options.working.get(leaseId) ?? null) : undefined,
+    options.pricing,
     options.decisions?.get(leaseId) ?? null,
     options.outreachUnavailable
       ? { readable: false, messages: [], records: [], drafts: [] }
@@ -374,6 +395,7 @@ export async function loadS246Workspace(
             drafts: [],
           })
         : null,
+    options.kickoffSupport ? { support: options.kickoffSupport } : undefined,
   );
   if (result.status !== "ok") throw new Error(`workspace load ${result.status}`);
   return result.workspace;

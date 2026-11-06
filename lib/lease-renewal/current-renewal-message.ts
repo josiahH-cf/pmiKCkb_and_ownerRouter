@@ -29,8 +29,13 @@ import { getAdminFirestore } from "@/lib/firestore/admin";
 import { getRenewalWorkspace } from "@/lib/firestore/renewal-workspace";
 import {
   getMessagePreparation,
+  getMessageRuleBasis,
   workspaceMessageBasisFingerprint,
 } from "@/lib/firestore/renewal-message-preparations";
+import {
+  STANDING_AGREEMENT_WORDS,
+  standingRuleWords,
+} from "@/lib/lease-renewal/standing-agreement";
 import {
   getMessageBodyOverride,
   getMessageSubjectOverride,
@@ -40,6 +45,17 @@ import {
 import { getRenewalWorkingRecord } from "@/lib/firestore/renewal-working-record";
 import { operationalCurrentRent } from "@/lib/lease-renewal/current-rent";
 import { effectiveRenewalTerms } from "@/lib/lease-renewal/effective-terms";
+import { RenewalPricingPolicyStore } from "@/lib/firestore/renewal-pricing-policies";
+import { readRenewalPricingForViews } from "@/lib/lease-renewal/pricing-policy-read";
+import {
+  projectRenewalPricingPolicy,
+  resolveRenewalPricing,
+} from "@/lib/lease-renewal/renewal-pricing-policy";
+import {
+  workingRenewalTerms,
+  type RenewalWorkingRecord,
+} from "@/lib/lease-renewal/working-record";
+import type { RawLease } from "@/lib/integrations/rentvine/client";
 import type { RenewalChargeInventory } from "@/lib/lease-renewal/writeback/charge-inventory-model";
 import { getRenewalResourceLocations } from "@/lib/firestore/renewal-resource-locations";
 import { readBusinessProfile } from "@/lib/firestore/presentation-settings";
@@ -74,7 +90,10 @@ import {
   ownerSuggestionSentence,
   type RenewalMessageFacts,
 } from "@/lib/lease-renewal/renewal-message-content";
-import { emptyMessagePreparationInputs } from "@/lib/lease-renewal/renewal-message-preparation";
+import {
+  emptyMessagePreparationInputs,
+  type MessageRuleBasis,
+} from "@/lib/lease-renewal/renewal-message-preparation";
 import { readPolicyMaterialSnapshot } from "@/lib/firestore/lease-renewal-policy-material";
 import {
   policyMessageGates,
@@ -225,6 +244,143 @@ function messageSourceFailure(error: unknown): never {
  * A lease with no work record yet still reads a complete, editable message; its first save
  * establishes the record. Authored subject and body are returned exactly as saved.
  */
+/**
+ * S250 R-S250-4 / R-S250-8: the covering standing agreement's rent with its basis in words, from
+ * the one coverage function over the same verified lease read. A stale source, a failed read or
+ * a lease the agreement does not cover gives none, and the message keeps its other proposals.
+ */
+interface StandingMessageRule {
+  /** The rent the message builds on from the agreement, with its basis in words. */
+  readonly rent: { value: number; basis: string } | null;
+  /** The agreement rule that rent was built on, by its stored ids. */
+  readonly ruleBasis: MessageRuleBasis | null;
+  /**
+   * R-S250-7: the message's saved revision was built on an earlier version of the agreement's
+   * rule. It keeps that rule's rent and offers to rebuild with the current one.
+   */
+  readonly earlierRule: {
+    readonly agreement: string;
+    readonly earlier: string;
+    readonly current: string;
+    readonly currentRent: number;
+    readonly currentBasis: MessageRuleBasis;
+  } | null;
+}
+const NO_STANDING_RULE: StandingMessageRule = {
+  rent: null,
+  ruleBasis: null,
+  earlierRule: null,
+};
+const usdWords = (amount: number, cents = true) =>
+  `$${(cents ? amount.toFixed(2) : String(Math.round(amount))).replace(
+    /\B(?=(\d{3})+(?!\d))/g,
+    ",",
+  )}`;
+
+/**
+ * S250 R-S250-4 / R-S250-8: the covering standing agreement's rent with its basis in words, from
+ * the one coverage function over the same verified lease read. An incomplete source, a failed
+ * read or a lease the agreement does not cover gives none, and the message keeps its other
+ * proposals. R-S250-7: when the saved revision was built on an earlier version of the rule (its
+ * stamp), the message keeps that rule's rent and says so; a never-saved message follows the
+ * current rule (a later proposal).
+ */
+async function standingAgreementRule(
+  actor: AuthenticatedUser,
+  lease: RawLease,
+  working: RenewalWorkingRecord | null,
+  nowMs: number,
+  usable: boolean,
+  stamp: MessageRuleBasis | null,
+  db: Firestore,
+): Promise<StandingMessageRule> {
+  if (!usable) return NO_STANDING_RULE;
+  try {
+    const store = new RenewalPricingPolicyStore(db);
+    const pricing = await readRenewalPricingForViews(
+      actor,
+      [lease],
+      new Date(nowMs),
+      store,
+    );
+    const facts = pricing.facts[0];
+    if (!facts) return NO_STANDING_RULE;
+    const resolved = resolveRenewalPricing(
+      pricing.snapshot,
+      facts,
+      effectiveRenewalTerms(working).complete,
+      pricing.today,
+      { workingRent: workingRenewalTerms(working).rent },
+    );
+    const authority = resolved.authority;
+    if (
+      !authority.covered ||
+      authority.kind !== "standing" ||
+      typeof authority.amount !== "number" ||
+      !authority.basis ||
+      !authority.agreementId ||
+      !authority.policyId ||
+      !authority.policyVersion ||
+      !authority.rule
+    )
+      return NO_STANDING_RULE;
+    const currentBasis: MessageRuleBasis = {
+      agreementId: authority.agreementId,
+      policyId: authority.policyId,
+      policyVersion: authority.policyVersion,
+    };
+    const current = {
+      rent: { value: authority.amount, basis: authority.basis },
+      ruleBasis: currentBasis,
+      earlierRule: null,
+    };
+    if (
+      !stamp ||
+      stamp.agreementId !== currentBasis.agreementId ||
+      (stamp.policyId === currentBasis.policyId &&
+        stamp.policyVersion === currentBasis.policyVersion)
+    )
+      return current;
+    const earlierPolicy =
+      pricing.snapshot.policies.find(
+        (entry) => entry.id === stamp.policyId && entry.version === stamp.policyVersion,
+      ) ?? (await store.policyVersion(actor, stamp.policyId, stamp.policyVersion));
+    const earlier = earlierPolicy
+      ? projectRenewalPricingPolicy(
+          // The earlier rule as it was recorded, applied to today's current rent.
+          { ...earlierPolicy, effectiveThrough: null },
+          facts.currentRent,
+          pricing.today,
+        )
+      : null;
+    const earlierWords = earlierPolicy ? standingRuleWords(earlierPolicy) : null;
+    // A version that changed nothing the rule says (and gives the same rent) is the same rule.
+    if (
+      !earlier?.amount ||
+      !earlierWords ||
+      (earlierWords === authority.rule && earlier.amount === authority.amount)
+    )
+      return current;
+    const name = authority.label ?? "the standing agreement";
+    return {
+      rent: {
+        value: earlier.amount,
+        basis: `${STANDING_AGREEMENT_WORDS.earlierRule}: ${name}, ${earlierWords.charAt(0).toLowerCase()}${earlierWords.slice(1)}, applied to the current rent of ${usdWords(facts.currentRent ?? 0)} and rounded to ${usdWords(earlier.amount, false)}.`,
+      },
+      ruleBasis: stamp,
+      earlierRule: {
+        agreement: name,
+        earlier: earlierWords,
+        current: authority.rule,
+        currentRent: authority.amount,
+        currentBasis,
+      },
+    };
+  } catch {
+    return NO_STANDING_RULE;
+  }
+}
+
 export async function currentRenewalMessage(
   actor: AuthenticatedUser,
   leaseId: string,
@@ -481,12 +637,41 @@ export async function currentRenewalMessage(
   const ownerMarket = market ? ownerDraftMarketFromBasis(market) : {};
   // S249 R-S249-5: the one "Rent to recommend": typed, else the covering agreement (S250), else
   // the comparison-based suggestion. The same function the Now card and the desk read.
+  // S250: the agreement reads its portfolio from the same complete RentVine read the message
+  // shows (an aging read keeps it, as the desk does). R-S250-7: the saved revision's rule stamp.
+  const savedRuleBasis =
+    saved && workspace
+      ? await getMessageRuleBasis(
+          actor,
+          leaseId,
+          workspace.cycleId,
+          channel,
+          saved.revision,
+          db,
+        ).catch(() => null)
+      : null;
+  const standingRule = await standingAgreementRule(
+    actor,
+    lease,
+    workingRecord,
+    nowMs,
+    leaseRead.snapshot.complete !== false,
+    savedRuleBasis,
+    db,
+  );
   const rentToRecommend = renewalRentToRecommend({
     typedRent: typedRecommendation(workingRecord, workspace),
-    agreementRent: null,
+    agreementRent: standingRule.rent,
     comparison: stored ? { state: "stored", comparison: stored } : { state: "none" },
     currentRent: leaseCurrentRent(lease) ?? null,
   });
+  // The rule the shown rent was built on, only where that rent is the agreement's.
+  const fromRule = rentToRecommend.origin === "agreement";
+  const earlierRule = fromRule ? standingRule.earlierRule : null;
+  if (earlierRule)
+    notices.push(
+      `${STANDING_AGREEMENT_WORDS.earlierRule}: this message keeps the rent from the earlier rule of ${earlierRule.agreement} (${earlierRule.earlier}). The current rule is ${earlierRule.current}. Choose ${STANDING_AGREEMENT_WORDS.rebuild} to use it.`,
+    );
   const marketEvidence = projectMessageMarketEvidence({
     preparation,
     currentBaseRent: currentBaseRent?.value ?? null,
@@ -653,6 +838,10 @@ export async function currentRenewalMessage(
   return {
     /** S249 R-S249-5: the rent to recommend and its basis, as the Now card reads it. */
     rentToRecommend,
+    /** S250 R-S250-7: the agreement rule the shown rent was built on; a save carries it. */
+    ruleBasis: fromRule ? standingRule.ruleBasis : null,
+    /** S250 R-S250-7: the message keeps an earlier rule's rent and offers to rebuild. */
+    earlierRule,
     /**
      * S249 R-S249-5 (J): the prefilled figure this composed owner message actually carries, so a
      * send makes exactly that figure the staff reviewed recommendation. Null when the figure is

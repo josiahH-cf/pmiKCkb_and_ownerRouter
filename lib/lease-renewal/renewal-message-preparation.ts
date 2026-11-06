@@ -91,6 +91,18 @@ export function emptyMessagePreparationInputs(): MessagePreparationInputs {
   };
 }
 /**
+ * S250 R-S250-7: the standing agreement rule a message's rent to recommend was built on, by its
+ * stored ids. Kept beside the message record (never inside it), per revision.
+ */
+export const MessageRuleBasisSchema = z
+  .object({
+    agreementId: z.string().uuid(),
+    policyId: z.string().uuid(),
+    policyVersion: z.number().int().positive(),
+  })
+  .strict();
+export type MessageRuleBasis = z.infer<typeof MessageRuleBasisSchema>;
+/**
  * S161/S162: one autosave of a message. No cycle is asked for: the first save of a lease's message
  * establishes its work record, and a later save may name the record it was editing so a change of
  * record is detected. Nothing here is a review or an approval. The two retired fields are still
@@ -116,6 +128,11 @@ export const SaveMessagePreparationSchema = z
     bodyOverride: RefinedBodySchema.nullable().optional(),
     /** S161: the authored subject for this revision; null or absent keeps the composed subject. */
     subjectOverride: AuthoredSubjectSchema.nullable().optional(),
+    /**
+     * S250 R-S250-7: the agreement rule the message as shown was built on (null: none). Absent
+     * records nothing, and the message then follows the current rule.
+     */
+    ruleBasis: MessageRuleBasisSchema.nullable().optional(),
   })
   .strict();
 export const MessagePreparationRecordSchema = z

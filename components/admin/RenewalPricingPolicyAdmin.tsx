@@ -8,6 +8,13 @@ import type {
   RenewalPricingPolicyInput,
   StandingOwnerAgreement,
 } from "@/lib/lease-renewal/renewal-pricing-policy";
+import type {
+  StandingAgreement,
+  StandingAgreementInput,
+} from "@/lib/lease-renewal/standing-agreement";
+import type { OwnerPolicyRule } from "@/lib/firestore/owner-policy-rules";
+const usd = (amount: number) =>
+  `$${amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
 const blank: RenewalPricingPolicyInput = {
   id: "",
   name: "",
@@ -25,7 +32,12 @@ function pricingAdminFailure(error: unknown, fallback: string) {
     ? error.message
     : waitFailureMessage(error, fallback);
 }
-export function RenewalPricingPolicyAdmin() {
+export function RenewalPricingPolicyAdmin({
+  olderRules = [],
+}: Readonly<{
+  /** S250 R-S250-9: the older (S62) portfolio rules, listed beside the standing agreements. */
+  olderRules?: readonly OwnerPolicyRule[];
+}> = {}) {
   const [policies, setPolicies] = useState<RenewalPricingPolicy[]>([]),
     [cursor, setCursor] = useState<string | null>(null),
     [policy, setPolicy] = useState(blank),
@@ -292,6 +304,12 @@ export function RenewalPricingPolicyAdmin() {
       >
         Save portfolio default
       </Button>
+      <PortfolioStandingAgreementEditor
+        policies={policies}
+        command={command}
+        pending={pending}
+        olderRules={olderRules}
+      />
       <StandingAgreementEditor policies={policies} command={command} pending={pending} />
       {message ? <p role="status">{message}</p> : null}
     </div>
@@ -535,5 +553,266 @@ function StandingAgreementEditor({
       </Button>
       {notice ? <p role="status">{notice}</p> : null}
     </details>
+  );
+}
+
+interface PortfolioAgreementRow extends StandingAgreement {
+  rule: string | null;
+  ruleVersion: number | null;
+  active: boolean;
+}
+const emptyPortfolioAgreement: StandingAgreementInput = {
+  id: "",
+  name: "",
+  policyId: "",
+  portfolioId: "",
+  preApprovalStatement: "",
+  effectiveFrom: "",
+  endsOn: null,
+  agreedBy: "",
+  agreedHow: "",
+  agreedWhen: "",
+  revoked: false,
+};
+/**
+ * S250 R-S250-1 (ARCH-S250-1): an owner's standing agreement, set once for the owner's verified
+ * portfolio: its name, the pricing rule as an existing policy, the owner's pre-approval in words,
+ * when it takes effect and ends, and who agreed, how and when. Only an Admin saves it; each save
+ * keeps the earlier version. It lists beside the exact per-cycle agreements below (R-S250-9).
+ */
+function PortfolioStandingAgreementEditor({
+  policies,
+  command,
+  pending,
+  olderRules,
+}: Readonly<{
+  policies: RenewalPricingPolicy[];
+  command: (
+    input: object,
+  ) => Promise<{ standingAgreement?: StandingAgreement } | undefined>;
+  pending: boolean;
+  olderRules: readonly OwnerPolicyRule[];
+}>) {
+  const [agreement, setAgreement] = useState(emptyPortfolioAgreement),
+    [version, setVersion] = useState(0),
+    [rows, setRows] = useState<PortfolioAgreementRow[]>([]),
+    [exactRows, setExactRows] = useState<StandingOwnerAgreement[] | null>(null),
+    [notice, setNotice] = useState("");
+  const read = useCallback(async () => {
+    try {
+      const r = await fetch(`${endpoint}?standing=all`);
+      const p = await r.json();
+      if (!r.ok)
+        throw new PricingAdminResponseError(
+          p.error ?? "Standing agreements could not be read.",
+        );
+      setRows(p.standingAgreements ?? []);
+      setExactRows(p.exactAgreements ?? []);
+    } catch (e) {
+      setNotice(pricingAdminFailure(e, "Standing agreements could not be read."));
+    }
+  }, []);
+  useEffect(() => {
+    const timer = setTimeout(() => void read(), 0);
+    return () => clearTimeout(timer);
+  }, [read]);
+  function edit(id: string) {
+    const row = rows.find((entry) => entry.id === id);
+    if (!row) {
+      setAgreement(emptyPortfolioAgreement);
+      setVersion(0);
+      return;
+    }
+    setAgreement({
+      id: row.id,
+      name: row.name,
+      policyId: row.policyId,
+      portfolioId: row.portfolioId,
+      preApprovalStatement: row.preApprovalStatement ?? "",
+      effectiveFrom: row.effectiveFrom,
+      endsOn: row.endsOn,
+      agreedBy: row.agreedBy,
+      agreedHow: row.agreedHow,
+      agreedWhen: row.agreedWhen,
+      revoked: row.revoked,
+    });
+    setVersion(row.version);
+  }
+  async function save() {
+    const next = {
+      ...agreement,
+      id: agreement.id || crypto.randomUUID(),
+      preApprovalStatement: agreement.preApprovalStatement?.trim()
+        ? agreement.preApprovalStatement.trim()
+        : null,
+      endsOn: agreement.endsOn || null,
+    };
+    if (!agreement.id) setAgreement({ ...agreement, id: next.id });
+    const result = await command({
+      action: "standing_agreement",
+      agreement: next,
+      expectedVersion: version,
+    });
+    if (result?.standingAgreement) {
+      setVersion(result.standingAgreement.version);
+      setNotice(
+        `Saved version ${result.standingAgreement.version}. Earlier versions are kept. Nothing was sent and no RentVine rent changed.`,
+      );
+      await read();
+    }
+  }
+  const text = (
+    key: "name" | "portfolioId" | "agreedBy" | "agreedHow" | "agreedWhen",
+    label: string,
+    hint?: string,
+  ) => (
+    <Field htmlFor={`standing-${key}`} label={label} hint={hint}>
+      <input
+        id={`standing-${key}`}
+        value={agreement[key]}
+        onChange={(e) => setAgreement({ ...agreement, [key]: e.target.value })}
+      />
+    </Field>
+  );
+  return (
+    <section aria-label="Standing agreements by owner portfolio" className="ui-stack">
+      <h3>Standing agreements by owner portfolio</h3>
+      <p className="muted">
+        An owner agrees once to a pricing rule for every renewal in their portfolio. Staff
+        then choose it on a lease as its Pricing basis for this lease only or for every
+        lease in this owner&rsquo;s portfolio.
+      </p>
+      {rows.length ? (
+        <ul aria-label="Recorded standing agreements">
+          {rows.map((row) => (
+            <li key={row.id}>
+              {row.name}: {row.rule ?? "rule not in effect"}, portfolio {row.portfolioId},
+              version {row.version}
+              {row.revoked
+                ? ", revoked"
+                : row.active
+                  ? ", in effect"
+                  : ", not in effect"}{" "}
+              <button className="text-link" onClick={() => edit(row.id)} type="button">
+                Edit
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="muted">No standing agreement is recorded yet.</p>
+      )}
+      {/* R-S250-9: the records that keep working as they do today, beside the new ones. */}
+      <h4>Exact per-cycle agreements</h4>
+      <p>
+        Each covers only its listed leases, one cycle and its exact rent and dates, as
+        before. Inspect or revoke one under Standing owner authority below.
+      </p>
+      {exactRows === null ? null : exactRows.length ? (
+        <ul aria-label="Exact per-cycle agreements">
+          {exactRows.map((row) => (
+            <li key={row.id}>
+              Portfolio {row.portfolioId}, leases {row.leaseIds.join(", ")}, cycle{" "}
+              {formatCalendarDate(row.cycleDate)}: {usd(row.terms.rent)} from{" "}
+              {formatCalendarDate(row.terms.effectiveDate)} to{" "}
+              {formatCalendarDate(row.terms.endDate)}, version {row.version}
+              {row.revoked ? ", revoked" : `, until ${formatCalendarDate(row.expiresOn)}`}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>No exact per-cycle agreement is recorded.</p>
+      )}
+      <h4>Older portfolio rules</h4>
+      <p>
+        Legacy rules retain their original values and history. A reusable assignment
+        replaces their future proposal basis; it does not rewrite an old approval.
+      </p>
+      {olderRules.length ? (
+        <ul aria-label="Older portfolio rules">
+          {olderRules.map((rule) => (
+            <li key={rule.portfolioId}>
+              Portfolio {rule.portfolioId}: +{rule.percent}%, effective{" "}
+              {formatCalendarDate(rule.effectiveFrom)}. {rule.note}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>No older portfolio rule is recorded.</p>
+      )}
+      {text("name", "Agreement name")}
+      <Field htmlFor="standing-policy" label="Pricing rule">
+        <select
+          id="standing-policy"
+          value={agreement.policyId}
+          onChange={(e) => setAgreement({ ...agreement, policyId: e.target.value })}
+        >
+          <option value="">Choose a reusable policy</option>
+          {policies.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+      </Field>
+      {text(
+        "portfolioId",
+        "RentVine portfolio ID",
+        "The verified numeric portfolio id; the lease page shows the owner names for it.",
+      )}
+      <Field htmlFor="standing-pre-approval" label="The owner's pre-approval">
+        <textarea
+          id="standing-pre-approval"
+          rows={2}
+          value={agreement.preApprovalStatement ?? ""}
+          onChange={(e) =>
+            setAgreement({ ...agreement, preApprovalStatement: e.target.value })
+          }
+        />
+      </Field>
+      <Field htmlFor="standing-effectiveFrom" label="Takes effect">
+        <input
+          id="standing-effectiveFrom"
+          type="date"
+          value={agreement.effectiveFrom}
+          onChange={(e) => setAgreement({ ...agreement, effectiveFrom: e.target.value })}
+        />
+      </Field>
+      <Field htmlFor="standing-endsOn" label="Ends (optional)">
+        <input
+          id="standing-endsOn"
+          type="date"
+          value={agreement.endsOn ?? ""}
+          onChange={(e) => setAgreement({ ...agreement, endsOn: e.target.value || null })}
+        />
+      </Field>
+      {text("agreedBy", "Who agreed")}
+      {text("agreedHow", "How they agreed")}
+      {text("agreedWhen", "When they agreed")}
+      <label>
+        <input
+          type="checkbox"
+          checked={agreement.revoked}
+          onChange={(e) => setAgreement({ ...agreement, revoked: e.target.checked })}
+        />
+        Agreement revoked
+      </label>
+      <p>
+        <Button onClick={() => void save()} disabled={pending}>
+          Save standing agreement
+        </Button>{" "}
+        <Button
+          onClick={() => {
+            setAgreement(emptyPortfolioAgreement);
+            setVersion(0);
+          }}
+          size="compact"
+          variant="tertiary"
+        >
+          New standing agreement
+        </Button>
+      </p>
+      {notice ? <p role="status">{notice}</p> : null}
+    </section>
   );
 }

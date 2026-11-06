@@ -6,7 +6,8 @@
 // in a browser and checks, each by name: the allowance stop (L34) and a lease asked for its rent
 // to recommend before Send (L29); the reviewed setting turned off by an Admin in the app, nothing
 // starting by itself while it is off, and "Prepare this batch" still running when chosen (L35);
-// the automatic start on opening the batch, once per lease per cycle (L33); the batch order (L31)
+// the automatic start on opening the batch, once per lease per cycle, with no lookup for the
+// covered lease while its agreement covers it or for the assisted lease (L33); the batch order (L31)
 // and the missing recipient on the desk and the Now card (L30); the prepared lease's numbers
 // check (L21), what it shows with no action (L22) and its stored comparison reused (L32); one
 // message across the preview, Schedule, Create Gmail draft instead, Copy and the composer (L27);
@@ -67,11 +68,6 @@ const pageErrors = [];
 const check = (name, passed, observed) => {
   checks.push({ name, passed: Boolean(passed), observed });
   process.stdout.write(`${passed ? "ok  " : "FAIL"} ${name}\n`);
-};
-/** A check that depends on a suite not built yet: recorded with what was seen, never a pass. */
-const pending = (name, suite, observed) => {
-  checks.push({ name, passed: null, pending: suite, observed });
-  process.stdout.write(`PEND ${name} (waits on ${suite})\n`);
 };
 /** The driver's current phase, so each write the page makes names when it happened. */
 let phase = "start";
@@ -177,6 +173,58 @@ try {
   });
   const kickoffPosts = () =>
     writes.filter((entry) => entry.path.endsWith("/kickoff-preparation"));
+  // Each batch preparation answer, by lease, so a refusal reads as what the server said (L33).
+  const kickoffAnswers = [];
+  page.on("response", (response) => {
+    const request = response.request();
+    if (
+      request.method() !== "POST" ||
+      !new URL(request.url()).pathname.endsWith("/kickoff-preparation")
+    )
+      return;
+    const sent = JSON.parse(request.postData() ?? "{}");
+    void response
+      .json()
+      .catch(() => ({}))
+      .then((body) =>
+        kickoffAnswers.push({
+          phase,
+          leaseId: sent.leaseId ?? null,
+          trigger: sent.trigger ?? null,
+          http: response.status(),
+          status: body?.status ?? null,
+          code: body?.code ?? null,
+          message: String(body?.message ?? body?.error ?? "").slice(0, 200),
+        }),
+      );
+  });
+  /** What "This batch" hands the preparation and how each of its rows reads (diagnostics). */
+  const batchState = async () => ({
+    targets: await preparation()
+      .getAttribute("data-kickoff-targets")
+      .catch(() => null),
+    automatic: await preparation()
+      .getAttribute("data-kickoff-automatic")
+      .catch(() => null),
+    rows: await page
+      .getByRole("region", { name: "This batch", exact: true })
+      .locator("[data-batch-lease]")
+      .evaluateAll((items) =>
+        items.map((row) => ({
+          lease: row.getAttribute("data-batch-lease"),
+          part: row.closest("[data-batch-part]")?.getAttribute("data-batch-part") ?? null,
+          stage: row.querySelector(".renewal-batch-stage")?.textContent?.trim() ?? null,
+          next: row.querySelector("[data-batch-next-step]")?.textContent?.trim() ?? null,
+          kickoff:
+            row.querySelector('[data-batch-kickoff="missing"]')?.textContent?.trim() ??
+            null,
+          tags: [...row.querySelectorAll("[data-batch-tag]")].map((tag) =>
+            tag.getAttribute("data-batch-tag"),
+          ),
+        })),
+      )
+      .catch(() => null),
+  });
   const signIn = async (role) => {
     await page.goto(`${origin}/sign-in`, { waitUntil: "domcontentloaded" });
     assert.ok(
@@ -303,7 +351,9 @@ try {
   );
 
   // L29 (second half): a lease with no rent to recommend is asked for one on the Now card.
-  await openLease(covered);
+  // S250: the covered lease's rent to recommend is now its standing agreement's rule, so the
+  // lease asked is the missing-recipient lease, which has neither a rule nor a comparison.
+  await openLease(missingRecipient);
   await chooseStep("Ask the owner");
   const nowHtml = () =>
     now()
@@ -382,39 +432,122 @@ try {
     { staffPosts, staffComparisons },
   );
 
-  // L33: with the setting on, opening the batch starts the preparation by itself, at most one
-  // comparison per lease per cycle, and opening it again requests none.
+  // L33: with the setting on, opening the batch starts the preparation by itself for the leases
+  // whose kickoff needs a comparison, at most one per lease per cycle, and opening it again
+  // requests none. S250: the covered lease's rent comes from its standing agreement's rule, so it
+  // is not looked up by itself while the agreement covers it; S251 holds the assisted lease back.
+  // After Prepare this batch above, every other working-month lease is prepared, covered or held,
+  // so the first open asks for nothing. The covered lease then leaves its rule (a typed different
+  // rent, L47), which makes it an ordinary lease that needs a comparison, and the next open
+  // prepares it by itself. Typing the rule's result back covers it again for the checks below.
   await setComparisonAllowance(rehearsal, true);
   await toggleSetting(true);
   await setComparisonAllowance(rehearsal, false);
+  phase = "L33 covered";
   writes.length = 0;
   await desk();
+  const coveredOpen = await batchState();
+  await preparationSettled(15_000);
+  const coveredPosts = kickoffPosts().map((entry) => entry.body?.leaseId);
+  const whileCovered = await comparisons();
+  check(
+    `L33 (covered lease ${covered}): while its standing agreement covers it, opening the batch looks up no comparison for it`,
+    !coveredPosts.includes(String(covered)) &&
+      (whileCovered[String(covered)] ?? 0) === 0 &&
+      coveredOpen.rows
+        ?.find((row) => row.lease === String(covered))
+        ?.tags.includes("standing_agreement") === true,
+    { coveredPosts, whileCovered, coveredOpen },
+  );
+  /** Type a rent to recommend on the lease's Now card and wait for its save to answer. */
+  const typeRent = async (leaseId, value) => {
+    await page.goto(
+      `${origin}/lease-renewal/live/desk/lease/${leaseId}?step=compare-market`,
+      { waitUntil: "domcontentloaded" },
+    );
+    const field = page.locator("#renewal-now-rent-to-recommend");
+    await field.waitFor({ timeout: 120_000 });
+    const saved = page
+      .waitForResponse(
+        (response) =>
+          response.request().method() === "POST" &&
+          new URL(response.url()).pathname === "/api/lease-renewal/working-record",
+        { timeout: 60_000 },
+      )
+      .then((response) => response.ok())
+      .catch(() => false);
+    await field.fill(String(value));
+    await field.blur();
+    return saved;
+  };
+  phase = "L33 setup";
+  const leftRule = await typeRent(covered, 1800);
+  phase = "L33 open";
+  writes.length = 0;
+  await desk();
+  const firstOpen = await batchState();
   await preparationSettled();
   const automaticPosts = kickoffPosts().map((entry) => entry.body?.trigger);
+  const automaticLeases = kickoffPosts().map((entry) => entry.body?.leaseId);
   const afterAutomatic = await comparisons();
+  phase = "L33 reopen";
   writes.length = 0;
   await desk();
-  await page.waitForTimeout(6000);
+  const reopened = await batchState();
+  // A batch drawn from an aging read reads the desk again before anything starts; wait it out.
+  await page.waitForTimeout(9000);
   const afterReopen = await comparisons();
+  const reopenPosts = kickoffPosts().map((entry) => entry.body?.leaseId);
   const leasesInBatch = await page
     .getByRole("region", { name: "This batch", exact: true })
     .locator("[data-batch-lease]")
     .evaluateAll((rows) => [
       ...new Set(rows.map((row) => row.getAttribute("data-batch-lease"))),
     ]);
+  const answers = kickoffAnswers.filter((entry) => entry.phase.startsWith("L33"));
   check(
-    "L33: opening the batch starts preparation by itself, at most one comparison per lease per cycle, and none again on reopening",
-    automaticPosts.length >= 1 &&
+    "L33: opening the batch starts preparation by itself for a lease that needs a comparison, at most one comparison per lease per cycle, and none again on reopening",
+    leftRule &&
+      automaticPosts.length >= 1 &&
       automaticPosts.every((trigger) => trigger === "automatic") &&
+      automaticLeases.includes(String(covered)) &&
+      (afterAutomatic[String(covered)] ?? 0) === 1 &&
       Object.values(afterAutomatic).every((n) => n <= 1) &&
       JSON.stringify(afterReopen) === JSON.stringify(afterAutomatic) &&
-      kickoffPosts().length === 0,
-    { automaticPosts, afterAutomatic, afterReopen, leasesInBatch },
+      reopenPosts.length === 0 &&
+      answers.every((entry) => entry.http === 200),
+    {
+      leftRule,
+      automaticPosts,
+      automaticLeases,
+      afterAutomatic,
+      afterReopen,
+      reopenPosts,
+      leasesInBatch,
+      answers,
+      firstOpen,
+      reopened,
+    },
   );
-  pending(`L33 (assisted lease ${assisted}): no comparison is requested for it`, "S251", {
-    requested: afterAutomatic[String(assisted)] ?? 0,
-    note: "The housing assistance hold reads S251's marker; until S251 seeds it, the hold predicate answers not held back and this check reports what the stand-in saw.",
-  });
+  // S251 seeds Housing assistance Yes on the assisted lease, so the hold keeps it unprepared:
+  // the batch never even asks the server for it.
+  check(
+    `L33 (assisted lease ${assisted}): no comparison is requested for it`,
+    (afterAutomatic[String(assisted)] ?? 0) === 0 &&
+      (afterReopen[String(assisted)] ?? 0) === 0 &&
+      !kickoffAnswers.some((entry) => entry.leaseId === String(assisted)),
+    {
+      requested: afterAutomatic[String(assisted)] ?? 0,
+      afterReopen: afterReopen[String(assisted)] ?? 0,
+      asked: kickoffAnswers.filter((entry) => entry.leaseId === String(assisted)),
+    },
+  );
+  // The covered state comes back with the rule's result typed (clearing a typed rent would be a
+  // staff choice of its own).
+  phase = "L33 restore";
+  const restored = await typeRent(covered, 1751);
+  assert.ok(restored, "Typing the rule's result back on the covered lease was refused.");
+  await desk();
   check(
     `L32: the prepared lease ${prepared} reuses its stored comparison (no request for it)`,
     !(String(prepared) in afterAutomatic),
@@ -502,7 +635,10 @@ try {
   phase = "L22";
   const l21Writes = writes.splice(0);
   await openLease(prepared);
-  await page.waitForTimeout(3000);
+  // The stored comparison and the rent basis are part of the lease's message, which loads after
+  // the page: read them once they are shown (L22 counts what is there with no action).
+  await shownWithin(now().locator('[data-renewal-comparison="stored"]'), 120_000);
+  await shownWithin(now().locator('[data-renewal-field="rent-basis"]'), 60_000);
   const opened = {
     heading: (await now().getByRole("heading", { level: 2 }).textContent())?.trim(),
     comparison: await now().locator('[data-renewal-comparison="stored"]').count(),
@@ -853,7 +989,10 @@ try {
   await attempt("L45", async () => {
     // L45: a staff member with no signature sets one up on the Now card without leaving the lease.
     await signIn("Approver");
-    await openLease(assisted);
+    // S250/S251: the assisted lease's Ask the owner joins its path only with Propose a change and
+    // the covered lease's is covered, so the signature is set up on the missing-recipient lease,
+    // whose owner message is open on the Now card and has no signature either.
+    await openLease(missingRecipient);
     await chooseStep("Ask the owner");
     await shownWithin(now().locator("[data-renewal-message-revision]"));
     const leaseUrl = page.url();

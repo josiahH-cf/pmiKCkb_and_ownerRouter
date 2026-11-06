@@ -437,6 +437,22 @@ export const RENEWAL_GOVERNANCE_MATRIX = {
     roleDeniedReason: "Editor access is required to save renewal pricing terms.",
     safeNextAction: "Continue read-only or ask an Admin to review your role.",
   },
+  // S250 R-S250-3 / AC-S250-3: Editors apply or remove an existing standing agreement for one
+  // lease or for every lease in the owner's portfolio. Creating or changing an agreement or a
+  // policy stays Admin (the store's per-action check). It sends nothing, writes no provider rent
+  // and records no owner response.
+  apply_standing_agreement: {
+    label:
+      "Apply or remove an existing standing agreement for one lease or the owner's portfolio",
+    roleCapability: "edit",
+    effect: "app_owned_write",
+    externalRequirement: "none",
+    actionKeys: [],
+    exactConfirmation: false,
+    audit: "app_activity",
+    roleDeniedReason: "Editor access is required to choose the pricing basis.",
+    safeNextAction: "Continue read-only or ask an Admin to review your role.",
+  },
   save_shared_collection: {
     label: "Save a reviewed shared lease collection",
     roleCapability: "edit",
@@ -713,6 +729,12 @@ export const RENEWAL_CONTROL_INVENTORY = [
     enforcementSources: ["app/api/lease-renewal/rent-suggestion/route.ts"],
   },
   {
+    control: "Save pricing basis",
+    source: "components/lease-renewal/RenewalPricingPolicy.tsx",
+    capability: "apply_standing_agreement",
+    enforcementSources: ["app/api/lease-renewal/pricing-policy/route.ts"],
+  },
+  {
     control: "Resolve source reconciliation",
     source: "components/lease-renewal/RenewalDeciderCard.tsx",
     capability: "resolve_reconciliation",
@@ -754,6 +776,28 @@ export const RENEWAL_CONTROL_INVENTORY = [
     source: "components/lease-renewal/RenewalWorkingBatch.tsx",
     capability: "save_renewal_progress",
     enforcementSources: ["app/api/lease-renewal/workspace/route.ts"],
+  },
+  {
+    // S251 R-S251-5: "Ask the owner whether to renew this tenant" (Renew, Do not renew, No answer
+    // yet), recorded on the existing owner response.
+    control: "Record the owner's answer on renewing an assisted lease",
+    source: "components/lease-renewal/RenewalHousingAssistance.tsx",
+    capability: "save_renewal_progress",
+    enforcementSources: ["app/api/lease-renewal/workspace/route.ts"],
+  },
+  {
+    // S251 R-S251-6: "Rent for this renewal" (Keep the current rent, Propose a change).
+    control: "Record the rent choice for an assisted lease",
+    source: "components/lease-renewal/RenewalHousingAssistance.tsx",
+    capability: "save_renewal_progress",
+    enforcementSources: ["app/api/lease-renewal/workspace/route.ts"],
+  },
+  {
+    // S251 R-S251-6: Keep the current rent sets the working rent, asking first over a saved one.
+    control: "Set the working rent to the current rent when keeping it",
+    source: "components/lease-renewal/RenewalHousingAssistance.tsx",
+    capability: "save_working_record",
+    enforcementSources: ["app/api/lease-renewal/working-record/route.ts"],
   },
   {
     control: "Prepare filled output from reviewed source values",
@@ -824,6 +868,14 @@ export const RENEWAL_CONTROL_INVENTORY = [
   {
     control: "Save a working value or working renewal term",
     source: "components/lease-renewal/RenewalWorkingRecord.tsx",
+    capability: "save_working_record",
+    enforcementSources: ["app/api/lease-renewal/working-record/route.ts"],
+  },
+  {
+    // S251 R-S251-1 / ARCH-S251-1: the lease's Housing assistance fact (not set, No, or Yes with
+    // the program), saved by itself on the lease-bound working record with who and when.
+    control: "Save the Housing assistance field",
+    source: "components/lease-renewal/RenewalHousingAssistance.tsx",
     capability: "save_working_record",
     enforcementSources: ["app/api/lease-renewal/working-record/route.ts"],
   },

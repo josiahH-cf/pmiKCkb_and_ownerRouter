@@ -29,6 +29,7 @@ import {
   INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER,
   INDEPENDENT_ONE_STATUS_CONTRACT_MARKER,
   INDEPENDENT_STAFF_LANE_CONTRACT_MARKER,
+  INDEPENDENT_VARIANTS_CONTRACT_MARKER,
   PRODUCTION_RECONCILIATION_DESK_VIEW,
   countIndependentContractMarkerMismatches,
   independentStaffLaneWaitingRule,
@@ -493,7 +494,13 @@ describe("S156 oracle: the contract marker selects exactly one rule set", () => 
     // earlier serving revision.
     expect(INDEPENDENT_ONE_STATUS_CONTRACT_MARKER).toBe("s232-one-status");
     expect(INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER).toBe("s248-evidence-stage");
-    expect(INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER).toBe(DESK_GUIDANCE_CONTRACT);
+    // S250/S251: this checkout renders the variants marker; S248's stays recognised for an
+    // earlier serving revision.
+    expect(INDEPENDENT_VARIANTS_CONTRACT_MARKER).toBe("s251-variants");
+    expect(INDEPENDENT_VARIANTS_CONTRACT_MARKER).toBe(DESK_GUIDANCE_CONTRACT);
+    expect(resolveIndependentGuidanceContract(INDEPENDENT_VARIANTS_CONTRACT_MARKER)).toBe(
+      "staff_lane",
+    );
     expect(
       resolveIndependentGuidanceContract(INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER),
     ).toBe("staff_lane");
@@ -1021,8 +1028,9 @@ describe("S156 oracle: the independent rules equal the rules the application ren
         });
         const destination =
           "destination" in rendered.action ? rendered.action.destination : null;
-        // S248: the rendered marker is this checkout's evidence-stage contract.
-        expect(rendered.contract).toBe(INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER);
+        // S248: the rendered marker was the evidence-stage contract. S250/S251: this checkout
+        // renders the variants contract, which reads the same rules with the variant facts.
+        expect(rendered.contract).toBe(INDEPENDENT_VARIANTS_CONTRACT_MARKER);
         expect(rendered.blockers).toEqual([]);
         expect(expected.markerMismatches).toBe(0);
         expect(expected.overallStatus).toBe(rendered.overallStatus);
@@ -1249,5 +1257,71 @@ describe("S248 oracle: a row whose renewal message evidence could not be read", 
     const result = compareProjectionRowsWithEvidence(direct, broken, "Admin", ORIGIN);
     expect(result.evidenceUnavailableRows).toBe(LEASE_IDS.length - 1);
     expect(verdict(result)).toBe("mismatch");
+  });
+
+  // S250/S251: the variants marker reads the same evidence, so the same rule holds under it. The
+  // variants expectation with the oracle's evidence moves one lease on; the one without it is
+  // what a row renders when the app's own evidence read failed.
+  const variantsDirect: DirectProjection = {
+    ...DIRECT,
+    variants: { rows: evidenceRows, decision: "complete", sourceDigest: "variants" },
+    variantsWithoutEvidence: {
+      rows: STAFF_LANE_ROWS,
+      decision: "complete",
+      sourceDigest: "variants-without-evidence",
+    },
+  };
+  const variantsRendered = (outreachEvidence: string): RenderedProjection => {
+    const base = page(STAFF_LANE_RENDER, () => INDEPENDENT_VARIANTS_CONTRACT_MARKER);
+    return { ...base, rows: base.rows.map((row) => ({ ...row, outreachEvidence })) };
+  };
+
+  it("S251: under the variants marker a row whose evidence was unavailable is read without it, in its own class", () => {
+    const read = compareProjectionRowsWithEvidence(
+      variantsDirect,
+      variantsRendered("read"),
+      "Admin",
+      ORIGIN,
+    );
+    expect(mismatches(read.counts)).toBeGreaterThan(0);
+    expect(verdict(read)).toBe("mismatch");
+    const unavailable = compareProjectionRowsWithEvidence(
+      variantsDirect,
+      variantsRendered("unavailable"),
+      "Admin",
+      ORIGIN,
+    );
+    expect(mismatches(unavailable.counts)).toBe(0);
+    expect(unavailable.evidenceUnavailableRows).toBe(LEASE_IDS.length);
+    expect(verdict(unavailable)).toBe("inconclusive_evidence_unavailable");
+  });
+
+  it("S251: under the variants marker a genuine mismatch on another row still fails the run", () => {
+    const base = variantsRendered("unavailable");
+    const broken: RenderedProjection = {
+      ...base,
+      rows: base.rows.map((row) =>
+        row.leaseId === moved ? { ...row, outreachEvidence: "read" } : row,
+      ),
+    };
+    const result = compareProjectionRowsWithEvidence(
+      variantsDirect,
+      broken,
+      "Admin",
+      ORIGIN,
+    );
+    expect(result.evidenceUnavailableRows).toBe(LEASE_IDS.length - 1);
+    expect(verdict(result)).toBe("mismatch");
+  });
+
+  it("S251: the variants expectation without evidence is projected from the same rows with no evidence fill", () => {
+    // Without a variants-without-evidence projection the row is unread, never a pass.
+    const missing = compareProjectionRowsWithEvidence(
+      { ...variantsDirect, variantsWithoutEvidence: undefined },
+      variantsRendered("unavailable"),
+      "Admin",
+      ORIGIN,
+    );
+    expect(mismatches(missing.counts)).toBeGreaterThan(0);
   });
 });

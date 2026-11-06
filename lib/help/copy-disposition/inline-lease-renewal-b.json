@@ -600,5 +600,33 @@
     "text": "The unsent Gmail draft carries this message revision.",
     "describes": "Now card: the unsent Gmail draft matches the message revision shown (S249)",
     "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalHousingAssistance.tsx",
+    "text": "…first, recorded as the program contact above.",
+    "describes": "Assisted lease owner section: the program contact comes first, recorded with the activity form (S251)",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalHousingAssistance.tsx",
+    "text": "Record the contact you made with the owner another way, or send the standard owner message. ……",
+    "describes": "Ask the owner whether to renew this tenant: record a contact made another way or send the standard owner message (S251)",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalHousingAssistance.tsx",
+    "text": "The owner approved the terms, which answers renewing and the rent together.",
+    "describes": "Assisted lease with an owner approval of terms: it settles the renewing answer and the rent (S251)",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalWorkingRecord.tsx",
+    "text": "Prefilled from …, rule v…. …This amount is saved when you leave or submit the field.",
+    "describes": "Working renewal rent prefilled from a standing agreement's rule, saved on leave (S250)",
+    "disposition": "keep"
   }
 ]

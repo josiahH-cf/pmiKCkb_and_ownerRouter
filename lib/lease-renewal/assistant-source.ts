@@ -276,7 +276,9 @@ export async function runRenewalAssistantSource(
           timingBasis,
           renewalNoticeObserver(user),
           leaseSnapshotResult.statusTable,
-          renewalAuxiliaryValue(workingRead, new Map()),
+          // S250/S251: a failed working-record read is "not read" (absent), never "no records":
+          // the desk then confirms no standing coverage and assumes no Housing assistance fact.
+          workingRead.status === "available" ? workingRead.value : undefined,
           pricingRead.status === "available" ? pricingRead.value : undefined,
           cycleDateDecisions ?? undefined,
           outreachEvidence

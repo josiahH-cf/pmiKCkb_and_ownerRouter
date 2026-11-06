@@ -208,6 +208,9 @@ export default async function LiveRenewalDeskPage({
                 }
               : null,
             rehearsal: resolveRehearsalStandIn() !== null,
+            // S249 client fence: the automatic start reads only a batch from a current read.
+            sourceCurrent:
+              outcome.view.dataCurrency.state === "fresh" && outcome.view.readComplete,
           },
           rows: projectRenewalBatchRows(outcome.view.items, {
             sourceReadAtIso: outcome.view.dataCurrency.readAtIso,

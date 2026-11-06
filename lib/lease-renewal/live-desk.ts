@@ -16,7 +16,9 @@ import type { RenewalNoticeObserver } from "./notice-read";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { withRenewalNoticeAdmission } from "@/lib/firestore/renewal-notice-safety";
 import {
+  housingAssistanceFact,
   workingCurrentRent,
+  workingRenewalTerms,
   type RenewalWorkingRecord,
   type WorkingSheetRow,
 } from "@/lib/lease-renewal/working-record";
@@ -730,6 +732,36 @@ function inclusionReasonFor(
     : primary;
 }
 
+/**
+ * S250 R-S250-4 / S251 R-S251-7: the variant facts one lease's preparation projection reads: the
+ * covering standing agreement's rent with its basis in words, and the Housing assistance Yes fact
+ * the comparison hold asks for.
+ */
+function kickoffVariantFacts(
+  row: Pick<DeskLeaseSummaryBase, "renewalPricing" | "housingAssistance">,
+  /** False when the working record could not be read: the fact is unknown and the lease waits. */
+  workingRead = true,
+): {
+  housingAssistance: { program: string } | null | "unread";
+  agreementRent: { value: number; basis: string } | null;
+} {
+  const authority = row.renewalPricing?.authority;
+  return {
+    housingAssistance: !workingRead
+      ? "unread"
+      : row.housingAssistance?.status === "yes"
+        ? { program: row.housingAssistance.program }
+        : null,
+    agreementRent:
+      authority?.covered &&
+      authority.kind === "standing" &&
+      typeof authority.amount === "number" &&
+      authority.basis
+        ? { value: authority.amount, basis: authority.basis }
+        : null,
+  };
+}
+
 /** S232: per-render inputs every summary shares. */
 interface LiveSummaryContext {
   readonly manualStateAvailable?: boolean;
@@ -821,20 +853,50 @@ function toLiveSummary(
           },
           effectiveRenewalTerms(working).complete,
           pricing.today,
+          // S250 R-S250-5: coverage holds while the working rent is untouched or equals the rule.
+          { workingRent: workingRenewalTerms(working ?? null).rent },
         )
       : undefined;
+  // S251: the lease's Housing assistance fact, from the working record this render read.
+  const housingFact = working ? housingAssistanceFact(working) : null;
+  const assisted =
+    housingFact?.status === "yes" ? { program: housingFact.program } : null;
   // Source expiry or incomplete membership cannot establish an applicable standing agreement.
+  // S194's exact kind needs a fresh read, as before. S250: a standing agreement reads its
+  // portfolio from the same complete RentVine generation the rest of the row shows, so an aging
+  // (stale) read keeps it; an expired or incomplete one cannot confirm it. Either way the lease
+  // keeps its agreement's identity and reads "could not be confirmed", never as an ordinary lease.
+  const authority = renewalPricing?.authority;
+  const unconfirmed = (reason: string) => ({
+    covered: false,
+    unconfirmed: true as const,
+    reason,
+    ...(authority?.kind ? { kind: authority.kind } : {}),
+    ...(authority?.label ? { label: authority.label } : {}),
+    ...(authority?.rule ? { rule: authority.rule } : {}),
+    ...(typeof authority?.amount === "number" ? { amount: authority.amount } : {}),
+    ...(authority?.agreementId ? { agreementId: authority.agreementId } : {}),
+    ...(authority?.appliedScope ? { appliedScope: authority.appliedScope } : {}),
+  });
   if (
-    renewalPricing?.authority.covered &&
+    renewalPricing &&
+    authority?.covered &&
     (!moveOutInputs ||
-      moveOutInputs.freshness !== "fresh" ||
-      !moveOutInputs.sourceComplete)
+      !moveOutInputs.sourceComplete ||
+      moveOutInputs.freshness === "expired" ||
+      moveOutInputs.freshness === "unavailable" ||
+      (authority.kind !== "standing" && moveOutInputs.freshness !== "fresh"))
   )
-    renewalPricing.authority = {
-      covered: false,
-      reason:
-        "Current complete source membership must be read before using standing owner authority.",
-    };
+    renewalPricing.authority = unconfirmed(
+      authority.kind === "standing" && authority.label
+        ? `Coverage by ${authority.label} could not be confirmed: the RentVine read is out of date or incomplete. The owner decides this renewal until it reads again.`
+        : "Current complete source membership must be read before using standing owner authority.",
+    );
+  // S250: a standing agreement covers only a working rent it can compare with its rule.
+  else if (renewalPricing && authority?.covered && working === undefined)
+    renewalPricing.authority = unconfirmed(
+      "The working rent could not be read, so the standing agreement cannot cover this lease and the owner decides this renewal.",
+    );
   const baseRetention = retentionFor(
     classification,
     windows,
@@ -883,12 +945,18 @@ function toLiveSummary(
   const summaryBase: DeskLeaseSummaryBase = {
     id: leaseId,
     ...(renewalPricing ? { renewalPricing } : {}),
-    ...((manual || renewalPricing?.authority.covered) &&
+    ...(housingFact ? { housingAssistance: housingFact } : {}),
+    ...(classification.housingAssistanceMention
+      ? { housingAssistanceMention: true as const }
+      : {}),
+    ...((manual || renewalPricing?.authority.covered || assisted) &&
     (classification.disposition !== "skip" || retention.state === "tracked_incomplete")
       ? {
           // S248 R-S248-1: the app's own evidence fills what staff have not recorded.
+          // S251: Housing assistance Yes leads with the program contact (ARCH-S251-2).
           manualProgress: manualRenewalSummary(manual ?? null, {
             standingOwnerAuthority: renewalPricing?.authority.covered,
+            housingAssistance: assisted,
             evidence: context.outreach
               ? outreachFill(
                   manual ?? null,
@@ -1929,6 +1997,7 @@ export async function loadLiveRenewalDesk(
                     sourceReadable: complete && currency.state !== "expired",
                     ownerRecipient: ownerRecipientFact(view),
                     support: kickoffSupport,
+                    ...kickoffVariantFacts(row, working !== undefined),
                   }),
                 ),
               }
@@ -2453,6 +2522,7 @@ export async function loadLiveRenewalLeaseWorkspace(
             ownerRecipient: ownerRecipientFact(view),
             support: kickoffSupport.support,
             rentCharges: kickoffSupport.rentCharges ?? null,
+            ...kickoffVariantFacts(deskSummary),
           }),
         )
       : undefined;

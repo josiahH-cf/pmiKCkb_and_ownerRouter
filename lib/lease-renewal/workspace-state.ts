@@ -66,6 +66,14 @@ export function workBasisDateIso(basis: RenewalWorkBasis): string | null {
 /** S156: the label stored when staff record work without naming a source or channel. */
 export const STAFF_RECORD_SOURCE = "Staff record";
 export const MANUAL_ACTIVITIES = {
+  // S251 R-S251-4: the housing program contact about its renewal process. Part of the path only
+  // for a lease whose Housing assistance fact is Yes; its outcome, date and the program's
+  // requirements (as notes) are recorded with the same activity form as every other activity.
+  program_contact: {
+    label: "Housing program contact about the renewal process",
+    section: "owner",
+    conditional: true,
+  },
   owner_outreach: { label: "Owner outreach", section: "owner", conditional: false },
   tenant_offer: {
     label: "Tenant offer delivered",
@@ -272,9 +280,19 @@ export const RenewalWorkspaceActionSchema = z.discriminatedUnion("kind", [
         "revision_requested",
         "declined_non_renewal",
         "no_response",
+        // S251 R-S251-5: the owner wants to renew this tenant; the rent is decided separately.
+        "renew_tenant",
       ]),
       terms: RenewalTermsSchema.optional(),
       approval: OwnerApprovalInputSchema.optional(),
+      ...common,
+    })
+    .strict(),
+  // S251 R-S251-6: "Rent for this renewal" on an assisted lease, recorded for this cycle.
+  z
+    .object({
+      kind: z.literal("rent_choice"),
+      choice: z.enum(["keep_current", "propose_change"]),
       ...common,
     })
     .strict(),
@@ -369,7 +387,8 @@ export interface RenewalWorkspaceState {
           | "approved_terms"
           | "revision_requested"
           | "declined_non_renewal"
-          | "no_response";
+          | "no_response"
+          | "renew_tenant";
         terms?: z.infer<typeof RenewalTermsSchema>;
         approvedWorkingTerms?: ApprovedWorkingTerms;
         /** S234 R-S234-1: who approved, how and when; absent on records made before S234. */
@@ -389,6 +408,11 @@ export interface RenewalWorkspaceState {
       })
     | null;
   activities: Partial<Record<ManualActivity, StaffActivityRecord>>;
+  /**
+   * S251 R-S251-6: the staff choice for "Rent for this renewal" on this cycle. Absent on records
+   * made before S251 and on every lease where no choice was recorded.
+   */
+  rentChoice?: (StaffRecord & { choice: "keep_current" | "propose_change" }) | null;
   completion: StaffRecord | null;
   preparation: {
     market: RenewalMarketBasis;
@@ -460,11 +484,18 @@ export function currentStaffActivity(state: RenewalWorkspaceState, key: ManualAc
 export function staffOwnerOutcome(
   state: RenewalWorkspaceState | null | undefined,
   endDateIso?: string | null,
-): NonNullable<RenewalWorkspaceState["ownerResponse"]>["outcome"] | null {
+): Exclude<
+  NonNullable<RenewalWorkspaceState["ownerResponse"]>["outcome"],
+  "renew_tenant"
+> | null {
   if (!state?.ownerResponse) return null;
   const basis = workBasisDateIso(state.basis);
   if (endDateIso !== undefined && basis !== null && basis !== endDateIso) return null;
-  return state.ownerResponse.outcome;
+  // S251: "Renew" answers whether to renew the tenant; the owner's rent decision is still to come,
+  // so the earlier process model reads it as awaiting the owner's response.
+  return state.ownerResponse.outcome === "renew_tenant"
+    ? "no_response"
+    : state.ownerResponse.outcome;
 }
 export function currentManualOwnerTerms(state: RenewalWorkspaceState) {
   return state.ownerResponse?.outcome === "approved_terms"
@@ -557,14 +588,27 @@ export interface ManualEvidenceFill {
   readonly tenantReplyAtMs: number | null;
 }
 
+/** S251 R-S251-6: the rent choice recorded on this cycle, or null when none is. */
+export function currentRentChoice(
+  state: RenewalWorkspaceState | null | undefined,
+): "keep_current" | "propose_change" | null {
+  return state?.rentChoice?.choice ?? null;
+}
+
 export function manualRenewalSummary(
   state: RenewalWorkspaceState | null,
   options: {
     standingOwnerAuthority?: boolean;
     evidence?: ManualEvidenceFill | null;
+    /**
+     * S251: the lease's Housing assistance fact when it is Yes. Absent or null, the standard
+     * order applies and the assisted-housing follow-up is not part of the lease's path.
+     */
+    housingAssistance?: { readonly program: string } | null;
   } = {},
 ) {
   const standing = options.standingOwnerAuthority === true;
+  const assisted = Boolean(options.housingAssistance);
   const evidence = options.evidence ?? null;
   let nextActivity:
     | ManualActivity
@@ -577,31 +621,61 @@ export function manualRenewalSummary(
   let tenantReplied = false;
   const nonRenewal = manualNonRenewal(state);
   // S248 R-S248-1: an accepted renewal message fills the outreach or offer staff have not recorded.
+  const recorded = (key: ManualActivity) =>
+    manualActivitySatisfied(state!, key) ||
+    (key === "owner_outreach" && Boolean(evidence?.owner_outreach)) ||
+    (key === "tenant_offer" && Boolean(evidence?.tenant_offer));
   const satisfied = (key: ManualActivity) =>
-    key === "owner_outreach" && standing
+    key === "owner_outreach" && standing && !assisted
       ? true
-      : manualActivitySatisfied(state!, key) ||
-        (key === "owner_outreach" && Boolean(evidence?.owner_outreach)) ||
-        (key === "tenant_offer" && Boolean(evidence?.tenant_offer));
+      : // S251 R-S251-9: without Housing assistance Yes the assisted-housing follow-up asks nothing.
+        key === "assisted_housing" && !assisted
+        ? true
+        : recorded(key);
+  // The owner response step, as the standard path reads it. S248 R-S248-4: an observed owner
+  // reply after the latest staff answer is the team's move.
+  const replied =
+    state?.ownerResponse?.outcome !== "revision_requested" &&
+    evidence?.ownerReplyAtMs !== null &&
+    evidence?.ownerReplyAtMs !== undefined;
+  const ownerResponseWaiting: "staff" | "owner" =
+    state?.ownerResponse?.outcome === "revision_requested" || replied ? "staff" : "owner";
+  // S251 ARCH-S251-2: the assisted order. The program contact, then the owner's answer on renewing
+  // this tenant, then the rent choice; an approval of terms settles the answer and the rent together.
+  const answer = state?.ownerResponse?.outcome;
+  const renewing = answer === "renew_tenant" || answer === "approved_terms";
+  const rentChoice = currentRentChoice(state);
+  const rentSettled =
+    answer === "approved_terms" ||
+    rentChoice === "keep_current" ||
+    (rentChoice === "propose_change" && standing);
   if (state) {
     if (nonRenewal)
       nextActivity = satisfied("non_renewal_handoff")
         ? "complete"
         : "non_renewal_handoff";
-    else if (!satisfied("owner_outreach")) nextActivity = "owner_outreach";
-    // S156: the owner's approval is the recorded answer; exact terms live on the working record.
-    else if (!standing && state.ownerResponse?.outcome !== "approved_terms") {
+    else if (assisted && !recorded("program_contact")) nextActivity = "program_contact";
+    else if (assisted && !renewing && !recorded("owner_outreach"))
+      nextActivity = "owner_outreach";
+    else if (
+      // The owner response step: the standard path's owner decision, the assisted owner's answer
+      // on renewing, or a proposed change waiting on the owner's rent decision.
+      (assisted && !renewing) ||
+      (assisted && !rentSettled && rentChoice === "propose_change") ||
+      (!assisted &&
+        satisfied("owner_outreach") &&
+        !standing &&
+        state.ownerResponse?.outcome !== "approved_terms")
+    ) {
       nextActivity = "owner_response";
-      // S248 R-S248-4: an observed owner reply after the latest staff answer is the team's move.
-      ownerReplied =
-        state.ownerResponse?.outcome !== "revision_requested" &&
-        evidence?.ownerReplyAtMs !== null &&
-        evidence?.ownerReplyAtMs !== undefined;
-      waitingParty =
-        state.ownerResponse?.outcome === "revision_requested" || ownerReplied
-          ? "staff"
-          : "owner";
-    } else if (!satisfied("tenant_offer")) {
+      ownerReplied = replied;
+      waitingParty = ownerResponseWaiting;
+    } else if (assisted && !rentSettled) {
+      // Renew is recorded and no rent choice yet: the rent choice is the team's move.
+      nextActivity = "owner_response";
+      waitingParty = "staff";
+    } else if (!assisted && !satisfied("owner_outreach")) nextActivity = "owner_outreach";
+    else if (!satisfied("tenant_offer")) {
       nextActivity = "tenant_offer";
     } else if (currentManualTenantOutcome(state) !== "accepted") {
       const currentResponse = currentManualTenantOutcome(state);
@@ -623,7 +697,8 @@ export function manualRenewalSummary(
     } else
       nextActivity = MANUAL_REQUIRED_RENEWAL.find((key) => !satisfied(key)) ?? "complete";
   }
-  if (!state && standing) nextActivity = "tenant_offer";
+  if (!state && assisted) nextActivity = "program_contact";
+  else if (!state && standing) nextActivity = "tenant_offer";
   // S156: completion is the staff record itself. The suggested next activity is guidance and
   // neither grants nor withholds it; once completion is recorded, nothing is suggested next.
   const complete = Boolean(state?.completion);
@@ -631,7 +706,9 @@ export function manualRenewalSummary(
   const pendingSourceUpdates = Object.values(state?.sourceUpdates ?? {}).filter(
     (entry) => entry.state !== "verified",
   ).length;
-  const stageIndex = ["owner_outreach", "owner_response"].includes(nextActivity)
+  const stageIndex = ["program_contact", "owner_outreach", "owner_response"].includes(
+    nextActivity,
+  )
     ? 1
     : ["tenant_offer", "tenant_response", "information_form", "form_returned"].includes(
           nextActivity,
@@ -907,6 +984,10 @@ export function planRenewalWorkspaceAction(
     next.completion = record;
   } else if (action.kind === "reopen") {
     next.completion = null;
+  } else if (action.kind === "rent_choice") {
+    // S251 R-S251-6 / R-S251-12: the choice changes the order of steps and what is prepared; it
+    // changes no rent, charge, recipient or approved wording by itself.
+    next.rentChoice = { ...record, choice: action.choice };
   } else {
     if (
       action.rangeLow !== undefined &&

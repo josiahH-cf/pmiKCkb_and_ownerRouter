@@ -8,24 +8,33 @@ import {
 describe("getRenewalDeskView", () => {
   it("classifies the sample batch into the expected dispositions", () => {
     const view = getRenewalDeskView();
+    // S251 R-S251-10: "Section 8 Program" is housing assistance wording, a suggestion only, so
+    // lease-915-pine-5 is a renewal target (before S251: actionable 3, skipped 1).
     expect(view.cohort.summary).toMatchObject({
       total: 7,
-      actionable: 3,
+      actionable: 4,
       needsReview: 1,
-      skipped: 1,
+      skipped: 0,
       periodicReview: 1,
       outOfWindow: 1,
     });
-    expect(view.actionable).toHaveLength(3);
+    expect(view.actionable).toHaveLength(4);
+    expect(view.actionable.map((s) => s.id)).toContain("lease-915-pine-5");
+    expect(
+      view.cohort.classifications.find((lease) => lease.leaseId === "915-5")
+        ?.housingAssistanceMention,
+    ).toBe(true);
     expect(view.review).toHaveLength(1);
-    expect(view.skipped).toHaveLength(1);
+    expect(view.skipped).toHaveLength(0);
     expect(view.periodicReview).toHaveLength(1);
     expect(view.outOfWindow).toHaveLength(1);
   });
 
   it("surfaces the skip, periodic-review, and off-cycle review reasons as human labels", () => {
     const view = getRenewalDeskView();
-    expect(view.skipped.map((s) => s.reasonLabel)).toEqual(["Program lease"]);
+    // S251: the sample has no program lease left; "Program lease" stays pinned by the S246
+    // matrix (lease 112, "PadSplit program") and tests/unit/s251-housing-assistance.test.ts.
+    expect(view.skipped.map((s) => s.reasonLabel)).toEqual([]);
     expect(view.periodicReview.map((s) => s.reasonLabel)).toEqual(["Month-to-month"]);
     expect(view.review[0].reasonLabel).toBe("Off-cycle end date");
     expect(view.outOfWindow[0].reasonLabel).toBe("Outside this window");

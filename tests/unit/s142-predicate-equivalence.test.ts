@@ -45,6 +45,11 @@ import {
 // filled by the app's own renewal message evidence). Re-recorded once: with the marker held at its
 // S232 value every output was unchanged; the marker then changes every one of the 72 guidance
 // outputs; no manual summary changed (this matrix carries no evidence).
+// S250/S251 re-baseline: the guidance contract marker becomes "s251-variants", and the matrix adds
+// the assisted order (the new program contact activity, the owner's renewing answer and the rent
+// choice) as new "assisted|" manual groups. Re-recorded once: with the marker held at its S248
+// value every existing output was unchanged; the marker then changes every one of the 72
+// guidance outputs; no existing manual summary changed; the assisted groups are new keys.
 
 const FIXTURE_PATH = join(__dirname, "..", "fixtures", "s142-predicate-equivalence.json");
 const CYCLE_ID = "b4bc3b81-c402-4f62-a2e2-c605c67867fb";
@@ -197,6 +202,62 @@ function manualGroups(): Record<string, string> {
               ),
             );
         groups[`${owner}|${tenant}|${tenantCurrent ? "current" : "stale"}`] =
+          digest(outputs);
+      }
+  return groups;
+}
+
+const ASSISTED_OWNER_CASES = [
+  "none",
+  "renew_tenant",
+  "no_response",
+  "approved_terms",
+  "declined_non_renewal",
+] as const;
+const RENT_CHOICES = ["none", "keep_current", "propose_change"] as const;
+
+/** S251: the assisted order over the program contact, the renewing answer and the rent choice. */
+function assistedGroups(): Record<string, string> {
+  const groups: Record<string, string> = {
+    "assisted|null": digest([
+      manualRenewalSummary(null, { housingAssistance: { program: "Fixture program" } }),
+    ]),
+  };
+  for (const owner of ASSISTED_OWNER_CASES)
+    for (const rentChoice of RENT_CHOICES)
+      for (const programContact of [false, true]) {
+        const outputs: unknown[] = [];
+        for (const profile of ACTIVITY_PROFILES)
+          for (const standing of [false, true]) {
+            const state = manualState(
+              owner === "renew_tenant" ? "none" : owner,
+              owner === "approved_terms" && profile.startsWith("all")
+                ? "accepted"
+                : "none",
+              true,
+              profile,
+              "none",
+            );
+            if (owner === "renew_tenant")
+              state.ownerResponse = {
+                ...record(state.termsRevision),
+                outcome: "renew_tenant",
+              };
+            if (rentChoice !== "none")
+              state.rentChoice = { ...record(state.termsRevision), choice: rentChoice };
+            if (programContact)
+              state.activities.program_contact = {
+                ...record(state.termsRevision),
+                outcome: "done",
+              };
+            outputs.push(
+              manualRenewalSummary(state, {
+                standingOwnerAuthority: standing,
+                housingAssistance: { program: "Fixture program" },
+              }),
+            );
+          }
+        groups[`assisted|${owner}|${rentChoice}|${programContact ? "contact" : "none"}`] =
           digest(outputs);
       }
   return groups;
@@ -396,11 +457,16 @@ describe("S142-A predicate equivalence", () => {
       ...POST_ACCEPTANCE,
     ]);
     keys.add("non_renewal_handoff");
+    // S251: the program contact is exercised by the assisted groups.
+    keys.add("program_contact");
     expect([...keys].sort()).toEqual(Object.keys(MANUAL_ACTIVITIES).sort());
   });
 
   it("keeps manual summary and desk guidance outputs identical to the recorded baseline", () => {
-    const current = { manual: manualGroups(), guidance: guidanceGroups() };
+    const current = {
+      manual: { ...manualGroups(), ...assistedGroups() },
+      guidance: guidanceGroups(),
+    };
     if (process.env.UPDATE_S142_EQUIVALENCE === "1")
       writeFileSync(FIXTURE_PATH, `${JSON.stringify(current, null, 2)}\n`);
     expect(existsSync(FIXTURE_PATH)).toBe(true);

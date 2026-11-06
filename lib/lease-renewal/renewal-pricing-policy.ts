@@ -1,5 +1,13 @@
 import { z } from "zod";
 
+import {
+  newestStandingAgreement,
+  standingAgreementCoverage,
+  standingRulePolicy,
+  type PricingBasisChoice,
+  type StandingAgreement,
+} from "@/lib/lease-renewal/standing-agreement";
+
 const date = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -269,6 +277,16 @@ export interface PricingAssignment {
   reason: string;
   recordedByUid: string;
   recordedAt: string;
+  /**
+   * S250 R-S250-3: the pricing basis chosen at this scope: an applied standing agreement, or
+   * "Owner decides each renewal". Absent or null when no basis was chosen here; the lease's
+   * choice wins over the portfolio's, as a lease policy assignment does.
+   */
+  standing?: PricingBasisChoice | null;
+  /** Who chose the basis and when, with the optional reason. */
+  standingRecordedByUid?: string;
+  standingRecordedAt?: string;
+  standingReason?: string;
 }
 export interface VerifiedPricingLease {
   leaseId: string;
@@ -283,12 +301,40 @@ export interface RenewalPricingSnapshot {
   policies: RenewalPricingPolicy[];
   agreements: StandingOwnerAgreement[];
   legacyPolicies: Record<string, RenewalPricingPolicy>;
+  /** S250: every recorded version of each standing agreement an assignment names. */
+  standingAgreements?: StandingAgreement[];
+}
+/** The combined owner-step authority: S194's exact kind, or S250's standing agreement. */
+export interface RenewalOwnerAuthority {
+  covered: boolean;
+  reason: string;
+  agreementId?: string;
+  agreementVersion?: number;
+  /** "exact": S194's per-lease, per-cycle record; "standing": an S250 agreement. */
+  kind?: "exact" | "standing";
+  /** The agreement's name ("Covered by {label}"); absent for the exact kind. */
+  label?: string;
+  rule?: string;
+  amount?: number;
+  basis?: string;
+  effectiveFrom?: string;
+  policyId?: string;
+  policyVersion?: number;
+  appliedScope?: "lease" | "portfolio";
+  /**
+   * The agreement would cover the lease but this read could not confirm it (an expired or
+   * incomplete RentVine read, or a working record that could not be read). Not covered, and never
+   * read as an ordinary lease: the automatic start looks up no comparison for it.
+   */
+  unconfirmed?: true;
 }
 export function resolveRenewalPricing(
   snapshot: RenewalPricingSnapshot,
   f: VerifiedPricingLease,
   terms: StandingOwnerAgreement["terms"] | null,
   today: string,
+  /** S250: the working renewal rent (null when untouched); defaults to the complete terms' rent. */
+  options: { readonly workingRent?: number | null } = {},
 ) {
   const leaseAssignment =
     snapshot.assignments.find((a) => a.scope === "lease" && a.sourceId === f.leaseId) ??
@@ -302,11 +348,31 @@ export function resolveRenewalPricing(
     : portfolioAssignment?.policyId
       ? portfolioAssignment
       : null;
-  const policy = selected
+  const assignedPolicy = selected
     ? (snapshot.policies
         .filter((p) => p.id === selected.policyId && p.effectiveFrom <= today)
         .sort((a, b) => b.version - a.version)[0] ?? null)
     : (snapshot.legacyPolicies[f.portfolioId] ?? null);
+  // S250 R-S250-2 / R-S250-3: the pricing basis chosen on the lease wins over the portfolio's.
+  const leaseBasis = leaseAssignment?.standing ?? null;
+  const basisChoice = leaseBasis ?? portfolioAssignment?.standing ?? null;
+  const appliedScope: "lease" | "portfolio" | null = leaseBasis
+    ? "lease"
+    : basisChoice
+      ? "portfolio"
+      : null;
+  const standingAgreement =
+    basisChoice?.kind === "agreement"
+      ? newestStandingAgreement(
+          snapshot.standingAgreements ?? [],
+          basisChoice.agreementId,
+        )
+      : null;
+  const standingPolicy = standingAgreement
+    ? standingRulePolicy(snapshot.policies, standingAgreement.policyId, today)
+    : null;
+  // R-S250-4: an applied agreement's rule is the proposal (a typed rent still wins downstream).
+  const policy = standingAgreement ? standingPolicy : assignedPolicy;
   const proposal = policy
     ? projectRenewalPricingPolicy(policy, f.currentRent, today)
     : null;
@@ -318,9 +384,10 @@ export function resolveRenewalPricing(
       g.expiresOn >= today &&
       g.cycleDate === f.cycleDate,
   );
-  const authority = standingOwnerAuthority({
+  // S194: the exact per-lease, per-cycle agreement keeps its own rule, unchanged.
+  const exact = standingOwnerAuthority({
     agreement: currentAgreements.length === 1 ? currentAgreements[0] : null,
-    policy,
+    policy: assignedPolicy,
     leaseId: f.leaseId,
     verifiedPortfolioId: f.portfolioId,
     cycleDate: f.cycleDate,
@@ -329,6 +396,56 @@ export function resolveRenewalPricing(
     today,
     conflict: currentAgreements.length > 1,
   });
+  const standingRent =
+    standingPolicy && standingAgreement
+      ? projectRenewalPricingPolicy(standingPolicy, f.currentRent, today).amount
+      : null;
+  const standing = standingAgreementCoverage({
+    agreement: standingAgreement,
+    appliedScope,
+    policy: standingPolicy,
+    verifiedPortfolioId: f.portfolioId || null,
+    currentRent: f.currentRent,
+    workingRent:
+      options.workingRent !== undefined ? options.workingRent : (terms?.rent ?? null),
+    today,
+    // R-S250-6: a current exact agreement for this lease whose rent differs from the rule.
+    conflicts:
+      standingRent === null
+        ? 0
+        : currentAgreements.filter((g) => Math.abs(g.terms.rent - standingRent) >= 0.005)
+            .length,
+  });
+  const authority: RenewalOwnerAuthority = exact.covered
+    ? { ...exact, kind: "exact" }
+    : standing.covered
+      ? {
+          covered: true,
+          kind: "standing",
+          reason: standing.reason,
+          agreementId: standing.agreementId,
+          agreementVersion: standing.agreementVersion,
+          label: standing.label,
+          rule: standing.rule,
+          amount: standing.amount,
+          basis: standing.basis,
+          effectiveFrom: standing.effectiveFrom,
+          policyId: standing.policyId,
+          policyVersion: standing.policyVersion,
+          appliedScope: standing.appliedScope,
+        }
+      : standingAgreement
+        ? {
+            covered: false,
+            kind: "standing",
+            reason: standing.reason,
+            ...(standing.label ? { label: standing.label } : {}),
+            ...(standing.rule ? { rule: standing.rule } : {}),
+            ...(standing.amount !== null ? { amount: standing.amount } : {}),
+            ...(standing.appliedScope ? { appliedScope: standing.appliedScope } : {}),
+            ...(standing.agreementId ? { agreementId: standing.agreementId } : {}),
+          }
+        : exact;
   return {
     policy,
     proposal,
@@ -337,11 +454,16 @@ export function resolveRenewalPricing(
     portfolioAssignment,
     policyChanged: !!(
       selected &&
-      policy &&
-      selected.selectedPolicyVersion !== policy.version
+      assignedPolicy &&
+      !standingAgreement &&
+      selected.selectedPolicyVersion !== assignedPolicy.version
     ),
     authority,
     agreements,
+    /** S250: the standing agreement applied at the winning scope, and the basis choice. */
+    standingAgreement,
+    basisChoice,
+    basisScope: appliedScope,
     rentSource: f.rentSource,
   };
 }
