@@ -408,10 +408,13 @@ globalThis.fetch = async function guardedFetch(input, init) {
 // Any other client (gRPC, Google auth, metadata server) reaches the network through a socket.
 const connect = net.Socket.prototype.connect;
 net.Socket.prototype.connect = function guardedConnect(...args) {
+  // net.createConnection forwards Node's normalized [options, callback] array to Socket.connect.
+  // Inspect its actual destination before the original implementation can begin DNS or connect.
+  const first = Array.isArray(args[0]) ? args[0][0] : args[0];
   const options =
-    typeof args[0] === "object" && args[0] !== null
-      ? args[0]
-      : { port: args[0], host: args[1] };
+    typeof first === "object" && first !== null
+      ? first
+      : { port: first, host: typeof args[1] === "string" ? args[1] : undefined };
   const host = options.host ?? options.path ?? "localhost";
   if (!options.path && !loopback(String(host))) {
     record({ refused: "socket", host: String(host), port: options.port ?? null });

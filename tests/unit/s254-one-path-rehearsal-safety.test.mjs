@@ -2,6 +2,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -82,6 +83,49 @@ afterEach(() => {
 });
 
 describe("S254: the rehearsal runs only in a disposable worktree against loopback emulators", () => {
+  it("refuses Node's normalized socket overload before its offline base-connect sentinel", () => {
+    const output = runDir();
+    const probe = join(output, "socket-probe.mjs");
+    const guardUrl = pathToFileURL(
+      join(process.cwd(), "tests/browser/renewal-novdec-journey-network.mjs"),
+    ).href;
+    writeFileSync(
+      probe,
+      `
+      import net from "node:net";
+      let baseCalls = 0;
+      net.Socket.prototype.connect = function offlineSentinel() {
+        baseCalls += 1;
+        process.nextTick(() => this.destroy(new Error("offline base connect reached")));
+        return this;
+      };
+      await import(${JSON.stringify(guardUrl)});
+      const attempt = (make) => new Promise(resolve => make().once("error", error => resolve(error.message)));
+      const refused = [];
+      refused.push(await attempt(() => net.createConnection({host:"provider.example.invalid",port:443})));
+      refused.push(await attempt(() => net.createConnection(443,"provider.example.invalid")));
+      refused.push(await attempt(() => new net.Socket().connect({host:"provider.example.invalid",port:443})));
+      refused.push(await attempt(() => new net.Socket().connect(443,"provider.example.invalid")));
+      const refusedBaseCalls = baseCalls;
+      const local = await attempt(() => net.createConnection({host:"127.0.0.1",port:443}));
+      console.log(JSON.stringify({refused,refusedBaseCalls,local,baseCalls}));
+    `,
+    );
+    const result = spawnSync(process.execPath, [probe], {
+      encoding: "utf8",
+      env: { ...process.env, NODE_OPTIONS: "" },
+      timeout: 15_000,
+    });
+    expect(result.status, result.stderr).toBe(0);
+    const proof = JSON.parse(result.stdout);
+    expect(proof.refusedBaseCalls).toBe(0);
+    expect(proof.refused).toHaveLength(4);
+    for (const message of proof.refused)
+      expect(message).toContain("refuses network access");
+    expect(proof.local).toBe("offline base connect reached");
+    expect(proof.baseCalls).toBe(1);
+  });
+
   it("guards the outer CLI and its inherited Node children before they can dispatch", () => {
     const output = runDir();
     const result = spawnSync(
