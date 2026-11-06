@@ -66,6 +66,8 @@ import {
 } from "@/lib/lease-renewal/message-revision";
 import {
   PreparedMessageSlot,
+  draftPreviewWaitsOnGeneration,
+  previewAgainWhileGenerationReplaced,
   type PreparedMessageData,
   type PreparedSignatureFields,
 } from "@/components/lease-renewal/RenewalPreparedMessage";
@@ -951,12 +953,29 @@ function MessagePreparationEditor({
             }
           : {}),
       };
-      const response = await fetch("/api/lease-renewal/message-preparation", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(request),
-      });
-      const data = await response.json();
+      const post = (body: unknown) =>
+        fetch("/api/lease-renewal/message-preparation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }).then(async (answer) => ({ response: answer, data: await answer.json() }));
+      // S250 (L28): a review refused only because the lease's RentVine read is being replaced is
+      // asked again, as its reason asks: previews only, a bounded few. The repeat carries what is
+      // displayed and never the save the first request already made; a create, a reconcile or a
+      // confirmation is never repeated.
+      const previewOnly = {
+        kind: "draft",
+        leaseId,
+        channel,
+        ...(preview.displayed ? { displayed: preview.displayed } : {}),
+      };
+      let { response, data } = await post(request);
+      if (kind === "preview" && response.ok)
+        ({ response, data } = await previewAgainWhileGenerationReplaced(
+          { response, data },
+          () => post(previewOnly),
+          (answer) => answer.response.ok && draftPreviewWaitsOnGeneration(answer.data),
+        ));
       if (!response.ok && data.providerCallAttempted === false) {
         setNotice(data.error);
         if (kind === "create") setOutcome(null);

@@ -277,14 +277,21 @@ function kickoffFor(row: DeskLeaseRow): {
     ownerStepStarted: ownerStepStarted(stage),
   });
   if (!preparation || group === "other") return { group, view: null };
+  // S250: a lease whose standing agreement covers the owner step takes its rent from the rule, so
+  // its kickoff needs no comparison; one whose coverage could not be confirmed on this read waits
+  // for a read that confirms it or not. Neither is handed to batch preparation. A lease that left
+  // the rule (a typed different rent) is an ordinary target.
+  const authority = row.renewalPricing?.authority;
+  const coverageFenced = authority?.covered === true || authority?.unconfirmed === true;
   return {
     group,
     view: {
       line: kickoffRowLine(preparation),
       missing: preparation.missing,
       needsComparison:
-        (preparation.comparison.state === "none" && !preparation.comparison.attempted) ||
-        preparation.comparison.state === "allowance_reached",
+        !coverageFenced &&
+        ((preparation.comparison.state === "none" && !preparation.comparison.attempted) ||
+          preparation.comparison.state === "allowance_reached"),
       allowanceReached: preparation.comparison.state === "allowance_reached",
       cycleDateIso:
         row.renewalTarget?.kind === "target" ? row.renewalTarget.cycleDateIso : null,

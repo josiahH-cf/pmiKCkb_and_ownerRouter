@@ -321,6 +321,12 @@ export interface RenewalOwnerAuthority {
   policyId?: string;
   policyVersion?: number;
   appliedScope?: "lease" | "portfolio";
+  /**
+   * The agreement would cover the lease but this read could not confirm it (an expired or
+   * incomplete RentVine read, or a working record that could not be read). Not covered, and never
+   * read as an ordinary lease: the automatic start looks up no comparison for it.
+   */
+  unconfirmed?: true;
 }
 export function resolveRenewalPricing(
   snapshot: RenewalPricingSnapshot,

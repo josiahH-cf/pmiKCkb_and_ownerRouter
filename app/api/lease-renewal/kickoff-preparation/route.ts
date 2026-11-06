@@ -33,6 +33,7 @@ const STATUS_CODES = {
   verification_identity: 403,
   automatic_start_off: 409,
   outside_working_batch: 409,
+  coverage_unconfirmed: 409,
   no_cycle: 409,
   source_unavailable: 503,
 } as const;

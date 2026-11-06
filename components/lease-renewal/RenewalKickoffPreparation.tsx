@@ -50,12 +50,19 @@ export interface KickoffPreparationProps {
   } | null;
   /** True only when the server resolved the isolated rehearsal's stand-in for this process. */
   readonly rehearsal: boolean;
+  /**
+   * The batch was drawn from a current, complete RentVine read. An aging or incomplete read can
+   * place a lease in the batch (or out of it) that the next read does not, so the automatic start
+   * waits for a current one. Absent reads as current (a caller that does not say).
+   */
+  readonly sourceCurrent?: boolean;
 }
 
 /**
  * ARCH-S249-4 client fence (1): the automatic start may begin only when the setting is on, the
- * account may prepare, there is something to prepare, and the page is not driven by automation
- * unless the server named the process the isolated rehearsal.
+ * account may prepare, there is something to prepare, the batch was drawn from a current read,
+ * and the page is not driven by automation unless the server named the process the isolated
+ * rehearsal.
  */
 export function automaticStartAllowed(input: {
   readonly enabled: boolean;
@@ -63,11 +70,17 @@ export function automaticStartAllowed(input: {
   readonly targets: number;
   readonly webdriver: boolean;
   readonly rehearsal: boolean;
+  readonly sourceCurrent?: boolean;
 }): boolean {
   if (!input.enabled || !input.canPrepare || input.targets === 0) return false;
+  if (input.sourceCurrent === false) return false;
   if (input.webdriver && !input.rehearsal) return false;
   return true;
 }
+
+/** How long a batch drawn from an aging read waits before it reads the desk again, and how often. */
+export const CURRENT_READ_WAIT_MS = 2500;
+export const CURRENT_READ_REFRESHES = 2;
 
 /** ARCH-S249-4 client fence (3): resolve once the page has been visible and idle for a moment. */
 export function waitUntilVisibleAndIdle(
@@ -170,6 +183,7 @@ export function RenewalKickoffPreparation({
   canPrepare,
   automaticStart,
   rehearsal,
+  sourceCurrent = true,
 }: KickoffPreparationProps) {
   const router = useRouter();
   const [run, setRun] = useState<RunState>({ phase: "idle" });
@@ -293,6 +307,28 @@ export function RenewalKickoffPreparation({
   useEffect(() => {
     latestTargets.current = targets;
   });
+  // A batch drawn from an aging read waits: the read behind it is being replaced, so the page
+  // reads the desk again (a bounded few times, while visible) and the start then runs on the
+  // current batch. Nothing is sent from the aging one.
+  const rereads = useRef(0);
+  useEffect(() => {
+    if (sourceCurrent || started.current || rereads.current >= CURRENT_READ_REFRESHES)
+      return;
+    const wouldStart = automaticStartAllowed({
+      enabled: automaticStart?.enabled === true,
+      canPrepare,
+      targets: Math.max(1, latestTargets.current.length),
+      webdriver: typeof navigator !== "undefined" && navigator.webdriver === true,
+      rehearsal,
+    });
+    if (!wouldStart) return;
+    const timer = setTimeout(() => {
+      if (document.visibilityState !== "visible") return;
+      rereads.current += 1;
+      router.refresh();
+    }, CURRENT_READ_WAIT_MS);
+    return () => clearTimeout(timer);
+  }, [sourceCurrent, automaticStart?.enabled, canPrepare, rehearsal, router]);
   useEffect(() => {
     if (started.current) return;
     const allowed = automaticStartAllowed({
@@ -301,6 +337,7 @@ export function RenewalKickoffPreparation({
       targets: latestTargets.current.length,
       webdriver: typeof navigator !== "undefined" && navigator.webdriver === true,
       rehearsal,
+      sourceCurrent,
     });
     if (!allowed) return;
     started.current = true;
@@ -322,7 +359,7 @@ export function RenewalKickoffPreparation({
       controller.abort();
       if (!begun) started.current = false;
     };
-  }, [automaticStart?.enabled, canPrepare, rehearsal, targetKey, prepare]);
+  }, [automaticStart?.enabled, canPrepare, rehearsal, sourceCurrent, targetKey, prepare]);
 
   async function changeSetting() {
     if (!automaticStart || settingBusy) return;
@@ -367,6 +404,7 @@ export function RenewalKickoffPreparation({
       aria-label="Batch preparation"
       className="ui-stack-tight renewal-batch-preparation"
       data-kickoff-automatic={automaticStart?.enabled ? "on" : "off"}
+      data-kickoff-source-current={sourceCurrent ? "true" : "false"}
       data-kickoff-targets={targets.length}
     >
       <p className="muted renewal-batch-note">

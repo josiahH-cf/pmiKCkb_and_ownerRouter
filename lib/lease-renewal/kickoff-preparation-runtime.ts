@@ -12,7 +12,13 @@ import { readKickoffAutomaticStart } from "@/lib/firestore/renewal-kickoff-setti
 import { listMarketObservations } from "@/lib/firestore/renewal-market-observations";
 import { getRenewalWorkspace } from "@/lib/firestore/renewal-workspace";
 import { getRenewalWorkingRecord } from "@/lib/firestore/renewal-working-record";
-import { housingAssistanceVariant } from "@/lib/lease-renewal/working-record";
+import {
+  housingAssistanceVariant,
+  workingRenewalTerms,
+} from "@/lib/lease-renewal/working-record";
+import { effectiveRenewalTerms } from "@/lib/lease-renewal/effective-terms";
+import { readRenewalPricingForViews } from "@/lib/lease-renewal/pricing-policy-read";
+import { resolveRenewalPricing } from "@/lib/lease-renewal/renewal-pricing-policy";
 import { currentRentChoice } from "@/lib/lease-renewal/workspace-state";
 import {
   createRentcastUsageStore,
@@ -90,6 +96,31 @@ export function kickoffPreparationDeps(
         appCompletionCurrent: false,
         decision,
       });
+      // S250: whether a standing agreement covers the owner step on this read, from the one
+      // coverage function over the same lease read and working record. A pricing read that fails
+      // cannot confirm it either way, so the automatic start waits.
+      const coverage = await readRenewalPricingForViews(actor, [view], new Date(nowMs)).then(
+        (pricing) => {
+          const facts = pricing.facts[0];
+          if (!facts) return { ownerStepCoverage: null, coveredBy: null };
+          const authority = resolveRenewalPricing(
+            pricing.snapshot,
+            {
+              ...facts,
+              cycleDate:
+                facts.cycleDate ??
+                (manual && manual.basis.kind !== "lease_bound" ? manual.basis.dateIso : null),
+            },
+            effectiveRenewalTerms(working.record).complete,
+            pricing.today,
+            { workingRent: workingRenewalTerms(working.record).rent },
+          ).authority;
+          return authority.covered
+            ? { ownerStepCoverage: "covered" as const, coveredBy: authority.label ?? null }
+            : { ownerStepCoverage: null, coveredBy: null };
+        },
+        () => ({ ownerStepCoverage: "unconfirmed" as const, coveredBy: null }),
+      );
       return {
         cycleDateIso:
           target.kind === "target" ? target.cycleDateIso : classification.endDateIso,
@@ -98,6 +129,7 @@ export function kickoffPreparationDeps(
         // S251 ARCH-S251-4: the fact and the rent choice, asked before any billed lookup.
         housingAssistance: housingAssistanceVariant(working.record),
         rentChangeProposed: currentRentChoice(manual) === "propose_change",
+        ...coverage,
       };
     },
     storedComparison: async (leaseId, cycleId) => {

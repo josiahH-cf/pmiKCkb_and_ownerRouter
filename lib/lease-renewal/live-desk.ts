@@ -739,14 +739,17 @@ function inclusionReasonFor(
  */
 function kickoffVariantFacts(
   row: Pick<DeskLeaseSummaryBase, "renewalPricing" | "housingAssistance">,
+  /** False when the working record could not be read: the fact is unknown and the lease waits. */
+  workingRead = true,
 ): {
-  housingAssistance: { program: string } | null;
+  housingAssistance: { program: string } | null | "unread";
   agreementRent: { value: number; basis: string } | null;
 } {
   const authority = row.renewalPricing?.authority;
   return {
-    housingAssistance:
-      row.housingAssistance?.status === "yes"
+    housingAssistance: !workingRead
+      ? "unread"
+      : row.housingAssistance?.status === "yes"
         ? { program: row.housingAssistance.program }
         : null,
     agreementRent:
@@ -859,24 +862,41 @@ function toLiveSummary(
   const assisted =
     housingFact?.status === "yes" ? { program: housingFact.program } : null;
   // Source expiry or incomplete membership cannot establish an applicable standing agreement.
+  // S194's exact kind needs a fresh read, as before. S250: a standing agreement reads its
+  // portfolio from the same complete RentVine generation the rest of the row shows, so an aging
+  // (stale) read keeps it; an expired or incomplete one cannot confirm it. Either way the lease
+  // keeps its agreement's identity and reads "could not be confirmed", never as an ordinary lease.
+  const authority = renewalPricing?.authority;
+  const unconfirmed = (reason: string) => ({
+    covered: false,
+    unconfirmed: true as const,
+    reason,
+    ...(authority?.kind ? { kind: authority.kind } : {}),
+    ...(authority?.label ? { label: authority.label } : {}),
+    ...(authority?.rule ? { rule: authority.rule } : {}),
+    ...(typeof authority?.amount === "number" ? { amount: authority.amount } : {}),
+    ...(authority?.agreementId ? { agreementId: authority.agreementId } : {}),
+    ...(authority?.appliedScope ? { appliedScope: authority.appliedScope } : {}),
+  });
   if (
-    renewalPricing?.authority.covered &&
+    renewalPricing &&
+    authority?.covered &&
     (!moveOutInputs ||
-      moveOutInputs.freshness !== "fresh" ||
-      !moveOutInputs.sourceComplete)
+      !moveOutInputs.sourceComplete ||
+      moveOutInputs.freshness === "expired" ||
+      moveOutInputs.freshness === "unavailable" ||
+      (authority.kind !== "standing" && moveOutInputs.freshness !== "fresh"))
   )
-    renewalPricing.authority = {
-      covered: false,
-      reason:
-        "Current complete source membership must be read before using standing owner authority.",
-    };
+    renewalPricing.authority = unconfirmed(
+      authority.kind === "standing" && authority.label
+        ? `Coverage by ${authority.label} could not be confirmed: the RentVine read is out of date or incomplete. The owner decides this renewal until it reads again.`
+        : "Current complete source membership must be read before using standing owner authority.",
+    );
   // S250: a standing agreement covers only a working rent it can compare with its rule.
-  if (renewalPricing?.authority.covered && working === undefined)
-    renewalPricing.authority = {
-      covered: false,
-      reason:
-        "The working rent could not be read, so the standing agreement cannot cover this lease and the owner decides this renewal.",
-    };
+  else if (renewalPricing && authority?.covered && working === undefined)
+    renewalPricing.authority = unconfirmed(
+      "The working rent could not be read, so the standing agreement cannot cover this lease and the owner decides this renewal.",
+    );
   const baseRetention = retentionFor(
     classification,
     windows,
@@ -1977,7 +1997,7 @@ export async function loadLiveRenewalDesk(
                     sourceReadable: complete && currency.state !== "expired",
                     ownerRecipient: ownerRecipientFact(view),
                     support: kickoffSupport,
-                    ...kickoffVariantFacts(row),
+                    ...kickoffVariantFacts(row, working !== undefined),
                   }),
                 ),
               }

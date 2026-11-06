@@ -213,6 +213,37 @@ export function onlyGenerationBeingReplaced(
   );
 }
 
+/** S250 (L28): a Gmail draft review refused only because the lease generation is being replaced. */
+export function draftPreviewWaitsOnGeneration(data: unknown): boolean {
+  const outcome = data as { status?: unknown; reasons?: unknown } | null;
+  return (
+    outcome?.status === "blocked" &&
+    Array.isArray(outcome.reasons) &&
+    onlyGenerationBeingReplaced(outcome.reasons as string[])
+  );
+}
+
+/**
+ * Ask for a review again while its only refusal is the generation being replaced, as the reason
+ * asks: a bounded few times, with growing waits. The caller passes a review (a preview) only;
+ * a create, a confirmation, a send or a save is never asked again.
+ */
+export async function previewAgainWhileGenerationReplaced<T>(
+  first: T,
+  again: () => Promise<T>,
+  waiting: (value: T) => boolean,
+  wait: (ms: number) => Promise<unknown> = (ms) =>
+    new Promise((resolve) => setTimeout(resolve, ms)),
+): Promise<T> {
+  let current = first;
+  for (const waitMs of COMPOSITION_REREAD_WAITS_MS) {
+    if (!waiting(current)) break;
+    await wait(waitMs);
+    current = await again();
+  }
+  return current;
+}
+
 function tomorrowIso(): string {
   return new Date(Date.now() + 86_400_000).toLocaleDateString("en-CA", {
     timeZone: BUSINESS_TIME_ZONE,

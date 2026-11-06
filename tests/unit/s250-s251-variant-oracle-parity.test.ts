@@ -250,9 +250,7 @@ const COVERAGE_CASES: readonly CoverageCase[] = [
   {
     name: "an older portfolio rule and no basis choice",
     assignments: [],
-    legacy: {
-      [PORTFOLIO]: { kind: "percentage", value: 3, version: 1, enabled: true },
-    },
+    olderRule: OLDER_RULE,
   },
   {
     name: "a plain policy assignment and no basis choice",

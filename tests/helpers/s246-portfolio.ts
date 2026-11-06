@@ -261,6 +261,10 @@ export interface S246DeskOptions {
   readonly pricing?: RenewalPricingRead;
   /** S249: the preparation projection's bulk read; absent means not attempted. */
   readonly kickoffSupport?: KickoffSupportRead;
+  /** The age state of the RentVine generation the desk reads; absent reads fresh. */
+  readonly currency?: "fresh" | "stale" | "expired";
+  /** False when the RentVine export read is incomplete; absent reads complete. */
+  readonly snapshotComplete?: boolean;
 }
 
 /** The synthetic sources and one lease generation both orchestrations read. */
@@ -296,16 +300,16 @@ function s246Sources(options: S246DeskOptions) {
   const snapshot: LiveLeaseSnapshotResult = {
     snapshot: {
       views,
-      complete: true,
+      complete: options.snapshotComplete ?? true,
       readAtMs: Date.parse(readTs),
       detailComplete: true,
       detailUnavailableCount: 0,
     },
     currency: {
-      state: "fresh",
-      ageMs: 0,
+      state: options.currency ?? "fresh",
+      ageMs: options.currency === "expired" ? 16 * 60_000 : options.currency === "stale" ? 90_000 : 0,
       readAtMs: Date.parse(readTs),
-      refreshing: false,
+      refreshing: options.currency === "stale",
       lastError: false,
     },
   };
