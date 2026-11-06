@@ -1060,7 +1060,13 @@ function MessagePreparationEditor({
           setReplacedHere(true);
         setCreatedDraftRevision(made);
       }
-      if (parsed.status === "created") router.refresh();
+      const createdConfirmed =
+        parsed.status === "created" ||
+        (parsed.status === "reconciliation" && parsed.resolution === "created");
+      if (createdConfirmed) {
+        router.refresh();
+        if (kind === "reconcile") void load().catch((error) => setNotice(error.message));
+      }
       if (parsed.status === "created")
         setNotice(
           kind === "reconcile"
@@ -1215,6 +1221,7 @@ function MessagePreparationEditor({
             pending,
             createdRevision: draftRevision,
             earlierRemain: draftSignal.earlierRemain,
+            recoveryRequired: unresolved,
             preview:
               outcome?.status === "preview"
                 ? {
@@ -1244,6 +1251,7 @@ function MessagePreparationEditor({
           data={preparedData}
           onCopy={() => copy("formatted")}
           onDraftCreate={() => draft("create")}
+          onDraftRecover={() => recoverDraft()}
           onDraftPreview={() => draft("preview")}
           onFlush={flush}
           onOpenComposer={(event) => void openComposer(event)}

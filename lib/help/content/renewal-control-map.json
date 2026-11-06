@@ -989,5 +989,30 @@
     "expectation": "Restores the previous authored wording after a deliberate return to standard wording or accepted refinement.",
     "source": ["components/lease-renewal/RenewalPreparedMessage.tsx"],
     "actions": []
+  },
+  {
+    "step": "92",
+    "page": "workspace:prepare",
+    "control": "Try again",
+    "role": "button",
+    "scope": "region:Now",
+    "availability": "conditional",
+    "expectation": "Retries a failed Housing assistance save with the entered complete value through the same working-record save. Saving is visible and the entry remains available after a failure.",
+    "source": [
+      "components/lease-renewal/RenewalHousingAssistance.tsx",
+      "components/lease-renewal/AutosaveStatus.tsx"
+    ],
+    "actions": []
+  },
+  {
+    "step": "93",
+    "page": "workspace:owner-decision",
+    "control": "Recover exact Gmail attempt",
+    "role": "button",
+    "scope": "region:Now",
+    "availability": "conditional",
+    "expectation": "Checks the same uncertain Gmail draft attempt, with visible progress. A confirmed recovery refreshes the recorded draft and its message revision. Full view retains its existing control; a new attempt still waits on exact recovery.",
+    "source": ["components/lease-renewal/RenewalPreparedMessage.tsx"],
+    "actions": []
   }
 ]

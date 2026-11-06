@@ -255,6 +255,28 @@ describe("S246 the assistant and the desk agree on a month (BEH-S246-4, AC-S246-
 describe("S246 the table's renewal-target key (R-S246-10, AC-S246-2)", () => {
   const named = (search: string) => parseRenewalDeskQueryV2(new URLSearchParams(search));
 
+  it("keeps a numeric lease reference exact in the answer and its linked table", async () => {
+    const { answer, view } = await deskAndAnswer(
+      `What is the stage and next step for lease ${S246_LEASES.activeInMonth}?`,
+    );
+    expect(answerIds(answer)).toEqual([S246_LEASES.activeInMonth]);
+    const href = answer.groups[0].link?.href ?? "";
+    const query = parseRenewalDeskQueryV2(
+      new URL(href, "https://x.invalid").searchParams,
+    );
+    // Another property's street number matches the requested id. Its lease is still distinct.
+    const collision = {
+      ...view.items.find((row) => row.id === S246_LEASES.activeInMonthSecond)!,
+      addressLabel: `${S246_LEASES.activeInMonth} Example Road`,
+    };
+    const linked = applyRenewalDeskQueryV2(
+      view.items.map((row) => (row.id === collision.id ? collision : row)),
+      query,
+      () => false,
+    );
+    expect(linked.items.map((row) => row.id)).toEqual(answerIds(answer));
+  });
+
   it("lists exactly the month's This batch leases, the same leases the batch lists", async () => {
     const view = await loadS246Desk();
     const partition = partitionRenewalBatch(

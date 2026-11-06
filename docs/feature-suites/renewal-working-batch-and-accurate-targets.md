@@ -91,6 +91,8 @@ rows to an explicit retained state and never removes them from the list.
   need renewal work asks for lease records; an explicit task question retains the My Work route.
   When its cached source is stale, the assistant waits for a current coherent read before stating
   the batch membership, or reports that the source could not be verified.
+  A person-supplied numeric lease reference selects that exact lease within the current read
+  scope. Its table link keeps the same selection; an unknown reference yields the empty result.
 - **R-S246-11 — Counts reconcile.** The groups partition the loaded leases: their counts sum to the
   total loaded, and each lease is in exactly one group.
 - **R-S246-12 — Fail closed.** When the status table or a lease's status cannot be read, the lease

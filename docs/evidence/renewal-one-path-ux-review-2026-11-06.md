@@ -1,7 +1,8 @@
 # Renewal one-path UX review, November 6, 2026
 
 This review resumes the November 5 S246 to S254 build and tests the product in the synthetic
-November 5 mix. It includes the merged batch and all five previously unmerged Claude repairs.
+November 5 mix. It includes the merged batch, all six previously unmerged Claude commits and the
+remaining generated-ID typing-recovery implementation and regression.
 The owner requests pull requests only. No merge, release, deployment, production read, real
 provider operation, mailbox operation or billed comparison is part of this review.
 
@@ -27,7 +28,7 @@ Human verdict: NOT RUN, no human observer.
 - The original lane later added `120b4966`, waiting for the settled prepared Now card before
   framing its help picture. It was included as `87908f80`, followed by its four curated picture
   updates `d76dc72e`, included as `9102ed63`. Final help capture is pending.
-- The remaining uncommitted generated-ID field lookup was backed up privately and integrated
+- The remaining uncommitted generated-ID field lookup and its regression were inspected and integrated
   with complete-text recovery, legacy snapshot compatibility and cancellation for newer input.
   The original working file is untouched. The existing 20-second recovery window is preserved.
 - A fresh independent S254 session received the brief, candidate source and starting baseline
@@ -92,6 +93,38 @@ executed; an implementation alone is not marked verified.
 | UX-015 | The additional Claude repair records that agreed Check the numbers always continued to Compare market rent, including on the assisted path where that step was outside the path.                                                                                                                        | P02,P07,P09,P13; SC03,08,10       | Include c107a075, deriving the continuation from the next applicable path step and naming that destination. The standard comparison continuation is kept; the assisted primary continues to program contact. S251 R4 and Help record the same behavior.                                                                                           | Included with its focused regression; independent final primary-action rewalk and full gate pending.                                                                   |
 | UX-016 | The later Claude scene repair records that the first cold Guided help picture could capture Send the owner message and Reading the pricing basis before the prepared card settled, contradicting its caption.                                                                                           | P02,P09; SC08                     | Include 120b4966. The existing scene action waits for Review and send before framing; it changes no application action or verification bound.                                                                                                                                                                                                     | Included; final synthetic capture and picture review pending.                                                                                                          |
 
+UX-005 follow-up, observed on `30a3e46c`: the completed Program field retained its value after a
+controlled HTTP 503 and correctly said it was unsaved. Recovery required another focus/blur
+because no retry action was visible. The shared field now uses the existing AutosaveStatus
+component for Saving and Try again, in both locations. It keeps the original idempotent save,
+complete-value checks and edit permission. Verification of this additional correction is pending.
+This addresses P05, P12, P13 and SC04, SC05, SC10.
+
+UX-017, observed on `30a3e46c`: an address-specific question returned exactly one lease with the
+same stage and next step, but the explicit numeric lease question returned all 38, with only the
+first 25 displayed. The deterministic interpreter dropped that reference. The correction retains
+the person's explicit lease phrase in the existing text filter and resolves its numeric ID exactly
+in the actor-scoped answer and linked table, including an empty result for a missing ID. It adds
+no control, grant or saved state. This addresses P03, P09, P12 and SC05, SC08. Implementation
+and focused tests are pending verification; the failed observation is retained.
+
+UX-018, observed on `30a3e46c`: a first draft confirmation was refused despite unchanged visible
+wording. The immutable emulator snapshots establish why: notice-safety version advanced from 9
+to 11, with the same semantic/scope hashes and message payload. The next preview also held its
+own saved preparation revision (1 to 2). This is current-evidence re-review, preserved under the
+guardrail boundary. The refusal now accurately names message or lease evidence, with the same
+pre-provider refusal and exact confirmation predicate. No confirmation is retried automatically.
+This applies P05, P12 and SC04, SC05; the material review boundary is preserved with its reason.
+
+UX-019, observed on `30a3e46c`: a deliberately lost successful draft response kept one exact
+attempt and offered recovery, but the control was below Now at page y=4134. After recovery the
+first stage capture was transiently old; a later capture correctly showed Draft waiting in Gmail,
+Send the Gmail draft and I sent it from Gmail without navigation or reload. The refresh request
+took 1.243 seconds. The correction puts the same recovery handler on Now with visible progress,
+retains the Full view control, refreshes editor metadata after confirmed recovery, and includes
+the service's confirmed reconciliation outcome. Unknown/not-found recovery never becomes success.
+This addresses P04, P05, P13, P14 and SC03, SC04, SC09, SC10. Final rewalk is pending.
+
 Preserved by decision: exact review/confirmation, the required Gmail banner, stale authored wording,
 who-approved validation, role/Space and Action Registry checks, blank unsettled legal fields,
 assistance-animal holds, existing controls/views/filters/collections/old links, historical failed
@@ -113,15 +146,18 @@ goals while retaining their original authority and meaning.
 
 ## Specification and label maintenance
 
-- S246 R10 clarifies the supported working-batch wording and current coherent-read requirement.
+- S246 R10 clarifies the supported working-batch wording, current coherent-read requirement,
+  and exact actor-scoped resolution of a person-supplied numeric lease reference.
 - S247 R9 records full retained text and precedence for new user input; secondary statuses remain
   available in Focus/Full under the original single-stage Guided requirement.
 - S248 R4 describes reading the existing exact linked reply with explicit read states, without
   persisting its body or inferring approval.
 - S249 R7 describes the existing S161 authored-wording preservation and in-place resolver; R9
-  describes the banner-only comparison normalization and post-created evidence refresh.
+  describes the banner-only comparison normalization, post-created evidence refresh and exact
+  attempt recovery on Now, with the existing Full view recovery retained.
 - S250 R5 specifies the covered-owner continuation and retained optional message tools.
-- S251 R2 records required-program feedback in both existing placements; R4 records the applicable-path continuation and its assisted program-contact label.
+- S251 R2 records required-program feedback and failed-save recovery in both existing placements;
+  R4 records the applicable-path continuation and its assisted program-contact label.
 - S253 R6 records Animal follow-up and Animal charges and agreement, their former names and
   preserved records/predicates. Its client-answer, fee, originals/maps and legal holds are unchanged.
 - S254 R4 records the explicit audit hold and L33 UNVERIFIED boundary. No L01 to L71 text,
@@ -132,6 +168,29 @@ goals while retaining their original authority and meaning.
 - Help V2.1 records the changed names/states in place, control-map additions and recorded old
   animal-task name. Historical V2.0 evidence stays dated history. Current pictures must be
   recaptured from the synthetic final source before delivery.
+
+## Decisions made without asking
+
+- Preserve all six prior commits and integrate the remaining generated-ID change with the
+  stronger complete-text/newer-input tests. This carries forward the unfinished build and keeps
+  the original lane available for provenance.
+- Put covered continuation, reply reading, authored-wording resolution and uncertain-draft
+  recovery in the existing Now structure. Each addresses an observed next-action gap and uses
+  its current backend authority. All Full/Focus controls remain.
+- Use the existing AutosaveStatus for housing save recovery, rather than a second save workflow.
+  Keep its original field permission, complete-value validation and retry identity.
+- Treat a supplied numeric lease reference as an exact lookup in the current actor's read, with
+  the same filter in its table link. Keep ordinary address and free-text matching.
+- Preserve source-evidence re-review even when the visible draft wording is unchanged. The
+  snapshot shows an advanced safety version; accepting the older preview would cross the
+  guardrail boundary. Improve its error wording and retain the separate new review.
+- Use manual synthetic preparation and the explicit automatic hold for this audit. Automatic
+  start remains UNVERIFIED and its requirement stays intact.
+- Measure the historical baseline only as far as its own Demo gate permits. The nine-action,
+  three-tab lower bound supports a narrower comparison; it establishes no completed baseline
+  send or exact confirmation.
+- Version current Help as V2.1 and recapture synthetic scenes. Historical V2.0 records retain
+  their original scope; client answers, legal approvals and staff verdicts remain separate.
 
 ## Coverage limits and left undone
 
@@ -185,6 +244,18 @@ goals while retaining their original authority and meaning.
 - The fresh historical baseline directly observed 37 default table rows, including ten Closed,
   against nine candidate default rows (four carried, five working-month). Both loaded all 38
   source leases. The baseline reached nine required actions plus one optional action across three tabs before its Demo provider gate refused Send. Its exact review/confirmation and completed kickoff are UNVERIFIED; the protected gate was preserved. The strengthened baseline wrapper exited zero with 21 guarded Node PIDs and two refused registry lookups.
+- The `30a3e46c` repaired-surface rehearsal qualified cleanly: wrapper/controller exit zero,
+  42 distinct guarded Node PIDs, two refused public registry fetches, zero shared dependency
+  changes, and its browser/helper/emulators and temporary worktree stopped/removed. Its loaded
+  covered continuation, reply body, group partition and per-address assistant parity are direct
+  observations. New retry/reference/recovery findings above require the next-source recheck.
+- The additional eight-file focused run first passed 153/155; its two new housing assertions
+  assumed a single blur save while keyboard navigation also autosaved complete fields. The
+  fixture now keeps failing until the explicit retry, then checks one additional same-value save.
+  The rerun passed all 155 tests, including exact numeric references, address collisions,
+  same-attempt recovery and unknown reconciliation. Standalone typecheck passed at 3 GB.
+  Help controls passed 832 names, Help content passed 3,147 strings, copy voice passed with zero
+  violations, and active document paths passed all 273 present-context files.
 - Final-source browser rewalk, help capture/control checks, the existing isolated journey,
   `bash scripts/verify.sh`, report validation, exact-head CI and final cleanup are pending.
   No final gate pass or acceptance is implied by the focused results above.

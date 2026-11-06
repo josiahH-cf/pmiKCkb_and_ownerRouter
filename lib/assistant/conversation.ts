@@ -33,6 +33,7 @@ import {
 import { taskNeedsAttentionToday } from "@/lib/assistant/work-adapter";
 import { formatBusinessTimestamp, formatCalendarDate } from "@/lib/date-display";
 import { businessDateIso } from "@/lib/lease-renewal/business-calendar";
+import { explicitLeaseReference } from "@/lib/lease-renewal/lease-reference";
 import {
   DEFAULT_RENEWAL_DESK_QUERY_V2,
   RENEWAL_DESK_RANGE_MAX_DAYS,
@@ -988,13 +989,15 @@ async function answerLeases(exec: Execution, related: Related | null): Promise<O
 
   if (filters.text) {
     const wanted = normalizeText(filters.text);
-    records = records.filter(
-      (record) =>
-        normalizeText(record.facts.address).includes(wanted) ||
-        normalizeText(record.title).includes(wanted) ||
-        normalizeText(record.facts.propertyName ?? "").includes(wanted) ||
-        normalizeText(record.facts.unitLabel ?? "").includes(wanted) ||
-        normalizeText(record.facts.leaseId) === wanted,
+    const leaseReference = explicitLeaseReference(filters.text);
+    records = records.filter((record) =>
+      leaseReference
+        ? record.facts.leaseId === leaseReference.id
+        : normalizeText(record.facts.address).includes(wanted) ||
+          normalizeText(record.title).includes(wanted) ||
+          normalizeText(record.facts.propertyName ?? "").includes(wanted) ||
+          normalizeText(record.facts.unitLabel ?? "").includes(wanted) ||
+          normalizeText(record.facts.leaseId) === wanted,
     );
     desk.lease = filters.text;
     clauses.push([`matches “${filters.text}”`, `match “${filters.text}”`]);

@@ -17,6 +17,7 @@ import {
 } from "@/lib/assistant/conversation-plan";
 import type { ConversationMemory } from "@/lib/assistant-history/memory-types";
 import { businessDateIso } from "@/lib/lease-renewal/business-calendar";
+import { explicitLeaseReference } from "@/lib/lease-renewal/lease-reference";
 import type { ModelProvider } from "@/lib/llm/model-provider";
 import { measureRead, withReadDeadline } from "@/lib/observability/read-lifetime";
 
@@ -231,6 +232,8 @@ export function interpretDeterministically(
   const people = parsePeople(question);
   const identity = bareIdentity(question);
   const address = parseAddressText(question);
+  const leaseReference = explicitLeaseReference(question);
+  if (leaseReference) followUp = false;
   if ((identity || (address && subjects.length === 0)) && previous?.awaiting !== "person")
     followUp = false;
   if (identity && people.names.length === 0) {
@@ -280,10 +283,11 @@ export function interpretDeterministically(
       ? false
       : people.match === "related" ||
           address !== null ||
+          leaseReference !== null ||
           /\b(completed|closed|finished|cancelled|including done)\b/.test(text)
         ? true
         : null,
-    text: address,
+    text: leaseReference?.text ?? address,
   };
   const detail =
     /\b(why|status|details?|what happened|what is holding|recorded communications?)\b/.test(

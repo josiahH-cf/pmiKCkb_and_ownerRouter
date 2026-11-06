@@ -48,7 +48,8 @@ The shared Windows main remains at `a7356547` with its untracked owner files unt
 
 - Included the prior runner's three unmerged repairs `147c9d8a`, `d42d7a15`, `f18a5bc0`: stage
   party wording, compact path layout and retained typing, plus the later `c107a075` applicable-path
-  continuation and `120b4966` settled help picture. New repair work continues in the same PR.
+  continuation, `120b4966` settled help picture and `d76dc72e` picture updates. The remaining
+  generated-ID recovery and its regression were integrated with complete-text/newer-input safety.
 - Isolated rehearsal only; automatic comparisons are held off with
   `--hold-automatic-comparison`, including resets. Fresh-session L01–L71 observations retain
   their exact scopes. No human verdict, provider effect or release acceptance is inferred.

@@ -27,6 +27,8 @@ import {
 const manual = vi.hoisted(() => ({
   state: null as null | Record<string, unknown>,
 }));
+const router = vi.hoisted(() => ({ refresh: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => router }));
 vi.mock("@/components/lease-renewal/RenewalManualWorkspace", () => ({
   useRenewalManualWorkspace: () => ({ leaseId: "8800", state: manual.state }),
 }));
@@ -34,6 +36,7 @@ afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
   manual.state = null;
+  router.refresh.mockClear();
 });
 
 const cycleId = "6c37bdcd-8264-4249-813f-0289307dd725";
@@ -473,6 +476,47 @@ const storedPreparation = () =>
   });
 
 describe("reviewed unsent Gmail creation and original draft recovery", () => {
+  for (const resolution of ["created", "not_found", "needs_review"] as const) {
+    it(`refreshes only a confirmed original recovery: ${resolution}`, async () => {
+      const api = server(
+        preparation({
+          draftAttempt: {
+            executionId: EXECUTION_ONE,
+            state: "Needs reconciliation",
+            recoveryAvailable: true,
+            outcome: null,
+          },
+        }),
+        () =>
+          Response.json({
+            status: "reconciliation",
+            channel: "tenant",
+            executionId: EXECUTION_ONE,
+            resolution,
+            reason: `Exact attempt: ${resolution}`,
+          }),
+      );
+      render(<RenewalMessagePreparation channel="tenant" canEdit />);
+      fireEvent.click(await screen.findByText("Earlier Gmail draft"));
+      fireEvent.click(
+        screen.getByRole("button", { name: "Recover exact Gmail attempt" }),
+      );
+      await screen.findByText(`Exact attempt: ${resolution}`);
+      expect(api.posts()).toHaveLength(1);
+      expect(api.posts()[0].body).toMatchObject({
+        reconcile: { executionId: EXECUTION_ONE },
+      });
+      expect(api.posts()[0].body?.confirm).toBeUndefined();
+      if (resolution === "created") {
+        expect(router.refresh).toHaveBeenCalledOnce();
+        expect(api.calls.filter((call) => call.method === "GET")).toHaveLength(2);
+      } else {
+        expect(router.refresh).not.toHaveBeenCalled();
+        expect(api.calls.filter((call) => call.method === "GET")).toHaveLength(1);
+      }
+    });
+  }
+
   it("keeps Communications available and exposes only a deliberate unsent preview", async () => {
     const api = server(preparation(), () => Response.json({}));
     render(<RenewalMessagePreparation channel="tenant" canEdit />);

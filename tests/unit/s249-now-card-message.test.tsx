@@ -243,6 +243,36 @@ describe("S249 the prepared owner message on the Now card", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("keeps exact-attempt recovery on Now while another draft is unavailable", async () => {
+    const recover = vi.fn(async () => undefined);
+    const on = { ...handlers(), onDraftRecover: recover };
+    mount(
+      {
+        draft: {
+          available: false,
+          pending: false,
+          createdRevision: null,
+          preview: null,
+          recoveryRequired: true,
+        },
+      },
+      on,
+    );
+    const button = await screen.findByRole("button", {
+      name: "Recover exact Gmail attempt",
+    });
+    expect(button.closest('[aria-label="Now"]')).not.toBeNull();
+    expect(button).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Create Gmail draft instead" }),
+    ).toBeDisabled();
+    fireEvent.click(button);
+    expect(recover).toHaveBeenCalledOnce();
+    expect(on.onDraftPreview).not.toHaveBeenCalled();
+    expect(on.onDraftCreate).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Copy" })).toBeEnabled();
+  });
+
   it("R-S249-6: typing a reason goes to the one message record", () => {
     const { on } = mount();
     fireEvent.change(screen.getByLabelText("Reason to include"), {

@@ -73,7 +73,7 @@ export type PreparedMessageData = Omit<
 > & {
   readonly draft: Omit<
     PreparedMessageApi["draft"],
-    "requestPreview" | "create" | "cancel"
+    "requestPreview" | "create" | "cancel" | "recover"
   >;
 };
 
@@ -87,6 +87,7 @@ export interface PreparedMessageHandlers {
   readonly onOpenComposer: PreparedMessageApi["openComposer"];
   readonly onDraftPreview: PreparedMessageApi["draft"]["requestPreview"];
   readonly onDraftCreate: PreparedMessageApi["draft"]["create"];
+  readonly onDraftRecover?: PreparedMessageApi["draft"]["recover"];
   /** S250 R-S250-7: save the message on the agreement's current rule. */
   readonly onRebuildRule?: PreparedMessageApi["rebuildRule"];
   readonly onReturnToStandardWording?: PreparedMessageApi["returnToStandardWording"];
@@ -145,6 +146,8 @@ export interface PreparedMessageApi {
     readonly createdRevision: string | null;
     /** True once a created Gmail draft was replaced: the earlier one is still in Gmail. */
     readonly earlierRemain?: boolean;
+    readonly recoveryRequired?: boolean;
+    readonly recover?: () => Promise<void>;
     readonly preview: {
       readonly subject: string;
       readonly body: string;
@@ -290,6 +293,7 @@ export function PreparedMessageSlot({
   onOpenComposer,
   onDraftPreview,
   onDraftCreate,
+  onDraftRecover,
   onRebuildRule,
   onReturnToStandardWording,
   onUndoWording,
@@ -311,6 +315,7 @@ export function PreparedMessageSlot({
       ...data.draft,
       requestPreview: onDraftPreview,
       create: onDraftCreate,
+      recover: onDraftRecover,
       cancel: () => undefined,
     },
   };
@@ -898,6 +903,29 @@ function PreparedMessageBlock({
         <p className="renewal-notice" data-renewal-field="draft-earlier" role="note">
           {KICKOFF_WORDS.earlierDraftRemains}
         </p>
+      ) : null}
+      {api.draft.recoveryRequired ? (
+        <div
+          className="renewal-notice ui-stack-tight"
+          data-renewal-field="draft-recovery"
+        >
+          <p>
+            Recover this exact attempt to confirm whether the Gmail draft exists. Copy
+            remains available.
+          </p>
+          {api.draft.recover ? (
+            <Button
+              disabled={!api.canEdit || api.draft.pending || busy}
+              onClick={() => void api.draft.recover?.()}
+              size="compact"
+              variant="secondary"
+            >
+              {api.draft.pending
+                ? "Checking the exact Gmail attempt..."
+                : "Recover exact Gmail attempt"}
+            </Button>
+          ) : null}
+        </div>
       ) : null}
       {message || api.notice ? <p role="status">{message || api.notice}</p> : null}
     </section>

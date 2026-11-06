@@ -96,6 +96,11 @@ choose to work. RentVine readable; RentCast allowance available for a new lookup
   "Replace the Gmail draft". The required draft-review banner remains in the exact Gmail preview
   and draft, and is excluded only from the wording revision comparison. After confirmed creation,
   the lease refreshes its draft evidence so the waiting state appears without a manual reload.
+  An uncertain create offers Recover exact Gmail attempt on the same Now card, through the
+  existing own-attempt recovery. A confirmed recovery refreshes its draft currency and stage;
+  unresolved recovery keeps its own state. Full view retains its recovery control.
+  Changed message or lease evidence requires a new preview and exact confirmation, including
+  a newer safety version with unchanged visible wording; the refusal names that evidence change.
   Creating a draft takes one review and one confirmation.
 - **R-S249-10 — Owner wording.** An owner message never contains internal working language. With a
   staff recommendation it uses the approved suggestion wording. With none, the Now card asks for the

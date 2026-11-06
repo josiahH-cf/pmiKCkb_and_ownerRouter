@@ -4,7 +4,8 @@ Updated: 2026-11-06 (UTC).
 
 The one-path source batch S246–S253 and S254 harness are merged through PRs #184–#190 at
 `2187cf09`. The resumed UX review on `codex/renewal-one-path-ux` includes the prior runner's
-five unmerged litmus repairs and continues the isolated review and repair loop. Release remains
+six unmerged commits and its remaining typing-recovery change, and continues the isolated review
+and repair loop. Release remains
 pending. The owner receives a pull request with full-gate and exact-head CI evidence and handles
 merge/release/deploy. Human verdict NOT RUN; verification targets isolated synthetic services and
 keeps automatic comparisons off. Initial isolation gaps and the failed shared-cache qualification

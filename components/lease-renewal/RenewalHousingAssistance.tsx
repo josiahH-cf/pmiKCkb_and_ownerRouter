@@ -26,6 +26,7 @@ import {
   type HousingAssistanceValue,
 } from "@/lib/lease-renewal/working-record";
 import { currentRentChoice } from "@/lib/lease-renewal/workspace-state";
+import { AutosaveStatus } from "./AutosaveStatus";
 import { useRenewalManualWorkspace } from "./RenewalManualWorkspace";
 import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
 
@@ -245,8 +246,24 @@ export function HousingAssistanceField({
       {attribution(entry) ? (
         <p className="muted working-field-attribution">{attribution(entry)}</p>
       ) : null}
-      {state?.phase === "failed" ? (
-        <p role="alert">{state.message ?? "The field was not saved."}</p>
+      {state?.phase === "failed" || state?.phase === "saving" ? (
+        <AutosaveStatus
+          onRetry={
+            working.canEdit && (status !== "yes" || program.trim())
+              ? () => {
+                  const value =
+                    status === "yes"
+                      ? yesValue()
+                      : status === "no"
+                        ? { status: "no" as const }
+                        : null;
+                  void save(value);
+                }
+              : undefined
+          }
+          state={state}
+          subject="Housing assistance"
+        />
       ) : null}
       {notice ? <p role="status">{notice}</p> : null}
     </div>

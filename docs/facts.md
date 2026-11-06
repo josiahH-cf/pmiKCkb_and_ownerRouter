@@ -11,7 +11,8 @@ Main `2187cf09fa0d5860919940448ae1ef55cd298f05` contains the S246–S253 source 
 merged through PRs #184–#190. GitHub showed no open pull requests at the review's start. The
 shared checkout remained at `a7356547` with its untracked owner files untouched. The new branch
 `codex/renewal-one-path-ux` includes the three unmerged repairs found at intake and the later
-`c107a075` path-continuation and `120b4966` settled-help-picture repairs, with the resumed UX loop. Verification uses the
+`c107a075` path continuation, `120b4966` settled-help capture and `d76dc72e` picture updates,
+plus the remaining generated-ID recovery and its regression, with the resumed UX loop. Verification uses the
 isolated November 5 mix, local roles, emulator and stand-ins;
 `--hold-automatic-comparison` keeps automatic comparisons off after seeds and resets.
 
