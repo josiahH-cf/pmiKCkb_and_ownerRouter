@@ -700,7 +700,8 @@ async function journey(browser) {
     const day = new Date(`${preparedEnd}T12:00:00Z`);
     day.setUTCDate(day.getUTCDate() + 1);
     const effective = day.toISOString().slice(0, 10);
-    const termEnd = `${Number(effective.slice(0, 4)) + 1}${preparedEnd.slice(4)}`;
+    // A twelve-month term: it ends on the same day of the year as the current lease.
+    const termEnd = `${Number(preparedEnd.slice(0, 4)) + 1}${preparedEnd.slice(4)}`;
     for (const [name, value] of [
       ["Working effective date", effective],
       ["Working term end date", termEnd],
@@ -852,7 +853,24 @@ async function journey(browser) {
         ),
       );
       points.at(-1).now = (await view.nowText()).slice(0, 600);
-      if (!tenantOffer && label === "Review and send" && (await review.isEnabled())) {
+      // What sending needs, as the card names it. The tenant offer needs a verified renewal
+      // information form link, a company resource the app refuses to verify for a synthetic host
+      // (lib/lease-renewal/resource-locations.ts), so in the rehearsal the offer is recorded by hand.
+      const sendNeeds = squash(
+        await view
+          .now()
+          .locator('[data-renewal-field="send-needs"]')
+          .first()
+          .textContent({ timeout: 2000 })
+          .catch(() => ""),
+      );
+      points.at(-1).sendNeeds = sendNeeds;
+      if (
+        !tenantOffer &&
+        label === "Review and send" &&
+        !sendNeeds &&
+        (await review.isEnabled())
+      ) {
         await review.click();
         log.act("path", "choice", "Review and send (tenant offer)");
         const sent = await reviewAndConfirm(
