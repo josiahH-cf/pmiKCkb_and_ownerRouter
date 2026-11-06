@@ -35,6 +35,7 @@ import {
   setRewording,
   standInState,
 } from "../../scripts/lib/one-path-rehearsal/control.mjs";
+import { forceSourceRefresh } from "../../scripts/lib/one-path-rehearsal/seeds.mjs";
 
 // The rehearsal's network boundary must be active in THIS process before anything runs.
 const fetchGuarded = globalThis.fetch?.name === "guardedFetch";
@@ -621,6 +622,9 @@ try {
   // L23: the owner message is sent in three deliberate actions on one page: open the lease,
   // "Review and send", confirm. The exact review and the confirmation are both shown.
   const before = steps.length;
+  // The run is long: the harness reads RentVine again first, as the seeds do, so the lease is
+  // current the way it is on a working day (notice safety needs a fresh admitted read).
+  const refreshedBeforeSend = (await forceSourceRefresh(page)).body?.refreshed ?? false;
   act("open the lease");
   await openLease(prepared);
   // The Now card takes its prepared message once the lease message has loaded.
@@ -659,6 +663,7 @@ try {
       sendSteps,
       reviewShown,
       needsBeforeSend,
+      refreshedBeforeSend,
       pages: context.pages().length,
       sent: sent.length,
       statuses: reviewShown
@@ -844,7 +849,7 @@ try {
     await shownWithin(now().locator("[data-renewal-message-revision]"));
     const tenant = {
       heading: (await now().getByRole("heading", { level: 2 }).textContent())?.trim(),
-      preview: await now().getByRole("region", { name: "Tenant offer" }).count(),
+      preview: await now().locator('section[aria-label="Tenant offer"]').count(),
       document: await now().getByRole("document", { name: "Message preview" }).count(),
     };
     check(
