@@ -1,3 +1,4 @@
+import type { RenewalPreparation } from "@/lib/lease-renewal/renewal-preparation";
 import type { RenewalPricingProjection } from "@/lib/lease-renewal/renewal-pricing-policy";
 import type { CycleSourceDateChange } from "@/lib/lease-renewal/cycle-source-date";
 import type {
@@ -267,6 +268,12 @@ export interface DeskLeaseSummaryBase {
    * view reads (S248 evidence included). Absent only when a caller did not project it.
    */
   renewalStage?: RenewalStageSummary;
+  /**
+   * S249 ARCH-S249-1: the one preparation projection for this lease and cycle (numbers check,
+   * stored comparison, rent to recommend and what the owner message needs). Absent only when a
+   * caller did not project it.
+   */
+  kickoff?: RenewalPreparation;
   /**
    * S248: whether this row's renewal message evidence was read ("read") or its read failed
    * ("unavailable", so the stage reads the staff record alone). Absent when no read was made.

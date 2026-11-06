@@ -44,6 +44,7 @@ import {
   type RenewalPathStepId,
   type RenewalPathVariants,
 } from "@/lib/lease-renewal/renewal-path";
+import type { RenewalPreparation } from "@/lib/lease-renewal/renewal-preparation";
 import type { RenewalProcessStepId } from "@/lib/lease-renewal/renewal-process";
 import { SHEET_FIELD_LABELS } from "@/lib/lease-renewal/sheet-writeback/field-intent";
 import {
@@ -82,8 +83,21 @@ export interface RenewalStageContext {
   } | null;
   /** S251 slot; null until that suite records the lease fact. */
   readonly housingAssistance: { readonly program: string } | null;
-  /** Check the numbers: the shared desk guidance's rent verification and the open differences. */
-  readonly numbers: { readonly verified: boolean; readonly openDifferences: number };
+  /**
+   * Check the numbers: the shared desk guidance's rent verification and the open differences.
+   * S249 R-S249-1: where the preparation projection was made, these come from its numbers check
+   * (RentVine as the basis, D-OP-7) and `line` states "Numbers agree" or the one difference.
+   */
+  readonly numbers: {
+    readonly verified: boolean;
+    readonly openDifferences: number;
+    readonly line?: string;
+  };
+  /**
+   * S249 ARCH-S249-1: the one preparation projection for this lease and cycle; absent where it was
+   * not made (a sample lease). A stored comparison for the cycle completes Compare market rent.
+   */
+  readonly preparation?: RenewalPreparation | null;
   readonly term: { readonly monthToMonth: boolean; readonly reviewNeeded: boolean };
   /** RentVine reports a move-out notice: the later steps become the non-renewal handoff. */
   readonly moveOutInitiated: boolean;
@@ -672,7 +686,11 @@ export function projectRenewalStage(
           scopedContext.numbers.verified && scopedContext.numbers.openDifferences === 0
         );
       case "compare-market":
-        return Boolean(state?.preparation);
+        // R-S249-2: a stored comparison for this cycle is reused; it needs no second run.
+        return (
+          Boolean(state?.preparation) ||
+          scopedContext.preparation?.comparison.state === "stored"
+        );
       case "ask-owner":
         return owner.state === "done";
       case "offer-tenant":
@@ -766,23 +784,25 @@ export function projectRenewalStage(
                 : definition.primary);
     const detail =
       audience?.detail ??
-      (step.id === "check-numbers"
-        ? scopedContext.numbers.openDifferences > 0
-          ? scopedContext.numbers.openDifferences === 1
-            ? "One difference to settle"
-            : `${scopedContext.numbers.openDifferences} differences to settle`
-          : scopedContext.numbers.verified
-            ? "Numbers agree"
-            : "The current rent needs a check"
-        : step.id === "complete" && scopedContext.sourceRenewal && !lane.complete
-          ? `RentVine now reports lease end ${formatCalendarDate(scopedContext.sourceRenewal.sourceDateIso)}; this cycle recorded ${formatCalendarDate(scopedContext.sourceRenewal.recordedDateIso)}`
-          : step.id === "finish-up" && finishUp.length > 0
-            ? `${finishUp.filter((item) => item.done).length} of ${finishUp.length} items done${
-                verifiedUpdates.length
-                  ? `; ${verifiedUpdates.length} verified by the provider's receipt`
-                  : ""
-              }`
-            : null);
+      (step.id === "check-numbers" && scopedContext.numbers.line
+        ? scopedContext.numbers.line
+        : step.id === "check-numbers"
+          ? scopedContext.numbers.openDifferences > 0
+            ? scopedContext.numbers.openDifferences === 1
+              ? "One difference to settle"
+              : `${scopedContext.numbers.openDifferences} differences to settle`
+            : scopedContext.numbers.verified
+              ? "Numbers agree"
+              : "The current rent needs a check"
+          : step.id === "complete" && scopedContext.sourceRenewal && !lane.complete
+            ? `RentVine now reports lease end ${formatCalendarDate(scopedContext.sourceRenewal.sourceDateIso)}; this cycle recorded ${formatCalendarDate(scopedContext.sourceRenewal.recordedDateIso)}`
+            : step.id === "finish-up" && finishUp.length > 0
+              ? `${finishUp.filter((item) => item.done).length} of ${finishUp.length} items done${
+                  verifiedUpdates.length
+                    ? `; ${verifiedUpdates.length} verified by the provider's receipt`
+                    : ""
+                }`
+              : null);
     return {
       ...base,
       state: stateFor(),

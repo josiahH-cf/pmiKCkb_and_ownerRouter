@@ -32,7 +32,10 @@ type StageRow = Pick<
   | "renewalTarget"
   | "workStatus"
   | "endDateIso"
-> & { readonly followUp?: DeskLeaseRow["followUp"] };
+> & {
+  readonly followUp?: DeskLeaseRow["followUp"];
+  readonly kickoff?: DeskLeaseRow["kickoff"];
+};
 
 /** AC-S248-4: the lease's current cycle date, which places a message that named no cycle. */
 export function renewalStageCycleDateIso(
@@ -72,10 +75,19 @@ export function renewalStageContextFor(
       ? { label: null, reason: row.renewalPricing.authority.reason }
       : null,
     housingAssistance: null,
-    numbers: {
-      verified: row.guidance.rentVerification.state === "verified",
-      openDifferences: row.openConflicts,
-    },
+    // S249 R-S249-1 (D-OP-7): where the preparation projection was made, the numbers check reads
+    // RentVine as the basis and a Sheet difference is information; else the S157 guidance.
+    numbers: row.kickoff
+      ? {
+          verified: row.kickoff.numbers.state === "agree",
+          openDifferences: row.kickoff.numbers.state === "difference" ? 1 : 0,
+          line: row.kickoff.numbers.line,
+        }
+      : {
+          verified: row.guidance.rentVerification.state === "verified",
+          openDifferences: row.openConflicts,
+        },
+    preparation: row.kickoff ?? null,
     term: {
       monthToMonth: term.term === "month_to_month",
       reviewNeeded:

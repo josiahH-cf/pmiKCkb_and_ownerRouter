@@ -19,6 +19,12 @@ import {
   type RenewalBatchItem,
 } from "@/lib/lease-renewal/renewal-batch";
 import { RENTVINE_STATUS_UNAVAILABLE_LABEL } from "@/lib/lease-renewal/renewal-target";
+import { RENEWAL_PATH_DEFINITION } from "@/lib/lease-renewal/renewal-path";
+import {
+  kickoffOrderGroup,
+  kickoffRowLine,
+  type KickoffOrderGroup,
+} from "@/lib/lease-renewal/renewal-preparation";
 
 export interface RenewalBatchNextStep {
   /** The link's words. */
@@ -218,6 +224,58 @@ export interface RenewalBatchRowView extends RenewalBatchItem {
     readonly cycleId: string;
     readonly revision: number;
   } | null;
+  /**
+   * S249 R-S249-11 / R-S249-13: the kickoff from the one preparation projection the Now card reads:
+   * ready for review, or the named missing inputs with the step that fixes them. Null when the row
+   * was projected without it or its owner step is already underway.
+   */
+  readonly kickoff: {
+    readonly line: string;
+    readonly missing: readonly string[];
+    /** True when no comparison is stored for this cycle, so batch preparation would look it up. */
+    readonly needsComparison: boolean;
+    readonly allowanceReached: boolean;
+    /** The cycle date the batch claim is keyed by. */
+    readonly cycleDateIso: string | null;
+  } | null;
+}
+
+/** S249: whether the lease's owner step is underway (sent, scheduled, waiting or decided). */
+function ownerStepStarted(stage: DeskLeaseRow["renewalStage"]): boolean {
+  if (!stage) return false;
+  if (stage.waiting || stage.needsCheck) return true;
+  if (stage.currentStepId === "ask-owner")
+    return stage.nextStep.label !== RENEWAL_PATH_DEFINITION["ask-owner"].primary.label;
+  return !["check-numbers", "compare-market", "month-to-month-review"].includes(
+    stage.currentStepId,
+  );
+}
+
+function kickoffFor(row: DeskLeaseRow): {
+  group: KickoffOrderGroup;
+  view: RenewalBatchRowView["kickoff"];
+} {
+  const preparation = row.kickoff;
+  const stage = row.renewalStage;
+  const group = kickoffOrderGroup({
+    preparation,
+    currentStepId: stage?.currentStepId,
+    ownerStepStarted: ownerStepStarted(stage),
+  });
+  if (!preparation || group === "other") return { group, view: null };
+  return {
+    group,
+    view: {
+      line: kickoffRowLine(preparation),
+      missing: preparation.missing,
+      needsComparison:
+        preparation.comparison.state === "none" ||
+        preparation.comparison.state === "allowance_reached",
+      allowanceReached: preparation.comparison.state === "allowance_reached",
+      cycleDateIso:
+        row.renewalTarget?.kind === "target" ? row.renewalTarget.cycleDateIso : null,
+    },
+  };
 }
 
 export interface RenewalBatchRowContext {
@@ -257,9 +315,12 @@ export function projectRenewalBatchRow(
       : null;
   const unitLabel = row.identity.unit?.label?.label?.trim() || null;
   const key = row.id || row.identity.address?.sourceRef || row.addressLabel;
+  const kickoff = kickoffFor(row);
   return {
     key,
     placement,
+    kickoffGroup: kickoff.group,
+    kickoff: kickoff.view,
     sortDateIso: dateIso,
     sortLabel: row.addressLabel,
     leaseId: row.id,

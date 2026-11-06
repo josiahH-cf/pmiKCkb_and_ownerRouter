@@ -11,6 +11,11 @@ import { projectRenewalDeskIdentity } from "@/lib/lease-renewal/desk-identity";
 import { listLeaseOwnerReplies } from "@/lib/gmail-hub/sequence-store";
 import { readLeaseOutreachEvidence } from "@/lib/firestore/renewal-outreach-records";
 import { UNREADABLE_OUTREACH_EVIDENCE_INPUT } from "@/lib/lease-renewal/outreach-evidence";
+import { readKickoffSupport } from "@/lib/lease-renewal/kickoff-support";
+import {
+  UNREAD_KICKOFF_SUPPORT,
+  currentRentChargeAmounts,
+} from "@/lib/lease-renewal/kickoff-facts";
 import type { OwnerApprovalChoices } from "@/lib/lease-renewal/owner-approval-evidence";
 import { readRenewalPricingForViews } from "@/lib/lease-renewal/pricing-policy-read";
 import { RenewalDeskReturnLink } from "@/components/lease-renewal/RenewalDeskReturnLink";
@@ -212,6 +217,10 @@ export default async function LiveRenewalLeaseWorkspacePage({
   const outreachEvidencePromise = withReadDeadline(() =>
     readLeaseOutreachEvidence(leaseId),
   ).catch(() => null);
+  // S249: the same preparation read the desk makes, for this one lease, with the same wait.
+  const kickoffSupportPromise = withReadDeadline(() =>
+    readKickoffSupport(user, [leaseId]),
+  ).catch(() => UNREAD_KICKOFF_SUPPORT);
   // Independent genuine reads start after both access guards, alongside the lease snapshot.
   // Every result retains its typed failure; there is no cache or provider effect on navigation.
   const supportingReads = Promise.all([
@@ -476,6 +485,12 @@ export default async function LiveRenewalLeaseWorkspacePage({
     cycleDateDecision,
     // S248: unreadable evidence derives nothing; the stage then reads the staff record alone.
     (await outreachEvidencePromise) ?? UNREADABLE_OUTREACH_EVIDENCE_INPUT,
+    {
+      support: await kickoffSupportPromise,
+      rentCharges: currentRentChargeAmounts(
+        renewalAuxiliaryValue(chargeInventoryRead, null),
+      ),
+    },
   );
   const dispositions = renewalAuxiliaryValue(dispositionsRead, []);
   const writebackProposal = renewalAuxiliaryValue(writebackProposalRead, null);

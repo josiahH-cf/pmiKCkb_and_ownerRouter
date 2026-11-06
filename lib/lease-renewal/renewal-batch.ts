@@ -139,7 +139,14 @@ export interface RenewalBatchItem {
   /** The date a group orders by: the cycle date, the review date or the lease end. */
   readonly sortDateIso: string | null;
   readonly sortLabel: string;
+  /**
+   * S249 R-S249-13: where the lease sorts inside "This batch" by its kickoff: ready for review,
+   * missing an input, or waiting and finished. Absent rows sort with the waiting and finished.
+   */
+  readonly kickoffGroup?: "ready" | "missing" | "other";
 }
+
+const KICKOFF_RANK = { ready: 0, missing: 1, other: 2 } as const;
 
 function byDateThenLabel(left: RenewalBatchItem, right: RenewalBatchItem): number {
   if (left.sortDateIso !== right.sortDateIso) {
@@ -154,11 +161,30 @@ function byDateThenLabel(left: RenewalBatchItem, right: RenewalBatchItem): numbe
 }
 
 /**
- * The order inside "This batch": soonest end date first. The one place that order is decided, so
- * a later rule (for example leases ready for review first) changes only this function.
+ * The order inside "This batch". S249 R-S249-13: leases whose kickoff is prepared and sendable
+ * come first ("Ready for your review"), then leases missing an input, then waiting and finished
+ * leases; inside each, soonest end date first. The one place that order is decided.
  */
 export function orderThisBatch<T extends RenewalBatchItem>(rows: readonly T[]): T[] {
-  return [...rows].sort(byDateThenLabel);
+  return [...rows].sort(
+    (left, right) =>
+      KICKOFF_RANK[left.kickoffGroup ?? "other"] -
+        KICKOFF_RANK[right.kickoffGroup ?? "other"] || byDateThenLabel(left, right),
+  );
+}
+
+/** R-S249-13: the three parts of "This batch", in order, each with its own count. */
+export function thisBatchParts<T extends RenewalBatchItem>(
+  rows: readonly T[],
+): { readonly ready: T[]; readonly missing: T[]; readonly other: T[] } {
+  const ordered = orderThisBatch(rows);
+  return {
+    ready: ordered.filter((row) => row.kickoffGroup === "ready"),
+    missing: ordered.filter((row) => row.kickoffGroup === "missing"),
+    other: ordered.filter(
+      (row) => row.kickoffGroup !== "ready" && row.kickoffGroup !== "missing",
+    ),
+  };
 }
 
 function byReasonThenDate(left: RenewalBatchItem, right: RenewalBatchItem): number {
