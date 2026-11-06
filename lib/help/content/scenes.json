@@ -1,5 +1,5 @@
 {
-  "version": "V1.1",
+  "version": "V2.0",
   "routeParameters": {
     "leaseId": "4821",
     "propertyKey": "4821",
@@ -88,12 +88,12 @@
       "caption": "On a narrow screen, Help contents opens from the button above the page."
     },
     {
-      "id": "renewal-desk",
+      "id": "renewal-batch",
       "guide": "work-a-renewal",
-      "step": "choose-a-worklist-view",
+      "step": "open-renewals",
       "route": "/lease-renewal/live/desk",
       "role": "Editor",
-      "fixture": "Synthetic renewal desk with three leases",
+      "fixture": "Synthetic renewal desk with three leases, opened with no action",
       "viewport": {
         "width": 1280,
         "height": 800
@@ -101,16 +101,103 @@
       "region": "page",
       "frame": "viewport",
       "source": "rehearsal",
-      "alt": "The Renewal worklist with its views, counts, filters and the first rows of the Renewal table.",
-      "caption": "Worklist views and filters sit above the Renewal table."
+      "alt": "The Renewals desk on the working batch: the lease count for the working month in words, Previous month and Next month, and Carried over above This batch.",
+      "caption": "Renewals opens on the working batch for the working month."
+    },
+    {
+      "id": "renewal-batch-narrow",
+      "guide": "work-a-renewal",
+      "step": "open-a-lease",
+      "route": "/lease-renewal/live/desk",
+      "role": "Editor",
+      "fixture": "Synthetic renewal desk on a phone-width screen",
+      "viewport": {
+        "width": 375,
+        "height": 812
+      },
+      "region": "region:This batch",
+      "frame": "viewport",
+      "source": "rehearsal",
+      "alt": "This batch on a phone-width screen: Prepare this batch, then Ready for your review with the prepared lease's address, tenant, end date, stage line and its Send the owner message link.",
+      "caption": "Each row's address or next step link opens the lease in this tab."
+    },
+    {
+      "id": "lease-guided-view",
+      "guide": "work-a-renewal",
+      "step": "read-the-path",
+      "route": "/lease-renewal/live/desk/lease/5001",
+      "role": "Editor",
+      "fixture": "Synthetic December lease prepared ahead: a stored comparison, published templates, the Editor's signature and a verified example.invalid owner address",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "region": "region:Guided view",
+      "frame": "viewport",
+      "source": "rehearsal",
+      "alt": "Guided view: the stage line, the Renewal path from Check the numbers to Complete with Ask the owner as the current step, and the Now card below it with Review and send.",
+      "caption": "A lease opens in Guided view with the Renewal path and one Now card."
+    },
+    {
+      "id": "lease-now-card",
+      "guide": "work-a-renewal",
+      "step": "read-the-prepared-message",
+      "route": "/lease-renewal/live/desk/lease/5001",
+      "role": "Editor",
+      "fixture": "Synthetic December lease prepared ahead: a stored comparison, published templates, the Editor's signature and a verified example.invalid owner address",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "region": "region:Owner message",
+      "frame": "viewport",
+      "actions": ["click-button:Ask the owner"],
+      "source": "rehearsal",
+      "alt": "The prepared owner message on the Now card: the stored comparison with its five comparable listings, Rent to recommend, Reason to include and What sending needs with every item Ready.",
+      "caption": "Ask the owner on the Now card shows the prepared owner message and what sending needs."
+    },
+    {
+      "id": "lease-review-and-send",
+      "guide": "work-a-renewal",
+      "step": "review-and-send",
+      "route": "/lease-renewal/live/desk/lease/5001",
+      "role": "Editor",
+      "fixture": "Synthetic December lease prepared ahead: a stored comparison, published templates, the Editor's signature and a verified example.invalid owner address, Review and send chosen",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "region": "dialog:Review and send",
+      "frame": "region",
+      "actions": ["click-button:Review and send", "scroll-to:heading:Review and send"],
+      "source": "rehearsal",
+      "alt": "Review and send for the prepared lease: From the Editor's address to the verified example owner address, the subject and the start of the exact message with the stored comparison.",
+      "caption": "Review and send shows the exact message with its sender and recipient; Send this message at its end is the one action that sends it."
+    },
+    {
+      "id": "renewal-desk",
+      "guide": "work-a-renewal",
+      "step": "all-leases-and-filters",
+      "route": "/lease-renewal/live/desk?v=2&scope=all",
+      "role": "Editor",
+      "fixture": "Synthetic renewal desk with three leases, opened at All leases and filters",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "region": "page",
+      "frame": "viewport",
+      "source": "rehearsal",
+      "alt": "All leases and filters: ← Renewals, the worklist views with their counts, the active filters and the Renewal table headings.",
+      "caption": "All leases and filters keeps the worklist views, the filters and the Renewal table."
     },
     {
       "id": "renewal-desk-narrow",
       "guide": "work-a-renewal",
       "step": "filter-the-desk",
-      "route": "/lease-renewal/live/desk",
+      "route": "/lease-renewal/live/desk?v=2&scope=all",
       "role": "Editor",
-      "fixture": "Synthetic renewal desk with three leases",
+      "fixture": "Synthetic renewal desk at All leases and filters on a phone-width screen",
       "viewport": {
         "width": 375,
         "height": 812
@@ -161,19 +248,19 @@
       "id": "market-rent-comparison",
       "guide": "compare-rent",
       "step": "open-market-comparison",
-      "route": "/lease-renewal/live/desk/lease/[leaseId]",
+      "route": "/lease-renewal/live/desk/lease/5001",
       "role": "Editor",
-      "fixture": "Synthetic lease workspace",
+      "fixture": "Synthetic December lease prepared ahead: a stored comparison, published templates, the Editor's signature and a verified example.invalid owner address, Compare market rent chosen",
       "viewport": {
         "width": 1280,
         "height": 800
       },
-      "region": "heading:Market rent comparison",
+      "region": "region:Now",
       "frame": "viewport",
-      "actions": ["click-button:Full view"],
+      "actions": ["click-button:Compare market rent"],
       "source": "rehearsal",
-      "alt": "The Market rent comparison section with Market evidence and the working offer.",
-      "caption": "Market rent comparison holds the evidence and the working offer."
+      "alt": "The Now card on Compare market rent: the Compare market rent button, what is ready, the stored comparison with its five comparable listings, Rent to recommend and Pricing basis.",
+      "caption": "Compare market rent on the Now card holds the comparison and the rent to recommend."
     },
     {
       "id": "tenant-offer",
@@ -215,18 +302,18 @@
       "id": "owner-message-preparation",
       "guide": "owner-message",
       "step": "prepare-owner-message",
-      "route": "/lease-renewal/live/desk/lease/[leaseId]",
+      "route": "/lease-renewal/live/desk/lease/5001",
       "role": "Editor",
-      "fixture": "Synthetic lease workspace",
+      "fixture": "Synthetic December lease prepared ahead: a stored comparison, published templates, the Editor's signature and a verified example.invalid owner address, in Full view",
       "viewport": {
         "width": 1280,
         "height": 800
       },
       "region": "region:Owner message preparation",
       "frame": "viewport",
-      "actions": ["click-button:Full view"],
+      "actions": ["click-button:Full view", "wait-text:Copy the message"],
       "source": "rehearsal",
-      "alt": "Owner message preparation in Owner approval, with the subject, body and copy buttons.",
+      "alt": "Owner message preparation in Owner approval: Compose owner message in Communications, the lease's notes, then Copy the message with the Subject and To lines.",
       "caption": "The owner message is prepared from the lease facts and the saved comparison."
     },
     {
@@ -474,7 +561,32 @@
     {
       "role": "Admin",
       "route": "/lease-renewal/live/desk",
-      "actions": ["open-summary:Filter renewal date"]
+      "actions": ["click-link:All leases and filters", "open-summary:Filter renewal date"]
+    },
+    {
+      "role": "Editor",
+      "route": "/lease-renewal/live/desk?v=2&scope=all",
+      "actions": []
+    },
+    {
+      "role": "Editor",
+      "route": "/lease-renewal/live/desk/lease/[leaseId]",
+      "actions": []
+    },
+    {
+      "role": "Editor",
+      "route": "/lease-renewal/live/desk/lease/5001",
+      "actions": []
+    },
+    {
+      "role": "Editor",
+      "route": "/lease-renewal/live/desk/lease/5001",
+      "actions": ["click-button:Focus view"]
+    },
+    {
+      "role": "Editor",
+      "route": "/lease-renewal/live/desk/lease/6001",
+      "actions": []
     }
   ]
 }

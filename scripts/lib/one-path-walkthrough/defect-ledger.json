@@ -1,0 +1,653 @@
+{
+  "suite": "S252",
+  "description": "The one-path defect ledger (R-S252-3, R-S252-4, R-S252-11) and the staff walkthrough matrix (R-S252-5), checked by scripts/lib/one-path-walkthrough/ledger-check.mjs. Each verified result names the journey step (tests/browser/one-path-journey-driver.mjs), the builder check the journey runs, or the test that proves it. Synthetic rehearsal evidence only; no customer value.",
+  "journey": {
+    "driver": "tests/browser/one-path-journey-driver.mjs",
+    "command": "bash scripts/run-renewal-one-path-rehearsal.sh --overlay --driver tests/browser/one-path-journey-driver.mjs",
+    "evidence": "docs/evidence/renewal-one-path-walkthrough-2026-11-06.md"
+  },
+  "humanVerdict": "Human verdict: NOT RUN — no human observer",
+  "staffSession": null,
+  "nextStaffSession": "2026-11-10",
+  "firstFullCase": {
+    "state": "NOT RUN",
+    "reason": "R-S252-9: the first full case is one of the four properties staff already selected (two app-based, two regular); which one, and its lease end date, packet type, signers, fees, elections and disclosures, wait on Bailey and Dan. The private case sheet stays outside Git.",
+    "caseSheetOutsideGit": false
+  },
+  "approvalHandoff": {
+    "state": "waiting on U4",
+    "reason": "R-S252-10: who approves the exact rent, dates and charges, how that approval arrives, where it is recorded (S234) and who may approve or sign for the landlord wait on Dan's answer (holds packet U4). The walkthrough covers every step before signature. No approval or signing authority is taken from a name or a title.",
+    "answeredBy": null
+  },
+  "budgets": [
+    {
+      "id": "journey.desk-batch",
+      "budget": "Opening Renewals shows the working batch with no action (L01)"
+    },
+    {
+      "id": "journey.open-lease",
+      "budget": "One action opens a lease, in the same tab (L08)"
+    },
+    {
+      "id": "journey.kickoff-budget",
+      "budget": "Kickoff for a prepared lease takes at most three actions on one page with no other tab (L23)"
+    },
+    {
+      "id": "journey.send-evidence",
+      "budget": "After a confirmed send the lease reads Waiting on owner response with no further action (L25)"
+    },
+    {
+      "id": "journey.owner-decision",
+      "budget": "Recording the owner's decision from an observed reply takes at most three actions with no outcome preselected (L36)"
+    },
+    {
+      "id": "journey.one-next-step",
+      "budget": "No path step needs another page except a chosen outside handoff, with one next step at every point (L17, L53)"
+    },
+    {
+      "id": "journey.layout",
+      "budget": "The stage and the primary action are visible without scrolling at 1280 by 800 (L14)"
+    }
+  ],
+  "rows": [
+    {
+      "id": "N4-01",
+      "kind": "november-4",
+      "observed": "Leases no longer active appeared in the December list",
+      "owners": ["R-S246-1", "R-S246-4"],
+      "result": {
+        "state": "verified",
+        "evidence": [
+          { "journey": "journey.desk-batch" },
+          {
+            "phase": "s250-s251-variants",
+            "check": "the desk reads This batch 5, Carried over 4, Renewed in RentVine 3"
+          }
+        ]
+      }
+    },
+    {
+      "id": "N4-02",
+      "kind": "november-4",
+      "observed": "A remembered tenant filter was still applied",
+      "owners": ["R-S246-9"],
+      "result": {
+        "state": "verified",
+        "evidence": [
+          { "journey": "journey.desk-batch" },
+          { "test": "tests/unit/s246-batch-view.test.tsx" }
+        ]
+      }
+    },
+    {
+      "id": "N4-03",
+      "kind": "november-4",
+      "observed": "Choosing a tenant name filtered the desk instead of opening a lease",
+      "owners": ["R-S246-8"],
+      "result": {
+        "state": "verified",
+        "evidence": [
+          { "journey": "journey.open-lease" },
+          { "test": "tests/unit/s246-batch-view.test.tsx" }
+        ]
+      }
+    },
+    {
+      "id": "N4-04",
+      "kind": "november-4",
+      "observed": "Saving a shared collection led back without applying it",
+      "owners": ["R-S246-9"],
+      "result": {
+        "state": "verified",
+        "evidence": [{ "test": "tests/unit/s246-collection-link.test.tsx" }]
+      }
+    },
+    {
+      "id": "N4-05",
+      "kind": "november-4",
+      "observed": "Leases opened in new tabs until several were open",
+      "owners": ["R-S246-8", "R-S247-9"],
+      "result": {
+        "state": "verified",
+        "evidence": [
+          { "journey": "journey.open-lease" },
+          { "journey": "journey.kickoff-budget" }
+        ]
+      }
+    },
+    {
+      "id": "N4-06",
+      "kind": "november-4",
+      "observed": "The rent comparison could not be started from the default view",
+      "owners": ["R-S247-4", "R-S249-2"],
+      "result": {
+        "state": "verified",
+        "evidence": [
+          {
+            "phase": "s249-kickoff",
+            "check": "L33: opening the batch starts preparation by itself"
+          },
+          { "phase": "s249-kickoff", "check": "L35: Prepare this batch, chosen" }
+        ]
+      }
+    },
+    {
+      "id": "N4-07",
+      "kind": "november-4",
+      "observed": "A finished comparison had to be run again to reach the message",
+      "owners": ["R-S249-2"],
+      "result": {
+        "state": "verified",
+        "evidence": [
+          { "journey": "journey.comparison" },
+          { "phase": "s249-kickoff", "check": "L32: the prepared lease" }
+        ]
+      }
+    },
+    {
+      "id": "N4-08",
+      "kind": "november-4",
+      "observed": "The Gmail draft did not carry the staff member's rent",
+      "owners": ["R-S249-7", "R-S249-9"],
+      "result": {
+        "state": "verified",
+        "evidence": [
+          { "phase": "s249-kickoff", "check": "L27: changing" },
+          { "phase": "s249-kickoff", "check": "L28: after a Gmail draft is created" }
+        ]
+      }
+    },
+    {
+      "id": "N4-09",
+      "kind": "november-4",
+      "observed": "The owner message contained an internal sentence",
+      "owners": ["R-S249-10"],
+      "result": {
+        "state": "verified",
+        "evidence": [
+          {
+            "phase": "s249-kickoff",
+            "check": "L29: no owner message produced in the run contains"
+          }
+        ]
+      }
+    },
+    {
+      "id": "N4-10",
+      "kind": "november-4",
+      "observed": "The AI rewording was not applied and did not say what to do",
+      "owners": ["R-S249-12"],
+      "result": {
+        "state": "verified",
+        "evidence": [
+          { "phase": "s249-kickoff", "check": "L44: a rewording replaces the body" },
+          {
+            "phase": "s254-stand-in-proof",
+            "check": "a rewording that copies the instruction is refused and says what to change"
+          }
+        ]
+      }
+    },
+    {
+      "id": "N4-11",
+      "kind": "november-4",
+      "observed": "Save draft stalled until a business profile existed",
+      "owners": ["R-S249-11"],
+      "result": {
+        "state": "verified",
+        "evidence": [
+          { "phase": "s249-kickoff", "check": "L45: a staff member with no signature" },
+          { "test": "tests/unit/s249-now-card-message.test.tsx" }
+        ]
+      }
+    },
+    {
+      "id": "N4-12",
+      "kind": "november-4",
+      "observed": "The profile form refused to save without saying which fields",
+      "owners": ["R-S249-11"],
+      "result": {
+        "state": "verified",
+        "evidence": [
+          { "phase": "s249-kickoff", "check": "L45: a staff member with no signature" },
+          { "test": "tests/unit/s249-now-card-message.test.tsx" }
+        ]
+      }
+    },
+    {
+      "id": "N4-13",
+      "kind": "november-4",
+      "observed": "The draft time shown was the compose time",
+      "owners": ["R-S249-12"],
+      "result": {
+        "state": "verified",
+        "evidence": [
+          { "phase": "s249-kickoff", "check": "L40 (rehearsal means)" },
+          { "test": "tests/unit/s249-now-card-message.test.tsx" }
+        ]
+      }
+    },
+    {
+      "id": "N4-14",
+      "kind": "november-4",
+      "observed": "A draft was prepared in the tenant section instead of the owner's",
+      "owners": ["R-S247-4"],
+      "result": {
+        "state": "verified",
+        "evidence": [
+          { "journey": "journey.kickoff-from-guide" },
+          { "phase": "s249-kickoff", "check": "L27: changing" }
+        ]
+      }
+    },
+    {
+      "id": "N4-15",
+      "kind": "november-4",
+      "observed": "The status control was hard to find",
+      "owners": ["R-S247-8", "R-S248-1"],
+      "result": {
+        "state": "verified",
+        "evidence": [
+          { "test": "tests/unit/s247-guided-view.test.tsx" },
+          { "journey": "journey.send-evidence" }
+        ]
+      }
+    },
+    {
+      "id": "N4-16",
+      "kind": "november-4",
+      "observed": "A page reload lost the place",
+      "owners": ["R-S247-9"],
+      "result": {
+        "state": "verified",
+        "evidence": [
+          { "journey": "journey.reload-continuity" },
+          {
+            "phase": "s247-s248-guided-path",
+            "check": "a reload returns to Guided view at the chosen step and place"
+          }
+        ]
+      }
+    },
+    {
+      "id": "N4-17",
+      "kind": "november-4",
+      "observed": "The page did not fit the screen",
+      "owners": ["R-S247-10"],
+      "result": {
+        "state": "verified",
+        "evidence": [
+          { "journey": "journey.layout" },
+          { "journey": "journey.layout-steps" },
+          {
+            "phase": "s247-s248-guided-path",
+            "check": "the primary action is on the first screen at 1280 by 800 and within two screens at 390"
+          }
+        ]
+      }
+    },
+    {
+      "id": "N4-18",
+      "kind": "november-4",
+      "observed": "A lease under a standing agreement still asked for the owner",
+      "owners": ["R-S250-3", "R-S250-5"],
+      "result": {
+        "state": "verified",
+        "evidence": [
+          { "journey": "journey.standing-agreement" },
+          {
+            "phase": "s250-s251-variants",
+            "check": "Ask the owner reads Covered by the agreement and the path continues at Offer the tenant (L46)"
+          }
+        ]
+      }
+    },
+    {
+      "id": "N4-19",
+      "kind": "november-4",
+      "observed": "There was nowhere to record housing assistance",
+      "owners": ["R-S251-1"],
+      "result": {
+        "state": "verified",
+        "evidence": [
+          { "journey": "journey.housing-assistance" },
+          {
+            "phase": "s250-s251-variants",
+            "check": "the assisted lease's steps after Check the numbers are the program contact"
+          }
+        ]
+      }
+    },
+    {
+      "id": "N4-20",
+      "kind": "november-4",
+      "observed": "A sent owner message left the lease at Owner outreach",
+      "owners": ["R-S248-1"],
+      "result": {
+        "state": "verified",
+        "evidence": [
+          { "journey": "journey.send-evidence" },
+          {
+            "phase": "s247-s248-guided-path",
+            "check": "the lease page reads Waiting on owner response with nothing more entered"
+          }
+        ]
+      }
+    },
+    {
+      "id": "OUT-1",
+      "kind": "outside",
+      "observed": "No sign of progress after a question",
+      "owners": ["S171"],
+      "result": {
+        "state": "open",
+        "reason": "Outside this bundle (R-S252-4): an assistant observation from the November 4 session, recorded for its owner S171 and not fixed here."
+      }
+    },
+    {
+      "id": "OUT-2",
+      "kind": "outside",
+      "observed": "An answer that reused an earlier conversation's month",
+      "owners": ["S199"],
+      "result": {
+        "state": "open",
+        "reason": "Outside this bundle (R-S252-4): recorded for its owner S199 and not fixed here. The month answer's membership is covered by R-S246-10 (the assistant names the same batch)."
+      }
+    },
+    {
+      "id": "REP-1",
+      "kind": "reported",
+      "reported": "Inactive properties in filters",
+      "check": "Seen read-only on November 5 for closed leases; confirm it is the same report",
+      "owners": ["R-S246-1", "R-S246-4"],
+      "checkResult": "Same report as N4-01: the inactive properties were closed leases. On the rehearsal the working batch lists no closed lease and Not renewal targets counts them with their RentVine status name.",
+      "result": {
+        "state": "verified",
+        "evidence": [
+          { "journey": "journey.desk-batch" },
+          {
+            "phase": "s250-s251-variants",
+            "check": "the desk reads This batch 5, Carried over 4, Renewed in RentVine 3"
+          }
+        ]
+      }
+    },
+    {
+      "id": "REP-2",
+      "kind": "reported",
+      "reported": "Evicted tenants in filters",
+      "check": "Not yet seen; find which source field shows an eviction before changing a rule",
+      "owners": ["R-S246-1", "R-S246-4"],
+      "checkResult": "The source field is the RentVine lease status: each lease's leaseStatusID resolved through GET /leases/statuses, where an eviction in progress is a status whose isPendingMoveOutStatus flag is set (lib/lease-renewal/move-out-disposition.ts) and a finished one is a closed status (primaryLeaseStatusID 3). R-S246-1 and R-S246-4 already read those: a pending move-out goes to the non-renewal handoff and a closed status to Not renewal targets. The operating Sheet's free-text status can also carry the word eviction (lib/lease-renewal/normalized-value.ts), which no target rule reads. The November 5 mix has no eviction status, so it is not reproduced here. No rule was changed.",
+      "result": {
+        "state": "open",
+        "reason": "Reported, not reproduced: the account's own eviction status name and flags are needed to confirm the report, read only, by staff in RentVine. No rule is changed until then."
+      }
+    },
+    {
+      "id": "REP-3",
+      "kind": "reported",
+      "reported": "Revised pricing not kept in a draft",
+      "check": "Seen on November 4",
+      "owners": ["R-S249-7", "R-S249-9"],
+      "checkResult": "The same problem as N4-08, seen on November 4. On the rehearsal a changed Rent to recommend updates the one message record that the preview, Review and send, Schedule, Create Gmail draft instead, Copy and the composer all show, and an older Gmail draft reads as older with Replace the Gmail draft.",
+      "result": {
+        "state": "verified",
+        "evidence": [
+          { "phase": "s249-kickoff", "check": "L27: changing" },
+          { "phase": "s249-kickoff", "check": "L28: after a Gmail draft is created" }
+        ]
+      }
+    },
+    {
+      "id": "REP-4",
+      "kind": "reported",
+      "reported": "Revised recipients not kept in a draft",
+      "check": "Not yet seen; reproduce on the rehearsal",
+      "owners": ["R-S249-7"],
+      "checkResult": "Not reproduced on the rehearsal: a message's recipients are the lease's verified recipients from RentVine, shown on the message, and no control on the lease page or in the composer takes a typed recipient (journey.recipients). A draft and its replacement carry those verified recipients. A recipient changed by hand inside Gmail stays in that Gmail draft only, and the app says the earlier draft is still in Gmail when it makes a replacement.",
+      "result": {
+        "state": "open",
+        "reason": "Reported, not reproduced: the app has no recipient field to revise, so the report stays recorded with this result until staff show where the revision was made."
+      }
+    },
+    {
+      "id": "REP-5",
+      "kind": "reported",
+      "reported": "Housing assistance handling",
+      "check": "Recorded on November 4",
+      "owners": ["S251"],
+      "checkResult": "Confirmed and built in S251: Housing assistance is recorded on Check the numbers, the assisted lease's path asks the program, the owner and the rent choice in order, and Do not renew moves it to the non-renewal handoff.",
+      "result": {
+        "state": "verified",
+        "evidence": [
+          { "journey": "journey.housing-assistance" },
+          {
+            "phase": "s250-s251-variants",
+            "check": "the assisted lease's steps after Check the numbers are the program contact"
+          },
+          {
+            "phase": "s250-s251-variants",
+            "check": "recording Do not renew moves the assisted lease to the non-renewal handoff (L51)"
+          }
+        ]
+      }
+    },
+    {
+      "id": "REP-6",
+      "kind": "reported",
+      "reported": "Renewal screen usability",
+      "check": "Recorded on November 4",
+      "owners": ["S247"],
+      "checkResult": "Confirmed and built in S247: each lease opens in Guided view with the path strip and one Now card holding one primary action, in the same tab, and keeps its place after a reload.",
+      "result": {
+        "state": "verified",
+        "evidence": [
+          { "journey": "journey.one-next-step" },
+          { "journey": "journey.layout" },
+          {
+            "phase": "s247-s248-guided-path",
+            "check": "opens in Guided view with the path strip and one Now card"
+          }
+        ]
+      }
+    },
+    {
+      "id": "REP-7",
+      "kind": "reported",
+      "reported": "MKD selection",
+      "check": "Recorded on November 4",
+      "owners": ["R-S250-2", "R-S250-3"],
+      "checkResult": "Confirmed and built in S250: Pricing basis on the Now card lists Owner decides each renewal and each active standing agreement by name and rule, and choosing one asks This lease only or Every lease in this owner's portfolio and saves on one action.",
+      "result": {
+        "state": "verified",
+        "evidence": [
+          { "phase": "s250-s251-variants", "check": "Pricing basis lists" },
+          { "journey": "journey.standing-agreement" }
+        ]
+      }
+    }
+  ],
+  "matrix": [
+    {
+      "row": "journey.desk-batch",
+      "model": "pass on the candidate rehearsal: 0 actions, 1 page, the five working-month leases under This batch",
+      "human": "Human verdict: NOT RUN — no human observer"
+    },
+    {
+      "row": "journey.open-lease",
+      "model": "pass on the candidate rehearsal: 1 action, 1 page, in the same tab",
+      "human": "Human verdict: NOT RUN — no human observer"
+    },
+    {
+      "row": "journey.kickoff-budget",
+      "model": "pass on the candidate rehearsal: 3 actions, 1 page, review and confirmation shown; outside on the starting commit 6491c06f, followed from its own guides: 10 actions across 3 tabs (L24)",
+      "human": "Human verdict: NOT RUN — no human observer"
+    },
+    {
+      "row": "journey.send-evidence",
+      "model": "pass on the candidate rehearsal: 0 actions, 1 page, the lease reads Waiting on owner response",
+      "human": "Human verdict: NOT RUN — no human observer"
+    },
+    {
+      "row": "journey.owner-decision",
+      "model": "pass on the candidate rehearsal: 3 actions, 1 page, nothing preselected (6 actions on daf8ee05 before the Now card repair)",
+      "human": "Human verdict: NOT RUN — no human observer"
+    },
+    {
+      "row": "journey.one-next-step",
+      "model": "pass on the candidate rehearsal: one next step at every point from the desk to Complete, in Guided view, with no other page",
+      "human": "Human verdict: NOT RUN — no human observer"
+    },
+    {
+      "row": "journey.layout",
+      "model": "pass on the candidate rehearsal: the stage line, the path strip and the primary action on the first screen at 1280 by 800 on Check the numbers, Compare market rent, Ask the owner and Offer the tenant, and the primary action within two screens at 390 (journey.layout, journey.layout-steps)",
+      "human": "Human verdict: NOT RUN — no human observer"
+    },
+    {
+      "row": "N4-01",
+      "model": "verified",
+      "human": "Human verdict: NOT RUN — no human observer"
+    },
+    {
+      "row": "N4-02",
+      "model": "verified",
+      "human": "Human verdict: NOT RUN — no human observer"
+    },
+    {
+      "row": "N4-03",
+      "model": "verified",
+      "human": "Human verdict: NOT RUN — no human observer"
+    },
+    {
+      "row": "N4-04",
+      "model": "verified",
+      "human": "Human verdict: NOT RUN — no human observer"
+    },
+    {
+      "row": "N4-05",
+      "model": "verified",
+      "human": "Human verdict: NOT RUN — no human observer"
+    },
+    {
+      "row": "N4-06",
+      "model": "verified",
+      "human": "Human verdict: NOT RUN — no human observer"
+    },
+    {
+      "row": "N4-07",
+      "model": "verified",
+      "human": "Human verdict: NOT RUN — no human observer"
+    },
+    {
+      "row": "N4-08",
+      "model": "verified",
+      "human": "Human verdict: NOT RUN — no human observer"
+    },
+    {
+      "row": "N4-09",
+      "model": "verified",
+      "human": "Human verdict: NOT RUN — no human observer"
+    },
+    {
+      "row": "N4-10",
+      "model": "verified",
+      "human": "Human verdict: NOT RUN — no human observer"
+    },
+    {
+      "row": "N4-11",
+      "model": "verified",
+      "human": "Human verdict: NOT RUN — no human observer"
+    },
+    {
+      "row": "N4-12",
+      "model": "verified",
+      "human": "Human verdict: NOT RUN — no human observer"
+    },
+    {
+      "row": "N4-13",
+      "model": "verified",
+      "human": "Human verdict: NOT RUN — no human observer"
+    },
+    {
+      "row": "N4-14",
+      "model": "verified",
+      "human": "Human verdict: NOT RUN — no human observer"
+    },
+    {
+      "row": "N4-15",
+      "model": "verified",
+      "human": "Human verdict: NOT RUN — no human observer"
+    },
+    {
+      "row": "N4-16",
+      "model": "verified",
+      "human": "Human verdict: NOT RUN — no human observer"
+    },
+    {
+      "row": "N4-17",
+      "model": "verified",
+      "human": "Human verdict: NOT RUN — no human observer"
+    },
+    {
+      "row": "N4-18",
+      "model": "verified",
+      "human": "Human verdict: NOT RUN — no human observer"
+    },
+    {
+      "row": "N4-19",
+      "model": "verified",
+      "human": "Human verdict: NOT RUN — no human observer"
+    },
+    {
+      "row": "N4-20",
+      "model": "verified",
+      "human": "Human verdict: NOT RUN — no human observer"
+    },
+    {
+      "row": "OUT-1",
+      "model": "open: recorded for S171",
+      "human": "Human verdict: NOT RUN — no human observer"
+    },
+    {
+      "row": "OUT-2",
+      "model": "open: recorded for S199",
+      "human": "Human verdict: NOT RUN — no human observer"
+    },
+    {
+      "row": "REP-1",
+      "model": "verified",
+      "human": "Human verdict: NOT RUN — no human observer"
+    },
+    {
+      "row": "REP-2",
+      "model": "open: reported, not reproduced",
+      "human": "Human verdict: NOT RUN — no human observer"
+    },
+    {
+      "row": "REP-3",
+      "model": "verified",
+      "human": "Human verdict: NOT RUN — no human observer"
+    },
+    {
+      "row": "REP-4",
+      "model": "open: reported, not reproduced",
+      "human": "Human verdict: NOT RUN — no human observer"
+    },
+    {
+      "row": "REP-5",
+      "model": "verified",
+      "human": "Human verdict: NOT RUN — no human observer"
+    },
+    {
+      "row": "REP-6",
+      "model": "verified",
+      "human": "Human verdict: NOT RUN — no human observer"
+    },
+    {
+      "row": "REP-7",
+      "model": "verified",
+      "human": "Human verdict: NOT RUN — no human observer"
+    }
+  ]
+}

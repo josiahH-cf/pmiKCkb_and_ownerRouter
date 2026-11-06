@@ -10,6 +10,12 @@ import { resolveBrowserExecutable as findBrowserExecutable } from "./lib/browser
 // (month and count in words, every loaded lease counted once, month and count controls, same-tab
 // lease navigation and return, no write) and then runs every table check, unchanged, on the
 // explicit table view over every loaded lease.
+//
+// S252: against the one-path rehearsal, serve it outside the rehearsal exemption, as a verification
+// session's server is: `bash scripts/run-renewal-one-path-rehearsal.sh --serve --no-mail-adapter`.
+// With the Demo-owned mail adapter the server says it is the isolated rehearsal, and opening the
+// working batch then starts the S249 preparation by itself in an automated browser, which is a
+// write this read-only smoke refuses to accept.
 
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
@@ -31,6 +37,8 @@ const DESK_INTERACTION_BUDGET_MS = 20_000;
 const WORKFLOW_ROW_SELECTOR =
   'tbody tr[data-workspace-available="true"]:is([data-disposition="actionable"], [data-retention-state="tracked_incomplete"])';
 const WORKING_BATCH_SELECTOR = 'section[aria-label="Working batch"]';
+// lib/lease-renewal/renewal-issues.ts NON_RENEWAL_HANDOFF_TARGET_ID: where the S124 handoff opens.
+const NON_RENEWAL_HANDOFF_TARGET_ID = "renewal-manual-non_renewal_handoff";
 const WORKING_BATCH_COUNT_GROUPS = [
   "renewed_in_rentvine",
   "month_to_month_reviews",
@@ -224,7 +232,10 @@ async function verifyDeskAndWorkspace() {
   await page.waitForURL((url) => !url.toString().includes("term="));
   await table.waitFor();
 
-  // Owner/tenant filters are discoverable header controls. Choices submit only opaque p1_ tokens.
+  // Owner/tenant filters are discoverable header controls. Choices submit only opaque tokens: p1_
+  // over the normalized label, or p2_ over the verified RentVine contact id (lib/lease-renewal/
+  // party-filter-key.ts), each the whole HMAC-SHA-256 digest; the app's own pattern is
+  // PARTY_FILTER_TOKEN_PATTERN in lib/lease-renewal/desk-query-v2.ts.
   for (const kind of ["owner", "tenant"]) {
     await page.getByText(`Filter ${kind}`, { exact: true }).click();
     const select = page.locator(`#renewal-filter-${kind}Key`);
@@ -234,7 +245,7 @@ async function verifyDeskAndWorkspace() {
       const optionValue = await choices[0].getAttribute("value");
       const optionLabel = (await choices[0].textContent())?.trim() ?? "";
       assert(
-        /^p1_[A-Za-z0-9_-]{43}$/.test(optionValue ?? ""),
+        /^p[12]_[A-Za-z0-9_-]{43}$/.test(optionValue ?? ""),
         `${kind} option was not opaque.`,
       );
       await select.selectOption(optionValue);
@@ -268,6 +279,14 @@ async function verifyDeskAndWorkspace() {
   await page.getByText("Filter renewal date", { exact: true }).click();
 
   // Invalid URL state is explained, and the next valid interaction drops only the invalid range.
+  // S252: a fresh desk load reads the personal view after it renders, and applying it moves the
+  // header controls; against the rehearsal that landed the sort click on the worklist section
+  // itself. Wait for that read and two frames before choosing a header control.
+  const personalViewRead = page
+    .waitForResponse((response) =>
+      response.url().includes("/api/personal-view?surface=renewals"),
+    )
+    .catch(() => null);
   await page.goto(
     `${baseUrl}/lease-renewal/live/desk?v=2&sort=base_rent&from=2026-12-30&through=2026-09-01`,
     { waitUntil: "domcontentloaded" },
@@ -280,6 +299,10 @@ async function verifyDeskAndWorkspace() {
       .getByText("The range end must be on or after the range start.")
       .count()) === 1,
     "Reversed range feedback is not visible.",
+  );
+  await personalViewRead;
+  await page.evaluate(
+    () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))),
   );
   await page.getByRole("button", { name: /Current base rent/ }).click();
   await page.waitForURL(
@@ -317,12 +340,13 @@ async function verifyDeskAndWorkspace() {
   if (await outsideWorklistLink.count()) {
     interactionStartedAt = performance.now();
     await outsideWorklistLink.click();
-    await page.getByRole("navigation", { name: "Renewal dashboard sections" }).waitFor();
+    await waitForGuidedDefault(page);
     assertWithinBudget(
       interactionStartedAt,
       DESK_INTERACTION_BUDGET_MS,
       "Outside-worklist workspace navigation",
     );
+    await chooseFullView(page);
     assert(
       (await page
         .getByRole("heading", { name: "Inspection only", exact: true })
@@ -360,12 +384,13 @@ async function verifyDeskAndWorkspace() {
   assert(await isFocused(leaseLink), "The lease workspace link did not receive focus.");
   interactionStartedAt = performance.now();
   await page.keyboard.press("Enter");
-  await page.getByRole("navigation", { name: "Renewal dashboard sections" }).waitFor();
+  await waitForGuidedDefault(page);
   assertWithinBudget(
     interactionStartedAt,
     DESK_INTERACTION_BUDGET_MS,
     "Keyboard workspace navigation",
   );
+  await chooseFullView(page);
   assert(
     page.url().includes("deskView="),
     "The workspace link dropped the desk continuation.",
@@ -778,6 +803,33 @@ async function verifyNarrowAndZoom() {
   await zoomContext.close();
 }
 
+// S247: a lease opens in Guided view, with Focus view and Full view beside it; the five-section
+// dashboard this smoke walks is the Full view, one choice away, and the chosen view is kept in the
+// address for the visit, so Back returns to it.
+async function waitForGuidedDefault(page) {
+  await page.getByRole("region", { name: "Guided view", exact: true }).waitFor();
+  assert(
+    (await page
+      .getByRole("button", { name: "Guided view", exact: true })
+      .getAttribute("aria-pressed")) === "true" &&
+      (await page
+        .getByRole("navigation", { name: "Renewal dashboard sections" })
+        .count()) === 0,
+    "The lease did not open in Guided view.",
+  );
+}
+
+async function chooseFullView(page) {
+  await page.getByRole("button", { name: "Full view", exact: true }).click();
+  await page.getByRole("navigation", { name: "Renewal dashboard sections" }).waitFor();
+  assert(
+    (await page
+      .getByRole("button", { name: "Full view", exact: true })
+      .getAttribute("aria-pressed")) === "true",
+    "Full view was not chosen.",
+  );
+}
+
 async function signInAndOpen(page, path) {
   await page.goto(`${baseUrl}/sign-in`, { waitUntil: "domcontentloaded" });
   const signedIn = await page.evaluate(async () => {
@@ -837,9 +889,18 @@ async function assertFullCohortIntegrity(page) {
           actionDestinationKind:
             actionCell?.getAttribute("data-action-destination-kind") ?? "",
           actionStepId: actionCell?.getAttribute("data-action-step-id") ?? "",
-          actionHrefs: [...(actionCell?.querySelectorAll("a") ?? [])].map(
-            (link) => link.href,
-          ),
+          // S252: the action cell also holds the S127 issue summary, whose only link is the S124
+          // non-renewal handoff for a confirmed move-out. That link is its own destination and is
+          // checked exactly below; it is never an action destination.
+          actionHrefs: [...(actionCell?.querySelectorAll("a") ?? [])]
+            .filter((link) => !link.closest(".renewal-issue-summary"))
+            .map((link) => link.href),
+          issueSummaries: [
+            ...(actionCell?.querySelectorAll(".renewal-issue-summary") ?? []),
+          ].map((summary) => ({
+            redirect: summary.getAttribute("data-renewal-primary-redirect") ?? "",
+            hrefs: [...summary.querySelectorAll("a")].map((link) => link.href),
+          })),
         };
       }),
     );
@@ -943,6 +1004,29 @@ async function assertFullCohortIntegrity(page) {
     );
     if (row.blockers.length === 0 && expectedActionLinks === 1) {
       assertWorkspaceDestination(row.actionHrefs[0], row.id, row.actionStepId);
+    }
+
+    // At most one issue summary per row. A confirmed move-out redirects to the non-renewal handoff
+    // with exactly one link: this lease's workspace at the handoff's own place, in this tab. Any
+    // other summary is text only.
+    assert(
+      row.issueSummaries.length <= 1,
+      `Lease ${row.id} rendered more than one issue summary.`,
+    );
+    for (const summary of row.issueSummaries) {
+      const expectedHandoffLinks =
+        summary.redirect === "non_renewal_handoff" && row.workspaceAvailable ? 1 : 0;
+      assert(
+        summary.hrefs.length === expectedHandoffLinks,
+        `Lease ${row.id} rendered the wrong non-renewal handoff link cardinality.`,
+      );
+      if (expectedHandoffLinks === 1) {
+        assertWorkspaceDestination(summary.hrefs[0], row.id, "none");
+        assert(
+          new URL(summary.hrefs[0]).hash === `#${NON_RENEWAL_HANDOFF_TARGET_ID}`,
+          `Lease ${row.id} non-renewal handoff link does not open the handoff.`,
+        );
+      }
     }
   }
 }

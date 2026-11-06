@@ -1,0 +1,567 @@
+{
+  "commit": "6491c06f3773e92c0bd811d4360371523e24d643",
+  "path": "lib/help/content/renewal-control-map.json",
+  "description": "S252 L54: the renewal step-to-control map of the starting commit, frozen as control names only (no customer value). tests/unit/s252-control-map-continuity.test.ts and scripts/smoke-renewal-guide-controls-browser.mjs read it.",
+  "rows": [
+    {
+      "step": "1",
+      "page": "/lease-renewal",
+      "control": "Renewals",
+      "role": "heading",
+      "scope": "",
+      "availability": "required"
+    },
+    {
+      "step": "2",
+      "page": "/lease-renewal",
+      "control": "Filter renewal date",
+      "role": "summary",
+      "scope": "",
+      "availability": "required"
+    },
+    {
+      "step": "3",
+      "page": "/lease-renewal",
+      "control": "Month",
+      "role": "label",
+      "scope": "",
+      "availability": "conditional"
+    },
+    {
+      "step": "4",
+      "page": "/lease-renewal",
+      "control": "Apply month",
+      "role": "button",
+      "scope": "",
+      "availability": "conditional"
+    },
+    {
+      "step": "5",
+      "page": "/lease-renewal",
+      "control": "Refresh source facts",
+      "role": "button",
+      "scope": "",
+      "availability": "conditional"
+    },
+    {
+      "step": "6",
+      "page": "workspace:verify-renewal",
+      "control": "← Back to renewals",
+      "role": "link",
+      "scope": "",
+      "availability": "required"
+    },
+    {
+      "step": "7",
+      "page": "workspace:verify-renewal",
+      "control": "Lease details",
+      "role": "link",
+      "scope": "navigation:Renewal dashboard sections",
+      "availability": "required"
+    },
+    {
+      "step": "8",
+      "page": "workspace:verify-renewal",
+      "control": "Market rent comparison",
+      "role": "link",
+      "scope": "navigation:Renewal dashboard sections",
+      "availability": "required"
+    },
+    {
+      "step": "9",
+      "page": "workspace:verify-renewal",
+      "control": "Owner approval",
+      "role": "link",
+      "scope": "navigation:Renewal dashboard sections",
+      "availability": "required"
+    },
+    {
+      "step": "10",
+      "page": "workspace:verify-renewal",
+      "control": "Tenant offer and response",
+      "role": "link",
+      "scope": "navigation:Renewal dashboard sections",
+      "availability": "required"
+    },
+    {
+      "step": "11",
+      "page": "workspace:verify-renewal",
+      "control": "Documents and completion",
+      "role": "link",
+      "scope": "navigation:Renewal dashboard sections",
+      "availability": "required"
+    },
+    {
+      "step": "12",
+      "page": "workspace:verify-renewal",
+      "control": "Open this lease in RentVine",
+      "role": "link",
+      "scope": "",
+      "availability": "conditional"
+    },
+    {
+      "step": "13",
+      "page": "workspace:verify-renewal",
+      "control": "Open the operating renewal Sheet",
+      "role": "link",
+      "scope": "",
+      "availability": "conditional"
+    },
+    {
+      "step": "14",
+      "page": "workspace:verify-renewal",
+      "control": "Fact to correct",
+      "role": "label",
+      "scope": "region:Correct a lease fact",
+      "availability": "required"
+    },
+    {
+      "step": "15",
+      "page": "workspace:verify-renewal",
+      "control": "Source or context (optional)",
+      "role": "label",
+      "scope": "region:Correct a lease fact",
+      "availability": "required"
+    },
+    {
+      "step": "16",
+      "page": "workspace:verify-renewal",
+      "control": "Destinations",
+      "role": "label",
+      "scope": "region:Correct a lease fact",
+      "availability": "required"
+    },
+    {
+      "step": "17",
+      "page": "workspace:verify-renewal",
+      "control": "Working current rent",
+      "role": "label",
+      "scope": "region:Rent and charges working area",
+      "availability": "required"
+    },
+    {
+      "step": "18",
+      "page": "workspace:verify-renewal",
+      "control": "Apply Sheet update",
+      "role": "button",
+      "scope": "article:Review Sheet updates",
+      "availability": "conditional"
+    },
+    {
+      "step": "19",
+      "page": "workspace:verify-renewal",
+      "control": "Reconcile from Sheet state",
+      "role": "button",
+      "scope": "article:Review Sheet updates",
+      "availability": "conditional"
+    },
+    {
+      "step": "20",
+      "page": "workspace:verify-renewal",
+      "control": "Reconcile from provider state",
+      "role": "button",
+      "scope": "article:Review RentVine updates",
+      "availability": "conditional"
+    },
+    {
+      "step": "21",
+      "page": "workspace:owner-decision",
+      "control": "Copy formatted body",
+      "role": "button",
+      "scope": "region:Owner message preparation",
+      "availability": "conditional"
+    },
+    {
+      "step": "22",
+      "page": "workspace:owner-decision",
+      "control": "Preview unsent Gmail draft",
+      "role": "button",
+      "scope": "region:Owner message preparation",
+      "availability": "conditional"
+    },
+    {
+      "step": "23",
+      "page": "workspace:owner-decision",
+      "control": "Owner response",
+      "role": "label",
+      "scope": "region:Owner approval",
+      "availability": "conditional"
+    },
+    {
+      "step": "24",
+      "page": "workspace:tenant-decision",
+      "control": "Copy plain text",
+      "role": "button",
+      "scope": "region:Tenant message preparation",
+      "availability": "conditional"
+    },
+    {
+      "step": "25",
+      "page": "workspace:tenant-decision",
+      "control": "Tenant response",
+      "role": "label",
+      "scope": "region:Tenant offer and response",
+      "availability": "conditional"
+    },
+    {
+      "step": "26",
+      "page": "/connections",
+      "control": "Insurance flyer",
+      "role": "label",
+      "scope": "region:Renewal resource links",
+      "availability": "required"
+    },
+    {
+      "step": "27",
+      "page": "/connections",
+      "control": "Renewal information form",
+      "role": "label",
+      "scope": "region:Renewal resource links",
+      "availability": "required"
+    },
+    {
+      "step": "28",
+      "page": "workspace:document-packet",
+      "control": "Reload document readiness and attempts",
+      "role": "button",
+      "scope": "region:Document preparation and signature handoff",
+      "availability": "required"
+    },
+    {
+      "step": "29",
+      "page": "workspace:document-packet",
+      "control": "Preview exact Dotloop packet creation",
+      "role": "button",
+      "scope": "region:Document preparation and signature handoff",
+      "availability": "conditional"
+    },
+    {
+      "step": "30",
+      "page": "workspace:compliance-close",
+      "control": "Record staff completion",
+      "role": "button",
+      "scope": "region:Documents and completion",
+      "availability": "conditional"
+    },
+    {
+      "step": "32",
+      "page": "/",
+      "control": "Get answer",
+      "role": "button",
+      "scope": "",
+      "availability": "required"
+    },
+    {
+      "step": "37",
+      "page": "/connections",
+      "control": "Approved standard lease location",
+      "role": "label",
+      "scope": "region:Renewal resource links",
+      "availability": "required"
+    },
+    {
+      "step": "38",
+      "page": "/connections",
+      "control": "Approved renewal extension location",
+      "role": "label",
+      "scope": "region:Renewal resource links",
+      "availability": "required"
+    },
+    {
+      "step": "39",
+      "page": "/connections",
+      "control": "Approved animal agreement location",
+      "role": "label",
+      "scope": "region:Renewal resource links",
+      "availability": "required"
+    },
+    {
+      "step": "40",
+      "page": "/connections",
+      "control": "Approved lead-based-paint disclosure location",
+      "role": "label",
+      "scope": "region:Renewal resource links",
+      "availability": "required"
+    },
+    {
+      "step": "41",
+      "page": "/connections",
+      "control": "Approved city addendum location",
+      "role": "label",
+      "scope": "region:Renewal resource links",
+      "availability": "required"
+    },
+    {
+      "step": "42",
+      "page": "/connections",
+      "control": "Approved HOA artifact location",
+      "role": "label",
+      "scope": "region:Renewal resource links",
+      "availability": "required"
+    },
+    {
+      "step": "43",
+      "page": "/connections",
+      "control": "Approved owner acknowledgment location",
+      "role": "label",
+      "scope": "region:Renewal resource links",
+      "availability": "required"
+    },
+    {
+      "step": "43a",
+      "page": "/connections",
+      "control": "Approved KCRAR additional disclosures location",
+      "role": "label",
+      "scope": "region:Renewal resource links",
+      "availability": "required"
+    },
+    {
+      "step": "43b",
+      "page": "/connections",
+      "control": "Approved brokerage disclosure brochure location",
+      "role": "label",
+      "scope": "region:Renewal resource links",
+      "availability": "required"
+    },
+    {
+      "step": "43c",
+      "page": "/connections",
+      "control": "Approved insurance program addendum location",
+      "role": "label",
+      "scope": "region:Renewal resource links",
+      "availability": "required"
+    },
+    {
+      "step": "44",
+      "page": "workspace:verify-renewal",
+      "control": "Lease information",
+      "role": "button",
+      "scope": "",
+      "availability": "required"
+    },
+    {
+      "step": "45",
+      "page": "workspace:verify-renewal",
+      "control": "Process guide",
+      "role": "button",
+      "scope": "",
+      "availability": "required"
+    },
+    {
+      "step": "46",
+      "page": "workspace:verify-renewal",
+      "control": "Copy all tenant emails",
+      "role": "button",
+      "scope": "complementary:Lease information",
+      "availability": "conditional"
+    },
+    {
+      "step": "47",
+      "page": "workspace:verify-renewal",
+      "control": "About Lease details",
+      "role": "button",
+      "scope": "region:Lease details",
+      "availability": "required"
+    },
+    {
+      "step": "48",
+      "page": "workspace:verify-renewal",
+      "control": "About Lease term",
+      "role": "button",
+      "scope": "region:Lease details",
+      "availability": "required"
+    },
+    {
+      "step": "49",
+      "page": "workspace:verify-renewal",
+      "control": "About Correct a lease fact",
+      "role": "button",
+      "scope": "region:Correct a lease fact",
+      "availability": "required"
+    },
+    {
+      "step": "50",
+      "page": "workspace:verify-renewal",
+      "control": "About Owner approval",
+      "role": "button",
+      "scope": "region:Owner approval",
+      "availability": "required"
+    },
+    {
+      "step": "51",
+      "page": "workspace:verify-renewal",
+      "control": "About Documents and completion",
+      "role": "button",
+      "scope": "region:Documents and completion",
+      "availability": "required"
+    },
+    {
+      "step": "52",
+      "page": "workspace:owner-decision",
+      "control": "Copy recipients",
+      "role": "button",
+      "scope": "region:Owner message preparation",
+      "availability": "conditional"
+    },
+    {
+      "step": "53",
+      "page": "workspace:verify-renewal",
+      "control": "Preview Owner emails update",
+      "role": "button",
+      "scope": "article:Review Sheet updates",
+      "availability": "conditional"
+    },
+    {
+      "step": "54",
+      "page": "workspace:verify-renewal",
+      "control": "Preview Tenant emails update",
+      "role": "button",
+      "scope": "article:Review Sheet updates",
+      "availability": "conditional"
+    },
+    {
+      "step": "55",
+      "page": "workspace:verify-renewal",
+      "control": "Rent and charges working area",
+      "role": "region",
+      "scope": "region:Lease details",
+      "availability": "required"
+    },
+    {
+      "step": "56",
+      "page": "workspace:verify-renewal",
+      "control": "Correct the current rent",
+      "role": "link",
+      "scope": "region:Rent and charges working area",
+      "availability": "required"
+    },
+    {
+      "step": "57",
+      "page": "workspace:verify-renewal",
+      "control": "Prepare future renewal rent",
+      "role": "link",
+      "scope": "region:Rent and charges working area",
+      "availability": "required"
+    },
+    {
+      "step": "58",
+      "page": "workspace:verify-renewal",
+      "control": "Update status by destination",
+      "role": "region",
+      "scope": "region:Rent and charges working area",
+      "availability": "required"
+    },
+    {
+      "step": "59",
+      "page": "workspace:verify-renewal",
+      "control": "Prepare this future-rent preview",
+      "role": "button",
+      "scope": "region:Rent and charges working area",
+      "availability": "conditional"
+    },
+    {
+      "step": "60",
+      "page": "workspace:verify-renewal",
+      "control": "Apply RentVine update",
+      "role": "button",
+      "scope": "article:Review RentVine updates",
+      "availability": "conditional"
+    },
+    {
+      "step": "61",
+      "page": "workspace:verify-renewal",
+      "control": "Check effect statuses",
+      "role": "button",
+      "scope": "article:Review RentVine updates",
+      "availability": "conditional"
+    },
+    {
+      "step": "62",
+      "page": "workspace:verify-renewal",
+      "control": "Open the RentCast property report",
+      "role": "link",
+      "scope": "region:Market rent comparison",
+      "availability": "conditional"
+    },
+    {
+      "step": "63",
+      "page": "workspace:verify-renewal",
+      "control": "Open this lookup's RentCast property report",
+      "role": "link",
+      "scope": "region:Market rent comparison",
+      "availability": "conditional"
+    },
+    {
+      "step": "64",
+      "page": "workspace:verify-renewal",
+      "control": "Work status (recorded by staff)",
+      "role": "label",
+      "scope": "region:Staff status and Status log",
+      "availability": "conditional"
+    },
+    {
+      "step": "65",
+      "page": "workspace:verify-renewal",
+      "control": "Add a note",
+      "role": "label",
+      "scope": "region:Staff status and Status log",
+      "availability": "conditional"
+    },
+    {
+      "step": "66",
+      "page": "workspace:verify-renewal",
+      "control": "Status log",
+      "role": "summary",
+      "scope": "region:Staff status and Status log",
+      "availability": "conditional"
+    },
+    {
+      "step": "67",
+      "page": "/lease-renewal",
+      "control": "Work status (recorded by staff)",
+      "role": "label",
+      "scope": "",
+      "availability": "conditional"
+    },
+    {
+      "step": "68",
+      "page": "workspace:document-packet",
+      "control": "Manage shared resource links in Connections",
+      "role": "link",
+      "scope": "region:Renewal resource links",
+      "availability": "required"
+    },
+    {
+      "step": "69",
+      "page": "workspace:owner-decision",
+      "control": "Marked values",
+      "role": "list",
+      "scope": "region:Owner message preparation",
+      "availability": "conditional"
+    },
+    {
+      "step": "70",
+      "page": "workspace:tenant-decision",
+      "control": "Response request (optional wording edit)",
+      "role": "label",
+      "scope": "region:Tenant message preparation",
+      "availability": "required"
+    },
+    {
+      "step": "71",
+      "page": "workspace:document-packet",
+      "control": "Current facts for this packet",
+      "role": "region",
+      "scope": "region:Document preparation and signature handoff",
+      "availability": "required"
+    },
+    {
+      "step": "72",
+      "page": "/connections",
+      "control": "Resident benefits package flyer",
+      "role": "label",
+      "scope": "region:Renewal resource links",
+      "availability": "required"
+    }
+  ]
+}

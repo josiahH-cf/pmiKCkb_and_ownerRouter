@@ -3,6 +3,8 @@ import type { HelpGuide } from "@/lib/help/types";
 const WORKSPACE = "/lease-renewal/live/desk/lease/[leaseId]";
 const COMMUNICATIONS = "/gmail-hub";
 const FULL_VIEW = ["click-button:Full view"] as const;
+const PREPARED_MESSAGE = ["components/lease-renewal/RenewalPreparedMessage.tsx"];
+const KICKOFF = ["lib/lease-renewal/renewal-preparation.ts"];
 
 export const COMMUNICATIONS_GUIDES: readonly HelpGuide[] = [
   {
@@ -11,31 +13,83 @@ export const COMMUNICATIONS_GUIDES: readonly HelpGuide[] = [
     title: "Prepare, send or schedule an owner message and record the answer",
     audience: "Renewal staff",
     purpose:
-      "Prepare the owner renewal message from the lease, send or schedule the message yourself through Communications or your own channel, follow what happened to the message, and record the owner's actual answer, with who approved, how and when for an approval.",
+      "Read the owner renewal message the app prepared on the lease's Now card, send or schedule it yourself with Review and send, a Gmail draft, Communications or your own channel, follow what happened to the message, and record the owner's actual answer, with who approved, how and when for an approval.",
     prerequisites: [
       "You are signed in with edit access to Renewals.",
-      "The lease is open in the lease workspace from the renewal desk.",
-      "The market comparison and the Working renewal terms are saved, or you know which values the message still marks.",
+      "The lease is open from the working batch.",
+      "The comparison and the rent to recommend are ready, or What sending needs names what is still missing.",
     ],
     steps: [
       {
         id: "open-owner-approval",
         action:
-          "Open the lease from the renewal desk, choose Full view, then choose Owner approval in the section links.",
+          "Open the lease from the working batch and choose Ask the owner in the Renewal path when the Now card is on another step.",
         control: {
-          label: "Owner approval",
-          role: "link",
-          region: "navigation:Renewal dashboard sections",
+          label: "Ask the owner",
+          role: "button",
+          region: "navigation:Renewal path",
           availability: "required",
-          source: ["lib/lease-renewal/dashboard-sections.ts"],
-          actions: FULL_VIEW,
+          source: ["lib/lease-renewal/renewal-path.ts"],
         },
         route: WORKSPACE,
-        where: "Lease workspace, Full view, section links under the view switch",
+        where: "Lease page, Guided view, Renewal path",
         result:
-          "The page moves to the Owner approval section: Owner message preparation, then Work recorded by staff with Owner outreach, Owner response and Working renewal terms.",
+          "The Now card shows the owner message prepared from the saved numbers and the working terms, with What sending needs and the delivery actions. In Full view, Owner approval holds Owner message preparation, then Work recorded by staff with Owner outreach, Owner response and Working renewal terms.",
         effect: "reads",
-        note: "About Owner approval, beside the section heading, gives the order of the work: prepare the message, get the owner's actual answer, then record that answer.",
+        note: "About Owner approval, beside the Full view section heading, gives the order of the work: prepare the message, get the owner's actual answer, then record that answer. On a lease under a standing agreement, Ask the owner reads Covered by the agreement: no owner message needed.",
+      },
+      {
+        id: "review-and-send-owner-message",
+        action:
+          "On the Now card, read the message preview, choose Review and send, read the exact message, recipients and sender, then choose Send this message.",
+        control: {
+          label: "Send this message",
+          role: "button",
+          region: "dialog:Review and send",
+          availability: "conditional",
+          source: PREPARED_MESSAGE,
+        },
+        route: WORKSPACE,
+        where: "Guided view, the Now card on Ask the owner, then Review and send",
+        result:
+          "Once Gmail accepts the message, the lease reads Waiting on owner response on its page and its desk row with nothing more to enter. A send Gmail has not confirmed reads Check whether the message went out, and a failed delivery reads Delivery failed with Check the address and send again.",
+        effect: "explicit-send",
+        note: "Review and send stays the Now card's primary action while the message is ready. When an input is missing, What sending needs names it with its fix, for example Set up your signature.",
+      },
+      {
+        id: "schedule-owner-message",
+        action:
+          "To send later, choose Schedule, set Date and Time (Central) in Review and schedule, then choose Schedule this message.",
+        control: {
+          label: "Schedule this message",
+          role: "button",
+          region: "dialog:Review and schedule",
+          availability: "conditional",
+          source: PREPARED_MESSAGE,
+        },
+        route: WORKSPACE,
+        where: "Guided view, the Now card on Ask the owner, then Review and schedule",
+        result:
+          "The lease reads Owner message scheduled for its date, and the message counts as the owner outreach only once Gmail accepts it at that time.",
+        effect: "explicit-send",
+      },
+      {
+        id: "create-gmail-draft-instead",
+        action:
+          "To send from Gmail, choose Create Gmail draft instead, read the exact draft and choose Create this unsent draft.",
+        control: {
+          label: "Create Gmail draft instead",
+          role: "button",
+          region: "region:Now",
+          availability: "conditional",
+          source: KICKOFF,
+        },
+        route: WORKSPACE,
+        where: "Guided view, the Now card on Ask the owner",
+        result:
+          "An unsent draft of this message revision waits in your managed Gmail drafts, and the lease reads Draft waiting in Gmail since its time. After you send it from Gmail, choose I sent it from Gmail to record the outreach as recorded by staff.",
+        effect: "unsent-draft",
+        note: "When the message changes after the draft was made, the card reads The Gmail draft is older than this message and offers Replace the Gmail draft. The earlier draft stays in Gmail until you delete it there.",
       },
       {
         id: "read-owner-decision",
@@ -118,7 +172,7 @@ export const COMMUNICATIONS_GUIDES: readonly HelpGuide[] = [
       {
         id: "save-communications-draft",
         action:
-          "To send or schedule through Communications, choose Compose owner message in Communications, review the sender, recipients, message and files in the new tab, then choose Save draft.",
+          "To send or schedule through Communications, choose Open in Communications on the Now card, or Compose owner message in Communications in Full view, review the sender, recipients, message and files in the new tab, then choose Save draft.",
         control: {
           label: "Save draft",
           role: "button",
@@ -248,13 +302,14 @@ export const COMMUNICATIONS_GUIDES: readonly HelpGuide[] = [
         result:
           "No response, Revision requested and Declined / non-renewal save when you choose them. Approved saves only through Record approval, and the recorded approval then reads who approved, how and when, with a line naming the Working terms it covers.",
         effect: "saves-in-app",
-        note: "How they approved offers Reply in this lease's renewal thread when a linked reply exists, Another written channel or Conversation. If the Working terms or charges change later, the line reads Owner approval no longer covers and names what changed; ask the owner again, then choose Record a new approval. Revision requested also asks What the owner asked to change.",
+        note: "After an owner reply, the Now card on Ask the owner records the decision from that reply: choose it in The owner's decision, choose Who approved in this reply for an approval, then Record this decision. Owner response here covers an authorized representative, another written channel or a conversation. How they approved offers Reply in this lease's renewal thread when a linked reply exists, Another written channel or Conversation. If the Working terms or charges change later, the line reads Owner approval no longer covers and names what changed; ask the owner again, then choose Record a new approval. Revision requested also asks What the owner asked to change.",
       },
     ],
     result:
-      "The owner message is sent or scheduled by your own Send, Schedule or channel, the outreach is recorded under Work recorded by staff, and the owner's actual answer is recorded under Owner response, with who approved, how and when for an approval.",
+      "The owner message is sent or scheduled by your own Send this message, Schedule this message, Send, Schedule or channel, the outreach is recorded from the send itself or by you under Work recorded by staff, and the owner's actual answer is recorded under Owner response, with who approved, how and when for an approval.",
     doesNotDo: [
       "The app sends nothing on its own, and Gmail shows neither delivery nor reading; Accepted by Gmail means only that Gmail took the message.",
+      "An owner reply records no answer by itself; the answer is recorded only when you choose it.",
       "Copying the message, saving a draft or creating an unsent Gmail draft sends nothing and records no delivery.",
       "Recording an owner response approves nothing on the owner's behalf and writes nothing to RentVine or the Sheet.",
       "A recorded approval covers only the Working terms and charges it names; after they change, the owner's approval needs recording again.",
@@ -262,7 +317,7 @@ export const COMMUNICATIONS_GUIDES: readonly HelpGuide[] = [
     ],
     relatedGuides: ["compare-rent", "tenant-offer", "work-a-renewal"],
     relatedScreens: ["communications"],
-    lastUpdated: "2026-11-04",
+    lastUpdated: "2026-11-06",
     navItems: ["communications"],
   },
 ];

@@ -6,7 +6,7 @@
     "role": "heading",
     "scope": "",
     "availability": "required",
-    "expectation": "The desk or an honest source-unavailable state.",
+    "expectation": "The desk, opening on the working batch, or an honest source-unavailable state.",
     "source": [
       "components/admin/RenewalOriginalPublicationPolicy.tsx",
       "components/lease-renewal/flag-actions.tsx"
@@ -19,8 +19,9 @@
     "role": "summary",
     "scope": "",
     "availability": "required",
-    "expectation": "Read-only date filter.",
-    "source": ["components/lease-renewal/RenewalDeskTable.tsx"]
+    "expectation": "Read-only date filter in All leases and filters.",
+    "source": ["components/lease-renewal/RenewalDeskTable.tsx"],
+    "actions": ["click-link:All leases and filters"]
   },
   {
     "step": "3",
@@ -29,11 +30,12 @@
     "role": "label",
     "scope": "",
     "availability": "conditional",
-    "expectation": "Choose the lease end month.",
+    "expectation": "Choose the lease end month in All leases and filters.",
     "source": [
       "components/admin/NoticeRulesAdminPanel.tsx",
       "components/admin/RenewalPacketPolicyAdminPanel.tsx"
-    ]
+    ],
+    "actions": ["click-link:All leases and filters"]
   },
   {
     "step": "4",
@@ -42,8 +44,9 @@
     "role": "button",
     "scope": "",
     "availability": "conditional",
-    "expectation": "Filter through the desk URL.",
-    "source": ["components/lease-renewal/RenewalDeskTable.tsx"]
+    "expectation": "Filter through the desk URL in All leases and filters.",
+    "source": ["components/lease-renewal/RenewalDeskTable.tsx"],
+    "actions": ["click-link:All leases and filters"]
   },
   {
     "step": "5",
@@ -725,7 +728,8 @@
     "scope": "",
     "availability": "conditional",
     "expectation": "Filter the table by the saved staff status, including Not recorded, inside Filter status.",
-    "source": ["lib/lease-renewal/work-status.ts"]
+    "source": ["lib/lease-renewal/work-status.ts"],
+    "actions": ["click-link:All leases and filters"]
   },
   {
     "step": "68",
@@ -777,5 +781,154 @@
     "availability": "required",
     "expectation": "Persistent labeled blank or reviewed location, maintained once for every lease.",
     "source": ["lib/lease-renewal/resource-locations.ts"]
+  },
+  {
+    "step": "73",
+    "page": "/lease-renewal",
+    "control": "Working batch",
+    "role": "region",
+    "scope": "",
+    "availability": "required",
+    "expectation": "The working month's batch, the view the bare Renewals address opens.",
+    "source": ["components/lease-renewal/RenewalWorkingBatch.tsx"]
+  },
+  {
+    "step": "74",
+    "page": "/lease-renewal",
+    "control": "This batch",
+    "role": "region",
+    "scope": "region:Working batch",
+    "availability": "required",
+    "expectation": "The working month's leases; a row's address or next step link opens the lease in this tab.",
+    "source": ["lib/lease-renewal/renewal-batch.ts"]
+  },
+  {
+    "step": "75",
+    "page": "/lease-renewal",
+    "control": "All leases and filters",
+    "role": "link",
+    "scope": "region:Working batch",
+    "availability": "required",
+    "expectation": "Opens the full lease table with its views, filters, sorts and URL keys.",
+    "source": ["components/lease-renewal/RenewalWorkingBatch.tsx"]
+  },
+  {
+    "step": "76",
+    "page": "/lease-renewal",
+    "control": "Open my saved view",
+    "role": "link",
+    "scope": "region:Working batch",
+    "availability": "conditional",
+    "expectation": "Opens a saved worklist view; the bare route never applies one by itself.",
+    "source": ["components/lease-renewal/RenewalWorkingBatch.tsx"]
+  },
+  {
+    "step": "77",
+    "page": "/lease-renewal",
+    "control": "Prepare this batch",
+    "role": "button",
+    "scope": "region:This batch",
+    "availability": "conditional",
+    "expectation": "Runs the batch preparation one lease at a time when chosen.",
+    "source": ["lib/lease-renewal/renewal-preparation.ts"]
+  },
+  {
+    "step": "78",
+    "page": "workspace:verify-renewal",
+    "control": "Guided view",
+    "role": "button",
+    "scope": "group:Lease view",
+    "availability": "required",
+    "expectation": "The default lease view: the path strip and one Now card.",
+    "source": ["lib/lease-renewal/workspace-view.ts"],
+    "actions": []
+  },
+  {
+    "step": "79",
+    "page": "workspace:verify-renewal",
+    "control": "Focus view",
+    "role": "button",
+    "scope": "group:Lease view",
+    "availability": "required",
+    "expectation": "One task at a time; switching views saves nothing.",
+    "source": ["lib/lease-renewal/workspace-view.ts"],
+    "actions": []
+  },
+  {
+    "step": "80",
+    "page": "workspace:verify-renewal",
+    "control": "Renewal path",
+    "role": "navigation",
+    "scope": "region:Guided view",
+    "availability": "required",
+    "expectation": "Every step of this lease's path with its state; choosing a step saves nothing.",
+    "source": ["components/lease-renewal/RenewalGuidedView.tsx"],
+    "actions": []
+  },
+  {
+    "step": "81",
+    "page": "workspace:verify-renewal",
+    "control": "Now",
+    "role": "region",
+    "scope": "region:Guided view",
+    "availability": "required",
+    "expectation": "The step being worked, with one primary action and the step's own controls in place.",
+    "source": ["components/lease-renewal/RenewalGuidedView.tsx"],
+    "actions": []
+  },
+  {
+    "step": "82",
+    "page": "workspace:verify-renewal",
+    "control": "Add a note",
+    "role": "button",
+    "scope": "region:Now",
+    "availability": "required",
+    "expectation": "Opens the note box in Staff status and Status log.",
+    "source": ["components/lease-renewal/RenewalGuidedView.tsx"],
+    "actions": []
+  },
+  {
+    "step": "83",
+    "page": "workspace:verify-renewal",
+    "control": "Set status by hand",
+    "role": "button",
+    "scope": "region:Now",
+    "availability": "required",
+    "expectation": "Opens Work status (recorded by staff); a hand-set status that differs from the stage shows both.",
+    "source": ["components/lease-renewal/RenewalGuidedView.tsx"],
+    "actions": []
+  },
+  {
+    "step": "84",
+    "page": "workspace:owner-decision",
+    "control": "Ask the owner",
+    "role": "button",
+    "scope": "region:Guided view",
+    "availability": "required",
+    "expectation": "Shows the owner message step on the Now card.",
+    "source": ["lib/lease-renewal/renewal-path.ts"],
+    "actions": []
+  },
+  {
+    "step": "85",
+    "page": "workspace:owner-decision",
+    "control": "Review and send",
+    "role": "button",
+    "scope": "region:Now",
+    "availability": "conditional",
+    "expectation": "Opens the exact review of the prepared owner message; nothing is sent until Send this message.",
+    "source": ["lib/lease-renewal/renewal-preparation.ts"],
+    "actions": ["click-button:Ask the owner"]
+  },
+  {
+    "step": "86",
+    "page": "workspace:owner-decision",
+    "control": "Owner message",
+    "role": "region",
+    "scope": "region:Now",
+    "availability": "conditional",
+    "expectation": "The stored comparison, Rent to recommend, Reason to include and the message preview.",
+    "source": ["components/lease-renewal/RenewalPreparedMessage.tsx"],
+    "actions": ["click-button:Ask the owner"]
   }
 ]

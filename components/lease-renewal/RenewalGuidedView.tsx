@@ -58,6 +58,11 @@ import {
 } from "./RenewalKickoffFields";
 import { PrepareThisLeaseButton } from "./RenewalKickoffPreparation";
 import { FinishUpSourcePreviews } from "./RenewalFinishUpPreviews";
+import {
+  OWNER_DECISION_FROM_REPLY_ID,
+  RenewalOwnerDecisionFromReply,
+} from "./RenewalOwnerDecisionFromReply";
+import { OWNER_DECISION_AFTER_REPLY_LABEL } from "@/lib/lease-renewal/workspace-state";
 
 /**
  * S247 R-S247-4 to R-S247-10: the Guided view. A path strip names every step of this lease's
@@ -550,6 +555,18 @@ function NowCard({
       ? { label: "Record what happened", target: `renewal-manual-${audience}_response` }
       : null;
   const primary = blocker ?? shown.primary ?? recordWhatHappened ?? definition.primary;
+  // S252 (L36): an observed owner reply makes "Record the owner's decision" the step's action;
+  // the decision is recorded here on the Now card, with nothing preselected.
+  const replyDecision =
+    canEdit &&
+    isCurrent &&
+    !blocker &&
+    shown.id === "ask-owner" &&
+    shown.primary?.label === OWNER_DECISION_AFTER_REPLY_LABEL &&
+    manual?.ownerApproval &&
+    manual.ownerApproval.replies.length > 0
+      ? manual.ownerApproval
+      : null;
   // S249 R-S249-8: on the step that sends its audience's message, the one primary action is
   // "Review and send", given by the lease's one message record, while the step asks for its send.
   const filler = nowCard?.primaries[shown.id];
@@ -597,6 +614,10 @@ function NowCard({
       context.sourceRenewal
     ) {
       setConfirming(true);
+      return;
+    }
+    if (replyDecision && primary.label === OWNER_DECISION_AFTER_REPLY_LABEL) {
+      document.getElementById(OWNER_DECISION_FROM_REPLY_ID)?.focus();
       return;
     }
     const step = shown.primary ?? recordWhatHappened ?? definition.primary;
@@ -664,6 +685,13 @@ function NowCard({
             </span>
           ) : null}
         </p>
+      ) : null}
+      {replyDecision && manual ? (
+        <RenewalOwnerDecisionFromReply
+          choices={replyDecision}
+          disabled={manual.pending}
+          onRecord={(action) => manual.record(action).catch(() => undefined)}
+        />
       ) : null}
       {shown.state !== "not_part" ? (
         <dl className="renewal-now-facts">

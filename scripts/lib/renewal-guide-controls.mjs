@@ -13,6 +13,7 @@ const GUIDE_ROLES = [
   "region",
   "list",
   "label",
+  "navigation",
   "phase",
   "summary",
 ];
@@ -31,6 +32,10 @@ function guideStep(cells) {
     scope: cells.scope === "-" ? "" : cells.scope,
     availability: cells.availability,
     expectation: cells.expectation,
+    // S252: preparation before the control is located (for example opening All leases and
+    // filters), and the one rename field (`formerly`) for the L54 continuity report.
+    ...(Array.isArray(cells.actions) ? { actions: cells.actions } : {}),
+    ...(cells.formerly ? { formerly: cells.formerly } : {}),
   };
 }
 

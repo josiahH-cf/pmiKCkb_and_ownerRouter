@@ -74,7 +74,7 @@ the same pass and no observation was resumed. Assurance passed and issued the ca
   role and label, which clears the duplicate-key errors on four help pages.
 - **S243** help V1.1: three guide results match the app (Manage Connections after a live check,
   the snoozed queue item and the Completion checks card), with one What changed entry and a new
-  content digest, and the 22 pictures under `public/help/V1.1` are recaptured from the isolated
+  content digest, and the 22 pictures under public/help/V1.1 (retired by help V2.0 in S252; kept in Git history) are recaptured from the isolated
   synthetic rehearsal.
 - **S244** in-app help copy repairs: InfoTip measures its panel at its own width; the Admin
   migration note, the bulk Execute line and the Sheet reversal line describe present behavior; the

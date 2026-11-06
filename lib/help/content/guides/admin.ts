@@ -90,7 +90,7 @@ export const ADMIN_GUIDES: readonly HelpGuide[] = [
       {
         id: "publish-charge-policy",
         action:
-          "Under Renewal charge policy, enter the monthly amounts the company offers, set Effective from and an optional note, and select Publish a new policy version.",
+          "Under Renewal charge policy, enter the monthly amounts the company offers and the Pet processing fee with Where the pet processing fee comes from, set Effective from and an optional note, and select Publish a new policy version.",
         control: {
           label: "Publish a new policy version",
           role: "button",
@@ -103,7 +103,7 @@ export const ADMIN_GUIDES: readonly HelpGuide[] = [
         result:
           "The status line reads Published charge policy version with its number, and renewal packets calculate their charges from that version. Earlier versions stay as they were.",
         effect: "saves-in-app",
-        note: "Leave Resident Benefit Package, monthly or Insurance program, monthly empty when the company does not offer it. Animal charges use published tiers opens the tier rows. These amounts are company policy you enter; they are never read from a form.",
+        note: "Leave Resident Benefit Package, monthly or Insurance program, monthly empty when the company does not offer it. The Pet processing fee is one amount for an ordinary pet, separate from any deposit, and needs where the amount comes from; leave it empty when no fee is published. A lease with a pet shows the fee, the deposit and their sum before anything is prepared. Animal charges use published tiers opens the tier rows. These amounts are company policy you enter; they are never read from a form.",
       },
       {
         id: "build-operational-page",
@@ -260,7 +260,7 @@ export const ADMIN_GUIDES: readonly HelpGuide[] = [
       "admin-gmail-settings",
       "admin-space-request",
     ],
-    lastUpdated: "2026-11-04",
+    lastUpdated: "2026-11-06",
     navItems: ["admin"],
   },
 ];

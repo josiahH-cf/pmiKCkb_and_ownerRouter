@@ -396,6 +396,26 @@ function audienceStep(
       waiting: null,
     };
   }
+  // S252 (L53): the tenant accepted and the staff lane's next activity is still this step's
+  // renewal information form. The one next step is that form at its own staff record, so the
+  // card never asks again for the tenant offer the staff record already holds.
+  const formActivity = lane.nextActivity;
+  if (
+    decided &&
+    audience === "tenant" &&
+    (formActivity === "information_form" || formActivity === "form_returned")
+  ) {
+    const label =
+      ACTIVITY_NEXT_STEP[formActivity] ?? MANUAL_ACTIVITIES[formActivity].label;
+    return {
+      state: "current",
+      stage: definition.stage,
+      nextStep: label,
+      primary: { label, target: `renewal-manual-${formActivity}` },
+      detail: null,
+      waiting: null,
+    };
+  }
   if (decided) {
     return {
       state: "done",

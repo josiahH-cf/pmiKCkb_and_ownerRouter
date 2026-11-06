@@ -125,6 +125,30 @@ export function setStatusUnreadable(rehearsal, leaseId, mode) {
   return writeFlags(rehearsal, { ...flags, statusUnreadable });
 }
 
+/** S252: every RentVine control flag off, as the rehearsal starts (reset.mjs). */
+export function clearRentvineFlags(rehearsal) {
+  return writeFlags(rehearsal, {});
+}
+
+/** S252: everything the stand-ins hold back to how they start (reset.mjs). */
+export const resetStandIns = (rehearsal) => standInControl(rehearsal, "reset");
+
+/**
+ * S252: remove every document from the rehearsal's own Firestore emulator (reset.mjs). The
+ * emulator's owner token is a fixed word, not a credential; the host is checked to be 127.0.0.1.
+ */
+export async function clearEmulatorDocuments(rehearsal) {
+  if (!LOOPBACK_HOST.test(rehearsal.firestoreEmulatorHost))
+    throw new Error("The rehearsal's Firestore emulator is not on 127.0.0.1.");
+  if (!/^pmi-kc-kb-[a-z0-9-]+-test$/.test(String(rehearsal.projectId)))
+    throw new Error("The rehearsal's emulator project is not a rehearsal test project.");
+  await call(
+    `http://${rehearsal.firestoreEmulatorHost}`,
+    `/emulator/v1/projects/${rehearsal.projectId}/databases/(default)/documents`,
+    { method: "DELETE", headers: { authorization: "Bearer owner" } },
+  );
+}
+
 /** Serve each renewed lease's recorded end date (true) or its current one (false). */
 export function setRecordingCycles(rehearsal, on) {
   return writeFlags(rehearsal, { ...readFlags(rehearsal), recordingCycles: Boolean(on) });

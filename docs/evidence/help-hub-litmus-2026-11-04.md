@@ -94,7 +94,7 @@ S244 audit corrected.
   failed one. The wording is this runner's Run 3 patch for an L10 finding at `cbe0de34`, where the
   guide said the card's status updates after either answer. Help V1.1 records the change
   (`lib/help/content/changelog.ts`, `lib/help/version.ts`), and the 22 pictures move to
-  `public/help/V1.1`, recaptured twice from the rehearsal at `d2d3a787`.
+  public/help/V1.1 (retired by help V2.0 in S252; kept in Git history), recaptured twice from the rehearsal at `d2d3a787`.
 - `scripts/lib/help-copy-inventory.mjs`: the S244 copy inventory reads each branch of a
   conditional or logical expression in muted text and in Field hints, the stricter gate Q2 asked
   about. The 65 texts it adds have disposition rows in `lib/help/copy-disposition/`; the 344
@@ -147,7 +147,7 @@ picture or protected path changed.
 - `lib/help/content/changelog.ts`: V1.1 was never released, so its What changed entry is amended in
   place. Its summary names all three results, its guides are prepare-documents,
   manage-connections and approve-or-deny, and it carries the new content digest; there is no V1.2.
-  The pictures under `public/help/V1.1` show no guide text and stay as captured.
+  The pictures under public/help/V1.1 (retired by help V2.0 in S252; kept in Git history) show no guide text and stay as captured.
 - `lib/help/copy-disposition/inline-lease-renewal-b.json`: the row for the card's staff line
   describes the Completion checks card when the lease's renewal progress record reads complete.
 

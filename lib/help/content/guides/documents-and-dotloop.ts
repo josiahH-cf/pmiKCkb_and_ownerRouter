@@ -78,7 +78,7 @@ export const DOCUMENTS_AND_DOTLOOP_GUIDES: readonly HelpGuide[] = [
       {
         id: "enter-packet-inputs",
         action:
-          "Choose Open packet inputs and save each lease fact, person and signer role, animal and charge the packet needs.",
+          "Choose Open packet inputs and save each lease fact, person and signer role, animal and charge the packet needs, and the owner explanation the Owner acknowledgment prints.",
         control: {
           label: "Open packet inputs",
           role: "button",
@@ -90,7 +90,7 @@ export const DOCUMENTS_AND_DOTLOOP_GUIDES: readonly HelpGuide[] = [
         route: WORKSPACE,
         where: "Document preparation, Document packet truth, Packet inputs",
         result:
-          "Packet inputs opens with Lease facts, People and signer roles, Animals and Charges, each saved with its own Save button. The packet, filled files and the Dotloop handoff use the saved values.",
+          "Packet inputs opens with Lease facts, People and signer roles, Animals, Charges and Owner acknowledgment, each saved with its own Save button. The packet, filled files and the Dotloop handoff use the saved values, and the owner acknowledgment prints the explanation in the paragraphs you saved.",
         effect: "saves-in-app",
         note: "Use the RentVine value takes the source value for a fact; a different value needs Why this corrects the RentVine value. The top line says whether the owner's recorded approval covers the current Working terms and charges.",
       },
@@ -260,6 +260,6 @@ export const DOCUMENTS_AND_DOTLOOP_GUIDES: readonly HelpGuide[] = [
     ],
     relatedGuides: ["owner-message", "work-a-renewal", "manage-connections"],
     relatedScreens: ["lease-workspace", "connections"],
-    lastUpdated: "2026-11-04",
+    lastUpdated: "2026-11-06",
   },
 ];

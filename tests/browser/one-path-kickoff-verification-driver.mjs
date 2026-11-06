@@ -18,6 +18,7 @@ import assert from "node:assert/strict";
 import { writeFileSync } from "node:fs";
 import net from "node:net";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { chromium } from "playwright-core";
 
 import { resolveBrowserExecutable } from "../../scripts/lib/browser-executable.mjs";
@@ -58,120 +59,135 @@ const check = (name, passed, observed) => {
 };
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
-const browser = await chromium.launch({
-  executablePath: resolveBrowserExecutable(),
-  headless: true,
-});
-let exitCode = 1;
-try {
-  await setComparisonAllowance(rehearsal, false);
-  await resetComparisonLog(rehearsal);
-  const context = await browser.newContext({
-    viewport: { width: 1280, height: 900 },
-    timezoneId: "America/Chicago",
-    locale: "en-US",
+/**
+ * S252: this driver's named, self-checking steps. The journey driver
+ * (tests/browser/one-path-journey-driver.mjs) imports and runs this function in its own order;
+ * run alone, the file runs it once and exits with its result. Resolves with { exitCode, checks }.
+ */
+export async function runKickoffVerification() {
+  const browser = await chromium.launch({
+    executablePath: resolveBrowserExecutable(),
+    headless: true,
   });
-  // Sign-in is the one write the session needs; it happens before the guard is installed, on a
-  // separate page, exactly as the canary signs in before its read-only inspection.
-  const signInPage = await context.newPage();
-  await signInPage.goto(`${origin}/sign-in`, { waitUntil: "domcontentloaded" });
-  assert.ok(
-    await signInPage.evaluate(() =>
-      fetch("/api/auth/demo", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ role: "Editor" }),
-      }).then((response) => response.ok),
-    ),
-    "Local demo Editor sign-in failed.",
-  );
-  await signInPage.close();
+  let exitCode = 1;
+  try {
+    await setComparisonAllowance(rehearsal, false);
+    await resetComparisonLog(rehearsal);
+    const context = await browser.newContext({
+      viewport: { width: 1280, height: 900 },
+      timezoneId: "America/Chicago",
+      locale: "en-US",
+    });
+    // Sign-in is the one write the session needs; it happens before the guard is installed, on a
+    // separate page, exactly as the canary signs in before its read-only inspection.
+    const signInPage = await context.newPage();
+    await signInPage.goto(`${origin}/sign-in`, { waitUntil: "domcontentloaded" });
+    assert.ok(
+      await signInPage.evaluate(() =>
+        fetch("/api/auth/demo", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ role: "Editor" }),
+        }).then((response) => response.ok),
+      ),
+      "Local demo Editor sign-in failed.",
+    );
+    await signInPage.close();
 
-  const mutationAttempts = [];
-  const offOrigin = [];
-  await context.route("**/*", (route) => {
-    const request = route.request();
-    const url = new URL(request.url());
-    if (url.origin !== origin) {
-      offOrigin.push(url.origin);
-      return route.abort("blockedbyclient");
-    }
-    if (!SAFE_METHODS.has(request.method())) {
-      mutationAttempts.push(`${request.method()} ${url.pathname}`);
-      return route.abort("blockedbyclient");
-    }
-    return route.continue();
-  });
-  const page = await context.newPage();
-  page.setDefaultTimeout(240_000);
-  page.setDefaultNavigationTimeout(240_000);
-  const webdriver = await page.evaluate(() => navigator.webdriver);
+    const mutationAttempts = [];
+    const offOrigin = [];
+    await context.route("**/*", (route) => {
+      const request = route.request();
+      const url = new URL(request.url());
+      if (url.origin !== origin) {
+        offOrigin.push(url.origin);
+        return route.abort("blockedbyclient");
+      }
+      if (!SAFE_METHODS.has(request.method())) {
+        mutationAttempts.push(`${request.method()} ${url.pathname}`);
+        return route.abort("blockedbyclient");
+      }
+      return route.continue();
+    });
+    const page = await context.newPage();
+    page.setDefaultTimeout(240_000);
+    page.setDefaultNavigationTimeout(240_000);
+    const webdriver = await page.evaluate(() => navigator.webdriver);
 
-  await page.goto(`${origin}/lease-renewal/live/desk`, { waitUntil: "domcontentloaded" });
-  const batch = page.getByRole("region", { name: "Batch preparation", exact: true });
-  await batch.waitFor();
-  const setting = await batch.getAttribute("data-kickoff-automatic");
-  const targets = Number(await batch.getAttribute("data-kickoff-targets"));
-  // Well past the visible-and-idle delay (AUTOMATIC_START_IDLE_MS) the automatic start waits for.
-  await page.waitForTimeout(8000);
-  await page.reload({ waitUntil: "domcontentloaded" });
-  await batch.waitFor();
-  await page.waitForTimeout(8000);
-  await page.goto(`${origin}/lease-renewal/live/desk/lease/${prepared}`, {
-    waitUntil: "domcontentloaded",
-  });
-  await page.getByRole("group", { name: "Lease view", exact: true }).waitFor();
-  await page.waitForTimeout(5000);
-  const comparisons = (await standInState(rehearsal)).comparison.comparisonsByLease ?? {};
+    await page.goto(`${origin}/lease-renewal/live/desk`, {
+      waitUntil: "domcontentloaded",
+    });
+    const batch = page.getByRole("region", { name: "Batch preparation", exact: true });
+    await batch.waitFor();
+    const setting = await batch.getAttribute("data-kickoff-automatic");
+    const targets = Number(await batch.getAttribute("data-kickoff-targets"));
+    // Well past the visible-and-idle delay (AUTOMATIC_START_IDLE_MS) the automatic start waits for.
+    await page.waitForTimeout(8000);
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await batch.waitFor();
+    await page.waitForTimeout(8000);
+    await page.goto(`${origin}/lease-renewal/live/desk/lease/${prepared}`, {
+      waitUntil: "domcontentloaded",
+    });
+    await page.getByRole("group", { name: "Lease view", exact: true }).waitFor();
+    await page.waitForTimeout(5000);
+    const comparisons =
+      (await standInState(rehearsal)).comparison.comparisonsByLease ?? {};
 
-  check(
-    "the session is automated, the setting is on and the batch has leases with no stored comparison",
-    webdriver === true && setting === "on" && targets > 0,
-    { webdriver, setting, targets },
-  );
-  check(
-    "a verification session starts no lookup: zero comparison requests at the stand-in",
-    Object.keys(comparisons).length === 0,
-    { comparisons },
-  );
-  check(
-    "a verification session makes no mutation attempt (every non-GET request is aborted and counted)",
-    mutationAttempts.length === 0,
-    { mutationAttempts },
-  );
-  // Refused requests were stopped at the boundary; none may have been aimed at production, a
-  // provider or a mailbox. Other refused hosts (a dev tool's update check) are listed.
-  const refused = refusedConnections(rehearsal);
-  const aimed = refused.filter((entry) =>
-    /googleapis|google\.com|gmail|rentvine|rentcast|dotloop|run\.app|pmikc|firebase(io)?\.com|anthropic|openai/i.test(
-      String(entry.host ?? entry.refused ?? ""),
-    ),
-  );
-  check(
-    "nothing left the machine: no off-origin request from the page and no refused call aimed at production, a provider or a mailbox",
-    offOrigin.length === 0 && aimed.length === 0,
-    {
-      offOrigin,
-      aimed: aimed.slice(0, 10),
-      otherRefusedHosts: [...new Set(refused.map((entry) => entry.host))],
-    },
-  );
-  exitCode = checks.every((entry) => entry.passed) ? 0 : 1;
-} catch (error) {
-  checks.push({
-    name: "driver ran to the end",
-    passed: false,
-    observed: String(error?.stack ?? error).slice(0, 2000),
-  });
-  process.stdout.write(
-    `FAIL driver ran to the end: ${String(error?.message ?? error)}\n`,
-  );
-  exitCode = 1;
-} finally {
-  writeFileSync(
-    join(runDir, "kickoff-verification.json"),
-    `${JSON.stringify({ checks }, null, 2)}\n`,
-  );
-  await browser.close().catch(() => undefined);
+    check(
+      "the session is automated, the setting is on and the batch has leases with no stored comparison",
+      webdriver === true && setting === "on" && targets > 0,
+      { webdriver, setting, targets },
+    );
+    check(
+      "a verification session starts no lookup: zero comparison requests at the stand-in",
+      Object.keys(comparisons).length === 0,
+      { comparisons },
+    );
+    check(
+      "a verification session makes no mutation attempt (every non-GET request is aborted and counted)",
+      mutationAttempts.length === 0,
+      { mutationAttempts },
+    );
+    // Refused requests were stopped at the boundary; none may have been aimed at production, a
+    // provider or a mailbox. Other refused hosts (a dev tool's update check) are listed.
+    const refused = refusedConnections(rehearsal);
+    const aimed = refused.filter((entry) =>
+      /googleapis|google\.com|gmail|rentvine|rentcast|dotloop|run\.app|pmikc|firebase(io)?\.com|anthropic|openai/i.test(
+        String(entry.host ?? entry.refused ?? ""),
+      ),
+    );
+    check(
+      "nothing left the machine: no off-origin request from the page and no refused call aimed at production, a provider or a mailbox",
+      offOrigin.length === 0 && aimed.length === 0,
+      {
+        offOrigin,
+        aimed: aimed.slice(0, 10),
+        otherRefusedHosts: [...new Set(refused.map((entry) => entry.host))],
+      },
+    );
+    exitCode = checks.every((entry) => entry.passed) ? 0 : 1;
+  } catch (error) {
+    checks.push({
+      name: "driver ran to the end",
+      passed: false,
+      observed: String(error?.stack ?? error).slice(0, 2000),
+    });
+    process.stdout.write(
+      `FAIL driver ran to the end: ${String(error?.message ?? error)}\n`,
+    );
+    exitCode = 1;
+  } finally {
+    writeFileSync(
+      join(runDir, "kickoff-verification.json"),
+      `${JSON.stringify({ checks }, null, 2)}\n`,
+    );
+    await browser.close().catch(() => undefined);
+  }
+  return { exitCode: exitCode, checks };
 }
-process.exit(exitCode);
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const { exitCode } = await runKickoffVerification();
+  process.exit(exitCode);
+}

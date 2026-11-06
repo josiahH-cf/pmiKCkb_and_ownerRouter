@@ -603,6 +603,13 @@
   },
   {
     "kind": "inline",
+    "location": "components/lease-renewal/RenewalOwnerDecisionFromReply.tsx",
+    "text": "Owner response below records an authorized representative, another written channel or a conversation.",
+    "describes": "Now card owner decision from an observed reply: an approval by a representative, another written channel or a conversation is recorded in Owner response (S252 L36)",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
     "location": "components/lease-renewal/RenewalHousingAssistance.tsx",
     "text": "…first, recorded as the program contact above.",
     "describes": "Assisted lease owner section: the program contact comes first, recorded with the activity form (S251)",
