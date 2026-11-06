@@ -164,6 +164,8 @@ async function renewalTarget(actor: AuthenticatedUser, c: WorkflowCommunicationC
   return {
     target,
     initial,
+    // S249 ARCH-S249-2: the lease message record's revision this composition was made from.
+    messageRevision: current.messageRevision,
     attachmentNotice: current.attachment
       ? "The saved comparable image is available in the lease workspace. Add the exact file here before authorization."
       : null,

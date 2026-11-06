@@ -424,12 +424,7 @@ export function projectRenewalPreparation(
       label: "Numbers checked",
       ready: numbers.state === "agree",
       missing: numbers.state === "agree" ? null : numbers.line,
-      fix:
-        numbers.state === "difference"
-          ? numbers.fix
-          : numbers.state === "unavailable"
-            ? null
-            : null,
+      fix: numbers.state === "difference" ? numbers.fix : null,
     },
     {
       key: "comparison",
@@ -521,6 +516,101 @@ export function projectRenewalPreparation(
     sendable: items.every((item) => item.ready),
     missing,
   };
+}
+
+/** The items "Review and send" needs (R-S249-10, R-S249-11), in the order the Now card lists them. */
+export const SEND_READINESS_KEYS: readonly RenewalKickoffItemKey[] = [
+  "rent",
+  "recipient",
+  "signature",
+  "template",
+  "marked_values",
+];
+
+/**
+ * The same projection with what the lease page knows live since it was made: the staff member's
+ * own signature once they set it up, a rent they typed, the recipients and template the message
+ * read. Pure; the item words and fixes are the projection's own.
+ */
+export function withLiveKickoff(
+  preparation: RenewalPreparation,
+  live: {
+    readonly signature?: boolean | null;
+    readonly typedRent?: number | null;
+    readonly recipientReady?: boolean | null;
+    readonly templateApproved?: boolean | null;
+    /** The values the live message still marks, by name; empty when it carries none. */
+    readonly marked?: readonly string[] | null;
+  },
+): RenewalPreparation {
+  const rent: RenewalRentView =
+    typeof live.typedRent === "number" && live.typedRent > 0
+      ? {
+          value: live.typedRent,
+          origin: "typed",
+          basis: "Entered by staff. A later proposal never replaces it.",
+        }
+      : preparation.rent;
+  const items = preparation.items.map((item): RenewalKickoffItem => {
+    const set = (
+      ready: boolean | null | undefined,
+      missing: string,
+      fix: RenewalPreparationFix,
+    ): RenewalKickoffItem =>
+      ready === undefined || ready === null
+        ? item
+        : {
+            key: item.key,
+            label: item.label,
+            ready,
+            missing: ready ? null : missing,
+            fix: ready ? null : fix,
+          };
+    switch (item.key) {
+      case "rent":
+        return rent.value !== null
+          ? { ...item, ready: true, missing: null, fix: null }
+          : item;
+      case "signature":
+        return set(live.signature, "your signature", {
+          label: "Set up your signature",
+          target: KICKOFF_FIX_TARGETS.signature,
+        });
+      case "recipient":
+        return set(live.recipientReady, "a verified owner recipient", {
+          label: "Add the owner's email on the owner record in RentVine",
+          target: KICKOFF_FIX_TARGETS.ownerMessage,
+        });
+      case "template":
+        return set(live.templateApproved, "an approved owner template", {
+          label: "Ask an Approver to publish the owner template",
+          target: KICKOFF_FIX_TARGETS.ownerMessage,
+        });
+      case "marked_values":
+        return live.marked
+          ? set(live.marked.length === 0, live.marked.join(", "), {
+              label: "Review the marked values",
+              target: KICKOFF_FIX_TARGETS.markedValues,
+            })
+          : item;
+      default:
+        return item;
+    }
+  });
+  return {
+    ...preparation,
+    rent,
+    items,
+    sendable: items.every((item) => item.ready),
+    missing: items.flatMap((item) => (item.ready || !item.missing ? [] : [item.missing])),
+  };
+}
+
+/** True when every item "Review and send" needs is ready. */
+export function sendReady(preparation: RenewalPreparation): boolean {
+  return preparation.items
+    .filter((item) => SEND_READINESS_KEYS.includes(item.key))
+    .every((item) => item.ready);
 }
 
 /** The desk row's one line about the kickoff, from the same projection the Now card reads. */

@@ -147,6 +147,25 @@ export function sheetValuesFrom(dataCheck: readonly DeskReconItem[] | null | und
   };
 }
 
+/**
+ * R-S249-5 / AC-S249-5: the rent staff typed. The working renewal rent first; else a recommended
+ * rent staff entered in the comparison section themselves (reviewed, never a provider estimate).
+ */
+export function typedRecommendation(
+  working: RenewalWorkingRecord | null | undefined,
+  manual: RenewalWorkspaceState | null,
+): number | null {
+  const workingRent = workingRenewalTerms(working ?? null).rent;
+  if (workingRent !== null) return workingRent;
+  const market = manual?.preparation?.market;
+  return market &&
+    market.recommendationBasis !== "provider" &&
+    typeof market.pmiNumber === "number" &&
+    market.pmiNumber > 0
+    ? market.pmiNumber
+    : null;
+}
+
 /** The current RentVine rent-account charge amounts in a charge inventory; null when unread. */
 export function currentRentChargeAmounts(
   inventory: RenewalChargeInventory | null | undefined,
@@ -214,7 +233,7 @@ export function kickoffFactsFor(input: KickoffFactsInput): RenewalKickoffFacts {
       sourceReadable: input.sourceReadable,
     },
     comparison,
-    typedRent: workingRenewalTerms(input.working ?? null).rent,
+    typedRent: typedRecommendation(input.working, input.manual),
     agreementRent: input.agreementRent ?? null,
     currentRent: input.contractualRent,
     ownerRecipient: input.ownerRecipient,

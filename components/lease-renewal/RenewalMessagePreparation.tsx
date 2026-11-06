@@ -47,6 +47,7 @@ import {
 } from "@/lib/lease-renewal/message-readiness";
 import {
   emptyMessagePreparationInputs,
+  RecommendationReasonSchema,
   MessagePreparationInputsSchema,
   type MessagePreparationInputs,
   type MessagePreparationRecord,
@@ -58,6 +59,12 @@ import {
 import { formatRecipientsForCopy } from "@/lib/lease-renewal/recipient-resolution";
 import { GEMINI_IN_GMAIL_HINT } from "@/lib/email-refinement/hint";
 import { RefineWithAi } from "@/components/email/RefineWithAi";
+import { messageRevisionOf } from "@/lib/lease-renewal/message-revision";
+import {
+  PreparedMessageSlot,
+  type PreparedMessageData,
+  type PreparedSignatureFields,
+} from "@/components/lease-renewal/RenewalPreparedMessage";
 import {
   AuthoredSubjectSchema,
   RefinedBodySchema,
@@ -111,7 +118,11 @@ interface Preparation {
     state: string;
     recoveryAvailable: boolean;
     outcome: RenewalNoticeDraftOutcome | null;
+    /** The exact draft the attempt prepared; its revision says whether it is older (S249). */
+    preview?: { subject: string; body: string } | null;
   } | null;
+  /** S249 ARCH-S249-2: the saved message record's revision. */
+  messageRevision?: string;
   senderEmail: string;
   /** The work record this message is stored under; null until its first save establishes one. */
   cycleId: string | null;
@@ -263,6 +274,15 @@ function savableInputs(
     if (parsed.success) signature = parsed.data;
     else unfinished.push("Sender signature");
   }
+  // S249 R-S249-6: the optional one-line reason; blank is no reason, an unusable one is unfinished.
+  let recommendationReason = saved.recommendationReason ?? null;
+  const typedReason = raw.recommendationReason?.trim() ?? "";
+  if (!typedReason) recommendationReason = null;
+  else {
+    const parsed = RecommendationReasonSchema.safeParse(typedReason);
+    if (parsed.success) recommendationReason = parsed.data;
+    else unfinished.push("Reason to include");
+  }
   return {
     inputs: {
       edits: edits.success ? edits.data : saved.edits,
@@ -284,6 +304,8 @@ function savableInputs(
           }
         : null,
       signature,
+      // Present only when there is one, so a message without a reason saves exactly as before.
+      ...(recommendationReason ? { recommendationReason } : {}),
     },
     unfinished,
   };
@@ -370,6 +392,8 @@ function MessagePreparationEditor({
     [notice, setNotice] = useState("");
   const [confirming, setConfirming] = useState(false);
   const [outcome, setOutcome] = useState<RenewalNoticeDraftOutcome | null>(null);
+  // S249 R-S249-9: the message revision the unsent Gmail draft created here carries.
+  const [createdDraftRevision, setCreatedDraftRevision] = useState<string | null>(null);
   // A lost preview response may have saved the wording. Retry the same request identity while
   // its exact local state and expected revision match; never invent another save on uncertainty.
   const previewSaveIdentity = useRef<{ key: string; operationId: string } | null>(null);
@@ -672,6 +696,7 @@ function MessagePreparationEditor({
               ]
             : [],
         charges: effective.charges,
+        recommendationReason: effective.recommendationReason ?? null,
         leaseOrigin: effective.leaseOrigin,
         insuranceTransition: effective.insuranceTransition,
         otherChargesComparison: effective.otherChargesComparison,
@@ -835,6 +860,8 @@ function MessagePreparationEditor({
     setPending(true);
     setConfirming(false);
     setNotice("");
+    const confirmedPreview =
+      kind === "create" && outcome?.status === "preview" ? outcome : null;
     try {
       let preview: Record<string, unknown> = {};
       let savedWith: string | null = null;
@@ -935,6 +962,13 @@ function MessagePreparationEditor({
       previewSaveIdentity.current = null;
       setOutcome(parsed);
       if (parsed.status === "blocked") setNotice(parsed.reasons.join(" "));
+      if (parsed.status === "created" && confirmedPreview)
+        setCreatedDraftRevision(
+          messageRevisionOf({
+            subject: confirmedPreview.subject,
+            body: confirmedPreview.body,
+          }),
+        );
       if (parsed.status === "created")
         setNotice(
           kind === "reconcile"
@@ -992,983 +1026,1123 @@ function MessagePreparationEditor({
     Boolean(current?.retainedSignature) &&
     canonical(signature ?? null) !== canonical(current?.retainedSignature ?? null);
   const channelLabel = channel === "owner" ? "Owner" : "Tenant";
-  return (
-    <Card
-      title={renewalCardTitle(
-        channel === "owner" ? "message-preparation-owner" : "message-preparation-tenant",
-        `${channelLabel} message preparation`,
-      )}
-      ariaLabel={`${channelLabel} message preparation`}
-      id={`renewal-card-message-${channel}`}
-    >
-      <a
-        className="primary-button"
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={(event) => void openComposer(event)}
-        href={workflowComposerHref({
+  // S249 ARCH-S249-2: the Now card's preview and delivery actions read this same message.
+  const shownRevision = shownContent
+    ? messageRevisionOf({ subject: shownContent.subject, body: shownContent.plainText })
+    : null;
+  const attemptOutcome = current?.draftAttempt?.outcome ?? null;
+  const attemptCreated =
+    attemptOutcome?.status === "created" ||
+    (attemptOutcome?.status === "reconciliation" &&
+      attemptOutcome.resolution === "created");
+  const draftRevision =
+    createdDraftRevision ??
+    (attemptCreated && current?.draftAttempt?.preview
+      ? messageRevisionOf(current.draftAttempt.preview)
+      : null);
+  /** Save what is on screen; true once the saved message reads back as shown. */
+  async function flush(): Promise<boolean> {
+    if (!canEdit || !currentRef.current) return false;
+    if (saving.current) await saving.current;
+    await runAutosave();
+    if (saving.current) await saving.current;
+    const latest = currentRef.current;
+    const value = latest ? savePayload(localRef.current, latest) : null;
+    return Boolean(
+      value &&
+      !value.wordingUnfinished &&
+      canonical(value.value) === lastSavedRef.current,
+    );
+  }
+  /** R-S249-11: the sender's own signature, set up on the Now card; a refusal names what is missing. */
+  function saveSignature(fields: PreparedSignatureFields): string | null {
+    const name = fields.name.trim();
+    const role = fields.role.trim();
+    const phone = fields.phone.trim();
+    const missing = [
+      ...(name ? [] : ["Sender name"]),
+      ...(name.length > 240 ? ["Sender name (240 characters at most)"] : []),
+      ...(role.length > 240
+        ? ["Approved role / organization (240 characters at most)"]
+        : []),
+      ...(phone.length > 240 ? ["Verified phone (240 characters at most)"] : []),
+    ];
+    if (missing.length) return `To save your signature, add: ${missing.join(", ")}.`;
+    change({
+      ...inputs,
+      signature: {
+        name,
+        role: role || null,
+        phone: phone || null,
+        hours: null,
+        website: null,
+        source: STAFF_ENTRY_SOURCE,
+      },
+    });
+    commit();
+    return null;
+  }
+  const marked = shownContent
+    ? (readiness?.items.slice(0, shownContent.missing.length) ?? []).map(
+        (item) => item.target.label,
+      )
+    : [];
+  const preparedData: PreparedMessageData | null =
+    current && shownContent && shownRevision
+      ? {
+          channel,
           leaseId,
-          purpose: channel === "owner" ? "renewal_owner" : "renewal_tenant",
-        })}
-      >
-        Compose {channel} message in Communications
-      </a>
-      <p className="muted">
-        Edits save in the app. In Communications, review the exact message and use Send or
-        Schedule when its current checks pass. Resume requires a fresh review. You can
-        also create an unsent Gmail draft below and send it from Gmail.
-      </p>
-      {notice ? <p role="status">{notice}</p> : null}
-      {[...new Set(current?.notices ?? [])].map((value) => (
-        <p key={value} className="muted">
-          {value}
-        </p>
-      ))}
-      {!current ? (
-        <Button
-          disabled={pending}
-          onClick={() => load().catch((error) => setNotice(error.message))}
-        >
-          Reload message preparation
-        </Button>
-      ) : (
-        <>
-          {/* S162: copy uses exactly the subject and body shown here, with their markers,
-              whatever the save or the missing values are doing. */}
-          <section
-            aria-label="Copy the message"
-            className="ui-stack-tight renewal-message-group"
-          >
-            <h3 className="renewal-message-group-title">Copy the message</h3>
-            <Field htmlFor={MESSAGE_CONTROL_IDS.subject(channel)} label="Subject">
-              <input
-                id={MESSAGE_CONTROL_IDS.subject(channel)}
-                readOnly={!canEdit}
-                value={subjectText ?? content?.subject ?? ""}
-                onChange={(event) => {
-                  setSubjectText(
-                    event.target.value === content?.subject ? null : event.target.value,
-                  );
-                  touch();
-                }}
-                onBlur={(event) => {
-                  if (isRenewalPresentationMove(event.relatedTarget)) return;
-                  if (subjectText !== null && !subjectText.trim()) setSubjectText(null);
-                  commit();
-                }}
-              />
-            </Field>
-            {current?.recipients ? (
-              current.recipients.status === "ready" ? (
-                <p className="renewal-message-recipients">
-                  <strong>To:</strong> {current.recipients.to}
-                  {current.recipients.cc.length > 0 ? (
-                    <>
-                      {" "}
-                      <strong>Cc:</strong> {current.recipients.cc.join(", ")}
-                    </>
-                  ) : null}
-                </p>
-              ) : (
-                <ul className="renewal-message-recipients" role="status">
-                  {[...new Set(current.recipients.reasons)].map((reason) => (
-                    <li key={reason}>{reason}</li>
-                  ))}
-                </ul>
-              )
-            ) : null}
-            <div className="ui-actions">
-              <Button
-                variant="secondary"
-                disabled={!shownContent || copying}
-                onClick={() => copy("subject")}
-              >
-                Copy subject
-              </Button>
-              <Button
-                variant="secondary"
-                disabled={!shownContent || copying}
-                onClick={() => copy("formatted")}
-              >
-                <MessageCopyIcon name="copy" size={16} /> Copy formatted body
-              </Button>
-              <Button
-                variant="secondary"
-                disabled={!shownContent || copying}
-                onClick={() => copy("plain")}
-              >
-                <MessageCopyIcon name="copy" size={16} /> Copy plain text
-              </Button>
-              {current?.recipients ? (
-                <Button
-                  variant="secondary"
-                  disabled={current.recipients.status !== "ready" || copying}
-                  onClick={() => copy("recipients")}
-                >
-                  Copy recipients
-                </Button>
-              ) : null}
-            </div>
-            {current.destinations?.gmailDrafts
-              ? externalLink(
-                  current.destinations.gmailDrafts,
-                  "Open the Gmail Drafts folder",
-                )
-              : null}
-            {current.destinations ? (
-              <p className="muted renewal-message-destinations">
-                RentVine:{" "}
-                {channel === "owner"
-                  ? current.destinations.owners.map((owner, index) => (
-                      <span key={owner.record.href}>
-                        {index > 0 ? " · " : ""}
-                        {externalLink(
-                          owner.messages,
-                          `${owner.name}: open owner messages in RentVine`,
-                        )}
-                        {" · "}
-                        {externalLink(owner.record, "open owner record in RentVine")}
-                      </span>
-                    ))
-                  : current.destinations.messages
-                    ? externalLink(
-                        current.destinations.messages,
-                        "Open lease messages in RentVine",
-                      )
-                    : null}
-                {current.destinations.lease ? (
-                  <>
-                    {" · "}
-                    {externalLink(
-                      current.destinations.lease,
-                      "Open lease record in RentVine",
-                    )}
-                  </>
-                ) : null}
-              </p>
-            ) : null}
-          </section>
-          {shownContent ? (
-            <>
-              <Field
-                htmlFor={MESSAGE_CONTROL_IDS.body(channel)}
-                label="Email body"
-                hint="Copy uses the wording shown, including unresolved markers. The unsent Gmail draft validates the current message before exact creation confirmation."
-              >
-                <textarea
-                  className="renewal-message-body"
-                  id={MESSAGE_CONTROL_IDS.body(channel)}
-                  readOnly={!canEdit}
-                  rows={16}
-                  value={override ? override.text : (content?.plainText ?? "")}
-                  onChange={(event) =>
-                    overrideChange(
-                      event.target.value === content?.plainText
-                        ? null
-                        : {
-                            text: event.target.value,
-                            baseHash:
-                              override?.baseHash ?? current.bodyBaseHash ?? NO_BASE_HASH,
-                          },
-                    )
+          canEdit,
+          subject: shownContent.subject,
+          plainText: shownContent.plainText,
+          htmlBody: shownContent.htmlBody,
+          revision: shownRevision,
+          to: current.recipients?.status === "ready" ? current.recipients.to : null,
+          cc: current.recipients?.status === "ready" ? current.recipients.cc : [],
+          recipientReasons:
+            current.recipients?.status === "blocked" ? current.recipients.reasons : [],
+          senderEmail: current.senderEmail,
+          templateApproved: current.publication.status === "approved",
+          lastEditedAt: current.saved?.updatedAt ?? null,
+          marked,
+          signaturePresent: Boolean(payload?.effective.signature),
+          reason: inputs.recommendationReason ?? "",
+          composerHref: workflowComposerHref({
+            leaseId,
+            purpose: channel === "owner" ? "renewal_owner" : "renewal_tenant",
+          }),
+          draft: {
+            available: canDraft,
+            pending,
+            createdRevision: draftRevision,
+            preview:
+              outcome?.status === "preview"
+                ? {
+                    subject: outcome.subject,
+                    body: outcome.body,
+                    to: [outcome.recipient.to, ...(outcome.recipient.cc ?? [])].join(
+                      ", ",
+                    ),
                   }
+                : null,
+          },
+          notice,
+        }
+      : null;
+  return (
+    <>
+      {preparedData ? (
+        <PreparedMessageSlot
+          data={preparedData}
+          onCopy={() => copy("formatted")}
+          onDraftCreate={() => draft("create")}
+          onDraftPreview={() => draft("preview")}
+          onFlush={flush}
+          onOpenComposer={(event) => void openComposer(event)}
+          onReasonChange={(value) =>
+            change({ ...inputs, recommendationReason: value || null })
+          }
+          onReasonCommit={commit}
+          onSaveSignature={saveSignature}
+        />
+      ) : null}
+      <Card
+        title={renewalCardTitle(
+          channel === "owner"
+            ? "message-preparation-owner"
+            : "message-preparation-tenant",
+          `${channelLabel} message preparation`,
+        )}
+        ariaLabel={`${channelLabel} message preparation`}
+        id={`renewal-card-message-${channel}`}
+      >
+        <a
+          className="primary-button"
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(event) => void openComposer(event)}
+          href={workflowComposerHref({
+            leaseId,
+            purpose: channel === "owner" ? "renewal_owner" : "renewal_tenant",
+          })}
+        >
+          Compose {channel} message in Communications
+        </a>
+        <p className="muted">
+          Edits save in the app. In Communications, review the exact message and use Send
+          or Schedule when its current checks pass. Resume requires a fresh review. You
+          can also create an unsent Gmail draft below and send it from Gmail.
+        </p>
+        {notice ? <p role="status">{notice}</p> : null}
+        {[...new Set(current?.notices ?? [])].map((value) => (
+          <p key={value} className="muted">
+            {value}
+          </p>
+        ))}
+        {!current ? (
+          <Button
+            disabled={pending}
+            onClick={() => load().catch((error) => setNotice(error.message))}
+          >
+            Reload message preparation
+          </Button>
+        ) : (
+          <>
+            {/* S162: copy uses exactly the subject and body shown here, with their markers,
+              whatever the save or the missing values are doing. */}
+            <section
+              aria-label="Copy the message"
+              className="ui-stack-tight renewal-message-group"
+            >
+              <h3 className="renewal-message-group-title">Copy the message</h3>
+              <Field htmlFor={MESSAGE_CONTROL_IDS.subject(channel)} label="Subject">
+                <input
+                  id={MESSAGE_CONTROL_IDS.subject(channel)}
+                  readOnly={!canEdit}
+                  value={subjectText ?? content?.subject ?? ""}
+                  onChange={(event) => {
+                    setSubjectText(
+                      event.target.value === content?.subject ? null : event.target.value,
+                    );
+                    touch();
+                  }}
                   onBlur={(event) => {
                     if (isRenewalPresentationMove(event.relatedTarget)) return;
-                    if (override && !override.text.trim()) overrideChange(null);
+                    if (subjectText !== null && !subjectText.trim()) setSubjectText(null);
                     commit();
                   }}
                 />
               </Field>
-              {authoredBody ? (
-                <div className="ui-stack-tight">
-                  <p className="muted" role="status">
-                    {wordingChangedSince
-                      ? STALE_REFINED_BODY_MESSAGE
-                      : "Your wording is kept exactly as written. It is not replaced when the lease information changes."}
+              {current?.recipients ? (
+                current.recipients.status === "ready" ? (
+                  <p className="renewal-message-recipients">
+                    <strong>To:</strong> {current.recipients.to}
+                    {current.recipients.cc.length > 0 ? (
+                      <>
+                        {" "}
+                        <strong>Cc:</strong> {current.recipients.cc.join(", ")}
+                      </>
+                    ) : null}
                   </p>
-                  {canEdit ? (
-                    <div className="ui-actions">
-                      {previousOverride !== undefined ? (
+                ) : (
+                  <ul className="renewal-message-recipients" role="status">
+                    {[...new Set(current.recipients.reasons)].map((reason) => (
+                      <li key={reason}>{reason}</li>
+                    ))}
+                  </ul>
+                )
+              ) : null}
+              <div className="ui-actions">
+                <Button
+                  variant="secondary"
+                  disabled={!shownContent || copying}
+                  onClick={() => copy("subject")}
+                >
+                  Copy subject
+                </Button>
+                <Button
+                  variant="secondary"
+                  disabled={!shownContent || copying}
+                  onClick={() => copy("formatted")}
+                >
+                  <MessageCopyIcon name="copy" size={16} /> Copy formatted body
+                </Button>
+                <Button
+                  variant="secondary"
+                  disabled={!shownContent || copying}
+                  onClick={() => copy("plain")}
+                >
+                  <MessageCopyIcon name="copy" size={16} /> Copy plain text
+                </Button>
+                {current?.recipients ? (
+                  <Button
+                    variant="secondary"
+                    disabled={current.recipients.status !== "ready" || copying}
+                    onClick={() => copy("recipients")}
+                  >
+                    Copy recipients
+                  </Button>
+                ) : null}
+              </div>
+              {current.destinations?.gmailDrafts
+                ? externalLink(
+                    current.destinations.gmailDrafts,
+                    "Open the Gmail Drafts folder",
+                  )
+                : null}
+              {current.destinations ? (
+                <p className="muted renewal-message-destinations">
+                  RentVine:{" "}
+                  {channel === "owner"
+                    ? current.destinations.owners.map((owner, index) => (
+                        <span key={owner.record.href}>
+                          {index > 0 ? " · " : ""}
+                          {externalLink(
+                            owner.messages,
+                            `${owner.name}: open owner messages in RentVine`,
+                          )}
+                          {" · "}
+                          {externalLink(owner.record, "open owner record in RentVine")}
+                        </span>
+                      ))
+                    : current.destinations.messages
+                      ? externalLink(
+                          current.destinations.messages,
+                          "Open lease messages in RentVine",
+                        )
+                      : null}
+                  {current.destinations.lease ? (
+                    <>
+                      {" · "}
+                      {externalLink(
+                        current.destinations.lease,
+                        "Open lease record in RentVine",
+                      )}
+                    </>
+                  ) : null}
+                </p>
+              ) : null}
+            </section>
+            {shownContent ? (
+              <>
+                <Field
+                  htmlFor={MESSAGE_CONTROL_IDS.body(channel)}
+                  label="Email body"
+                  hint="Copy uses the wording shown, including unresolved markers. The unsent Gmail draft validates the current message before exact creation confirmation."
+                >
+                  <textarea
+                    className="renewal-message-body"
+                    id={MESSAGE_CONTROL_IDS.body(channel)}
+                    readOnly={!canEdit}
+                    rows={16}
+                    value={override ? override.text : (content?.plainText ?? "")}
+                    onChange={(event) =>
+                      overrideChange(
+                        event.target.value === content?.plainText
+                          ? null
+                          : {
+                              text: event.target.value,
+                              baseHash:
+                                override?.baseHash ??
+                                current.bodyBaseHash ??
+                                NO_BASE_HASH,
+                            },
+                      )
+                    }
+                    onBlur={(event) => {
+                      if (isRenewalPresentationMove(event.relatedTarget)) return;
+                      if (override && !override.text.trim()) overrideChange(null);
+                      commit();
+                    }}
+                  />
+                </Field>
+                {authoredBody ? (
+                  <div className="ui-stack-tight">
+                    <p className="muted" role="status">
+                      {wordingChangedSince
+                        ? STALE_REFINED_BODY_MESSAGE
+                        : "Your wording is kept exactly as written. It is not replaced when the lease information changes."}
+                    </p>
+                    {canEdit ? (
+                      <div className="ui-actions">
+                        {previousOverride !== undefined ? (
+                          <Button
+                            onClick={() => {
+                              overrideChange(previousOverride);
+                              setPreviousOverride(undefined);
+                              commit();
+                            }}
+                            type="button"
+                            variant="secondary"
+                          >
+                            Undo the last refinement
+                          </Button>
+                        ) : null}
                         <Button
                           onClick={() => {
-                            overrideChange(previousOverride);
-                            setPreviousOverride(undefined);
+                            overrideChange(null, true);
                             commit();
                           }}
                           type="button"
                           variant="secondary"
                         >
-                          Undo the last refinement
+                          Return to the standard wording
                         </Button>
-                      ) : null}
-                      <Button
-                        onClick={() => {
-                          overrideChange(null, true);
-                          commit();
-                        }}
-                        type="button"
-                        variant="secondary"
-                      >
-                        Return to the standard wording
-                      </Button>
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-              {overrideState === "unreadable" && !override ? (
-                <p role="status">{UNREADABLE_REFINED_BODY_MESSAGE}</p>
-              ) : null}
-              <details open>
-                <summary>Formatted preview</summary>
-                <div
-                  aria-label={`${channel} formatted body`}
-                  className="renewal-message-preview"
-                  dangerouslySetInnerHTML={{ __html: shownContent.htmlBody }}
-                />
-              </details>
-              <fieldset
-                className="ui-stack-tight renewal-message-group"
-                disabled={!canEdit || pending}
-              >
-                <RefineWithAi
-                  appliedNotice="Revision applied to the email body. It saves by itself; edit it further if you like."
-                  currentBody={shownContent.plainText}
-                  disabledReason={refineDisabledReason}
-                  id={MESSAGE_CONTROL_IDS.refine(channel)}
-                  onApply={(revision) => {
-                    overrideChange(
-                      {
-                        text: revision.body,
-                        baseHash:
-                          revision.baseHash ?? current.bodyBaseHash ?? NO_BASE_HASH,
-                      },
-                      true,
-                    );
-                    commit();
-                  }}
-                  request={{ surface: "renewal_message", leaseId, channel }}
-                />
-              </fieldset>
-            </>
-          ) : null}
-          <section
-            aria-label="Unsent Gmail draft"
-            className="ui-stack-tight renewal-message-group"
-          >
-            <h3 className="renewal-message-group-title">Unsent Gmail draft</h3>
-            {current.publication.status !== "approved" ? (
-              <p className="muted">{current.publication.reason}</p>
-            ) : null}
-            <div className="ui-actions">
-              {canEdit ? (
-                <Button disabled={!canDraft || pending} onClick={() => draft("preview")}>
-                  Preview unsent Gmail draft
-                </Button>
-              ) : null}
-            </div>
-            {outcome?.status === "preview" ? (
-              <div className="ui-stack">
-                <p>
-                  From {current.senderEmail} · To {outcome.recipient.to}
-                  {outcome.recipient.cc?.length
-                    ? ` · Cc ${outcome.recipient.cc.join(", ")}`
-                    : ""}
-                </p>
-                <p>{outcome.subject}</p>
-                <div className="draft-box">{outcome.body}</div>
-                {current.draftAttempt?.outcome?.status === "created" &&
-                current.draftAttempt.executionId !== outcome.executionId ? (
-                  <p role="note">
-                    A Gmail draft from an earlier version of this message already exists.
-                    Creating this one adds a second, separate unsent draft; the app cannot
-                    replace the earlier one, so delete it in Gmail and send only one.
-                  </p>
-                ) : null}
-                {outcome.attachment ? (
-                  <p>
-                    {outcome.attachment.label} · {outcome.attachment.mimeType} ·{" "}
-                    {outcome.attachment.sizeBytes} bytes
-                  </p>
-                ) : null}
-                {!confirming ? (
-                  <Button
-                    disabled={pending || !canDraft}
-                    onClick={() => setConfirming(true)}
-                  >
-                    Review creation confirmation
-                  </Button>
-                ) : (
-                  <div role="group" aria-label="Confirm exact unsent draft">
-                    <p>
-                      Create this exact unsent draft, with the recipients and wording
-                      shown above, in the displayed managed mailbox? Nothing is sent.
-                      Review it in Gmail before you send it; anything still marked stays
-                      marked in the draft.
-                    </p>
-                    <Button onClick={() => setConfirming(false)}>Cancel</Button>
-                    <Button
-                      disabled={pending || !canDraft}
-                      onClick={() => draft("create")}
-                    >
-                      Create this unsent draft
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ) : null}
-            {unresolved ? (
-              <div>
-                <p>
-                  Do not create a duplicate. Recover this exact attempt; copy remains
-                  available.
-                </p>
-                <Button disabled={pending} onClick={() => recoverDraft()}>
-                  Recover exact Gmail attempt
-                </Button>
-              </div>
-            ) : null}
-            {outcome && "draftId" in outcome && outcome.draftId ? (
-              <p className="muted">
-                {current.destinations?.gmailDrafts ? (
-                  <a
-                    href={current.destinations.gmailDrafts.href}
-                    target={EXTERNAL_LINK_TARGET}
-                    rel={EXTERNAL_LINK_REL}
-                  >
-                    Open the Drafts folder to find this draft
-                  </a>
-                ) : (
-                  "Open the Drafts folder in your managed Gmail mailbox to find this draft."
-                )}{" "}
-                Mailbox: {current.senderEmail}. A person sends from Gmail.
-              </p>
-            ) : null}
-            {outcome?.status === "created" ||
-            (outcome?.status === "reconciliation" && outcome.resolution === "created") ? (
-              <p className="muted">{GEMINI_IN_GMAIL_HINT}</p>
-            ) : null}
-          </section>
-          {current.draftAttempt || outcome ? (
-            <details className="ui-stack-tight renewal-message-group">
-              <summary>Earlier Gmail draft</summary>
-              <p>
-                This recorded attempt keeps its original status. New Gmail drafts use the
-                exact preview and confirmation above.
-              </p>
-              <p>{current.draftAttempt?.state ?? outcome?.status}</p>
-              {current.draftAttempt?.recoveryAvailable && !unresolved ? (
-                <Button disabled={pending} onClick={() => recoverDraft()}>
-                  Recover exact Gmail attempt
-                </Button>
-              ) : (
-                <p>Its original managed sender must recover this attempt.</p>
-              )}
-              {outcome && "draftId" in outcome && outcome.draftId ? (
-                <p>
-                  Earlier unsent draft confirmed in {current.senderEmail}. Nothing was
-                  sent.
-                </p>
-              ) : null}
-            </details>
-          ) : null}
-          <fieldset
-            id={MESSAGE_CONTROL_IDS.inputs(channel)}
-            disabled={!canEdit}
-            className="ui-stack"
-            onBlur={(event) => {
-              if (!isRenewalPresentationMove(event.relatedTarget)) commit();
-            }}
-            onChange={(event) => {
-              // A choice saves when it is made; typed text saves when its field is left.
-              const target = event.target as unknown;
-              if (
-                target instanceof HTMLSelectElement ||
-                (target instanceof HTMLInputElement && target.type === "checkbox")
-              )
-                commit();
-            }}
-          >
-            <Field
-              htmlFor={`${base}-response`}
-              label="Response request (optional wording edit)"
-              hint="Replaces the paragraph after the terms, charges and insurance wording, before the request to complete the renewal information form. Blank keeps approved wording; amounts, dates and recipients remain in the email body."
-            >
-              <textarea
-                className="renewal-message-body"
-                id={`${base}-response`}
-                value={inputs.edits.responseRequest}
-                onChange={(event) =>
-                  change({ ...inputs, edits: { responseRequest: event.target.value } })
-                }
-              />
-            </Field>
-            <p className="muted" data-testid="renewal-message-response-paragraph">
-              Current paragraph in the preview (
-              {paragraph.isDefault ? "approved default" : "your wording"}): &ldquo;
-              {paragraph.text}&rdquo;
-            </p>
-            {channel === "tenant" ? (
-              <>
-                <details>
-                  <summary>Lease origin and charges (optional details)</summary>
-                  <div className="ui-stack">
-                    <Field
-                      htmlFor={MESSAGE_CONTROL_IDS.origin(channel)}
-                      label="Current lease origin"
-                    >
-                      <select
-                        id={MESSAGE_CONTROL_IDS.origin(channel)}
-                        value={inputs.leaseOrigin?.kind ?? ""}
-                        onChange={(event) =>
-                          change({
-                            ...inputs,
-                            leaseOrigin: event.target.value
-                              ? {
-                                  kind: event.target.value as "pmi" | "third_party",
-                                  source: inputs.leaseOrigin?.source ?? "",
-                                }
-                              : null,
-                          })
-                        }
-                      >
-                        <option value="">Not entered</option>
-                        <option value="pmi">PMI lease</option>
-                        <option value="third_party">Third-party lease</option>
-                      </select>
-                    </Field>
-                    {inputs.leaseOrigin ? (
-                      <Field
-                        htmlFor={`${base}-origin-source`}
-                        label="Lease-origin source (optional)"
-                      >
-                        <input
-                          id={`${base}-origin-source`}
-                          value={inputs.leaseOrigin.source}
-                          onChange={(event) =>
-                            change({
-                              ...inputs,
-                              leaseOrigin: {
-                                ...inputs.leaseOrigin!,
-                                source: event.target.value,
-                              },
-                            })
-                          }
-                        />
-                      </Field>
-                    ) : null}
-                    {inputs.charges.map((charge) => {
-                      const filledFrom = current.chargeInventory?.find(
-                        (line) => chargeFillSource(line) === charge.source,
-                      );
-                      return (
-                        <details
-                          key={charge.id}
-                          id={MESSAGE_CONTROL_IDS.charge(channel, charge.id)}
-                        >
-                          <summary>
-                            {MESSAGE_CHARGES[charge.id]} ·{" "}
-                            {charge.applicable === null
-                              ? "Not entered"
-                              : charge.applicable
-                                ? "Applies"
-                                : "Does not apply"}
-                          </summary>
-                          <div className="ui-stack">
-                            {current.chargeInventory?.length ? (
-                              <Field
-                                htmlFor={`${base}-${charge.id}-fill`}
-                                label="Fill from a current RentVine charge"
-                                hint="Verified current charge · comparison remains staff-recorded."
-                              >
-                                <select
-                                  id={`${base}-${charge.id}-fill`}
-                                  value={filledFrom?.id ?? ""}
-                                  onChange={(event) =>
-                                    fillChargeFromInventory(charge.id, event.target.value)
-                                  }
-                                >
-                                  <option value="">Choose a current charge</option>
-                                  {current.chargeInventory.map((line) => (
-                                    <option key={line.id} value={line.id}>
-                                      {line.label}: ${line.amount.toFixed(2)}
-                                      {line.frequency === 1
-                                        ? " per month"
-                                        : ` every ${line.frequency} months`}
-                                      {line.startDate
-                                        ? ` from ${formatSourceCalendarDate(line.startDate)}`
-                                        : ""}
-                                      {line.current === false ? " (not current)" : ""}
-                                    </option>
-                                  ))}
-                                </select>
-                              </Field>
-                            ) : null}
-                            {filledFrom ? (
-                              <p
-                                className="muted"
-                                data-testid={`renewal-message-charge-origin-${charge.id}`}
-                              >
-                                Filled from RentVine recurring charge {filledFrom.label}.
-                                Change anything that differs for the renewal.
-                              </p>
-                            ) : null}
-                            <Field
-                              htmlFor={`${base}-${charge.id}-applies`}
-                              label="Does this charge apply?"
-                            >
-                              <select
-                                id={`${base}-${charge.id}-applies`}
-                                value={
-                                  charge.applicable === null
-                                    ? ""
-                                    : String(charge.applicable)
-                                }
-                                onChange={(event) =>
-                                  chargeChange(charge.id, {
-                                    applicable:
-                                      event.target.value === ""
-                                        ? null
-                                        : event.target.value === "true",
-                                  })
-                                }
-                              >
-                                <option value="">Not entered</option>
-                                <option value="true">Applies</option>
-                                <option value="false">Does not apply</option>
-                              </select>
-                            </Field>
-                            {charge.applicable ? (
-                              <>
-                                <Field
-                                  htmlFor={`${base}-${charge.id}-amount`}
-                                  label="Charge amount ($)"
-                                >
-                                  <input
-                                    id={`${base}-${charge.id}-amount`}
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={charge.amount ?? ""}
-                                    onChange={(event) =>
-                                      chargeChange(charge.id, {
-                                        amount:
-                                          event.target.value === ""
-                                            ? null
-                                            : Number(event.target.value),
-                                      })
-                                    }
-                                  />
-                                </Field>
-                                <Field
-                                  htmlFor={`${base}-${charge.id}-cadence`}
-                                  label="How often is it charged?"
-                                >
-                                  <select
-                                    id={`${base}-${charge.id}-cadence`}
-                                    value={charge.cadence ?? ""}
-                                    onChange={(event) =>
-                                      chargeChange(charge.id, {
-                                        cadence: (event.target.value ||
-                                          null) as MessageCharge["cadence"],
-                                      })
-                                    }
-                                  >
-                                    <option value="">Not entered</option>
-                                    <option value="monthly">Monthly</option>
-                                    <option value="one_time">One time</option>
-                                  </select>
-                                </Field>
-                                <Field
-                                  htmlFor={`${base}-${charge.id}-date`}
-                                  label="Charge start date"
-                                >
-                                  <input
-                                    id={`${base}-${charge.id}-date`}
-                                    type="date"
-                                    value={charge.effectiveDate ?? ""}
-                                    onChange={(event) =>
-                                      chargeChange(charge.id, {
-                                        effectiveDate: event.target.value || null,
-                                      })
-                                    }
-                                  />
-                                </Field>
-                                <Field
-                                  htmlFor={`${base}-${charge.id}-comparison`}
-                                  label="Compared with current charges"
-                                >
-                                  <select
-                                    id={`${base}-${charge.id}-comparison`}
-                                    value={charge.comparison}
-                                    onChange={(event) =>
-                                      chargeChange(charge.id, {
-                                        comparison: event.target
-                                          .value as MessageCharge["comparison"],
-                                      })
-                                    }
-                                  >
-                                    <option value="unverified">Not compared</option>
-                                    <option value="unchanged">Unchanged</option>
-                                    <option value="changed">Changed</option>
-                                    <option value="new">New</option>
-                                  </select>
-                                </Field>
-                              </>
-                            ) : null}
-                            <Field
-                              htmlFor={`${base}-${charge.id}-source`}
-                              label="Charge source (optional)"
-                            >
-                              <input
-                                id={`${base}-${charge.id}-source`}
-                                value={charge.source ?? ""}
-                                onChange={(event) =>
-                                  chargeChange(charge.id, {
-                                    source: event.target.value || null,
-                                  })
-                                }
-                              />
-                            </Field>
-                          </div>
-                        </details>
-                      );
-                    })}
-                    <Field
-                      htmlFor={MESSAGE_CONTROL_IDS.insurance(channel)}
-                      label="Does the supplied insurance transition apply?"
-                    >
-                      <select
-                        id={MESSAGE_CONTROL_IDS.insurance(channel)}
-                        value={
-                          inputs.insuranceTransition === null
-                            ? ""
-                            : String(inputs.insuranceTransition.applicable)
-                        }
-                        onChange={(event) =>
-                          change({
-                            ...inputs,
-                            insuranceTransition:
-                              event.target.value === ""
-                                ? null
-                                : {
-                                    applicable: event.target.value === "true",
-                                    source: inputs.insuranceTransition?.source ?? "",
-                                  },
-                          })
-                        }
-                      >
-                        <option value="">Not entered</option>
-                        <option value="true">Applies</option>
-                        <option value="false">Does not apply</option>
-                      </select>
-                    </Field>
-                    {inputs.insuranceTransition ? (
-                      <Field
-                        htmlFor={`${base}-insurance-source`}
-                        label="Insurance policy source (optional)"
-                      >
-                        <input
-                          id={`${base}-insurance-source`}
-                          value={inputs.insuranceTransition.source}
-                          onChange={(event) =>
-                            change({
-                              ...inputs,
-                              insuranceTransition: {
-                                ...inputs.insuranceTransition!,
-                                source: event.target.value,
-                              },
-                            })
-                          }
-                        />
-                      </Field>
-                    ) : null}
-                    <Field
-                      htmlFor={`${base}-unchanged`}
-                      label="Are all remaining charges unchanged after comparison?"
-                    >
-                      <select
-                        id={`${base}-unchanged`}
-                        value={
-                          inputs.otherChargesComparison === null
-                            ? ""
-                            : String(inputs.otherChargesComparison.unchanged)
-                        }
-                        onChange={(event) =>
-                          change({
-                            ...inputs,
-                            otherChargesComparison:
-                              event.target.value === ""
-                                ? null
-                                : {
-                                    unchanged: event.target.value === "true",
-                                    source: inputs.otherChargesComparison?.source ?? "",
-                                  },
-                          })
-                        }
-                      >
-                        <option value="">
-                          Do not include an unchanged-charges statement
-                        </option>
-                        <option value="true">Compared: unchanged</option>
-                        <option value="false">Compared: changes apply</option>
-                      </select>
-                    </Field>
-                    {inputs.otherChargesComparison ? (
-                      <Field
-                        htmlFor={`${base}-comparison-source`}
-                        label="Remaining-charges comparison source (optional)"
-                      >
-                        <input
-                          id={`${base}-comparison-source`}
-                          value={inputs.otherChargesComparison.source}
-                          onChange={(event) =>
-                            change({
-                              ...inputs,
-                              otherChargesComparison: {
-                                ...inputs.otherChargesComparison!,
-                                source: event.target.value,
-                              },
-                            })
-                          }
-                        />
-                      </Field>
+                      </div>
                     ) : null}
                   </div>
+                ) : null}
+                {overrideState === "unreadable" && !override ? (
+                  <p role="status">{UNREADABLE_REFINED_BODY_MESSAGE}</p>
+                ) : null}
+                <details open>
+                  <summary>Formatted preview</summary>
+                  <div
+                    aria-label={`${channel} formatted body`}
+                    className="renewal-message-preview"
+                    dangerouslySetInnerHTML={{ __html: shownContent.htmlBody }}
+                  />
                 </details>
+                <fieldset
+                  className="ui-stack-tight renewal-message-group"
+                  disabled={!canEdit || pending}
+                >
+                  <RefineWithAi
+                    appliedNotice="Revision applied to the email body. It saves by itself; edit it further if you like."
+                    currentBody={shownContent.plainText}
+                    disabledReason={refineDisabledReason}
+                    id={MESSAGE_CONTROL_IDS.refine(channel)}
+                    onApply={(revision) => {
+                      overrideChange(
+                        {
+                          text: revision.body,
+                          baseHash:
+                            revision.baseHash ?? current.bodyBaseHash ?? NO_BASE_HASH,
+                        },
+                        true,
+                      );
+                      commit();
+                    }}
+                    request={{ surface: "renewal_message", leaseId, channel }}
+                  />
+                </fieldset>
               </>
             ) : null}
-            <details open={current.signatureMatchesActor === false}>
-              <summary>Managed sender signature · {current.senderEmail}</summary>
-              <p className="muted" data-testid="renewal-message-signature-origin">
-                {signatureEdited
-                  ? "Edited here. It saves with this message and is kept for your managed sender."
-                  : current.signatureOrigin?.kind === "business_profile"
-                    ? `Filled from your approved business profile (version ${current.signatureOrigin.version}). Existing saved messages keep their prior signature.`
-                    : current.signatureOrigin?.kind === "retained_sender"
-                      ? `Filled from your retained sender signature (saved ${formatBusinessTimestamp(current.signatureOrigin.recordedAt)}). Edit here to change it.`
-                      : current.signatureOrigin?.kind === "saved"
-                        ? current.signatureMatchesActor
-                          ? "Saved with this message as your signature for this managed sender."
-                          : "Saved with this message by another sender and shown as saved. Use your retained signature or edit it here if you prefer."
-                        : "Signature shared across leases for this managed sender."}
-              </p>
-              {retainedDiffers ? (
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    change({ ...inputs, signature: current.retainedSignature ?? null });
-                    commit();
-                  }}
-                >
-                  Use my retained signature
-                </Button>
+            <section
+              aria-label="Unsent Gmail draft"
+              className="ui-stack-tight renewal-message-group"
+            >
+              <h3 className="renewal-message-group-title">Unsent Gmail draft</h3>
+              {current.publication.status !== "approved" ? (
+                <p className="muted">{current.publication.reason}</p>
               ) : null}
-              <div className="ui-stack">
-                {(
-                  [
-                    ["name", "Sender name"],
-                    ["role", "Approved role / organization"],
-                    ["phone", "Verified phone (optional)"],
-                    ["hours", "Verified hours (optional)"],
-                    ["source", "Signature source (optional)"],
-                  ] as const
-                ).map(([field, label]) => {
-                  const id =
-                    field === "name"
-                      ? MESSAGE_CONTROL_IDS.signature(channel)
-                      : `${base}-${field}`;
-                  return (
-                    <Field key={field} htmlFor={id} label={label}>
-                      <input
-                        id={id}
-                        value={signature?.[field] ?? ""}
-                        onChange={(event) => signatureChange(field, event.target.value)}
-                      />
-                    </Field>
-                  );
-                })}
-                <Field htmlFor={`${base}-website`} label="Verified website (optional)">
-                  <input
-                    id={`${base}-website`}
-                    type="url"
-                    value={signature?.website?.url ?? ""}
-                    onChange={(event) =>
-                      change({
-                        ...inputs,
-                        signature: {
-                          ...(inputs.signature ?? {
-                            name: "",
-                            role: null,
-                            phone: null,
-                            hours: null,
-                            source: "",
-                            website: null,
-                          }),
-                          website: event.target.value
-                            ? {
-                                url: event.target.value,
-                                source: inputs.signature?.source ?? "",
-                              }
-                            : null,
-                        },
-                      })
-                    }
-                  />
-                </Field>
-              </div>
-            </details>
-            {channel === "owner" ? (
-              <div className="ui-stack">
-                {current.availableCompScreenshot ? (
-                  <>
-                    <label>
-                      <input
-                        id={MESSAGE_CONTROL_IDS.attachment}
-                        type="checkbox"
-                        checked={
-                          inputs.compScreenshotReceiptId ===
-                          current.availableCompScreenshot.receiptId
-                        }
-                        onChange={(event) =>
-                          change({
-                            ...inputs,
-                            compScreenshotReceiptId: event.target.checked
-                              ? current.availableCompScreenshot!.receiptId
-                              : null,
-                          })
-                        }
-                      />
-                      Include this screenshot with the message:{" "}
-                      {current.availableCompScreenshot.filename}
-                    </label>
-                    <DownloadLink
-                      fileName={current.availableCompScreenshot.filename}
-                      href={`/api/lease-renewal/message-attachment?leaseId=${encodeURIComponent(leaseId)}&receiptId=${encodeURIComponent(current.availableCompScreenshot.receiptId)}`}
-                    >
-                      Download the screenshot
-                    </DownloadLink>
-                    <p className="muted">Copied text does not include this file.</p>
-                  </>
-                ) : (
-                  <p className="muted" id={MESSAGE_CONTROL_IDS.attachment} tabIndex={-1}>
-                    No current receipted screenshot is available.
-                  </p>
-                )}
-                {inputs.compScreenshotReceiptId &&
-                inputs.compScreenshotReceiptId !==
-                  current.availableCompScreenshot?.receiptId ? (
+              <div className="ui-actions">
+                {canEdit ? (
                   <Button
+                    disabled={!canDraft || pending}
+                    onClick={() => draft("preview")}
+                  >
+                    Preview unsent Gmail draft
+                  </Button>
+                ) : null}
+              </div>
+              {outcome?.status === "preview" ? (
+                <div className="ui-stack">
+                  <p>
+                    From {current.senderEmail} · To {outcome.recipient.to}
+                    {outcome.recipient.cc?.length
+                      ? ` · Cc ${outcome.recipient.cc.join(", ")}`
+                      : ""}
+                  </p>
+                  <p>{outcome.subject}</p>
+                  <div className="draft-box">{outcome.body}</div>
+                  {current.draftAttempt?.outcome?.status === "created" &&
+                  current.draftAttempt.executionId !== outcome.executionId ? (
+                    <p role="note">
+                      A Gmail draft from an earlier version of this message already
+                      exists. Creating this one adds a second, separate unsent draft; the
+                      app cannot replace the earlier one, so delete it in Gmail and send
+                      only one.
+                    </p>
+                  ) : null}
+                  {outcome.attachment ? (
+                    <p>
+                      {outcome.attachment.label} · {outcome.attachment.mimeType} ·{" "}
+                      {outcome.attachment.sizeBytes} bytes
+                    </p>
+                  ) : null}
+                  {!confirming ? (
+                    <Button
+                      disabled={pending || !canDraft}
+                      onClick={() => setConfirming(true)}
+                    >
+                      Review creation confirmation
+                    </Button>
+                  ) : (
+                    <div role="group" aria-label="Confirm exact unsent draft">
+                      <p>
+                        Create this exact unsent draft, with the recipients and wording
+                        shown above, in the displayed managed mailbox? Nothing is sent.
+                        Review it in Gmail before you send it; anything still marked stays
+                        marked in the draft.
+                      </p>
+                      <Button onClick={() => setConfirming(false)}>Cancel</Button>
+                      <Button
+                        disabled={pending || !canDraft}
+                        onClick={() => draft("create")}
+                      >
+                        Create this unsent draft
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ) : null}
+              {unresolved ? (
+                <div>
+                  <p>
+                    Do not create a duplicate. Recover this exact attempt; copy remains
+                    available.
+                  </p>
+                  <Button disabled={pending} onClick={() => recoverDraft()}>
+                    Recover exact Gmail attempt
+                  </Button>
+                </div>
+              ) : null}
+              {outcome && "draftId" in outcome && outcome.draftId ? (
+                <p className="muted">
+                  {current.destinations?.gmailDrafts ? (
+                    <a
+                      href={current.destinations.gmailDrafts.href}
+                      target={EXTERNAL_LINK_TARGET}
+                      rel={EXTERNAL_LINK_REL}
+                    >
+                      Open the Drafts folder to find this draft
+                    </a>
+                  ) : (
+                    "Open the Drafts folder in your managed Gmail mailbox to find this draft."
+                  )}{" "}
+                  Mailbox: {current.senderEmail}. A person sends from Gmail.
+                </p>
+              ) : null}
+              {outcome?.status === "created" ||
+              (outcome?.status === "reconciliation" &&
+                outcome.resolution === "created") ? (
+                <p className="muted">{GEMINI_IN_GMAIL_HINT}</p>
+              ) : null}
+            </section>
+            {current.draftAttempt || outcome ? (
+              <details className="ui-stack-tight renewal-message-group">
+                <summary>Earlier Gmail draft</summary>
+                <p>
+                  This recorded attempt keeps its original status. New Gmail drafts use
+                  the exact preview and confirmation above.
+                </p>
+                <p>{current.draftAttempt?.state ?? outcome?.status}</p>
+                {current.draftAttempt?.recoveryAvailable && !unresolved ? (
+                  <Button disabled={pending} onClick={() => recoverDraft()}>
+                    Recover exact Gmail attempt
+                  </Button>
+                ) : (
+                  <p>Its original managed sender must recover this attempt.</p>
+                )}
+                {outcome && "draftId" in outcome && outcome.draftId ? (
+                  <p>
+                    Earlier unsent draft confirmed in {current.senderEmail}. Nothing was
+                    sent.
+                  </p>
+                ) : null}
+              </details>
+            ) : null}
+            <fieldset
+              id={MESSAGE_CONTROL_IDS.inputs(channel)}
+              disabled={!canEdit}
+              className="ui-stack"
+              onBlur={(event) => {
+                if (!isRenewalPresentationMove(event.relatedTarget)) commit();
+              }}
+              onChange={(event) => {
+                // A choice saves when it is made; typed text saves when its field is left.
+                const target = event.target as unknown;
+                if (
+                  target instanceof HTMLSelectElement ||
+                  (target instanceof HTMLInputElement && target.type === "checkbox")
+                )
+                  commit();
+              }}
+            >
+              <Field
+                htmlFor={`${base}-response`}
+                label="Response request (optional wording edit)"
+                hint="Replaces the paragraph after the terms, charges and insurance wording, before the request to complete the renewal information form. Blank keeps approved wording; amounts, dates and recipients remain in the email body."
+              >
+                <textarea
+                  className="renewal-message-body"
+                  id={`${base}-response`}
+                  value={inputs.edits.responseRequest}
+                  onChange={(event) =>
+                    change({ ...inputs, edits: { responseRequest: event.target.value } })
+                  }
+                />
+              </Field>
+              <p className="muted" data-testid="renewal-message-response-paragraph">
+                Current paragraph in the preview (
+                {paragraph.isDefault ? "approved default" : "your wording"}): &ldquo;
+                {paragraph.text}&rdquo;
+              </p>
+              {channel === "tenant" ? (
+                <>
+                  <details>
+                    <summary>Lease origin and charges (optional details)</summary>
+                    <div className="ui-stack">
+                      <Field
+                        htmlFor={MESSAGE_CONTROL_IDS.origin(channel)}
+                        label="Current lease origin"
+                      >
+                        <select
+                          id={MESSAGE_CONTROL_IDS.origin(channel)}
+                          value={inputs.leaseOrigin?.kind ?? ""}
+                          onChange={(event) =>
+                            change({
+                              ...inputs,
+                              leaseOrigin: event.target.value
+                                ? {
+                                    kind: event.target.value as "pmi" | "third_party",
+                                    source: inputs.leaseOrigin?.source ?? "",
+                                  }
+                                : null,
+                            })
+                          }
+                        >
+                          <option value="">Not entered</option>
+                          <option value="pmi">PMI lease</option>
+                          <option value="third_party">Third-party lease</option>
+                        </select>
+                      </Field>
+                      {inputs.leaseOrigin ? (
+                        <Field
+                          htmlFor={`${base}-origin-source`}
+                          label="Lease-origin source (optional)"
+                        >
+                          <input
+                            id={`${base}-origin-source`}
+                            value={inputs.leaseOrigin.source}
+                            onChange={(event) =>
+                              change({
+                                ...inputs,
+                                leaseOrigin: {
+                                  ...inputs.leaseOrigin!,
+                                  source: event.target.value,
+                                },
+                              })
+                            }
+                          />
+                        </Field>
+                      ) : null}
+                      {inputs.charges.map((charge) => {
+                        const filledFrom = current.chargeInventory?.find(
+                          (line) => chargeFillSource(line) === charge.source,
+                        );
+                        return (
+                          <details
+                            key={charge.id}
+                            id={MESSAGE_CONTROL_IDS.charge(channel, charge.id)}
+                          >
+                            <summary>
+                              {MESSAGE_CHARGES[charge.id]} ·{" "}
+                              {charge.applicable === null
+                                ? "Not entered"
+                                : charge.applicable
+                                  ? "Applies"
+                                  : "Does not apply"}
+                            </summary>
+                            <div className="ui-stack">
+                              {current.chargeInventory?.length ? (
+                                <Field
+                                  htmlFor={`${base}-${charge.id}-fill`}
+                                  label="Fill from a current RentVine charge"
+                                  hint="Verified current charge · comparison remains staff-recorded."
+                                >
+                                  <select
+                                    id={`${base}-${charge.id}-fill`}
+                                    value={filledFrom?.id ?? ""}
+                                    onChange={(event) =>
+                                      fillChargeFromInventory(
+                                        charge.id,
+                                        event.target.value,
+                                      )
+                                    }
+                                  >
+                                    <option value="">Choose a current charge</option>
+                                    {current.chargeInventory.map((line) => (
+                                      <option key={line.id} value={line.id}>
+                                        {line.label}: ${line.amount.toFixed(2)}
+                                        {line.frequency === 1
+                                          ? " per month"
+                                          : ` every ${line.frequency} months`}
+                                        {line.startDate
+                                          ? ` from ${formatSourceCalendarDate(line.startDate)}`
+                                          : ""}
+                                        {line.current === false ? " (not current)" : ""}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </Field>
+                              ) : null}
+                              {filledFrom ? (
+                                <p
+                                  className="muted"
+                                  data-testid={`renewal-message-charge-origin-${charge.id}`}
+                                >
+                                  Filled from RentVine recurring charge {filledFrom.label}
+                                  . Change anything that differs for the renewal.
+                                </p>
+                              ) : null}
+                              <Field
+                                htmlFor={`${base}-${charge.id}-applies`}
+                                label="Does this charge apply?"
+                              >
+                                <select
+                                  id={`${base}-${charge.id}-applies`}
+                                  value={
+                                    charge.applicable === null
+                                      ? ""
+                                      : String(charge.applicable)
+                                  }
+                                  onChange={(event) =>
+                                    chargeChange(charge.id, {
+                                      applicable:
+                                        event.target.value === ""
+                                          ? null
+                                          : event.target.value === "true",
+                                    })
+                                  }
+                                >
+                                  <option value="">Not entered</option>
+                                  <option value="true">Applies</option>
+                                  <option value="false">Does not apply</option>
+                                </select>
+                              </Field>
+                              {charge.applicable ? (
+                                <>
+                                  <Field
+                                    htmlFor={`${base}-${charge.id}-amount`}
+                                    label="Charge amount ($)"
+                                  >
+                                    <input
+                                      id={`${base}-${charge.id}-amount`}
+                                      type="number"
+                                      min="0"
+                                      step="0.01"
+                                      value={charge.amount ?? ""}
+                                      onChange={(event) =>
+                                        chargeChange(charge.id, {
+                                          amount:
+                                            event.target.value === ""
+                                              ? null
+                                              : Number(event.target.value),
+                                        })
+                                      }
+                                    />
+                                  </Field>
+                                  <Field
+                                    htmlFor={`${base}-${charge.id}-cadence`}
+                                    label="How often is it charged?"
+                                  >
+                                    <select
+                                      id={`${base}-${charge.id}-cadence`}
+                                      value={charge.cadence ?? ""}
+                                      onChange={(event) =>
+                                        chargeChange(charge.id, {
+                                          cadence: (event.target.value ||
+                                            null) as MessageCharge["cadence"],
+                                        })
+                                      }
+                                    >
+                                      <option value="">Not entered</option>
+                                      <option value="monthly">Monthly</option>
+                                      <option value="one_time">One time</option>
+                                    </select>
+                                  </Field>
+                                  <Field
+                                    htmlFor={`${base}-${charge.id}-date`}
+                                    label="Charge start date"
+                                  >
+                                    <input
+                                      id={`${base}-${charge.id}-date`}
+                                      type="date"
+                                      value={charge.effectiveDate ?? ""}
+                                      onChange={(event) =>
+                                        chargeChange(charge.id, {
+                                          effectiveDate: event.target.value || null,
+                                        })
+                                      }
+                                    />
+                                  </Field>
+                                  <Field
+                                    htmlFor={`${base}-${charge.id}-comparison`}
+                                    label="Compared with current charges"
+                                  >
+                                    <select
+                                      id={`${base}-${charge.id}-comparison`}
+                                      value={charge.comparison}
+                                      onChange={(event) =>
+                                        chargeChange(charge.id, {
+                                          comparison: event.target
+                                            .value as MessageCharge["comparison"],
+                                        })
+                                      }
+                                    >
+                                      <option value="unverified">Not compared</option>
+                                      <option value="unchanged">Unchanged</option>
+                                      <option value="changed">Changed</option>
+                                      <option value="new">New</option>
+                                    </select>
+                                  </Field>
+                                </>
+                              ) : null}
+                              <Field
+                                htmlFor={`${base}-${charge.id}-source`}
+                                label="Charge source (optional)"
+                              >
+                                <input
+                                  id={`${base}-${charge.id}-source`}
+                                  value={charge.source ?? ""}
+                                  onChange={(event) =>
+                                    chargeChange(charge.id, {
+                                      source: event.target.value || null,
+                                    })
+                                  }
+                                />
+                              </Field>
+                            </div>
+                          </details>
+                        );
+                      })}
+                      <Field
+                        htmlFor={MESSAGE_CONTROL_IDS.insurance(channel)}
+                        label="Does the supplied insurance transition apply?"
+                      >
+                        <select
+                          id={MESSAGE_CONTROL_IDS.insurance(channel)}
+                          value={
+                            inputs.insuranceTransition === null
+                              ? ""
+                              : String(inputs.insuranceTransition.applicable)
+                          }
+                          onChange={(event) =>
+                            change({
+                              ...inputs,
+                              insuranceTransition:
+                                event.target.value === ""
+                                  ? null
+                                  : {
+                                      applicable: event.target.value === "true",
+                                      source: inputs.insuranceTransition?.source ?? "",
+                                    },
+                            })
+                          }
+                        >
+                          <option value="">Not entered</option>
+                          <option value="true">Applies</option>
+                          <option value="false">Does not apply</option>
+                        </select>
+                      </Field>
+                      {inputs.insuranceTransition ? (
+                        <Field
+                          htmlFor={`${base}-insurance-source`}
+                          label="Insurance policy source (optional)"
+                        >
+                          <input
+                            id={`${base}-insurance-source`}
+                            value={inputs.insuranceTransition.source}
+                            onChange={(event) =>
+                              change({
+                                ...inputs,
+                                insuranceTransition: {
+                                  ...inputs.insuranceTransition!,
+                                  source: event.target.value,
+                                },
+                              })
+                            }
+                          />
+                        </Field>
+                      ) : null}
+                      <Field
+                        htmlFor={`${base}-unchanged`}
+                        label="Are all remaining charges unchanged after comparison?"
+                      >
+                        <select
+                          id={`${base}-unchanged`}
+                          value={
+                            inputs.otherChargesComparison === null
+                              ? ""
+                              : String(inputs.otherChargesComparison.unchanged)
+                          }
+                          onChange={(event) =>
+                            change({
+                              ...inputs,
+                              otherChargesComparison:
+                                event.target.value === ""
+                                  ? null
+                                  : {
+                                      unchanged: event.target.value === "true",
+                                      source: inputs.otherChargesComparison?.source ?? "",
+                                    },
+                            })
+                          }
+                        >
+                          <option value="">
+                            Do not include an unchanged-charges statement
+                          </option>
+                          <option value="true">Compared: unchanged</option>
+                          <option value="false">Compared: changes apply</option>
+                        </select>
+                      </Field>
+                      {inputs.otherChargesComparison ? (
+                        <Field
+                          htmlFor={`${base}-comparison-source`}
+                          label="Remaining-charges comparison source (optional)"
+                        >
+                          <input
+                            id={`${base}-comparison-source`}
+                            value={inputs.otherChargesComparison.source}
+                            onChange={(event) =>
+                              change({
+                                ...inputs,
+                                otherChargesComparison: {
+                                  ...inputs.otherChargesComparison!,
+                                  source: event.target.value,
+                                },
+                              })
+                            }
+                          />
+                        </Field>
+                      ) : null}
+                    </div>
+                  </details>
+                </>
+              ) : null}
+              <details open={current.signatureMatchesActor === false}>
+                <summary>Managed sender signature · {current.senderEmail}</summary>
+                <p className="muted" data-testid="renewal-message-signature-origin">
+                  {signatureEdited
+                    ? "Edited here. It saves with this message and is kept for your managed sender."
+                    : current.signatureOrigin?.kind === "business_profile"
+                      ? `Filled from your approved business profile (version ${current.signatureOrigin.version}). Existing saved messages keep their prior signature.`
+                      : current.signatureOrigin?.kind === "retained_sender"
+                        ? `Filled from your retained sender signature (saved ${formatBusinessTimestamp(current.signatureOrigin.recordedAt)}). Edit here to change it.`
+                        : current.signatureOrigin?.kind === "saved"
+                          ? current.signatureMatchesActor
+                            ? "Saved with this message as your signature for this managed sender."
+                            : "Saved with this message by another sender and shown as saved. Use your retained signature or edit it here if you prefer."
+                          : "Signature shared across leases for this managed sender."}
+                </p>
+                {retainedDiffers ? (
+                  <Button
+                    variant="secondary"
                     onClick={() => {
-                      change({ ...inputs, compScreenshotReceiptId: null });
+                      change({ ...inputs, signature: current.retainedSignature ?? null });
                       commit();
                     }}
                   >
-                    Remove unavailable attachment selection
+                    Use my retained signature
                   </Button>
                 ) : null}
-              </div>
-            ) : null}
-          </fieldset>
-          {canEdit ? (
-            <AutosaveStatus state={autosave} subject="Message" onRetry={retryAutosave} />
-          ) : null}
-          {payload?.unfinished.length ? (
-            <p className="muted" data-testid="renewal-message-unfinished">
-              Not saved yet: {payload.unfinished.join(", ")}. Each entry saves by itself
-              once it is complete; everything else is already saved.
-            </p>
-          ) : null}
-          {readiness ? (
-            readiness.complete ? (
-              <p className="muted" id={readinessSummaryId}>
-                {readiness.summary}
-              </p>
-            ) : (
-              <details
-                open
-                ref={readinessRef}
-                id={MESSAGE_CONTROL_IDS.readiness(channel)}
-              >
-                <summary id={readinessSummaryId}>{readiness.summary}</summary>
-                <ul aria-label="Marked values" className="ui-rows">
-                  {readiness.items.map((item) => (
-                    <li key={`${item.field}:${item.message}`}>
-                      {item.target.kind === "control" ? (
-                        <a
-                          className="text-link"
-                          href={`#${item.target.id}`}
-                          onClick={() => openMissingInput(item)}
-                        >
-                          {item.target.label}
-                        </a>
-                      ) : (
-                        <a className="text-link" href={item.target.href}>
-                          {item.target.label}
-                        </a>
-                      )}
-                      : {item.message}
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            )
-          ) : null}
-          {current ? (
-            <details
-              className="renewal-message-sources"
-              id={`renewal-message-${channel}-sources`}
-            >
-              <summary>Message sources</summary>
-              <p>
-                {loadedAtIso
-                  ? `Lease facts and saved wording read at ${formatBusinessTimestamp(loadedAtIso)}.`
-                  : "The latest source read is unavailable."}
-              </p>
-              <p>
-                Signed-in sender: {current.senderEmail}. Communications resolves the
-                responsible sender and current recipients for its saved app draft. Gmail
-                creation separately rechecks the source and exact confirmation.
-              </p>
-              <p>
-                Message template: {current.publication.status}
-                {current.publication.ref ? ` (${current.publication.ref})` : ""}.{" "}
-                {current.publication.reason ?? ""}
-              </p>
-              <p>
-                Editing and copy remain available. Review the exact recipients, wording
-                and attachments before creating an unsent Gmail draft. A person sends from
-                Gmail.
-              </p>
-            </details>
-          ) : null}
-          {current.previousDraftAttempts?.length ? (
-            <details>
-              <summary>
-                Earlier Gmail attempts for this lease (
-                {current.previousDraftAttempts.length})
-              </summary>
-              {current.previousDraftAttempts.map((attempt) => (
-                <div key={attempt.executionId}>
-                  <p>
-                    Earlier work record: {attempt.state}. This attempt remains separate
-                    from the current message.
-                  </p>
-                  {attempt.recoveryAvailable ? (
-                    <Button
-                      disabled={pending}
-                      onClick={() => recoverDraft(attempt.executionId)}
-                    >
-                      Recover earlier Gmail attempt
-                    </Button>
-                  ) : (
-                    <p>Its original managed sender must recover this attempt.</p>
-                  )}
+                <div className="ui-stack">
+                  {(
+                    [
+                      ["name", "Sender name"],
+                      ["role", "Approved role / organization"],
+                      ["phone", "Verified phone (optional)"],
+                      ["hours", "Verified hours (optional)"],
+                      ["source", "Signature source (optional)"],
+                    ] as const
+                  ).map(([field, label]) => {
+                    const id =
+                      field === "name"
+                        ? MESSAGE_CONTROL_IDS.signature(channel)
+                        : `${base}-${field}`;
+                    return (
+                      <Field key={field} htmlFor={id} label={label}>
+                        <input
+                          id={id}
+                          value={signature?.[field] ?? ""}
+                          onChange={(event) => signatureChange(field, event.target.value)}
+                        />
+                      </Field>
+                    );
+                  })}
+                  <Field htmlFor={`${base}-website`} label="Verified website (optional)">
+                    <input
+                      id={`${base}-website`}
+                      type="url"
+                      value={signature?.website?.url ?? ""}
+                      onChange={(event) =>
+                        change({
+                          ...inputs,
+                          signature: {
+                            ...(inputs.signature ?? {
+                              name: "",
+                              role: null,
+                              phone: null,
+                              hours: null,
+                              source: "",
+                              website: null,
+                            }),
+                            website: event.target.value
+                              ? {
+                                  url: event.target.value,
+                                  source: inputs.signature?.source ?? "",
+                                }
+                              : null,
+                          },
+                        })
+                      }
+                    />
+                  </Field>
                 </div>
-              ))}
-            </details>
-          ) : null}
-        </>
-      )}
-    </Card>
+              </details>
+              {channel === "owner" ? (
+                <div className="ui-stack">
+                  {current.availableCompScreenshot ? (
+                    <>
+                      <label>
+                        <input
+                          id={MESSAGE_CONTROL_IDS.attachment}
+                          type="checkbox"
+                          checked={
+                            inputs.compScreenshotReceiptId ===
+                            current.availableCompScreenshot.receiptId
+                          }
+                          onChange={(event) =>
+                            change({
+                              ...inputs,
+                              compScreenshotReceiptId: event.target.checked
+                                ? current.availableCompScreenshot!.receiptId
+                                : null,
+                            })
+                          }
+                        />
+                        Include this screenshot with the message:{" "}
+                        {current.availableCompScreenshot.filename}
+                      </label>
+                      <DownloadLink
+                        fileName={current.availableCompScreenshot.filename}
+                        href={`/api/lease-renewal/message-attachment?leaseId=${encodeURIComponent(leaseId)}&receiptId=${encodeURIComponent(current.availableCompScreenshot.receiptId)}`}
+                      >
+                        Download the screenshot
+                      </DownloadLink>
+                      <p className="muted">Copied text does not include this file.</p>
+                    </>
+                  ) : (
+                    <p
+                      className="muted"
+                      id={MESSAGE_CONTROL_IDS.attachment}
+                      tabIndex={-1}
+                    >
+                      No current receipted screenshot is available.
+                    </p>
+                  )}
+                  {inputs.compScreenshotReceiptId &&
+                  inputs.compScreenshotReceiptId !==
+                    current.availableCompScreenshot?.receiptId ? (
+                    <Button
+                      onClick={() => {
+                        change({ ...inputs, compScreenshotReceiptId: null });
+                        commit();
+                      }}
+                    >
+                      Remove unavailable attachment selection
+                    </Button>
+                  ) : null}
+                </div>
+              ) : null}
+            </fieldset>
+            {canEdit ? (
+              <AutosaveStatus
+                state={autosave}
+                subject="Message"
+                onRetry={retryAutosave}
+              />
+            ) : null}
+            {payload?.unfinished.length ? (
+              <p className="muted" data-testid="renewal-message-unfinished">
+                Not saved yet: {payload.unfinished.join(", ")}. Each entry saves by itself
+                once it is complete; everything else is already saved.
+              </p>
+            ) : null}
+            {readiness ? (
+              readiness.complete ? (
+                <p className="muted" id={readinessSummaryId}>
+                  {readiness.summary}
+                </p>
+              ) : (
+                <details
+                  open
+                  ref={readinessRef}
+                  id={MESSAGE_CONTROL_IDS.readiness(channel)}
+                >
+                  <summary id={readinessSummaryId}>{readiness.summary}</summary>
+                  <ul aria-label="Marked values" className="ui-rows">
+                    {readiness.items.map((item) => (
+                      <li key={`${item.field}:${item.message}`}>
+                        {item.target.kind === "control" ? (
+                          <a
+                            className="text-link"
+                            href={`#${item.target.id}`}
+                            onClick={() => openMissingInput(item)}
+                          >
+                            {item.target.label}
+                          </a>
+                        ) : (
+                          <a className="text-link" href={item.target.href}>
+                            {item.target.label}
+                          </a>
+                        )}
+                        : {item.message}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )
+            ) : null}
+            {current ? (
+              <details
+                className="renewal-message-sources"
+                id={`renewal-message-${channel}-sources`}
+              >
+                <summary>Message sources</summary>
+                <p>
+                  {loadedAtIso
+                    ? `Lease facts and saved wording read at ${formatBusinessTimestamp(loadedAtIso)}.`
+                    : "The latest source read is unavailable."}
+                </p>
+                <p>
+                  Signed-in sender: {current.senderEmail}. Communications resolves the
+                  responsible sender and current recipients for its saved app draft. Gmail
+                  creation separately rechecks the source and exact confirmation.
+                </p>
+                <p>
+                  Message template: {current.publication.status}
+                  {current.publication.ref ? ` (${current.publication.ref})` : ""}.{" "}
+                  {current.publication.reason ?? ""}
+                </p>
+                <p>
+                  Editing and copy remain available. Review the exact recipients, wording
+                  and attachments before creating an unsent Gmail draft. A person sends
+                  from Gmail.
+                </p>
+              </details>
+            ) : null}
+            {current.previousDraftAttempts?.length ? (
+              <details>
+                <summary>
+                  Earlier Gmail attempts for this lease (
+                  {current.previousDraftAttempts.length})
+                </summary>
+                {current.previousDraftAttempts.map((attempt) => (
+                  <div key={attempt.executionId}>
+                    <p>
+                      Earlier work record: {attempt.state}. This attempt remains separate
+                      from the current message.
+                    </p>
+                    {attempt.recoveryAvailable ? (
+                      <Button
+                        disabled={pending}
+                        onClick={() => recoverDraft(attempt.executionId)}
+                      >
+                        Recover earlier Gmail attempt
+                      </Button>
+                    ) : (
+                      <p>Its original managed sender must recover this attempt.</p>
+                    )}
+                  </div>
+                ))}
+              </details>
+            ) : null}
+          </>
+        )}
+      </Card>
+    </>
   );
 }

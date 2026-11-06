@@ -41,6 +41,13 @@ import { useRenewalFocusView } from "./RenewalFocusViewContext";
 import type { RenewalFocusFacts } from "./RenewalFocusViewPane";
 import { useRenewalManualWorkspace } from "./RenewalManualWorkspace";
 import { useRenewalPricingPolicy } from "./RenewalPricingPolicy";
+import { nowSlotKey, useRenewalNowCard } from "./RenewalNowCardContext";
+import {
+  PreparedNumbersCheck,
+  RentToRecommendField,
+  StoredComparisonSummary,
+} from "./RenewalKickoffFields";
+import { PrepareThisLeaseButton } from "./RenewalKickoffPreparation";
 
 /**
  * S247 R-S247-4 to R-S247-10: the Guided view. A path strip names every step of this lease's
@@ -258,9 +265,14 @@ function GuidedPane({
   showInFull: (id: string | null) => void;
   stage: RenewalStage;
 }>) {
+  // S249 R-S249-1 (D-OP-7): where the numbers check states "Numbers agree" on RentVine, an
+  // operating Sheet difference is information on that check, never a second item to work.
   const alsoNeedsYou = facts.advisories.filter(
     (advisory) =>
-      !(shown.id === "check-numbers" && advisory.id === "advisory:current_rent_sources"),
+      !(
+        advisory.id === "advisory:current_rent_sources" &&
+        (shown.id === "check-numbers" || context.preparation?.numbers.state === "agree")
+      ),
   );
   return (
     <section
@@ -407,6 +419,8 @@ function NowCard({
 }>) {
   const router = useRouter();
   const manual = useRenewalManualWorkspace();
+  const nowCard = useRenewalNowCard();
+  const preparation = context.preparation ?? null;
   // The correction names the live staff record's cycle.
   const state = manual?.state ?? null;
   const definition = RENEWAL_PATH_DEFINITION[shown.id];
@@ -499,7 +513,19 @@ function NowCard({
       ? { label: "Record what happened", target: `renewal-manual-${audience}_response` }
       : null;
   const primary = blocker ?? shown.primary ?? recordWhatHappened ?? definition.primary;
+  // S249 R-S249-8: on the step that sends its audience's message, the one primary action is
+  // "Review and send", given by the lease's one message record, while the step asks for its send.
+  const filler = nowCard?.primaries[shown.id];
+  const fillerActive =
+    Boolean(filler) &&
+    !blocker &&
+    (shown.state === "current" || shown.state === "open") &&
+    shown.primary?.label === definition.primary.label;
   const runPrimary = () => {
+    if (fillerActive && filler) {
+      filler.run();
+      return;
+    }
     if (!primary) return;
     if (blocker) {
       if (blocker.target === null) document.getElementById("renewal-refresh")?.click();
@@ -583,14 +609,23 @@ function NowCard({
       {primary && shown.state !== "not_part" ? (
         <p>
           <Button
-            busy={busy}
+            busy={busy || (fillerActive && filler?.busy === true)}
             data-renewal-now-primary
-            disabled={busy}
+            disabled={busy || (fillerActive && filler?.disabled === true)}
             onClick={runPrimary}
             ref={confirmTrigger}
           >
-            {primary.label}
+            {fillerActive && filler ? filler.label : primary.label}
           </Button>
+          {fillerActive && filler?.reason ? (
+            <span
+              className="muted renewal-now-primary-reason"
+              data-renewal-field="send-needs"
+            >
+              {" "}
+              {filler.reason}
+            </span>
+          ) : null}
         </p>
       ) : null}
       {shown.state !== "not_part" ? (
@@ -619,11 +654,37 @@ function NowCard({
           ))}
         </ul>
       ) : null}
-      {/* S249 fills these named slots (the prepared numbers check, the stored comparison, Rent to
-          recommend, the message preview, Review and send); each stays empty until it does. */}
-      {definition.slots.map((slot) => (
-        <div data-renewal-now-slot={slot} hidden key={slot} />
-      ))}
+      {/* S249 fills these named slots from the one preparation projection (the numbers check,
+          the stored comparison, Rent to recommend) and from the lease's one message record (the
+          message preview and its delivery actions, filled by the message editor). */}
+      {shown.state !== "not_part"
+        ? definition.slots.map((slot) => (
+            <div
+              className="renewal-now-slot"
+              data-renewal-now-slot={slot}
+              data-renewal-now-slot-key={nowSlotKey(shown.id, slot)}
+              key={slot}
+              ref={nowCard?.slotRef}
+            >
+              {preparation && slot === "prepared-numbers-check" ? (
+                <PreparedNumbersCheck preparation={preparation} />
+              ) : null}
+              {preparation && slot === "stored-comparison" ? (
+                <StoredComparisonSummary
+                  action={
+                    preparation.comparison.state === "none" ? (
+                      <PrepareThisLeaseButton canPrepare={canEdit} leaseId={leaseId} />
+                    ) : null
+                  }
+                  preparation={preparation}
+                />
+              ) : null}
+              {preparation && slot === "rent-to-recommend" ? (
+                <RentToRecommendField preparation={preparation} />
+              ) : null}
+            </div>
+          ))
+        : null}
       {derived ? (
         <div className="ui-stack-tight" data-renewal-derived={derived.record.activity}>
           <p className="muted" data-renewal-field="derived-origin">

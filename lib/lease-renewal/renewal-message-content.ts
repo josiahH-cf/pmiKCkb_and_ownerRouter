@@ -209,8 +209,11 @@ export interface RenewalMessageFacts {
   suggestedRent: {
     value: number;
     source: string;
-    kind?: "working_offer" | "provider_reference" | "reviewed";
+    /** S249: "proposal" is the agreement or comparison figure prefilled as Rent to recommend. */
+    kind?: "working_offer" | "provider_reference" | "reviewed" | "proposal";
   } | null;
+  /** S249 R-S249-6: the optional "Reason to include", placed beside the recommendation as typed. */
+  recommendationReason?: string | null;
   comps: Array<{
     address: string;
     rent: number;
@@ -404,17 +407,20 @@ export function composeRenewalMessage(
     if (sparse) add(sparse);
     const trend = text(facts.trend);
     if (trend) add(trend);
-    const suggested = money(facts.suggestedRent?.value);
+    // S249 R-S249-5 / R-S249-6 / R-S249-10: the rent to recommend uses the approved suggestion
+    // wording, with the staff member's reason beside it exactly as typed. A provider estimate on its
+    // own is reference context and never reaches the owner; internal working language never does.
+    const suggested =
+      facts.suggestedRent?.kind === "provider_reference"
+        ? null
+        : money(facts.suggestedRent?.value);
     if (suggested) {
       sourced(facts.suggestedRent!.source);
+      const reason = text(facts.recommendationReason);
       add(
-        facts.suggestedRent!.kind === "working_offer"
-          ? `Our working renewal offer is ${suggested} per month.`
-          : facts.suggestedRent!.kind === "provider_reference"
-            ? `${facts.suggestedRent!.source}: ${suggested} per month. The working offer remains a staff decision.`
-            : fillSuppliedCopy(SUPPLIED_RENEWAL_COPY.owner.suggestion, {
-                suggested_rent: suggested,
-              }),
+        `${fillSuppliedCopy(SUPPLIED_RENEWAL_COPY.owner.suggestion, {
+          suggested_rent: suggested,
+        })}${reason ? ` ${reason}` : ""}`,
       );
     }
     add(SUPPLIED_RENEWAL_COPY.owner.consideration);

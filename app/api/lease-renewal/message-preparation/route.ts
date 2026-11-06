@@ -68,6 +68,9 @@ const command = z.discriminatedUnion("kind", [
 type Current = Awaited<ReturnType<typeof currentRenewalMessage>>;
 function publicPreparation(current: Current) {
   return {
+    // S249: the rent to recommend with its basis, and the message record's revision.
+    rentToRecommend: current.rentToRecommend,
+    messageRevision: current.messageRevision,
     availableCompScreenshot: current.availableCompScreenshot,
     draftAttempt: current.draftAttempt,
     previousDraftAttempts: current.previousDraftAttempts,

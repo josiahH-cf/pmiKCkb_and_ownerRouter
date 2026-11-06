@@ -413,3 +413,59 @@ export function RenewalKickoffPreparation({
     </section>
   );
 }
+
+/**
+ * R-S249-3: a single unprepared lease offers the same one action on its Now card. A staff click
+ * only; the server applies the same claim, allowance and verification fences.
+ */
+export function PrepareThisLeaseButton({
+  leaseId,
+  canPrepare,
+}: Readonly<{ leaseId: string; canPrepare: boolean }>) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  if (!canPrepare) return null;
+  async function run() {
+    setBusy(true);
+    setMessage("");
+    try {
+      const response = await fetchWithDeadline(KICKOFF_PREPARATION_ROUTE, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          leaseId,
+          trigger: "staff",
+          operationId: operationFor({ leaseId, address: "", cycleDateIso: null }),
+        }),
+      });
+      const body = (await response.json().catch(() => null)) as {
+        message?: string;
+        error?: string;
+      } | null;
+      setMessage(body?.message ?? body?.error ?? "The preparation did not answer.");
+      router.refresh();
+    } catch {
+      setMessage(
+        "The response did not arrive. Choosing it again is safe: the lease is never looked up twice.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <>
+      <Button
+        busy={busy}
+        busyLabel="Preparing…"
+        disabled={busy}
+        onClick={() => void run()}
+        size="compact"
+        variant="secondary"
+      >
+        {KICKOFF_WORDS.prepareLease}
+      </Button>
+      {message ? <span role="status">{message}</span> : null}
+    </>
+  );
+}

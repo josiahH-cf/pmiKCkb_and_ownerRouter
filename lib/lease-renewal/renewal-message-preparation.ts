@@ -11,6 +11,16 @@ import {
 } from "@/lib/lease-renewal/refined-message";
 
 const source = z.string().trim().min(1).max(240);
+/** One plain line: no control characters, no template tokens, at most 300 characters. */
+export const RecommendationReasonSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(300)
+  .refine(
+    (value) => !/[\u0000-\u001f\u007f]|\{\{|\}\}/.test(value),
+    "Use one plain line without template tokens.",
+  );
 export const MessagePreparationInputsSchema = z
   .object({
     edits: RenewalMessageEditsSchema,
@@ -38,6 +48,11 @@ export const MessagePreparationInputsSchema = z
       .object({ unchanged: z.boolean(), source })
       .strict()
       .nullable(),
+    /**
+     * S249 R-S249-6: the optional one-line "Reason to include", placed in the owner message beside
+     * the rent to recommend exactly as typed. Absent on messages saved before it existed.
+     */
+    recommendationReason: RecommendationReasonSchema.nullable().optional(),
     signature: z
       .object({
         name: source,
