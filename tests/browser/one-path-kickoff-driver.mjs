@@ -303,7 +303,9 @@ try {
   );
 
   // L29 (second half): a lease with no rent to recommend is asked for one on the Now card.
-  await openLease(covered);
+  // S250: the covered lease's rent to recommend is now its standing agreement's rule, so the
+  // lease asked is the missing-recipient lease, which has neither a rule nor a comparison.
+  await openLease(missingRecipient);
   await chooseStep("Ask the owner");
   const nowHtml = () =>
     now()
@@ -411,10 +413,16 @@ try {
       kickoffPosts().length === 0,
     { automaticPosts, afterAutomatic, afterReopen, leasesInBatch },
   );
-  pending(`L33 (assisted lease ${assisted}): no comparison is requested for it`, "S251", {
-    requested: afterAutomatic[String(assisted)] ?? 0,
-    note: "The housing assistance hold reads S251's marker; until S251 seeds it, the hold predicate answers not held back and this check reports what the stand-in saw.",
-  });
+  // S251 seeds Housing assistance Yes on the assisted lease, so the hold keeps it unprepared.
+  check(
+    `L33 (assisted lease ${assisted}): no comparison is requested for it`,
+    (afterAutomatic[String(assisted)] ?? 0) === 0 &&
+      (afterReopen[String(assisted)] ?? 0) === 0,
+    {
+      requested: afterAutomatic[String(assisted)] ?? 0,
+      afterReopen: afterReopen[String(assisted)] ?? 0,
+    },
+  );
   check(
     `L32: the prepared lease ${prepared} reuses its stored comparison (no request for it)`,
     !(String(prepared) in afterAutomatic),
@@ -853,7 +861,9 @@ try {
   await attempt("L45", async () => {
     // L45: a staff member with no signature sets one up on the Now card without leaving the lease.
     await signIn("Approver");
-    await openLease(assisted);
+    // S251: the assisted lease's Ask the owner joins its path only with Propose a change, so the
+    // owner message is set up on the covered lease, whose owner message also has no signature.
+    await openLease(covered);
     await chooseStep("Ask the owner");
     await shownWithin(now().locator("[data-renewal-message-revision]"));
     const leaseUrl = page.url();

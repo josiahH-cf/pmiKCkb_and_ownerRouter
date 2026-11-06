@@ -169,9 +169,18 @@ export function RenewalGuidedView({
     chosen ??
     pathStepForLinkStep(view?.restoredStep ?? null) ??
     pathStepForLinkStep(selectedStepId);
+  // S251: on an assisted lease Ask the owner is not part of the path until Propose a change;
+  // a link to it opens the step that holds the owner message there, the renewing question.
+  const linked =
+    chosen === null &&
+    preferred === "ask-owner" &&
+    stage.steps.find((step) => step.id === "ask-owner")?.state === "not_part" &&
+    stage.steps.some((step) => step.id === "assisted-owner-renewal-answer")
+      ? "assisted-owner-renewal-answer"
+      : preferred;
   const shownId =
-    preferred && stage.steps.some((step) => step.id === preferred)
-      ? preferred
+    linked && stage.steps.some((step) => step.id === linked)
+      ? linked
       : stage.currentStepId;
   const rememberStep = view?.rememberStep;
   useEffect(() => {

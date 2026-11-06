@@ -368,7 +368,15 @@ function audienceStep(
       ? (state?.ownerResponse?.outcome === "approved_terms" && !counterReopen) ||
         state?.ownerResponse?.outcome === "declined_non_renewal"
       : tenantOutcome === "accepted" || tenantOutcome === "declined_nonrenewing";
-  if (audience === "owner" && evaluation.context.standingAgreement && !decided)
+  // S250: a covered owner step needs no owner message, but an owner message staff did send that
+  // went unconfirmed or failed delivery is shown with its own check, never hidden as covered.
+  if (
+    audience === "owner" &&
+    evaluation.context.standingAgreement &&
+    !decided &&
+    evidence.state !== "unconfirmed" &&
+    evidence.state !== "delivery_failed"
+  )
     return {
       state: "covered",
       stage: definition.stage,
@@ -554,6 +562,22 @@ function assistedAnswerStep(evaluation: Evaluation): {
   const satisfied = satisfiedFor(evaluation);
   const evidence = evaluation.evidence.owner;
   const sentence = audienceEvidenceSentence(evidence);
+  // The standard owner message asks the renewing question (S248 rules): a send that went
+  // unconfirmed or failed delivery names its own check, as on the standard owner step.
+  if (evidence.state === "unconfirmed" || evidence.state === "delivery_failed") {
+    const label =
+      evidence.state === "unconfirmed"
+        ? RENEWAL_STAGE_NEXT_STEP.checkSend
+        : RENEWAL_STAGE_NEXT_STEP.checkAddress;
+    return {
+      state: "current",
+      stage: definition.stage,
+      nextStep: label,
+      primary: { label, target: "renewal-card-message-owner" },
+      detail: sentence,
+      waiting: null,
+    };
+  }
   if (!satisfied("owner_outreach") && answer !== "no_response")
     return {
       state: "current",
@@ -886,7 +910,7 @@ export function projectRenewalStage(
     if (
       step.id === "ask-owner" &&
       scopedContext.standingAgreement &&
-      owner.state !== "done"
+      owner.state === "covered"
     )
       return {
         ...base,

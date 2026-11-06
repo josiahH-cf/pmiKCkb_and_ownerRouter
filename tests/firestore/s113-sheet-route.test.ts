@@ -4027,6 +4027,9 @@ describe("S113 mounted operator journey with persisted backend state", () => {
       await respond("tenant", "accepted", "Actual fixture tenant acceptance by email");
       for (const [activity, definition] of Object.entries(MANUAL_ACTIVITIES)) {
         if (activity === "non_renewal_handoff") continue;
+        // S251 R-S251-4: the program contact renders only for a lease whose Housing assistance
+        // is Yes; this journey's lease has none (tests/unit/s251-housing-assistance.test.ts).
+        if (activity === "program_contact") continue;
         const details = document.getElementById(
           `renewal-manual-${activity}`,
         )! as HTMLDetailsElement;
