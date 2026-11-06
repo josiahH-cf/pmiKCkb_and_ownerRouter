@@ -156,6 +156,18 @@ heading; unresolved recovery returns to its own control. Review, confirmation, b
 semantics are preserved. This addresses P05, P13, P14 and SC04, SC09, SC10. Disabled/removed-trigger
 and recovery-outcome regressions passed; final real-interface keyboard recheck is pending.
 
+UX-024, observed on `59808383`: a valid long program name put the Numbers primary action's
+bottom at 905.6 px on a 1280 by 800 screen and 1,840.3 px at 390 wide. Even the normal name's
+phone action ended at 1,631.3 px. Both themes failed the unchanged L14 / R-S247-10 bounds.
+The phone header stacked utilities, the lease header repeated spacing, and the Now card put
+duplicate full-name context ahead of the action. P01, P06, P08, P11, P14 and SC03, SC06, SC07
+apply. The correction shares phone-header rows in DOM order, compacts Guided spacing and places
+the action after the heading and consequential alerts, before supporting next-step/detail text.
+Every full label, header control, touch target rule, Focus/Full view and warning remains. The
+read-only canary and independent oracle now also require action-before-context order. The
+unchanged viewport budgets require a fresh committed-source browser check; prototype geometry
+is diagnostic evidence only.
+
 Preserved by decision: exact review/confirmation, the required Gmail banner, stale authored wording,
 who-approved validation, role/Space and Action Registry checks, blank unsettled legal fields,
 assistance-animal holds, existing controls/views/filters/collections/old links, historical failed
@@ -180,7 +192,8 @@ goals while retaining their original authority and meaning.
 - S246 R10 clarifies the supported working-batch wording, current coherent-read requirement,
   and exact actor-scoped resolution of a person-supplied numeric lease reference.
 - S247 R9 records full retained text and precedence for new user input; secondary statuses remain
-  available in Focus/Full under the original single-stage Guided requirement.
+  available in Focus/Full under the original single-stage Guided requirement. R4 and R10 record
+  action-before-context order and full-label wrapping within the unchanged screen budgets.
 - S248 R4 describes reading the existing exact linked reply with explicit read states, without
   persisting its body or inferring approval.
 - S249 R7 describes the existing S161 authored-wording preservation and in-place resolver; R9
@@ -211,6 +224,9 @@ goals while retaining their original authority and meaning.
   its current backend authority. All Full/Focus controls remain.
 - Use the existing AutosaveStatus for housing save recovery, rather than a second save workflow.
   Keep its original field permission, complete-value validation and retry identity.
+- Keep the full housing program labels and all header utilities. Move supporting duplicate
+  context after the Now action and use tighter Guided spacing and wrapping phone-header rows;
+  the measured failure supports this layout change without a label change or a weaker bound.
 - Treat a supplied numeric lease reference as an exact lookup in the current actor's read, with
   the same filter in its table link. Keep ordinary address and free-text matching.
 - Preserve source-evidence re-review even when the visible draft wording is unchanged. The

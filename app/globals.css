@@ -2332,6 +2332,47 @@ label.secondary-button:focus-within {
   gap: var(--space-2);
 }
 
+/* S247: keep the action in reach even when a saved program name wraps. The lease title and
+   sticky copy controls keep their full content; only repeated layout spacing is reduced. */
+.content:has(.renewal-guided) {
+  padding-top: var(--space-3);
+}
+
+.content:has(.renewal-guided) > .back-link {
+  margin-bottom: 0;
+}
+
+.content:has(.renewal-guided) > .ui-stack {
+  gap: var(--space-2);
+}
+
+.content:has(.renewal-guided) .ui-page-header {
+  margin-bottom: 0;
+}
+
+.content:has(.renewal-guided) .ui-page-header > div:first-child {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.content:has(.renewal-guided) .ui-page-subtitle {
+  margin: 0;
+}
+
+.renewal-workspace-shell:has(.renewal-guided) {
+  gap: var(--space-2);
+}
+
+.renewal-workspace-shell:has(.renewal-guided) .renewal-workspace-toolbar {
+  padding-block: var(--space-1);
+}
+
+.renewal-guided.panel {
+  padding: var(--space-3);
+}
+
 .renewal-guided-stage {
   font-weight: 700;
   margin: 0;
@@ -5236,6 +5277,22 @@ body {
   min-width: 14rem;
   max-width: 100%;
   color: var(--ui-text);
+}
+
+/* The phone header shares rows in DOM order, so global utilities leave room for the task. */
+@media (max-width: 760px) {
+  .topbar {
+    align-items: center;
+    flex-direction: row;
+  }
+
+  .topbar .primary-navigation {
+    width: auto;
+  }
+
+  .global-entity-search {
+    flex-basis: 100%;
+  }
 }
 .global-entity-search-fields {
   display: flex;

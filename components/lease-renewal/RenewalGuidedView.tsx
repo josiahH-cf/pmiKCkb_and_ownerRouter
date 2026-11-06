@@ -649,14 +649,6 @@ function NowCard({
       >
         {isCurrent ? `Now: ${shown.label}` : shown.label}
       </h2>
-      {isCurrent ? (
-        <p data-renewal-field="next-step">Next step: {stage.nextStep.label}</p>
-      ) : null}
-      {shown.state === "not_part" ? (
-        <p data-renewal-field="not-part">{NOT_PART_OF_PATH_LABEL}.</p>
-      ) : shown.detail ? (
-        <p data-renewal-field="now-detail">{shown.detail}</p>
-      ) : null}
       {shown.state === "waiting" && isCurrent && stage.waiting ? (
         <p data-renewal-field="waiting">{renewalStageWaitingLine(stage.waiting)}</p>
       ) : null}
@@ -693,6 +685,14 @@ function NowCard({
             </span>
           ) : null}
         </p>
+      ) : null}
+      {isCurrent ? (
+        <p data-renewal-field="next-step">Next step: {stage.nextStep.label}</p>
+      ) : null}
+      {shown.state === "not_part" ? (
+        <p data-renewal-field="not-part">{NOT_PART_OF_PATH_LABEL}.</p>
+      ) : shown.detail ? (
+        <p data-renewal-field="now-detail">{shown.detail}</p>
       ) : null}
       {replyDecision && manual ? (
         <RenewalOwnerDecisionFromReply

@@ -76,7 +76,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         route: DESK,
         where: "Renewals desk, This batch",
         result:
-          "The lease opens in this tab in Guided view at its current step: the stage line says who it waits on and since when, the Renewal path names each step, and the Now card holds the one next action. ← Back to renewals returns to the same month, group and place.",
+          "The lease opens in this tab in Guided view at its current step: the stage line says who it waits on and since when, the Renewal path names each step, and the Now card shows its primary action after the heading and any alert, followed by the supporting next-step and detail text. ← Back to renewals returns to the same month, group and place.",
         effect: "reads",
         note: "Each row shows the address and unit, the tenant names, the end date, one stage line, one next step link and at most three tags, such as Standing agreement or Housing assistance. A missing input is named on the row and opens the lease where it is fixed.",
       },

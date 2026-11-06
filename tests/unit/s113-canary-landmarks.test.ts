@@ -129,6 +129,7 @@ interface GuidedOptions {
   nowStep?: string | null;
   nextSteps?: number;
   nextStepText?: string;
+  primaryBeforeContext?: boolean;
 }
 const GUIDED_STEPS = [
   "Check the numbers",
@@ -170,6 +171,7 @@ function guidedFixture(options: GuidedOptions = {}): Page {
       true,
       options.nowStep === undefined ? "check-numbers" : options.nowStep,
     ),
+    evaluate: async () => options.primaryBeforeContext ?? true,
     locator: (selector: string) =>
       selector.includes("next-step")
         ? {
@@ -282,6 +284,7 @@ describe("S113 candidate and captured predecessor workspace landmarks", () => {
       { nextSteps: 0 },
       { nextSteps: 2 },
       { nextStepText: "Next step: " },
+      { primaryBeforeContext: false },
     ] satisfies GuidedOptions[])
       expect(
         await hasRenewalWorkspaceLandmarks(guidedFixture(options)),
@@ -298,6 +301,7 @@ describe("S113 candidate and captured predecessor workspace landmarks", () => {
       nowStep: "check-numbers",
       nextSteps: 1,
       nextStepText: "Next step: Check the numbers",
+      primaryBeforeContext: true,
     };
     expect(countIndependentGuidedWorkspaceMismatches(snapshot)).toBe(0);
     expect(
@@ -308,6 +312,12 @@ describe("S113 candidate and captured predecessor workspace landmarks", () => {
     );
     expect(
       countIndependentGuidedWorkspaceMismatches({ ...snapshot, stageText: "" }),
+    ).toBe(1);
+    expect(
+      countIndependentGuidedWorkspaceMismatches({
+        ...snapshot,
+        primaryBeforeContext: false,
+      }),
     ).toBe(1);
   });
 

@@ -68,7 +68,8 @@ or staff-record read failure shows on the Now card as the thing to resolve; it n
   view and Full view.
 - **R-S247-4 — The Now card holds the work.** For every path step the Now card shows what the app
   prepared, the inputs the person decides, one primary action and its secondary actions, using the
-  existing controls in place. No path step sends the person to another view or tab to act.
+  existing controls in place. The primary action follows the heading and any consequential alert;
+  supporting next-step and detail text follows the action. No path step sends the person to another view or tab to act.
 - **R-S247-5 — Waiting is a state, not a dead end.** A waiting step states who it waits on, since
   when, the last contact and what the app is watching, and offers the actions that fit: record what
   happened, send again, or work a later step now.
@@ -92,7 +93,8 @@ or staff-record read failure shows on the Now card as the thing to resolve; it n
 - **R-S247-10 — Fits the screen.** At 1280 by 800 the header, path strip and the Now card's primary
   action are visible without scrolling for the first four steps. At 390 wide the primary action is
   within two screen heights. Both themes, keyboard order and status announcements follow the
-  existing design system.
+  existing design system. Full program names and all existing header controls stay visible as
+  they wrap; compact spacing and shared phone-header rows keep the action within these bounds.
 - **R-S247-11 — Old links still land.** Older lease links, `step` parameters, section anchors and
   help links keep working: a link that names a path step opens the guided view at that step, and a
   link that names a section or control opens Full view there.

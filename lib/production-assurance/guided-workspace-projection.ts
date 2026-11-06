@@ -11,6 +11,7 @@ export interface IndependentGuidedWorkspaceSnapshot {
   readonly nowStep: string | null;
   readonly nextSteps: number;
   readonly nextStepText: string;
+  readonly primaryBeforeContext: boolean;
 }
 
 export function countIndependentGuidedWorkspaceMismatches(
@@ -25,6 +26,7 @@ export function countIndependentGuidedWorkspaceMismatches(
       : 1) +
     (snapshot.nextSteps === 1 && /^Next step: \S/.test(snapshot.nextStepText.trim())
       ? 0
-      : 1)
+      : 1) +
+    (snapshot.primaryBeforeContext ? 0 : 1)
   );
 }
