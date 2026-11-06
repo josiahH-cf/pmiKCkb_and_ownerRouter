@@ -21,7 +21,7 @@ export const HELP_CHANGELOG: readonly HelpChangelogEntry[] = [
       "prepare-documents",
       "admin-tasks",
     ],
-    contentDigest: "e9d5eb818d7bd8b173120578fe8aa653373c42124139497de5b21cdc34771bfb",
+    contentDigest: "c100a9e95ee4a49c9987e58191a90a5469567b022e7dd9d622c8b87fd5e20673",
   },
   {
     version: "V1.1",

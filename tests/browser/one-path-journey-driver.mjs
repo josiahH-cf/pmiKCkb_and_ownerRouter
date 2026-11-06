@@ -799,6 +799,27 @@ async function journey(browser) {
   // where a provider step is closed, and exactly one next step at every point.
   const points = [];
   const otherPages = [];
+  // Every staff record on the path, by route and status, so a record that did not hold is named.
+  const pathWrites = [];
+  const onPathWrite = async (response) => {
+    const request = response.request();
+    if (request.method() !== "POST" || !request.url().includes("/api/lease-renewal/"))
+      return;
+    let body = null;
+    try {
+      body = JSON.parse(request.postData() ?? "null");
+    } catch {
+      body = null;
+    }
+    pathWrites.push({
+      route: new URL(request.url()).pathname,
+      status: response.status(),
+      kind: body?.action?.kind ?? body?.kind ?? null,
+      outcome: body?.action?.outcome ?? body?.outcome ?? null,
+      activity: body?.action?.activity ?? body?.activity ?? null,
+    });
+  };
+  page.on("response", onPathWrite);
   mark = log.mark();
   let completed = false;
   let tenantOffer = null;
@@ -853,6 +874,24 @@ async function journey(browser) {
         ),
       );
       points.at(-1).now = (await view.nowText()).slice(0, 600);
+      points.at(-1).records = {
+        tenantOffer: squash(
+          await offerRecord.textContent({ timeout: 2000 }).catch(() => ""),
+        ).slice(0, 300),
+        tenantResponse: squash(
+          await page
+            .locator("#renewal-manual-tenant_response")
+            .textContent({ timeout: 2000 })
+            .catch(() => ""),
+        ).slice(0, 400),
+        ownerResponse: squash(
+          await page
+            .locator("#renewal-manual-owner_response > p")
+            .allTextContents()
+            .then((texts) => texts.join(" | "))
+            .catch(() => ""),
+        ).slice(0, 400),
+      };
       // What sending needs, as the card names it. The tenant offer needs a verified renewal
       // information form link, a company resource the app refuses to verify for a synthetic host
       // (lib/lease-renewal/resource-locations.ts), so in the rehearsal the offer is recorded by hand.
@@ -911,6 +950,13 @@ async function journey(browser) {
         await page.waitForTimeout(3000);
         continue;
       }
+      // The tenant accepted: the one next step is the step's renewal information form.
+      if (/information form/i.test(next.text ?? "")) {
+        if ((await recordHandOutcomes(page, "offer-tenant")) > 0) {
+          await page.waitForTimeout(2000);
+          continue;
+        }
+      }
       // The offer is out: record the tenant's answer.
       const response = page.getByLabel("Tenant response", { exact: true });
       if (
@@ -937,6 +983,7 @@ async function journey(browser) {
     points.at(-1).stuck = { now: (await view.nowText()).slice(0, 500) };
     break;
   }
+  page.off("response", onPathWrite);
   for (const page of openPages(context))
     if (page !== state.page) otherPages.push(page.url());
   const pathCount = countActions(log.since(mark));
@@ -953,7 +1000,14 @@ async function journey(browser) {
     "journey.complete",
     "the prepared lease is taken from the desk to Complete on the guided path with hand records where a provider step is closed (L53)",
     completed,
-    { points, tenantOffer, termsObserved, pathActions: pathCount, completedRow },
+    {
+      points,
+      tenantOffer,
+      termsObserved,
+      pathActions: pathCount,
+      pathWrites,
+      completedRow,
+    },
   );
   check(
     "journey.one-next-step",
@@ -1301,19 +1355,24 @@ async function journey(browser) {
 
 /** Documents and Finish up by hand: each shown follow-up recorded Done or Not applicable. */
 async function recordHandOutcomes(page, step) {
+  // The renewal information form is sent and returned by hand here: its link is a company
+  // resource the rehearsal cannot verify (lib/lease-renewal/resource-locations.ts).
+  const handDone = step === "documents" || step === "offer-tenant";
   const ids =
-    step === "documents"
-      ? ["documents", "document_delivery", "signatures"]
-      : [
-          "insurance",
-          "rhino",
-          "pet",
-          "charges",
-          "inspection",
-          "filter",
-          "utilities",
-          "assisted_housing",
-        ];
+    step === "offer-tenant"
+      ? ["information_form", "form_returned"]
+      : step === "documents"
+        ? ["documents", "document_delivery", "signatures"]
+        : [
+            "insurance",
+            "rhino",
+            "pet",
+            "charges",
+            "inspection",
+            "filter",
+            "utilities",
+            "assisted_housing",
+          ];
   let recorded = 0;
   for (const id of ids) {
     const details = page.locator(`details#renewal-manual-${id}`);
@@ -1330,9 +1389,7 @@ async function recordHandOutcomes(page, step) {
       .locator("option")
       .evaluateAll((items) => items.map((item) => item.value));
     const choice =
-      step === "documents" || !options.includes("not_applicable")
-        ? "done"
-        : "not_applicable";
+      handDone || !options.includes("not_applicable") ? "done" : "not_applicable";
     await select.selectOption(choice);
     log.act("path", "choice", `${id}: ${choice}`);
     recorded += 1;

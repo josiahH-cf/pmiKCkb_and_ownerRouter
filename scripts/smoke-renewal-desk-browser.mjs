@@ -10,6 +10,12 @@ import { resolveBrowserExecutable as findBrowserExecutable } from "./lib/browser
 // (month and count in words, every loaded lease counted once, month and count controls, same-tab
 // lease navigation and return, no write) and then runs every table check, unchanged, on the
 // explicit table view over every loaded lease.
+//
+// S252: against the one-path rehearsal, serve it outside the rehearsal exemption, as a verification
+// session's server is: `bash scripts/run-renewal-one-path-rehearsal.sh --serve --no-mail-adapter`.
+// With the Demo-owned mail adapter the server says it is the isolated rehearsal, and opening the
+// working batch then starts the S249 preparation by itself in an automated browser, which is a
+// write this read-only smoke refuses to accept.
 
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
@@ -226,7 +232,10 @@ async function verifyDeskAndWorkspace() {
   await page.waitForURL((url) => !url.toString().includes("term="));
   await table.waitFor();
 
-  // Owner/tenant filters are discoverable header controls. Choices submit only opaque p1_ tokens.
+  // Owner/tenant filters are discoverable header controls. Choices submit only opaque tokens: p1_
+  // over the normalized label, or p2_ over the verified RentVine contact id (lib/lease-renewal/
+  // party-filter-key.ts), each the whole HMAC-SHA-256 digest; the app's own pattern is
+  // PARTY_FILTER_TOKEN_PATTERN in lib/lease-renewal/desk-query-v2.ts.
   for (const kind of ["owner", "tenant"]) {
     await page.getByText(`Filter ${kind}`, { exact: true }).click();
     const select = page.locator(`#renewal-filter-${kind}Key`);
@@ -236,7 +245,7 @@ async function verifyDeskAndWorkspace() {
       const optionValue = await choices[0].getAttribute("value");
       const optionLabel = (await choices[0].textContent())?.trim() ?? "";
       assert(
-        /^p1_[A-Za-z0-9_-]{43}$/.test(optionValue ?? ""),
+        /^p[12]_[A-Za-z0-9_-]{43}$/.test(optionValue ?? ""),
         `${kind} option was not opaque.`,
       );
       await select.selectOption(optionValue);

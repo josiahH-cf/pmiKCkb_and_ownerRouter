@@ -12,6 +12,7 @@
 // from the server, from this script and from the driver is refused and logged.
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import {
   createWriteStream,
   existsSync,
@@ -375,6 +376,9 @@ function startServer(port) {
         RENEWAL_SHEET_ID: "synthetic-rehearsal-sheet",
         SHEETS_IMPERSONATE_SA: "synthetic-rehearsal@example.invalid",
         SHEETS_DWD_SUBJECT: "synthetic-rehearsal@pmikcmetro.com",
+        // S252: the desk's owner and tenant header filters submit opaque tokens under a key, as
+        // in production; a fresh random key per run keys this disposable rehearsal only.
+        RENEWAL_DESK_PARTY_FILTER_KEY: randomBytes(32).toString("base64url"),
       },
     },
   );

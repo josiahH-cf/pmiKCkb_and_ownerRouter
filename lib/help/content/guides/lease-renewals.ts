@@ -218,7 +218,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         route: LEASE,
         where: "Guided view, under the Now card on Offer the tenant",
         result:
-          "The answer saves when you choose it and decides whether Documents and signatures or the non-renewal handoff comes next. Recording it accepts nothing for the tenant.",
+          "The answer saves when you choose it. After Accepted, a lease that still needs the renewal information form names Send the renewal information form and then Record the returned information form, each recorded as Information form sent and Information form returned, before Documents and signatures; Declined / not renewing goes to the non-renewal handoff. Recording it accepts nothing for the tenant.",
         effect: "saves-in-app",
       },
       {
@@ -920,7 +920,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         route: LEASE,
         where: "Tenant offer and response, Tenant response",
         result:
-          "The answer saves when you choose it and decides whether documents or the non-renewal handoff come next. Recording it accepts nothing for the tenant.",
+          "The answer saves when you choose it. After Accepted, a lease that still needs the renewal information form records Information form sent and Information form returned under Work recorded by staff before documents; Declined / not renewing goes to the non-renewal handoff. Recording it accepts nothing for the tenant.",
         effect: "saves-in-app",
       },
       {
