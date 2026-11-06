@@ -27,6 +27,10 @@
 #   --driver <file>    Run this driver file (path inside the repository) in place of the smoke
 #                      driver. Arguments after -- are passed to it.
 #   --no-seeds         Load the source leases only; skip every app-state seed.
+#   --no-mail-adapter  Serve without the Demo-owned mail adapter (S249): the server is then outside
+#                      the rehearsal exemption, as a verification session's server is, so the
+#                      automatic start never fires in an automated browser and sends and Gmail
+#                      drafts are refused. Comparisons still reach the comparison stand-in.
 #
 # WHAT IT LOADS. The "November 5 mix" (tests/fixtures/lease-renewal/november-5-mix.json): 38
 # synthetic leases, every date shifted by whole months so the working month is the next calendar
@@ -55,9 +59,9 @@
 #                           recorded cycles for the three leases renewed in RentVine, one fresh
 #                           RentVine read so move-out evidence shows as it does day to day, and the
 #                           replied lease's sent owner message with an owner reply. Named and not
-#                           built until their suites are: the standing agreement (S250), the
-#                           housing assistance fact (S251) and the prepared lease's stored
-#                           comparison, signature and approved template (S248, S249); each goes
+#                           built until their suites are: the standing agreement (S250) and the
+#                           housing assistance fact (S251). Built by S249: the prepared lease's
+#                           stored comparison, signature and approved templates. Each goes
 #                           through the served app's routes, so a commit without the feature
 #                           refuses it. The forms seed module tests/browser/one-path-forms-seed.mjs
 #                           (S253) writes the emulator directly, so it is the served commit's own
@@ -89,7 +93,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --overlay) overlay=true ;;
     --commit) commit="${2:?--commit needs a commit}"; shift ;;
-    --serve | --no-seeds) args+=("$1") ;;
+    --serve | --no-seeds | --no-mail-adapter) args+=("$1") ;;
     --driver) driver_file="${2:?--driver needs a file}"; args+=("$1" "$2"); shift ;;
     --serve-for) args+=("$1" "${2:?--serve-for needs seconds}"); shift ;;
     --) shift; args+=(-- "$@"); break ;;

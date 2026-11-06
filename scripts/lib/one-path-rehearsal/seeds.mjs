@@ -15,8 +15,9 @@
 //                           and an owner reply is delivered by the mail stand-in.
 //   standing-agreement      S250: the covered lease's portfolio agreement (roles.covered).
 //   housing-assistance      S251: Housing assistance Yes with the program name (roles.assisted).
-//   prepared-kickoff        S248/S249: the prepared lease's stored comparison, signature and
-//                           approved template (roles.prepared).
+//   prepared-kickoff        built here (S249): the prepared lease's stored comparison (through
+//                           "Prepare this lease"), the Editor's signature and the approved
+//                           owner and tenant templates (roles.prepared).
 //   forms                   S253: tests/browser/one-path-forms-seed.mjs, the served commit's own
 //                           file, loaded when it exists and called as
 //                           seedOnePathForms(database, { leases }) with the rehearsal's Firestore
@@ -243,6 +244,95 @@ async function repliedOwnerMessage({ page, mix, rehearsal }) {
   };
 }
 
+/** Replace the page's local demo session with another local demo role. */
+export async function switchDemoRole(page, role) {
+  const answer = await route(page, "/api/auth/demo", { role });
+  if (answer.status >= 300)
+    throw new Error(`Local demo ${role} sign-in failed: ${refusal(answer)}`);
+}
+
+/** The synthetic sender signature the prepared kickoff seeds for the local demo Editor. */
+export const SEEDED_EDITOR_SIGNATURE = Object.freeze({
+  name: "Example Staff",
+  role: "PMI KC Metro (rehearsal)",
+  phone: null,
+  hours: null,
+  website: null,
+  source: "Staff entry on the message",
+});
+
+/**
+ * S249: the prepared lease is prepared ahead the way the app prepares it. Through the served app's
+ * own routes: an Approver publishes the owner and tenant templates; the Editor runs "Prepare this
+ * lease" (the kickoff preparation route, which runs the existing comparison against the
+ * rehearsal's comparison stand-in and stores it for the cycle); and the Editor's own signature is
+ * saved on the owner message, which retains it for that sender. The missing-recipient lease keeps
+ * no verified owner recipient (its source row has none), so nothing is seeded for it.
+ */
+async function preparedKickoff({ page, mix }) {
+  const leaseId = String(mix.roles.prepared.leaseId);
+  const notes = [];
+  await switchDemoRole(page, "Approver");
+  try {
+    for (const channel of ["owner", "tenant"]) {
+      const published = await route(page, "/api/lease-renewal/message-preparation", {
+        kind: "publish",
+        channel,
+      });
+      notes.push(
+        published.status === 200
+          ? `${channel} template ${published.body?.status ?? "published"}`
+          : `${channel} template not published (${refusal(published)})`,
+      );
+    }
+  } finally {
+    await switchDemoRole(page, "Editor");
+  }
+  const operationId = await page.evaluate(() => crypto.randomUUID());
+  const prepared = await route(page, "/api/lease-renewal/kickoff-preparation", {
+    leaseId,
+    trigger: "staff",
+    operationId,
+  });
+  if (prepared.status === 404)
+    return {
+      state: "not_built",
+      detail: `The served commit has no kickoff preparation route (${notes.join("; ")}).`,
+    };
+  notes.push(
+    prepared.status === 200
+      ? `comparison ${prepared.body?.status ?? "answered"}${prepared.body?.billed ? " (one lookup)" : ""}`
+      : `comparison not prepared (${refusal(prepared)})`,
+  );
+  const message = await route(
+    page,
+    `/api/lease-renewal/message-preparation?leaseId=${leaseId}&channel=owner`,
+  );
+  if (message.status !== 200)
+    return { state: "skipped", detail: `${notes.join("; ")}; ${refusal(message)}` };
+  const saved = await route(page, "/api/lease-renewal/message-preparation", {
+    kind: "save",
+    leaseId,
+    channel: "owner",
+    ...(message.body.cycleId ? { cycleId: message.body.cycleId } : {}),
+    expectedRevision: message.body.saved?.revision ?? 0,
+    operationId: await page.evaluate(() => crypto.randomUUID()),
+    inputs: { ...message.body.inputs, signature: { ...SEEDED_EDITOR_SIGNATURE } },
+    bodyOverride: null,
+    subjectOverride: null,
+  });
+  notes.push(
+    saved.status === 200
+      ? "the Editor's signature saved on the owner message"
+      : `signature not saved (${refusal(saved)})`,
+  );
+  const ready = prepared.status === 200 && saved.status === 200;
+  return {
+    state: ready ? "seeded" : "skipped",
+    detail: `Lease ${leaseId}: ${notes.join("; ")}.`,
+  };
+}
+
 const notBuilt = (suite, what) => async () => ({
   state: "not_built",
   detail: `${suite} seeds this once it is built: ${what}.`,
@@ -330,14 +420,7 @@ export const SEED_STEPS = [
       "Housing assistance Yes with the program name on the assisted lease",
     ),
   },
-  {
-    name: "prepared-kickoff",
-    suite: "S248",
-    run: notBuilt(
-      "S248 and S249",
-      "the prepared lease's stored comparison, signature and approved template",
-    ),
-  },
+  { name: "prepared-kickoff", suite: "S249", run: preparedKickoff },
   { name: "forms", suite: "S253", run: (context) => seedForms(context) },
 ];
 

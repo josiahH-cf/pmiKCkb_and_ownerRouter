@@ -78,6 +78,11 @@ const serve = flag("--serve");
 const serveSeconds = Number(option("--serve-for") ?? 0);
 const driver = serve ? null : resolve(option("--driver") ?? SMOKE_DRIVER);
 const seeding = !flag("--no-seeds");
+// S249: without the mail adapter the server is outside the rehearsal exemption, as a verification
+// session's server is: resolveRehearsalStandIn() answers null there, so the automatic start never
+// fires in an automated browser, and sends and Gmail drafts are refused as in the Demo environment.
+// The comparison stand-in still answers through the provider boundary.
+const mailAdapter = !flag("--no-mail-adapter");
 if (driver) assert.ok(existsSync(driver), `No driver file at ${driver}.`);
 
 mkdirSync(output, { recursive: true });
@@ -127,6 +132,7 @@ try {
     workingMonth: mix.workingMonth,
     monthsShifted: mix.monthsShifted,
     standInOrigin: standIns.origin,
+    mailAdapter,
     firestoreEmulatorHost: process.env.FIRESTORE_EMULATOR_HOST,
     authEmulatorHost: process.env.FIREBASE_AUTH_EMULATOR_HOST,
     projectId: PROJECT_ID,
@@ -355,8 +361,8 @@ function startServer(port) {
         RENTCAST_API_KEY: "synthetic-rehearsal-key",
         RENTCAST_MONTHLY_ALLOWANCE: String(REHEARSAL_COMPARISON_ALLOWANCE),
         // Mail is answered by the stand-in through the Demo-owned adapter, where the served
-        // commit has one (lib/environment/rehearsal-stand-in.ts).
-        REHEARSAL_STAND_IN_ORIGIN: standIns.origin,
+        // commit has one (lib/environment/rehearsal-stand-in.ts); --no-mail-adapter leaves it out.
+        ...(mailAdapter ? { REHEARSAL_STAND_IN_ORIGIN: standIns.origin } : {}),
         APP_COMMIT_SHA: servedSha,
         FIRESTORE_EMULATOR_HOST: process.env.FIRESTORE_EMULATOR_HOST,
         FIREBASE_AUTH_EMULATOR_HOST: process.env.FIREBASE_AUTH_EMULATOR_HOST,
