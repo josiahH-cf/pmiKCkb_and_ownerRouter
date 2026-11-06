@@ -51,7 +51,9 @@ function form(initialLookup: typeof RETAINED | null, onSave: () => Promise<void>
 
 describe("S249 opening a lease with a stored comparison writes nothing", () => {
   it("the retained lookup arriving after the first render is shown and not saved", async () => {
-    const fetchMock = vi.fn(async () => ({
+    const fetchMock = vi.fn<
+      (url: string, init?: RequestInit) => Promise<{ ok: boolean; json: () => unknown }>
+    >(async () => ({
       ok: true,
       json: async () => ({ status: "not_found" }),
     }));

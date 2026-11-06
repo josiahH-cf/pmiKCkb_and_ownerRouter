@@ -229,14 +229,13 @@ describe("S249 the draft mail client", () => {
     expect(construct).toHaveBeenCalledTimes(1);
   });
 
-  it("the message route builds its draft client through that one factory", () => {
+  it("the message route reaches that factory only with a resolved stand-in, and otherwise makes the same descriptor-bound call as before", () => {
     const route = readFileSync(
       "app/api/lease-renewal/message-preparation/route.ts",
       "utf8",
     );
     expect(route).toMatch(
-      /createGmailMailboxClient\(\s*subject,\s*requireEnvironmentDescriptor\(\),\s*resolveRehearsalStandIn\(\),?\s*\)/,
+      /const standIn = resolveRehearsalStandIn\(\);\s*return standIn\s*\?\s*createGmailMailboxClient\(\s*subject,\s*requireEnvironmentDescriptor\(\),\s*standIn,?\s*\)\s*:\s*createDescriptorBoundGmailRuntimeClient\(\s*subject,\s*requireEnvironmentDescriptor\(\),?\s*\)/,
     );
-    expect(route).not.toContain("createDescriptorBoundGmailRuntimeClient");
   });
 });
