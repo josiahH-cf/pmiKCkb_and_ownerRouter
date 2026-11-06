@@ -91,16 +91,18 @@ function data(overrides: Partial<PreparedMessageData> = {}): PreparedMessageData
   };
 }
 
-function handlers(): { [K in keyof PreparedMessageHandlers]: ReturnType<typeof vi.fn> } {
+function handlers() {
   return {
-    onSaveSignature: vi.fn(() => null),
-    onReasonChange: vi.fn(),
-    onReasonCommit: vi.fn(),
-    onFlush: vi.fn(async () => true),
-    onCopy: vi.fn(async () => undefined),
-    onOpenComposer: vi.fn(),
-    onDraftPreview: vi.fn(async () => undefined),
-    onDraftCreate: vi.fn(async () => undefined),
+    onSaveSignature: vi.fn<PreparedMessageHandlers["onSaveSignature"]>(() => null),
+    onReasonChange: vi.fn<PreparedMessageHandlers["onReasonChange"]>(),
+    onReasonCommit: vi.fn<PreparedMessageHandlers["onReasonCommit"]>(),
+    onFlush: vi.fn<PreparedMessageHandlers["onFlush"]>(async () => true),
+    onCopy: vi.fn<PreparedMessageHandlers["onCopy"]>(async () => undefined),
+    onOpenComposer: vi.fn<PreparedMessageHandlers["onOpenComposer"]>(),
+    onDraftPreview: vi.fn<PreparedMessageHandlers["onDraftPreview"]>(
+      async () => undefined,
+    ),
+    onDraftCreate: vi.fn<PreparedMessageHandlers["onDraftCreate"]>(async () => undefined),
   };
 }
 

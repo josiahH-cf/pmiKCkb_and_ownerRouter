@@ -21,7 +21,8 @@ import {
   RenewalDraftConfirmationSchema,
   RenewalDraftReconciliationSchema,
 } from "@/lib/lease-renewal/execution/renewal-notice-draft-contract";
-import { createDescriptorBoundGmailRuntimeClient } from "@/lib/gmail-hub/dependencies";
+import { createGmailMailboxClient } from "@/lib/gmail-hub/dependencies";
+import { resolveRehearsalStandIn } from "@/lib/environment/rehearsal-stand-in";
 import { requireEnvironmentDescriptor } from "@/lib/environment/descriptor";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
@@ -176,8 +177,14 @@ export async function POST(request: Request) {
         draftStatus.preClaim = failure;
       },
       loadLease: async () => null,
+      // S249: the descriptor-bound Gmail client, except inside the isolated rehearsal, where the
+      // same factory returns the Demo-owned client that reaches only the loopback mail stand-in.
       createGmailClient: (subject: string) =>
-        createDescriptorBoundGmailRuntimeClient(subject, requireEnvironmentDescriptor()),
+        createGmailMailboxClient(
+          subject,
+          requireEnvironmentDescriptor(),
+          resolveRehearsalStandIn(),
+        ),
       resolveCompScreenshotAttachment: async (
         leaseId: string,
         expected: RenewalDraftAttachmentIdentity,

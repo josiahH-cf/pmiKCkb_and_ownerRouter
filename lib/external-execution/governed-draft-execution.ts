@@ -6,6 +6,11 @@ import {
   requireEnvironmentDescriptor,
 } from "@/lib/environment/descriptor";
 import {
+  rehearsalStandInFor,
+  resolveRehearsalStandIn,
+  type RehearsalStandIn,
+} from "@/lib/environment/rehearsal-stand-in";
+import {
   executeExternalActionWithS20,
   prepareExternalActionWithS20,
   reconcileExternalActionWithS20,
@@ -52,6 +57,11 @@ export interface GovernedDraftSeams {
   readonly reconcile?: typeof reconcileExternalActionWithS20;
   /** Server-owned descriptor fence; overridden only to prove the refusal ordering. */
   readonly assertEffectEnvironment?: () => void;
+  /**
+   * S249: the isolated rehearsal's stand-in, overridden only to prove both fence states. Production
+   * omits it and the process's own `resolveRehearsalStandIn()` answers (null outside the rehearsal).
+   */
+  readonly standIn?: RehearsalStandIn | null;
 }
 
 export interface GovernedDraftPreClaimRefusal {
@@ -84,11 +94,27 @@ const VALIDATION_ONLY_EXECUTOR = new LeaseGmailExecutor(
   }),
 );
 
+/**
+ * S249: the rehearsal's stand-in when this process is the isolated rehearsal (Demo with Demo data
+ * and a resolved stand-in), else null. Only then may the draft reach the loopback mail stand-in.
+ */
+function draftStandIn(seams: GovernedDraftSeams): RehearsalStandIn | null {
+  const standIn = seams.standIn !== undefined ? seams.standIn : resolveRehearsalStandIn();
+  if (!standIn) return null;
+  try {
+    return rehearsalStandInFor(requireEnvironmentDescriptor(), standIn);
+  } catch {
+    return null;
+  }
+}
+
 function assertEffectEnvironment(seams: GovernedDraftSeams) {
   if (seams.assertEffectEnvironment) {
     seams.assertEffectEnvironment();
     return;
   }
+  // The isolated rehearsal's Demo-owned mail client reaches its loopback stand-in and nothing else.
+  if (draftStandIn(seams)) return;
   assertLiveProviderActionAllowed(requireEnvironmentDescriptor());
 }
 
@@ -151,10 +177,10 @@ export async function prepareGovernedDraft(
 ) {
   // The data-safety guard runs at preparation too, so sample or non-routable recipient data is
   // refused before it can occupy an execution id at all.
-  assertAuthoritativeRenewalRecipient({
-    ...request.action,
-    authority: undefined,
-  } as never);
+  assertAuthoritativeRenewalRecipient(
+    { ...request.action, authority: undefined } as never,
+    { rehearsalStandIn: draftStandIn(seams) },
+  );
   // Preparation writes the S20 execution ledger. Local Live-read-only must refuse before that write,
   // not merely before the later Gmail client construction.
   assertEffectEnvironment(seams);
@@ -185,10 +211,10 @@ export async function executeGovernedDraft(
   let client: RenewalDraftGmailClient;
   let checkingAttachment = false;
   try {
-    assertAuthoritativeRenewalRecipient({
-      ...request.action,
-      authority: undefined,
-    } as never);
+    assertAuthoritativeRenewalRecipient(
+      { ...request.action, authority: undefined } as never,
+      { rehearsalStandIn: draftStandIn(seams) },
+    );
     await assertProductionRuntimeActionExecutable(request.action.actionKey);
     assertEffectEnvironment(seams);
     checkingAttachment = true;

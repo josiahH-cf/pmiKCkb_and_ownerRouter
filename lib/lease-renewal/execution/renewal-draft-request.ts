@@ -9,6 +9,7 @@ import { escapeMessageHtml } from "@/lib/lease-renewal/renewal-message-content";
 // not authorized (and never for a `.send` action). Draft-only, per the owner-confirmed end state.
 
 import { DRAFT_BANNER } from "@/lib/constants";
+import type { RehearsalStandIn } from "@/lib/environment/rehearsal-stand-in";
 import { deterministicDraftRfcMessageId } from "@/lib/external-execution/draft-identity";
 import {
   ExternalExecutionError,
@@ -189,12 +190,21 @@ const NON_ROUTABLE_RECIPIENT =
  * authoritatively-sourced, routable recipient, so sample/test/fixture data can never become a real
  * client-facing draft — the invariant the Action Registry entry documents. Diagnostics (the smoke's
  * self-addressed draft) opt out explicitly via executeRenewalNoticeDraft's options.
+ *
+ * S249: inside the isolated rehearsal only (`rehearsalStandIn` is what `rehearsalStandInFor`
+ * returns for this process, never a request value), the draft goes to the rehearsal's loopback
+ * mail stand-in, so its synthetic recipient address is accepted. The authoritative-source checks
+ * still apply. With no stand-in every refusal is unchanged.
  */
-export function assertAuthoritativeRenewalRecipient(action: ExternalActionInput): void {
+export function assertAuthoritativeRenewalRecipient(
+  action: ExternalActionInput,
+  options: { readonly rehearsalStandIn?: RehearsalStandIn | null } = {},
+): void {
+  const synthetic = Boolean(options.rehearsalStandIn);
   const to = String(action.values.to ?? "")
     .trim()
     .toLowerCase();
-  if (NON_ROUTABLE_RECIPIENT.test(to)) {
+  if (!synthetic && NON_ROUTABLE_RECIPIENT.test(to)) {
     throw new ExternalExecutionError(
       "Refusing to create a real draft for a non-routable (sample/test) recipient address.",
       "blocked",
@@ -223,7 +233,7 @@ export function assertAuthoritativeRenewalRecipient(action: ExternalActionInput)
     );
   }
   for (const ccEmail of ccEmails) {
-    if (NON_ROUTABLE_RECIPIENT.test(ccEmail.toLowerCase())) {
+    if (!synthetic && NON_ROUTABLE_RECIPIENT.test(ccEmail.toLowerCase())) {
       throw new ExternalExecutionError(
         "Refusing to create a real draft for a non-routable (sample/test) Cc recipient address.",
         "blocked",
