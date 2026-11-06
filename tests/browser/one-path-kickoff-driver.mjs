@@ -20,6 +20,7 @@
 // (scripts/lib/one-path-rehearsal/control.mjs) set the allowance and the rewording. The result
 // goes to kickoff.json in the run directory. Synthetic data only; nothing leaves this machine.
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import net from "node:net";
 import { join } from "node:path";
@@ -90,6 +91,41 @@ const act = (label) => steps.push({ at: new Date().toISOString(), action: label 
 const comparisons = async () =>
   (await standInState(rehearsal)).comparison.comparisonsByLease ?? {};
 const total = (byLease) => Object.values(byLease).reduce((sum, n) => sum + n, 0);
+
+/**
+ * Where one lease's notice-safety marker stands, read from the rehearsal's Firestore emulator as
+ * its owner (a read; the app is not involved), for the diagnostics of a refused send. Hash
+ * prefixes only; the marker holds no customer value.
+ */
+async function noticeMarker(leaseId, label) {
+  const key = createHash("sha256").update(String(leaseId)).digest("hex");
+  const base = `http://${rehearsal.firestoreEmulatorHost}/v1/projects/${rehearsal.projectId}/databases/(default)/documents/lease_renewal_workspaces/${key}`;
+  const read = async (path) => {
+    try {
+      const response = await fetch(`${base}${path}`, {
+        // The emulator's owner token is a fixed word, not a credential.
+        headers: { authorization: "Bearer owner" },
+      });
+      return response.ok ? ((await response.json()).fields ?? {}) : null;
+    } catch {
+      return null;
+    }
+  };
+  const [marker, head] = await Promise.all([read("/approval_safety/notice"), read("")]);
+  const number = (value) => Number(value?.integerValue ?? value?.doubleValue ?? NaN);
+  const at = marker?.sourceReadAt?.mapValue?.fields;
+  return {
+    label,
+    at: new Date().toISOString(),
+    version: marker ? number(marker.version) : null,
+    lease: at ? new Date(number(at.lease)).toISOString() : null,
+    status: at ? new Date(number(at.status)).toISOString() : null,
+    semantic: marker?.semanticHash?.stringValue?.slice(0, 8) ?? null,
+    scope: marker?.scopeHash?.stringValue?.slice(0, 8) ?? null,
+    observedAt: marker?.observedAt?.stringValue ?? null,
+    headCycle: head?.cycleId?.stringValue?.slice(0, 8) ?? null,
+  };
+}
 
 const browser = await chromium.launch({
   executablePath: resolveBrowserExecutable(),
@@ -512,6 +548,7 @@ try {
     l21Writes,
   });
   phase = "L27";
+  const markers = [await noticeMarker(prepared, "before L27")];
 
   // L27: changing the rent and the reason updates the one preview, and every delivery form shows
   // that same message.
@@ -595,6 +632,7 @@ try {
     ].join("\n"),
   );
   await composer.close();
+  markers.push(await noticeMarker(prepared, "after L27"));
   check(
     'L27: changing "Rent to recommend" and "Reason to include" updates the one preview, and Review and send, Schedule, Create Gmail draft instead, Copy and the composer show that same message',
     edited.preview.includes("$1,410.00") &&
@@ -628,13 +666,17 @@ try {
   // read again, so the status table (its 15 minute read) and the lease are admitted afresh.
   await desk();
   await page.waitForTimeout(3000);
+  markers.push(await noticeMarker(prepared, "after the first desk"));
   const refreshedBeforeSend = (await forceSourceRefresh(page)).body?.refreshed ?? false;
+  markers.push(await noticeMarker(prepared, "after the refresh"));
   await desk();
   await page.waitForTimeout(3000);
+  markers.push(await noticeMarker(prepared, "after the second desk"));
   act("open the lease");
   await openLease(prepared);
   // The Now card takes its prepared message once the lease message has loaded.
   await shownWithin(now().locator("[data-renewal-message-revision]"));
+  markers.push(await noticeMarker(prepared, "lease open"));
   const needsBeforeSend = await needsNow();
   act("choose Review and send");
   await now().locator("[data-renewal-now-primary]").click();
@@ -645,6 +687,7 @@ try {
     .waitFor({ timeout: 120_000 })
     .then(() => true)
     .catch(() => false);
+  markers.push(await noticeMarker(prepared, "after Review and send"));
   if (reviewShown) {
     exact =
       (await review.locator('[data-renewal-field="exact-review"]').textContent()) ?? "";
@@ -670,6 +713,7 @@ try {
       reviewShown,
       needsBeforeSend,
       refreshedBeforeSend,
+      markers,
       pages: context.pages().length,
       sent: sent.length,
       statuses: reviewShown
