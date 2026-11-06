@@ -43,6 +43,13 @@ const runDir = process.env.ONE_PATH_REHEARSAL_RUN_DIR;
 assert.ok(runDir, "Run through scripts/run-renewal-one-path-rehearsal.sh.");
 const rehearsal = readRehearsal(runDir);
 const { prepared, covered, assisted, replied } = rehearsal.roles;
+// S252: the comparison checks ask for leases nothing else in a run looks up. Since S249 the
+// prepared lease's stored comparison is seeded with one lookup, and the served app keeps each
+// looked-up address in its own six-hour result cache (lib/lease-renewal/rentcast-quota.ts), so a
+// second lookup of the prepared lease is answered without reaching the stand-in. Two carried-over
+// leases (outside the batch preparation) are looked up by no seed, no automatic start and no
+// other driver.
+const [UNLOOKED, UNLOOKED_AT_ALLOWANCE] = rehearsal.groups.carried_over;
 const EDITOR = "local-demo-editor@pmikcmetro.com";
 
 const checks = [];
@@ -97,14 +104,14 @@ export async function runStandInProof() {
     await resetComparisonLog(rehearsal);
     const comparison = await route("/api/lease-renewal/market-comps", {
       operation: "comps",
-      leaseId: String(prepared),
+      leaseId: String(UNLOOKED),
     });
     let byLease = (await standInState(rehearsal)).comparison.comparisonsByLease;
     check(
-      "a comparison for the prepared lease is answered by the stand-in, once",
+      "a comparison for a lease with no earlier lookup is answered by the stand-in, once",
       comparison.status === 200 &&
         (comparison.body?.compCount ?? 0) >= 3 &&
-        byLease[String(prepared)] === 1,
+        byLease[String(UNLOOKED)] === 1,
       {
         status: comparison.status,
         compCount: comparison.body?.compCount,
@@ -114,24 +121,24 @@ export async function runStandInProof() {
     );
     await route("/api/lease-renewal/market-comps", {
       operation: "comps",
-      leaseId: String(prepared),
+      leaseId: String(UNLOOKED),
     });
     byLease = (await standInState(rehearsal)).comparison.comparisonsByLease;
     check(
       "asking again for the same lease requests no second comparison",
-      byLease[String(prepared)] === 1,
+      byLease[String(UNLOOKED)] === 1,
       { byLease },
     );
     const reached = await setComparisonAllowance(rehearsal, true);
     const refused = await route("/api/lease-renewal/market-comps", {
       operation: "comps",
-      leaseId: String(covered),
+      leaseId: String(UNLOOKED_AT_ALLOWANCE),
     });
     byLease = (await standInState(rehearsal)).comparison.comparisonsByLease;
     check(
       "with the monthly allowance reached, the app refuses and requests nothing",
       refused.body?.reason === "out_of_allowance" &&
-        byLease[String(covered)] === undefined,
+        byLease[String(UNLOOKED_AT_ALLOWANCE)] === undefined,
       { reached, status: refused.status, reason: refused.body?.reason, byLease },
     );
     await setComparisonAllowance(rehearsal, false);

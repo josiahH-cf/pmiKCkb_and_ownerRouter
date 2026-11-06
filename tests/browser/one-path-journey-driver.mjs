@@ -12,8 +12,10 @@
 //     (scripts/lib/one-path-rehearsal/reset.mjs). The served app answers a lease looked up earlier
 //     in the run from its own comparison cache, so the two phases that count comparison requests
 //     run first. In order:
-//     1. The S254 stand-in proof (one-path-stand-in-proof-driver.mjs), on the harness's state.
-//     2. The S249 kickoff (one-path-kickoff-driver.mjs).
+//     1. The S249 kickoff (one-path-kickoff-driver.mjs), on the harness's own starting state: its
+//        L33 and L35 counts need leases no earlier phase has looked up or opened the batch for.
+//     2. The S254 stand-in proof (one-path-stand-in-proof-driver.mjs), whose comparison checks
+//        ask for carried-over leases nothing else looks up.
 //     3. The S254 smoke count (one-path-smoke-driver.mjs), then on the same state:
 //        the journey on the "November 5 mix", in the R-S252-2 order: desk batch, the kickoff on
 //        the prepared lease FOLLOWED FROM THE IN-APP GUIDE (lib/help/content, read as data: L61),
@@ -1445,8 +1447,8 @@ function refusedSummary() {
 
 /** The candidate's phases in their run order: [name, driver file, exported function]. */
 const CANDIDATE_PHASES = [
-  ["s254-stand-in-proof", "./one-path-stand-in-proof-driver.mjs", "runStandInProof"],
   ["s249-kickoff", "./one-path-kickoff-driver.mjs", "runKickoff"],
+  ["s254-stand-in-proof", "./one-path-stand-in-proof-driver.mjs", "runStandInProof"],
   ["s254-smoke", "./one-path-smoke-driver.mjs", "runSmoke"],
   ["journey", null, null],
   ["s247-s248-guided-path", "./one-path-guided-path-driver.mjs", "runGuidedPath"],
@@ -1485,8 +1487,8 @@ try {
   } else {
     // The order keeps one phase from spoiling the next. The served app answers a lease looked up
     // earlier in the run from its own comparison cache (see reset.mjs), so the two phases that
-    // count comparison requests come first: the stand-in proof on the harness's starting state,
-    // then the S249 kickoff. Every later phase starts from the starting state again; the journey
+    // count comparison requests come first: the S249 kickoff on the harness's starting state,
+    // then the stand-in proof. Every later phase starts from the starting state again; the journey
     // follows the smoke count on the same state.
     let first = true;
     for (const [name, file, exportName] of CANDIDATE_PHASES) {
