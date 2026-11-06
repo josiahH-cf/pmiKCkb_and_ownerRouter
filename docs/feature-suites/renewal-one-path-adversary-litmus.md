@@ -3,7 +3,7 @@
 
 # S254 — One-path renewal adversary litmus (machine-run proof of the owner's goals)
 
-> Status: AUTHORING READY — intake 120; implementation NOT STARTED. Specification only; it grants no execution, release or provider effect. Defines the fresh-session verification handoff an outside model runs unattended against the built S246–S253 batch, how its result is recorded, and the repair loop. The checks apply after those suites are built; nothing here claims they are.
+> Status: AUTHORING READY — intake 120; the harness and validator merged in PR #184 at `6b0a71a5`. The fresh-session November 6 litmus and repair loop are resumed on `codex/renewal-one-path-ux` against the combined S246–S253 source. Results retain their actual PASS, FAIL or UNVERIFIED scope, with human verdict NOT RUN and release pending. This specification grants no provider effect.
 
 **Goal.**
 

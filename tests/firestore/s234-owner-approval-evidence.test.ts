@@ -314,6 +314,8 @@ describe("S234 owner approval evidence on the emulator", () => {
         evidenceId: REPLY,
         senderEmail: "staff@pmikcmetro.com",
         receivedAt: "2026-10-20T15:00:00.000Z",
+        threadId: "thread-owner",
+        messageId: "reply-1",
       },
     ]);
   });

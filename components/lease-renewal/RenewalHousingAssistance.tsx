@@ -89,6 +89,7 @@ export function HousingAssistanceField({
   );
   const [notes, setNotes] = useState(saved?.status === "yes" ? (saved.notes ?? "") : "");
   const [notice, setNotice] = useState("");
+  const [programTouched, setProgramTouched] = useState(false);
   // Adopt a newer saved value (the other placement, a reload) while nothing here is being typed.
   const [seen, setSeen] = useState(entry?.revision ?? 0);
   if ((entry?.revision ?? 0) !== seen) {
@@ -97,6 +98,7 @@ export function HousingAssistanceField({
     setProgram(saved?.status === "yes" ? saved.program : "");
     setContact(saved?.status === "yes" ? (saved.contact ?? "") : "");
     setNotes(saved?.status === "yes" ? (saved.notes ?? "") : "");
+    setProgramTouched(false);
   }
   if (!working) return null;
   const state = working.states[FIELD];
@@ -107,8 +109,8 @@ export function HousingAssistanceField({
     setNotice(
       ok
         ? value === null
-          ? "Housing assistance cleared. Nothing else about the lease changed."
-          : "Housing assistance saved. Nothing was sent and no rent, charge or source changed."
+          ? "Housing assistance cleared for this lease."
+          : "Housing assistance saved for this lease."
         : "Housing assistance was not saved yet. Your entry is kept.",
     );
   }
@@ -152,6 +154,7 @@ export function HousingAssistanceField({
               name={`${id}-status`}
               onChange={() => {
                 setStatus(value);
+                setProgramTouched(false);
                 setNotice("");
                 if (value === "no") void save({ status: "no" });
               }}
@@ -164,17 +167,33 @@ export function HousingAssistanceField({
       </fieldset>
       {status === "yes" ? (
         <>
-          <Field htmlFor={`${id}-program`} label={HOUSING_ASSISTANCE_WORDS.program}>
+          <Field
+            htmlFor={`${id}-program`}
+            label={HOUSING_ASSISTANCE_WORDS.program}
+            required
+            hint={
+              !program.trim()
+                ? "Enter the program name to save Housing assistance as Yes."
+                : undefined
+            }
+            error={
+              programTouched && !program.trim()
+                ? "Enter a program name for this lease."
+                : undefined
+            }
+          >
             <input
               disabled={!working.canEdit}
               id={`${id}-program`}
               maxLength={120}
               onBlur={() => {
+                setProgramTouched(true);
                 const value = yesValue();
                 if (value) void save(value);
               }}
               onChange={(event) => setProgram(event.target.value)}
               value={program}
+              required
             />
           </Field>
           <Field htmlFor={`${id}-contact`} label={HOUSING_ASSISTANCE_WORDS.contact}>

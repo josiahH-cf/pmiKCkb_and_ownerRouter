@@ -3,7 +3,7 @@
 
 # S250 — Standing owner agreements set once per owner portfolio and chosen on the lease
 
-> Status: AUTHORING READY — intake 116; implementation NOT STARTED. Specification only; it grants no execution, release or provider effect. Owner decision D-OP-3 (November 5, 2026) approves portfolio-wide agreements that cover the owner step. It revises the S194 agreement scope and keeps S194's policies, prefill and history.
+> Status: AUTHORING READY — intake 116; implementation merged in PR #189 at `daf8ee05`. November 6 UX repairs and qualification continue on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. D-OP-3 remains settled and S194 policies, prefill and history are kept. This specification grants no provider effect.
 
 **Goal.**
 
@@ -66,7 +66,9 @@ verified RentVine read; a lease whose portfolio cannot be verified is never cove
   A staff typed rent always wins and is never overwritten.
 - **R-S250-5 — Owner step covered.** While an active pre-approved agreement covers the lease's verified portfolio and the working rent equals the rule's result,
   Ask the owner reads "Covered by {agreement}: no owner message needed" and the path continues at
-  Offer the tenant. Each renewal cycle is covered while the agreement is in effect; no per-cycle
+  Offer the tenant. When staff open the covered owner step, its primary action is "Continue to
+  Offer the tenant" and its Ready and You decide facts describe the agreement. The existing owner
+  message tools remain available. Each renewal cycle is covered while the agreement is in effect; no per-cycle
   record is needed.
 - **R-S250-6 — Leaving the rule returns the owner step.** A working rent different from the rule's
   result, an ended, revoked or unverifiable agreement, a lease outside the portfolio or two

@@ -143,7 +143,7 @@ describe("S243 R-S243-2 / R-S243-3: references, glossary and What changed", () =
     };
     for (let index = 1; index < versions.length; index += 1)
       expect(rank(versions[index - 1])).toBeGreaterThan(rank(versions[index]));
-    expect(versions).toEqual(["V2.0", "V1.1", "V1.0"]);
+    expect(versions).toEqual(["V2.1", "V2.0", "V1.1", "V1.0"]);
   });
 });
 
@@ -242,7 +242,7 @@ describe("S243 R-S243-7 / BEH-S243-4 / AC-S243-7: consolidation", () => {
     // S252: the 70 rows of the starting map are kept by step id (tests/unit/s252-control-map-
     // continuity.test.ts), and the working batch and Guided view add their own rows.
     expect(renewalControlMap.length).toBeGreaterThanOrEqual(70);
-    expect(renewalControlMap.length).toBe(84);
+    expect(renewalControlMap.length).toBe(89);
     expect(
       renewalControlMap.filter((row) => row.availability === "required").length,
     ).toBeGreaterThanOrEqual(41);

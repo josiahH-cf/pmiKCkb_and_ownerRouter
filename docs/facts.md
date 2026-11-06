@@ -1,9 +1,25 @@
 # PMI KC facts
 
-Last reconciled: 2026-11-05 (guarded S245 litmus fixes delivery and independent production readback).
+Last reconciled: 2026-11-06 (one-path source and resumed UX review; production was not contacted).
 
 This ledger contains present truth. Historical detail is recoverable in Git and immutable run
 evidence; an earlier receipt never authorizes a new attempt.
+
+## November 6 one-path source and resumed review
+
+Main `2187cf09fa0d5860919940448ae1ef55cd298f05` contains the S246–S253 source and S254 harness,
+merged through PRs #184–#190. GitHub showed no open pull requests at the review's start. The
+shared checkout remained at `a7356547` with its untracked owner files untouched. The new branch
+`codex/renewal-one-path-ux` includes the three prior unmerged litmus repairs and the resumed UX
+repair loop. Verification uses the isolated November 5 mix, local roles, emulator and stand-ins;
+`--hold-automatic-comparison` keeps automatic comparisons off after seeds and resets.
+
+This source state is separate from production. The review's delivery is a pull request with full
+gate and exact-head CI evidence; the owner merges, releases and deploys. The staff walkthrough
+verdict remains NOT RUN. Real providers, mailbox outcomes, signatures, physical-phone behavior
+and the open client answers are unverified in this review. The earlier build handoff's reported
+unguarded child-process attempts remain historical claims; this review makes no production read
+to investigate them and infers no provider outcome.
 
 ## November 5 S245 litmus fixes — delivered S87, S126, S147, S242 and S86 repairs
 

@@ -11,6 +11,7 @@ import {
   projectRenewalStage,
   type RenewalStageContext,
 } from "../../lib/lease-renewal/renewal-stage";
+import { countIndependentGuidedWorkspaceMismatches } from "../../scripts/run-production-reconciliation";
 
 const names = [
   "Lease details",
@@ -121,6 +122,13 @@ interface GuidedOptions {
   sectionLinks?: number;
   badSectionHref?: boolean;
   hiddenSectionLink?: boolean;
+  stageLines?: number;
+  stageText?: string;
+  stageCurrentStep?: string | null;
+  pathCurrentStep?: string | null;
+  nowStep?: string | null;
+  nextSteps?: number;
+  nextStepText?: string;
 }
 const GUIDED_STEPS = [
   "Check the numbers",
@@ -150,11 +158,26 @@ function guidedFixture(options: GuidedOptions = {}): Page {
       count: async () => steps.length,
       nth: (index: number) => ({ textContent: async () => steps[index] ?? null }),
     }),
-    locator: () => locator(options.currentSteps ?? 1),
+    locator: () => ({
+      ...locator(options.currentSteps ?? 1),
+      evaluate: async () =>
+        options.pathCurrentStep === undefined ? "check-numbers" : options.pathCurrentStep,
+    }),
   };
   const now = {
-    ...locator(options.nows ?? 1),
-    locator: () => locator(options.primaries ?? 1, options.primaryVisible ?? true),
+    ...locator(
+      options.nows ?? 1,
+      true,
+      options.nowStep === undefined ? "check-numbers" : options.nowStep,
+    ),
+    locator: (selector: string) =>
+      selector.includes("next-step")
+        ? {
+            ...locator(options.nextSteps ?? 1),
+            textContent: async () =>
+              options.nextStepText ?? "Next step: Check the numbers",
+          }
+        : locator(options.primaries ?? 1, options.primaryVisible ?? true),
   };
   const sections = {
     ...locator(options.sectionNavs ?? 1),
@@ -171,6 +194,18 @@ function guidedFixture(options: GuidedOptions = {}): Page {
   };
   const region = {
     ...locator(options.regions ?? 1, options.regionVisible ?? true),
+    locator: () => ({
+      ...locator(
+        options.stageLines ?? 1,
+        true,
+        options.stageCurrentStep === undefined
+          ? "check-numbers"
+          : options.stageCurrentStep,
+      ),
+      textContent: async () =>
+        options.stageText ??
+        "Checking the numbers, waiting on the PMI KC team, nothing recorded yet",
+    }),
     getByRole: (role: string, args: { name: string }) =>
       role === "navigation" && args.name === "Renewal path"
         ? path
@@ -238,11 +273,42 @@ describe("S113 candidate and captured predecessor workspace landmarks", () => {
       { sectionLinks: 4 },
       { badSectionHref: true },
       { hiddenSectionLink: true },
+      { stageLines: 0 },
+      { stageLines: 2 },
+      { stageText: " " },
+      { stageCurrentStep: null },
+      { pathCurrentStep: "ask-owner" },
+      { nowStep: "ask-owner" },
+      { nextSteps: 0 },
+      { nextSteps: 2 },
+      { nextStepText: "Next step: " },
     ] satisfies GuidedOptions[])
       expect(
         await hasRenewalWorkspaceLandmarks(guidedFixture(options)),
         JSON.stringify(options),
       ).toBe(false);
+  });
+
+  it("independently reconciles the visible stage, path and Now step without application projections", () => {
+    const snapshot = {
+      stageLines: 1,
+      stageText: "Checking the numbers, waiting on the PMI KC team, nothing recorded yet",
+      stageCurrentStep: "check-numbers",
+      pathCurrentStep: "check-numbers",
+      nowStep: "check-numbers",
+      nextSteps: 1,
+      nextStepText: "Next step: Check the numbers",
+    };
+    expect(countIndependentGuidedWorkspaceMismatches(snapshot)).toBe(0);
+    expect(
+      countIndependentGuidedWorkspaceMismatches({ ...snapshot, nowStep: "ask-owner" }),
+    ).toBe(1);
+    expect(countIndependentGuidedWorkspaceMismatches({ ...snapshot, nextSteps: 2 })).toBe(
+      1,
+    );
+    expect(
+      countIndependentGuidedWorkspaceMismatches({ ...snapshot, stageText: "" }),
+    ).toBe(1);
   });
 
   it("S250/S251: the lease landmark contract holds for the covered and the assisted variants", async () => {

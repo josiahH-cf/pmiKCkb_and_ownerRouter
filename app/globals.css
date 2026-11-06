@@ -5197,6 +5197,10 @@ body {
 .gmail-hub .communication-plain-body {
   white-space: pre-wrap;
 }
+.renewal-owner-reply-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
 
 /* S197: keep current work and its recorded outcome together; narrow layouts retain both. */
 .renewal-primary-progress {

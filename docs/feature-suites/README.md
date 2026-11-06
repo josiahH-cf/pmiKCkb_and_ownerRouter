@@ -7,8 +7,11 @@ walkthrough of real renewals (Bailey Whiting and Josiah Hunter; owner-held meeti
 outside the repository), the owner's November 5 direction to simplify the renewal interface
 without removing any existing capability, source at `6491c06f`, and a read-only production
 observation of the default desk and one lease page on November 5 (no control activated; counts
-only). Authoring is **READY**; implementation is **NOT STARTED**; nothing here authorizes
-execution, release or a provider effect.
+only). Authoring is **READY**. The source implementations and litmus harness merged through
+PRs #184–#190 at `2187cf09` on November 6. The resumed UX review includes the prior runner's three
+unmerged litmus repairs and continues on `codex/renewal-one-path-ux`; its evidence and remaining
+limits are recorded in the review report. Release remains pending and the human verdict is NOT
+RUN. This registry grants no execution, release or provider effect.
 
 The observation that drives the bundle: the default desk listed 38 rows for five leases staff were
 working; ten rows were leases RentVine reports closed; the leases worked on November 4, one with
@@ -50,10 +53,10 @@ implementation.
 | D-OP-8   | Does a confirmed send from the app record the outreach and move the stage?                             | Yes, attributed to the message and correctable.                                                                                                                                                                                   |
 | D-OP-9   | How does housing assistance change the path?                                                           | Optional field. Program first, then the owner's answer on renewing the tenant, then rent only if a change is proposed. The November 4 notes confirm the program contact and the owner's answer, not the order; S251 records that. |
 
-Recommended order: S246, then S247 with S248, then S249, then S250 and S251, then S252. S253
-changes only the documents files and runs beside that sequence. S254 runs last: a fresh session
-proves the built batch against the owner's goals. Each suite is independently buildable and states
-its behavior when a neighbor is absent.
+The build sequence is complete in source: S254 harness #184, S253 #185, S246 #186, S247 with S248
+#187, S249 #188, S250 with S251 #189, and S252 #190. S254's fresh-session review runs against the
+combined tree and records each remaining evidence gap. Source merge and synthetic verification
+establish neither deployment nor staff acceptance.
 
 **Delivery plan.** The owner approved this batch on November 5, 2026. Approval settles the
 specifications and this plan; an implementation run starts on the owner's run instruction, after
@@ -62,16 +65,12 @@ step 3.
 1. **Specifications first.** This bundle is documentation only: nine specification files, this
    registry and the holds packet. It sits on its own branch cut from `main` at `6491c06f` and
    merges as one docs-only pull request.
-2. **Another runner is active.** On November 5 it has three open pull requests against `main`:
-   #178 (information tip and notification bell), #179 (display and wording repairs) and
-   #180 (S113 journey timing). #180 edits other sections of the holds packet. #179 changes
-   `lib/lease-renewal/live-lease-cache.ts`, `app/globals.css` and
-   `tests/unit/s242-help-pages.test.tsx`, which S246, S247 and S252 also change. #180 changes
-   `tests/firestore/s113-sheet-route.test.ts`, the mounted lease journey that S247 to S249 will
-   need to update.
-3. **Merge order.** Those three merge, or the owner explicitly parks them, before any
-   implementation branch is cut. Whichever documentation change lands second merges `main` and
-   re-runs the documentation gates. No branch here rebases or edits another runner's branch.
+2. **Concurrent work.** The earlier #178–#180 work and the batch's #184–#190 are merged. The
+   November 6 resume found no open pull requests. List open requests again before taking a file
+   another runner may own, and wait for any overlapping request to merge before editing it.
+3. **Review delivery.** The November 6 owner instruction requires the UX repairs as pull requests
+   with a green full gate and exact-head CI. The owner merges, releases and deploys. Older build
+   handoffs that told a runner to merge or release do not authorize those actions in this review.
 4. **Fresh worktrees.** Implementation runs in new worktrees cut from `main` after step 3: one for
    the path lane (S246 to S252 in the order above, one pull request per suite or pair) and one for
    the documents lane (S253). The lanes share only the help content, which S252 updates last.

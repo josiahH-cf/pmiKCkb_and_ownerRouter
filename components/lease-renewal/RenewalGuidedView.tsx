@@ -467,6 +467,7 @@ function NowCard({
   const state = manual?.state ?? null;
   const definition = RENEWAL_PATH_DEFINITION[shown.id];
   const isCurrent = shown.id === stage.currentStepId;
+  const coveredOwnerStep = shown.id === "ask-owner" && shown.state === "covered";
   const audience =
     shown.id === "ask-owner" ? "owner" : shown.id === "offer-tenant" ? "tenant" : null;
   const evidence = audience ? stage.evidence[audience] : null;
@@ -554,7 +555,9 @@ function NowCard({
     shown.state === "waiting" && audience && !shown.scheduled
       ? { label: "Record what happened", target: `renewal-manual-${audience}_response` }
       : null;
-  const primary = blocker ?? shown.primary ?? recordWhatHappened ?? definition.primary;
+  const primary = coveredOwnerStep
+    ? { label: "Continue to Offer the tenant", target: "renewal-step-tenant-decision" }
+    : (blocker ?? shown.primary ?? recordWhatHappened ?? definition.primary);
   // S252 (L36): an observed owner reply makes "Record the owner's decision" the step's action;
   // the decision is recorded here on the Now card, with nothing preselected.
   const replyDecision =
@@ -576,6 +579,10 @@ function NowCard({
     (shown.state === "current" || shown.state === "open") &&
     shown.primary?.label === definition.primary.label;
   const runPrimary = () => {
+    if (coveredOwnerStep) {
+      choose("offer-tenant");
+      return;
+    }
     if (fillerActive && filler) {
       filler.run();
       return;
@@ -697,11 +704,19 @@ function NowCard({
         <dl className="renewal-now-facts">
           <div>
             <dt>Ready</dt>
-            <dd>{definition.ready}</dd>
+            <dd>
+              {coveredOwnerStep
+                ? "The owner's agreement covers the recommended rent."
+                : definition.ready}
+            </dd>
           </div>
           <div>
             <dt>You decide</dt>
-            <dd>{definition.decides}</dd>
+            <dd>
+              {coveredOwnerStep
+                ? "Continue with the tenant offer at the agreement's rent, or change Pricing basis."
+                : definition.decides}
+            </dd>
           </div>
         </dl>
       ) : null}

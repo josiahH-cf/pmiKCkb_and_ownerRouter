@@ -25,6 +25,7 @@ import type {
 import type { WorkflowCommunicationContext } from "@/lib/gmail-hub/workflow-context";
 import { BUSINESS_TIME_ZONE } from "@/lib/lease-renewal/business-calendar";
 import { messageRevisionLabel } from "@/lib/lease-renewal/message-revision";
+import { STALE_REFINED_BODY_MESSAGE } from "@/lib/lease-renewal/refined-message";
 import { NOTICE_GENERATION_NOT_READY } from "@/lib/lease-renewal/notice-source-error";
 import {
   RECOMMENDATION_REASON_REFUSAL,
@@ -67,6 +68,8 @@ export type PreparedMessageData = Omit<
   | "openComposer"
   | "draft"
   | "rebuildRule"
+  | "returnToStandardWording"
+  | "undoWording"
 > & {
   readonly draft: Omit<
     PreparedMessageApi["draft"],
@@ -86,6 +89,8 @@ export interface PreparedMessageHandlers {
   readonly onDraftCreate: PreparedMessageApi["draft"]["create"];
   /** S250 R-S250-7: save the message on the agreement's current rule. */
   readonly onRebuildRule?: PreparedMessageApi["rebuildRule"];
+  readonly onReturnToStandardWording?: PreparedMessageApi["returnToStandardWording"];
+  readonly onUndoWording?: PreparedMessageApi["undoWording"];
 }
 
 export interface PreparedMessageApi {
@@ -103,6 +108,11 @@ export interface PreparedMessageApi {
   readonly templateApproved: boolean;
   /** When the message record was last saved. */
   readonly lastEditedAt: string | null;
+  /** Authored wording remains exact; changed facts need a visible, deliberate resolution. */
+  readonly wordingChangedSince?: boolean;
+  readonly canUndoWording?: boolean;
+  readonly returnToStandardWording?: () => void;
+  readonly undoWording?: () => void;
   /**
    * S250 R-S250-7: the message record was built on an earlier version of the standing
    * agreement's rule and keeps that rule's rent; null otherwise.
@@ -281,12 +291,16 @@ export function PreparedMessageSlot({
   onDraftPreview,
   onDraftCreate,
   onRebuildRule,
+  onReturnToStandardWording,
+  onUndoWording,
 }: Readonly<{ data: PreparedMessageData } & PreparedMessageHandlers>) {
   const nowCard = useRenewalNowCard();
   const step = STEP_FOR_CHANNEL[data.channel];
   const api: PreparedMessageApi = {
     ...data,
     ...(onRebuildRule ? { rebuildRule: onRebuildRule } : {}),
+    returnToStandardWording: onReturnToStandardWording,
+    undoWording: onUndoWording,
     saveSignature: onSaveSignature,
     setReason: onReasonChange,
     commitReason: onReasonCommit,
@@ -805,6 +819,28 @@ function PreparedMessageBlock({
         <p data-renewal-field="signature-notice" role="status">
           {signatureNotice}
         </p>
+      ) : null}
+      {api.wordingChangedSince ? (
+        <div
+          className="renewal-notice ui-stack-tight"
+          data-renewal-field="wording-changed"
+        >
+          <p role="status">{STALE_REFINED_BODY_MESSAGE}</p>
+          {api.canEdit && api.returnToStandardWording ? (
+            <Button
+              onClick={api.returnToStandardWording}
+              size="compact"
+              variant="secondary"
+            >
+              Return to the standard wording
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+      {api.canEdit && api.canUndoWording && api.undoWording ? (
+        <Button onClick={api.undoWording} size="compact" variant="secondary">
+          Undo the last refinement
+        </Button>
       ) : null}
       <div className="renewal-now-preview" data-renewal-field="message-preview">
         <p>

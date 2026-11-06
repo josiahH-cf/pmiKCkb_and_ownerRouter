@@ -905,7 +905,7 @@
     "role": "button",
     "scope": "region:Guided view",
     "availability": "required",
-    "expectation": "Shows the owner message step on the Now card.",
+    "expectation": "Shows the owner message step on the Now card. When covered by an agreement, the primary is Continue to Offer the tenant; existing message tools remain available.",
     "source": ["lib/lease-renewal/renewal-path.ts"],
     "actions": []
   },
@@ -930,5 +930,60 @@
     "expectation": "The stored comparison, Rent to recommend, Reason to include and the message preview.",
     "source": ["components/lease-renewal/RenewalPreparedMessage.tsx"],
     "actions": ["click-button:Ask the owner"]
+  },
+  {
+    "step": "87",
+    "page": "workspace:owner-decision",
+    "control": "Continue to Offer the tenant",
+    "role": "button",
+    "scope": "region:Now",
+    "availability": "conditional",
+    "expectation": "Continues a covered owner step at Offer the tenant in the same view. Replaces the misleading Send the owner message primary on that covered card; all message tools remain available.",
+    "source": ["components/lease-renewal/RenewalGuidedView.tsx"],
+    "actions": ["click-button:Ask the owner"]
+  },
+  {
+    "step": "88",
+    "page": "workspace:compliance-close",
+    "control": "Animal follow-up outcome",
+    "role": "label",
+    "scope": "",
+    "availability": "conditional",
+    "expectation": "The existing staff-recorded animal follow-up, with the same saved activity and source-update confirmations. Its name carries no registration requirement.",
+    "source": ["lib/lease-renewal/workspace-state.ts"],
+    "formerly": { "control": "Pet registration follow-up outcome", "role": "label" }
+  },
+  {
+    "step": "89",
+    "page": "workspace:owner-decision",
+    "control": "Owner reply",
+    "role": "region",
+    "scope": "region:Now",
+    "availability": "conditional",
+    "expectation": "Shows the exact observed owner reply as plain text with its time and staff mailbox, with explicit loading, partial and retry states; a reply makes no decision for staff.",
+    "source": ["components/lease-renewal/RenewalOwnerDecisionFromReply.tsx"],
+    "actions": []
+  },
+  {
+    "step": "90",
+    "page": "workspace:owner-decision",
+    "control": "Return to the standard wording",
+    "role": "button",
+    "scope": "region:Now",
+    "availability": "conditional",
+    "expectation": "Deliberately rebuilds a stale authored message from current inputs; the existing authored wording is recoverable with Undo the last refinement.",
+    "source": ["components/lease-renewal/RenewalPreparedMessage.tsx"],
+    "actions": []
+  },
+  {
+    "step": "91",
+    "page": "workspace:owner-decision",
+    "control": "Undo the last refinement",
+    "role": "button",
+    "scope": "region:Now",
+    "availability": "conditional",
+    "expectation": "Restores the previous authored wording after a deliberate return to standard wording or accepted refinement.",
+    "source": ["components/lease-renewal/RenewalPreparedMessage.tsx"],
+    "actions": []
   }
 ]

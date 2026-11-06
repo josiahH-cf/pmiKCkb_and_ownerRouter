@@ -111,7 +111,7 @@ export const MANUAL_ACTIVITIES = {
     conditional: true,
   },
   rhino: { label: "Rhino renewal follow-up", section: "documents", conditional: true },
-  pet: { label: "Pet registration follow-up", section: "documents", conditional: true },
+  pet: { label: "Animal follow-up", section: "documents", conditional: true },
   charges: {
     label: "Applicable recurring-charge follow-up",
     section: "documents",

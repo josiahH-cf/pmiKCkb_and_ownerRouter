@@ -3,7 +3,7 @@
 
 # S247 — One renewal path per lease: one page, one current step
 
-> Status: AUTHORING READY — intake 113; implementation NOT STARTED. Specification only; it grants no execution, release or provider effect. Owner decision D-OP-6 (November 5, 2026): the guided page is the default and Focus view and Full view stay as options. It adds a default view; the S143 and S152 views, handlers and projections are kept.
+> Status: AUTHORING READY — intake 113; implementation merged in PR #187 at `20d55104`. November 6 UX repairs and qualification continue on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. D-OP-6 remains settled: Guided is the default, and Focus and Full views, handlers and projections are kept. This specification grants no provider effect.
 
 **Goal.**
 

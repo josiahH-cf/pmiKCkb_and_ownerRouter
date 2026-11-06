@@ -227,7 +227,7 @@ matrix human column other than NOT RUN) are each a test that the check rejects.
   field (`formerly`) for a renamed control (none needed). The guide-controls smoke finds every one
   of the 70 starting rows by role and accessible name on its own page (the lease page in Guided,
   Focus or Full view, the desk in the batch or in All leases and filters, Connections, Home).
-- **Pictures:** every scene was recaptured for V2.0 from the help rehearsal into `public/help/V2.0/`
+- **Pictures:** every scene was recaptured for V2.0 from the help rehearsal into public/help/V2.0/
   (27 scenes, each at 1280 by 800 or 375 by 812, synthetic values only, each looked at against its
   alt text); the V1.1 picture folder was retired (Git history keeps it). The rehearsal prepares its
   lease through the app's own routes (templates published, the owner message saved with a

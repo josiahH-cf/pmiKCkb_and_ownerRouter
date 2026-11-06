@@ -3,7 +3,7 @@
 // recorded on the Now card in at most three deliberate actions, nothing preselected, with the same
 // S234 approval evidence the Owner response form records. Synthetic values only.
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -31,7 +31,10 @@ const CHOICES: OwnerApprovalChoices = {
   rosterFingerprint: "f".repeat(64),
 };
 
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 function renderForm(choices: OwnerApprovalChoices = CHOICES) {
   const onRecord = vi.fn();
@@ -153,8 +156,95 @@ describe("S252 L36: the owner's decision from an observed reply", () => {
     fireEvent.click(
       screen.getByRole("radio", { name: /^Approved in the reply received/ }),
     );
-    expect(screen.getByRole("status")).toHaveTextContent("could not be read");
+    expect(screen.getByText(/current owner list could not be read/)).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: OWNER_DECISION_RECORD_LABEL }));
     expect(onRecord).not.toHaveBeenCalled();
+  });
+});
+
+const LINKED_CHOICES: OwnerApprovalChoices = {
+  ...CHOICES,
+  replies: [{ ...CHOICES.replies[0]!, threadId: "thread-owner", messageId: "reply-1" }],
+};
+
+describe("S248 L36: read the observed owner reply before recording its meaning", () => {
+  it("reads the exact linked message as plain text and leaves the decision unselected", async () => {
+    const body = "Synthetic owner reply.\nPlease use <b>these terms</b>.";
+    const fetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          thread: {
+            messages: [
+              { id: "outbound-1", bodyText: "An older outgoing message." },
+              { id: "reply-1", bodyText: body, bodyTruncated: true },
+            ],
+          },
+        }),
+      ),
+    );
+    vi.stubGlobal("fetch", fetch);
+    renderForm(LINKED_CHOICES);
+    expect(screen.getByText("Reading the owner's reply.")).toBeVisible();
+    await waitFor(() =>
+      expect(screen.getByText(/Please use/)).toHaveTextContent("<b>these terms</b>"),
+    );
+    expect(document.querySelector(".renewal-owner-reply-body b")).toBeNull();
+    expect(screen.queryByText("An older outgoing message.")).toBeNull();
+    expect(screen.getByText(/Part of this reply is shown/)).toBeVisible();
+    const url = new URL(fetch.mock.calls[0]![0], "http://localhost");
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      id: SEQUENCE,
+      thread: "thread-owner",
+      sender: "renewals@example.invalid",
+    });
+    for (const radio of screen.getAllByRole("radio")) expect(radio).not.toBeChecked();
+  });
+
+  it("keeps staff entries through a failed read and recovers through Try again", async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("{}", { status: 503 }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            thread: {
+              messages: [{ id: "reply-1", bodyText: "Synthetic reply recovered." }],
+            },
+          }),
+        ),
+      );
+    vi.stubGlobal("fetch", fetch);
+    const onRecord = renderForm(LINKED_CHOICES);
+    fireEvent.click(screen.getByRole("radio", { name: "Asked for a change" }));
+    fireEvent.change(screen.getByLabelText(/What the owner asked to change/), {
+      target: { value: "Keep this staff note." },
+    });
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "reply text could not be read",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(await screen.findByText("Synthetic reply recovered.")).toBeVisible();
+    expect(screen.getByLabelText(/What the owner asked to change/)).toHaveValue(
+      "Keep this staff note.",
+    );
+    expect(onRecord).not.toHaveBeenCalled();
+  });
+
+  it("reports an unavailable exact message instead of showing another thread message", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            thread: { messages: [{ id: "outbound-1", bodyText: "Another message." }] },
+          }),
+        ),
+      ),
+    );
+    renderForm(LINKED_CHOICES);
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "reply text could not be read",
+    );
+    expect(screen.queryByText("Another message.")).toBeNull();
   });
 });

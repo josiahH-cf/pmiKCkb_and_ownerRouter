@@ -7,6 +7,7 @@ import { formatBusinessTimestamp, formatSourceCalendarDate } from "@/lib/date-di
 
 import { renewalCardTitle } from "@/components/lease-renewal/RenewalSectionHeading";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   EXTERNAL_LINK_REL,
   EXTERNAL_LINK_TARGET,
@@ -63,6 +64,7 @@ import { GEMINI_IN_GMAIL_HINT } from "@/lib/email-refinement/hint";
 import { RefineWithAi } from "@/components/email/RefineWithAi";
 import {
   gmailDraftSignal,
+  gmailDraftMessageRevisionOf,
   messageRevisionOf,
 } from "@/lib/lease-renewal/message-revision";
 import {
@@ -405,6 +407,7 @@ function MessagePreparationEditor({
   channel: "owner" | "tenant";
   canEdit: boolean;
 }) {
+  const router = useRouter();
   const [current, setCurrent] = useState<Preparation | null>(null);
   const [inputs, setInputs] = useState(emptyMessagePreparationInputs);
   // S161: the authored body (typed here or accepted from a refinement) and the authored subject.
@@ -687,6 +690,16 @@ function MessagePreparationEditor({
         : null,
     );
     touch();
+  }
+  function returnToStandardWording() {
+    overrideChange(null, true);
+    commit();
+  }
+  function undoWording() {
+    if (previousOverride === undefined) return;
+    overrideChange(previousOverride);
+    setPreviousOverride(undefined);
+    commit();
   }
   function chargeChange(id: MessageCharge["id"], changeValue: Partial<MessageCharge>) {
     change({
@@ -1034,7 +1047,7 @@ function MessagePreparationEditor({
       setOutcome(parsed);
       if (parsed.status === "blocked") setNotice(parsed.reasons.join(" "));
       if (parsed.status === "created" && confirmedPreview) {
-        const made = messageRevisionOf({
+        const made = gmailDraftMessageRevisionOf({
           subject: confirmedPreview.subject,
           body: confirmedPreview.body,
         });
@@ -1047,6 +1060,7 @@ function MessagePreparationEditor({
           setReplacedHere(true);
         setCreatedDraftRevision(made);
       }
+      if (parsed.status === "created") router.refresh();
       if (parsed.status === "created")
         setNotice(
           kind === "reconcile"
@@ -1186,6 +1200,8 @@ function MessagePreparationEditor({
           senderEmail: current.senderEmail,
           templateApproved: current.publication.status === "approved",
           lastEditedAt: current.saved?.updatedAt ?? null,
+          wordingChangedSince,
+          canUndoWording: previousOverride !== undefined,
           earlierRule: current.earlierRule ?? null,
           marked,
           signaturePresent: Boolean(payload?.effective.signature),
@@ -1236,6 +1252,8 @@ function MessagePreparationEditor({
           }
           onReasonCommit={commit}
           onRebuildRule={rebuildRule}
+          onReturnToStandardWording={returnToStandardWording}
+          onUndoWording={undoWording}
           onSaveSignature={saveSignature}
         />
       ) : null}
@@ -1427,23 +1445,12 @@ function MessagePreparationEditor({
                   {canEdit ? (
                     <div className="ui-actions">
                       {previousOverride !== undefined ? (
-                        <Button
-                          onClick={() => {
-                            overrideChange(previousOverride);
-                            setPreviousOverride(undefined);
-                            commit();
-                          }}
-                          type="button"
-                          variant="secondary"
-                        >
+                        <Button onClick={undoWording} type="button" variant="secondary">
                           Undo the last refinement
                         </Button>
                       ) : null}
                       <Button
-                        onClick={() => {
-                          overrideChange(null, true);
-                          commit();
-                        }}
+                        onClick={returnToStandardWording}
                         type="button"
                         variant="secondary"
                       >

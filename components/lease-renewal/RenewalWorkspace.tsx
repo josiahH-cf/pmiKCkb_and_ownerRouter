@@ -37,6 +37,7 @@ import {
   RenewalFocusViewProvider,
   RenewalFocusViewSlot,
   RenewalFocusViewSwitch,
+  RenewalSecondaryStatus,
 } from "@/components/lease-renewal/RenewalFocusViewContext";
 import {
   RenewalFocusViewPane,
@@ -433,19 +434,21 @@ export function RenewalWorkspace({
         {summary.endDateIso ? ` · ends ${formatCalendarDate(summary.endDateIso)}` : ""}
       </span>
       {summary.lifecycle ? (
-        <span
-          className="renewal-workspace-identity-status renewal-lifecycle"
-          data-renewal-lifecycle={summary.lifecycle.category}
-          title={summary.lifecycle.explanation}
-        >
+        <RenewalSecondaryStatus>
           <span
-            aria-hidden="true"
-            className="renewal-lifecycle-dot"
-            data-lifecycle={summary.lifecycle.category}
-          />
-          {summary.lifecycle.label}
-          {summary.lifecycle.qualifier ? `: ${summary.lifecycle.qualifier}` : ""}
-        </span>
+            className="renewal-workspace-identity-status renewal-lifecycle"
+            data-renewal-lifecycle={summary.lifecycle.category}
+            title={summary.lifecycle.explanation}
+          >
+            <span
+              aria-hidden="true"
+              className="renewal-lifecycle-dot"
+              data-lifecycle={summary.lifecycle.category}
+            />
+            {summary.lifecycle.label}
+            {summary.lifecycle.qualifier ? `: ${summary.lifecycle.qualifier}` : ""}
+          </span>
+        </RenewalSecondaryStatus>
       ) : null}
       {summary.renewalTarget ? (
         // S246 R-S246-1: the same target verdict the Renewals desk placed this lease by.
@@ -457,9 +460,11 @@ export function RenewalWorkspace({
         </span>
       ) : null}
       {compactWorkStatus ? (
-        <span className="renewal-workspace-identity-status">
-          Staff status: {compactWorkStatus}
-        </span>
+        <RenewalSecondaryStatus>
+          <span className="renewal-workspace-identity-status">
+            Staff status: {compactWorkStatus}
+          </span>
+        </RenewalSecondaryStatus>
       ) : null}
     </>
   );

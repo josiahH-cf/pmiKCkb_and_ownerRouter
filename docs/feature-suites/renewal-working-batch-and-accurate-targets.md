@@ -3,7 +3,7 @@
 
 # S246 — Working batch and accurate renewal targets on the desk
 
-> Status: AUTHORING READY — intake 112; implementation NOT STARTED. Specification only; it grants no execution, release or provider effect. Owner decisions D-OP-4 and D-OP-5 were confirmed on November 5, 2026.
+> Status: AUTHORING READY — intake 112; implementation merged in PR #186 at `64a12692`. November 6 UX repairs and qualification continue on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. Owner decisions D-OP-4 and D-OP-5 remain settled. This specification grants no provider effect.
 
 **Goal.**
 
@@ -86,7 +86,11 @@ rows to an explicit retained state and never removes them from the list.
   is offered as "Open my saved view" and no longer applies by itself on the bare route. A shared
   collection link opens the table filtered to that collection's membership.
 - **R-S246-10 — Same answer everywhere.** A Dashboard assistant answer about a month's renewals
-  uses the same target definition and names the excluded counts by reason.
+  uses the same target definition and names the excluded counts by reason. "This batch" and
+  "working month" mean the next calendar month's renewal targets. A question about which leases
+  need renewal work asks for lease records; an explicit task question retains the My Work route.
+  When its cached source is stale, the assistant waits for a current coherent read before stating
+  the batch membership, or reports that the source could not be verified.
 - **R-S246-11 — Counts reconcile.** The groups partition the loaded leases: their counts sum to the
   total loaded, and each lease is in exactly one group.
 - **R-S246-12 — Fail closed.** When the status table or a lease's status cannot be read, the lease

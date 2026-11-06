@@ -3,7 +3,7 @@
 
 # S249 — Renewal kickoff prepared ahead, with one message and one route to send it
 
-> Status: AUTHORING READY — intake 115; implementation NOT STARTED. Specification only; it grants no execution, release or provider effect. Owner decisions of November 5, 2026: D-OP-1 approves starting the rent comparison without a staff action inside stated limits, shipped only together with its router amendment; D-OP-2 and D-OP-7 are confirmed.
+> Status: AUTHORING READY — intake 115; implementation merged in PR #188 at `aec5a309`, including the D-OP-1 router amendment. November 6 UX repairs and qualification continue on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. D-OP-1, D-OP-2 and D-OP-7 remain settled. This specification grants no provider effect.
 
 **Goal.**
 
@@ -83,13 +83,20 @@ choose to work. RentVine readable; RentCast allowance available for a new lookup
 - **R-S249-7 — One current message.** One message exists per lease, audience and cycle. Its preview
   on the Now card updates as the rent, the reason or the wording changes. Send, Schedule, Create
   Gmail draft and Copy all read that message. The Communications composer opened for the lease
-  shows the same message.
+  shows the same message. S161's preservation of authored wording remains: a changed input never
+  silently rewrites a staff-authored or accepted AI body. The Now card shows the existing
+  changed-information notice, Return to the standard wording and Undo the last refinement in
+  place, so staff can deliberately rebuild the shared message from current inputs or keep their
+  wording. The same controls remain in the message editor.
 - **R-S249-8 — One route.** The primary action is "Review and send" on the Now card, which uses the
   existing staff-confirmed Send contract and its exact review. "Schedule", "Create Gmail draft
   instead" and "Copy" are secondary actions on the same card (D-OP-2).
 - **R-S249-9 — A Gmail draft never goes stale silently.** When the message changes after a Gmail
   draft was created, the card reads "The Gmail draft is older than this message" and offers
-  "Replace the Gmail draft". Creating a draft takes one review and one confirmation.
+  "Replace the Gmail draft". The required draft-review banner remains in the exact Gmail preview
+  and draft, and is excluded only from the wording revision comparison. After confirmed creation,
+  the lease refreshes its draft evidence so the waiting state appears without a manual reload.
+  Creating a draft takes one review and one confirmation.
 - **R-S249-10 — Owner wording.** An owner message never contains internal working language. With a
   staff recommendation it uses the approved suggestion wording. With none, the Now card asks for the
   rent to recommend before Send; the sentence "The working offer remains a staff decision" never

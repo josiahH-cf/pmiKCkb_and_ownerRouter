@@ -1,8 +1,16 @@
 # Current plan
 
-Updated: 2026-11-05 (UTC), S245 litmus fixes delivery.
+Updated: 2026-11-06 (UTC), resumed one-path UX review.
 
 ## Authorized outcome
+
+Current work is the November 6 owner-directed review of the merged S246–S253 source and S254
+harness at `2187cf09`, including the prior runner's unmerged litmus repairs. Record expectations,
+walk the isolated rehearsal, repair evidenced UX problems with specifications and preservation
+checks, then deliver a pull request with `bash scripts/verify.sh` and exact-head CI green. Keep
+automatic comparisons held off in verification. The owner merges, releases and deploys. The
+engineering review establishes no staff acceptance or real-provider outcome; human verdict NOT RUN.
+The earlier delivered program below remains background, not an instruction to restart its release.
 
 Implement and qualify the finalized work for the three active application lanes, the seven
 assessment gaps, newly diagnosed A-08 PDF publication dependency, and the configuration/approval/

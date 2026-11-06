@@ -3,7 +3,7 @@
 
 # S251 — Housing assistance recorded once on the lease, with its own renewal order
 
-> Status: AUTHORING READY — intake 117; implementation NOT STARTED. Specification only; it grants no execution, release or provider effect. Owner decision D-OP-9 (November 5, 2026) sets the order: the program first, then the owner's answer on renewing the tenant, then rent only when a change is proposed.
+> Status: AUTHORING READY — intake 117; implementation merged in PR #189 at `daf8ee05`. November 6 UX repairs and qualification continue on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. D-OP-9 remains settled: program, owner renewing answer, then rent when a change is proposed. This specification grants no provider effect.
 
 **Goal.**
 
@@ -47,7 +47,10 @@ operating Sheet.
 - **R-S251-1 — One optional fact.** A lease has "Housing assistance": not set, No, or Yes with the
   program name and optional contact and notes. Not set is the default and asks nothing.
 - **R-S251-2 — Entered where it is first useful.** The field sits on the Check the numbers step and
-  in Lease information, saves by itself with who and when, and can be changed at any time.
+  in Lease information, saves by itself with who and when, and can be changed at any time. After
+  Yes is chosen, Program name is marked required. An empty name explains that the choice is
+  waiting to be saved; leaving the field shows the missing-name error beside it. Completing the
+  name saves the fact through the existing autosave in either location.
 - **R-S251-3 — Stays with the lease.** The fact carries across renewal cycles until staff change it,
   with its history kept.
 - **R-S251-4 — The program first.** With Yes, the step after the numbers check is "Contact

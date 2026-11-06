@@ -20,6 +20,7 @@ import {
   RENEWAL_PATH_STANDARD_STEPS,
 } from "@/lib/lease-renewal/renewal-path";
 import { emptyRenewalWorkspace } from "@/lib/lease-renewal/workspace-state";
+import { renewalStageContextFor } from "@/lib/lease-renewal/renewal-stage-context";
 import { fullViewSignature } from "@/tests/helpers/full-view-signature";
 import {
   renderWorkspace,
@@ -37,7 +38,7 @@ import { getRenewalLeaseWorkspace } from "@/tests/helpers/sample-desk";
 
 const BASELINE = JSON.parse(
   readFileSync(
-    join(__dirname, "..", "fixtures", "s244-help-copy-full-view-presentation.json"),
+    join(__dirname, "..", "fixtures", "s253-animal-wording-full-view-presentation.json"),
     "utf8",
   ),
 ) as Record<string, ReturnType<typeof fullViewSignature>>;
@@ -95,6 +96,61 @@ afterEach(() => {
 });
 
 describe("S247 Guided view", { timeout: 120_000 }, () => {
+  it("keeps secondary header statuses in Focus and Full while Guided names the stage once", async () => {
+    stubRenewalRoutes(manualState());
+    const { container } = await renderWorkspace({
+      manual: manualState(),
+      view: "default",
+      extra: { workStatus: WORK_STATUS },
+    });
+    const statuses = [...container.querySelectorAll("[data-renewal-secondary-status]")];
+    expect(statuses.length).toBeGreaterThan(0);
+    for (const status of statuses) expect(status).not.toBeVisible();
+    await userEvent.setup().click(viewButton("Full view"));
+    for (const status of statuses) expect(status).toBeVisible();
+  });
+
+  it("continues a covered owner step to the tenant offer while keeping the message tools reachable", async () => {
+    stubRenewalRoutes(manualState());
+    const workspace = getRenewalLeaseWorkspace("lease-318-cedar-7")!;
+    const context = renewalStageContextFor(
+      { ...workspace.summary, guidance: workspace.guidance },
+      null,
+      null,
+    );
+    await renderWorkspace({
+      workspace: {
+        ...workspace,
+        renewalStageContext: {
+          ...context,
+          standingAgreement: {
+            label: "Example agreement",
+            reason: "Owner pre-approved the rule",
+          },
+        },
+      },
+      manual: manualState(),
+      view: "default",
+    });
+    const user = userEvent.setup();
+    await user.click(
+      within(guidedPane()).getByRole("button", { name: "Ask the owner" }),
+    );
+    expect(
+      within(nowCard()).getByRole("button", { name: "Continue to Offer the tenant" }),
+    ).toBeVisible();
+    expect(
+      within(nowCard()).queryByRole("button", { name: "Send the owner message" }),
+    ).toBeNull();
+    expect(nowCard()).toHaveTextContent(
+      "Covered by Example agreement: no owner message needed",
+    );
+    await user.click(
+      within(nowCard()).getByRole("button", { name: "Continue to Offer the tenant" }),
+    );
+    expect(nowCard()).toHaveAttribute("data-renewal-now-step", "offer-tenant");
+  });
+
   it("BEH-S247-1: a lease opens in Guided view with the path strip and one Now card", async () => {
     const routes = stubRenewalRoutes(manualState());
     await renderWorkspace({

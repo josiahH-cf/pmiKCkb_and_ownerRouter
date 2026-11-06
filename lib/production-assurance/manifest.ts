@@ -38,6 +38,8 @@ export const ASSURANCE_GUIDED_WORKSPACE = {
   minimumSteps: 7,
   now: "Now",
   primarySelector: "[data-renewal-now-primary]",
+  stageLineSelector: '[data-renewal-field="stage-line"]',
+  nextStepSelector: '[data-renewal-field="next-step"]',
   sections: "Every section in Full view",
 } as const;
 

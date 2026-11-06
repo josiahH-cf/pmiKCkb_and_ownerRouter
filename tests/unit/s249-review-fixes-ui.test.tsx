@@ -52,6 +52,7 @@ import {
   type RenewalMessageFacts,
 } from "@/lib/lease-renewal/renewal-message-content";
 import { emptyMessagePreparationInputs } from "@/lib/lease-renewal/renewal-message-preparation";
+import { DRAFT_BANNER } from "@/lib/constants";
 import {
   KICKOFF_WORDS,
   projectRenewalPreparation,
@@ -289,6 +290,30 @@ function mountOwner(overrides: Partial<PreparedMessageData> = {}) {
   );
 }
 
+it("shows changed-fact feedback and deliberate wording recovery on the Now card", async () => {
+  const returnWording = vi.fn();
+  const undo = vi.fn();
+  render(
+    <RenewalNowCardProvider preparation={projectRenewalPreparation(FACTS)}>
+      <StepCard step="ask-owner" />
+      <PreparedMessageSlot
+        data={data({ wordingChangedSince: true, canUndoWording: true })}
+        {...handlers()}
+        onReturnToStandardWording={returnWording}
+        onUndoWording={undo}
+      />
+    </RenewalNowCardProvider>,
+  );
+  expect(
+    await screen.findByText(/Information changed after this wording was written/),
+  ).toBeVisible();
+  expect(returnWording).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Return to the standard wording" }));
+  expect(returnWording).toHaveBeenCalledOnce();
+  fireEvent.click(screen.getByRole("button", { name: "Undo the last refinement" }));
+  expect(undo).toHaveBeenCalledOnce();
+});
+
 const SEQUENCE = (id: string, version = 1) => ({
   id,
   version,
@@ -488,6 +513,25 @@ describe("S249 D: the Gmail draft signal reads the last created draft", () => {
     );
   }
   const shown = composeRenewalMessage(tenantFacts());
+
+  it("reads a freshly created banner-marked draft as the current message after reload", async () => {
+    mountTenant(
+      tenantPreparation({
+        createdDrafts: {
+          latest: {
+            executionId: `exec_${"d".repeat(40)}`,
+            subject: shown.subject,
+            body: `${DRAFT_BANNER}\n\n${shown.plainText}`,
+            recordedAt: "2026-11-06T15:00:00.000Z",
+          },
+          earlier: 0,
+        },
+      }),
+    );
+    await screen.findByText("The unsent Gmail draft carries this message revision.");
+    expect(screen.queryByText(new RegExp(KICKOFF_WORDS.draftOlder))).toBeNull();
+    expect(screen.queryByRole("button", { name: KICKOFF_WORDS.replaceDraft })).toBeNull();
+  });
 
   it("after a replacement preview is cancelled, the draft created from the earlier revision reads older", async () => {
     mountTenant(

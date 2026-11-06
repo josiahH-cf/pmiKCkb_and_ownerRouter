@@ -87,6 +87,23 @@ const answerIds = (answer: ConversationAnswer) =>
   answer.groups[0].items.map((item) => item.ref.id).sort();
 
 describe("S246 the assistant and the desk agree on a month (BEH-S246-4, AC-S246-4)", () => {
+  for (const question of [
+    "Show this batch of renewals",
+    "Which renewals are in the working month?",
+    "Which leases need renewal work for December 2026?",
+  ]) {
+    it(`keeps the batch meaning in the staff wording: ${question}`, async () => {
+      const { answer, partition } = await deskAndAnswer(question);
+      expect(answerIds(answer)).toEqual(
+        partition.groups.this_batch.map((row) => row.key).sort(),
+      );
+      expect(answer.groups[0].source).toBe("renewals");
+      expect(answer.groups[0].notes).toEqual(
+        expect.arrayContaining(renewalBatchExcludedNotes(partition)),
+      );
+    });
+  }
+
   it("BEH-S246-4: next month's answer lists exactly the batch membership", async () => {
     const { answer, partition } = await deskAndAnswer(
       "Which leases are coming up next month?",

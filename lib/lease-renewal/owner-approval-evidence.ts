@@ -9,6 +9,9 @@ export interface OwnerReplyChoice {
   readonly evidenceId: string;
   readonly senderEmail: string;
   readonly receivedAt: string;
+  /** Existing linked-thread and message identities; absent on older metadata-only choices. */
+  readonly threadId?: string;
+  readonly messageId?: string;
 }
 
 export interface OwnerApprovalChoices {

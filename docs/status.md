@@ -1,6 +1,14 @@
 # Current status
 
-Updated: 2026-11-05 (UTC).
+Updated: 2026-11-06 (UTC).
+
+The one-path source batch S246–S253 and S254 harness are merged through PRs #184–#190 at
+`2187cf09`. The resumed UX review on `codex/renewal-one-path-ux` includes the prior runner's
+three unmerged litmus repairs and continues the isolated review and repair loop. Release remains
+pending. The owner receives a pull request with full-gate and exact-head CI evidence and handles
+merge/release/deploy. Human verdict NOT RUN; this review does not contact production or real
+providers and keeps automatic comparisons off during verification. The production record below
+is the last recorded delivery, not a new readback.
 
 The S245 litmus fixes for S87, S126, S147, S242 and S86 (PR #182) are DELIVERED at `5b5c65c6` /
 `pmi-kc-app-rmw3h1wp5-706485135a02`, 100% canonical traffic. Run `8bf183d8` completed on its first

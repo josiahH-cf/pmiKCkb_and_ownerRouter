@@ -434,7 +434,7 @@ export function composeRenewalMessage(
         : undefined;
       paragraphs.push([
         {
-          text: `${label} — ${rent} per month · ${comparableDistanceLabel(comp.distanceMiles)}`,
+          text: `${label}: ${rent} per month · ${comparableDistanceLabel(comp.distanceMiles)}`,
           ...(href ? { href } : {}),
         },
       ]);

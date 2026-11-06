@@ -3,7 +3,7 @@
 
 # S248 — Evidence the app already holds moves the lease forward
 
-> Status: AUTHORING READY — intake 114; implementation NOT STARTED. Specification only; it grants no execution, release or provider effect. Owner decision D-OP-8 was confirmed on November 5, 2026. It refines S232 R-S232-4: evidence fills what staff have not recorded, and a true disagreement still reads "Needs a check".
+> Status: AUTHORING READY — intake 114; implementation merged in PR #187 at `20d55104`. November 6 UX qualification continues on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. D-OP-8 remains settled: evidence fills unrecorded work and a disagreement reads "Needs a check". This specification grants no provider effect.
 
 **Goal.**
 
@@ -52,7 +52,10 @@ and its own source reads for the current cycle.
   reconcile action.
 - **R-S248-4 — A reply changes the next step.** An observed reply on the lease's linked thread
   reads "Owner replied {date}" and makes "Record the owner's decision" the next step with the reply
-  shown beside it. No outcome is chosen for staff (S234). A tenant reply behaves the same way.
+  shown beside it. The Now card uses the existing bounded, authorized linked-thread read to show
+  the exact observed message as plain text in client memory. Loading, missing, partial and failed
+  reads are stated explicitly and a failed read can be retried in place. No reply body is persisted
+  or inferred from metadata. No outcome is chosen for staff (S234). A tenant reply behaves the same way.
 - **R-S248-5 — A failed delivery changes the next step.** A bounce or failed delivery correlated to
   the message reads "Delivery failed" and makes "Check the address and send again" the next step.
 - **R-S248-6 — A Gmail draft is not a send.** An unsent Gmail draft reads "Draft waiting in Gmail

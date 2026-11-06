@@ -8,6 +8,14 @@ import type { HelpChangelogEntry } from "@/lib/help/types";
  */
 export const HELP_CHANGELOG: readonly HelpChangelogEntry[] = [
   {
+    version: "V2.1",
+    date: "2026-11-06",
+    summary:
+      "V2.1, a covered owner step continues to the tenant offer, Housing assistance names the required program, Owner reply shows the linked message, changed facts expose the authored-wording recovery controls, Animal follow-up keeps the existing staff record, and reload recovery keeps newer typing",
+    affectedGuides: ["work-a-renewal"],
+    contentDigest: "6b557996e707769bf5c77585dac2da72ba6d851fabe3fc930c04babc2f171d57",
+  },
+  {
     version: "V2.0",
     date: "2026-11-06",
     summary:

@@ -45,7 +45,7 @@ const MONTH_NAMES = [
 const SUBJECT_PATTERNS: ReadonlyArray<[PlanSubject, RegExp]> = [
   [
     "leases",
-    /\b(leases?|renewals?|tenants?|owners?|propert(?:y|ies)|units?|move[- ]?outs?)\b/,
+    /\b(leases?|renewals?|tenants?|owners?|propert(?:y|ies)|units?|move[- ]?outs?)\b|\b(?:this|working|renewal) batch\b/,
   ],
   [
     "work",
@@ -109,6 +109,8 @@ function parseRange(
   if (/\bnext week\b/.test(text)) return { preset: "next_week", month: null };
   if (/\b(this|current) week\b/.test(text)) return { preset: "this_week", month: null };
   if (/\bnext month\b/.test(text)) return { preset: "next_month", month: null };
+  if (/\bworking month\b|\b(?:this|working|current) batch\b/.test(text))
+    return { preset: "next_month", month: null };
   if (/\b(this|current) month\b/.test(text)) return { preset: "this_month", month: null };
   if (/\b(last|previous) month\b/.test(text))
     return { preset: "last_month", month: null };
@@ -301,7 +303,15 @@ export function interpretDeterministically(
   )
     resolvedSubjects = resolvedSubjects.filter((subject) => subject !== "work");
   // "Renewal tasks" or "lease work" names the actor's work about renewals (S110), not lease records.
-  if (/\b(?:renewal|lease)s? (?:tasks?|work|to[- ]?dos?)\b/.test(text))
+  const asksWhichLeasesNeedRenewalWork = /\bleases?\b.*\bneed\b.*\brenewal work\b/.test(
+    text,
+  );
+  if (asksWhichLeasesNeedRenewalWork)
+    resolvedSubjects = resolvedSubjects.filter((subject) => subject !== "work");
+  if (
+    /\b(?:renewal|lease)s? (?:tasks?|work|to[- ]?dos?)\b/.test(text) &&
+    !asksWhichLeasesNeedRenewalWork
+  )
     resolvedSubjects = resolvedSubjects.filter((subject) => subject !== "leases");
   if (/\bassigned\b/.test(text) && resolvedSubjects.length === 0)
     resolvedSubjects = ["work"];

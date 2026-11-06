@@ -3,6 +3,7 @@ import { pathToFileURL } from "node:url";
 import type { PredecessorExceptionObserver } from "../lib/production-assurance/predecessor-exception-observer";
 import { RENEWAL_DASHBOARD_SECTIONS } from "../lib/lease-renewal/dashboard-sections";
 import { ASSURANCE_GUIDED_WORKSPACE } from "../lib/production-assurance/manifest";
+import { countIndependentGuidedWorkspaceMismatches } from "../lib/production-assurance/guided-workspace-projection";
 
 import { chromium, type Page, type Response } from "playwright-core";
 
@@ -842,6 +843,34 @@ async function hasGuidedWorkspaceLandmarks(
   if ((await now.count()) !== 1 || !(await now.isVisible())) return false;
   const primary = now.locator(contract.primarySelector);
   if ((await primary.count()) !== 1 || !(await primary.isVisible())) return false;
+  const stageLine = region.locator(contract.stageLineSelector);
+  const nextStep = now.locator(contract.nextStepSelector);
+  if (
+    (await stageLine.count()) !== 1 ||
+    !(await stageLine.isVisible()) ||
+    (await nextStep.count()) !== 1 ||
+    !(await nextStep.isVisible())
+  )
+    return false;
+  if (
+    countIndependentGuidedWorkspaceMismatches({
+      stageLines: await stageLine.count(),
+      stageText: (await stageLine.textContent()) ?? "",
+      stageCurrentStep: await stageLine.getAttribute("data-renewal-current-step"),
+      pathCurrentStep: await path
+        .locator('[aria-current="step"]')
+        .evaluate(
+          (element) =>
+            element
+              .closest("[data-renewal-path-step]")
+              ?.getAttribute("data-renewal-path-step") ?? null,
+        ),
+      nowStep: await now.getAttribute("data-renewal-now-step"),
+      nextSteps: await nextStep.count(),
+      nextStepText: (await nextStep.textContent()) ?? "",
+    }) !== 0
+  )
+    return false;
   const sections = region.getByRole("navigation", {
     name: contract.sections,
     exact: true,

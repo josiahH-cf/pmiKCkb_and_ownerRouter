@@ -394,6 +394,16 @@ const ANNOUNCEMENTS: Record<RenewalWorkspaceView, string> = {
   full: "Full view: every section of this lease.",
 };
 
+/** Guided view names the stage once. The older summary statuses remain in Focus and Full view. */
+export function RenewalSecondaryStatus({ children }: Readonly<{ children: ReactNode }>) {
+  const context = useRenewalFocusView();
+  return (
+    <span hidden={context?.view === "guided"} data-renewal-secondary-status>
+      {children}
+    </span>
+  );
+}
+
 /** The accessible lease-level switch, rendered in the workspace toolbar in every view. */
 export function RenewalFocusViewSwitch({
   views = ["guided", "focus", "full"],

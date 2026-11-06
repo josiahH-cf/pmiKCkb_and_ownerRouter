@@ -101,14 +101,27 @@ export async function runRenewalAssistantSource(
     if (!liveConfig.ok) return undefined;
     try {
       return await measureRead("renewal.inventory", () =>
-        withReadDeadline(() =>
-          readCoherentRenewalDisplaySource(
+        withReadDeadline(async () => {
+          const read = await readCoherentRenewalDisplaySource(
             user,
             liveConfig.rentvineClient,
             now.getTime(),
             { sourceRefreshAfter },
-          ),
-        ),
+          );
+          // A stale generation cannot settle its move-out evidence. Wait for the same current
+          // source read before the assistant states batch membership, rather than counting a
+          // known non-renewal as an ordinary target while that read is being refreshed.
+          return options.aiContext && read.currency.state !== "fresh"
+            ? readCoherentRenewalDisplaySource(
+                user,
+                liveConfig.rentvineClient,
+                now.getTime(),
+                {
+                  sourceRefreshAfter: Math.max(now.getTime(), sourceRefreshAfter ?? 0),
+                },
+              )
+            : read;
+        }),
       );
     } catch {
       return undefined;

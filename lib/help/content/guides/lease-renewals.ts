@@ -150,7 +150,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "Once Gmail accepts the message, the lease reads Waiting on owner response on its page and its desk row with nothing more to enter, and its outreach record names the message, the time and the sender it came from.",
         effect: "explicit-send",
-        note: "Schedule opens Review and schedule, where Schedule this message sets the date and time. Create Gmail draft instead makes an unsent draft that you send from Gmail; choose I sent it from Gmail once you have.",
+        note: "Schedule opens Review and schedule, where Schedule this message sets the date and time. Create Gmail draft instead makes an unsent draft that you send from Gmail; choose I sent it from Gmail once you have. Your authored wording stays as written when inputs change. The Now card names that change and offers Return to the standard wording to rebuild from current inputs, with Undo the last refinement to recover your wording.",
       },
       {
         id: "wait-for-the-owner",
@@ -173,7 +173,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
       {
         id: "record-the-owner-decision",
         action:
-          "Choose Record the owner's decision. In The owner's decision, choose Approved in the reply received from the owner, Asked for a change or Declined / non-renewal. For Approved, choose Who approved in this reply; for a change, you can add What the owner asked to change. Then choose Record this decision.",
+          "Choose Record the owner's decision and read Owner reply. In The owner's decision, choose the Approved option that names the reply's time and mailbox, Asked for a change or Declined / non-renewal. For Approved, choose Who approved in this reply; for a change, you can add What the owner asked to change. Then choose Record this decision.",
         control: {
           label: "Record this decision",
           role: "button",
@@ -186,7 +186,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "The decision saves with your name and time, and the path moves on to Offer the tenant. An approval records who approved, the reply it came in and the time that reply was received. The owner's decision starts with no choice made, and a reply records a decision only when you choose one.",
         effect: "saves-in-app",
-        note: "Owner response in Full view records an approval from an authorized representative, another written channel or a conversation, with Who approved, How they approved and When they approved, then Record approval.",
+        note: "Owner reply reads the observed message from the linked conversation. A failed read offers Try again and keeps your entries; a partial reply says to read the full conversation. Owner response in Full view records an approval from an authorized representative, another written channel or a conversation, with Who approved, How they approved and When they approved, then Record approval.",
       },
       {
         id: "offer-the-tenant",
@@ -288,7 +288,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         route: LEASE,
         where: "Guided view, the Now card on Compare market rent or Ask the owner",
         result:
-          "The path continues at Offer the tenant. Choosing an agreement asks This lease only or Every lease in this owner's portfolio and saves on one action, and typing a different rent returns the lease to Ask the owner with the reason in words.",
+          "The path continues at Offer the tenant. If you opened the covered Ask the owner step, choose Continue to Offer the tenant on its Now card. The message tools stay available below. Choosing an agreement asks This lease only or Every lease in this owner's portfolio and saves on one action, and typing a different rent returns the lease to Ask the owner with the reason in words.",
         effect: "saves-in-app",
         note: "The desk row carries the Standing agreement tag. Owner decides each renewal returns the lease to asking the owner each cycle.",
       },
@@ -308,7 +308,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "After Check the numbers the path asks you to contact the named program about the renewal process, then Ask the owner whether to renew this tenant (Renew, Do not renew or No answer yet), then Rent for this renewal (Keep the current rent or Propose a change), with nothing chosen for you. Keep the current rent leaves the comparison and the owner's rent decision out of the path, Propose a change brings them in, and Do not renew moves the lease to the non-renewal handoff.",
         effect: "saves-in-app",
-        note: "The desk row carries the Housing assistance tag. When RentVine wording mentions housing assistance and the field is unset, the lease reads RentVine mentions housing assistance. Set the field? and nothing changes until you set it.",
+        note: "After Yes is chosen, Program name is required. An empty name shows what to enter, and the choice saves when the name is complete. The desk row carries the Housing assistance tag. Animal follow-up records the outside work staff actually did; charges and agreements for an assistance animal wait for the approved rule. When RentVine wording mentions housing assistance and the field is unset, the lease reads RentVine mentions housing assistance. Set the field? and nothing changes until you set it.",
       },
       {
         id: "choose-full-view",

@@ -3,6 +3,7 @@
 // the Gmail draft, Copy and the Communications composer can each show which revision they carry,
 // and a Gmail draft made from an earlier revision reads older. Not a security hash: it identifies
 // wording, it authorizes nothing (the exact review hashes of the send contract are unchanged).
+import { DRAFT_BANNER } from "@/lib/constants";
 
 function fnv1a(text: string, seed: number): number {
   let hash = seed >>> 0;
@@ -37,6 +38,19 @@ export function messageRevisionOf(message: {
 /** The code staff read: the first six characters, upper case. */
 export function messageRevisionLabel(revision: string): string {
   return revision.slice(0, 6).toUpperCase();
+}
+
+/** The draft-only review banner is transport framing, kept in the exact preview and Gmail file. */
+export function gmailDraftMessageRevisionOf(message: {
+  readonly subject: string;
+  readonly body: string;
+}): string {
+  const prefix = `${DRAFT_BANNER}\n\n`;
+  const body = message.body.replace(/\r\n?/g, "\n");
+  return messageRevisionOf({
+    subject: message.subject,
+    body: body.startsWith(prefix) ? body.slice(prefix.length) : body,
+  });
 }
 
 /**
@@ -74,12 +88,12 @@ export function gmailDraftSignal(input: {
       input.head.outcome.resolution === "created");
   const recorded = input.created?.latest
     ? {
-        revision: messageRevisionOf(input.created.latest),
+        revision: gmailDraftMessageRevisionOf(input.created.latest),
         executionId: input.created.latest.executionId,
       }
     : headCreated && input.head?.preview
       ? {
-          revision: messageRevisionOf(input.head.preview),
+          revision: gmailDraftMessageRevisionOf(input.head.preview),
           executionId: input.head.executionId,
         }
       : null;
