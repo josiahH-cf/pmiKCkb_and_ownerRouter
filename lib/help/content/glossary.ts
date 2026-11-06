@@ -46,6 +46,27 @@ export const HELP_GLOSSARY: readonly HelpGlossaryTerm[] = [
     relatedGuides: ["prepare-documents", "admin-tasks"],
   },
   {
+    id: "guided-view",
+    term: "Guided view",
+    definition:
+      "The view a lease opens in: the stage line, the Renewal path with every step of this lease and one Now card with the next action. Focus view and Full view show the same lease; choosing a view or a step saves nothing.",
+    relatedGuides: ["work-a-renewal"],
+  },
+  {
+    id: "housing-assistance",
+    term: "Housing assistance",
+    definition:
+      "The lease fact, set on Check the numbers, that a housing program pays part of the rent. With it set to Yes, the path contacts the named program and asks the owner whether to renew before any rent decision.",
+    relatedGuides: ["work-a-renewal"],
+  },
+  {
+    id: "now-card",
+    term: "Now card",
+    definition:
+      "The card in Guided view that holds the step you are working, with its one primary action, such as Review and send, and the step's own controls shown in place.",
+    relatedGuides: ["work-a-renewal", "owner-message"],
+  },
+  {
     id: "operating-sheet",
     term: "Operating Sheet",
     definition:
@@ -67,11 +88,25 @@ export const HELP_GLOSSARY: readonly HelpGlossaryTerm[] = [
     relatedGuides: ["update-sources"],
   },
   {
+    id: "ready-for-your-review",
+    term: "Ready for your review",
+    definition:
+      "The first part of This batch: leases whose numbers, comparison and owner message are prepared, so the kickoff is Review and send and its confirmation. A lease that needs an input follows with the input named.",
+    relatedGuides: ["work-a-renewal"],
+  },
+  {
     id: "receipt",
     term: "Receipt",
     definition:
       "The record the app keeps when a confirmed change applies: what changed, who confirmed it and when. Update status by destination lists what applied with a receipt.",
     relatedGuides: ["update-sources"],
+  },
+  {
+    id: "renewal-path",
+    term: "Renewal path",
+    definition:
+      "The strip of steps in Guided view, from Check the numbers to Complete, each marked Done, Now, Open, Waiting or Covered. Any step can be chosen and worked at any time.",
+    relatedGuides: ["work-a-renewal"],
   },
   {
     id: "retained-history",
@@ -94,11 +129,25 @@ export const HELP_GLOSSARY: readonly HelpGlossaryTerm[] = [
     relatedGuides: ["find-your-way"],
   },
   {
+    id: "standing-agreement",
+    term: "Standing agreement",
+    definition:
+      "An owner's recorded rule for renewal rent, applied to this lease or every lease in the owner's portfolio. A lease it covers needs no owner message, and its rent to recommend is the rule applied to the current rent.",
+    relatedGuides: ["work-a-renewal"],
+  },
+  {
     id: "unsent-draft",
     term: "Unsent draft",
     definition:
       "Message text the app prepares for you to review. Nothing is sent until you choose Send or Schedule in Communications; you can also copy it and send it yourself.",
     relatedGuides: ["owner-message", "tenant-offer"],
+  },
+  {
+    id: "working-batch",
+    term: "Working batch",
+    definition:
+      "What the Renewals desk opens on: the working month's leases under This batch, with Carried over and counts for every other group. Each lease is counted once.",
+    relatedGuides: ["work-a-renewal"],
   },
   {
     id: "working-renewal-terms",

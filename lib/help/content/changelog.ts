@@ -8,6 +8,22 @@ import type { HelpChangelogEntry } from "@/lib/help/types";
  */
 export const HELP_CHANGELOG: readonly HelpChangelogEntry[] = [
   {
+    version: "V2.0",
+    date: "2026-11-06",
+    summary:
+      "V2.0, the renewal process now starts on the working batch and works each lease in Guided view: the desk opens on This batch, a lease opens in the same tab on its Renewal path with one Now card, a prepared lease's kickoff is Review and send and Send this message, the standing agreement and housing assistance paths are covered, All leases and filters keeps the worklist table, and the packet inputs and charge policy steps name the Owner acknowledgment and the pet processing fee",
+    affectedGuides: [
+      "work-a-renewal",
+      "compare-rent",
+      "owner-message",
+      "tenant-offer",
+      "update-sources",
+      "prepare-documents",
+      "admin-tasks",
+    ],
+    contentDigest: "0000000000000000000000000000000000000000000000000000000000000000",
+  },
+  {
     version: "V1.1",
     date: "2026-11-04",
     summary:

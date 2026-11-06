@@ -432,11 +432,24 @@ function locate(page, region) {
 async function perform(page, action) {
   const [kind, ...rest] = action.split(":");
   const argument = rest.join(":");
-  if (kind === "click-button")
-    await page.getByRole("button", { name: argument, exact: true }).first().click();
-  else if (kind === "click-link")
+  if (kind === "click-button") {
+    // S252: a toggle (the Lease view switch, a Renewal path step) reports aria-pressed. A press
+    // that lands before the page hydrates is lost, so a toggle is pressed until it reports pressed.
+    const button = page.getByRole("button", { name: argument, exact: true }).first();
+    for (let press = 1; ; press += 1) {
+      await button.click();
+      await page.waitForTimeout(250);
+      const pressed = await button.getAttribute("aria-pressed");
+      if (pressed === null || pressed === "true") break;
+      assert.ok(press < 10, `The ${argument} button did not take the press.`);
+      await page.waitForTimeout(1000);
+    }
+  } else if (kind === "click-link") {
     await page.getByRole("link", { name: argument, exact: true }).first().click();
-  else if (kind === "open-summary")
+    // S252: All leases and filters is an in-page navigation; wait for the table it opens.
+    if (argument === "All leases and filters")
+      await page.locator("table.renewal-table").first().waitFor({ state: "visible" });
+  } else if (kind === "open-summary")
     await page
       .locator("summary")
       .filter({ hasText: new RegExp(`^\\s*${escape(argument)}\\s*$`) })

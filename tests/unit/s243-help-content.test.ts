@@ -132,13 +132,18 @@ describe("S243 R-S243-2 / R-S243-3: references, glossary and What changed", () =
   it("What changed starts at V1.0 and lists each later version once, newest first", () => {
     // R-S243-3: the first entry is V1.0; each later help content change adds one entry on top
     // (S242 R-S242-4), so the newest entry is the current HELP_VERSION.
+    // S252: a change to a documented process ships a new major version (lib/help/version.ts), so
+    // entries are ordered by major and then minor version.
     const versions = HELP_CHANGELOG.map((entry) => entry.version);
     expect(versions.at(-1)).toBe("V1.0");
     expect(new Set(versions).size).toBe(versions.length);
-    const minor = (version: string) => Number(version.split(".")[1]);
+    const rank = (version: string) => {
+      const [major, minor] = version.slice(1).split(".").map(Number);
+      return major * 1000 + minor;
+    };
     for (let index = 1; index < versions.length; index += 1)
-      expect(minor(versions[index - 1])).toBeGreaterThan(minor(versions[index]));
-    expect(versions).toEqual(["V1.1", "V1.0"]);
+      expect(rank(versions[index - 1])).toBeGreaterThan(rank(versions[index]));
+    expect(versions).toEqual(["V2.0", "V1.1", "V1.0"]);
   });
 });
 
@@ -234,7 +239,10 @@ describe("S243 R-S243-7 / BEH-S243-4 / AC-S243-7: consolidation", () => {
   });
 
   it("the renewal step-to-control map keeps every semantic guide step", () => {
-    expect(renewalControlMap.length).toBe(70);
+    // S252: the 70 rows of the starting map are kept by step id (tests/unit/s252-control-map-
+    // continuity.test.ts), and the working batch and Guided view add their own rows.
+    expect(renewalControlMap.length).toBeGreaterThanOrEqual(70);
+    expect(renewalControlMap.length).toBe(84);
     expect(
       renewalControlMap.filter((row) => row.availability === "required").length,
     ).toBeGreaterThanOrEqual(41);
