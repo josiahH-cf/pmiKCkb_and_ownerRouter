@@ -623,6 +623,8 @@ try {
   const before = steps.length;
   act("open the lease");
   await openLease(prepared);
+  // The Now card takes its prepared message once the lease message has loaded.
+  await shownWithin(now().locator("[data-renewal-message-revision]"));
   const needsBeforeSend = await needsNow();
   act("choose Review and send");
   await now().locator("[data-renewal-now-primary]").click();
@@ -659,6 +661,13 @@ try {
       needsBeforeSend,
       pages: context.pages().length,
       sent: sent.length,
+      statuses: reviewShown
+        ? null
+        : await now()
+            .locator("[role=status], [role=alert]")
+            .allTextContents()
+            .catch(() => null),
+      nowHtml: reviewShown ? null : await nowHtml(),
     },
   );
   phase = "L28";
@@ -794,6 +803,7 @@ try {
     await signIn("Approver");
     await openLease(assisted);
     await chooseStep("Ask the owner");
+    await shownWithin(now().locator("[data-renewal-message-revision]"));
     const leaseUrl = page.url();
     const signatureItem = now()
       .locator('[data-renewal-ready="missing"]')
@@ -831,6 +841,7 @@ try {
     writes.length = 0;
     await openLease(prepared);
     await chooseStep("Offer the tenant");
+    await shownWithin(now().locator("[data-renewal-message-revision]"));
     const tenant = {
       heading: (await now().getByRole("heading", { level: 2 }).textContent())?.trim(),
       preview: await now().getByRole("region", { name: "Tenant offer" }).count(),
