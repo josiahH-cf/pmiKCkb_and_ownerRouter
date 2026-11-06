@@ -279,6 +279,14 @@ async function verifyDeskAndWorkspace() {
   await page.getByText("Filter renewal date", { exact: true }).click();
 
   // Invalid URL state is explained, and the next valid interaction drops only the invalid range.
+  // S252: a fresh desk load reads the personal view after it renders, and applying it moves the
+  // header controls; against the rehearsal that landed the sort click on the worklist section
+  // itself. Wait for that read and two frames before choosing a header control.
+  const personalViewRead = page
+    .waitForResponse((response) =>
+      response.url().includes("/api/personal-view?surface=renewals"),
+    )
+    .catch(() => null);
   await page.goto(
     `${baseUrl}/lease-renewal/live/desk?v=2&sort=base_rent&from=2026-12-30&through=2026-09-01`,
     { waitUntil: "domcontentloaded" },
@@ -291,6 +299,10 @@ async function verifyDeskAndWorkspace() {
       .getByText("The range end must be on or after the range start.")
       .count()) === 1,
     "Reversed range feedback is not visible.",
+  );
+  await personalViewRead;
+  await page.evaluate(
+    () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))),
   );
   await page.getByRole("button", { name: /Current base rent/ }).click();
   await page.waitForURL(
@@ -328,12 +340,13 @@ async function verifyDeskAndWorkspace() {
   if (await outsideWorklistLink.count()) {
     interactionStartedAt = performance.now();
     await outsideWorklistLink.click();
-    await page.getByRole("navigation", { name: "Renewal dashboard sections" }).waitFor();
+    await waitForGuidedDefault(page);
     assertWithinBudget(
       interactionStartedAt,
       DESK_INTERACTION_BUDGET_MS,
       "Outside-worklist workspace navigation",
     );
+    await chooseFullView(page);
     assert(
       (await page
         .getByRole("heading", { name: "Inspection only", exact: true })
@@ -371,12 +384,13 @@ async function verifyDeskAndWorkspace() {
   assert(await isFocused(leaseLink), "The lease workspace link did not receive focus.");
   interactionStartedAt = performance.now();
   await page.keyboard.press("Enter");
-  await page.getByRole("navigation", { name: "Renewal dashboard sections" }).waitFor();
+  await waitForGuidedDefault(page);
   assertWithinBudget(
     interactionStartedAt,
     DESK_INTERACTION_BUDGET_MS,
     "Keyboard workspace navigation",
   );
+  await chooseFullView(page);
   assert(
     page.url().includes("deskView="),
     "The workspace link dropped the desk continuation.",
@@ -787,6 +801,33 @@ async function verifyNarrowAndZoom() {
     fullPage: true,
   });
   await zoomContext.close();
+}
+
+// S247: a lease opens in Guided view, with Focus view and Full view beside it; the five-section
+// dashboard this smoke walks is the Full view, one choice away, and the chosen view is kept in the
+// address for the visit, so Back returns to it.
+async function waitForGuidedDefault(page) {
+  await page.getByRole("region", { name: "Guided view", exact: true }).waitFor();
+  assert(
+    (await page
+      .getByRole("button", { name: "Guided view", exact: true })
+      .getAttribute("aria-pressed")) === "true" &&
+      (await page
+        .getByRole("navigation", { name: "Renewal dashboard sections" })
+        .count()) === 0,
+    "The lease did not open in Guided view.",
+  );
+}
+
+async function chooseFullView(page) {
+  await page.getByRole("button", { name: "Full view", exact: true }).click();
+  await page.getByRole("navigation", { name: "Renewal dashboard sections" }).waitFor();
+  assert(
+    (await page
+      .getByRole("button", { name: "Full view", exact: true })
+      .getAttribute("aria-pressed")) === "true",
+    "Full view was not chosen.",
+  );
 }
 
 async function signInAndOpen(page, path) {
