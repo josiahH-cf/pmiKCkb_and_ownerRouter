@@ -663,7 +663,8 @@ function NowCard({
               className="renewal-now-slot"
               data-renewal-now-slot={slot}
               data-renewal-now-slot-key={nowSlotKey(shown.id, slot)}
-              key={slot}
+              // Keyed by step, so a different step gets its own slot elements and registrations.
+              key={nowSlotKey(shown.id, slot)}
               ref={nowCard?.slotRef}
             >
               {preparation && slot === "prepared-numbers-check" ? (

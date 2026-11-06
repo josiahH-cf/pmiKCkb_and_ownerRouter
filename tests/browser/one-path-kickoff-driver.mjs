@@ -625,6 +625,9 @@ try {
   // The run is long: the harness reads RentVine again first, as the seeds do, so the lease is
   // current the way it is on a working day (notice safety needs a fresh admitted read).
   const refreshedBeforeSend = (await forceSourceRefresh(page)).body?.refreshed ?? false;
+  // As the notice-admission seed does: the desk reads the fresh RentVine read and admits it.
+  await desk();
+  await page.waitForTimeout(3000);
   act("open the lease");
   await openLease(prepared);
   // The Now card takes its prepared message once the lease message has loaded.
@@ -858,7 +861,7 @@ try {
         tenant.preview === 1 &&
         tenant.document === 1 &&
         writes.length === 0,
-      { ...tenant, writes },
+      { ...tenant, writes, nowHtml: tenant.preview === 1 ? null : await nowHtml() },
     );
   });
 
