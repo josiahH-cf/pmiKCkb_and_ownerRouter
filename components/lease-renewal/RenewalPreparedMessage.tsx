@@ -379,6 +379,23 @@ function PreparedMessageBlock({
   // A communication draft save whose answer has not arrived: sent again as is before anything new.
   const pendingSave = useRef<PendingSave | null>(null);
   const trigger = useRef<HTMLButtonElement | null>(null);
+  const draftRecovery = useRef<HTMLButtonElement | null>(null);
+  const recoveringFocus = useRef(false);
+  useEffect(() => {
+    if (!recoveringFocus.current || api.draft.pending) return;
+    recoveringFocus.current = false;
+    if (api.draft.recoveryRequired) draftRecovery.current?.focus();
+    else {
+      const heading = previewSlot
+        ?.closest("[data-renewal-now-step]")
+        ?.querySelector<HTMLElement>("#renewal-now-heading");
+      if (heading)
+        focusRenewalDashboardControl(heading.id, {
+          focusContainer: true,
+          viewRequest: false,
+        });
+    }
+  }, [api.draft.pending, api.draft.recoveryRequired, previewSlot]);
   const typedRent = workingRenewalTerms(working?.record ?? null).rent;
   const live = useMemo(
     () =>
@@ -916,7 +933,11 @@ function PreparedMessageBlock({
           {api.draft.recover ? (
             <Button
               disabled={!api.canEdit || api.draft.pending || busy}
-              onClick={() => void api.draft.recover?.()}
+              onClick={() => {
+                recoveringFocus.current = true;
+                void api.draft.recover?.();
+              }}
+              ref={draftRecovery}
               size="compact"
               variant="secondary"
             >
@@ -1025,6 +1046,7 @@ function PreparedMessageBlock({
       </ConfirmationDialog>
       <ConfirmationDialog
         busy={api.draft.pending}
+        fallbackFocusRef={draftRecovery}
         busyLabel="Working…"
         confirmDisabled={!api.draft.preview}
         confirmLabel="Create this unsent draft"

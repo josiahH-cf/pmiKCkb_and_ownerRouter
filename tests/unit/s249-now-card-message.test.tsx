@@ -114,7 +114,10 @@ function AskOwnerCard() {
   const nowCard = useRenewalNowCard();
   const primary = nowCard?.primaries["ask-owner"];
   return (
-    <section aria-label="Now">
+    <section aria-label="Now" data-renewal-now-step="ask-owner">
+      <h2 id="renewal-now-heading" tabIndex={-1}>
+        Now: Ask the owner
+      </h2>
       {primary ? (
         <p>
           <button disabled={primary.disabled} onClick={primary.run} type="button">
@@ -272,6 +275,44 @@ describe("S249 the prepared owner message on the Now card", () => {
     expect(on.onDraftCreate).not.toHaveBeenCalled();
     expect(screen.getByRole("button", { name: "Copy" })).toBeEnabled();
   });
+
+  for (const confirmed of [false, true]) {
+    it(`keeps recovery focus usable after checking the exact attempt: confirmed=${confirmed}`, async () => {
+      const on = { ...handlers(), onDraftRecover: vi.fn(async () => undefined) };
+      const ui = (pending: boolean, required: boolean) => (
+        <RenewalNowCardProvider preparation={projectRenewalPreparation(FACTS)}>
+          <AskOwnerCard />
+          <PreparedMessageSlot
+            {...on}
+            data={data({
+              draft: {
+                available: false,
+                pending,
+                createdRevision: null,
+                preview: null,
+                recoveryRequired: required,
+              },
+            })}
+          />
+        </RenewalNowCardProvider>
+      );
+      const view = render(ui(false, true));
+      fireEvent.click(
+        await screen.findByRole("button", { name: "Recover exact Gmail attempt" }),
+      );
+      view.rerender(ui(true, true));
+      view.rerender(ui(false, !confirmed));
+      await waitFor(() =>
+        expect(
+          confirmed
+            ? screen.getByRole("heading", { name: "Now: Ask the owner" })
+            : screen.getByRole("button", { name: "Recover exact Gmail attempt" }),
+        ).toHaveFocus(),
+      );
+      expect(on.onDraftRecover).toHaveBeenCalledOnce();
+      expect(on.onDraftCreate).not.toHaveBeenCalled();
+    });
+  }
 
   it("R-S249-6: typing a reason goes to the one message record", () => {
     const { on } = mount();

@@ -53,6 +53,8 @@ operating Sheet.
   name saves the fact through the existing autosave in either location. Saving is visible; a
   failed save keeps the entry and offers Try again through the same lease-bound save, with
   permission and completeness checks retained.
+  An earlier autosave response keeps newer typing in Program name, contact and notes; those
+  entries show "Unsaved housing assistance edits" until their own save completes, in both placements.
 - **R-S251-3 — Stays with the lease.** The fact carries across renewal cycles until staff change it,
   with its history kept.
 - **R-S251-4 — The program first.** With Yes, the step after the numbers check is "Contact

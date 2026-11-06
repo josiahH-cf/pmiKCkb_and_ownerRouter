@@ -36,6 +36,7 @@ export function ConfirmationDialog({
   onCancel,
   onConfirm,
   triggerRef,
+  fallbackFocusRef,
 }: Readonly<{
   open: boolean;
   title: ReactNode;
@@ -51,6 +52,8 @@ export function ConfirmationDialog({
   onCancel: () => void;
   onConfirm: () => void;
   triggerRef?: RefObject<HTMLElement | null>;
+  /** A usable continuation when the original trigger is disabled or removed by the outcome. */
+  fallbackFocusRef?: RefObject<HTMLElement | null>;
 }>) {
   const titleId = useId();
   const descriptionId = useId();
@@ -65,9 +68,20 @@ export function ConfirmationDialog({
     dismissNonModalTransientLayers();
     cancelRef.current?.focus();
     return () => {
-      queueMicrotask(() => previousFocusRef.current?.focus());
+      queueMicrotask(() => {
+        const usable = (element: HTMLElement | null | undefined) =>
+          element?.isConnected &&
+          element !== document.body &&
+          !element.matches(':disabled, [aria-disabled="true"]') &&
+          !element.closest(
+            '[hidden], [inert], [data-renewal-focus-hidden], [aria-hidden="true"]',
+          );
+        const previous = previousFocusRef.current;
+        const target = usable(previous) ? previous : fallbackFocusRef?.current;
+        if (usable(target)) target?.focus();
+      });
     };
-  }, [open, triggerRef]);
+  }, [open, triggerRef, fallbackFocusRef]);
 
   if (!open) return null;
 

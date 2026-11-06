@@ -99,6 +99,9 @@ choose to work. RentVine readable; RentCast allowance available for a new lookup
   An uncertain create offers Recover exact Gmail attempt on the same Now card, through the
   existing own-attempt recovery. A confirmed recovery refreshes its draft currency and stage;
   unresolved recovery keeps its own state. Full view retains its recovery control.
+  If the draft dialog's trigger becomes unavailable, focus returns to its exact recovery action.
+  Confirmed recovery returns visible keyboard focus to Now; an unresolved check keeps focus on
+  the recovery control. The existing dialog trap, cancel and confirmation rules stay intact.
   Changed message or lease evidence requires a new preview and exact confirmation, including
   a newer safety version with unchanged visible wording; the refusal names that evidence change.
   Creating a draft takes one review and one confirmation.

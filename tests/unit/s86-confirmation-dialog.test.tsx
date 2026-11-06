@@ -14,6 +14,44 @@ afterEach(() => {
 });
 
 describe("S86 ConfirmationDialog", () => {
+  for (const removed of [false, true]) {
+    it(`returns to the fallback when the original trigger is ${removed ? "removed" : "disabled"}`, async () => {
+      const user = userEvent.setup();
+      function OutcomeHarness() {
+        const [open, setOpen] = useState(false);
+        const [finished, setFinished] = useState(false);
+        const trigger = useRef<HTMLButtonElement>(null);
+        const fallback = useRef<HTMLButtonElement>(null);
+        return (
+          <>
+            {!(removed && finished) ? (
+              <button ref={trigger} disabled={finished} onClick={() => setOpen(true)}>
+                Open review
+              </button>
+            ) : null}
+            {finished ? <button ref={fallback}>Recover exact attempt</button> : null}
+            <ConfirmationDialog
+              open={open}
+              title="Exact review"
+              confirmLabel="Confirm"
+              triggerRef={trigger}
+              fallbackFocusRef={fallback}
+              onCancel={() => setOpen(false)}
+              onConfirm={() => {
+                setFinished(true);
+                setOpen(false);
+              }}
+            />
+          </>
+        );
+      }
+      render(<OutcomeHarness />);
+      await user.click(screen.getByRole("button", { name: "Open review" }));
+      await user.click(screen.getByRole("button", { name: "Confirm" }));
+      expect(screen.queryByRole("dialog")).toBeNull();
+      expect(screen.getByRole("button", { name: "Recover exact attempt" })).toHaveFocus();
+    });
+  }
   it("opens effect-free, focuses Cancel first, traps focus, and restores the trigger", async () => {
     const user = userEvent.setup();
     const confirm = vi.fn();

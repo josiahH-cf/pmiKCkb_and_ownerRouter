@@ -92,7 +92,9 @@ deployed before the walkthrough; the rehearsal runs before release.
   are rewritten for the batch, the guided view and its Now card, with the Focus view and Full view
   pages kept current; screenshots are recaptured
   from the rehearsal; the help version increases; "What changed" names the change; and the help
-  coverage, control, screenshot and content gates pass.
+  coverage, control, screenshot and content gates pass. Prior help-picture URLs continue to the
+  current same-named pictures through same-origin redirects; the current-only asset-folder gate
+  stays intact.
 - **R-S252-7 — Assurance follows the screens.** The release canary landmarks and the reconciliation
   oracle are updated in the same change as the default view and status rules they read, and the
   read-only desk and lease smokes are updated deliberately, never loosened.

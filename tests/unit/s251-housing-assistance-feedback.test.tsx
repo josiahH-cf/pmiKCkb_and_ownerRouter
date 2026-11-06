@@ -5,7 +5,9 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const working = vi.hoisted(() => ({
-  record: null,
+  record: null as
+    | import("@/lib/lease-renewal/working-record").RenewalWorkingRecord
+    | null,
   canEdit: true,
   states: {} as Record<
     string,
@@ -22,6 +24,7 @@ beforeEach(() => {
   working.save.mockReset().mockResolvedValue(true);
   working.states = {};
   working.canEdit = true;
+  working.record = null;
 });
 afterEach(cleanup);
 
@@ -35,7 +38,7 @@ describe("Housing assistance missing-program recovery", () => {
       const name = screen.getByRole("textbox", { name: "Program name" });
       await user.type(name, "Example Housing Office");
       await user.tab();
-      expect(await screen.findByRole("status")).toHaveTextContent(
+      await screen.findByText(
         "Housing assistance was not saved yet. Your entry is kept.",
       );
       working.states.housing_assistance = {
@@ -106,9 +109,56 @@ describe("Housing assistance missing-program recovery", () => {
         }),
       );
       expect(screen.queryByRole("alert")).toBeNull();
-      expect(screen.getByRole("status")).toHaveTextContent(
-        "Housing assistance saved for this lease.",
-      );
+      expect(screen.getByText("Housing assistance saved for this lease.")).toBeVisible();
     });
+
+    for (const field of [
+      "Program name",
+      "Program contact (optional)",
+      "Notes (optional)",
+    ]) {
+      it(`keeps newer ${field} typing when an earlier saved record arrives in ${placement}`, async () => {
+        const record = (revision: number) => ({
+          schemaVersion: "renewal-working-record/v1" as const,
+          leaseId: "9101",
+          revision,
+          fields: {
+            housing_assistance: {
+              value: { status: "yes" as const, program: "Example Housing Office" },
+              revision,
+              eventId: "synthetic-event",
+              recordedAt: "2026-11-06T18:00:00.000Z",
+              recordedByUid: "synthetic-editor",
+              recordedByLabel: "Example Staff",
+              origin: "staff_entry" as const,
+            },
+          },
+        });
+        working.record = record(1);
+        const view = render(<HousingAssistanceField placement={placement} />);
+        const user = userEvent.setup();
+        const input = screen.getByRole("textbox", { name: field });
+        const prior = (input as HTMLInputElement | HTMLTextAreaElement).value;
+        await user.type(input, " newer entry");
+        working.record = record(2);
+        working.states.housing_assistance = { phase: "saved" };
+        view.rerender(<HousingAssistanceField placement={placement} />);
+        expect(input).toHaveValue(`${prior} newer entry`);
+        expect(input).toHaveFocus();
+        expect(screen.getByRole("status")).toHaveTextContent(
+          "Unsaved housing assistance edits",
+        );
+        await user.tab();
+        expect(working.save).toHaveBeenLastCalledWith("housing_assistance", {
+          status: "yes",
+          program:
+            field === "Program name"
+              ? "Example Housing Office newer entry"
+              : "Example Housing Office",
+          ...(field === "Program contact (optional)" ? { contact: "newer entry" } : {}),
+          ...(field === "Notes (optional)" ? { notes: "newer entry" } : {}),
+        });
+      });
+    }
   }
 });

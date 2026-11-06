@@ -125,6 +125,37 @@ retains the Full view control, refreshes editor metadata after confirmed recover
 the service's confirmed reconciliation outcome. Unknown/not-found recovery never becomes success.
 This addresses P04, P05, P13, P14 and SC03, SC04, SC09, SC10. Final rewalk is pending.
 
+UX-020, observed on `3996c380`: opening the replied lease before injections produced two React
+list-key warnings from the staff-status section and per-audience message editor. No hydration
+exception was captured. The correction gives those two existing nodes stable keys; it changes
+no label, layout, capability or saved state. P09 and SC08 apply. Final console recheck is pending.
+
+UX-021, observed on `3996c380`: while an actual successful program-only response was delayed,
+staff typed a newer contact and kept focus there. At 300 ms and one second after the HTTP 200
+response, that contact was empty. The new saved entry unconditionally replaced all local fields.
+This is data loss (P05, P12, P14; SC04, SC05, SC09). Both placements now track local edit and
+confirmed-save generations, preserve newer Program/contact/notes typing, and reuse the existing
+"Unsaved housing assistance edits" status until that entry saves. Older results keep their own
+scope and never replace newer feedback. The backend field, CAS and idempotent request behavior
+stay unchanged. The six-case regression passed after failing against the original component;
+final real-interface recheck is pending.
+
+UX-022, introduced by this branch's Help V2.1 move and observed on `3996c380`: two prior V2.0
+picture URLs returned 200 text/html with the generic This guide moved page, with no image. The
+correction redirects old versioned PNG URLs to their current same-named picture. The current-only
+asset-folder gate remains strict, and historical original pixels remain available from their Git
+commit. Installed Next redirects and configuration/TypeScript guides were read before the config
+change. This addresses P09, P12, P13 and SC08, SC10. Final actual image recheck is pending.
+
+UX-023, observed on `3996c380`: a separately confirmed draft's response was deliberately lost.
+The dialog closed to BODY with its old trigger disabled. After exact recovery, Tab reached the
+optional Communications link rather than the visible next action. The correction gives the shared
+dialog an explicit fallback for a disabled/removed trigger and supplies the exact recovery button
+on this card. The existing dashboard focus helper returns confirmed recovery to the visible Now
+heading; unresolved recovery returns to its own control. Review, confirmation, busy and cancellation
+semantics are preserved. This addresses P05, P13, P14 and SC04, SC09, SC10. Disabled/removed-trigger
+and recovery-outcome regressions passed; final real-interface keyboard recheck is pending.
+
 Preserved by decision: exact review/confirmation, the required Gmail banner, stale authored wording,
 who-approved validation, role/Space and Action Registry checks, blank unsettled legal fields,
 assistance-animal holds, existing controls/views/filters/collections/old links, historical failed
@@ -167,7 +198,8 @@ goals while retaining their original authority and meaning.
   preserve authoring READY separately from implementation and owner release authority.
 - Help V2.1 records the changed names/states in place, control-map additions and recorded old
   animal-task name. Historical V2.0 evidence stays dated history. Current pictures must be
-  recaptured from the synthetic final source before delivery.
+  recaptured from the synthetic final source before delivery. S252 R6 now explicitly preserves
+  prior picture URLs through same-origin compatibility redirects.
 
 ## Decisions made without asking
 
@@ -256,6 +288,13 @@ goals while retaining their original authority and meaning.
   same-attempt recovery and unknown reconciliation. Standalone typecheck passed at 3 GB.
   Help controls passed 832 names, Help content passed 3,147 strings, copy voice passed with zero
   violations, and active document paths passed all 273 present-context files.
+- Fail-first housing proof on the original `3996c380` component failed all six newer-typing
+  cases (four unrelated cases were unselected by the explicit test filter). The repaired run
+  passed all 190 tests across 13 files, including Full/Focus preservation, retained typing,
+  modal focus fallbacks, original-attempt recovery and all prior V2.0 scene URL matchers.
+  Typecheck at 3 GB, 832 Help labels, 3,147 Help strings, copy voice and all 273 active document
+  paths passed. The tested native files matched the Windows source hashes for all 16 changed
+  paths before this evidence-only update.
 - Final-source browser rewalk, help capture/control checks, the existing isolated journey,
   `bash scripts/verify.sh`, report validation, exact-head CI and final cleanup are pending.
   No final gate pass or acceptance is implied by the focused results above.

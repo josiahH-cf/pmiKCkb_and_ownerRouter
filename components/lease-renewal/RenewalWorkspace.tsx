@@ -584,6 +584,7 @@ export function RenewalWorkspace({
                     statusLog={
                       workStatus ? (
                         <section
+                          key="staff-status-log"
                           className="panel ui-stack"
                           aria-label="Staff status and Status log"
                           data-renewal-focus-context
@@ -656,6 +657,7 @@ export function RenewalWorkspace({
                       response after actual contact. The order is chronology, not a gate. */}
                           {section.id === "owner" || section.id === "tenant" ? (
                             <RenewalMessagePreparation
+                              key={`message-preparation-${section.id}`}
                               channel={section.id}
                               canEdit={can(role, "edit")}
                             />

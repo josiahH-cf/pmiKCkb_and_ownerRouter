@@ -949,9 +949,10 @@
     "role": "label",
     "scope": "",
     "availability": "conditional",
-    "expectation": "The existing staff-recorded animal follow-up, with the same saved activity and source-update confirmations. Its name carries no registration requirement.",
+    "expectation": "The existing staff-recorded animal follow-up, with the same saved activity and source-update confirmations. Its name carries no registration requirement. The related readiness label formerly Pet deposit + registration is Animal charges and agreement; its predicates and severity are preserved.",
     "source": [
       "lib/lease-renewal/workspace-state.ts",
+      "lib/lease-renewal/renewal-readiness.ts",
       "components/lease-renewal/RenewalManualWorkspace.tsx"
     ],
     "sourceText": "{definition.label} outcome",

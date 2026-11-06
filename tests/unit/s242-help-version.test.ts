@@ -2,10 +2,13 @@ import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:f
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
+import { getPathMatch } from "next/dist/shared/lib/router/utils/path-match";
+import nextConfig from "../../next.config";
 
 import { helpContentDigest, helpContentFiles } from "@/lib/help/content-digest.mjs";
 import { HELP_CHANGELOG } from "@/lib/help/content/changelog";
 import { HELP_VERSION, HELP_VERSION_PATTERN } from "@/lib/help/version";
+import { HELP_SCENE_MANIFEST } from "@/lib/help/scenes";
 
 // S242 R-S242-4 / ARCH-S242-6 / AC-S242-5: help content cannot change without a new help version and
 // a changelog entry. The newest entry records the digest of the content it describes; editing any
@@ -35,6 +38,25 @@ function versionProblems(
 }
 
 describe("S242 help version and changelog", () => {
+  it("keeps every previous V2.0 picture link on its current same-named picture", async () => {
+    const rules = await nextConfig.redirects!();
+    for (const scene of HELP_SCENE_MANIFEST.scenes) {
+      const oldPath = `/help/V2.0/${scene.id}.png`;
+      const matches = rules.flatMap((rule) => {
+        const params = getPathMatch(rule.source)(oldPath);
+        return params ? [{ rule, params }] : [];
+      });
+      expect(matches, oldPath).toHaveLength(1);
+      const { rule, params } = matches[0];
+      expect(rule.destination.replace(":image", String(params.image))).toBe(
+        `/help/${HELP_VERSION}/${scene.id}.png`,
+      );
+      expect(rule.permanent).toBe(false);
+    }
+    for (const path of ["/help/renewals/work-a-renewal", "/__/auth/handler"])
+      expect(rules.some((rule) => getPathMatch(rule.source)(path))).toBe(false);
+  });
+
   it("HELP_VERSION is V<major>.<minor> and matches the newest What changed entry", () => {
     expect(HELP_VERSION).toMatch(HELP_VERSION_PATTERN);
     expect(HELP_CHANGELOG[0].version).toBe(HELP_VERSION);
