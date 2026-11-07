@@ -231,6 +231,15 @@ Playwright build. The verified WSL run used Ubuntu 24.04 as well. This changes
 runner selection for that job. The exact browser, commands, controls and scene
 thresholds remain the same.
 
+The required Help browser now uses a private Fontconfig map and 20 fallback font
+files verified against the pinned Ubuntu 24.04 DejaVu and Liberation package bytes.
+The hosted job supplies those packages. The renderer keeps the same comparison
+thresholds, exact generated-identifier checks and rendered control inventory.
+The exact WSL review run `20261107T233301Z-0c531bce` produced all 27 scenes. Eleven
+reviewed replacements show the stable glyph and native control placement, including
+the process publication identifier's new fixed-width line. The remaining process
+run scene differs only in its verified generated identifier.
+
 ## Final observations
 
 The mailbox-disabled checkpoints on `c7ed2b3d` verified every lease ID and count in the November 5
