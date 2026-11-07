@@ -879,7 +879,7 @@ function BatchRow({
             <span className="renewal-batch-date-note">{row.recommendedRent.basis}</span>
           </>
         ) : (
-          "—"
+          "Not set"
         )}
       </td>
     </tr>
