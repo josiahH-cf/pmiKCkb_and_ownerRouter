@@ -283,17 +283,15 @@ describe("S143 Focus view switch", { timeout: 60_000 }, () => {
     for (const label of [
       "Information form returned",
       "Required documents prepared",
-      "Pet registration follow-up",
+      "Animal follow-up",
       "Utility proof follow-up",
     ])
       expect(offered).toContain(label);
     expect(offered).not.toContain("Information form sent");
-    await user.click(
-      within(others).getByRole("button", { name: "Pet registration follow-up" }),
-    );
+    await user.click(within(others).getByRole("button", { name: "Animal follow-up" }));
     await settle();
     expect(
-      within(focusPane()).getByRole("heading", { name: "Pet registration follow-up" }),
+      within(focusPane()).getByRole("heading", { name: "Animal follow-up" }),
     ).toHaveFocus();
     expect(document.getElementById("renewal-manual-pet")).toBeVisible();
     expect(document.getElementById("renewal-manual-information_form")).not.toBeVisible();

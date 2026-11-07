@@ -17,6 +17,7 @@ import {
 } from "@/lib/assistant/conversation-plan";
 import type { ConversationMemory } from "@/lib/assistant-history/memory-types";
 import { businessDateIso } from "@/lib/lease-renewal/business-calendar";
+import { explicitLeaseReference } from "@/lib/lease-renewal/lease-reference";
 import type { ModelProvider } from "@/lib/llm/model-provider";
 import { measureRead, withReadDeadline } from "@/lib/observability/read-lifetime";
 
@@ -45,7 +46,7 @@ const MONTH_NAMES = [
 const SUBJECT_PATTERNS: ReadonlyArray<[PlanSubject, RegExp]> = [
   [
     "leases",
-    /\b(leases?|renewals?|tenants?|owners?|propert(?:y|ies)|units?|move[- ]?outs?)\b/,
+    /\b(leases?|renewals?|tenants?|owners?|propert(?:y|ies)|units?|move[- ]?outs?)\b|\b(?:this|working|renewal) batch\b/,
   ],
   [
     "work",
@@ -109,6 +110,8 @@ function parseRange(
   if (/\bnext week\b/.test(text)) return { preset: "next_week", month: null };
   if (/\b(this|current) week\b/.test(text)) return { preset: "this_week", month: null };
   if (/\bnext month\b/.test(text)) return { preset: "next_month", month: null };
+  if (/\bworking month\b|\b(?:this|working|current) batch\b/.test(text))
+    return { preset: "next_month", month: null };
   if (/\b(this|current) month\b/.test(text)) return { preset: "this_month", month: null };
   if (/\b(last|previous) month\b/.test(text))
     return { preset: "last_month", month: null };
@@ -229,13 +232,16 @@ export function interpretDeterministically(
   const people = parsePeople(question);
   const identity = bareIdentity(question);
   const address = parseAddressText(question);
+  const leaseReference = explicitLeaseReference(question);
+  if (leaseReference) followUp = false;
   if ((identity || (address && subjects.length === 0)) && previous?.awaiting !== "person")
     followUp = false;
   if (identity && people.names.length === 0) {
     people.names = [identity];
     people.match = "related";
   }
-  const mine = /\b(my|mine|me|assigned to me)\b/.test(text);
+  // Display requests such as "show me" retain the actor's full visible set. Ownership is explicit.
+  const mine = /\b(my|mine|assigned to me)\b/.test(text);
   const everyone =
     /\b(everyone|everybody|anyone|all staff|the whole team|team's|whole team)\b/.test(
       text,
@@ -278,10 +284,11 @@ export function interpretDeterministically(
       ? false
       : people.match === "related" ||
           address !== null ||
+          leaseReference !== null ||
           /\b(completed|closed|finished|cancelled|including done)\b/.test(text)
         ? true
         : null,
-    text: address,
+    text: leaseReference?.text ?? address,
   };
   const detail =
     /\b(why|status|details?|what happened|what is holding|recorded communications?)\b/.test(
@@ -301,7 +308,15 @@ export function interpretDeterministically(
   )
     resolvedSubjects = resolvedSubjects.filter((subject) => subject !== "work");
   // "Renewal tasks" or "lease work" names the actor's work about renewals (S110), not lease records.
-  if (/\b(?:renewal|lease)s? (?:tasks?|work|to[- ]?dos?)\b/.test(text))
+  const asksWhichLeasesNeedRenewalWork = /\bleases?\b.*\bneed\b.*\brenewal work\b/.test(
+    text,
+  );
+  if (asksWhichLeasesNeedRenewalWork)
+    resolvedSubjects = resolvedSubjects.filter((subject) => subject !== "work");
+  if (
+    /\b(?:renewal|lease)s? (?:tasks?|work|to[- ]?dos?)\b/.test(text) &&
+    !asksWhichLeasesNeedRenewalWork
+  )
     resolvedSubjects = resolvedSubjects.filter((subject) => subject !== "leases");
   if (/\bassigned\b/.test(text) && resolvedSubjects.length === 0)
     resolvedSubjects = ["work"];
@@ -360,6 +375,7 @@ export const INTERPRETER_SYSTEM_INSTRUCTION = [
   "Dates use the business calendar the user gives you. range.preset: today, this_week, next_week, this_month, next_month, last_month, overdue, month (with month YYYY-MM), or none. If the user asks what is coming up or due for leases with no period, use kind clarify and ask which period.",
   "dateField applies to leases only: lease_end when the user says due, coming up, ending, expiring or renewing (the lease end date is the renewal date); follow_up_due when the user asks about follow-ups or overdue renewal follow-ups; notice_deadline only when the user explicitly says notice deadline or notice date; none otherwise.",
   "assignee: me only when the user says my, mine or assigned to me about work or leases; any when the user asks about everyone; none otherwise. A question such as what renewal blockers do I have asks about the renewals the user can see, not an assignment, so assignee stays none. An approval queue is already the user's own; do not set assignee for approvals.",
+  "Display requests such as show me, tell me and give me keep assignee none unless the question also contains explicit ownership wording such as my, mine or assigned to me.",
   "people: copy the names the user wrote exactly, never a name the user did not write. peopleMatch: assigned when the names are staff the records are assigned to; related when they are owners, tenants or other parties; assigned_or_related when the user says assigned or related; none when people is empty.",
   "blocked, stale, waitingOnOthers, needsMyApproval and includeClosed are true only when the user asks for them; otherwise null. text holds an address or record words the user typed to find one record; otherwise null.",
   "Follow-ups: when the question refers to the previous answer (only mine, now next month, which of those, why is the second one blocked), set followUp.usePrevious true, keep subjects from the previous plan unless the user names a new subject, and set only the filters the user changes (leave others null or none so they carry over). Set followUp.ordinal for the first, second or nth result, and followUp.detail true for why, status or details questions about specific records.",

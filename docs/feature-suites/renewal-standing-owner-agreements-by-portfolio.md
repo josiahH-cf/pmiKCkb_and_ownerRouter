@@ -3,7 +3,7 @@
 
 # S250 — Standing owner agreements set once per owner portfolio and chosen on the lease
 
-> Status: AUTHORING READY — intake 116; implementation NOT STARTED. Specification only; it grants no execution, release or provider effect. Owner decision D-OP-3 (November 5, 2026) approves portfolio-wide agreements that cover the owner step. It revises the S194 agreement scope and keeps S194's policies, prefill and history.
+> Status: AUTHORING READY: intake 116; implementation merged in PR #189 at `daf8ee05`. Resumed UX repairs and scoped qualification are recorded on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. D-OP-3 remains settled and S194 policies, prefill and history are kept. This specification grants no provider effect.
 
 **Goal.**
 
@@ -52,7 +52,9 @@ verified RentVine read; a lease whose portfolio cannot be verified is never cove
 - **R-S250-1 — One agreement record.** A standing agreement has a name, the pricing rule (an
   existing policy), whether the owner has pre-approved renewals at that rule, the date it took
   effect, an optional end date, and who agreed, how and when in words. It is versioned; a change
-  keeps the earlier versions.
+  keeps the earlier versions. Required inputs are marked, and an invalid save names the fields
+  in plain words, focuses the first one and retains the entry. Schema and portfolio verification
+  keep their existing bounds.
 - **R-S250-2 — Set once for the portfolio.** An agreement applies to every lease in a verified
   RentVine portfolio, shown by the portfolio and owner names staff recognize, with the numeric id
   kept as the stored reference. It can also be applied to single leases. A lease assignment wins
@@ -60,13 +62,18 @@ verified RentVine read; a lease whose portfolio cannot be verified is never cove
 - **R-S250-3 — Chosen on the lease.** The Now card shows "Pricing basis" with the choices "Owner
   decides each renewal" and each active agreement by name and rule. Choosing an agreement asks
   "This lease only" or "Every lease in this owner's portfolio" and saves on one action with an
-  optional reason. The existing panel in More shows the same assignment.
+  optional reason. When Pricing basis is on Now, its chooser and standing-agreement summary
+  appear once. The existing pricing panel keeps the same assignment and policy controls,
+  and its original chooser remains available in Focus and Full view.
+  The reusable pricing rule it refers to uses the required fields and recovery in S194.
 - **R-S250-4 — Rent from the rule.** For a covered lease the rent to recommend is the rule applied
   to the authoritative current rent with the existing whole-dollar rounding, shown with its basis.
   A staff typed rent always wins and is never overwritten.
 - **R-S250-5 — Owner step covered.** While an active pre-approved agreement covers the lease's verified portfolio and the working rent equals the rule's result,
   Ask the owner reads "Covered by {agreement}: no owner message needed" and the path continues at
-  Offer the tenant. Each renewal cycle is covered while the agreement is in effect; no per-cycle
+  Offer the tenant. When staff open the covered owner step, its primary action is "Continue to
+  Offer the tenant" and its Ready and You decide facts describe the agreement. The existing owner
+  message tools remain available. Each renewal cycle is covered while the agreement is in effect; no per-cycle
   record is needed.
 - **R-S250-6 — Leaving the rule returns the owner step.** A working rent different from the rule's
   result, an ended, revoked or unverifiable agreement, a lease outside the portfolio or two
@@ -75,6 +82,10 @@ verified RentVine read; a lease whose portfolio cannot be verified is never cove
 - **R-S250-7 — Rule changes apply forward.** A changed rule changes later proposals only. A sent
   message, a recorded approval and recorded terms keep their values; a prepared message built on
   the earlier rule reads "Built on the earlier rule" and offers to rebuild.
+  Both the untouched prefill and the existing Use policy proposal action retain the actual
+  agreement and policy version as the saved rent's basis. Its earlier rent remains recognizable
+  on the message after a rule change. Explicit rebuild updates an adopted rule rent and the
+  prepared message through their ordinary saves; a staff typed rent keeps precedence.
 - **R-S250-8 — Visible everywhere it matters.** The desk row carries a "Standing agreement" tag;
   the lease page names the agreement, its rule and when it took effect; the tenant offer and the
   source update previews show the rule as their basis.
@@ -156,7 +167,7 @@ agreement. The page names the agreement, shows the new rent already worked out, 
 message is needed and offers the tenant offer as the next step. If the owner is not set up yet,
 the staff member picks the agreement from a list on the same page.
 
-- Model verdict: NOT RUN — to be completed by the implementation runner with evidence.
+- Model verdict: RUN for the synthetic agreement, scoped choice, override and Admin role checks (J13). See the [review](../evidence/renewal-one-path-ux-review-2026-11-06.md) and [individual litmus results](../evidence/renewal-one-path-litmus-2026-11-06.md).
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**

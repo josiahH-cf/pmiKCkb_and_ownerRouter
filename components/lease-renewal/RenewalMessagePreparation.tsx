@@ -7,6 +7,7 @@ import { formatBusinessTimestamp, formatSourceCalendarDate } from "@/lib/date-di
 
 import { renewalCardTitle } from "@/components/lease-renewal/RenewalSectionHeading";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   EXTERNAL_LINK_REL,
   EXTERNAL_LINK_TARGET,
@@ -63,8 +64,20 @@ import { GEMINI_IN_GMAIL_HINT } from "@/lib/email-refinement/hint";
 import { RefineWithAi } from "@/components/email/RefineWithAi";
 import {
   gmailDraftSignal,
+  gmailDraftMessageRevisionOf,
   messageRevisionOf,
 } from "@/lib/lease-renewal/message-revision";
+import {
+  adoptedStandingRule,
+  standingRuleContext,
+  standingRuleSourceLabel,
+} from "@/lib/lease-renewal/standing-agreement";
+import { nowSlotKey, useRenewalNowCard } from "./RenewalNowCardContext";
+import {
+  workingFieldLabel,
+  messageWorkingFieldsFor,
+} from "@/lib/lease-renewal/working-record";
+import { focusWorkingField } from "./WorkingFieldEditor";
 import {
   PreparedMessageSlot,
   draftPreviewWaitsOnGeneration,
@@ -394,6 +407,72 @@ function savedPayload(server: Preparation): string {
   );
 }
 
+function composedPreparation(
+  current: Preparation,
+  { inputs, override, subjectText }: LocalMessage,
+) {
+  const payload = current
+    ? savePayload({ inputs, override, subjectText }, current)
+    : null;
+  let content: ReturnType<typeof composeRenewalMessage> | null = null;
+  if (current && payload) {
+    const effective = payload.effective;
+    content = composeRenewalMessage(
+      {
+        ...current.facts,
+        attachments:
+          inputs.compScreenshotReceiptId &&
+          inputs.compScreenshotReceiptId === current.availableCompScreenshot?.receiptId
+            ? [
+                {
+                  filename: current.availableCompScreenshot.filename,
+                  source: `comp-screenshot-receipt:${inputs.compScreenshotReceiptId}`,
+                },
+              ]
+            : [],
+        charges: effective.charges,
+        recommendationReason: effective.recommendationReason ?? null,
+        leaseOrigin: effective.leaseOrigin,
+        insuranceTransition: effective.insuranceTransition,
+        otherChargesComparison: effective.otherChargesComparison,
+        signature: effective.signature
+          ? {
+              ...effective.signature,
+              email:
+                current.signatureMatchesActor ||
+                canonical(effective.signature) !==
+                  canonical(current.saved?.inputs.signature ?? null)
+                  ? current.senderEmail
+                  : (current.saved?.signatureEmail ?? current.senderEmail),
+            }
+          : null,
+      },
+      effective.edits,
+    );
+    const serverRange = current.content?.missing?.find(
+      (entry) => entry.field === "range",
+    );
+    const localRange = content.missing.find((entry) => entry.field === "range");
+    if (serverRange && localRange) localRange.message = serverRange.message;
+    if (
+      inputs.compScreenshotReceiptId &&
+      inputs.compScreenshotReceiptId !== current.availableCompScreenshot?.receiptId
+    )
+      content.missing.push({ field: "attachment", message: STALE_ATTACHMENT_MESSAGE });
+  }
+  // S161 (R-S161-7): authored wording is the body exactly as written, also after the information
+  // it started from changed. Only a deliberate return to the standard wording replaces it.
+  const authoredBody = override && override.text.trim() ? override.text : null;
+  const authoredSubject =
+    subjectText !== null && subjectText.trim() ? subjectText.trim() : null;
+  let shownContent = content;
+  if (shownContent && authoredBody)
+    shownContent = applyRefinedBody(shownContent, authoredBody);
+  if (shownContent && authoredSubject)
+    shownContent = applyAuthoredSubject(shownContent, authoredSubject);
+  return { payload, content, shownContent };
+}
+
 function MessagePreparationEditor({
   leaseId,
   refreshBasis,
@@ -405,6 +484,10 @@ function MessagePreparationEditor({
   channel: "owner" | "tenant";
   canEdit: boolean;
 }) {
+  const router = useRouter();
+  const working = useRenewalWorkingRecord();
+  const nowCard = useRenewalNowCard();
+  const messageWorkingFields = messageWorkingFieldsFor(channel);
   const [current, setCurrent] = useState<Preparation | null>(null);
   const [inputs, setInputs] = useState(emptyMessagePreparationInputs);
   // S161: the authored body (typed here or accepted from a refinement) and the authored subject.
@@ -423,6 +506,15 @@ function MessagePreparationEditor({
   const [pending, setPending] = useState(false),
     [notice, setNotice] = useState("");
   const [confirming, setConfirming] = useState(false);
+  const workingRefusal = useRef<{ field: string; message: string } | null>(null);
+  const workingRefusalControl = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    const refusal = workingRefusal.current;
+    if (refusal && working?.hasUnsettled && !working.hasUnsettled([refusal.field])) {
+      setNotice((shown) => (shown === refusal.message ? "" : shown));
+      workingRefusal.current = null;
+    }
+  }, [working]);
   const [outcome, setOutcome] = useState<RenewalNoticeDraftOutcome | null>(null);
   // S249 R-S249-9: the message revision the unsent Gmail draft created here carries, and whether
   // creating it replaced an earlier created draft (which stays in Gmail).
@@ -439,6 +531,9 @@ function MessagePreparationEditor({
   const [loadedAtIso, setLoadedAtIso] = useState<string | null>(null);
   const base = useId();
   const loadSequence = useRef(0);
+  const invalidateReads = useCallback(() => {
+    loadSequence.current++;
+  }, []);
   // Local entries the server has not confirmed, or cannot store yet. A refresh never replaces them.
   const touchedRef = useRef(false);
   const currentRef = useRef<Preparation | null>(null);
@@ -488,6 +583,11 @@ function MessagePreparationEditor({
   const adopt = useCallback((result: Preparation) => {
     setInputs(result.inputs);
     const saved = savedOverride(result.bodyOverride ?? null);
+    localRef.current = {
+      inputs: result.inputs,
+      override: saved.override,
+      subjectText: result.subjectOverride ?? null,
+    };
     setOverride(saved.override);
     setOverrideState(saved.state);
     setPreviousOverride(undefined);
@@ -529,6 +629,36 @@ function MessagePreparationEditor({
       if (!touchedRef.current) adopt(result);
     });
   }, [adopt, channel, leaseId]);
+  /** A transport reads the confirmed entered figures. Blank and unrelated fields stay usable. */
+  async function settleWorkingFields(restoreFocus = true): Promise<boolean> {
+    if (!working?.settle) return true;
+    setNotice("");
+    workingRefusalControl.current = null;
+    const result = await working.settle(messageWorkingFields);
+    if (!result.ok) {
+      const control = result.controlId ? document.getElementById(result.controlId) : null;
+      const label =
+        control instanceof HTMLInputElement
+          ? control.labels?.[0]?.textContent?.trim()
+          : null;
+      const message = `${label || workingFieldLabel(result.field)} is not confirmed. Your entry is kept; correct or retry its save before preparing this message.`;
+      workingRefusal.current = { field: result.field, message };
+      workingRefusalControl.current = control;
+      setNotice(message);
+      if (restoreFocus && control) focusWorkingField(control);
+      return false;
+    }
+    // The normal projection is read after the acknowledgments. If another entry arrived while
+    // that read was on its way, this action stops before preparing an older message.
+    await load();
+    if (working.hasUnsettled(messageWorkingFields)) {
+      setNotice(
+        "Your working figures changed while the message was being prepared. Your entries are kept; finish their save, then prepare the message again.",
+      );
+      return false;
+    }
+    return true;
+  }
   useEffect(() => {
     let active = true;
     load().catch((error) => {
@@ -536,9 +666,9 @@ function MessagePreparationEditor({
     });
     return () => {
       active = false;
-      loadSequence.current++;
+      invalidateReads();
     };
-  }, [load, refreshBasis]); // source and working changes refresh the facts; entries are kept
+  }, [load, refreshBasis, invalidateReads]); // source and working changes refresh the facts; entries are kept
 
   /**
    * S155/S161: save the message as it stands. A completed entry saves by itself; nothing is
@@ -653,8 +783,25 @@ function MessagePreparationEditor({
    * then a message built on the earlier rule keeps that rule's rent.
    */
   async function rebuildRule() {
-    const target = currentRef.current?.earlierRule?.currentBasis;
+    const earlier = currentRef.current?.earlierRule;
+    const target = earlier?.currentBasis;
     if (!target) return;
+    setNotice("");
+    const entry = working?.record?.fields.terms_rent;
+    const adopted = entry ? adoptedStandingRule(entry) : null;
+    if (adopted?.agreementId === target.agreementId && working && earlier) {
+      const saved = await working.save("terms_rent", earlier.currentRent, {
+        origin: "adopted_source",
+        sourceLabel: standingRuleSourceLabel(earlier.agreement, target.policyVersion),
+        context: standingRuleContext({ ...target, basis: earlier.current }),
+      });
+      if (!saved) {
+        setNotice(
+          "The rent could not be rebuilt. Your saved rent is kept; choose Rebuild with the current rule to retry.",
+        );
+        return;
+      }
+    }
     ruleOverride.current = target;
     await runAutosave(true);
   }
@@ -687,6 +834,16 @@ function MessagePreparationEditor({
         : null,
     );
     touch();
+  }
+  function returnToStandardWording() {
+    overrideChange(null, true);
+    commit();
+  }
+  function undoWording() {
+    if (previousOverride === undefined) return;
+    overrideChange(previousOverride);
+    setPreviousOverride(undefined);
+    commit();
   }
   function chargeChange(id: MessageCharge["id"], changeValue: Partial<MessageCharge>) {
     change({
@@ -730,65 +887,13 @@ function MessagePreparationEditor({
   }
   // The message is composed from what would be saved now, so what is shown, copied and drafted is
   // one and the same text. Composition never refuses: a gap is a named marker and a callout line.
-  const payload = current
-    ? savePayload({ inputs, override, subjectText }, current)
+  const composed = current
+    ? composedPreparation(current, { inputs, override, subjectText })
     : null;
-  let content: ReturnType<typeof composeRenewalMessage> | null = null;
-  if (current && payload) {
-    const effective = payload.effective;
-    content = composeRenewalMessage(
-      {
-        ...current.facts,
-        attachments:
-          inputs.compScreenshotReceiptId &&
-          inputs.compScreenshotReceiptId === current.availableCompScreenshot?.receiptId
-            ? [
-                {
-                  filename: current.availableCompScreenshot.filename,
-                  source: `comp-screenshot-receipt:${inputs.compScreenshotReceiptId}`,
-                },
-              ]
-            : [],
-        charges: effective.charges,
-        recommendationReason: effective.recommendationReason ?? null,
-        leaseOrigin: effective.leaseOrigin,
-        insuranceTransition: effective.insuranceTransition,
-        otherChargesComparison: effective.otherChargesComparison,
-        signature: effective.signature
-          ? {
-              ...effective.signature,
-              email:
-                current.signatureMatchesActor ||
-                canonical(effective.signature) !==
-                  canonical(current.saved?.inputs.signature ?? null)
-                  ? current.senderEmail
-                  : (current.saved?.signatureEmail ?? current.senderEmail),
-            }
-          : null,
-      },
-      effective.edits,
-    );
-    const serverRange = current.content?.missing?.find(
-      (entry) => entry.field === "range",
-    );
-    const localRange = content.missing.find((entry) => entry.field === "range");
-    if (serverRange && localRange) localRange.message = serverRange.message;
-    if (
-      inputs.compScreenshotReceiptId &&
-      inputs.compScreenshotReceiptId !== current.availableCompScreenshot?.receiptId
-    )
-      content.missing.push({ field: "attachment", message: STALE_ATTACHMENT_MESSAGE });
-  }
-  // S161 (R-S161-7): authored wording is the body exactly as written, also after the information
-  // it started from changed. Only a deliberate return to the standard wording replaces it.
+  const payload = composed?.payload ?? null;
+  const content = composed?.content ?? null;
+  const shownContent = composed?.shownContent ?? null;
   const authoredBody = override && override.text.trim() ? override.text : null;
-  const authoredSubject =
-    subjectText !== null && subjectText.trim() ? subjectText.trim() : null;
-  let shownContent = content;
-  if (shownContent && authoredBody)
-    shownContent = applyRefinedBody(shownContent, authoredBody);
-  if (shownContent && authoredSubject)
-    shownContent = applyAuthoredSubject(shownContent, authoredSubject);
   const wordingChangedSince = Boolean(authoredBody && overrideState === "stale");
   const refineDisabledReason = !canEdit
     ? "Refining wording needs edit access to this renewal."
@@ -810,6 +915,7 @@ function MessagePreparationEditor({
     const content = shownContent;
     if (!content || copying) return;
     setCopying(true);
+    const figuresWereUnconfirmed = working?.hasUnsettled?.(messageWorkingFields) ?? false;
     setNotice("Copying the displayed message…");
     try {
       if (kind === "recipients") {
@@ -846,7 +952,7 @@ function MessagePreparationEditor({
           ),
         );
       setNotice(
-        `${kind === "subject" ? "Subject" : "Body"} copied as shown. Attachments are separate. Nothing was sent.`,
+        `${kind === "subject" ? "Subject" : "Body"} copied as shown. Attachments are separate. Nothing was sent.${figuresWereUnconfirmed && kind !== "subject" ? " Working figures were unconfirmed when this copy began. Check the saved figures before using this copy." : ""}`,
       );
     } catch (error) {
       setNotice(
@@ -863,7 +969,11 @@ function MessagePreparationEditor({
     const server = currentRef.current;
     if (!canEdit || !server) return;
     const entry = savePayload(localRef.current, server);
-    if (canonical(entry.value) === lastSavedRef.current && !entry.wordingUnfinished)
+    if (
+      !working?.hasUnsettled?.(messageWorkingFields) &&
+      canonical(entry.value) === lastSavedRef.current &&
+      !entry.wordingUnfinished
+    )
       return;
     event.preventDefault();
     if (openingComposer.current) return;
@@ -876,21 +986,15 @@ function MessagePreparationEditor({
     }
     tab.opener = null;
     openingComposer.current = true;
+    setNotice("");
     const href = event.currentTarget.href;
     try {
-      if (saving.current) await saving.current;
-      await runAutosave();
-      if (saving.current) await saving.current;
-      const latest = currentRef.current;
-      const value = latest ? savePayload(localRef.current, latest) : null;
-      if (
-        !value ||
-        value.wordingUnfinished ||
-        canonical(value.value) !== lastSavedRef.current
-      ) {
+      if (!(await flush())) {
         tab.close();
         setNotice(
-          "Your latest wording could not be saved, so Communications did not open with an older message. Your words are kept here; correct or retry the save.",
+          (current) =>
+            current ||
+            "Your latest message could not be prepared. Your entries are kept here; correct or retry the save, then open Communications again.",
         );
         return;
       }
@@ -910,6 +1014,7 @@ function MessagePreparationEditor({
   async function draft(
     kind: "preview" | "create" | "reconcile",
     priorExecutionId?: string,
+    deferWorkingFocus = false,
   ) {
     setPending(true);
     setConfirming(false);
@@ -920,10 +1025,23 @@ function MessagePreparationEditor({
       let preview: Record<string, unknown> = {};
       let savedWith: string | null = null;
       if (kind === "preview") {
+        if (!(await settleWorkingFields(!deferWorkingFocus))) {
+          if (outcome?.status === "preview") setOutcome(null);
+          if (deferWorkingFocus) {
+            const control = workingRefusalControl.current;
+            return () => {
+              if (control) focusWorkingField(control);
+            };
+          }
+          return;
+        }
         // An autosave already on its way finishes first, so the two never save over each other.
         await saving.current?.catch(() => undefined);
         const server = currentRef.current;
-        if (!server || !shownContent) return;
+        const shown = server
+          ? composedPreparation(server, localRef.current).shownContent
+          : null;
+        if (!server || !shown) return;
         const state = savePayload(localRef.current, server);
         if (state.wordingUnfinished) {
           setNotice(
@@ -948,7 +1066,7 @@ function MessagePreparationEditor({
             operationId: crypto.randomUUID(),
           };
         preview = {
-          displayed: { subject: shownContent.subject, body: shownContent.plainText },
+          displayed: { subject: shown.subject, body: shown.plainText },
           ...(needsSave
             ? {
                 save: {
@@ -1034,7 +1152,7 @@ function MessagePreparationEditor({
       setOutcome(parsed);
       if (parsed.status === "blocked") setNotice(parsed.reasons.join(" "));
       if (parsed.status === "created" && confirmedPreview) {
-        const made = messageRevisionOf({
+        const made = gmailDraftMessageRevisionOf({
           subject: confirmedPreview.subject,
           body: confirmedPreview.body,
         });
@@ -1046,6 +1164,13 @@ function MessagePreparationEditor({
         )
           setReplacedHere(true);
         setCreatedDraftRevision(made);
+      }
+      const createdConfirmed =
+        parsed.status === "created" ||
+        (parsed.status === "reconciliation" && parsed.resolution === "created");
+      if (createdConfirmed) {
+        router.refresh();
+        if (kind === "reconcile") void load().catch((error) => setNotice(error.message));
       }
       if (parsed.status === "created")
         setNotice(
@@ -1126,6 +1251,7 @@ function MessagePreparationEditor({
   /** Save what is on screen; true once the saved message reads back as shown. */
   async function flush(): Promise<boolean> {
     if (!canEdit || !currentRef.current) return false;
+    if (!(await settleWorkingFields())) return false;
     if (saving.current) await saving.current;
     await runAutosave();
     if (saving.current) await saving.current;
@@ -1134,7 +1260,8 @@ function MessagePreparationEditor({
     return Boolean(
       value &&
       !value.wordingUnfinished &&
-      canonical(value.value) === lastSavedRef.current,
+      canonical(value.value) === lastSavedRef.current &&
+      !working?.hasUnsettled?.(messageWorkingFields),
     );
   }
   /** R-S249-11: the sender's own signature, set up on the Now card; a refusal names what is missing. */
@@ -1186,6 +1313,8 @@ function MessagePreparationEditor({
           senderEmail: current.senderEmail,
           templateApproved: current.publication.status === "approved",
           lastEditedAt: current.saved?.updatedAt ?? null,
+          wordingChangedSince,
+          canUndoWording: previousOverride !== undefined,
           earlierRule: current.earlierRule ?? null,
           marked,
           signaturePresent: Boolean(payload?.effective.signature),
@@ -1199,6 +1328,7 @@ function MessagePreparationEditor({
             pending,
             createdRevision: draftRevision,
             earlierRemain: draftSignal.earlierRemain,
+            recoveryRequired: unresolved,
             preview:
               outcome?.status === "preview"
                 ? {
@@ -1213,6 +1343,12 @@ function MessagePreparationEditor({
           notice,
         }
       : null;
+  const preparedPreviewInNow = Boolean(
+    preparedData &&
+    nowCard?.slots[
+      nowSlotKey(channel === "owner" ? "ask-owner" : "offer-tenant", "message-preview")
+    ],
+  );
   return (
     <Card
       title={renewalCardTitle(
@@ -1227,8 +1363,11 @@ function MessagePreparationEditor({
         <PreparedMessageSlot
           data={preparedData}
           onCopy={() => copy("formatted")}
-          onDraftCreate={() => draft("create")}
-          onDraftPreview={() => draft("preview")}
+          onDraftCreate={async () => {
+            await draft("create");
+          }}
+          onDraftRecover={() => recoverDraft()}
+          onDraftPreview={() => draft("preview", undefined, true)}
           onFlush={flush}
           onOpenComposer={(event) => void openComposer(event)}
           onReasonChange={(value) =>
@@ -1236,6 +1375,8 @@ function MessagePreparationEditor({
           }
           onReasonCommit={commit}
           onRebuildRule={rebuildRule}
+          onReturnToStandardWording={returnToStandardWording}
+          onUndoWording={undoWording}
           onSaveSignature={saveSignature}
         />
       ) : null}
@@ -1256,7 +1397,7 @@ function MessagePreparationEditor({
         Schedule when its current checks pass. Resume requires a fresh review. You can
         also create an unsent Gmail draft below and send it from Gmail.
       </p>
-      {notice ? <p role="status">{notice}</p> : null}
+      {notice && !preparedPreviewInNow ? <p role="status">{notice}</p> : null}
       {[...new Set(current?.notices ?? [])].map((value) => (
         <p key={value} className="muted">
           {value}
@@ -1296,25 +1437,53 @@ function MessagePreparationEditor({
                 }}
               />
             </Field>
-            {current?.recipients ? (
-              current.recipients.status === "ready" ? (
-                <p className="renewal-message-recipients">
-                  <strong>To:</strong> {current.recipients.to}
-                  {current.recipients.cc.length > 0 ? (
+            <div id={MESSAGE_CONTROL_IDS.recipients(channel)}>
+              {current?.recipients ? (
+                current.recipients.status === "ready" ? (
+                  <p className="renewal-message-recipients">
+                    <strong>To:</strong> {current.recipients.to}
+                    {current.recipients.cc.length > 0 ? (
+                      <>
+                        {" "}
+                        <strong>Cc:</strong> {current.recipients.cc.join(", ")}
+                      </>
+                    ) : null}
+                  </p>
+                ) : (
+                  <ul className="renewal-message-recipients" role="status">
+                    {[...new Set(current.recipients.reasons)].map((reason) => (
+                      <li key={reason}>{reason}</li>
+                    ))}
+                  </ul>
+                )
+              ) : null}
+              {current.recipients?.status === "blocked" ? (
+                <p className="muted renewal-message-destinations">
+                  {channel === "owner" && current.destinations?.owners.length ? (
+                    current.destinations.owners.map((owner, index) => (
+                      <span key={owner.record.href}>
+                        {index > 0 ? " · " : ""}
+                        {owner.name}:{" "}
+                        {externalLink(owner.record, "open owner record in RentVine")}
+                      </span>
+                    ))
+                  ) : current.destinations?.lease ? (
                     <>
-                      {" "}
-                      <strong>Cc:</strong> {current.recipients.cc.join(", ")}
+                      {externalLink(
+                        current.destinations.lease,
+                        "Open lease record in RentVine",
+                      )}
+                      {". "}
+                      {channel === "owner"
+                        ? "Open its owner record to add the owner's email, then refresh this lease."
+                        : "Check the tenant email addresses, then refresh this lease."}
                     </>
-                  ) : null}
+                  ) : (
+                    "Refresh data to read this lease's recipient record links."
+                  )}
                 </p>
-              ) : (
-                <ul className="renewal-message-recipients" role="status">
-                  {[...new Set(current.recipients.reasons)].map((reason) => (
-                    <li key={reason}>{reason}</li>
-                  ))}
-                </ul>
-              )
-            ) : null}
+              ) : null}
+            </div>
             <div className="ui-actions">
               <Button
                 variant="secondary"
@@ -1364,8 +1533,12 @@ function MessagePreparationEditor({
                           owner.messages,
                           `${owner.name}: open owner messages in RentVine`,
                         )}
-                        {" · "}
-                        {externalLink(owner.record, "open owner record in RentVine")}
+                        {current.recipients?.status !== "blocked" ? (
+                          <>
+                            {" · "}
+                            {externalLink(owner.record, "open owner record in RentVine")}
+                          </>
+                        ) : null}
                       </span>
                     ))
                   : current.destinations.messages
@@ -1374,7 +1547,11 @@ function MessagePreparationEditor({
                         "Open lease messages in RentVine",
                       )
                     : null}
-                {current.destinations.lease ? (
+                {current.destinations.lease &&
+                !(
+                  current.recipients?.status === "blocked" &&
+                  (channel !== "owner" || current.destinations.owners.length === 0)
+                ) ? (
                   <>
                     {" · "}
                     {externalLink(
@@ -1417,7 +1594,7 @@ function MessagePreparationEditor({
                   }}
                 />
               </Field>
-              {authoredBody ? (
+              {authoredBody && (!preparedPreviewInNow || !wordingChangedSince) ? (
                 <div className="ui-stack-tight">
                   <p className="muted" role="status">
                     {wordingChangedSince
@@ -1426,24 +1603,13 @@ function MessagePreparationEditor({
                   </p>
                   {canEdit ? (
                     <div className="ui-actions">
-                      {previousOverride !== undefined ? (
-                        <Button
-                          onClick={() => {
-                            overrideChange(previousOverride);
-                            setPreviousOverride(undefined);
-                            commit();
-                          }}
-                          type="button"
-                          variant="secondary"
-                        >
+                      {previousOverride !== undefined && !preparedPreviewInNow ? (
+                        <Button onClick={undoWording} type="button" variant="secondary">
                           Undo the last refinement
                         </Button>
                       ) : null}
                       <Button
-                        onClick={() => {
-                          overrideChange(null, true);
-                          commit();
-                        }}
+                        onClick={returnToStandardWording}
                         type="button"
                         variant="secondary"
                       >
@@ -1556,7 +1722,7 @@ function MessagePreparationEditor({
                 )}
               </div>
             ) : null}
-            {unresolved ? (
+            {unresolved && !preparedPreviewInNow ? (
               <div>
                 <p>
                   Do not create a duplicate. Recover this exact attempt; copy remains
@@ -1596,10 +1762,12 @@ function MessagePreparationEditor({
                 exact preview and confirmation above.
               </p>
               <p>{current.draftAttempt?.state ?? outcome?.status}</p>
-              {current.draftAttempt?.recoveryAvailable && !unresolved ? (
-                <Button disabled={pending} onClick={() => recoverDraft()}>
-                  Recover exact Gmail attempt
-                </Button>
+              {current.draftAttempt?.recoveryAvailable ? (
+                unresolved ? null : (
+                  <Button disabled={pending} onClick={() => recoverDraft()}>
+                    Recover exact Gmail attempt
+                  </Button>
+                )
               ) : (
                 <p>Its original managed sender must recover this attempt.</p>
               )}
@@ -1977,7 +2145,10 @@ function MessagePreparationEditor({
                 </details>
               </>
             ) : null}
-            <details open={current.signatureMatchesActor === false}>
+            <details
+              data-renewal-signature-editor={channel}
+              open={current.signatureMatchesActor === false}
+            >
               <summary>Managed sender signature · {current.senderEmail}</summary>
               <p className="muted" data-testid="renewal-message-signature-origin">
                 {signatureEdited
@@ -2169,7 +2340,7 @@ function MessagePreparationEditor({
                 responsible sender and current recipients for its saved app draft. Gmail
                 creation separately rechecks the source and exact confirmation.
               </p>
-              <p>
+              <p id={MESSAGE_CONTROL_IDS.publication(channel)}>
                 Message template: {current.publication.status}
                 {current.publication.ref ? ` (${current.publication.ref})` : ""}.{" "}
                 {current.publication.reason ?? ""}

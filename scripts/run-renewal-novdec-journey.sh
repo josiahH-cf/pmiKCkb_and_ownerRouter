@@ -15,6 +15,8 @@ repo=$(git rev-parse --show-toplevel)
 # belong in this path. All original host-path behavior below remains separate and unchanged.
 if [[ "$repo" == /app ]]; then
   [[ $# -eq 0 ]] || { echo "The isolated journey uses only its frozen staged source; no overlay argument is allowed." >&2; exit 2; }
+  source "$repo/scripts/lib/one-path-rehearsal/network-guard.sh"
+  enable_rehearsal_network_guard "$repo" /evidence
   node --input-type=module - <<'JS'
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -39,7 +41,7 @@ JS
   port=$(node -e 'const s=require("net").createServer();s.listen(0,"127.0.0.1",()=>{console.log(s.address().port);s.close()})')
   config="$output/firebase.json"
   node -e 'const fs=require("fs");const [cfg,port]=process.argv.slice(1);fs.writeFileSync(cfg,JSON.stringify({firestore:{rules:"/app/firestore.rules",indexes:"/app/firestore.indexes.json"},emulators:{singleProjectMode:true,firestore:{host:"127.0.0.1",port:Number(port)},ui:{enabled:false}}}))' "$config" "$port"
-  FIRESTORE_EMULATOR_HOST="127.0.0.1:$port" NOVDEC_JOURNEY_OUTPUT="$output" NOVDEC_JOURNEY_SOURCE_SHA="$sha" \
+  CI=true FIRESTORE_EMULATOR_HOST="127.0.0.1:$port" NOVDEC_JOURNEY_OUTPUT="$output" NOVDEC_JOURNEY_SOURCE_SHA="$sha" \
     NOVDEC_JOURNEY_OVERLAY="$overlay" NOVDEC_JOURNEY_ISOLATED=kernel-v1 \
     node node_modules/firebase-tools/lib/bin/firebase.js emulators:exec --only firestore --project pmi-kc-kb-novdec-journey-test --config "$config" \
     "node tests/browser/renewal-novdec-journey-browser.mjs" 2>&1 | tee "$output/journey.log"
@@ -70,12 +72,14 @@ if $overlay; then
       [[ -f "$repo/$file" ]] && mkdir -p "$root/worktree/$(dirname "$file")" && cp "$repo/$file" "$root/worktree/$file"
     done
 fi
+source "$root/worktree/scripts/lib/one-path-rehearsal/network-guard.sh"
+enable_rehearsal_network_guard "$root/worktree" "$output"
 port=$(node -e 'const s=require("net").createServer();s.listen(0,"127.0.0.1",()=>{console.log(s.address().port);s.close()})')
 config="$root/firebase.json"
 node -e 'const fs=require("fs");const [cfg,port,cwd]=process.argv.slice(1);fs.writeFileSync(cfg,JSON.stringify({firestore:{rules:cwd+"/firestore.rules",indexes:cwd+"/firestore.indexes.json"},emulators:{singleProjectMode:true,firestore:{host:"127.0.0.1",port:Number(port)},ui:{enabled:false}}}))' "$config" "$port" "$root/worktree"
 printf '{"run_id":"%s","source_sha":"%s","overlay":%s,"emulator_port":%s}\n' "$run_id" "$sha" "$overlay" "$port" >"$output/run.json"
 cd "$root/worktree"
-FIRESTORE_EMULATOR_HOST="127.0.0.1:$port" NOVDEC_JOURNEY_OUTPUT="$output" NOVDEC_JOURNEY_SOURCE_SHA="$sha" \
+CI=true FIRESTORE_EMULATOR_HOST="127.0.0.1:$port" NOVDEC_JOURNEY_OUTPUT="$output" NOVDEC_JOURNEY_SOURCE_SHA="$sha" \
   NOVDEC_JOURNEY_OVERLAY="$overlay" \
   npx firebase emulators:exec --only firestore --project pmi-kc-kb-novdec-journey-test --config "$config" \
   "node tests/browser/renewal-novdec-journey-browser.mjs" 2>&1 | tee "$output/journey.log"

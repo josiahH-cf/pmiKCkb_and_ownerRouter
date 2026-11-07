@@ -22,7 +22,7 @@ import type { RenewalPreparation } from "@/lib/lease-renewal/renewal-preparation
 
 export interface NowCardPrimary {
   readonly label: string;
-  readonly run: () => void;
+  readonly run: (trigger: HTMLButtonElement) => void;
   readonly disabled?: boolean;
   readonly busy?: boolean;
   /** Why the action is not available yet, shown beside it. */

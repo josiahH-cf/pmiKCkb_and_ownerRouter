@@ -36,6 +36,13 @@ working data and deterministic test fixtures.
 A clear policy management area supports reusable percentage, fixed-dollar, no-increase and manual-review policies, portfolio defaults and explicit lease overrides, with a visible effective policy and proposal basis. Each requirement below is independently falsifiable; implementation must satisfy the
 structural obligation and the observed behavior, including the named failure/alternate cases.
 
+Admin marks the required policy name, effective date, purpose and increase amount when the
+chosen type has one. An incomplete or invalid entry stays in the form, receives plain feedback
+at its field and focuses the first correction before any save. A blank increase stays blank.
+Portfolio default Save becomes available after the current portfolio ID is verified by its
+read. Changing that ID asks for a fresh read. An invalid ID stays whole for correction.
+Both saves retain their existing server rules.
+
 **In scope / out of scope.**
 
 Renewal pricing policy management and calculation. Communications schedules are S189/S192; maintenance preapproval is S213. No automatic replacement of reviewed offer terms or invented owner agreement.

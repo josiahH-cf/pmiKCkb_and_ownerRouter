@@ -176,6 +176,16 @@ export function typedRecommendation(
     : null;
 }
 
+/** Preserve a saved adoption's recorded source without inferring an agreement for legacy data. */
+export function workingRecommendationBasis(
+  working: RenewalWorkingRecord | null | undefined,
+): string | null {
+  const entry = working?.fields.terms_rent;
+  return entry?.origin === "adopted_source" && entry.sourceLabel
+    ? `Saved working rent from ${entry.sourceLabel}. Later proposals keep this saved amount.`
+    : null;
+}
+
 /** The current RentVine rent-account charge amounts in a charge inventory; null when unread. */
 export function currentRentChargeAmounts(
   inventory: RenewalChargeInventory | null | undefined,
@@ -258,6 +268,7 @@ export function kickoffFactsFor(input: KickoffFactsInput): RenewalKickoffFacts {
     },
     comparison,
     typedRent: typedRecommendation(input.working, input.manual),
+    workingRentBasis: workingRecommendationBasis(input.working),
     agreementRent: input.agreementRent ?? null,
     currentRent: input.contractualRent,
     ownerRecipient: input.ownerRecipient,

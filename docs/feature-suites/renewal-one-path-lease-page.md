@@ -3,7 +3,7 @@
 
 # S247 — One renewal path per lease: one page, one current step
 
-> Status: AUTHORING READY — intake 113; implementation NOT STARTED. Specification only; it grants no execution, release or provider effect. Owner decision D-OP-6 (November 5, 2026): the guided page is the default and Focus view and Full view stay as options. It adds a default view; the S143 and S152 views, handlers and projections are kept.
+> Status: AUTHORING READY: intake 113; implementation merged in PR #187 at `20d55104`. Resumed UX repairs and scoped qualification are recorded on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. D-OP-6 remains settled: Guided is the default, and Focus and Full views, handlers and projections are kept. This specification grants no provider effect.
 
 **Goal.**
 
@@ -62,13 +62,22 @@ or staff-record read failure shows on the Now card as the thing to resolve; it n
   assistance puts the program contact and the owner's renew-or-not answer ahead of rent (S251). A
   step that does not apply is shown as not part of this lease's path and asks for nothing.
 - **R-S247-3 — One stage and one next step everywhere.** One projection supplies the stage and the
-  next step to the desk row, the lease page, assistant answers and My Work links. The stage names
-  reuse the existing staff work-status wording. The lifecycle category, overall status and action
+  next step to the desk row, the lease page, assistant answers and My Work links. Guided shows
+  the current next step once even while staff inspect a different step. Show current step
+  returns there on the same page. Selecting or arriving on the current step follows the next
+  current step after the projection advances; a deliberate inspection of another step stays
+  available in any order.
+  Stage names reuse the existing staff work-status wording. The lifecycle category, overall status and action
   status groups are not shown in the guided view and stay available in the full desk table, Focus
   view and Full view.
-- **R-S247-4 — The Now card holds the work.** For every path step the Now card shows what the app
-  prepared, the inputs the person decides, one primary action and its secondary actions, using the
-  existing controls in place. No path step sends the person to another view or tab to act.
+- **R-S247-4 — The Now card holds the work.** The lease page's one main landmark contains the
+  Now card. For every path step it shows what the app prepared, the inputs the person decides,
+  one primary action and its secondary actions, using the
+  existing controls in place. The primary action follows the heading and any consequential alert;
+  supporting next-step and detail text follows the action. No path step sends the person to another view or tab to act.
+  The selected step's existing fields and hand records, including the assisted owner/rent choices
+  and ordinary working terms, are inside the same visual and named Now card. Their components
+  stay mounted at one position across Guided, Focus and Full view, preserving unsaved entries.
 - **R-S247-5 — Waiting is a state, not a dead end.** A waiting step states who it waits on, since
   when, the last contact and what the app is watching, and offers the actions that fit: record what
   happened, send again, or work a later step now.
@@ -85,11 +94,20 @@ or staff-record read failure shows on the Now card as the thing to resolve; it n
   derived stage shows both in one line. "Add a note" sits on the Now card.
 - **R-S247-9 — Keeps its place.** A lease opens in the same tab. After a reload or a release the
   page returns to the same view, step and scroll position, and unsaved typing is kept by the
-  existing autosave and retained-input behavior.
+  existing autosave and retained-input behavior. A reload retains the complete focused text
+  field in that tab for that lease, in every view of its main region. A unique visible field
+  name also identifies it when a generated ID changes; ambiguous fields keep their current
+  values. If the person resumes typing or navigating before restoration,
+  their newer input and focus take precedence. Password and choice controls are never retained.
+  The existing Full and Guided financial controls share the latest local working entry for
+  their field. A view or step change keeps that entry local; the ordinary completed-field save
+  or the message action that uses it persists it. An older acknowledgment confirms only its
+  own entry, so newer typing keeps its unsaved feedback until its own save succeeds.
 - **R-S247-10 — Fits the screen.** At 1280 by 800 the header, path strip and the Now card's primary
   action are visible without scrolling for the first four steps. At 390 wide the primary action is
   within two screen heights. Both themes, keyboard order and status announcements follow the
-  existing design system.
+  existing design system. Full program names and all existing header controls stay visible as
+  they wrap; compact spacing and shared phone-header rows keep the action within these bounds.
 - **R-S247-11 — Old links still land.** Older lease links, `step` parameters, section anchors and
   help links keep working: a link that names a path step opens the guided view at that step, and a
   link that names a section or control opens Full view there.
@@ -170,7 +188,7 @@ the Focus and guide-control smokes, the release canary landmarks and the help co
 stands and what to do next. The thing to do is on the screen with its button. They can jump to any
 other step or tool without being stopped, and after a refresh they are where they left off.
 
-- Model verdict: NOT RUN — to be completed by the implementation runner with evidence.
+- Model verdict: RUN in Guided, Focus and Full (J04–J06). The L54 conditional-control evidence limits remain explicit. See the [review](../evidence/renewal-one-path-ux-review-2026-11-06.md) and [individual litmus results](../evidence/renewal-one-path-litmus-2026-11-06.md).
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**

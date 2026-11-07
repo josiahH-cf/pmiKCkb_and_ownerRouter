@@ -1,8 +1,15 @@
 # Current plan
 
-Updated: 2026-11-05 (UTC), S245 litmus fixes delivery.
+Updated: 2026-11-07 (UTC), one-path UX review qualification.
 
 ## Authorized outcome
+
+The November 6 owner-directed review of S246–S254 started from `2187cf09` and
+carries the six prior commits and both typing-recovery file changes. The candidate and Help
+assets were walked in the guarded synthetic environment at `eb7f4d69`. The pull request
+includes the independent litmus, UX report and walkthrough. The engineering evidence leaves
+the literal L55 count discrepancy visible under the settled assistance rule. Human verdict
+NOT RUN. The owner merges, releases and deploys; the earlier deliveries below are background.
 
 Implement and qualify the finalized work for the three active application lanes, the seven
 assessment gaps, newly diagnosed A-08 PDF publication dependency, and the configuration/approval/

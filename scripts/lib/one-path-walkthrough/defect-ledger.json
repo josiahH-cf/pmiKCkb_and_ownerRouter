@@ -293,8 +293,10 @@
       "owners": ["R-S250-3", "R-S250-5"],
       "result": {
         "state": "verified",
+        "review": "The initial independent L46/L60 walk contradicted the covered-owner primary: the older builder check asserted the label/path only. The UX repair changes the primary to Continue to Offer the tenant and the driver now activates it and checks the destination. Historical run outcomes stay unchanged; the current independent result is recorded in the November 6 UX/litmus evidence.",
         "evidence": [
           { "journey": "journey.standing-agreement" },
+          { "test": "tests/unit/s247-guided-view.test.tsx" },
           {
             "phase": "s250-s251-variants",
             "check": "Ask the owner reads Covered by the agreement and the path continues at Offer the tenant (L46)"

@@ -1,5 +1,5 @@
 {
-  "version": "V2.0",
+  "version": "V2.1",
   "routeParameters": {
     "leaseId": "4821",
     "propertyKey": "4821",
@@ -134,6 +134,7 @@
       },
       "region": "region:Guided view",
       "frame": "viewport",
+      "actions": ["wait-text:Review and send"],
       "source": "rehearsal",
       "alt": "Guided view: the stage line, the Renewal path from Check the numbers to Complete with Ask the owner as the current step, and the Now card below it with Review and send.",
       "caption": "A lease opens in Guided view with the Renewal path and one Now card."

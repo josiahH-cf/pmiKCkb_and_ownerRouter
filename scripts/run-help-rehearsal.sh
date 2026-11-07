@@ -55,6 +55,8 @@ if $overlay; then
     rm -f "$root/worktree/$file"
   done
 fi
+source "$root/worktree/scripts/lib/one-path-rehearsal/network-guard.sh"
+enable_rehearsal_network_guard "$root/worktree" "$output"
 port=$(node -e 'const s=require("net").createServer();s.listen(0,"127.0.0.1",()=>{console.log(s.address().port);s.close()})')
 config="$root/firebase.json"
 node -e 'const fs=require("fs");const [cfg,port,cwd]=process.argv.slice(1);fs.writeFileSync(cfg,JSON.stringify({firestore:{rules:cwd+"/firestore.rules",indexes:cwd+"/firestore.indexes.json"},emulators:{singleProjectMode:true,firestore:{host:"127.0.0.1",port:Number(port)},ui:{enabled:false}}}))' "$config" "$port" "$root/worktree"
@@ -63,7 +65,7 @@ cd "$root/worktree"
 quoted=$(printf ' %q' "${args[@]}")
 # The capture process (fixture seeding, readbacks, the browser driver) loads the same refusal
 # preload as the server: loopback only, every other connection refused and logged.
-HELP_REHEARSAL_OUTPUT="$output" HELP_REHEARSAL_SOURCE_SHA="$sha" HELP_REHEARSAL_OVERLAY="$overlay" \
+CI=true HELP_REHEARSAL_OUTPUT="$output" HELP_REHEARSAL_SOURCE_SHA="$sha" HELP_REHEARSAL_OVERLAY="$overlay" \
   HELP_REHEARSAL_TARGET_ROOT="$repo" FIRESTORE_EMULATOR_HOST="127.0.0.1:$port" \
   NOVDEC_JOURNEY_NETWORK_LOG="$output/capture-network.jsonl" \
   npx firebase emulators:exec --only firestore --project pmi-kc-kb-help-rehearsal-test --config "$config" \

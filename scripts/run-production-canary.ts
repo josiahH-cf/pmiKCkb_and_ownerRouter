@@ -3,6 +3,7 @@ import { pathToFileURL } from "node:url";
 import type { PredecessorExceptionObserver } from "../lib/production-assurance/predecessor-exception-observer";
 import { RENEWAL_DASHBOARD_SECTIONS } from "../lib/lease-renewal/dashboard-sections";
 import { ASSURANCE_GUIDED_WORKSPACE } from "../lib/production-assurance/manifest";
+import { countIndependentGuidedWorkspaceMismatches } from "../lib/production-assurance/guided-workspace-projection";
 
 import { chromium, type Page, type Response } from "playwright-core";
 
@@ -842,6 +843,139 @@ async function hasGuidedWorkspaceLandmarks(
   if ((await now.count()) !== 1 || !(await now.isVisible())) return false;
   const primary = now.locator(contract.primarySelector);
   if ((await primary.count()) !== 1 || !(await primary.isVisible())) return false;
+  const stageLine = region.locator(contract.stageLineSelector);
+  const nextStep = now.locator(contract.nextStepSelector);
+  if (
+    (await stageLine.count()) !== 1 ||
+    !(await stageLine.isVisible()) ||
+    (await nextStep.count()) !== 1 ||
+    !(await nextStep.isVisible())
+  )
+    return false;
+  const layout = await now.evaluate((element) => {
+    const action = element.querySelector<HTMLElement>("[data-renewal-now-primary]");
+    const context = element.querySelectorAll(
+      '[data-renewal-field="next-step"], [data-renewal-field="now-detail"]',
+    );
+    const rect = action?.getBoundingClientRect();
+    const rentWidgets = [
+      ...element.querySelectorAll<HTMLElement>(".renewal-now-rent"),
+    ].filter(
+      (widget) =>
+        widget.getClientRects().length > 0 &&
+        getComputedStyle(widget).visibility !== "hidden",
+    );
+    const needsRent =
+      (element.getAttribute("data-renewal-now-step") === "compare-market" &&
+        element.getAttribute("data-renewal-now-state") !== "not_part") ||
+      (element.getAttribute("data-renewal-now-step") === "ask-owner" &&
+        action?.textContent?.trim() === "Review and send");
+    const main = [
+      ...document.querySelectorAll<HTMLElement>('main, [role="main"]'),
+    ].filter(
+      (landmark) =>
+        landmark.getClientRects().length > 0 &&
+        getComputedStyle(landmark).visibility !== "hidden",
+    );
+    return {
+      mainLandmarkPresent: main.length === 1 && Boolean(main[0]?.contains(element)),
+      openDialogs: [
+        ...document.querySelectorAll<HTMLElement>('[role="dialog"][aria-modal="true"]'),
+      ].filter(
+        (dialog) =>
+          dialog.getClientRects().length > 0 &&
+          getComputedStyle(dialog).visibility !== "hidden",
+      ).length,
+      workingFigureFeedbackPresent:
+        (!needsRent || rentWidgets.length === 1) &&
+        rentWidgets.every((widget) => {
+          const input = widget.querySelector<HTMLInputElement>("input");
+          const status = widget.querySelector(
+            '[data-autosave][role="status"][aria-live="polite"]',
+          );
+          return Boolean(
+            input?.required &&
+            input.getClientRects().length > 0 &&
+            getComputedStyle(input).visibility !== "hidden" &&
+            input.labels?.[0]?.textContent?.trim() &&
+            status &&
+            ["idle", "edited", "saving", "saved", "failed"].includes(
+              status.getAttribute("data-autosave") ?? "",
+            ),
+          );
+        }),
+      primaryTop: rect?.top ?? NaN,
+      primaryBottom: rect?.bottom ?? NaN,
+      viewportHeight: window.innerHeight,
+      viewportWidth: window.innerWidth,
+      primaryBeforeContext: Boolean(
+        action &&
+        context.length > 0 &&
+        [...context].every(
+          (item) =>
+            (action.compareDocumentPosition(item) & Node.DOCUMENT_POSITION_FOLLOWING) !==
+            0,
+        ),
+      ),
+    };
+  });
+  if (
+    countIndependentGuidedWorkspaceMismatches({
+      stageLines: await stageLine.count(),
+      stageText: (await stageLine.textContent()) ?? "",
+      stageCurrentStep: await stageLine.getAttribute("data-renewal-current-step"),
+      pathCurrentStep: await path
+        .locator('[aria-current="step"]')
+        .evaluate(
+          (element) =>
+            element
+              .closest("[data-renewal-path-step]")
+              ?.getAttribute("data-renewal-path-step") ?? null,
+        ),
+      nowStep: await now.getAttribute("data-renewal-now-step"),
+      nextSteps: await nextStep.count(),
+      nextStepText: (await nextStep.textContent()) ?? "",
+      primaryLabel: (await primary.textContent()) ?? "",
+      primaryTarget: await primary.getAttribute("data-renewal-now-target"),
+      primaryTargetPresent: await primary.evaluate((element) => {
+        const target = element.getAttribute("data-renewal-now-target");
+        return Boolean(target && document.getElementById(target));
+      }),
+      ...(await region.evaluate((element) => {
+        const body = element.closest(".renewal-workspace-body") ?? element;
+        const nowCard = body.querySelector('[role="region"][aria-label="Now"]');
+        // Playwright runs this callback in Chromium, without tsx's name helpers.
+        return {
+          workFieldsOutsideNow: [
+            ...body.querySelectorAll<HTMLElement>("input, select, textarea"),
+          ].filter(
+            (field) =>
+              field.getClientRects().length > 0 &&
+              getComputedStyle(field).visibility !== "hidden" &&
+              !nowCard?.contains(field),
+          ).length,
+          visiblePricingBasisChoosers: [
+            ...body.querySelectorAll<HTMLElement>("fieldset > legend"),
+          ].filter(
+            (legend) =>
+              legend.getClientRects().length > 0 &&
+              getComputedStyle(legend).visibility !== "hidden" &&
+              legend.textContent?.trim() === "Pricing basis",
+          ).length,
+          visibleExactDraftRecoveries: [
+            ...(nowCard?.querySelectorAll<HTMLElement>("button") ?? []),
+          ].filter(
+            (button) =>
+              button.getClientRects().length > 0 &&
+              getComputedStyle(button).visibility !== "hidden" &&
+              button.textContent?.trim() === "Recover exact Gmail attempt",
+          ).length,
+        };
+      })),
+      ...layout,
+    }) !== 0
+  )
+    return false;
   const sections = region.getByRole("navigation", {
     name: contract.sections,
     exact: true,

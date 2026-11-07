@@ -31,11 +31,25 @@ An authorized staff user edits existing lease working fields, selections, messag
 - **R-S155-2** — Incomplete fields do not prevent unrelated completed fields from saving; preserve unfinished input. Source: U-F04.
 - **R-S155-3** — Show saving, saved, and failed-save feedback near affected work; saved requires confirmed persistence. Source: U-F04; P-F04.
 - **R-S155-4** — Keep failed input and support retry or existing recovery without reconstruction. Source: U-F04.
+  When leaving an input starts another save, its existing retry remains reachable by Tab.
+  During that request the retry keeps focus and exposes its unavailable state, with no
+  duplicate activation. After confirmed success it remains visible in the viewport until
+  focus leaves it, including when the saved value changes nearby content. The next control
+  receives focus normally. Failed saves keep the same usable retry.
 - **R-S155-5** — Preserve request/revision protection: retry cannot duplicate activity and an older response cannot overwrite newer input. Source: P-F04.
+  Working money and date controls acknowledge only the local entry carried by their response.
+  A later completed choice queues behind that field's pending save and uses the returned field
+  revision. Newer typing remains local and shows its actual save state; switching Full and
+  Guided views keeps the same lease-local draft. The server's operation identity, actor and
+  revision contracts remain unchanged.
 - **R-S155-6** — Expose an actual concurrent-save conflict while retaining input; keep unrelated work usable. Source: P-F04; U-F04.
 - **R-S155-7** — Use S154 automatic required-state establishment on the first workspace save; no cycle action appears in the user flow. Source: U-F04; S154.
 - **R-S155-8** — Autosave does not execute Sheet/RentVine updates, Gmail creation, or paid RentCast requests. Preparation of a source intent remains distinct from execution. Source: U-F04; P-F04.
 - **R-S155-9** — Copy uses displayed text even when save is pending or failed; deliberate external actions bind to their identified snapshot. Source: U-F04; S162/S160.
+  Message preparation waits on its own entered working figures, refreshes their confirmed
+  projection and keeps a field-specific recovery when one cannot be confirmed. Other fields
+  remain independent. Copy preserves the displayed bytes and reports any unconfirmed working
+  figures; its availability and the existing exact review/confirmation remain.
 - **R-S155-10** — Confirmed saved work reloads consistently on reopening or another device. Source: U-F04.
 
 **In scope / out of scope.**

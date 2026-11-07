@@ -238,9 +238,7 @@ export async function runGuidedPath() {
     const currentBefore = await strip().locator('[aria-current="step"]').textContent();
     await strip().getByRole("button", { name: "Offer the tenant", exact: true }).click();
     await page.waitForTimeout(500);
-    const heading = (
-      await now().getByRole("heading", { level: 2 }).textContent()
-    )?.trim();
+    const heading = (await now().locator("h2#renewal-now-heading").textContent())?.trim();
     check(
       "a later step opens in the Now card while the current step stays as it was",
       heading === "Offer the tenant" &&
@@ -309,7 +307,7 @@ export async function runGuidedPath() {
     });
     const reloaded = {
       url: page.url(),
-      heading: (await now().getByRole("heading", { level: 2 }).textContent())?.trim(),
+      heading: (await now().locator("h2#renewal-now-heading").textContent())?.trim(),
       pressed: await viewButton("Guided view").getAttribute("aria-pressed"),
       scrollY: await page.evaluate(() => window.scrollY),
       scrolled,
@@ -433,20 +431,26 @@ export async function runGuidedPath() {
       exact: true,
     });
     const offered = await notOutreach.isVisible();
+    let correctionFocus = false;
     if (offered) {
-      await notOutreach.click();
-      await now()
-        .getByLabel("Why this was not the renewal outreach")
-        .fill("Synthetic rehearsal check of the correction.");
-      await now()
-        .getByRole("button", { name: "Remove the derived record", exact: true })
-        .click();
+      await notOutreach.focus();
+      await page.keyboard.press("Enter");
+      const reason = now().getByLabel("Why this was not the renewal outreach");
+      const reasonFocused = await reason.evaluate((el) => el === document.activeElement);
+      await reason.fill("Synthetic rehearsal check of the correction.");
+      await page.keyboard.press("Tab");
+      await page.keyboard.press("Enter");
+      await page.waitForFunction(
+        () => document.activeElement?.id === "renewal-now-heading",
+      );
+      correctionFocus = reasonFocused;
       await page.waitForTimeout(3000);
       await open(prepared, "?step=ask-owner");
     }
     check(
       "This was not the renewal outreach removes the derived record and keeps its reason",
       offered &&
+        correctionFocus &&
         !/^Waiting on owner response/.test(await stageLine()) &&
         ((await now().textContent()) ?? "").includes(
           "Synthetic rehearsal check of the correction.",

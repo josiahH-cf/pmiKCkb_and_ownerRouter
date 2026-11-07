@@ -653,7 +653,7 @@ export async function runKickoff() {
     await shownWithin(now().locator('[data-renewal-comparison="stored"]'), 120_000);
     await shownWithin(now().locator('[data-renewal-field="rent-basis"]'), 60_000);
     const opened = {
-      heading: (await now().getByRole("heading", { level: 2 }).textContent())?.trim(),
+      heading: (await now().locator("h2#renewal-now-heading").textContent())?.trim(),
       comparison: await now().locator('[data-renewal-comparison="stored"]').count(),
       comparisonAge: await now().locator('[data-renewal-field="comparison-age"]').count(),
       comps: await now().locator('[aria-label="Comparables"] li').count(),
@@ -1057,7 +1057,7 @@ export async function runKickoff() {
       await chooseStep("Offer the tenant");
       await shownWithin(now().locator("[data-renewal-message-revision]"));
       const tenant = {
-        heading: (await now().getByRole("heading", { level: 2 }).textContent())?.trim(),
+        heading: (await now().locator("h2#renewal-now-heading").textContent())?.trim(),
         preview: await now().locator('section[aria-label="Tenant offer"]').count(),
         document: await now().getByRole("document", { name: "Message preview" }).count(),
       };
@@ -1149,7 +1149,7 @@ export async function runKickoff() {
         exact: true,
       });
       const observed = {
-        heading: (await now().getByRole("heading", { level: 2 }).textContent())?.trim(),
+        heading: (await now().locator("h2#renewal-now-heading").textContent())?.trim(),
         assembled: await previews.getAttribute("data-renewal-finish-up-previews"),
         terms: (
           await now().locator('[data-renewal-field="finish-up-terms"]').textContent()

@@ -5,14 +5,26 @@
 // Synthetic values only (Example and Sample names, example.invalid addresses).
 import "@testing-library/jest-dom/vitest";
 
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { RenewalWorkingRecord } from "@/lib/lease-renewal/working-record";
+import { fixtureWorkingRecord } from "@/tests/helpers/rent-charge-fixtures";
+import { standingRuleContext } from "@/lib/lease-renewal/standing-agreement";
+import { MESSAGE_CONTROL_IDS } from "@/lib/lease-renewal/message-readiness";
 
 const router = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 const working = vi.hoisted(() => ({
   current: null as null | {
-    record: null;
+    record: RenewalWorkingRecord | null;
     canEdit: boolean;
     save: (...args: unknown[]) => Promise<boolean>;
   },
@@ -52,6 +64,7 @@ import {
   type RenewalMessageFacts,
 } from "@/lib/lease-renewal/renewal-message-content";
 import { emptyMessagePreparationInputs } from "@/lib/lease-renewal/renewal-message-preparation";
+import { DRAFT_BANNER } from "@/lib/constants";
 import {
   KICKOFF_WORDS,
   projectRenewalPreparation,
@@ -265,7 +278,11 @@ function StepCard({ step }: Readonly<{ step: "ask-owner" | "offer-tenant" }>) {
   return (
     <section aria-label="Now">
       {primary ? (
-        <button disabled={primary.disabled} onClick={primary.run} type="button">
+        <button
+          disabled={primary.disabled}
+          onClick={(event) => primary.run(event.currentTarget)}
+          type="button"
+        >
           {primary.label}
         </button>
       ) : null}
@@ -288,6 +305,54 @@ function mountOwner(overrides: Partial<PreparedMessageData> = {}) {
     </RenewalNowCardProvider>,
   );
 }
+
+for (const sourceLabel of [
+  "Standing agreement Example agreement, rule v1",
+  "Pricing policy v1",
+]) {
+  it(`shows the recorded ${sourceLabel} basis beside a saved working rent on Now`, () => {
+    const save = vi.fn(async () => true);
+    working.current = {
+      record: fixtureWorkingRecord({
+        terms_rent: { value: 1751, revision: 1, origin: "adopted_source", sourceLabel },
+      }),
+      canEdit: true,
+      save,
+    };
+    mountOwner();
+    const input = screen.getByLabelText("Rent to recommend");
+    expect(input).toHaveValue("1751");
+    expect(input.closest(".renewal-now-rent")).toHaveTextContent(
+      `Saved working rent from ${sourceLabel}. Later proposals keep this saved amount.`,
+    );
+    expect(input.closest(".renewal-now-rent")).not.toHaveTextContent("Entered by staff");
+    expect(save).not.toHaveBeenCalled();
+  });
+}
+
+it("shows changed-fact feedback and deliberate wording recovery on the Now card", async () => {
+  const returnWording = vi.fn();
+  const undo = vi.fn();
+  render(
+    <RenewalNowCardProvider preparation={projectRenewalPreparation(FACTS)}>
+      <StepCard step="ask-owner" />
+      <PreparedMessageSlot
+        data={data({ wordingChangedSince: true, canUndoWording: true })}
+        {...handlers()}
+        onReturnToStandardWording={returnWording}
+        onUndoWording={undo}
+      />
+    </RenewalNowCardProvider>,
+  );
+  expect(
+    await screen.findByText(/Information changed after this wording was written/),
+  ).toBeVisible();
+  expect(returnWording).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Return to the standard wording" }));
+  expect(returnWording).toHaveBeenCalledOnce();
+  fireEvent.click(screen.getByRole("button", { name: "Undo the last refinement" }));
+  expect(undo).toHaveBeenCalledOnce();
+});
 
 const SEQUENCE = (id: string, version = 1) => ({
   id,
@@ -472,6 +537,99 @@ function tenantPreparation(overrides: Record<string, unknown> = {}) {
   };
 }
 
+it("rebuilds an adopted standing rent only on the explicit choice and keeps a failed save recoverable", async () => {
+  const basis = {
+    agreementId: "2c3d4e5f-6071-4b82-9c93-ad4e5f6a7b8c",
+    policyId: "1b2c3d4e-5f60-4a71-8b82-9c3d4e5f6a7b",
+    policyVersion: 1,
+  };
+  const currentBasis = { ...basis, policyVersion: 2 };
+  const saveRent = vi.fn().mockResolvedValueOnce(false).mockResolvedValue(true);
+  const record = fixtureWorkingRecord({
+    terms_rent: { value: 1751, revision: 1, origin: "adopted_source" },
+  });
+  working.current = {
+    record: {
+      ...record,
+      leaseId: "9101",
+      fields: {
+        ...record.fields,
+        terms_rent: {
+          ...record.fields.terms_rent!,
+          context: standingRuleContext({ ...basis, basis: "Original 3 percent rule." }),
+        },
+      },
+    },
+    canEdit: true,
+    save: saveRent,
+  };
+  const earlier = {
+    agreement: "Synthetic standing agreement",
+    earlier: "Raise rent by 3 percent",
+    current: "Raise rent by 4 percent",
+    currentRent: 1768,
+    currentBasis,
+  };
+  const payload = tenantPreparation({ ruleBasis: basis, earlierRule: earlier });
+  const posts: Record<string, unknown>[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (_url: string, init?: RequestInit) => {
+      if (init?.method === "POST") {
+        const body = JSON.parse(String(init.body));
+        posts.push(body);
+        return Response.json({
+          ...payload,
+          inputs: body.inputs,
+          ruleBasis: body.ruleBasis,
+          earlierRule: null,
+          saved: {
+            revision: 1,
+            inputs: body.inputs,
+            signatureEmail: null,
+            signatureActorUid: null,
+          },
+        });
+      }
+      return Response.json(payload);
+    }),
+  );
+  render(
+    <RenewalNowCardProvider preparation={null}>
+      <StepCard step="offer-tenant" />
+      <RenewalMessagePreparation canEdit channel="tenant" />
+    </RenewalNowCardProvider>,
+  );
+  const rebuild = await screen.findByRole("button", {
+    name: "Rebuild with the current rule",
+  });
+  expect(saveRent).not.toHaveBeenCalled();
+  fireEvent.click(rebuild);
+  await screen.findByText(
+    "The rent could not be rebuilt. Your saved rent is kept; choose Rebuild with the current rule to retry.",
+  );
+  expect(posts).toHaveLength(0);
+  expect(
+    screen.getByRole("button", { name: "Rebuild with the current rule" }),
+  ).toBeVisible();
+  fireEvent.click(rebuild);
+  await waitFor(() => expect(posts).toHaveLength(1));
+  expect(saveRent).toHaveBeenLastCalledWith(
+    "terms_rent",
+    1768,
+    expect.objectContaining({
+      origin: "adopted_source",
+      context: expect.stringContaining(":v2."),
+    }),
+  );
+  expect(posts[0].ruleBasis).toEqual(currentBasis);
+  expect(
+    screen.queryByText(
+      "The rent could not be rebuilt. Your saved rent is kept; choose Rebuild with the current rule to retry.",
+    ),
+  ).toBeNull();
+});
+
 describe("S249 D: the Gmail draft signal reads the last created draft", () => {
   function mountTenant(payload: Record<string, unknown>) {
     vi.stubGlobal(
@@ -488,6 +646,184 @@ describe("S249 D: the Gmail draft signal reads the last created draft", () => {
     );
   }
   const shown = composeRenewalMessage(tenantFacts());
+
+  it.each(["owner", "tenant"] as const)(
+    "shows one current exact Gmail recovery in either view for %s",
+    async (channel) => {
+      const executionId = `exec_${"d".repeat(40)}`;
+      const payload = tenantPreparation({
+        facts: tenantFacts({ channel }),
+        draftAttempt: {
+          executionId,
+          state: "Needs reconciliation",
+          recoveryAvailable: true,
+          outcome: null,
+        },
+      });
+      const commands: unknown[] = [];
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (_url: string, init?: RequestInit) => {
+          if ((init?.method ?? "GET") === "GET") return Response.json(payload);
+          commands.push(JSON.parse(String(init?.body)));
+          return Response.json({
+            status: "reconciliation",
+            resolution: "needs_review",
+            channel,
+            executionId,
+            reason: "The exact attempt still needs review.",
+          });
+        }),
+      );
+      const step = channel === "owner" ? "ask-owner" : "offer-tenant";
+      const ui = (guided: boolean) => (
+        <RenewalNowCardProvider preparation={null}>
+          {guided ? <StepCard step={step} /> : null}
+          <RenewalMessagePreparation canEdit channel={channel} />
+        </RenewalNowCardProvider>
+      );
+      const view = render(ui(true));
+      const name = "Recover exact Gmail attempt";
+      const guided = await within(screen.getByRole("region", { name: "Now" })).findByRole(
+        "button",
+        { name },
+      );
+      expect(screen.getAllByRole("button", { name })).toEqual([guided]);
+      expect(commands).toEqual([]);
+      fireEvent.click(guided);
+      await waitFor(() =>
+        expect(commands).toEqual([
+          { kind: "draft", channel, leaseId: "9101", reconcile: { executionId } },
+        ]),
+      );
+      await screen.findByText("The exact attempt still needs review.");
+      view.rerender(ui(false));
+      await waitFor(() =>
+        expect(screen.getAllByRole("button", { name })).toEqual([
+          within(screen.getByRole("region", { name: "Unsent Gmail draft" })).getByRole(
+            "button",
+            { name },
+          ),
+        ]),
+      );
+      expect(commands).toHaveLength(1);
+    },
+  );
+
+  it("offers the tenant recipient source handoff directly from its missing-input row", async () => {
+    mountTenant(
+      tenantPreparation({
+        recipients: {
+          status: "blocked",
+          reasons: ["Synthetic tenant email is missing."],
+        },
+      }),
+    );
+    const fix = await screen.findByRole("button", {
+      name: "Check tenant email addresses in RentVine",
+    });
+    fireEvent.click(fix);
+    const link = screen.getByRole("link", { name: "Open lease record in RentVine" });
+    expect(link).toHaveFocus();
+    expect(link).toHaveAttribute("href", "https://fixture.rentvine.invalid/leases/9101");
+    expect(
+      document.getElementById(MESSAGE_CONTROL_IDS.recipients("tenant")),
+    ).toHaveTextContent("Synthetic tenant email is missing.");
+    expect(vi.mocked(fetch).mock.calls.every((call) => !call[1]?.method)).toBe(true);
+  });
+
+  it("offers the tenant template publication handoff from its own missing-input row", async () => {
+    mountTenant(
+      tenantPreparation({
+        publication: {
+          status: "needs_approval",
+          reason: "An Approver reviews this synthetic tenant template.",
+        },
+      }),
+    );
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Ask an Approver to publish the tenant template",
+      }),
+    );
+    const target = document.getElementById(MESSAGE_CONTROL_IDS.publication("tenant"))!;
+    expect(target).toHaveFocus();
+    expect(target.closest("details")).toHaveAttribute("open");
+    expect(target).toHaveTextContent(
+      "An Approver reviews this synthetic tenant template.",
+    );
+    expect(vi.mocked(fetch).mock.calls.every((call) => !call[1]?.method)).toBe(true);
+  });
+
+  it("leads an incomplete tenant offer to its actual marked values and exact shared form setting", async () => {
+    mountTenant(
+      tenantPreparation({
+        facts: tenantFacts({
+          ownerTerms: {
+            rent: 1437,
+            effectiveDate: "2027-01-01",
+            endDate: "2027-12-31",
+            source: "Synthetic reviewed terms",
+          },
+        }),
+        inputs: {
+          ...emptyMessagePreparationInputs(),
+          signature: {
+            name: "Example Staff",
+            role: null,
+            phone: null,
+            hours: null,
+            website: null,
+            source: "Synthetic staff entry",
+          },
+        },
+      }),
+    );
+    const review = await screen.findByRole("button", { name: "Review and send" });
+    const readiness = document.getElementById(MESSAGE_CONTROL_IDS.readiness("tenant"))!;
+    const link = within(readiness).getByRole("link", {
+      name: "Shared resource link: Renewal information form",
+    });
+    expect(link).toHaveAttribute(
+      "href",
+      "/connections#renewal-resource-entry-renewal_information_form",
+    );
+    fireEvent.click(review);
+    expect(readiness.querySelector("summary")).toHaveFocus();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    fireEvent.click(
+      within(screen.getByRole("region", { name: "Tenant offer" })).getByRole("button", {
+        name: "Review the marked values",
+      }),
+    );
+    expect(readiness.querySelector("summary")).toHaveFocus();
+    expect(
+      vi
+        .mocked(fetch)
+        .mock.calls.every(
+          ([url, init]) => String(url).includes("/message-preparation") && !init?.method,
+        ),
+    ).toBe(true);
+  });
+
+  it("reads a freshly created banner-marked draft as the current message after reload", async () => {
+    mountTenant(
+      tenantPreparation({
+        createdDrafts: {
+          latest: {
+            executionId: `exec_${"d".repeat(40)}`,
+            subject: shown.subject,
+            body: `${DRAFT_BANNER}\n\n${shown.plainText}`,
+            recordedAt: "2026-11-06T15:00:00.000Z",
+          },
+          earlier: 0,
+        },
+      }),
+    );
+    await screen.findByText("The unsent Gmail draft carries this message revision.");
+    expect(screen.queryByText(new RegExp(KICKOFF_WORDS.draftOlder))).toBeNull();
+    expect(screen.queryByRole("button", { name: KICKOFF_WORDS.replaceDraft })).toBeNull();
+  });
 
   it("after a replacement preview is cancelled, the draft created from the earlier revision reads older", async () => {
     mountTenant(

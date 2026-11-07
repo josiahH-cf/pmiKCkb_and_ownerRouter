@@ -12,6 +12,9 @@ import type { RenewalMessageFacts } from "@/lib/lease-renewal/renewal-message-co
 // keeps the unsent-draft step pending, lists marked values and policy notes as information only,
 // and never requests a draft on its own. Values are synthetic; fetch is stubbed.
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: vi.fn() }),
+}));
 vi.mock("@/components/lease-renewal/RenewalManualWorkspace", () => ({
   useRenewalManualWorkspace: () => ({
     leaseId: "701",

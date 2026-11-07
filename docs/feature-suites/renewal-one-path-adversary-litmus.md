@@ -3,7 +3,7 @@
 
 # S254 — One-path renewal adversary litmus (machine-run proof of the owner's goals)
 
-> Status: AUTHORING READY — intake 120; implementation NOT STARTED. Specification only; it grants no execution, release or provider effect. Defines the fresh-session verification handoff an outside model runs unattended against the built S246–S253 batch, how its result is recorded, and the repair loop. The checks apply after those suites are built; nothing here claims they are.
+> Status: AUTHORING READY: intake 120; the harness and validator merged in PR #184 at `6b0a71a5`. The fresh-session November 6 litmus and repair loop are recorded on `codex/renewal-one-path-ux` against the combined S246–S253 source. Results retain their actual PASS, FAIL or UNVERIFIED scope, with human verdict NOT RUN and release pending. This specification grants no provider effect.
 
 **Goal.**
 
@@ -76,7 +76,12 @@ is No and every UNVERIFIED check names its evidence gap.
   is measured. On the starting commit the kickoff follows that commit's own in-app guides.
 - **R-S254-4 — Unattended execution.** The runner works only in the rehearsal with its local
   roles and stand-ins, never asks a question mid-run, and turns a needed decision into a blocker
-  row while it continues with the independent checks.
+  row while it continues with the independent checks. When the owner's audit instruction forbids
+  triggering automatic comparisons, use `--hold-automatic-comparison` on the rehearsal. It keeps
+  the reviewed setting off after initial seeding and every reset. Report the automatic-start
+  observation in L33 as UNVERIFIED with that boundary; the check itself remains unchanged.
+  The rehearsal guards the Firebase emulator CLI from startup and uses its CI mode to omit the
+  optional public CLI metadata read. The refusal log and L58 checks still examine the whole run.
 - **R-S254-5 — Reporting.** For every check the runner reports Yes or No with concise observed
   evidence, or UNVERIFIED with the reason and what would resolve it. It separates initial
   failures, repairs, final observations and remaining blockers. The report is committed as
@@ -176,7 +181,7 @@ rehearsal, works the renewals, and says for each of the owner's goals whether it
 counts for before and after. The owner reads that report and knows what is proven and what still
 needs a person.
 
-- Model verdict: NOT RUN — to be completed by the implementation runner with evidence.
+- Model verdict: RUN for all 71 at edba7cbb: 62 Yes, 2 No and 7 UNVERIFIED. Later repairs rechecked at eb7f4d69; acceptance No (J19). See the [review](../evidence/renewal-one-path-ux-review-2026-11-06.md) and [individual litmus results](../evidence/renewal-one-path-litmus-2026-11-06.md).
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**

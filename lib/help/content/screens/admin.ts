@@ -138,6 +138,22 @@ export const ADMIN_SCREENS: readonly HelpScreenReference[] = [
         who: "Admin",
       },
       {
+        label: "Save pricing policy",
+        role: "button",
+        availability: "required",
+        source: ["components/admin/RenewalPricingPolicyAdmin.tsx"],
+        does: "Saves the reusable rule. Policy name, Effective from, Purpose and change context and any increase are required. An invalid entry keeps your values and focuses the first field to correct.",
+        who: "Admin",
+      },
+      {
+        label: "Save portfolio default",
+        role: "button",
+        availability: "conditional",
+        source: ["components/admin/RenewalPricingPolicyAdmin.tsx"],
+        does: "Saves the chosen default for the portfolio shown after Read portfolio assignment verifies it. Changing the portfolio ID requires a fresh read.",
+        who: "Admin",
+      },
+      {
         label: "Documented notice basis",
         role: "combobox",
         availability: "required",

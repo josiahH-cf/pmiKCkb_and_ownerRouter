@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useCallback,
   useId,
   useRef,
   type KeyboardEvent,
@@ -32,10 +33,13 @@ export function ConfirmationDialog({
   confirmVariant = "primary",
   busy = false,
   confirmDisabled = false,
+  startWithReview = false,
   error,
   onCancel,
   onConfirm,
   triggerRef,
+  fallbackFocusRef,
+  onAfterClose,
 }: Readonly<{
   open: boolean;
   title: ReactNode;
@@ -47,27 +51,77 @@ export function ConfirmationDialog({
   confirmVariant?: "primary" | "destructive";
   busy?: boolean;
   confirmDisabled?: boolean;
+  /** Keep the top of a long exact review in view when it opens. */
+  startWithReview?: boolean;
   error?: ReactNode;
   onCancel: () => void;
   onConfirm: () => void;
   triggerRef?: RefObject<HTMLElement | null>;
+  /** A usable continuation when the original trigger is disabled or removed by the outcome. */
+  fallbackFocusRef?: RefObject<HTMLElement | null>;
+  /** Runs after ordinary focus restoration, for a failed operation's actual input recovery. */
+  onAfterClose?: () => void;
 }>) {
   const titleId = useId();
   const descriptionId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  // The continuation can appear only after the operation, so read it when closing.
+  const currentFallback = useCallback(
+    () => fallbackFocusRef?.current,
+    [fallbackFocusRef],
+  );
+  const focusDialog = useCallback(
+    (opening: boolean) => {
+      const dialog = dialogRef.current;
+      if (!dialog) return;
+      if (startWithReview && dialog.scrollHeight > dialog.clientHeight) {
+        if (opening) dialog.scrollTop = 0;
+        dialog.focus({ preventScroll: true });
+      } else if (cancelRef.current && !cancelRef.current.disabled) {
+        cancelRef.current.focus();
+      } else {
+        dialog.focus();
+      }
+    },
+    [startWithReview],
+  );
 
   useEffect(() => {
     if (!open) return;
     previousFocusRef.current =
       triggerRef?.current ?? (document.activeElement as HTMLElement);
     dismissNonModalTransientLayers();
-    cancelRef.current?.focus();
+    focusDialog(true);
     return () => {
-      queueMicrotask(() => previousFocusRef.current?.focus());
+      queueMicrotask(() => {
+        const usable = (element: HTMLElement | null | undefined) =>
+          element?.isConnected &&
+          element !== document.body &&
+          !element.matches(':disabled, [aria-disabled="true"]') &&
+          !element.closest(
+            '[hidden], [inert], [data-renewal-focus-hidden], [aria-hidden="true"]',
+          );
+        const previous = previousFocusRef.current;
+        const target = usable(previous) ? previous : currentFallback();
+        if (usable(target)) target?.focus();
+        onAfterClose?.();
+      });
     };
-  }, [open, triggerRef]);
+  }, [open, triggerRef, currentFallback, focusDialog, onAfterClose]);
+
+  useEffect(() => {
+    if (!open || !dialogRef.current) return;
+    const active = document.activeElement;
+    if (
+      active === dialogRef.current ||
+      !dialogRef.current.contains(active) ||
+      active?.matches(":disabled")
+    ) {
+      focusDialog(false);
+    }
+  }, [open, busy, focusDialog]);
 
   if (!open) return null;
 
@@ -91,7 +145,10 @@ export function ConfirmationDialog({
     }
     const first = focusable[0]!;
     const last = focusable.at(-1)!;
-    if (event.shiftKey && document.activeElement === first) {
+    if (!focusable.includes(document.activeElement as HTMLElement)) {
+      event.preventDefault();
+      (event.shiftKey ? last : first).focus();
+    } else if (event.shiftKey && document.activeElement === first) {
       event.preventDefault();
       last.focus();
     } else if (!event.shiftKey && document.activeElement === last) {

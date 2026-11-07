@@ -1,6 +1,27 @@
 [
   {
     "kind": "inline",
+    "location": "components/lease-renewal/RenewalMessagePreparation.tsx",
+    "text": "Refresh data to read this lease's recipient record links.",
+    "describes": "Message preparation: stale recipient evidence has a same-lease refresh path (S249)",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalMessagePreparation.tsx",
+    "text": "Open its owner record to add the owner's email, then refresh this lease.",
+    "describes": "Owner message: the missing recipient is resolved in the linked owner record (S249)",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalMessagePreparation.tsx",
+    "text": "Check the tenant email addresses, then refresh this lease.",
+    "describes": "Tenant message: missing recipient addresses are checked before refreshing the source (S249)",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
     "location": "components/lease-renewal/DiscrepancyDispositionPanel.tsx",
     "text": "Saved in the app · no RentVine or Sheet update.",
     "describes": "Discrepancy disposition record, saved in the app without source updates",

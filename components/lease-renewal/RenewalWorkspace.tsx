@@ -37,6 +37,7 @@ import {
   RenewalFocusViewProvider,
   RenewalFocusViewSlot,
   RenewalFocusViewSwitch,
+  RenewalSecondaryStatus,
 } from "@/components/lease-renewal/RenewalFocusViewContext";
 import {
   RenewalFocusViewPane,
@@ -356,7 +357,7 @@ export function RenewalWorkspace({
         : null,
   };
   const focusPane = actionSnapshot ? (
-    <RenewalFocusViewPane facts={focusFacts} snapshot={actionSnapshot} />
+    <RenewalFocusViewPane facts={focusFacts} key="focus-pane" snapshot={actionSnapshot} />
   ) : null;
   // S247: the Guided view opens by default wherever Focus view is offered, from the same stage
   // context the desk row's stage came from (the live page passes it; a sample lease builds it).
@@ -387,6 +388,7 @@ export function RenewalWorkspace({
       canEdit={can(role, "edit")}
       context={stageContext}
       facts={focusFacts}
+      key="guided-pane"
       {...(selectedStepId ? { selectedStepId } : {})}
     />
   ) : null;
@@ -433,19 +435,21 @@ export function RenewalWorkspace({
         {summary.endDateIso ? ` · ends ${formatCalendarDate(summary.endDateIso)}` : ""}
       </span>
       {summary.lifecycle ? (
-        <span
-          className="renewal-workspace-identity-status renewal-lifecycle"
-          data-renewal-lifecycle={summary.lifecycle.category}
-          title={summary.lifecycle.explanation}
-        >
+        <RenewalSecondaryStatus>
           <span
-            aria-hidden="true"
-            className="renewal-lifecycle-dot"
-            data-lifecycle={summary.lifecycle.category}
-          />
-          {summary.lifecycle.label}
-          {summary.lifecycle.qualifier ? `: ${summary.lifecycle.qualifier}` : ""}
-        </span>
+            className="renewal-workspace-identity-status renewal-lifecycle"
+            data-renewal-lifecycle={summary.lifecycle.category}
+            title={summary.lifecycle.explanation}
+          >
+            <span
+              aria-hidden="true"
+              className="renewal-lifecycle-dot"
+              data-lifecycle={summary.lifecycle.category}
+            />
+            {summary.lifecycle.label}
+            {summary.lifecycle.qualifier ? `: ${summary.lifecycle.qualifier}` : ""}
+          </span>
+        </RenewalSecondaryStatus>
       ) : null}
       {summary.renewalTarget ? (
         // S246 R-S246-1: the same target verdict the Renewals desk placed this lease by.
@@ -457,9 +461,11 @@ export function RenewalWorkspace({
         </span>
       ) : null}
       {compactWorkStatus ? (
-        <span className="renewal-workspace-identity-status">
-          Staff status: {compactWorkStatus}
-        </span>
+        <RenewalSecondaryStatus>
+          <span className="renewal-workspace-identity-status">
+            Staff status: {compactWorkStatus}
+          </span>
+        </RenewalSecondaryStatus>
       ) : null}
     </>
   );
@@ -513,218 +519,232 @@ export function RenewalWorkspace({
                 sectionNavigation={<RenewalSectionNavigation />}
                 viewSwitch={focusAvailable ? <RenewalFocusViewSwitch /> : null}
               >
-                {focusAvailable ? <RenewalFocusViewSlot /> : null}
-                <RenewalAuxiliaryNotice failures={auxiliaryFailures} />
-                <RenewalFocusHashTarget />
-                <MoveOutDispositionNotice disposition={summary.moveOut} />
-                {workspace.live ? (
-                  <RenewalNoticeReview leaseId={summary.id} canEdit={can(role, "edit")} />
-                ) : null}
-                <MoveOutTimingPanel
-                  sourceHref={summary.sourceDestinations?.rentvine?.href ?? null}
-                  timing={summary.moveOutTiming}
-                  selection={
-                    workspace.live ? (
-                      <NoticeTimingBasisSelection
-                        canEdit={hasRenewalRoleAuthority(
-                          "select_notice_timing_basis",
-                          role,
-                        )}
-                      />
-                    ) : null
-                  }
-                />
+                <RenewalFocusViewSlot enabled={focusAvailable}>
+                  <RenewalAuxiliaryNotice failures={auxiliaryFailures} />
+                  <RenewalFocusHashTarget />
+                  <MoveOutDispositionNotice disposition={summary.moveOut} />
+                  {workspace.live ? (
+                    <RenewalNoticeReview
+                      leaseId={summary.id}
+                      canEdit={can(role, "edit")}
+                    />
+                  ) : null}
+                  <MoveOutTimingPanel
+                    sourceHref={summary.sourceDestinations?.rentvine?.href ?? null}
+                    timing={summary.moveOutTiming}
+                    selection={
+                      workspace.live ? (
+                        <NoticeTimingBasisSelection
+                          canEdit={hasRenewalRoleAuthority(
+                            "select_notice_timing_basis",
+                            role,
+                          )}
+                        />
+                      ) : null
+                    }
+                  />
 
-                <RenewalPricingPolicyPanel />
+                  <RenewalPricingPolicyPanel />
 
-                <RenewalPolicyProvider
-                  value={
-                    policyMaterial && policyTodayIso
-                      ? {
-                          leaseId: summary.id,
-                          material: policyMaterial,
-                          sheetLegacyValue: policySheetValue,
-                          facts: [],
-                          todayIso: policyTodayIso,
-                        }
-                      : null
-                  }
-                >
-                  <RenewalManualProvider
-                    ownerApproval={ownerApprovalChoices}
-                    outreachEvidence={
-                      stageContext.outreach
+                  <RenewalPolicyProvider
+                    value={
+                      policyMaterial && policyTodayIso
                         ? {
-                            input: stageContext.outreach,
-                            cycleDateIso: stageContext.cycleDateIso ?? null,
+                            leaseId: summary.id,
+                            material: policyMaterial,
+                            sheetLegacyValue: policySheetValue,
+                            facts: [],
+                            todayIso: policyTodayIso,
                           }
                         : null
                     }
-                    writebackPaused={sheetWritebackPaused}
-                    unavailable={manualReadUnavailable}
-                    leaseId={summary.id}
-                    initialState={manualState}
-                    cycleBasis={manualCycleBasis}
-                    nextAction={
-                      <div id={RENEWAL_NEXT_ACTION_TARGET_ID} tabIndex={-1}>
-                        <DoThisNext
-                          deskView={deskView}
-                          leaseId={summary.id}
-                          progressStateAvailable={progressStateAvailable}
-                          workspace={workspace}
-                          projected={issueProjection}
-                        />
-                      </div>
-                    }
-                    statusLog={
-                      workStatus ? (
-                        <section
-                          className="panel ui-stack"
-                          aria-label="Staff status and Status log"
-                          data-renewal-focus-context
-                        >
-                          <h2>Staff status and Status log</h2>
-                          <RenewalWorkStatusControl
-                            canEdit={hasRenewalRoleAuthority("save_work_status", role)}
-                            leaseId={summary.id}
-                            read={workStatus}
-                          />
-                          <p className="muted">
-                            Staff records. Source updates, messages and signatures retain
-                            their own evidence.
-                          </p>
-                        </section>
-                      ) : null
-                    }
                   >
-                    {workspace.live && /^[1-9]\d*$/.test(summary.id) ? (
-                      <RenewalLeaseFollowUps
-                        leaseId={summary.id}
-                        canEdit={can(role, "edit")}
-                        admin={role === "Admin"}
-                      />
-                    ) : null}
-                    {guidedPane}
-                    {focusPane}
-                    <RenewalDashboardNavigation selectedStepId={selectedStepId}>
-                      {attemptSummary ? (
-                        <RenewalAttemptSummaryCard summary={attemptSummary} />
-                      ) : null}
-
-                      {dataExpired ? (
-                        <Card>
-                          <div role="status">
-                            <h2 className="ui-card-title">Lease data is out of date</h2>
-                            <p className="muted">
-                              The source values shown here were read a while ago. Refresh
-                              this lease to read them again. Your saved work stays
-                              available.
-                            </p>
-                          </div>
-                        </Card>
-                      ) : null}
-
-                      {RENEWAL_DASHBOARD_SECTIONS.map((section) => (
-                        <section
-                          aria-label={section.label}
-                          data-progress-state={
-                            progressStateAvailable ? "available" : "unavailable"
-                          }
-                          className="ui-stack"
-                          id={`renewal-section-${section.id}`}
+                    <RenewalManualProvider
+                      ownerApproval={ownerApprovalChoices}
+                      outreachEvidence={
+                        stageContext.outreach
+                          ? {
+                              input: stageContext.outreach,
+                              cycleDateIso: stageContext.cycleDateIso ?? null,
+                            }
+                          : null
+                      }
+                      writebackPaused={sheetWritebackPaused}
+                      unavailable={manualReadUnavailable}
+                      leaseId={summary.id}
+                      initialState={manualState}
+                      cycleBasis={manualCycleBasis}
+                      nextAction={
+                        <div
+                          id={RENEWAL_NEXT_ACTION_TARGET_ID}
+                          key="next-action"
                           tabIndex={-1}
-                          key={section.id}
                         >
-                          <RenewalSectionHeading id={`section-${section.id}`}>
-                            {section.label}
-                          </RenewalSectionHeading>
-                          {section.id === "comps" ? (
-                            <RenewalCompPreparation
-                              address={summary.addressLabel}
-                              currentRent={workspace.currentRent}
-                              sourceFresh={workspace.dataCurrency?.state === "fresh"}
-                              compScreenshotExecutable={compScreenshotExecutable}
-                              marketSubject={marketSubject}
+                          <DoThisNext
+                            deskView={deskView}
+                            leaseId={summary.id}
+                            progressStateAvailable={progressStateAvailable}
+                            workspace={workspace}
+                            projected={issueProjection}
+                          />
+                        </div>
+                      }
+                      statusLog={
+                        workStatus ? (
+                          <section
+                            key="staff-status-log"
+                            className="panel ui-stack"
+                            aria-label="Staff status and Status log"
+                            data-renewal-focus-context
+                          >
+                            <h2>Staff status and Status log</h2>
+                            <RenewalWorkStatusControl
+                              canEdit={hasRenewalRoleAuthority("save_work_status", role)}
+                              leaseId={summary.id}
+                              read={workStatus}
                             />
-                          ) : null}
-                          {/* S120 (R120.1): prepare the message first; record outreach and the later
-                      response after actual contact. The order is chronology, not a gate. */}
-                          {section.id === "owner" || section.id === "tenant" ? (
-                            <RenewalMessagePreparation
-                              channel={section.id}
-                              canEdit={can(role, "edit")}
-                            />
-                          ) : null}
-                          {section.id === "owner" ||
-                          section.id === "tenant" ||
-                          section.id === "documents" ? (
-                            <RenewalManualSection
-                              section={section.id}
-                              moveOutInitiated={summary.moveOut?.state === "initiated"}
-                              currentRent={workspace.currentRent}
-                            />
-                          ) : null}
-                          {section.id === "documents" ? resourceLocationsPanel : null}
-                          {section.id === "documents" ? (
-                            <RenewalPolicyContentPanel />
-                          ) : null}
-                          {section.steps.map((stepId) => (
-                            <div
-                              className="ui-stack"
-                              id={renewalStepTargetId(stepId)}
-                              tabIndex={-1}
-                              key={stepId}
-                            >
-                              <PhaseContent
-                                staffOwnerOutcome={staffOwnerOutcome(
-                                  manualState,
-                                  summary.endDateIso,
-                                )}
-                                chargeInventory={chargeInventory}
-                                consolidated={consolidated}
-                                compScreenshotExecutable={compScreenshotExecutable}
-                                correctionPanel={correctionPanel}
-                                dataExpired={dataExpired}
-                                discrepancyHistoryPanel={
-                                  <details>
-                                    <summary>
-                                      Discrepancy decision history and advanced
-                                      disposition
-                                    </summary>
-                                    {discrepancyPanel}
-                                  </details>
-                                }
-                                followUpControlsAvailable={
-                                  !unavailableKeys.has("communications") &&
-                                  !unavailableKeys.has("dismissed_attention")
-                                }
-                                packetSnapshot={packetSnapshot}
-                                packetStateAvailable={!unavailableKeys.has("packet")}
-                                progressStateAvailable={progressStateAvailable}
-                                rentChargeStatus={rentChargeStatus}
-                                rentSuggestionAvailable={
-                                  !unavailableKeys.has("rent_suggestion")
-                                }
-                                rentvineUpdatesPanel={rentvineUpdatesPanel}
-                                packetReadinessPanel={packetReadinessPanel}
-                                returnedDocumentsPanel={returnedDocumentsPanel}
-                                packetShownState={packetShownState}
-                                resolutionDestinations={resolutionDestinations}
-                                role={role}
-                                sheetProposalPanel={operatingSheetPanel}
-                                sheetDestination={sheetDestination}
-                                sheetFieldDestinations={sheetFieldDestinations}
-                                stepId={stepId}
-                                termReviewPanel={termReviewPanel}
-                                workspace={workspace}
-                              />
+                            <p className="muted">
+                              Staff records. Source updates, messages and signatures
+                              retain their own evidence.
+                            </p>
+                          </section>
+                        ) : null
+                      }
+                    >
+                      {workspace.live && /^[1-9]\d*$/.test(summary.id) ? (
+                        <RenewalLeaseFollowUps
+                          leaseId={summary.id}
+                          canEdit={can(role, "edit")}
+                          admin={role === "Admin"}
+                          key="lease-follow-ups"
+                        />
+                      ) : null}
+                      {guidedPane}
+                      {focusPane}
+                      <RenewalDashboardNavigation
+                        key="dashboard-sections"
+                        selectedStepId={selectedStepId}
+                      >
+                        {attemptSummary ? (
+                          <RenewalAttemptSummaryCard summary={attemptSummary} />
+                        ) : null}
+
+                        {dataExpired ? (
+                          <Card>
+                            <div role="status">
+                              <h2 className="ui-card-title">Lease data is out of date</h2>
+                              <p className="muted">
+                                The source values shown here were read a while ago.
+                                Refresh this lease to read them again. Your saved work
+                                stays available.
+                              </p>
                             </div>
-                          ))}
-                        </section>
-                      ))}
-                    </RenewalDashboardNavigation>
-                  </RenewalManualProvider>
-                </RenewalPolicyProvider>
+                          </Card>
+                        ) : null}
+
+                        {RENEWAL_DASHBOARD_SECTIONS.map((section) => (
+                          <section
+                            aria-label={section.label}
+                            data-progress-state={
+                              progressStateAvailable ? "available" : "unavailable"
+                            }
+                            className="ui-stack"
+                            id={`renewal-section-${section.id}`}
+                            tabIndex={-1}
+                            key={section.id}
+                          >
+                            <RenewalSectionHeading id={`section-${section.id}`}>
+                              {section.label}
+                            </RenewalSectionHeading>
+                            {section.id === "comps" ? (
+                              <RenewalCompPreparation
+                                address={summary.addressLabel}
+                                currentRent={workspace.currentRent}
+                                sourceFresh={workspace.dataCurrency?.state === "fresh"}
+                                compScreenshotExecutable={compScreenshotExecutable}
+                                marketSubject={marketSubject}
+                              />
+                            ) : null}
+                            {/* S120 (R120.1): prepare the message first; record outreach and the later
+                      response after actual contact. The order is chronology, not a gate. */}
+                            {section.id === "owner" || section.id === "tenant" ? (
+                              <RenewalMessagePreparation
+                                key={`message-preparation-${section.id}`}
+                                channel={section.id}
+                                canEdit={can(role, "edit")}
+                              />
+                            ) : null}
+                            {section.id === "owner" ||
+                            section.id === "tenant" ||
+                            section.id === "documents" ? (
+                              <RenewalManualSection
+                                section={section.id}
+                                moveOutInitiated={summary.moveOut?.state === "initiated"}
+                                currentRent={workspace.currentRent}
+                              />
+                            ) : null}
+                            {section.id === "documents" ? resourceLocationsPanel : null}
+                            {section.id === "documents" ? (
+                              <RenewalPolicyContentPanel />
+                            ) : null}
+                            {section.steps.map((stepId) => (
+                              <div
+                                className="ui-stack"
+                                id={renewalStepTargetId(stepId)}
+                                tabIndex={-1}
+                                key={stepId}
+                              >
+                                <PhaseContent
+                                  staffOwnerOutcome={staffOwnerOutcome(
+                                    manualState,
+                                    summary.endDateIso,
+                                  )}
+                                  chargeInventory={chargeInventory}
+                                  consolidated={consolidated}
+                                  compScreenshotExecutable={compScreenshotExecutable}
+                                  correctionPanel={correctionPanel}
+                                  dataExpired={dataExpired}
+                                  discrepancyHistoryPanel={
+                                    <details>
+                                      <summary>
+                                        Discrepancy decision history and advanced
+                                        disposition
+                                      </summary>
+                                      {discrepancyPanel}
+                                    </details>
+                                  }
+                                  followUpControlsAvailable={
+                                    !unavailableKeys.has("communications") &&
+                                    !unavailableKeys.has("dismissed_attention")
+                                  }
+                                  packetSnapshot={packetSnapshot}
+                                  packetStateAvailable={!unavailableKeys.has("packet")}
+                                  progressStateAvailable={progressStateAvailable}
+                                  rentChargeStatus={rentChargeStatus}
+                                  rentSuggestionAvailable={
+                                    !unavailableKeys.has("rent_suggestion")
+                                  }
+                                  rentvineUpdatesPanel={rentvineUpdatesPanel}
+                                  packetReadinessPanel={packetReadinessPanel}
+                                  returnedDocumentsPanel={returnedDocumentsPanel}
+                                  packetShownState={packetShownState}
+                                  resolutionDestinations={resolutionDestinations}
+                                  role={role}
+                                  sheetProposalPanel={operatingSheetPanel}
+                                  sheetDestination={sheetDestination}
+                                  sheetFieldDestinations={sheetFieldDestinations}
+                                  stepId={stepId}
+                                  termReviewPanel={termReviewPanel}
+                                  workspace={workspace}
+                                />
+                              </div>
+                            ))}
+                          </section>
+                        ))}
+                      </RenewalDashboardNavigation>
+                    </RenewalManualProvider>
+                  </RenewalPolicyProvider>
+                </RenewalFocusViewSlot>
               </RenewalWorkspaceSidebars>
             </div>
           </RenewalSaveFocus>

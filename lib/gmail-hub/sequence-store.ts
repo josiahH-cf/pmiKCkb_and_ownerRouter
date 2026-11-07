@@ -639,6 +639,8 @@ export async function listLeaseOwnerReplies(
           evidenceId: entry.id,
           senderEmail: entry.senderEmail,
           receivedAt: new Date(entry.receivedAtMs).toISOString(),
+          threadId: entry.threadId,
+          messageId: entry.messageId,
         }));
     })
     .sort((left, right) => right.receivedAt.localeCompare(left.receivedAt));

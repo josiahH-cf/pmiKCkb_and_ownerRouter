@@ -59,7 +59,7 @@ export const COMMUNICATIONS_GUIDES: readonly HelpGuide[] = [
       {
         id: "schedule-owner-message",
         action:
-          "To send later, choose Schedule, set Date and Time (Central) in Review and schedule, then choose Schedule this message.",
+          "To send later, choose Schedule and check the required Date and Time (Central) in Review and schedule, then choose Schedule this message.",
         control: {
           label: "Schedule this message",
           role: "button",
@@ -185,7 +185,7 @@ export const COMMUNICATIONS_GUIDES: readonly HelpGuide[] = [
         result:
           "The status line reads Saved and the communication reads Draft in app. Your wording also saves by itself a moment after each edit.",
         effect: "saves-in-app",
-        note: "Responsible sender names the managed mailbox the message goes out from, and To lists the current verified recipients. Add PDF or image (5 MiB combined) attaches a file, and Add follow-up message adds a separate reviewed follow-up.",
+        note: "If the communication could not be read, choose Try again or Close. Responsible sender names the managed mailbox the message goes out from, and To lists the current verified recipients. Add PDF or image (5 MiB combined) attaches a file, and Add follow-up message adds a separate reviewed follow-up.",
       },
       {
         id: "send-or-schedule",
@@ -204,7 +204,7 @@ export const COMMUNICATIONS_GUIDES: readonly HelpGuide[] = [
         result:
           "After Send the reviewed message goes out from the responsible sender's mailbox, and the communication reads Sent once Gmail accepts the message, or Needs verification when the outcome is unclear. Before you choose Schedule messages, First send states the exact first time and time zone, and the communication then reads Scheduled.",
         effect: "explicit-send",
-        note: "Send and Schedule stay unavailable until the subject and message are complete, the recipients are verified and every file is checked, and only the responsible sender can choose them. A reply or a failed delivery pauses the follow-ups.",
+        note: "Send and Schedule stay unavailable until the subject and message are complete, the recipients are verified and every file is checked, and only the responsible sender can choose them. Schedule messages also needs First date, Local time and Timezone. A reply or a failed delivery pauses the follow-ups.",
       },
       {
         id: "record-owner-outreach",

@@ -3,7 +3,7 @@
 
 # S248 — Evidence the app already holds moves the lease forward
 
-> Status: AUTHORING READY — intake 114; implementation NOT STARTED. Specification only; it grants no execution, release or provider effect. Owner decision D-OP-8 was confirmed on November 5, 2026. It refines S232 R-S232-4: evidence fills what staff have not recorded, and a true disagreement still reads "Needs a check".
+> Status: AUTHORING READY: intake 114; implementation merged in PR #187 at `20d55104`. November 6 UX qualification continues on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. D-OP-8 remains settled: evidence fills unrecorded work and a disagreement reads "Needs a check". This specification grants no provider effect.
 
 **Goal.**
 
@@ -52,7 +52,12 @@ and its own source reads for the current cycle.
   reconcile action.
 - **R-S248-4 — A reply changes the next step.** An observed reply on the lease's linked thread
   reads "Owner replied {date}" and makes "Record the owner's decision" the next step with the reply
-  shown beside it. No outcome is chosen for staff (S234). A tenant reply behaves the same way.
+  shown beside it. The Now card uses the existing bounded, authorized linked-thread read to show
+  the exact observed message as plain text in client memory. Loading, missing, partial and failed
+  reads are stated explicitly and a failed read can be retried in place. Try again retains
+  keyboard focus while reading; success leads into the reply heading if focus is still on
+  Try again. Staff who already moved to a decision keep that focus. No reply body is persisted
+  or inferred from metadata. No outcome is chosen for staff (S234). A tenant reply behaves the same way.
 - **R-S248-5 — A failed delivery changes the next step.** A bounce or failed delivery correlated to
   the message reads "Delivery failed" and makes "Check the address and send again" the next step.
 - **R-S248-6 — A Gmail draft is not a send.** An unsent Gmail draft reads "Draft waiting in Gmail
@@ -69,7 +74,9 @@ and its own source reads for the current cycle.
 - **R-S248-10 — Every derived fact is attributed and correctable.** A derived fact shows what it
   came from and when, in words distinct from "recorded by staff" and from provider-verified
   completion. "This was not the renewal outreach" removes the derived record with a reason and
-  returns the step to open.
+  returns the step to open. It focuses the required reason when opened. "Keep it" returns to
+  the correction action. Successful removal returns focus to the reopened Now heading when
+  staff are still in the form; a refused attempt keeps its reason and usable focus.
 - **R-S248-11 — The Sheet follows the same way.** A derived record prepares the same operating
   Sheet update proposal a staff record prepares today; applying it keeps its own exact confirmation.
 - **R-S248-12 — No timers.** No reminder, deadline, follow-up message or schedule is derived from a
@@ -142,7 +149,7 @@ help guides that today instruct the manual steps (S252).
 The lease already says it is waiting on the owner and since when. When the owner answers, the lease
 says so and asks for the decision. Nobody had to pick a status from a list.
 
-- Model verdict: NOT RUN — to be completed by the implementation runner with evidence.
+- Model verdict: RUN for stand-in and staff-recorded evidence (J10–J12). Real delivery and source changes are unverified. See the [review](../evidence/renewal-one-path-ux-review-2026-11-06.md) and [individual litmus results](../evidence/renewal-one-path-litmus-2026-11-06.md).
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**

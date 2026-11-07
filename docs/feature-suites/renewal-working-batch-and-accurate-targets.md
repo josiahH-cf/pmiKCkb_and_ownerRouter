@@ -3,7 +3,7 @@
 
 # S246 — Working batch and accurate renewal targets on the desk
 
-> Status: AUTHORING READY — intake 112; implementation NOT STARTED. Specification only; it grants no execution, release or provider effect. Owner decisions D-OP-4 and D-OP-5 were confirmed on November 5, 2026.
+> Status: AUTHORING READY: intake 112; implementation merged in PR #186 at `64a12692`. Resumed UX repairs and scoped qualification are recorded on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. Owner decisions D-OP-4 and D-OP-5 remain settled. This specification grants no provider effect.
 
 **Goal.**
 
@@ -84,9 +84,18 @@ rows to an explicit retained state and never removes them from the list.
 - **R-S246-9 — Everything else stays.** "All leases and filters" opens the existing table with its
   views, columns, filters, sorts, window chip, per-reason counts and URL keys unchanged. A saved view
   is offered as "Open my saved view" and no longer applies by itself on the bare route. A shared
-  collection link opens the table filtered to that collection's membership.
+  collection link opens the table filtered to that collection's membership. The working batch
+  and table use one main landmark so assistive navigation can move directly to the desk.
 - **R-S246-10 — Same answer everywhere.** A Dashboard assistant answer about a month's renewals
-  uses the same target definition and names the excluded counts by reason.
+  uses the same target definition and names the excluded counts by reason. "This batch" and
+  "working month" mean the next calendar month's renewal targets. A question about which leases
+  need renewal work asks for lease records; an explicit task question retains the My Work route.
+  Display phrases such as "Show me", "Tell me" and "Give me" keep the visible lease scope.
+  An assignment filter follows explicit ownership wording such as "my", "mine" or "assigned to me".
+  When its cached source is stale, the assistant waits for a current coherent read before stating
+  the batch membership, or reports that the source could not be verified.
+  A person-supplied numeric lease reference selects that exact lease within the current read
+  scope. Its table link keeps the same selection; an unknown reference yields the empty result.
 - **R-S246-11 — Counts reconcile.** The groups partition the loaded leases: their counts sum to the
   total loaded, and each lease is in exactly one group.
 - **R-S246-12 — Fail closed.** When the status table or a lease's status cannot be read, the lease
@@ -166,7 +175,7 @@ handful of leases ending in December that still need work, anything left over fr
 above them, and a short line of counts for everything else. No moved-out or closed lease is in the
 list. They choose a lease and it opens in the same tab at the step that needs them.
 
-- Model verdict: NOT RUN — to be completed by the implementation runner with evidence.
+- Model verdict: RUN in the synthetic desk and assistant (J01–J03). L55 retains its literal per-reason count discrepancy under the settled assistance rule. See the [review](../evidence/renewal-one-path-ux-review-2026-11-06.md) and [individual litmus results](../evidence/renewal-one-path-litmus-2026-11-06.md).
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**

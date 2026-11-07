@@ -26,6 +26,9 @@ import {
 // destinations beside their action. Edits save by themselves; nothing is reviewed or confirmed.
 
 const manual = vi.hoisted(() => ({ revision: 1 }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: vi.fn() }),
+}));
 vi.mock("@/components/lease-renewal/RenewalManualWorkspace", () => ({
   useRenewalManualWorkspace: () => ({
     leaseId: "701",

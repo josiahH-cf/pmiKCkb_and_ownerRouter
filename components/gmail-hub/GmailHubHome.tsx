@@ -8,7 +8,7 @@ export function GmailHubHome({
   canManageAdmin?: boolean;
 }) {
   return (
-    <section className="content content--workspace ui-stack gmail-hub">
+    <section className="content content--workspace ui-stack gmail-hub" role="main">
       <div>
         <h1 className="section-title">Workflow Communications</h1>
         <p role="note">

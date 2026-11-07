@@ -78,6 +78,29 @@ const WEEK_LEASES: LeaseFixture[] = [
 ];
 
 describe("S138 question families answer from the owning records", () => {
+  for (const reference of ["lease 101", "lease #101", "lease ID:101"]) {
+    it(`keeps an explicit reference exact: ${reference}`, async () => {
+      const { answer } = await ask(`What is the stage and next step for ${reference}?`, {
+        reads: {
+          renewals: renewalsRead([
+            { id: "101", address: "10 Example Road", stage: "Waiting on owner" },
+            { id: "102", address: "101 Example Road" },
+          ]),
+        },
+      });
+      expect(ids(answer)).toEqual(["101"]);
+      expect(
+        new URL(answer.groups[0].link?.href ?? "", "https://x.invalid").searchParams.get(
+          "lease",
+        ),
+      ).toBe(reference);
+      const missing = await ask("What is the stage and next step for lease 999?", {
+        reads: { renewals: renewalsRead([{ id: "101", address: "999 Example Road" }]) },
+      });
+      expect(ids(missing.answer)).toEqual([]);
+    });
+  }
+
   it("lists leases ending this week, Monday through Sunday, with the exact dates and desk link", async () => {
     const { answer } = await ask("What leases are due this week?", {
       reads: { renewals: renewalsRead(WEEK_LEASES) },

@@ -2,7 +2,15 @@
 import "@testing-library/jest-dom/vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -20,6 +28,7 @@ import {
   RENEWAL_PATH_STANDARD_STEPS,
 } from "@/lib/lease-renewal/renewal-path";
 import { emptyRenewalWorkspace } from "@/lib/lease-renewal/workspace-state";
+import { renewalStageContextFor } from "@/lib/lease-renewal/renewal-stage-context";
 import { fullViewSignature } from "@/tests/helpers/full-view-signature";
 import {
   renderWorkspace,
@@ -28,6 +37,7 @@ import {
   viewButton,
 } from "@/tests/helpers/focus-workspace";
 import { getRenewalLeaseWorkspace } from "@/tests/helpers/sample-desk";
+import { manualFixture } from "@/tests/helpers/renewal-action-fixtures";
 
 // S247 R-S247-4 to R-S247-11, BEH-S247-1 to BEH-S247-5, AC-S247-2 to AC-S247-4: the Guided view is
 // the lease page's default, beside Focus view and Full view. It names every step of the path and
@@ -37,7 +47,7 @@ import { getRenewalLeaseWorkspace } from "@/tests/helpers/sample-desk";
 
 const BASELINE = JSON.parse(
   readFileSync(
-    join(__dirname, "..", "fixtures", "s244-help-copy-full-view-presentation.json"),
+    join(__dirname, "..", "fixtures", "s253-animal-wording-full-view-presentation.json"),
     "utf8",
   ),
 ) as Record<string, ReturnType<typeof fullViewSignature>>;
@@ -95,6 +105,59 @@ afterEach(() => {
 });
 
 describe("S247 Guided view", { timeout: 120_000 }, () => {
+  it("keeps secondary header statuses in Focus and Full while Guided names the stage once", async () => {
+    stubRenewalRoutes(manualState());
+    const { container } = await renderWorkspace({
+      manual: manualState(),
+      view: "default",
+      extra: { workStatus: WORK_STATUS },
+    });
+    const statuses = [...container.querySelectorAll("[data-renewal-secondary-status]")];
+    expect(statuses.length).toBeGreaterThan(0);
+    for (const status of statuses) expect(status).not.toBeVisible();
+    await userEvent.setup().click(viewButton("Full view"));
+    for (const status of statuses) expect(status).toBeVisible();
+  });
+
+  it("continues a covered owner step to the tenant offer while keeping the message tools reachable", async () => {
+    stubRenewalRoutes(manualState());
+    const workspace = getRenewalLeaseWorkspace("lease-318-cedar-7")!;
+    const context = renewalStageContextFor(
+      { ...workspace.summary, guidance: workspace.guidance },
+      null,
+      null,
+    );
+    await renderWorkspace({
+      workspace: {
+        ...workspace,
+        renewalStageContext: {
+          ...context,
+          standingAgreement: {
+            label: "Example agreement",
+            reason: "Owner pre-approved the rule",
+          },
+        },
+      },
+      manual: manualState(),
+      view: "default",
+    });
+    const user = userEvent.setup();
+    await user.click(within(guidedPane()).getByRole("button", { name: "Ask the owner" }));
+    expect(
+      within(nowCard()).getByRole("button", { name: "Continue to Offer the tenant" }),
+    ).toBeVisible();
+    expect(
+      within(nowCard()).queryByRole("button", { name: "Send the owner message" }),
+    ).toBeNull();
+    expect(nowCard()).toHaveTextContent(
+      "Covered by Example agreement: no owner message needed",
+    );
+    await user.click(
+      within(nowCard()).getByRole("button", { name: "Continue to Offer the tenant" }),
+    );
+    expect(nowCard()).toHaveAttribute("data-renewal-now-step", "offer-tenant");
+  });
+
   it("BEH-S247-1: a lease opens in Guided view with the path strip and one Now card", async () => {
     const routes = stubRenewalRoutes(manualState());
     await renderWorkspace({
@@ -169,9 +232,12 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
     expect(visible("renewal-manual-owner_outreach")).toBe(false);
     await user.click(within(strip).getByRole("button", { name: "Ask the owner" }));
     await settle();
-    expect(within(nowCard()).getByRole("heading", { level: 2 })).toHaveTextContent(
-      "Ask the owner",
-    );
+    expect(
+      within(nowCard()).getByRole("heading", {
+        level: 2,
+        name: "Ask the owner",
+      }),
+    ).toHaveTextContent("Ask the owner");
     expect(within(strip).getByRole("button", { name: "Ask the owner" })).toHaveAttribute(
       "aria-pressed",
       "true",
@@ -179,14 +245,105 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
     // The step's existing controls are shown in place, and the current step is unchanged.
     expect(visible("renewal-manual-owner_outreach")).toBe(true);
     expect(visible("renewal-card-message-owner")).toBe(true);
+    expect(nowCard()).toContainElement(
+      document.getElementById("renewal-manual-owner_outreach"),
+    );
+    expect(nowCard()).toContainElement(
+      document.getElementById("renewal-card-message-owner"),
+    );
     expect(strip.querySelector("[aria-current='step']")?.textContent).toBe(
       current.textContent,
+    );
+    expect(nowCard().querySelectorAll('[data-renewal-field="next-step"]')).toHaveLength(
+      1,
+    );
+    await user.click(
+      within(nowCard()).getByRole("button", { name: "Show current step" }),
+    );
+    expect(strip.querySelector("[aria-current='step']")).toHaveAttribute(
+      "aria-pressed",
+      "true",
     );
     // Choosing a step leaves the address as it was and saves nothing.
     expect(window.location.search).toBe("");
     expect(routes.writes()).toEqual([]);
     expect(router.replace).not.toHaveBeenCalled();
     expect(router.push).not.toHaveBeenCalled();
+  });
+
+  it.each([false, true])(
+    "moves to the current next step when the tenant form return is recorded (linked entry: %s)",
+    async (linked) => {
+      const manual = manualFixture({
+        owner: "approved_terms",
+        tenant: "accepted",
+        done: ["owner_outreach", "tenant_offer", "information_form"],
+      });
+      const routes = stubRenewalRoutes(manual);
+      await renderWorkspace({
+        manual,
+        view: "default",
+        ...(linked ? { extra: { selectedStepId: "offer-tenant" } } : {}),
+      });
+      const user = userEvent.setup();
+      expect(nowCard()).toHaveAttribute("data-renewal-now-step", "offer-tenant");
+      if (!linked)
+        await user.click(
+          within(guidedPane()).getByRole("button", {
+            name: "Offer the tenant",
+          }),
+        );
+      const form = document.getElementById("renewal-manual-form_returned")!;
+      await user.selectOptions(within(form).getByRole("combobox"), "done");
+      await waitFor(() =>
+        expect(nowCard()).toHaveAttribute("data-renewal-now-step", "documents"),
+      );
+      expect(nowCard().querySelectorAll('[data-renewal-field="next-step"]')).toHaveLength(
+        1,
+      );
+      expect(
+        within(nowCard()).queryByRole("button", { name: "Send the tenant offer" }),
+      ).toBeNull();
+      expect(routes.state()?.activities.form_returned?.outcome).toBe("done");
+      expect(routes.writes()).toHaveLength(1);
+    },
+  );
+
+  it("keeps every visible step field inside Now while preserving the actual typed controls across all views", async () => {
+    const routes = stubRenewalRoutes(manualState());
+    await renderWorkspace({ manual: manualState(), view: "default" });
+    const user = userEvent.setup();
+    await user.click(viewButton("Full view"));
+    const comment = document
+      .getElementById("renewal-manual-owner_outreach")!
+      .querySelector<HTMLInputElement | HTMLTextAreaElement>('[id$="-reason"]')!;
+    expect(comment).not.toBeNull();
+    comment.focus();
+    fireEvent.change(comment, { target: { value: "Unsaved synthetic activity detail" } });
+    await user.click(viewButton("Guided view"));
+    const path = within(guidedPane()).getByRole("navigation", { name: "Renewal path" });
+    for (const button of within(path).getAllByRole("button")) {
+      await user.click(button);
+      await settle();
+      const fields = [
+        ...document.querySelectorAll<HTMLElement>(
+          ".renewal-workspace-body input, .renewal-workspace-body select, .renewal-workspace-body textarea",
+        ),
+      ].filter(
+        (field) =>
+          !field.matches('input[type="hidden"]') &&
+          !field.closest("[hidden], [data-renewal-focus-hidden]"),
+      );
+      for (const field of fields) expect(nowCard()).toContainElement(field);
+    }
+    await user.click(within(path).getByRole("button", { name: "Ask the owner" }));
+    expect(nowCard()).toContainElement(comment);
+    expect(comment).toHaveValue("Unsaved synthetic activity detail");
+    await user.click(viewButton("Focus view"));
+    await user.click(viewButton("Full view"));
+    expect(document.getElementById(comment.id)).toBe(comment);
+    expect(comment).toHaveValue("Unsaved synthetic activity detail");
+    expect(routes.writes()).toEqual([]);
   });
 
   it("R-S247-11: an older step value opens Guided view at the step that holds it", async () => {
@@ -196,9 +353,12 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
       view: "default",
       extra: { selectedStepId: "owner-decision" },
     });
-    expect(within(nowCard()).getByRole("heading", { level: 2 })).toHaveTextContent(
-      "Ask the owner",
-    );
+    expect(
+      within(nowCard()).getByRole("heading", {
+        level: 2,
+        name: "Ask the owner",
+      }),
+    ).toHaveTextContent("Ask the owner");
   });
 
   it("R-S247-11: an older link to a control opens Full view at that control", async () => {
@@ -239,9 +399,12 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
     await settle(5);
     expect(viewButton("Full view")).toHaveAttribute("aria-pressed", "true");
     await user.click(viewButton("Guided view"));
-    expect(within(nowCard()).getByRole("heading", { level: 2 })).toHaveTextContent(
-      "Ask the owner",
-    );
+    expect(
+      within(nowCard()).getByRole("heading", {
+        level: 2,
+        name: "Ask the owner",
+      }),
+    ).toHaveTextContent("Ask the owner");
     // Opened any other way (not a reload), the lease starts in Guided view at its current step.
     act(() => {
       window.dispatchEvent(new Event("pagehide"));
@@ -320,7 +483,9 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
       await user.click(viewButton("Full view"));
       await settle();
       expect(fullViewSignature(view.container)).toEqual(BASELINE[name]);
-      expect(document.querySelectorAll("[data-renewal-focus-hidden]")).toHaveLength(0);
+      expect(
+        document.querySelectorAll<HTMLElement>("[data-renewal-focus-hidden]"),
+      ).toHaveLength(0);
       expect(routes.calls.length).toBe(requests);
       expect(routes.writes()).toEqual([]);
       expect(router.refresh).not.toHaveBeenCalled();
@@ -339,7 +504,10 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
     await settle();
     // Choosing a step moves focus to the Now card's heading.
     expect(document.activeElement).toBe(
-      within(nowCard()).getByRole("heading", { level: 2 }),
+      within(nowCard()).getByRole("heading", {
+        level: 2,
+        name: "Finish up",
+      }),
     );
     expect(document.activeElement).toHaveTextContent("Finish up");
   });

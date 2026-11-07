@@ -6,6 +6,9 @@ import { RenewalMessagePreparation } from "@/components/lease-renewal/RenewalMes
 import { emptyMessagePreparationInputs } from "@/lib/lease-renewal/renewal-message-preparation";
 import type { RenewalMessageFacts } from "@/lib/lease-renewal/renewal-message-content";
 const manual = vi.hoisted(() => ({ revision: 1 }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: vi.fn() }),
+}));
 vi.mock("@/components/lease-renewal/RenewalManualWorkspace", () => ({
   useRenewalManualWorkspace: () => ({
     leaseId: "701",

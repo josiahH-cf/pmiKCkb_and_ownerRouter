@@ -78,7 +78,7 @@ export const MEETING_PREFLIGHT_CHECKS: readonly MeetingPreflightCheckDefinition[
     id: "source_availability",
     label: "Data-source availability and freshness",
     effectFreeSource:
-      "The desk's returned source freshness after Refresh source facts; a read-only refresh with no write.",
+      "The desk's returned source freshness after Refresh data; a read-only refresh with no write.",
     holds: ["record_owner_terms", "record_tenant_response", "exact_source_update"],
   },
   {

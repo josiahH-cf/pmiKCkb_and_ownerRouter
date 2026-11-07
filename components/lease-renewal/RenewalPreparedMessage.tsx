@@ -15,7 +15,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { Button, ConfirmationDialog } from "@/components/ui";
+import { Button, ConfirmationDialog, Field } from "@/components/ui";
 import { formatBusinessTimestamp } from "@/lib/date-display";
 import { renderEditableCommunicationBody } from "@/lib/gmail-hub/sequence-model";
 import type {
@@ -25,6 +25,7 @@ import type {
 import type { WorkflowCommunicationContext } from "@/lib/gmail-hub/workflow-context";
 import { BUSINESS_TIME_ZONE } from "@/lib/lease-renewal/business-calendar";
 import { messageRevisionLabel } from "@/lib/lease-renewal/message-revision";
+import { STALE_REFINED_BODY_MESSAGE } from "@/lib/lease-renewal/refined-message";
 import { NOTICE_GENERATION_NOT_READY } from "@/lib/lease-renewal/notice-source-error";
 import {
   RECOMMENDATION_REASON_REFUSAL,
@@ -38,12 +39,17 @@ import {
   withLiveKickoff,
   type RenewalPreparation,
 } from "@/lib/lease-renewal/renewal-preparation";
-import { workingRenewalTerms } from "@/lib/lease-renewal/working-record";
+import {
+  workingRenewalTerms,
+  messageWorkingFieldsFor,
+} from "@/lib/lease-renewal/working-record";
 import { fetchWithDeadline } from "@/lib/ui/fetch-lifetime";
 import { focusRenewalDashboardControl } from "./RenewalDashboardNavigation";
 import { RentToRecommendField, StoredComparisonSummary } from "./RenewalKickoffFields";
 import { nowSlotKey, useRenewalNowCard } from "./RenewalNowCardContext";
 import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
+import { workingRecommendationBasis } from "@/lib/lease-renewal/kickoff-facts";
+import { MESSAGE_CONTROL_IDS } from "@/lib/lease-renewal/message-readiness";
 import { useRenewalPricingPolicy } from "./RenewalPricingPolicy";
 import {
   STANDING_AGREEMENT_WORDS,
@@ -67,10 +73,12 @@ export type PreparedMessageData = Omit<
   | "openComposer"
   | "draft"
   | "rebuildRule"
+  | "returnToStandardWording"
+  | "undoWording"
 > & {
   readonly draft: Omit<
     PreparedMessageApi["draft"],
-    "requestPreview" | "create" | "cancel"
+    "requestPreview" | "create" | "cancel" | "recover"
   >;
 };
 
@@ -84,8 +92,11 @@ export interface PreparedMessageHandlers {
   readonly onOpenComposer: PreparedMessageApi["openComposer"];
   readonly onDraftPreview: PreparedMessageApi["draft"]["requestPreview"];
   readonly onDraftCreate: PreparedMessageApi["draft"]["create"];
+  readonly onDraftRecover?: PreparedMessageApi["draft"]["recover"];
   /** S250 R-S250-7: save the message on the agreement's current rule. */
   readonly onRebuildRule?: PreparedMessageApi["rebuildRule"];
+  readonly onReturnToStandardWording?: PreparedMessageApi["returnToStandardWording"];
+  readonly onUndoWording?: PreparedMessageApi["undoWording"];
 }
 
 export interface PreparedMessageApi {
@@ -103,6 +114,11 @@ export interface PreparedMessageApi {
   readonly templateApproved: boolean;
   /** When the message record was last saved. */
   readonly lastEditedAt: string | null;
+  /** Authored wording remains exact; changed facts need a visible, deliberate resolution. */
+  readonly wordingChangedSince?: boolean;
+  readonly canUndoWording?: boolean;
+  readonly returnToStandardWording?: () => void;
+  readonly undoWording?: () => void;
   /**
    * S250 R-S250-7: the message record was built on an earlier version of the standing
    * agreement's rule and keeps that rule's rent; null otherwise.
@@ -135,12 +151,15 @@ export interface PreparedMessageApi {
     readonly createdRevision: string | null;
     /** True once a created Gmail draft was replaced: the earlier one is still in Gmail. */
     readonly earlierRemain?: boolean;
+    readonly recoveryRequired?: boolean;
+    readonly recover?: () => Promise<void>;
     readonly preview: {
       readonly subject: string;
       readonly body: string;
       readonly to: string;
     } | null;
-    readonly requestPreview: () => Promise<void>;
+    /** A failed field returns its local recovery, after the empty review dialog closes. */
+    readonly requestPreview: () => Promise<void | (() => void)>;
     readonly create: () => Promise<void>;
     readonly cancel: () => void;
   };
@@ -280,13 +299,18 @@ export function PreparedMessageSlot({
   onOpenComposer,
   onDraftPreview,
   onDraftCreate,
+  onDraftRecover,
   onRebuildRule,
+  onReturnToStandardWording,
+  onUndoWording,
 }: Readonly<{ data: PreparedMessageData } & PreparedMessageHandlers>) {
   const nowCard = useRenewalNowCard();
   const step = STEP_FOR_CHANNEL[data.channel];
   const api: PreparedMessageApi = {
     ...data,
     ...(onRebuildRule ? { rebuildRule: onRebuildRule } : {}),
+    returnToStandardWording: onReturnToStandardWording,
+    undoWording: onUndoWording,
     saveSignature: onSaveSignature,
     setReason: onReasonChange,
     commitReason: onReasonCommit,
@@ -297,6 +321,7 @@ export function PreparedMessageSlot({
       ...data.draft,
       requestPreview: onDraftPreview,
       create: onDraftCreate,
+      recover: onDraftRecover,
       cancel: () => undefined,
     },
   };
@@ -346,9 +371,36 @@ function PreparedMessageBlock({
   const [review, setReview] = useState<ReviewState | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [changedReview, setChangedReview] = useState<string | null>(null);
   const [scheduleDate, setScheduleDate] = useState(tomorrowIso);
   const [scheduleTime, setScheduleTime] = useState("09:00");
+  const scheduleReady = Boolean(scheduleDate && scheduleTime);
   const [draftOpen, setDraftOpen] = useState(false);
+  const draftOpenRef = useRef(false);
+  const failedDraftRecovery = useRef<(() => void) | null>(null);
+  const finishDraftRecovery = useCallback(() => {
+    const recover = failedDraftRecovery.current;
+    failedDraftRecovery.current = null;
+    recover?.();
+  }, []);
+  useEffect(() => {
+    draftOpenRef.current = draftOpen && Boolean(previewSlot);
+  }, [draftOpen, previewSlot]);
+  function closeDraft() {
+    draftOpenRef.current = false;
+    setDraftOpen(false);
+  }
+  async function showDraftPreview() {
+    draftOpenRef.current = true;
+    setDraftOpen(true);
+    const recover = await api.draft.requestPreview();
+    if (recover) {
+      // A deliberate cancel or step change keeps its newer focus. Otherwise the failed
+      // preview closes first, and the dialog's ordinary focus return finishes before recovery.
+      if (draftOpenRef.current) failedDraftRecovery.current = recover;
+      closeDraft();
+    }
+  }
   const [signatureOpen, setSignatureOpen] = useState(false);
   const [signature, setSignature] = useState<PreparedSignatureFields>({
     name: "",
@@ -360,13 +412,32 @@ function PreparedMessageBlock({
   // A communication draft save whose answer has not arrived: sent again as is before anything new.
   const pendingSave = useRef<PendingSave | null>(null);
   const trigger = useRef<HTMLButtonElement | null>(null);
+  const draftRecovery = useRef<HTMLButtonElement | null>(null);
+  const recoveringFocus = useRef(false);
+  useEffect(() => {
+    if (!recoveringFocus.current || api.draft.pending) return;
+    recoveringFocus.current = false;
+    if (api.draft.recoveryRequired) draftRecovery.current?.focus();
+    else {
+      const heading = previewSlot
+        ?.closest("[data-renewal-now-step]")
+        ?.querySelector<HTMLElement>("#renewal-now-heading");
+      if (heading)
+        focusRenewalDashboardControl(heading.id, {
+          focusContainer: true,
+          viewRequest: false,
+        });
+    }
+  }, [api.draft.pending, api.draft.recoveryRequired, previewSlot]);
   const typedRent = workingRenewalTerms(working?.record ?? null).rent;
+  const workingRentBasis = workingRecommendationBasis(working?.record);
   const live = useMemo(
     () =>
       preparation && api.channel === "owner"
         ? withLiveKickoff(preparation, {
             signature: api.signaturePresent,
             typedRent,
+            workingRentBasis,
             recipientReady: api.to !== null,
             templateApproved: api.templateApproved,
             marked: api.marked,
@@ -377,6 +448,7 @@ function PreparedMessageBlock({
       api.channel,
       api.signaturePresent,
       typedRent,
+      workingRentBasis,
       api.to,
       api.templateApproved,
       api.marked,
@@ -389,10 +461,24 @@ function PreparedMessageBlock({
     : [
         {
           key: "recipient" as const,
-          label: "Verified tenant recipient",
+          label:
+            api.channel === "owner"
+              ? "Verified owner recipient"
+              : "Verified tenant recipient",
           ready: api.to !== null,
-          missing: api.to !== null ? null : "a verified tenant recipient",
-          fix: null,
+          missing:
+            api.to !== null
+              ? null
+              : api.channel === "owner"
+                ? "a verified owner recipient"
+                : "a verified tenant recipient",
+          fix: {
+            label:
+              api.channel === "owner"
+                ? "Add the owner's email on the owner record in RentVine"
+                : "Check tenant email addresses in RentVine",
+            target: MESSAGE_CONTROL_IDS.recipients(api.channel),
+          },
         },
         {
           key: "signature" as const,
@@ -405,15 +491,30 @@ function PreparedMessageBlock({
           key: "template" as const,
           label: "Approved template",
           ready: api.templateApproved,
-          missing: api.templateApproved ? null : "an approved tenant template",
-          fix: null,
+          missing: api.templateApproved
+            ? null
+            : api.channel === "owner"
+              ? "an approved owner template"
+              : "an approved tenant template",
+          fix: {
+            label:
+              api.channel === "owner"
+                ? "Ask an Approver to publish the owner template"
+                : "Ask an Approver to publish the tenant template",
+            target: MESSAGE_CONTROL_IDS.publication(api.channel),
+          },
         },
         {
           key: "marked_values" as const,
           label: "Complete marked values",
           ready: api.marked.length === 0,
           missing: api.marked.length === 0 ? null : api.marked.join(", "),
-          fix: null,
+          fix: api.marked.length
+            ? {
+                label: "Review the marked values",
+                target: MESSAGE_CONTROL_IDS.readiness(api.channel),
+              }
+            : null,
         },
       ];
   const ready = live ? sendReady(live) : needs.every((item) => item.ready);
@@ -433,13 +534,22 @@ function PreparedMessageBlock({
   const prepareReview = async (mode: "send" | "schedule") => {
     setBusy(true);
     setMessage("");
+    setChangedReview(null);
     try {
       if (!(await api.flush())) {
         setMessage(
-          "Your latest wording could not be saved, so nothing was prepared for review. Your words are kept; correct or retry the save.",
+          "Your latest message could not be prepared for review. Your entries are kept; correct or retry the save.",
         );
         return;
       }
+      const workingFields = messageWorkingFieldsFor(api.channel);
+      const workingVersion = working?.confirmedVersion?.(workingFields);
+      const figuresChanged = () =>
+        Boolean(
+          working?.hasUnsettled?.(workingFields) ||
+          working?.confirmedVersion?.(workingFields) !== workingVersion,
+        );
+      const changedMessage = `Working figures changed while this review was loading. Your entries are kept. Choose ${mode === "schedule" ? KICKOFF_WORDS.schedule : KICKOFF_WORDS.reviewAndSend} again to review the current message.`;
       const readComposition = () =>
         json<{
           context: WorkflowCommunicationContext;
@@ -463,6 +573,10 @@ function PreparedMessageBlock({
         setMessage(
           `This message cannot be sent yet: ${composition.target.blockers.join(" ")}`,
         );
+        return;
+      }
+      if (figuresChanged()) {
+        setChangedReview(changedMessage);
         return;
       }
       type Saved = { sequence: CommunicationSequence; reviewedDraftHash: string };
@@ -527,6 +641,10 @@ function PreparedMessageBlock({
         saved = await send(attemptFor(null));
       }
       sequenceRef.current = { id: saved.sequence.id, version: saved.sequence.version };
+      if (figuresChanged()) {
+        setChangedReview(changedMessage);
+        return;
+      }
       const rendered = renderEditableCommunicationBody(saved.sequence.initial.paragraphs);
       setReview({
         mode,
@@ -551,7 +669,7 @@ function PreparedMessageBlock({
   };
 
   async function confirm() {
-    if (!review) return;
+    if (!review || (review.mode === "schedule" && !scheduleReady)) return;
     setBusy(true);
     setMessage("");
     try {
@@ -596,6 +714,7 @@ function PreparedMessageBlock({
         accepted &&
         carried &&
         typedRent === null &&
+        !working?.hasUnsettled?.(["terms_rent"]) &&
         working?.canEdit
       )
         await working
@@ -625,24 +744,31 @@ function PreparedMessageBlock({
   }
 
   // R-S249-8: "Review and send" is the Now card's primary action while the step asks for its send.
-  const runReview = () => {
+  const runReview = (button: HTMLButtonElement) => {
     if (!ready) {
       const first = needs.find((item) => !item.ready);
       if (first?.key === "signature") setSignatureOpen(true);
       else if (first?.fix) focusRenewalDashboardControl(first.fix.target);
       return;
     }
+    // Preparing the review can disable the button before the dialog opens.
+    trigger.current = button;
     void prepareReview("send");
   };
-  const reason = ready
-    ? null
-    : `Before sending, add ${missingWords.map((item) => item.missing).join(", ")}.`;
+  const reason =
+    changedReview ||
+    (ready
+      ? null
+      : `Before sending, add ${missingWords.map((item) => item.missing).join(", ")}.`);
   // The Now card holds one stable action; it always runs the latest review step.
   const latestRun = useRef(runReview);
   useEffect(() => {
     latestRun.current = runReview;
   });
-  const stableRun = useCallback(() => latestRun.current(), []);
+  const stableRun = useCallback(
+    (button: HTMLButtonElement) => latestRun.current(button),
+    [],
+  );
   useEffect(() => {
     if (!setPrimary) return;
     setPrimary(step, {
@@ -754,11 +880,23 @@ function PreparedMessageBlock({
         <form
           aria-label="Your signature"
           className="ui-stack-tight renewal-now-signature-form"
+          data-renewal-signature-setup={api.channel}
+          noValidate
           onSubmit={(event) => {
             event.preventDefault();
             const refusal = api.saveSignature(signature);
-            if (refusal) setSignatureNotice(refusal);
-            else {
+            if (refusal) {
+              setSignatureNotice(refusal);
+              const first =
+                !signature.name.trim() || signature.name.trim().length > 240
+                  ? "name"
+                  : signature.role.trim().length > 240
+                    ? "role"
+                    : signature.phone.trim().length > 240
+                      ? "phone"
+                      : "name";
+              document.getElementById(`${base}-sig-${first}`)?.focus();
+            } else {
               setSignatureNotice(
                 "Your signature is on this message. It saves with the message and is kept for your next lease.",
               );
@@ -773,10 +911,15 @@ function PreparedMessageBlock({
               ["phone", "Verified phone (optional)"],
             ] as const
           ).map(([field, label]) => (
-            <div className="ui-stack-tight" key={field}>
-              <label htmlFor={`${base}-sig-${field}`}>{label}</label>
+            <Field
+              htmlFor={`${base}-sig-${field}`}
+              key={field}
+              label={label}
+              required={field === "name"}
+            >
               <input
                 id={`${base}-sig-${field}`}
+                required={field === "name"}
                 onChange={(event) =>
                   setSignature((previous) => ({
                     ...previous,
@@ -785,7 +928,7 @@ function PreparedMessageBlock({
                 }
                 value={signature[field]}
               />
-            </div>
+            </Field>
           ))}
           <div className="ui-row">
             <Button size="compact" type="submit">
@@ -805,6 +948,28 @@ function PreparedMessageBlock({
         <p data-renewal-field="signature-notice" role="status">
           {signatureNotice}
         </p>
+      ) : null}
+      {api.wordingChangedSince ? (
+        <div
+          className="renewal-notice ui-stack-tight"
+          data-renewal-field="wording-changed"
+        >
+          <p role="status">{STALE_REFINED_BODY_MESSAGE}</p>
+          {api.canEdit && api.returnToStandardWording ? (
+            <Button
+              onClick={api.returnToStandardWording}
+              size="compact"
+              variant="secondary"
+            >
+              Return to the standard wording
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+      {api.canEdit && api.canUndoWording && api.undoWording ? (
+        <Button onClick={api.undoWording} size="compact" variant="secondary">
+          Undo the last refinement
+        </Button>
       ) : null}
       <div className="renewal-now-preview" data-renewal-field="message-preview">
         <p>
@@ -841,9 +1006,9 @@ function PreparedMessageBlock({
           {messageRevisionLabel(api.revision)}).{" "}
           <Button
             disabled={!api.draft.available || api.draft.pending}
-            onClick={() => {
-              setDraftOpen(true);
-              void api.draft.requestPreview();
+            onClick={(event) => {
+              trigger.current = event.currentTarget;
+              void showDraftPreview();
             }}
             size="compact"
             variant="secondary"
@@ -863,7 +1028,36 @@ function PreparedMessageBlock({
           {KICKOFF_WORDS.earlierDraftRemains}
         </p>
       ) : null}
-      {message || api.notice ? <p role="status">{message || api.notice}</p> : null}
+      {api.draft.recoveryRequired ? (
+        <div
+          className="renewal-notice ui-stack-tight"
+          data-renewal-field="draft-recovery"
+        >
+          <p>
+            Recover this exact attempt to confirm whether the Gmail draft exists. Copy
+            remains available.
+          </p>
+          {api.draft.recover ? (
+            <Button
+              disabled={!api.canEdit || api.draft.pending || busy}
+              onClick={() => {
+                recoveringFocus.current = true;
+                void api.draft.recover?.();
+              }}
+              ref={draftRecovery}
+              size="compact"
+              variant="secondary"
+            >
+              {api.draft.pending
+                ? "Checking the exact Gmail attempt..."
+                : "Recover exact Gmail attempt"}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+      {message ? <p role="status">{message}</p> : null}
+      {changedReview ? <p role="status">{changedReview}</p> : null}
+      {api.notice && api.notice !== message ? <p role="status">{api.notice}</p> : null}
     </section>
   );
   const actionsBlock = (
@@ -883,8 +1077,7 @@ function PreparedMessageBlock({
         disabled={!api.draft.available || api.draft.pending || busy}
         onClick={(event) => {
           trigger.current = event.currentTarget;
-          setDraftOpen(true);
-          void api.draft.requestPreview();
+          void showDraftPreview();
         }}
         size="compact"
         variant="secondary"
@@ -914,7 +1107,7 @@ function PreparedMessageBlock({
       <ConfirmationDialog
         busy={busy}
         busyLabel={review?.mode === "schedule" ? "Scheduling…" : "Sending…"}
-        confirmDisabled={!review}
+        confirmDisabled={!review || (review.mode === "schedule" && !scheduleReady)}
         confirmLabel={
           review?.mode === "schedule" ? "Schedule this message" : "Send this message"
         }
@@ -923,6 +1116,7 @@ function PreparedMessageBlock({
         onCancel={() => setReview(null)}
         onConfirm={() => void confirm()}
         open={review !== null}
+        startWithReview
         title={review?.mode === "schedule" ? "Review and schedule" : "Review and send"}
         triggerRef={trigger}
       >
@@ -938,22 +1132,32 @@ function PreparedMessageBlock({
             <div className="draft-box">{review.body}</div>
             {review.mode === "schedule" ? (
               <div className="ui-row">
-                <label>
-                  Date
+                <Field
+                  error={scheduleDate ? undefined : "Choose a send date."}
+                  htmlFor={`${base}-schedule-date`}
+                  label="Date"
+                  required
+                >
                   <input
+                    disabled={busy}
                     onChange={(event) => setScheduleDate(event.target.value)}
                     type="date"
                     value={scheduleDate}
                   />
-                </label>
-                <label>
-                  Time (Central)
+                </Field>
+                <Field
+                  error={scheduleTime ? undefined : "Choose a send time."}
+                  htmlFor={`${base}-schedule-time`}
+                  label="Time (Central)"
+                  required
+                >
                   <input
+                    disabled={busy}
                     onChange={(event) => setScheduleTime(event.target.value)}
                     type="time"
                     value={scheduleTime}
                   />
-                </label>
+                </Field>
               </div>
             ) : null}
           </div>
@@ -961,18 +1165,21 @@ function PreparedMessageBlock({
       </ConfirmationDialog>
       <ConfirmationDialog
         busy={api.draft.pending}
+        fallbackFocusRef={draftRecovery}
         busyLabel="Working…"
         confirmDisabled={!api.draft.preview}
         confirmLabel="Create this unsent draft"
         description="Review the exact unsent draft. Confirming creates it in the displayed managed mailbox. Nothing is sent; a person sends it from Gmail."
         onCancel={() => {
-          setDraftOpen(false);
+          closeDraft();
           api.draft.cancel();
         }}
+        onAfterClose={finishDraftRecovery}
         onConfirm={() => {
-          void api.draft.create().then(() => setDraftOpen(false));
+          void api.draft.create().then(closeDraft);
         }}
         open={draftOpen}
+        startWithReview
         title={staleDraft ? KICKOFF_WORDS.replaceDraft : KICKOFF_WORDS.createGmailDraft}
         triggerRef={trigger}
       >

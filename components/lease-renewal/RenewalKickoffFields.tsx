@@ -6,9 +6,11 @@
 // visible entry and is never replaced by a later proposal (AC-S249-5); a prefilled figure is a
 // proposal until the staff member sends or types.
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
-import { Button } from "@/components/ui";
+import { Button, Field } from "@/components/ui";
+import { AUTOSAVE_IDLE, AutosaveStatus, withEdited } from "./AutosaveStatus";
+import { useWorkingFieldEditor } from "./WorkingFieldEditor";
 import { formatUsd } from "@/lib/lease-renewal/owner-draft";
 import {
   KICKOFF_WORDS,
@@ -17,8 +19,12 @@ import {
 import { comparableDistanceLabel } from "@/lib/lease-renewal/comparable-presentation";
 import { parseOptionalCurrencyInput } from "@/lib/currency-input";
 import { workingRenewalTerms } from "@/lib/lease-renewal/working-record";
-import { focusRenewalDashboardControl } from "./RenewalDashboardNavigation";
+import {
+  focusRenewalDashboardControl,
+  isRenewalPresentationMove,
+} from "./RenewalDashboardNavigation";
 import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
+import { workingRecommendationBasis } from "@/lib/lease-renewal/kickoff-facts";
 
 export function PreparedNumbersCheck({
   preparation,
@@ -138,67 +144,104 @@ export function RentToRecommendField({
 }: Readonly<{ preparation: RenewalPreparation }>) {
   const working = useRenewalWorkingRecord();
   const id = "renewal-now-rent-to-recommend";
+  const input = useRef<HTMLInputElement>(null);
+  const editor = useWorkingFieldEditor(working, "terms_rent", input);
   const typed = workingRenewalTerms(working?.record ?? null).rent;
   const proposal = preparation.rent.origin !== "typed" ? preparation.rent : null;
   const shown = typed ?? proposal?.value ?? null;
   // What staff are typing; null while they are not, so the field follows the saved or proposed rent.
   const [draft, setDraft] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
-  const text = draft ?? (shown === null ? "" : String(shown));
-  const dirty = draft !== null;
+  const sharedDraft = editor.draft();
+  const text =
+    sharedDraft?.text ??
+    (editor.shared
+      ? shown === null
+        ? ""
+        : String(shown)
+      : (draft ?? (shown === null ? "" : String(shown))));
+  const dirty = editor.shared ? sharedDraft !== null : draft !== null;
   const basis =
     typed !== null
-      ? "Entered by staff. A later proposal never replaces it."
+      ? (workingRecommendationBasis(working?.record) ??
+        "Entered by staff. A later proposal never replaces it.")
       : proposal && proposal.value !== null
         ? `${proposal.basis} This is a proposal until you send or change it.`
         : preparation.rent.basis;
-  async function save() {
-    if (!working || !dirty) return;
-    const parsed = parseOptionalCurrencyInput(text);
+  async function save(value = text): Promise<boolean> {
+    if (editor.shared) value = editor.draft()?.text ?? value;
+    if (!working) return false;
+    if (!editor.dirty()) return true;
+    const generation = editor.version();
+    const parsed = parseOptionalCurrencyInput(value);
     if (!parsed.ok || parsed.value === undefined || parsed.value <= 0) {
       setNotice("Enter the monthly rent as 1500 or $1,500.00.");
-      return;
+      return false;
     }
-    if (typed !== null && Math.abs(parsed.value - typed) < 0.005) {
-      setDraft(null);
-      return;
+    if (
+      typed !== null &&
+      Math.abs(parsed.value - typed) < 0.005 &&
+      !["failed", "saving"].includes(working.states?.terms_rent?.phase ?? "idle")
+    ) {
+      if (editor.confirmed(generation)) setDraft(null);
+      return true;
     }
-    const saved = await working.save("terms_rent", parsed.value);
-    if (saved) {
+    const saved = await working.save("terms_rent", parsed.value, {
+      editorVersion: generation,
+    });
+    if (saved && editor.confirmed(generation)) {
       setDraft(null);
-      setNotice("Saved as the rent to recommend.");
-    } else
-      setNotice(
-        "The rent was not saved yet. Your entry is kept; leave the field to retry.",
-      );
+      setNotice("");
+    }
+    return saved;
   }
+  useLayoutEffect(() => {
+    editor.commit(() => save());
+  });
   return (
     <div
       className="ui-stack-tight renewal-now-rent"
       data-renewal-rent-origin={typed !== null ? "typed" : (proposal?.origin ?? "none")}
     >
-      <label htmlFor={id}>{KICKOFF_WORDS.rentToRecommend}</label>
-      <input
-        disabled={!working?.canEdit}
-        id={id}
-        inputMode="decimal"
-        onBlur={() => void save()}
-        onChange={(event) => {
-          setDraft(event.target.value);
-          setNotice("");
-        }}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") {
-            event.preventDefault();
-            void save();
-          }
-        }}
-        value={text}
-      />
+      <Field
+        htmlFor={id}
+        label={KICKOFF_WORDS.rentToRecommend}
+        required
+        error={notice || undefined}
+      >
+        <input
+          disabled={!working?.canEdit}
+          id={id}
+          required
+          ref={input}
+          inputMode="decimal"
+          onBlur={(event) => {
+            if (!isRenewalPresentationMove(event.relatedTarget)) void editor.flush();
+          }}
+          onChange={(event) => {
+            const value = event.target.value;
+            editor.edited(value);
+            editor.commit(() => save(value));
+            setDraft(value);
+            setNotice("");
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              void editor.flush();
+            }
+          }}
+          value={text}
+        />
+      </Field>
       <p className="muted" data-renewal-field="rent-basis">
         {basis}
       </p>
-      {notice ? <p role="status">{notice}</p> : null}
+      <AutosaveStatus
+        state={withEdited(working?.states?.terms_rent ?? AUTOSAVE_IDLE, dirty)}
+        subject={KICKOFF_WORDS.rentToRecommend}
+        onRetry={() => void editor.flush()}
+      />
     </div>
   );
 }

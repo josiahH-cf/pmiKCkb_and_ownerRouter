@@ -306,7 +306,7 @@ export default async function AdminPage() {
       }}
       user={user}
     >
-      <section className="content content--workspace">
+      <section className="content content--workspace" role="main">
         <h1 className="section-title">Admin</h1>
         <Link href="/admin/presentation">Business profiles and application name</Link>
         <AdminTaskIndex />

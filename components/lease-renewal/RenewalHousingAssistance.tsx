@@ -8,7 +8,7 @@
 // (R-S251-3) and is never written to RentVine or the operating Sheet. RentVine wording that
 // mentions housing assistance shows a suggestion and saves nothing (R-S251-10).
 
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 
 import { Button, Field } from "@/components/ui";
 import { formatBusinessTimestamp } from "@/lib/date-display";
@@ -26,6 +26,7 @@ import {
   type HousingAssistanceValue,
 } from "@/lib/lease-renewal/working-record";
 import { currentRentChoice } from "@/lib/lease-renewal/workspace-state";
+import { AUTOSAVE_IDLE, AutosaveStatus, withEdited } from "./AutosaveStatus";
 import { useRenewalManualWorkspace } from "./RenewalManualWorkspace";
 import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
 
@@ -89,26 +90,55 @@ export function HousingAssistanceField({
   );
   const [notes, setNotes] = useState(saved?.status === "yes" ? (saved.notes ?? "") : "");
   const [notice, setNotice] = useState("");
+  const [programTouched, setProgramTouched] = useState(false);
+  const [hasLocalEdit, setHasLocalEdit] = useState(false);
+  const editGeneration = useRef(0);
+  const savedGeneration = useRef(0);
+  const inFlight = useRef(0);
+  const saveTurn = useRef(0);
+  function edited() {
+    editGeneration.current++;
+    setHasLocalEdit(true);
+    setNotice("");
+  }
   // Adopt a newer saved value (the other placement, a reload) while nothing here is being typed.
   const [seen, setSeen] = useState(entry?.revision ?? 0);
   if ((entry?.revision ?? 0) !== seen) {
     setSeen(entry?.revision ?? 0);
-    setStatus(saved?.status ?? null);
-    setProgram(saved?.status === "yes" ? saved.program : "");
-    setContact(saved?.status === "yes" ? (saved.contact ?? "") : "");
-    setNotes(saved?.status === "yes" ? (saved.notes ?? "") : "");
+    if (!hasLocalEdit) {
+      setStatus(saved?.status ?? null);
+      setProgram(saved?.status === "yes" ? saved.program : "");
+      setContact(saved?.status === "yes" ? (saved.contact ?? "") : "");
+      setNotes(saved?.status === "yes" ? (saved.notes ?? "") : "");
+      setProgramTouched(false);
+    }
   }
   if (!working) return null;
   const state = working.states[FIELD];
   async function save(value: HousingAssistanceValue | null) {
     if (!working) return;
-    if (JSON.stringify(value) === JSON.stringify(saved)) return;
+    if (JSON.stringify(value) === JSON.stringify(saved) && inFlight.current === 0) {
+      savedGeneration.current = editGeneration.current;
+      setHasLocalEdit(false);
+      return;
+    }
+    const generation = editGeneration.current;
+    const turn = ++saveTurn.current;
+    inFlight.current++;
     const ok = await working.save(FIELD, value);
+    inFlight.current--;
+    if (ok) {
+      savedGeneration.current = Math.max(savedGeneration.current, generation);
+      setHasLocalEdit(editGeneration.current !== savedGeneration.current);
+    }
+    if (turn !== saveTurn.current) return;
     setNotice(
       ok
-        ? value === null
-          ? "Housing assistance cleared. Nothing else about the lease changed."
-          : "Housing assistance saved. Nothing was sent and no rent, charge or source changed."
+        ? generation !== editGeneration.current
+          ? ""
+          : value === null
+            ? "Housing assistance cleared for this lease."
+            : "Housing assistance saved for this lease."
         : "Housing assistance was not saved yet. Your entry is kept.",
     );
   }
@@ -121,6 +151,11 @@ export function HousingAssistanceField({
           ...(notes.trim() ? { notes: notes.trim() } : {}),
         }
       : null;
+  const displayed = status === "yes" ? yesValue() : status === "no" ? { status } : null;
+  const unsaved =
+    (status === "yes" && !program.trim()) ||
+    JSON.stringify(displayed) !== JSON.stringify(saved);
+  const autosave = withEdited(state ?? AUTOSAVE_IDLE, unsaved);
   return (
     <div
       className="ui-stack-tight renewal-housing-assistance"
@@ -152,6 +187,8 @@ export function HousingAssistanceField({
               name={`${id}-status`}
               onChange={() => {
                 setStatus(value);
+                edited();
+                setProgramTouched(false);
                 setNotice("");
                 if (value === "no") void save({ status: "no" });
               }}
@@ -164,17 +201,36 @@ export function HousingAssistanceField({
       </fieldset>
       {status === "yes" ? (
         <>
-          <Field htmlFor={`${id}-program`} label={HOUSING_ASSISTANCE_WORDS.program}>
+          <Field
+            htmlFor={`${id}-program`}
+            label={HOUSING_ASSISTANCE_WORDS.program}
+            required
+            hint={
+              !program.trim()
+                ? "Enter the program name to save Housing assistance as Yes."
+                : undefined
+            }
+            error={
+              programTouched && !program.trim()
+                ? "Enter a program name for this lease."
+                : undefined
+            }
+          >
             <input
               disabled={!working.canEdit}
               id={`${id}-program`}
               maxLength={120}
               onBlur={() => {
+                setProgramTouched(true);
                 const value = yesValue();
                 if (value) void save(value);
               }}
-              onChange={(event) => setProgram(event.target.value)}
+              onChange={(event) => {
+                edited();
+                setProgram(event.target.value);
+              }}
               value={program}
+              required
             />
           </Field>
           <Field htmlFor={`${id}-contact`} label={HOUSING_ASSISTANCE_WORDS.contact}>
@@ -186,7 +242,10 @@ export function HousingAssistanceField({
                 const value = yesValue();
                 if (value) void save(value);
               }}
-              onChange={(event) => setContact(event.target.value)}
+              onChange={(event) => {
+                edited();
+                setContact(event.target.value);
+              }}
               value={contact}
             />
           </Field>
@@ -199,7 +258,10 @@ export function HousingAssistanceField({
                 const value = yesValue();
                 if (value) void save(value);
               }}
-              onChange={(event) => setNotes(event.target.value)}
+              onChange={(event) => {
+                edited();
+                setNotes(event.target.value);
+              }}
               rows={2}
               value={notes}
             />
@@ -210,6 +272,7 @@ export function HousingAssistanceField({
         <p>
           <Button
             onClick={() => {
+              edited();
               setStatus(null);
               setProgram("");
               setContact("");
@@ -226,9 +289,31 @@ export function HousingAssistanceField({
       {attribution(entry) ? (
         <p className="muted working-field-attribution">{attribution(entry)}</p>
       ) : null}
-      {state?.phase === "failed" ? (
-        <p role="alert">{state.message ?? "The field was not saved."}</p>
+      {autosave.phase === "edited" ? (
+        <p role="status">Unsaved housing assistance edits</p>
       ) : null}
+      <AutosaveStatus
+        hideWhenIdle
+        onRetry={
+          working.canEdit && (status !== "yes" || program.trim())
+            ? () => {
+                const value =
+                  status === "yes"
+                    ? yesValue()
+                    : status === "no"
+                      ? { status: "no" as const }
+                      : null;
+                void save(value);
+              }
+            : undefined
+        }
+        state={
+          autosave.phase === "failed" || autosave.phase === "saving"
+            ? autosave
+            : AUTOSAVE_IDLE
+        }
+        subject="Housing assistance"
+      />
       {notice ? <p role="status">{notice}</p> : null}
     </div>
   );

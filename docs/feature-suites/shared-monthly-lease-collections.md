@@ -19,7 +19,7 @@ Existing managed staff with current Renewal Space access. Creation and membershi
 
 **What it is / how it functions.**
 
-1. **R-S201-1: Create a named reviewed monthly collection.** From accessible renewal results or explicit selection, let staff review the actual lease/cycle members and save a friendly name plus month/period and the source selection criteria/date field used. A query interpretation is visible before saving. Use stable lease/cycle identities, not row numbers, addresses alone or the wording of a prompt. Store only the collection context needed for renewal work, not a private transcript.
+1. **R-S201-1: Create a named reviewed monthly collection.** From accessible renewal results or explicit selection, let staff review the actual lease/cycle members and save a friendly name plus month/period and the source selection criteria/date field used. The collection name, Period from and Period through are marked required in both membership modes; a missing value is named beside its field before review, with focus on the first missing field and the entered selection retained. A query interpretation is visible before saving. Use stable lease/cycle identities, not row numbers, addresses alone or the wording of a prompt. Store only the collection context needed for renewal work, not a private transcript.
 
 2. **R-S201-2: Hold membership stable until explicit review.** Reopening or refreshing status never automatically adds/removes members. An explicit Refresh membership action computes a proposed difference against the recorded selection, shows additions/removals and requires staff confirmation before committing that new version. If the source read is incomplete, do not claim a complete difference or silently remove unseen members.
 

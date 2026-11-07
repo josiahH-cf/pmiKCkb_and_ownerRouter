@@ -3,7 +3,7 @@
 // working as they do today and are listed beside the new standing agreements on the Admin page.
 // Controlled UI transport only; every name, id and amount is synthetic.
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { OwnerPolicyRulesAdminPanel } from "@/components/admin/OwnerPolicyRulesAdminPanel";
@@ -68,6 +68,74 @@ afterEach(() => {
 });
 
 describe("S250 R-S250-9: existing records listed beside the new agreements", () => {
+  it("marks required agreement fields and focuses a plain inline error before any invalid save", async () => {
+    render(<OwnerPolicyRulesAdminPanel initialRules={[]} />);
+    const section = screen.getByRole("region", {
+      name: "Standing agreements by owner portfolio",
+    });
+    await within(section).findByRole("list", { name: "Recorded standing agreements" });
+    for (const label of [
+      "Agreement name",
+      "Pricing rule",
+      "RentVine portfolio ID",
+      "Takes effect",
+      "Who agreed",
+      "How they agreed",
+      "When they agreed",
+    ]) {
+      expect(within(section).getByLabelText(label)).toBeRequired();
+      expect(within(section).getByLabelText(label)).toHaveAttribute(
+        "aria-required",
+        "true",
+      );
+    }
+    const name = within(section).getByLabelText("Agreement name");
+    fireEvent.click(
+      within(section).getByRole("button", { name: "Save standing agreement" }),
+    );
+    expect(name).toHaveFocus();
+    expect(name).toHaveAttribute("aria-invalid", "true");
+    expect(within(section).getByText("Enter an agreement name.")).toBeVisible();
+    expect(within(section).getByText("Choose a pricing rule.")).toBeVisible();
+    expect(
+      within(section).getByText("Choose the date the agreement takes effect."),
+    ).toBeVisible();
+    fireEvent.change(name, { target: { value: "Synthetic agreement entry" } });
+    fireEvent.click(
+      within(section).getByRole("button", { name: "Save standing agreement" }),
+    );
+    expect(name).toHaveValue("Synthetic agreement entry");
+    expect(within(section).getByLabelText("Pricing rule")).toHaveFocus();
+    expect(vi.mocked(fetch).mock.calls.every((call) => !call[1]?.method)).toBe(true);
+    expect(section).not.toHaveTextContent("Invalid request body");
+  });
+
+  it("keeps an edited agreement and names the invalid portfolio without dispatching it", async () => {
+    render(<OwnerPolicyRulesAdminPanel initialRules={[]} />);
+    const section = screen.getByRole("region", {
+      name: "Standing agreements by owner portfolio",
+    });
+    const records = await within(section).findByRole("list", {
+      name: "Recorded standing agreements",
+    });
+    fireEvent.click(within(records).getByRole("button", { name: "Edit" }));
+    fireEvent.change(within(section).getByLabelText("RentVine portfolio ID"), {
+      target: { value: "portfolio" },
+    });
+    fireEvent.click(
+      within(section).getByRole("button", { name: "Save standing agreement" }),
+    );
+    expect(within(section).getByLabelText("RentVine portfolio ID")).toHaveFocus();
+    expect(
+      within(section).getByText(
+        "Enter a RentVine portfolio ID of 1 to 10 digits, starting with 1 to 9.",
+      ),
+    ).toBeVisible();
+    expect(within(section).getByLabelText("Agreement name")).toHaveValue(STANDING.name);
+    expect(within(section).getByLabelText("Who agreed")).toHaveValue(STANDING.agreedBy);
+    expect(vi.mocked(fetch).mock.calls.every((call) => !call[1]?.method)).toBe(true);
+  });
+
   it("lists the standing agreements, the exact per-cycle agreements and the older portfolio rules in one place", async () => {
     render(
       <OwnerPolicyRulesAdminPanel

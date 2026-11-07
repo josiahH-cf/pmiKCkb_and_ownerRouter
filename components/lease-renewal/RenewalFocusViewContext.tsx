@@ -17,7 +17,10 @@ import {
   isRenewalWorkspaceView,
   type RenewalWorkspaceView,
 } from "@/lib/lease-renewal/workspace-view";
-import { focusRenewalDashboardControl } from "./RenewalDashboardNavigation";
+import {
+  focusProgrammatically,
+  focusRenewalDashboardControl,
+} from "./RenewalDashboardNavigation";
 import { createFocusReveal, type FocusReveal } from "./renewal-focus-reveal";
 
 /**
@@ -45,6 +48,14 @@ interface FocusViewValue {
   readonly setSelectedActionId: (id: string | null) => void;
   readonly slot: HTMLElement | null;
   readonly setSlot: (element: HTMLElement | null) => void;
+  readonly nowSlot: HTMLElement | null;
+  readonly setNowSlot: (element: HTMLElement | null) => void;
+  readonly afterSlot: HTMLElement | null;
+  readonly setAfterSlot: (element: HTMLElement | null) => void;
+  readonly nowPresentation: { readonly stepId: string; readonly state: string } | null;
+  readonly setNowPresentation: (
+    value: { readonly stepId: string; readonly state: string } | null,
+  ) => void;
   /**
    * The one reveal over the workspace body, shared by Guided view and Focus view so the two never
    * hide and show the same regions against each other. Full view clears it.
@@ -65,12 +76,133 @@ export function useRenewalFocusView() {
 }
 
 const CONTINUITY_KEY = "renewal-lease-continuity";
+const MAIN_LANDMARK = 'main, [role="main"]';
 const interactions = ["wheel", "touchstart", "keydown", "mousedown"] as const;
 
 interface KeptPlace {
   readonly y?: unknown;
   readonly view?: unknown;
   readonly step?: unknown;
+  readonly typed?: unknown;
+}
+
+/** Field types whose typing a reload keeps; a password or a choice control is never kept. */
+const KEPT_INPUT_TYPES = new Set(["", "text", "search", "number", "tel", "url", "email"]);
+
+type TypedField = { readonly id: string; readonly name?: string; readonly value: string };
+type TextField = HTMLInputElement | HTMLTextAreaElement;
+
+function isTextField(element: Element | null): element is TextField {
+  return (
+    element instanceof HTMLTextAreaElement ||
+    (element instanceof HTMLInputElement && KEPT_INPUT_TYPES.has(element.type))
+  );
+}
+
+function fieldName(field: TextField): string {
+  const words = field.labels?.[0]?.textContent ?? field.getAttribute("aria-label") ?? "";
+  return words.replace(/\s+/g, " ").trim();
+}
+
+function usableField(field: TextField): boolean {
+  return (
+    !field.disabled &&
+    !field.readOnly &&
+    !field.closest("[hidden], [inert], [data-renewal-focus-hidden]")
+  );
+}
+
+/** A reload can change a React-generated id. A unique visible name keeps the same field. */
+function findTypedField(typed: TypedField): TextField | null {
+  const fields = [
+    ...document.querySelectorAll(`:is(${MAIN_LANDMARK}) :is(input, textarea)`),
+  ].filter(
+    (element): element is TextField => isTextField(element) && usableField(element),
+  );
+  if (!typed.name) return fields.find((field) => field.id === typed.id) ?? null;
+  const named = fields.filter((field) => fieldName(field) === typed.name);
+  if (named.length === 1) return named[0];
+  return named.find((field) => field.id === typed.id) ?? null;
+}
+
+/**
+ * R-S247-9: the typing in the field the person is still in when the page unloads. A field saves
+ * when it is left, and a reload does not leave it, so its words are kept in this tab with the
+ * place and put back as the same unsaved typing after the reload.
+ */
+function typedField(): TypedField | null {
+  const element = document.activeElement;
+  if (!isTextField(element) || !usableField(element) || !element.closest(MAIN_LANDMARK))
+    return null;
+  const name = fieldName(element);
+  if (!element.id && !name) return null;
+  return { id: element.id, name, value: element.value };
+}
+
+function isTypedField(value: unknown): value is TypedField {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as TypedField).id === "string" &&
+    ((value as TypedField).name === undefined ||
+      typeof (value as TypedField).name === "string") &&
+    typeof (value as TypedField).value === "string"
+  );
+}
+
+/**
+ * Put kept typing back into its field as the person's own entry, once the field is shown and the
+ * page has stopped filling it. A field the person changes first, or one that already reads the
+ * same words, is left alone. Returns a function that stops waiting.
+ */
+function restoreTypedField(typed: TypedField): () => void {
+  const startedAt = Date.now();
+  let seenAt: number | null = null;
+  let seenValue: string | null = null;
+  let timer: number | null = null;
+  const stop = () => {
+    if (timer !== null) window.clearTimeout(timer);
+    timer = null;
+    document.removeEventListener("input", entry, true);
+    document.removeEventListener("keydown", stop, true);
+    document.removeEventListener("pointerdown", stop, true);
+  };
+  const entry = (event: Event) => {
+    if (event.target instanceof Element && findTypedField(typed) === event.target) stop();
+  };
+  // A person who resumes work first keeps their newer entry and focus.
+  document.addEventListener("input", entry, true);
+  document.addEventListener("keydown", stop, true);
+  document.addEventListener("pointerdown", stop, true);
+  timer = window.setTimeout(function check() {
+    timer = null;
+    const field = findTypedField(typed);
+    const now = Date.now();
+    if (field) {
+      if (field.value === typed.value) return stop();
+      if (seenValue !== field.value) {
+        // The page is still filling the field; wait until it holds still.
+        seenValue = field.value;
+        seenAt = now;
+      } else if (seenAt !== null && now - seenAt >= 1000) {
+        const prototype =
+          field instanceof HTMLTextAreaElement
+            ? HTMLTextAreaElement.prototype
+            : HTMLInputElement.prototype;
+        Object.getOwnPropertyDescriptor(prototype, "value")?.set?.call(
+          field,
+          typed.value,
+        );
+        stop();
+        field.dispatchEvent(new Event("input", { bubbles: true }));
+        focusProgrammatically(field);
+        return;
+      }
+    }
+    if (now - startedAt < 20_000) timer = window.setTimeout(check, 250);
+    else stop();
+  }, 250);
+  return stop;
 }
 
 /** The place this tab kept on unload, taken once, and only on a reload of the same address. */
@@ -110,6 +242,22 @@ export function RenewalFocusViewProvider({
   const [view, setViewState] = useState<RenewalWorkspaceView>(initialView);
   const [selectedActionId, setSelectedActionId] = useState<string | null>(null);
   const [slot, setSlot] = useState<HTMLElement | null>(null);
+  const [nowSlot, setNowSlot] = useState<HTMLElement | null>(null);
+  const [afterSlot, setAfterSlot] = useState<HTMLElement | null>(null);
+  const [nowPresentation, setNowPresentationState] = useState<{
+    readonly stepId: string;
+    readonly state: string;
+  } | null>(null);
+  const setNowPresentation = useCallback(
+    (next: { readonly stepId: string; readonly state: string } | null) => {
+      setNowPresentationState((previous) =>
+        previous?.stepId === next?.stepId && previous?.state === next?.state
+          ? previous
+          : next,
+      );
+    },
+    [],
+  );
   const current = useRef<RenewalWorkspaceView>(initialView);
   const scrollY = useRef<number | null>(null);
   const fullTarget = useRef<string | null>(null);
@@ -206,6 +354,7 @@ export function RenewalFocusViewProvider({
             y: window.scrollY,
             view: current.current,
             step: stepRef.current,
+            typed: typedField(),
           }),
         );
       } catch {
@@ -214,6 +363,7 @@ export function RenewalFocusViewProvider({
     };
     let timer: number | null = null;
     let release: (() => void) | null = null;
+    let releaseTyped: (() => void) | null = null;
     // Read once per page: a mount that runs again (React's development double mount) reads the
     // same kept place instead of finding it already taken.
     if (kept.current === undefined) kept.current = readKeptPlace(here());
@@ -254,11 +404,13 @@ export function RenewalFocusViewProvider({
         release = stop;
         hold();
       }
+      if (isTypedField(saved.typed)) releaseTyped = restoreTypedField(saved.typed);
     }
     window.addEventListener("pagehide", save);
     return () => {
       window.removeEventListener("pagehide", save);
       release?.();
+      releaseTyped?.();
     };
     // Mount only.
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -271,6 +423,12 @@ export function RenewalFocusViewProvider({
       setSelectedActionId,
       slot,
       setSlot,
+      nowSlot,
+      setNowSlot,
+      afterSlot,
+      setAfterSlot,
+      nowPresentation,
+      setNowPresentation,
       applyReveal,
       explicitView,
       rememberStep,
@@ -282,6 +440,10 @@ export function RenewalFocusViewProvider({
       showInFull,
       selectedActionId,
       slot,
+      nowSlot,
+      afterSlot,
+      nowPresentation,
+      setNowPresentation,
       applyReveal,
       explicitView,
       rememberStep,
@@ -296,6 +458,16 @@ const ANNOUNCEMENTS: Record<RenewalWorkspaceView, string> = {
   focus: "Focus view: one task at a time. Full view keeps every section.",
   full: "Full view: every section of this lease.",
 };
+
+/** Guided view names the stage once. The older summary statuses remain in Focus and Full view. */
+export function RenewalSecondaryStatus({ children }: Readonly<{ children: ReactNode }>) {
+  const context = useRenewalFocusView();
+  return (
+    <span hidden={context?.view === "guided"} data-renewal-secondary-status>
+      {children}
+    </span>
+  );
+}
 
 /** The accessible lease-level switch, rendered in the workspace toolbar in every view. */
 export function RenewalFocusViewSwitch({
@@ -337,14 +509,61 @@ export function RenewalFocusViewSwitch({
   );
 }
 
-/** The Guided or Focus pane's place at the top of the workspace body; absent in Full view. */
-export function RenewalFocusViewSlot() {
+/**
+ * S247: the existing controls stay at one stable React/DOM position in all three views. Guided
+ * puts its header before them and its Now introduction above them in one visual and named card.
+ * Full and Focus use transparent wrappers, keeping their layout and the controls' unsaved state.
+ */
+export function RenewalFocusViewSlot({
+  children,
+  enabled = true,
+}: Readonly<{ children?: ReactNode; enabled?: boolean }>) {
   const context = useRenewalFocusView();
   const setSlot = context?.setSlot;
+  const setNowSlot = context?.setNowSlot;
+  const setAfterSlot = context?.setAfterSlot;
   const attach = useCallback(
     (element: HTMLDivElement | null) => setSlot?.(element),
     [setSlot],
   );
-  if (!context || context.view === "full") return null;
-  return <div className="renewal-focus-slot" data-renewal-view-switch ref={attach} />;
+  const attachNow = useCallback(
+    (element: HTMLDivElement | null) => setNowSlot?.(element),
+    [setNowSlot],
+  );
+  const attachAfter = useCallback(
+    (element: HTMLDivElement | null) => setAfterSlot?.(element),
+    [setAfterSlot],
+  );
+  if (!context || !enabled) return <>{children}</>;
+  const guided = context.view === "guided";
+  return (
+    <div
+      aria-label={guided ? "Guided view" : undefined}
+      className={guided ? "panel ui-stack renewal-guided" : "renewal-preserved-workspace"}
+      data-renewal-guided={guided ? true : undefined}
+      role={guided ? "region" : undefined}
+    >
+      <div
+        className={guided ? "ui-stack renewal-guided-header" : "renewal-focus-slot"}
+        data-renewal-view-switch
+        ref={attach}
+      />
+      <div
+        aria-busy={guided && !context.nowPresentation ? true : undefined}
+        aria-label={guided ? "Now" : undefined}
+        className={guided ? "ui-stack renewal-now-card" : "renewal-preserved-workspace"}
+        data-renewal-now-state={guided ? context.nowPresentation?.state : undefined}
+        data-renewal-now-step={guided ? context.nowPresentation?.stepId : undefined}
+        role={guided ? "region" : undefined}
+      >
+        <div className="ui-stack renewal-now-intro" ref={attachNow} />
+        {children}
+      </div>
+      <div
+        className="ui-stack renewal-guided-after"
+        data-renewal-presentation-control
+        ref={attachAfter}
+      />
+    </div>
+  );
 }

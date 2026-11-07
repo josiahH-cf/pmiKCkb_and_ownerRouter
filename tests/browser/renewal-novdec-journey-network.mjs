@@ -47,6 +47,7 @@ const LEASES = [
       startDate: "2025-12-01",
       endDate: "2026-11-30",
       leaseType: "Fixed Term",
+      leaseStatusID: 1,
       tenants: [{ name: "Sam Example" }, { name: "Riley Example" }],
     },
     property: {
@@ -64,6 +65,7 @@ const LEASES = [
       startDate: "2026-01-01",
       endDate: "2026-12-31",
       leaseType: "Fixed Term",
+      leaseStatusID: 1,
       // S233 R-S233-9: a verified tenancy (unit and tenant contact ids), so notice safety can read
       // ready and the owner composer's Schedule reaches the server.
       tenants: [{ name: "Casey Example", contactID: 7001 }],
@@ -155,6 +157,7 @@ function rentvine(url) {
         leaseStatus: {
           leaseStatusID: 1,
           name: "Active",
+          primaryLeaseStatusID: 2,
           isPendingMoveOutStatus: 0,
           isCompletedMoveOutStatus: 0,
         },
@@ -162,6 +165,7 @@ function rentvine(url) {
       {
         leaseStatus: {
           leaseStatusID: 2,
+          primaryLeaseStatusID: 2,
           name: "Notice Given",
           isPendingMoveOutStatus: 1,
           isCompletedMoveOutStatus: 0,
@@ -408,10 +412,13 @@ globalThis.fetch = async function guardedFetch(input, init) {
 // Any other client (gRPC, Google auth, metadata server) reaches the network through a socket.
 const connect = net.Socket.prototype.connect;
 net.Socket.prototype.connect = function guardedConnect(...args) {
+  // net.createConnection forwards Node's normalized [options, callback] array to Socket.connect.
+  // Inspect its actual destination before the original implementation can begin DNS or connect.
+  const first = Array.isArray(args[0]) ? args[0][0] : args[0];
   const options =
-    typeof args[0] === "object" && args[0] !== null
-      ? args[0]
-      : { port: args[0], host: args[1] };
+    typeof first === "object" && first !== null
+      ? first
+      : { port: first, host: typeof args[1] === "string" ? args[1] : undefined };
   const host = options.host ?? options.path ?? "localhost";
   if (!options.path && !loopback(String(host))) {
     record({ refused: "socket", host: String(host), port: options.port ?? null });
@@ -422,3 +429,10 @@ net.Socket.prototype.connect = function guardedConnect(...args) {
   }
   return connect.apply(this, args);
 };
+
+if (
+  globalThis.fetch?.name !== "guardedFetch" ||
+  net.Socket.prototype.connect.name !== "guardedConnect"
+)
+  throw new Error("The rehearsal network guard could not be installed.");
+record({ event: "network_guard_ready" });

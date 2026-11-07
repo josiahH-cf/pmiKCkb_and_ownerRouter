@@ -9,10 +9,11 @@ import {
   useMemo,
   useRef,
   useState,
+  type MouseEvent,
 } from "react";
 import { createPortal } from "react-dom";
 
-import { Button, ConfirmationDialog } from "@/components/ui";
+import { Button, ConfirmationDialog, Field } from "@/components/ui";
 import { formatCalendarDate } from "@/lib/date-display";
 import { RENEWAL_DASHBOARD_SECTIONS } from "@/lib/lease-renewal/dashboard-sections";
 import {
@@ -44,6 +45,7 @@ import {
   PricingBasisChooser,
   StandingAgreementSummary,
   StandingRuleNotice,
+  showsPricingBasisOnNow,
   standingAuthorityCurrent,
   useRenewalPricingPolicy,
 } from "./RenewalPricingPolicy";
@@ -169,11 +171,13 @@ export function RenewalGuidedView({
   // The step shown: one chosen on this page, else the one a reload returns to (R-S247-9), else
   // the one the address names (an older `step` value names the path step that holds it,
   // R-S247-11), else the current step.
-  const [chosen, setChosen] = useState<RenewalPathStepId | null>(null);
+  const [chosen, setChosen] = useState<RenewalPathStepId | "follow-current" | null>(null);
   const preferred =
-    chosen ??
-    pathStepForLinkStep(view?.restoredStep ?? null) ??
-    pathStepForLinkStep(selectedStepId);
+    chosen === "follow-current"
+      ? null
+      : (chosen ??
+        pathStepForLinkStep(view?.restoredStep ?? null) ??
+        pathStepForLinkStep(selectedStepId));
   // S251: on an assisted lease Ask the owner is not part of the path until Propose a change;
   // a link to it opens the step that holds the owner message there, the renewing question.
   const linked =
@@ -183,6 +187,23 @@ export function RenewalGuidedView({
     stage.steps.some((step) => step.id === "assisted-owner-renewal-answer")
       ? "assisted-owner-renewal-answer"
       : preferred;
+  const [priorStep, setPriorStep] = useState({
+    current: stage.currentStepId,
+    linked,
+  });
+  if (priorStep.current !== stage.currentStepId || priorStep.linked !== linked) {
+    // A link or restored choice that was showing the then-current step follows its progress.
+    // A deliberate inspection of some other step stays available in any order.
+    const followsProgress =
+      priorStep.current !== stage.currentStepId &&
+      priorStep.linked === priorStep.current &&
+      linked === priorStep.linked;
+    if (followsProgress) setChosen("follow-current");
+    setPriorStep({
+      current: stage.currentStepId,
+      linked: followsProgress ? null : linked,
+    });
+  }
   const shownId =
     linked && stage.steps.some((step) => step.id === linked)
       ? linked
@@ -193,21 +214,39 @@ export function RenewalGuidedView({
   }, [rememberStep, preferred]);
   const shown = stage.steps.find((step) => step.id === shownId) ?? stage.steps[0]!;
   const guided = view?.view === "guided";
+  const setNowPresentation = view?.setNowPresentation;
+  useLayoutEffect(() => {
+    if (!guided || !setNowPresentation) return;
+    setNowPresentation({ stepId: shown.id, state: shown.state });
+    return () => setNowPresentation(null);
+  }, [guided, setNowPresentation, shown.id, shown.state]);
   const heading = useRef<HTMLHeadingElement | null>(null);
   const pendingFocus = useRef<string | null>(null);
   const focusHeading = useRef(false);
   const [announcement, setAnnouncement] = useState("");
 
-  const choose = useCallback((id: RenewalPathStepId) => {
-    focusHeading.current = true;
-    setChosen(id);
-  }, []);
+  const choose = useCallback(
+    (id: RenewalPathStepId) => {
+      focusHeading.current = true;
+      setChosen(id === stage.currentStepId ? "follow-current" : id);
+    },
+    [stage.currentStepId],
+  );
+  const previouslyRevealed = useRef<RenewalPathStepId | null>(null);
 
   // Reveal the shown step's existing controls in place; everything else stays mounted, hidden.
   useLayoutEffect(() => {
     if (!guided || !view?.slot) return;
     const body = view.slot.parentElement;
     if (!body) return;
+    const previous = previouslyRevealed.current;
+    previouslyRevealed.current = shown.id;
+    const oldFocus = document.activeElement;
+    const focusedOldWork =
+      previous !== null &&
+      previous !== shown.id &&
+      oldFocus instanceof HTMLElement &&
+      view.nowSlot?.parentElement?.contains(oldFocus);
     const contexts = [
       ...body.querySelectorAll<HTMLElement>("[data-renewal-focus-context]"),
     ].filter(
@@ -221,7 +260,14 @@ export function RenewalGuidedView({
       .filter(
         (element): element is HTMLElement => element !== null && body.contains(element),
       );
-    view.applyReveal([view.slot, ...contexts, ...targets]);
+    view.applyReveal([
+      view.slot,
+      ...[view.nowSlot, view.afterSlot].filter(
+        (element): element is HTMLElement => element !== null,
+      ),
+      ...contexts,
+      ...targets,
+    ]);
     if (pendingFocus.current) {
       const id = pendingFocus.current;
       pendingFocus.current = null;
@@ -229,6 +275,8 @@ export function RenewalGuidedView({
     } else if (focusHeading.current) {
       focusHeading.current = false;
       if (heading.current) focusProgrammatically(heading.current);
+    } else if (focusedOldWork && oldFocus.closest("[hidden]") && heading.current) {
+      focusProgrammatically(heading.current);
     }
   });
 
@@ -254,7 +302,7 @@ export function RenewalGuidedView({
       const owner = stepOwning(stage.steps, element);
       if (owner) {
         pendingFocus.current = id;
-        setChosen(owner.id);
+        setChosen(owner.id === stage.currentStepId ? "follow-current" : owner.id);
       } else view.showInFull(id);
     };
     document.addEventListener(RENEWAL_FOCUS_REQUEST_EVENT, onRequest);
@@ -307,6 +355,7 @@ function GuidedPane({
   showInFull: (id: string | null) => void;
   stage: RenewalStage;
 }>) {
+  const view = useRenewalFocusView();
   // S249 R-S249-1 (D-OP-7): where the numbers check states "Numbers agree" on RentVine, an
   // operating Sheet difference is information on that check, never a second item to work.
   const alsoNeedsYou = facts.advisories.filter(
@@ -317,12 +366,7 @@ function GuidedPane({
       ),
   );
   return (
-    <section
-      aria-label="Guided view"
-      className="panel ui-stack renewal-guided"
-      data-renewal-guided
-      data-renewal-presentation-control
-    >
+    <>
       <p
         className="renewal-guided-stage"
         data-renewal-field="stage-line"
@@ -380,65 +424,80 @@ function GuidedPane({
           ))}
         </ol>
       </nav>
-      <NowCard
-        canEdit={canEdit}
-        choose={choose}
-        context={context}
-        heading={heading}
-        leaseId={leaseId}
-        shown={shown}
-        stage={stage}
-      />
-      {alsoNeedsYou.length > 0 ? (
-        <section
-          aria-label="Also needs you"
-          className="ui-stack-tight renewal-also-needs"
-        >
-          <h3 className="renewal-focus-group">Also needs you</h3>
-          <ul>
-            {alsoNeedsYou.map((advisory) => (
-              <li data-renewal-issue-id={advisory.id} key={advisory.id}>
-                <span className="renewal-issue-kind">{advisory.kindLabel}:</span>{" "}
-                {advisory.reason}{" "}
-                <button
-                  className="text-link"
-                  onClick={() =>
-                    advisory.id === "advisory:current_rent_sources"
-                      ? choose("check-numbers")
-                      : showInFull(issueTarget(advisory.issue))
-                  }
-                  type="button"
+      {view?.nowSlot
+        ? createPortal(
+            <NowCard
+              canEdit={canEdit}
+              choose={choose}
+              context={context}
+              heading={heading}
+              leaseId={leaseId}
+              shown={shown}
+              stage={stage}
+            />,
+            view.nowSlot,
+          )
+        : null}
+      {view?.afterSlot
+        ? createPortal(
+            <>
+              {alsoNeedsYou.length > 0 ? (
+                <section
+                  aria-label="Also needs you"
+                  className="ui-stack-tight renewal-also-needs"
                 >
-                  Work on this
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-      <nav aria-label="Every section in Full view" className="renewal-guided-sections">
-        <h3 className="renewal-focus-group">Every section in Full view</h3>
-        <ul className="ui-row">
-          {RENEWAL_DASHBOARD_SECTIONS.map((section) => (
-            <li key={section.id}>
-              <a
-                className="text-link renewal-workspace-link"
-                href={`#renewal-section-${section.id}`}
-                onClick={(event) => {
-                  event.preventDefault();
-                  showInFull(`renewal-section-${section.id}`);
-                }}
+                  <h3 className="renewal-focus-group">Also needs you</h3>
+                  <ul>
+                    {alsoNeedsYou.map((advisory) => (
+                      <li data-renewal-issue-id={advisory.id} key={advisory.id}>
+                        <span className="renewal-issue-kind">{advisory.kindLabel}:</span>{" "}
+                        {advisory.reason}{" "}
+                        <button
+                          className="text-link"
+                          onClick={() =>
+                            advisory.id === "advisory:current_rent_sources"
+                              ? choose("check-numbers")
+                              : showInFull(issueTarget(advisory.issue))
+                          }
+                          type="button"
+                        >
+                          Work on this
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ) : null}
+              <nav
+                aria-label="Every section in Full view"
+                className="renewal-guided-sections"
               >
-                {section.label}
-              </a>
-            </li>
-          ))}
-        </ul>
-      </nav>
-      <p aria-live="polite" className="sr-only" role="status">
-        {announcement}
-      </p>
-    </section>
+                <h3 className="renewal-focus-group">Every section in Full view</h3>
+                <ul className="ui-row">
+                  {RENEWAL_DASHBOARD_SECTIONS.map((section) => (
+                    <li key={section.id}>
+                      <a
+                        className="text-link renewal-workspace-link"
+                        href={`#renewal-section-${section.id}`}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          showInFull(`renewal-section-${section.id}`);
+                        }}
+                      >
+                        {section.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+              <p aria-live="polite" className="sr-only" role="status">
+                {announcement}
+              </p>
+            </>,
+            view.afterSlot,
+          )
+        : null}
+    </>
   );
 }
 
@@ -467,6 +526,7 @@ function NowCard({
   const state = manual?.state ?? null;
   const definition = RENEWAL_PATH_DEFINITION[shown.id];
   const isCurrent = shown.id === stage.currentStepId;
+  const coveredOwnerStep = shown.id === "ask-owner" && shown.state === "covered";
   const audience =
     shown.id === "ask-owner" ? "owner" : shown.id === "offer-tenant" ? "tenant" : null;
   const evidence = audience ? stage.evidence[audience] : null;
@@ -481,6 +541,24 @@ function NowCard({
   const operation = useRef(new Map<string, string>());
   const reasonId = useId();
   const confirmTrigger = useRef<HTMLButtonElement | null>(null);
+  const correctionTrigger = useRef<HTMLButtonElement | null>(null);
+  const reasonField = useRef<HTMLTextAreaElement | null>(null);
+  const correctionExit = useRef<"trigger" | "heading" | null>(null);
+  useLayoutEffect(() => {
+    if (correcting) {
+      if (reasonField.current) focusProgrammatically(reasonField.current);
+      return;
+    }
+    const exit = correctionExit.current;
+    correctionExit.current = null;
+    const target =
+      exit === "heading"
+        ? heading.current
+        : exit === "trigger"
+          ? correctionTrigger.current
+          : null;
+    if (target) focusProgrammatically(target);
+  }, [correcting, heading]);
   const operationId = (key: string) => {
     let id = operation.current.get(key);
     if (!id) {
@@ -554,7 +632,9 @@ function NowCard({
     shown.state === "waiting" && audience && !shown.scheduled
       ? { label: "Record what happened", target: `renewal-manual-${audience}_response` }
       : null;
-  const primary = blocker ?? shown.primary ?? recordWhatHappened ?? definition.primary;
+  const primary = coveredOwnerStep
+    ? { label: "Continue to Offer the tenant", target: "renewal-step-tenant-decision" }
+    : (blocker ?? shown.primary ?? recordWhatHappened ?? definition.primary);
   // S252 (L36): an observed owner reply makes "Record the owner's decision" the step's action;
   // the decision is recorded here on the Now card, with nothing preselected.
   const replyDecision =
@@ -575,9 +655,13 @@ function NowCard({
     !blocker &&
     (shown.state === "current" || shown.state === "open") &&
     shown.primary?.label === definition.primary.label;
-  const runPrimary = () => {
+  const runPrimary = (event: MouseEvent<HTMLButtonElement>) => {
+    if (coveredOwnerStep) {
+      choose("offer-tenant");
+      return;
+    }
     if (fillerActive && filler) {
-      filler.run();
+      filler.run(event.currentTarget);
       return;
     }
     if (!primary) return;
@@ -586,8 +670,9 @@ function NowCard({
       else focusControl(blocker.target);
       return;
     }
-    if (primary.label === "Continue to Compare market rent") {
-      choose("compare-market");
+    // S254 L49: the agreed numbers continue to the next step on this lease's own path.
+    if (shown.primary?.continueTo) {
+      choose(shown.primary.continueTo);
       return;
     }
     if (
@@ -626,13 +711,7 @@ function NowCard({
   };
 
   return (
-    <section
-      aria-label="Now"
-      className="ui-stack renewal-now-card"
-      data-renewal-now-state={shown.state}
-      data-renewal-now-step={shown.id}
-      role="region"
-    >
+    <>
       <h2
         className="section-subtitle"
         id="renewal-now-heading"
@@ -641,14 +720,6 @@ function NowCard({
       >
         {isCurrent ? `Now: ${shown.label}` : shown.label}
       </h2>
-      {isCurrent ? (
-        <p data-renewal-field="next-step">Next step: {stage.nextStep.label}</p>
-      ) : null}
-      {shown.state === "not_part" ? (
-        <p data-renewal-field="not-part">{NOT_PART_OF_PATH_LABEL}.</p>
-      ) : shown.detail ? (
-        <p data-renewal-field="now-detail">{shown.detail}</p>
-      ) : null}
       {shown.state === "waiting" && isCurrent && stage.waiting ? (
         <p data-renewal-field="waiting">{renewalStageWaitingLine(stage.waiting)}</p>
       ) : null}
@@ -669,6 +740,7 @@ function NowCard({
           <Button
             busy={busy || (fillerActive && filler?.busy === true)}
             data-renewal-now-primary
+            data-renewal-now-target={fillerActive ? undefined : primary.target}
             disabled={busy || (fillerActive && filler?.disabled === true)}
             onClick={runPrimary}
             ref={confirmTrigger}
@@ -686,6 +758,26 @@ function NowCard({
           ) : null}
         </p>
       ) : null}
+      <p data-renewal-field="next-step">
+        Next step: {stage.nextStep.label}
+        {!isCurrent ? (
+          <>
+            {" "}
+            <button
+              className="text-link"
+              onClick={() => choose(stage.currentStepId)}
+              type="button"
+            >
+              Show current step
+            </button>
+          </>
+        ) : null}
+      </p>
+      {shown.state === "not_part" ? (
+        <p data-renewal-field="not-part">{NOT_PART_OF_PATH_LABEL}.</p>
+      ) : shown.detail ? (
+        <p data-renewal-field="now-detail">{shown.detail}</p>
+      ) : null}
       {replyDecision && manual ? (
         <RenewalOwnerDecisionFromReply
           choices={replyDecision}
@@ -697,11 +789,19 @@ function NowCard({
         <dl className="renewal-now-facts">
           <div>
             <dt>Ready</dt>
-            <dd>{definition.ready}</dd>
+            <dd>
+              {coveredOwnerStep
+                ? "The owner's agreement covers the recommended rent."
+                : definition.ready}
+            </dd>
           </div>
           <div>
             <dt>You decide</dt>
-            <dd>{definition.decides}</dd>
+            <dd>
+              {coveredOwnerStep
+                ? "Continue with the tenant offer at the agreement's rent, or change Pricing basis."
+                : definition.decides}
+            </dd>
           </div>
         </dl>
       ) : null}
@@ -765,8 +865,7 @@ function NowCard({
       ) : null}
       {/* S250 R-S250-3 / R-S250-8: the pricing basis where the rent and the owner's decision are
           worked: the agreement in force, a message built on an earlier rule, and the chooser. */}
-      {(shown.id === "compare-market" || shown.id === "ask-owner") &&
-      shown.state !== "not_part" ? (
+      {showsPricingBasisOnNow({ stepId: shown.id, state: shown.state }) ? (
         <div className="ui-stack-tight" data-renewal-now-pricing-basis>
           <StandingAgreementSummary />
           <StandingRuleNotice />
@@ -783,6 +882,7 @@ function NowCard({
               <button
                 className="text-link"
                 onClick={() => setCorrecting(true)}
+                ref={correctionTrigger}
                 type="button"
               >
                 {RENEWAL_STAGE_NEXT_STEP.notOutreach}
@@ -791,10 +891,12 @@ function NowCard({
           ) : null}
           {correcting ? (
             <form
+              aria-busy={busy || undefined}
               className="ui-stack-tight"
               onSubmit={(event) => {
                 event.preventDefault();
-                if (!reason.trim()) return;
+                if (busy || !reason.trim()) return;
+                const form = event.currentTarget;
                 void post(
                   {
                     operation: "correct_outreach",
@@ -810,32 +912,45 @@ function NowCard({
                   "Removed: that message no longer counts as the renewal outreach. The record stays in its history.",
                 ).then((ok) => {
                   if (ok) {
+                    if (form.contains(document.activeElement))
+                      correctionExit.current = "heading";
                     setCorrecting(false);
                     setReason("");
                   }
                 });
               }}
             >
-              <label htmlFor={reasonId}>Why this was not the renewal outreach</label>
-              <textarea
-                id={reasonId}
-                maxLength={500}
-                onChange={(event) => setReason(event.target.value)}
+              <Field
+                htmlFor={reasonId}
+                label="Why this was not the renewal outreach"
                 required
-                rows={2}
-                value={reason}
-              />
+              >
+                <textarea
+                  maxLength={500}
+                  onChange={(event) => setReason(event.target.value)}
+                  readOnly={busy}
+                  ref={reasonField}
+                  required
+                  rows={2}
+                  value={reason}
+                />
+              </Field>
               <div className="ui-row">
                 <Button
-                  disabled={busy || !reason.trim()}
+                  aria-disabled={busy || undefined}
+                  disabled={!reason.trim()}
                   size="compact"
                   type="submit"
                   variant="secondary"
                 >
-                  Remove the derived record
+                  {busy ? "Removing the record..." : "Remove the derived record"}
                 </Button>
                 <Button
-                  onClick={() => setCorrecting(false)}
+                  disabled={busy}
+                  onClick={() => {
+                    correctionExit.current = "trigger";
+                    setCorrecting(false);
+                  }}
                   size="compact"
                   variant="tertiary"
                 >
@@ -960,6 +1075,6 @@ function NowCard({
           you can reopen it from the lease.
         </p>
       </ConfirmationDialog>
-    </section>
+    </>
   );
 }

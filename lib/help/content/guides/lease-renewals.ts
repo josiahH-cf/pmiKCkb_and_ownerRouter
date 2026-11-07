@@ -76,7 +76,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         route: DESK,
         where: "Renewals desk, This batch",
         result:
-          "The lease opens in this tab in Guided view at its current step: the stage line says who it waits on and since when, the Renewal path names each step, and the Now card holds the one next action. ← Back to renewals returns to the same month, group and place.",
+          "The lease opens in this tab in Guided view at its current step: the stage line says who it waits on and since when, the Renewal path names each step, and the Now card shows its primary action after the heading and any alert, followed by the supporting next-step and detail text. ← Back to renewals returns to the same month, group and place.",
         effect: "reads",
         note: "Each row shows the address and unit, the tenant names, the end date, one stage line, one next step link and at most three tags, such as Standing agreement or Housing assistance. A missing input is named on the row and opens the lease where it is fixed.",
       },
@@ -95,7 +95,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         route: LEASE,
         where: "Lease page, Guided view, under the stage line",
         result:
-          "On a prepared lease Check the numbers and Compare market rent read Done and the Now card is on Ask the owner. Choosing a step shows it in the Now card, and any step can be worked while an earlier one is open. Choosing a step saves nothing.",
+          "On a prepared lease Check the numbers and Compare market rent read Done and the Now card is on Ask the owner. Choosing a step shows it in the Now card, and any step can be worked while an earlier one is open. Choosing a step saves nothing. While you inspect another step, Next step names the current work and Show current step takes you there.",
         effect: "reads",
         note: "Check the numbers states Numbers agree on RentVine, or names the one difference to settle with its fix; an operating Sheet value shows there only when it differs.",
       },
@@ -116,7 +116,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "The preview is the message exactly as the owner receives it, and What sending needs lists each input as Ready or names what is missing with its fix. A stored comparison is reused, so reaching the message needs no second comparison.",
         effect: "reads",
-        note: "Changing Rent to recommend or Reason to include is optional and updates the same preview. Schedule, Create Gmail draft instead, Copy and Open in Communications show the same message. A lease with no rent to recommend asks for one here before Send.",
+        note: "Changing Rent to recommend or Reason to include is optional and updates the same preview. Rent to recommend shows its save state and offers Try again after a failed save. Retry keeps keyboard focus while saving and becomes available again if saving fails. Review, Schedule, Create Gmail draft instead and Open in Communications wait for their entered working figures to save. A failure keeps the entry and brings its field and nearby retry into view; its refusal clears when that field is confirmed. A Gmail preview that needs an entered figure closes its empty dialog before returning focus to that field. A loading preview keeps focus inside its dialog. A long review opens at its message details. Cancel or Escape closes a ready review and returns focus to its action. If figures change while Review loads, choose Review and send again to review the current message. Copy keeps the displayed bytes and says when working figures were unconfirmed. A lease with no rent to recommend asks for one here before Send. A missing owner recipient's fix shows its reasons and source record links; when only the lease record is available, open its owner record there and refresh this lease after saving. A missing template's fix shows its publication status for the Approver handoff. Set up your signature opens one form with Sender name required. Full view keeps the full managed signature editor.",
       },
       {
         id: "review-and-send",
@@ -150,7 +150,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "Once Gmail accepts the message, the lease reads Waiting on owner response on its page and its desk row with nothing more to enter, and its outreach record names the message, the time and the sender it came from.",
         effect: "explicit-send",
-        note: "Schedule opens Review and schedule, where Schedule this message sets the date and time. Create Gmail draft instead makes an unsent draft that you send from Gmail; choose I sent it from Gmail once you have.",
+        note: "Schedule opens Review and schedule. Check the required Date and Time (Central), then choose Schedule this message. Create Gmail draft instead makes an unsent draft that you send from Gmail; choose I sent it from Gmail once you have. If creation is uncertain, use the one Recover exact Gmail attempt beside the preview on Now. Full view keeps this check in Unsent Gmail draft. Your authored wording stays as written when inputs change. The Now card names that change and offers Return to the standard wording to rebuild from current inputs, with Undo the last refinement to recover your wording.",
       },
       {
         id: "wait-for-the-owner",
@@ -168,12 +168,12 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "An owner reply shows here as Owner replied with its date and the reply, and Record the owner's decision becomes the next step. A message Gmail has not confirmed reads Check whether the message went out, and a failed delivery reads Delivery failed with Check the address and send again.",
         effect: "reads",
-        note: "Record what happened, Send again and Work a later step now stay available while the lease waits. This was not the renewal outreach removes a derived record with your reason and opens the step again.",
+        note: "Record what happened, Send again and Work a later step now stay available while the lease waits. This was not the renewal outreach asks for a reason. Remove the derived record reopens the step and brings focus to Now. Keep it returns to the correction action.",
       },
       {
         id: "record-the-owner-decision",
         action:
-          "Choose Record the owner's decision. In The owner's decision, choose Approved in the reply received from the owner, Asked for a change or Declined / non-renewal. For Approved, choose Who approved in this reply; for a change, you can add What the owner asked to change. Then choose Record this decision.",
+          "Choose Record the owner's decision and read Owner reply. In The owner's decision, choose the Approved option that names the reply's time and mailbox, Asked for a change or Declined / non-renewal. For Approved, choose Who approved in this reply; for a change, you can add What the owner asked to change. Then choose Record this decision.",
         control: {
           label: "Record this decision",
           role: "button",
@@ -186,7 +186,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "The decision saves with your name and time, and the path moves on to Offer the tenant. An approval records who approved, the reply it came in and the time that reply was received. The owner's decision starts with no choice made, and a reply records a decision only when you choose one.",
         effect: "saves-in-app",
-        note: "Owner response in Full view records an approval from an authorized representative, another written channel or a conversation, with Who approved, How they approved and When they approved, then Record approval.",
+        note: "Owner reply reads the observed message from the linked conversation. A failed read offers Try again and keeps your entries. Retry keeps keyboard focus while reading and leads into the reply when ready. If you already moved to a decision, focus stays there. A partial reply says to read the full conversation. Owner response in Full view records an approval from an authorized representative, another written channel or a conversation, with Who approved, How they approved and When they approved, then Record approval.",
       },
       {
         id: "offer-the-tenant",
@@ -288,9 +288,9 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         route: LEASE,
         where: "Guided view, the Now card on Compare market rent or Ask the owner",
         result:
-          "The path continues at Offer the tenant. Choosing an agreement asks This lease only or Every lease in this owner's portfolio and saves on one action, and typing a different rent returns the lease to Ask the owner with the reason in words.",
+          "The path continues at Offer the tenant. If you opened the covered Ask the owner step, choose Continue to Offer the tenant on its Now card. The message tools stay available below. Choosing an agreement asks This lease only or Every lease in this owner's portfolio and saves on one action, and typing a different rent returns the lease to Ask the owner with the reason in words.",
         effect: "saves-in-app",
-        note: "The desk row carries the Standing agreement tag. Owner decides each renewal returns the lease to asking the owner each cycle.",
+        note: "The desk row carries the Standing agreement tag. Owner decides each renewal returns the lease to asking the owner each cycle. When Now shows Pricing basis, use that chooser. Full view keeps it in Renewal pricing policy.",
       },
       {
         id: "work-an-assisted-lease",
@@ -306,9 +306,9 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         route: LEASE,
         where: "Guided view, the Now card on Check the numbers",
         result:
-          "After Check the numbers the path asks you to contact the named program about the renewal process, then Ask the owner whether to renew this tenant (Renew, Do not renew or No answer yet), then Rent for this renewal (Keep the current rent or Propose a change), with nothing chosen for you. Keep the current rent leaves the comparison and the owner's rent decision out of the path, Propose a change brings them in, and Do not renew moves the lease to the non-renewal handoff.",
+          "Once the numbers agree, Continue names and opens the program-contact step. The path asks you to contact the named program about the renewal process, then Ask the owner whether to renew this tenant (Renew, Do not renew or No answer yet), then Rent for this renewal (Keep the current rent or Propose a change), with nothing chosen for you. Keep the current rent leaves the comparison and the owner's rent decision out of the path, Propose a change brings them in, and Do not renew moves the lease to the non-renewal handoff.",
         effect: "saves-in-app",
-        note: "The desk row carries the Housing assistance tag. When RentVine wording mentions housing assistance and the field is unset, the lease reads RentVine mentions housing assistance. Set the field? and nothing changes until you set it.",
+        note: "After Yes is chosen, Program name is required. An empty name shows what to enter, and the choice saves when the name is complete. Saving is visible; a failed save keeps your entry and offers Try again. Newer typing stays in its field while an earlier save finishes. The desk row carries the Housing assistance tag. Animal follow-up records the outside work staff actually did. Animal charges and agreement in Readiness opens Packet inputs. Charges and agreements for an assistance animal wait for the approved rule. When RentVine wording mentions housing assistance and the field is unset, the lease reads RentVine mentions housing assistance. Set the field? and nothing changes until you set it.",
       },
       {
         id: "choose-full-view",
@@ -568,7 +568,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
       {
         id: "read-the-stored-comparison",
         action:
-          "Read the stored comparison: its range, the comparables and how old it is. Rent to recommend is filled from it, with its basis in words; type a different figure when you want one.",
+          "Read the stored comparison: its range, the comparables and its recorded Central date and time. Rent to recommend is filled from it, with its basis in words; type a different figure when you want one.",
         control: {
           label: "Rent to recommend",
           role: "label",
@@ -581,7 +581,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "A comparison stored for this lease and cycle is reused by the owner message, so it never needs a second run. A figure you type saves with this lease and always wins over the suggestion.",
         effect: "saves-in-app",
-        note: "On a lease under a standing agreement, Rent to recommend is the agreement's rule applied to the current rent, with the rule shown as its basis.",
+        note: "On a lease under a standing agreement, Rent to recommend is the agreement's rule applied to the current rent, with the rule shown as its basis. A saved rent from an earlier rule keeps its value and reads Built on the earlier rule. Choose Rebuild with the current rule to adopt the new proposal.",
       },
       {
         id: "prepare-this-lease",
@@ -755,7 +755,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "The Now card shows the tenant offer, What sending needs and the same delivery actions as the owner message. Once Gmail accepts the offer, the lease reads Waiting on tenant response with nothing more to enter.",
         effect: "explicit-send",
-        note: "Choosing the step saves nothing. Send this message in the exact review is the one action that sends the offer.",
+        note: "Choosing the step saves nothing. When a value is missing, Review and send brings you to Marked values and its links. A missing Renewal information form link opens its existing shared setting in Connections. An Admin checks and saves shared links. Send this message in the exact review is the one action that sends the offer.",
       },
       {
         id: "open-tenant-section",
@@ -792,7 +792,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "Your edits save by themselves with this lease, and the formatted preview shows the message as the tenant reads it.",
         effect: "saves-in-app",
-        note: "Response request (optional wording edit) replaces one named paragraph; a blank box keeps the approved wording.",
+        note: "Response request (optional wording edit) replaces one named paragraph; a blank box keeps the approved wording. On the Now card, Check tenant email addresses in RentVine opens the recipient reasons and the existing lease record link. Ask an Approver to publish the tenant template shows its publication status for that handoff.",
       },
       {
         id: "resolve-marked-values",
@@ -884,7 +884,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "The message goes out, or waits for the time you chose, once its current checks pass, and Communications shows its delivery state.",
         effect: "explicit-send",
-        note: "A reply or a failed delivery pauses follow-ups, and Resume requires a fresh review.",
+        note: "If the communication could not be read, choose Try again or Close. A reply or a failed delivery pauses follow-ups, and Resume requires a fresh review.",
       },
       {
         id: "record-tenant-delivery",

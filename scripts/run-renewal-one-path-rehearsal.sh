@@ -27,6 +27,9 @@
 #   --driver <file>    Run this driver file (path inside the repository) in place of the smoke
 #                      driver. Arguments after -- are passed to it.
 #   --no-seeds         Load the source leases only; skip every app-state seed.
+#   --hold-automatic-comparison
+#                      Keep the rehearsal's automatic preparation setting off, including after
+#                      resets. Use for audits that must never trigger an automatic comparison.
 #   --no-mail-adapter  Serve without the Demo-owned mail adapter (S249): the server is then outside
 #                      the rehearsal exemption, as a verification session's server is, so the
 #                      automatic start never fires in an automated browser and sends and Gmail
@@ -93,7 +96,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --overlay) overlay=true ;;
     --commit) commit="${2:?--commit needs a commit}"; shift ;;
-    --serve | --no-seeds | --no-mail-adapter) args+=("$1") ;;
+    --serve | --no-seeds | --no-mail-adapter | --hold-automatic-comparison) args+=("$1") ;;
     --driver) driver_file="${2:?--driver needs a file}"; args+=("$1" "$2"); shift ;;
     --serve-for) args+=("$1" "${2:?--serve-for needs seconds}"); shift ;;
     --) shift; args+=(-- "$@"); break ;;
@@ -178,6 +181,10 @@ elif $overlay; then
     rm -f "$root/worktree/$file"
   done
 fi
+# Every Node process, including the port/config helpers and outer Firebase CLI, inherits the
+# boundary. The preload asserts its own installation before each process reaches its entrypoint.
+source "$root/worktree/scripts/lib/one-path-rehearsal/network-guard.sh"
+enable_rehearsal_network_guard "$root/worktree" "$output"
 free_port() {
   node -e 'const s=require("net").createServer();s.listen(0,"127.0.0.1",()=>{console.log(s.address().port);s.close()})'
 }
@@ -194,7 +201,8 @@ quoted=""
 unset DISPLAY WAYLAND_DISPLAY
 # The rehearsal process (stand-ins, seeding, the browser) loads the same refusal preload as the
 # server: loopback only, every other connection refused and logged.
-ONE_PATH_REHEARSAL_OUTPUT="$output" ONE_PATH_REHEARSAL_SERVED_SHA="$served" \
+# The Firebase CLI's CI mode skips its optional public message-of-the-day/remote config fetch.
+CI=true ONE_PATH_REHEARSAL_OUTPUT="$output" ONE_PATH_REHEARSAL_SERVED_SHA="$served" \
   ONE_PATH_REHEARSAL_HARNESS_SHA="$head_sha" ONE_PATH_REHEARSAL_OVERLAY="$overlay" \
   ONE_PATH_REHEARSAL_NAMED_COMMIT="$named" \
   FIRESTORE_EMULATOR_HOST="127.0.0.1:$firestore_port" FIREBASE_AUTH_EMULATOR_HOST="127.0.0.1:$auth_port" \

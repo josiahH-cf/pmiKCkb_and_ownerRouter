@@ -342,7 +342,9 @@ describe("S246 one short row and opening a lease (R-S246-7, R-S246-8, BEH-S246-3
     expect(within(row).getByText("Ends 12/31/2026")).toBeInTheDocument();
     const stage = row.querySelectorAll(".renewal-batch-stage");
     expect(stage).toHaveLength(1);
-    expect(stage[0]).toHaveTextContent("Verifying lease and rent, nothing recorded yet");
+    expect(stage[0]).toHaveTextContent(
+      "Verifying lease and rent, waiting on the PMI KC team, nothing recorded yet",
+    );
     expect(row.querySelectorAll("[data-batch-tag]").length).toBeLessThanOrEqual(3);
     expect(within(row).queryByRole("button")).toBeNull();
     // No row anywhere in the batch carries a name filter or opens a second tab.

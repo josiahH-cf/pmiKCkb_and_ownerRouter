@@ -43,13 +43,13 @@ const IMMEDIATE_PRIOR_PATH = join(
   __dirname,
   "..",
   "fixtures",
-  "s238-current-renewal-full-view-presentation.json",
+  "s244-help-copy-full-view-presentation.json",
 );
 const BASELINE_PATH = join(
   __dirname,
   "..",
   "fixtures",
-  "s244-help-copy-full-view-presentation.json",
+  "s253-animal-wording-full-view-presentation.json",
 );
 // November3 S238 A-01 updates reviewed draft/Communications guidance; S235 A-03 names the
 // existing connection/selection review accurately. Only owner/tenant/documents copy and the
@@ -59,6 +59,11 @@ const BASELINE_PATH = join(
 const CONNECTION_LINK_BEFORE = "Open Connections for Dotloop setup -> /connections";
 const CONNECTION_LINK_AFTER = "Review Dotloop connection and selection -> /connections";
 const CURRENT_COPY_SECTIONS = ["renewal-section-documents"];
+// UX review: the old registration wording implied an unsupported assistance-animal requirement.
+// The new recorded presentation changes only this documented name and the documents copy.
+// Every prior fixture stays immutable; the same controls, counts, sections and links are required.
+const animalFollowUpName = (entry: string) =>
+  entry.replaceAll("Pet registration follow-up", "Animal follow-up");
 // S234 R-S234-3 changes only the documents section's copy: the packet handoff names the
 // approval-bound Working terms the packet reads instead of legacy owner-response terms. That
 // authorized presentation is recorded separately; the S229 and earlier fixtures stay immutable.
@@ -352,7 +357,7 @@ describe("S145 preservation with authorized current renewal guidance", () => {
         expect(
           signature[field],
           `${testCase.name}: unchanged ${field} since S238`,
-        ).toEqual(previous[field]);
+        ).toEqual(previous[field].map(animalFollowUpName));
       }
       expect(signature.links, `${testCase.name}: unchanged links since S238`).toEqual(
         previous.links,
@@ -363,7 +368,7 @@ describe("S145 preservation with authorized current renewal guidance", () => {
       expect(
         changedCopy,
         `${testCase.name}: exact authorized section-copy changes`,
-      ).toEqual(testCase.manual ? CURRENT_COPY_SECTIONS : []);
+      ).toEqual(CURRENT_COPY_SECTIONS);
       expect(signature.copy).toHaveLength(previous.copy.length);
     }
     const prior = JSON.parse(readFileSync(PRIOR_PATH, "utf8")) as typeof signatures;
@@ -378,9 +383,9 @@ describe("S145 preservation with authorized current renewal guidance", () => {
         );
         expect([...signature[field]].sort(), `${name}: preserved ${field}`).toEqual(
           [
-            ...prior[name][field].filter(
-              (entry) => !retiredEntry(field, entry, testCase),
-            ),
+            ...prior[name][field]
+              .map(animalFollowUpName)
+              .filter((entry) => !retiredEntry(field, entry, testCase)),
             ...added,
           ].sort(),
         );

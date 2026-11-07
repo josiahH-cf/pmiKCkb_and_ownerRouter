@@ -171,7 +171,10 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
     summary:
       "The renewal desk opens on the working batch: the working month and its lease count in words, This batch with Ready for your review first, Carried over, and a count for every other group, each lease counted once. A row's address or next step link opens the lease in this tab. All leases and filters opens the Renewal worklist, one row per lease with its location, parties, renewal date, current base rent, lifecycle, overall status, rent verification and current action, with the same views, filters, sorting and links as before. Reading the desk changes nothing in RentVine or the operating Sheet.",
     controls: [
-      ...renewalControlMapScreenControls(DESK),
+      // The map's recorded Refresh data name describes the same button listed below.
+      ...renewalControlMapScreenControls(DESK).filter(
+        (control) => !(control.role === "button" && control.label === "Refresh data"),
+      ),
       {
         label: "Working month",
         role: "navigation",

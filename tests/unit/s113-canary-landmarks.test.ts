@@ -11,6 +11,7 @@ import {
   projectRenewalStage,
   type RenewalStageContext,
 } from "../../lib/lease-renewal/renewal-stage";
+import { countIndependentGuidedWorkspaceMismatches } from "../../scripts/run-production-reconciliation";
 
 const names = [
   "Lease details",
@@ -121,6 +122,27 @@ interface GuidedOptions {
   sectionLinks?: number;
   badSectionHref?: boolean;
   hiddenSectionLink?: boolean;
+  stageLines?: number;
+  stageText?: string;
+  stageCurrentStep?: string | null;
+  pathCurrentStep?: string | null;
+  nowStep?: string | null;
+  nextSteps?: number;
+  nextStepText?: string;
+  primaryBeforeContext?: boolean;
+  primaryLabel?: string;
+  primaryTarget?: string | null;
+  primaryTargetPresent?: boolean;
+  workFieldsOutsideNow?: number;
+  mainLandmarkPresent?: boolean;
+  visiblePricingBasisChoosers?: number;
+  visibleExactDraftRecoveries?: number;
+  workingFigureFeedbackPresent?: boolean;
+  openDialogs?: number;
+  primaryTop?: number;
+  primaryBottom?: number;
+  viewportHeight?: number;
+  viewportWidth?: number;
 }
 const GUIDED_STEPS = [
   "Check the numbers",
@@ -150,11 +172,44 @@ function guidedFixture(options: GuidedOptions = {}): Page {
       count: async () => steps.length,
       nth: (index: number) => ({ textContent: async () => steps[index] ?? null }),
     }),
-    locator: () => locator(options.currentSteps ?? 1),
+    locator: () => ({
+      ...locator(options.currentSteps ?? 1),
+      evaluate: async () =>
+        options.pathCurrentStep === undefined ? "check-numbers" : options.pathCurrentStep,
+    }),
   };
   const now = {
-    ...locator(options.nows ?? 1),
-    locator: () => locator(options.primaries ?? 1, options.primaryVisible ?? true),
+    ...locator(
+      options.nows ?? 1,
+      true,
+      options.nowStep === undefined ? "check-numbers" : options.nowStep,
+    ),
+    evaluate: async () => ({
+      primaryBeforeContext: options.primaryBeforeContext ?? true,
+      mainLandmarkPresent: options.mainLandmarkPresent ?? true,
+      workingFigureFeedbackPresent: options.workingFigureFeedbackPresent ?? true,
+      openDialogs: options.openDialogs ?? 0,
+      primaryTop: options.primaryTop ?? 100,
+      primaryBottom: options.primaryBottom ?? 144,
+      viewportHeight: options.viewportHeight ?? 800,
+      viewportWidth: options.viewportWidth ?? 1280,
+    }),
+    locator: (selector: string) =>
+      selector.includes("next-step")
+        ? {
+            ...locator(options.nextSteps ?? 1),
+            textContent: async () =>
+              options.nextStepText ?? "Next step: Check the numbers",
+          }
+        : {
+            ...locator(
+              options.primaries ?? 1,
+              options.primaryVisible ?? true,
+              options.primaryTarget ?? null,
+            ),
+            textContent: async () => options.primaryLabel ?? "Check the numbers",
+            evaluate: async () => options.primaryTargetPresent ?? true,
+          },
   };
   const sections = {
     ...locator(options.sectionNavs ?? 1),
@@ -171,6 +226,23 @@ function guidedFixture(options: GuidedOptions = {}): Page {
   };
   const region = {
     ...locator(options.regions ?? 1, options.regionVisible ?? true),
+    evaluate: async () => ({
+      workFieldsOutsideNow: options.workFieldsOutsideNow ?? 0,
+      visiblePricingBasisChoosers: options.visiblePricingBasisChoosers ?? 0,
+      visibleExactDraftRecoveries: options.visibleExactDraftRecoveries ?? 0,
+    }),
+    locator: () => ({
+      ...locator(
+        options.stageLines ?? 1,
+        true,
+        options.stageCurrentStep === undefined
+          ? "check-numbers"
+          : options.stageCurrentStep,
+      ),
+      textContent: async () =>
+        options.stageText ??
+        "Checking the numbers, waiting on the PMI KC team, nothing recorded yet",
+    }),
     getByRole: (role: string, args: { name: string }) =>
       role === "navigation" && args.name === "Renewal path"
         ? path
@@ -238,11 +310,154 @@ describe("S113 candidate and captured predecessor workspace landmarks", () => {
       { sectionLinks: 4 },
       { badSectionHref: true },
       { hiddenSectionLink: true },
+      { stageLines: 0 },
+      { stageLines: 2 },
+      { stageText: " " },
+      { stageCurrentStep: null },
+      { pathCurrentStep: "ask-owner" },
+      { nowStep: "ask-owner" },
+      { nextSteps: 0 },
+      { nextSteps: 2 },
+      { nextStepText: "Next step: " },
+      { primaryBeforeContext: false },
+      { primaryTop: -1 },
+      { primaryBottom: 805 },
+      { primaryBottom: NaN },
+      { viewportHeight: 0 },
+      { viewportWidth: 0 },
+      { workFieldsOutsideNow: 1 },
+      { mainLandmarkPresent: false },
+      { visiblePricingBasisChoosers: 2 },
+      { visibleExactDraftRecoveries: 2 },
+      { workingFigureFeedbackPresent: false },
+      { openDialogs: 1 },
+      {
+        primaryLabel: "Add the owner's email on the owner record in RentVine",
+        primaryTarget: "renewal-card-message-owner",
+      },
+      {
+        primaryLabel: "Add the owner's email on the owner record in RentVine",
+        primaryTarget: "renewal-message-owner-recipients",
+        primaryTargetPresent: false,
+      },
     ] satisfies GuidedOptions[])
       expect(
         await hasRenewalWorkspaceLandmarks(guidedFixture(options)),
         JSON.stringify(options),
       ).toBe(false);
+  });
+
+  it("independently reconciles the visible stage, path and Now step without application projections", () => {
+    const snapshot = {
+      mainLandmarkPresent: true,
+      stageLines: 1,
+      stageText: "Checking the numbers, waiting on the PMI KC team, nothing recorded yet",
+      stageCurrentStep: "check-numbers",
+      pathCurrentStep: "check-numbers",
+      nowStep: "check-numbers",
+      nextSteps: 1,
+      nextStepText: "Next step: Check the numbers",
+      primaryBeforeContext: true,
+      primaryLabel: "Check the numbers",
+      primaryTarget: null,
+      primaryTargetPresent: false,
+      workFieldsOutsideNow: 0,
+      visiblePricingBasisChoosers: 0,
+      visibleExactDraftRecoveries: 0,
+      workingFigureFeedbackPresent: true,
+      openDialogs: 0,
+      primaryTop: 100,
+      primaryBottom: 144,
+      viewportHeight: 800,
+      viewportWidth: 1280,
+    };
+    expect(countIndependentGuidedWorkspaceMismatches(snapshot)).toBe(0);
+    expect(
+      countIndependentGuidedWorkspaceMismatches({
+        ...snapshot,
+        mainLandmarkPresent: false,
+      }),
+    ).toBe(1);
+    expect(
+      countIndependentGuidedWorkspaceMismatches({
+        ...snapshot,
+        visiblePricingBasisChoosers: 1,
+        visibleExactDraftRecoveries: 1,
+      }),
+    ).toBe(0);
+    expect(
+      countIndependentGuidedWorkspaceMismatches({
+        ...snapshot,
+        visiblePricingBasisChoosers: 2,
+        visibleExactDraftRecoveries: 2,
+      }),
+    ).toBe(2);
+    expect(
+      countIndependentGuidedWorkspaceMismatches({ ...snapshot, openDialogs: 1 }),
+    ).toBe(1);
+    expect(
+      countIndependentGuidedWorkspaceMismatches({
+        ...snapshot,
+        workingFigureFeedbackPresent: false,
+      }),
+    ).toBe(1);
+    expect(
+      countIndependentGuidedWorkspaceMismatches({ ...snapshot, primaryBottom: 805 }),
+    ).toBe(1);
+    expect(
+      countIndependentGuidedWorkspaceMismatches({
+        ...snapshot,
+        primaryBottom: 1642.25,
+        viewportWidth: 390,
+      }),
+    ).toBe(1);
+    expect(
+      countIndependentGuidedWorkspaceMismatches({
+        ...snapshot,
+        primaryBottom: 1586,
+        viewportWidth: 390,
+      }),
+    ).toBe(0);
+    expect(
+      countIndependentGuidedWorkspaceMismatches({ ...snapshot, primaryTop: -1 }),
+    ).toBe(1);
+    expect(
+      countIndependentGuidedWorkspaceMismatches({ ...snapshot, nowStep: "ask-owner" }),
+    ).toBe(1);
+    expect(countIndependentGuidedWorkspaceMismatches({ ...snapshot, nextSteps: 2 })).toBe(
+      1,
+    );
+    expect(
+      countIndependentGuidedWorkspaceMismatches({ ...snapshot, stageText: "" }),
+    ).toBe(1);
+    expect(
+      countIndependentGuidedWorkspaceMismatches({
+        ...snapshot,
+        primaryBeforeContext: false,
+      }),
+    ).toBe(1);
+    const recipient = {
+      ...snapshot,
+      primaryLabel: "Add the owner's email on the owner record in RentVine",
+      primaryTarget: "renewal-message-owner-recipients",
+      primaryTargetPresent: true,
+    };
+    expect(countIndependentGuidedWorkspaceMismatches(recipient)).toBe(0);
+    expect(
+      countIndependentGuidedWorkspaceMismatches({
+        ...recipient,
+        primaryTarget: "renewal-card-message-owner",
+      }),
+    ).toBe(1);
+    expect(
+      countIndependentGuidedWorkspaceMismatches({
+        ...recipient,
+        primaryTargetPresent: false,
+      }),
+    ).toBe(1);
+    expect(
+      countIndependentGuidedWorkspaceMismatches({ ...snapshot, workFieldsOutsideNow: 1 }),
+    ).toBe(1);
   });
 
   it("S250/S251: the lease landmark contract holds for the covered and the assisted variants", async () => {

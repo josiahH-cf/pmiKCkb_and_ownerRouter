@@ -51,15 +51,13 @@
   {
     "step": "5",
     "page": "/lease-renewal",
-    "control": "Refresh source facts",
+    "control": "Refresh data",
+    "formerly": { "control": "Refresh source facts", "role": "button" },
     "role": "button",
     "scope": "",
     "availability": "conditional",
     "expectation": "Refresh sources with returned freshness.",
-    "source": [
-      "lib/lease-renewal/meeting-walkthrough.ts",
-      "lib/lease-renewal/role-action-governance.ts"
-    ]
+    "source": ["components/lease-renewal/RenewalDeskRefresh.tsx"]
   },
   {
     "step": "6",
@@ -905,7 +903,7 @@
     "role": "button",
     "scope": "region:Guided view",
     "availability": "required",
-    "expectation": "Shows the owner message step on the Now card.",
+    "expectation": "Shows the owner message step on the Now card. When covered by an agreement, the primary is Continue to Offer the tenant; existing message tools remain available.",
     "source": ["lib/lease-renewal/renewal-path.ts"],
     "actions": []
   },
@@ -930,5 +928,159 @@
     "expectation": "The stored comparison, Rent to recommend, Reason to include and the message preview.",
     "source": ["components/lease-renewal/RenewalPreparedMessage.tsx"],
     "actions": ["click-button:Ask the owner"]
+  },
+  {
+    "step": "87",
+    "page": "workspace:owner-decision",
+    "control": "Continue to Offer the tenant",
+    "role": "button",
+    "scope": "region:Now",
+    "availability": "conditional",
+    "expectation": "Continues a covered owner step at Offer the tenant in the same view. Replaces the misleading Send the owner message primary on that covered card; all message tools remain available.",
+    "source": ["components/lease-renewal/RenewalGuidedView.tsx"],
+    "actions": ["click-button:Ask the owner"]
+  },
+  {
+    "step": "88",
+    "page": "workspace:compliance-close",
+    "control": "Animal follow-up outcome",
+    "role": "label",
+    "scope": "",
+    "availability": "conditional",
+    "expectation": "The existing staff-recorded animal follow-up, with the same saved activity and source-update confirmations. Its name carries no registration requirement. The related readiness label formerly Pet deposit + registration is Animal charges and agreement; its predicates and severity are preserved.",
+    "source": [
+      "lib/lease-renewal/workspace-state.ts",
+      "lib/lease-renewal/renewal-readiness.ts",
+      "components/lease-renewal/RenewalManualWorkspace.tsx"
+    ],
+    "sourceText": "{definition.label} outcome",
+    "formerly": { "control": "Pet registration follow-up outcome", "role": "label" }
+  },
+  {
+    "step": "89",
+    "page": "workspace:owner-decision",
+    "control": "Owner reply",
+    "role": "region",
+    "scope": "region:Now",
+    "availability": "conditional",
+    "expectation": "Shows the exact observed owner reply as plain text with its time and staff mailbox, with explicit loading, partial and retry states; a reply makes no decision for staff.",
+    "source": ["components/lease-renewal/RenewalOwnerDecisionFromReply.tsx"],
+    "actions": []
+  },
+  {
+    "step": "90",
+    "page": "workspace:owner-decision",
+    "control": "Return to the standard wording",
+    "role": "button",
+    "scope": "region:Now",
+    "availability": "conditional",
+    "expectation": "Deliberately rebuilds a stale authored message from current inputs; the existing authored wording is recoverable with Undo the last refinement.",
+    "source": ["components/lease-renewal/RenewalPreparedMessage.tsx"],
+    "actions": []
+  },
+  {
+    "step": "91",
+    "page": "workspace:owner-decision",
+    "control": "Undo the last refinement",
+    "role": "button",
+    "scope": "region:Now",
+    "availability": "conditional",
+    "expectation": "Restores the previous authored wording after a deliberate return to standard wording or accepted refinement.",
+    "source": ["components/lease-renewal/RenewalPreparedMessage.tsx"],
+    "actions": []
+  },
+  {
+    "step": "92",
+    "page": "workspace:prepare",
+    "control": "Try again",
+    "role": "button",
+    "scope": "region:Now",
+    "availability": "conditional",
+    "expectation": "Retries a failed Housing assistance save with the entered complete value through the same working-record save. Saving is visible and the entry remains available after a failure. The focused retry stays visible while saved content changes around it.",
+    "source": [
+      "components/lease-renewal/RenewalHousingAssistance.tsx",
+      "components/lease-renewal/AutosaveStatus.tsx"
+    ],
+    "actions": []
+  },
+  {
+    "step": "93",
+    "page": "workspace:owner-decision",
+    "control": "Recover exact Gmail attempt",
+    "role": "button",
+    "scope": "region:Now",
+    "availability": "conditional",
+    "expectation": "The one recovery beside the compact preview checks the same uncertain Gmail draft attempt, with visible progress. A confirmed recovery refreshes the recorded draft and its message revision. Full view keeps its existing Unsent Gmail draft control; a new attempt waits on exact recovery.",
+    "source": ["components/lease-renewal/RenewalPreparedMessage.tsx"],
+    "actions": []
+  },
+  {
+    "step": "94",
+    "page": "workspace:tenant-offer",
+    "control": "Check tenant email addresses in RentVine",
+    "role": "button",
+    "scope": "region:Now",
+    "availability": "conditional",
+    "expectation": "A missing tenant recipient focuses its reasons and the existing lease source-record handoff. Only verified source destinations are used; a provider correction needs its own outside work and refresh.",
+    "source": ["components/lease-renewal/RenewalPreparedMessage.tsx"],
+    "actions": []
+  },
+  {
+    "step": "95",
+    "page": "workspace:tenant-offer",
+    "control": "Ask an Approver to publish the tenant template",
+    "role": "button",
+    "scope": "region:Now",
+    "availability": "conditional",
+    "expectation": "A missing tenant message template opens and focuses its current publication status for the existing Approver handoff. Publication stays with the Approver's existing controls.",
+    "source": ["components/lease-renewal/RenewalPreparedMessage.tsx"],
+    "actions": []
+  },
+  {
+    "step": "96",
+    "page": "workspace:owner-decision",
+    "control": "Try again",
+    "role": "button",
+    "scope": "region:Owner message",
+    "availability": "conditional",
+    "expectation": "Retries the retained Rent to recommend entry through its existing working-record save. Saved appears only after acknowledgment of that exact entry. Review and delivery preparation wait on their own confirmed financial fields; Copy stays available with the displayed bytes and an unconfirmed-figures notice.",
+    "source": [
+      "components/lease-renewal/RenewalKickoffFields.tsx",
+      "components/lease-renewal/AutosaveStatus.tsx"
+    ],
+    "actions": []
+  },
+  {
+    "step": "97",
+    "page": "workspace:owner-decision",
+    "control": "Try again",
+    "role": "button",
+    "scope": "region:Owner reply",
+    "availability": "conditional",
+    "expectation": "Reads the same linked owner reply again and keeps staff entries. The retry keeps focus during loading, then focuses the reply heading when it is still in use. An operator who moved to a decision keeps that focus.",
+    "source": ["components/lease-renewal/RenewalOwnerDecisionFromReply.tsx"],
+    "actions": []
+  },
+  {
+    "step": "98",
+    "page": "workspace:tenant-offer",
+    "control": "Review the marked values",
+    "role": "button",
+    "scope": "region:Tenant offer",
+    "availability": "conditional",
+    "expectation": "Moves focus to the tenant message's existing Marked values links. A missing shared form points to its exact Connections entry. Preparing a review waits for the marked value.",
+    "source": ["components/lease-renewal/RenewalPreparedMessage.tsx"],
+    "actions": []
+  },
+  {
+    "step": "99",
+    "page": "workspace:prepare",
+    "control": "Show current step",
+    "role": "button",
+    "scope": "region:Now",
+    "availability": "conditional",
+    "expectation": "Returns from another step to the current next step in the same tab and follows that step's progress. Choosing a step saves nothing.",
+    "source": ["components/lease-renewal/RenewalGuidedView.tsx"],
+    "actions": []
   }
 ]

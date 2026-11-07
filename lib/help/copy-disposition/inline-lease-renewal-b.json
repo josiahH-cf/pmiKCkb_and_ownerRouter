@@ -611,6 +611,13 @@
   {
     "kind": "inline",
     "location": "components/lease-renewal/RenewalHousingAssistance.tsx",
+    "text": "Enter the program name to save Housing assistance as Yes.",
+    "describes": "Housing assistance: the Yes choice requires a program name before its working record can be saved (S251)",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalHousingAssistance.tsx",
     "text": "…first, recorded as the program contact above.",
     "describes": "Assisted lease owner section: the program contact comes first, recorded with the activity form (S251)",
     "disposition": "keep"

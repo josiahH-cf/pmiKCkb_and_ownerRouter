@@ -1,9 +1,38 @@
 # PMI KC facts
 
-Last reconciled: 2026-11-05 (guarded S245 litmus fixes delivery and independent production readback).
+Last reconciled: 2026-11-07 (one-path source review; no new production readback).
 
 This ledger contains present truth. Historical detail is recoverable in Git and immutable run
 evidence; an earlier receipt never authorizes a new attempt.
+
+## November 6 one-path source and resumed review
+
+Main `2187cf09fa0d5860919940448ae1ef55cd298f05` contains S246–S253 and the S254
+harness through PRs #184–#190. The review branch `codex/renewal-one-path-ux` includes
+all six prior unmerged Claude commits plus both remaining typing-recovery file changes,
+with complete-text and newer-input handling. The shared Windows checkout and unrelated owner
+files were left alone.
+
+The full [independent litmus](evidence/renewal-one-path-litmus-2026-11-06.md)
+at `edba7cbb` reports 62 Yes, 2 No and 7 UNVERIFIED. Targeted rechecks at `eb7f4d69` verified
+the later repairs, including the retained-text defect (L18). Batch acceptance remains No:
+the original table controls and URLs remain, while the voucher-only lease moves from Program
+lease to Ready under the settled assistance rule, producing the literal L55 count mismatch.
+The [UX review](evidence/renewal-one-path-ux-review-2026-11-06.md) keeps both source scopes
+and the precise evidence gaps.
+
+The older November/December isolated journey reported 36 PASS and
+0 FAIL at `eb7f4d69`. The canonical run on that source stopped on a stale Help map
+test count. The exact assertion was updated in `0e9c6a27` with the same
+preservation tests. The pull request records the final-tree qualification. Release remains
+for the owner.
+The review never opens production. Human verdict NOT RUN. Real providers, real mailbox,
+signatures, physical-device behavior and unanswered client questions remain unverified.
+
+Initial harness gaps and failures are preserved in the review. Final rehearsal entry points
+and Node children require the guard. Automatic preparation stays off at startup and through
+resets. All observed comparison operations used stored data or explicit staff preparation with
+the stand-in. The existing runtime setting and effect rules stay in place.
 
 ## November 5 S245 litmus fixes — delivered S87, S126, S147, S242 and S86 repairs
 

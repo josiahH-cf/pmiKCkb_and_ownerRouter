@@ -2324,9 +2324,81 @@ label.secondary-button:focus-within {
 }
 
 /* S247: the Guided view. The path strip is one wrapping row, so the stage, the strip and the Now
-   card's primary action fit the first screen at 1280 by 800 and within two screens at 390 wide. */
+   card's primary action fit the first screen at 1280 by 800 and within two screens at 390 wide.
+   Its steps use the compact size at every width: a variant path (S251's housing assistance path
+   has ten steps with long labels) then wraps to two rows at 1280 rather than three, which kept
+   the Now card's primary action below the first screen. */
 .renewal-guided {
   gap: var(--space-2);
+}
+
+.renewal-preserved-workspace {
+  display: contents;
+}
+
+.renewal-focus-slot:empty,
+.renewal-now-intro:empty,
+.renewal-guided-after:empty {
+  display: none;
+}
+
+.renewal-guided-header,
+.renewal-guided-after,
+.renewal-now-intro {
+  gap: var(--space-2);
+}
+
+/* S247: keep the action in reach even when a saved program name wraps. The lease title and
+   sticky copy controls keep their full content; only repeated layout spacing is reduced. */
+.renewal-now-card:has([data-renewal-signature-setup="owner"])
+  [data-renewal-signature-editor="owner"],
+.renewal-now-card:has([data-renewal-signature-setup="tenant"])
+  [data-renewal-signature-editor="tenant"] {
+  display: none;
+}
+
+.content:has(.renewal-guided) {
+  padding-top: var(--space-3);
+}
+
+.content:has(.renewal-guided) > .back-link {
+  margin-bottom: 0;
+}
+
+.content:has(.renewal-guided) > .ui-stack {
+  gap: var(--space-2);
+}
+
+.content:has(.renewal-guided) .ui-page-header {
+  gap: var(--space-1);
+  margin-bottom: 0;
+}
+
+.content:has(.renewal-guided) .ui-page-header > div:first-child {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.content:has(.renewal-guided) .ui-page-subtitle {
+  margin: 0;
+}
+
+.renewal-workspace-shell:has(.renewal-guided) {
+  gap: var(--space-2);
+}
+
+.renewal-workspace-shell:has(.renewal-guided) .renewal-workspace-toolbar {
+  padding-block: var(--space-1);
+}
+
+.renewal-workspace-shell:has(.renewal-guided) .renewal-workspace-toolbar-row {
+  row-gap: var(--space-1);
+}
+
+.renewal-guided.panel {
+  padding: var(--space-2);
 }
 
 .renewal-guided-stage {
@@ -2357,6 +2429,7 @@ label.secondary-button:focus-within {
   color: inherit;
   cursor: pointer;
   font: inherit;
+  font-size: 0.875rem;
   padding: var(--space-1) var(--space-2);
 }
 
@@ -2375,7 +2448,8 @@ label.secondary-button:focus-within {
 }
 
 .renewal-path-state {
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
+  line-height: 1.25;
   padding-inline: var(--space-2);
 }
 
@@ -2383,11 +2457,13 @@ label.secondary-button:focus-within {
   border: 1px solid var(--ui-border-strong);
   border-radius: var(--radius-md);
   gap: var(--space-2);
-  padding: var(--space-3);
+  padding: var(--space-2);
 }
 
 .renewal-now-card > p,
-.renewal-now-card > h2 {
+.renewal-now-card > h2,
+.renewal-now-intro > p,
+.renewal-now-intro > h2 {
   margin: 0;
 }
 
@@ -2423,6 +2499,10 @@ label.secondary-button:focus-within {
 }
 
 @media (max-width: 640px) {
+  .content:has(.renewal-guided) {
+    padding-inline: var(--space-3);
+  }
+
   .renewal-now-facts {
     grid-template-columns: 1fr;
   }
@@ -2441,14 +2521,6 @@ label.secondary-button:focus-within {
 
   .renewal-path-steps {
     gap: var(--space-1);
-  }
-
-  .renewal-path-button {
-    font-size: 0.875rem;
-  }
-
-  .renewal-path-state {
-    font-size: 0.75rem;
   }
 }
 
@@ -5200,6 +5272,10 @@ body {
 .gmail-hub .communication-plain-body {
   white-space: pre-wrap;
 }
+.renewal-owner-reply-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
 
 /* S197: keep current work and its recorded outcome together; narrow layouts retain both. */
 .renewal-primary-progress {
@@ -5235,6 +5311,23 @@ body {
   min-width: 14rem;
   max-width: 100%;
   color: var(--ui-text);
+}
+
+/* The phone header shares rows in DOM order, so global utilities leave room for the task. */
+@media (max-width: 760px) {
+  .topbar {
+    align-items: center;
+    flex-direction: row;
+    row-gap: var(--space-2);
+  }
+
+  .topbar .primary-navigation {
+    width: auto;
+  }
+
+  .global-entity-search {
+    flex-basis: 100%;
+  }
 }
 .global-entity-search-fields {
   display: flex;

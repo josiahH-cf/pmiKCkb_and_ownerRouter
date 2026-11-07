@@ -194,24 +194,33 @@ function checkSecurityDeposit(input: RenewalReadinessInput): ReadinessCheck {
 
 function checkPetDeposit(input: RenewalReadinessInput): ReadinessCheck {
   const id = "pet_deposit";
-  const label = "Pet deposit + registration";
+  const label = "Animal charges and agreement";
   if (isUnknown(input.hasPet)) {
     return needsInput(
       id,
       label,
-      "Pet status unknown — needed to decide the pet deposit / registration.",
+      "Review the animal type, charges and agreement under Packet inputs.",
     );
   }
-  if (input.hasPet === false) return ok(id, label, "No pet — no pet deposit required.");
+  if (input.hasPet === false)
+    return ok(
+      id,
+      label,
+      "No ordinary pet recorded for this check. Review any assistance-animal rule under Packet inputs.",
+    );
   if (input.petDepositSet !== true) {
     return flag(
       id,
       label,
       "High",
-      "Pet present — pet deposit + pet-registration addendum required.",
+      "Review the ordinary pet's recorded deposit and applicable agreement under Packet inputs.",
     );
   }
-  return ok(id, label, "Pet present and pet deposit recorded.");
+  return ok(
+    id,
+    label,
+    "The ordinary pet deposit is recorded. Packet inputs carries the current charges and agreement requirements.",
+  );
 }
 
 function checkLlcSuffix(input: RenewalReadinessInput): ReadinessCheck {

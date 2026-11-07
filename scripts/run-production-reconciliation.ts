@@ -4,6 +4,20 @@ import {
 } from "./production-assurance-dom-snapshot";
 import { mapAssuranceReads } from "../lib/production-assurance/bounded-reads";
 import { ASSURANCE_RENEWAL_DESK_PATH } from "../lib/production-assurance/manifest";
+// The independent workspace oracle is also used by the canary's default-lease read. The table
+// reconciliation below retains all source/projected/rendered rows and its existing bounds.
+// The oracle also requires the Now action before its supporting next-step/detail context.
+// A missing owner recipient names its specific source-record handoff rather than the composer.
+// Visible work fields in Guided view belong to the Now card, including the existing hand records.
+// Early-step primary geometry stays within one desktop screen or two phone screens. The oracle
+// reads the actual viewport; assurance retains its existing 1440x1000 viewport and all bounds.
+// A shown recommendation keeps its required label and live per-field save feedback. The
+// independent oracle refuses an absent required field/status instead of inferring saved work.
+// A default read-only lease entry opens no modal review on its own.
+// Its visible Guided work belongs to the one main landmark.
+// The rendered chooser and exact draft recovery each appear at most once in the guided work.
+export { countIndependentGuidedWorkspaceMismatches } from "../lib/production-assurance/guided-workspace-projection";
+export type { IndependentGuidedWorkspaceSnapshot } from "../lib/production-assurance/guided-workspace-projection";
 import {
   RENEWAL_WORKSPACE_COLLECTIONS,
   RenewalWorkspaceStateSchema,

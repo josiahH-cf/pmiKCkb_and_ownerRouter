@@ -3,7 +3,7 @@
 
 # S251 — Housing assistance recorded once on the lease, with its own renewal order
 
-> Status: AUTHORING READY — intake 117; implementation NOT STARTED. Specification only; it grants no execution, release or provider effect. Owner decision D-OP-9 (November 5, 2026) sets the order: the program first, then the owner's answer on renewing the tenant, then rent only when a change is proposed.
+> Status: AUTHORING READY: intake 117; implementation merged in PR #189 at `daf8ee05`. Resumed UX repairs and scoped qualification are recorded on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. D-OP-9 remains settled: program, owner renewing answer, then rent when a change is proposed. This specification grants no provider effect.
 
 **Goal.**
 
@@ -47,12 +47,24 @@ operating Sheet.
 - **R-S251-1 — One optional fact.** A lease has "Housing assistance": not set, No, or Yes with the
   program name and optional contact and notes. Not set is the default and asks nothing.
 - **R-S251-2 — Entered where it is first useful.** The field sits on the Check the numbers step and
-  in Lease information, saves by itself with who and when, and can be changed at any time.
+  in Lease information, saves by itself with who and when, and can be changed at any time. After
+  Yes is chosen, Program name is marked required. An empty name explains that the choice is
+  waiting to be saved; leaving the field shows the missing-name error beside it. Completing the
+  name saves the fact through the existing autosave in either location. Saving is visible; a
+  failed save keeps the entry and offers Try again through the same lease-bound save, with
+  permission and completeness checks retained.
+  The shared S155 retry keeps visible keyboard focus through confirmed success in both locations,
+  including when the saved housing choice changes the nearby path.
+  The existing saved notice appears and the next Tab continues to the next control.
+  An earlier autosave response keeps newer typing in Program name, contact and notes; those
+  entries show "Unsaved housing assistance edits" until their own save completes, in both placements.
 - **R-S251-3 — Stays with the lease.** The fact carries across renewal cycles until staff change it,
   with its history kept.
 - **R-S251-4 — The program first.** With Yes, the step after the numbers check is "Contact
   {program} about the renewal process". Staff record its outcome, the date and what the program
-  requires as notes, with the existing activity form.
+  requires as notes, with the existing activity form. Once the numbers agree, their primary
+  action names and opens that next applicable step. The standard path continues to Compare
+  market rent; a step outside this lease's path is never its continuation.
 - **R-S251-5 — Then the owner's answer on renewing.** The next step is "Ask the owner whether to
   renew this tenant". Staff record Renew, Do not renew or No answer yet, with who answered, how and
   when. Do not renew moves the lease to the existing non-renewal handoff.
@@ -159,7 +171,7 @@ the program. The lease now says to contact the program first. After that it asks
 wants to renew the tenant, and only brings up rent if the staff member says a change is proposed.
 Next year the lease still knows, and leases without assistance never ask.
 
-- Model verdict: NOT RUN — to be completed by the implementation runner with evidence.
+- Model verdict: RUN for the optional synthetic fact, assisted order and non-renewal (J14). L55's distinct table-count discrepancy remains explicit. See the [review](../evidence/renewal-one-path-ux-review-2026-11-06.md) and [individual litmus results](../evidence/renewal-one-path-litmus-2026-11-06.md).
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**

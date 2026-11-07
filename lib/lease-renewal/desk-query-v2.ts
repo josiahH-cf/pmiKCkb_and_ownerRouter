@@ -8,6 +8,7 @@
 // opaque `p1_` tokens; no display label is ever echoed into a v2 URL.
 
 import { LEASE_TERMS, type LeaseTerm } from "@/lib/lease-renewal/lease-term-types";
+import { explicitLeaseReference } from "@/lib/lease-renewal/lease-reference";
 import {
   RENEWAL_DESK_DUE_STATES,
   RENEWAL_DESK_WAITING_STATES,
@@ -671,6 +672,8 @@ function compactNormalized(value: string): string {
 }
 
 function matchesLeaseText(item: RenewalDeskV2Item, leaseText: string): boolean {
+  const leaseReference = explicitLeaseReference(leaseText);
+  if (leaseReference) return item.queryKeys.normalizedLeaseId === leaseReference.id;
   const normalizedQuery = normalizeRenewalDeskText(leaseText);
   if (normalizedQuery === "") return false;
   const compactQuery = compactNormalized(normalizedQuery);

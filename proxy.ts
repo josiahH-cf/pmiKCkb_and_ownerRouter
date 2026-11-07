@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 
 import { resolveEnvironmentDescriptor } from "@/lib/environment/descriptor";
 import { decideLiveReadonlyRequest } from "@/lib/environment/live-readonly-request-policy";
+import { previousHelpPictureDestination } from "@/lib/help/previous-picture";
 import {
   maintenanceRequestDisposition,
   MAINTENANCE_RETIREMENT_MESSAGE,
@@ -92,7 +93,13 @@ async function applyRequestPolicies(request: NextRequest) {
       );
     }
   }
-  const response = NextResponse.next();
+  const picture = previousHelpPictureDestination(
+    request.method,
+    request.nextUrl.pathname,
+  );
+  const response = picture
+    ? NextResponse.redirect(new URL(picture + request.nextUrl.search, request.url))
+    : NextResponse.next();
   // S165: a signed-out person opening an app page is sent to /sign-in by the page guard. Remember
   // the page (path only, validated, ten minutes) so sign-in returns them to it. This grants
   // nothing: the destination page still runs its own guard after sign-in.

@@ -3,7 +3,7 @@
 
 # S252 — One-path renewal walkthrough, action budgets, defect ledger and help update
 
-> Status: AUTHORING READY — intake 118; implementation NOT STARTED. Specification only; it grants no execution, release or provider effect. It runs after the S246–S251 slices it measures and reuses the S238 method.
+> Status: AUTHORING READY: intake 118; the engineering slice merged in PR #190 at `2187cf09`, including help V2.0 and the walkthrough matrix. Resumed UX repairs update help to V2.1, with scoped qualification on `codex/renewal-one-path-ux`; release pending. The staff walkthrough and its human verdict remain NOT RUN. This specification grants no provider effect.
 
 **Goal.**
 
@@ -92,7 +92,11 @@ deployed before the walkthrough; the rehearsal runs before release.
   are rewritten for the batch, the guided view and its Now card, with the Focus view and Full view
   pages kept current; screenshots are recaptured
   from the rehearsal; the help version increases; "What changed" names the change; and the help
-  coverage, control, screenshot and content gates pass.
+  coverage, control, screenshot and content gates pass. Prior help-picture URLs continue to the
+  current same-named pictures through temporary same-origin redirects for the existing picture
+  names, after the request policies run. The current-only asset-folder gate stays intact.
+  An ordinary-flow picture uses complete synthetic source status fields consistent
+  with its declared Active lease; unavailable-evidence pictures retain their explicit error state.
 - **R-S252-7 — Assurance follows the screens.** The release canary landmarks and the reconciliation
   oracle are updated in the same change as the default view and status rules they read, and the
   read-only desk and lease smokes are updated deliberately, never loosened.
@@ -202,7 +206,7 @@ real leases to their next step, and at no point asks where to click. The printed
 shows the same screens. Everything that went wrong on November 4 either no longer happens or is on
 a short list with a reason.
 
-- Model verdict: NOT RUN — to be completed by the implementation runner with evidence.
+- Model verdict: RUN for the permitted synthetic phases, Help and evidence matrix (J15). Staff verdict NOT RUN. See the [review](../evidence/renewal-one-path-ux-review-2026-11-06.md) and [individual litmus results](../evidence/renewal-one-path-litmus-2026-11-06.md).
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**

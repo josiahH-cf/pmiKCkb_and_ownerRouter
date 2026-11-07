@@ -3,7 +3,7 @@
 
 # S253 — Confirmed form answers: pet fee and total, owner explanation, tenant initial boxes
 
-> Status: AUTHORING READY — intake 119; implementation NOT STARTED. Specification only; it grants no execution, release, publication or provider effect. It applies the client's November 5 answers to the S66, S130 and S235 owners and narrows holds U1, U2 and U4. Every question the client left open stays open.
+> Status: AUTHORING READY: intake 119; implementation merged in PR #185 at `95858eef`. Resumed synthetic UX qualification is recorded on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. Real original/map approval and every client answer still open remain in U1, U2 and U4. This specification grants no publication or provider effect.
 
 **Goal.**
 
@@ -93,7 +93,10 @@ of the same shape.
   pet or an assistance animal. The app adds no registration field, check, document request or
   wording. Until the client's approved rule is published, an assistance animal shows no fee, no
   deposit and no agreement decision, only that the rule is needed; it never reads as charged and
-  never as free.
+  never as free. The existing generic staff activity is named "Animal follow-up" (formerly "Pet
+  registration follow-up"), with its control identity and saved records kept. The legacy readiness
+  item is named "Animal charges and agreement" and points to Packet inputs; neither surface
+  asserts a registration requirement. Ordinary-pet deposit and agreement tools remain available.
 - **R-S253-7 — The owner acknowledgment carries this lease's explanation.** The large box at the
   bottom is filled from an explanation staff write for that lease and renewal cycle. Staff begin
   from the team's starting text when an Admin has saved one, edit it, and see it in the exact
@@ -225,7 +228,7 @@ prepared. They write two short paragraphs for the owner and see them in the box 
 The forms say plainly that the execution date and the tenant initials are left blank. Nothing asks
 them a question Dan already answered.
 
-- Model verdict: NOT RUN — to be completed by the implementation runner with evidence.
+- Model verdict: RUN for synthetic forms and per-lease isolation (J16–J18). Real originals, legal and mapping approvals, and open client answers stay unverified. See the [review](../evidence/renewal-one-path-ux-review-2026-11-06.md) and [individual litmus results](../evidence/renewal-one-path-litmus-2026-11-06.md).
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**

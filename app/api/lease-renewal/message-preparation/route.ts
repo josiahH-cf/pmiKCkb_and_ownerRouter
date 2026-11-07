@@ -330,7 +330,7 @@ export async function POST(request: Request) {
           hashExecutionPreview({ preview, claimBasis: claimBasisOf(current) })
       )
         throw new EditableLayerError(
-          "The message changed after this preview. Preview the draft again to confirm the current message.",
+          "The message or its lease evidence changed after this preview. Preview the draft again to confirm the current version.",
           409,
         );
       if (saved.execution.state === "Succeeded" && saved.snapshot.outcome)

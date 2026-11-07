@@ -10,8 +10,10 @@ import { effectiveRenewalTerms } from "@/lib/lease-renewal/effective-terms";
 import { assembleFinishUpPreparation } from "@/lib/lease-renewal/finish-up-preparation";
 import {
   gmailDraftSignal,
+  gmailDraftMessageRevisionOf,
   messageRevisionOf,
 } from "@/lib/lease-renewal/message-revision";
+import { DRAFT_BANNER } from "@/lib/constants";
 import { ownerSuggestionSentence } from "@/lib/lease-renewal/renewal-message-content";
 import type { FreshOperatingSheetLeaseContext } from "@/lib/lease-renewal/sheet-writeback/workspace-resolution";
 import type { RenewalChargeInventory } from "@/lib/lease-renewal/writeback/charge-inventory-model";
@@ -21,6 +23,26 @@ import type { RenewalWorkingRecord } from "@/lib/lease-renewal/working-record";
 // ---- D: the "older" signal reads the last created draft ------------------------------------------
 
 describe("S249 D (R-S249-9): a Gmail draft never goes stale silently", () => {
+  it("compares the same wording across the required Gmail review banner", () => {
+    const message = {
+      subject: "Sample renewal",
+      body: "Hello Example,\n\nReviewed rent and reason.",
+    };
+    const draft = { ...message, body: `${DRAFT_BANNER}\n\n${message.body}` };
+    const signal = gmailDraftSignal({
+      createdHere: null,
+      replacedHere: false,
+      head: null,
+      created: { latest: { executionId: "example-draft", ...draft }, earlier: 0 },
+    });
+    expect(signal.createdRevision).toBe(messageRevisionOf(message));
+    expect(gmailDraftMessageRevisionOf(draft)).toBe(messageRevisionOf(message));
+    expect(
+      gmailDraftMessageRevisionOf({ ...draft, body: `${draft.body}\nChanged reason.` }),
+    ).not.toBe(messageRevisionOf(message));
+    expect(draft.body.startsWith(`${DRAFT_BANNER}\n\n`)).toBe(true);
+  });
+
   const revisionA = {
     subject: "Renewal for 100 Sample Street",
     body: "Revision A body.",

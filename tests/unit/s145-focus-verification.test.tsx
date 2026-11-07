@@ -257,14 +257,10 @@ describe(
       await settle();
       await openFocus(user);
       const others = await openOtherReadyTasks(user);
-      await user.click(
-        within(others).getByRole("button", { name: "Pet registration follow-up" }),
-      );
+      await user.click(within(others).getByRole("button", { name: "Animal follow-up" }));
       await settle();
-      expect(heading()).toHaveTextContent("Pet registration follow-up");
-      expect(announcement()).toHaveTextContent(
-        "Pet registration follow-up: Ready for you.",
-      );
+      expect(heading()).toHaveTextContent("Animal follow-up");
+      expect(announcement()).toHaveTextContent("Animal follow-up: Ready for you.");
 
       // A colleague records a tenant counter; the refreshed record reopens the owner response as
       // the suggestion. S156: the chosen task stays ready (nothing starts after another task),
@@ -285,7 +281,7 @@ describe(
       routes.replace(counter);
       view.rerender(workspaceElement({ manual: counter }));
       await settle();
-      expect(heading()).toHaveTextContent("Pet registration follow-up");
+      expect(heading()).toHaveTextContent("Animal follow-up");
       expect(within(focusPane()).getByText("Ready for you.")).toBeVisible();
       expect(within(focusPane()).queryByText(/^Starts after: /)).toBeNull();
       expect(await openOtherReadyTasks(user)).toHaveTextContent("Record owner response");
@@ -323,9 +319,7 @@ describe(
       expect(within(form).getByLabelText(/Source or channel/)).toHaveValue(
         "Unsaved form note",
       );
-      expect(await openOtherReadyTasks(user)).not.toHaveTextContent(
-        "Pet registration follow-up",
-      );
+      expect(await openOtherReadyTasks(user)).not.toHaveTextContent("Animal follow-up");
       expect(workspaceWrites(routes)).toEqual([]);
     });
 

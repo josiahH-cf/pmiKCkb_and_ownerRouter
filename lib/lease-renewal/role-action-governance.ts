@@ -666,7 +666,7 @@ export const RENEWAL_CONTROL_INVENTORY = [
     ],
   },
   {
-    control: "Refresh source facts",
+    control: "Refresh data",
     source: "components/lease-renewal/RenewalDeskRefresh.tsx",
     capability: "refresh_source_facts",
     enforcementSources: ["app/api/lease-renewal/refresh/route.ts"],

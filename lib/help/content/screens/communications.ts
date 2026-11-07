@@ -217,6 +217,15 @@ export const COMMUNICATIONS_SCREENS: readonly HelpScreenReference[] = [
         who: "Renewal staff",
       },
       {
+        label: "Try again",
+        role: "button",
+        region: "region:Communication composer",
+        availability: "conditional",
+        source: COMPOSER_SOURCE,
+        does: "Reads the same communication again after a failed load. Close leaves the composer.",
+        who: "All staff",
+      },
+      {
         label: "Save draft",
         role: "button",
         region: COMPOSER,
@@ -240,7 +249,7 @@ export const COMMUNICATIONS_SCREENS: readonly HelpScreenReference[] = [
         region: COMPOSER,
         availability: "conditional",
         source: COMPOSER_SOURCE,
-        does: "Opens Schedule this reviewed communication with First date, Local time, Timezone and an optional repeat, end date and send limit.",
+        does: "Opens Schedule this reviewed communication with required First date, Local time and Timezone and an optional repeat, end date and send limit.",
         who: "Renewal staff",
       },
       {

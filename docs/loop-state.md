@@ -1,6 +1,6 @@
 # Loop state
 
-Last updated: 2026-11-05 (UTC). Read AGENTS.md and docs/facts.md first.
+Last updated: 2026-11-07 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current execution
 
@@ -39,23 +39,24 @@ publication, customer/provider business effect, signature or Dotloop activation 
 The guarded post-configuration five-route UI read had all 200 responses, no errors/mutation
 attempts and free profile before/after. It also exposed the remaining source-access seam below.
 
-## One-path batch S246–S254: in progress, handed off
+## One-path batch S246–S254: reviewed in isolation
 
-The owner started the unattended one-path run (S246–S254) on November 5 and handed it to another
-runner the same day. Nothing of it is merged or released, and the queue below is still empty.
-Resume from `~/pmi-kc-work/one-path-run/` (outside Git): its handoff file gives the state, the
-decisions made and the next steps, beside the owner's run instruction and the builder briefs.
+Current main `2187cf09fa0d5860919940448ae1ef55cd298f05` contains PRs #184–#190,
+including every source suite and the S254 harness. Branch `codex/renewal-one-path-ux`
+includes all six Claude commits and both remaining typing-recovery changes. The original
+worktree and its untracked owner files remain untouched.
 
-- Built on branches, each still needing review, the full gate and a squash merge: PR #184
-  (`feat/s254-litmus-harness`: shared litmus validator, the November 5 mix fixture and the one-path
-  rehearsal with mail, comparison and model stand-ins behind a loopback-only Demo fence), PR #185
-  (`feat/s253-confirmed-form-answers`) and PR #186 (`feat/s246-working-batch`).
-- Not started: S247 with S248, S249, S250 with S251, S252, the queue commit, the S254 litmus run,
-  the release and its closure.
-- Release-critical and unproven until built: the canary landmarks and the reconciliation follow
-  the new default desk and lease views in the same pull request as each view, and S249's automatic
-  comparison start never fires in a verification session or an automated browser.
-- Human verdict NOT RUN. The run made no send, provider write, billed lookup or production change.
+- The independent report at `edba7cbb` names all 71 checks: 62 Yes, 2 No and 7 UNVERIFIED.
+  The repaired source `eb7f4d69` has targeted rechecks, including the L18 retained text.
+  L55 keeps the literal count discrepancy, so batch acceptance remains No.
+  See the [litmus report](evidence/renewal-one-path-litmus-2026-11-06.md).
+- The older November/December journey passed on that source. The first canonical verify
+  stopped on an obsolete test count; the exact Help map assertion was updated in
+  `0e9c6a27`. The final-tree qualification and CI are recorded with the
+  PR. See the [UX review](evidence/renewal-one-path-ux-review-2026-11-06.md).
+- Human verdict NOT RUN. Real-provider, mailbox, physical-device, legal and client-input
+  limits remain. Automatic comparisons were held off throughout guarded browser verification.
+- The owner merges, releases and deploys. Earlier handoff release instructions do not apply.
 
 ## Exact remaining boundaries
 
@@ -78,15 +79,21 @@ decisions made and the next steps, beside the owner's run instruction and the bu
 
 ## Awaiting release
 
-None. The five PR #182 items (S87 present-tense copy and display, S126 Source last read, S147
-Try again, S242 print headings and S86 InfoTip and Notifications) were delivered together by run
-8bf183d8 at 5b5c65c6, and PR #180's test-only S113 fix rode the same candidate without a row.
-The litmus's two open owner questions (S34 closed-key label, S115 unreachable About panels) and
-the QuickBooks Connect button stay in docs/facts.md Open Questions with their defaults. The five
-PR #177 items were delivered earlier by run 6951545a at merge commit 3f2e3f5d, and S242–S245 with
-the five #173 fixes by run 74d79a9d at 323e8be3. Documentation-only closure does not deploy.
-Never resume a consumed or archived run or use its receipts as a new queue. The stopped original
-native owner and archived held runs remain untouched.
+The owner decides whether to release after reviewing the PR and its verification.
+These are merged source commits, not delivery claims; no release action is authorized in this review.
+
+1. S246 working batch and accurate targets: `64a12692`.
+2. S247 guided lease path: `20d55104`.
+3. S248 evidence-driven stage: `20d55104`.
+4. S249 prepared kickoff and one message route: `aec5a309`.
+5. S250 standing owner agreements: `daf8ee05`.
+6. S251 housing assistance path: `daf8ee05`.
+7. S252 engineering walkthrough and help: `2187cf09`.
+8. S253 confirmed form answers: `95858eef`.
+9. S254 harness and validator: `6b0a71a5`; see the branch report for the unaccepted litmus.
+
+The S245 fix batch at `5b5c65c6` remains the last recorded production delivery. Never reuse a
+consumed permit or receipt. The stopped original native owner and archived runs remain untouched.
 
 ## Continuation contract
 

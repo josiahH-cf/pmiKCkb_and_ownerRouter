@@ -114,10 +114,17 @@ function AskOwnerCard() {
   const nowCard = useRenewalNowCard();
   const primary = nowCard?.primaries["ask-owner"];
   return (
-    <section aria-label="Now">
+    <section aria-label="Now" data-renewal-now-step="ask-owner">
+      <h2 id="renewal-now-heading" tabIndex={-1}>
+        Now: Ask the owner
+      </h2>
       {primary ? (
         <p>
-          <button disabled={primary.disabled} onClick={primary.run} type="button">
+          <button
+            disabled={primary.disabled}
+            onClick={(event) => primary.run(event.currentTarget)}
+            type="button"
+          >
             {primary.label}
           </button>
           {primary.reason ? <span data-testid="send-needs">{primary.reason}</span> : null}
@@ -243,6 +250,74 @@ describe("S249 the prepared owner message on the Now card", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("keeps exact-attempt recovery on Now while another draft is unavailable", async () => {
+    const recover = vi.fn(async () => undefined);
+    const on = { ...handlers(), onDraftRecover: recover };
+    mount(
+      {
+        draft: {
+          available: false,
+          pending: false,
+          createdRevision: null,
+          preview: null,
+          recoveryRequired: true,
+        },
+      },
+      on,
+    );
+    const button = await screen.findByRole("button", {
+      name: "Recover exact Gmail attempt",
+    });
+    expect(button.closest('[aria-label="Now"]')).not.toBeNull();
+    expect(button).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Create Gmail draft instead" }),
+    ).toBeDisabled();
+    fireEvent.click(button);
+    expect(recover).toHaveBeenCalledOnce();
+    expect(on.onDraftPreview).not.toHaveBeenCalled();
+    expect(on.onDraftCreate).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Copy" })).toBeEnabled();
+  });
+
+  for (const confirmed of [false, true]) {
+    it(`keeps recovery focus usable after checking the exact attempt: confirmed=${confirmed}`, async () => {
+      const on = { ...handlers(), onDraftRecover: vi.fn(async () => undefined) };
+      const ui = (pending: boolean, required: boolean) => (
+        <RenewalNowCardProvider preparation={projectRenewalPreparation(FACTS)}>
+          <AskOwnerCard />
+          <PreparedMessageSlot
+            {...on}
+            data={data({
+              draft: {
+                available: false,
+                pending,
+                createdRevision: null,
+                preview: null,
+                recoveryRequired: required,
+              },
+            })}
+          />
+        </RenewalNowCardProvider>
+      );
+      const view = render(ui(false, true));
+      fireEvent.click(
+        await screen.findByRole("button", { name: "Recover exact Gmail attempt" }),
+      );
+      view.rerender(ui(true, true));
+      view.rerender(ui(false, !confirmed));
+      await waitFor(() =>
+        expect(
+          confirmed
+            ? screen.getByRole("heading", { name: "Now: Ask the owner" })
+            : screen.getByRole("button", { name: "Recover exact Gmail attempt" }),
+        ).toHaveFocus(),
+      );
+      expect(on.onDraftRecover).toHaveBeenCalledOnce();
+      expect(on.onDraftCreate).not.toHaveBeenCalled();
+    });
+  }
+
   it("R-S249-6: typing a reason goes to the one message record", () => {
     const { on } = mount();
     fireEvent.change(screen.getByLabelText("Reason to include"), {
@@ -279,6 +354,55 @@ describe("S249 the prepared owner message on the Now card", () => {
       schedule: null,
     });
     expect(requests.filter((entry) => entry.body?.action === "send")).toHaveLength(1);
+  });
+
+  it("returns focus to Review and send after cancelling a prepared review", async () => {
+    const on = handlers();
+    let finishSave!: (ok: boolean) => void;
+    on.onFlush.mockReturnValue(new Promise((resolve) => (finishSave = resolve)));
+    mount({}, on);
+    const primary = await screen.findByRole("button", { name: "Review and send" });
+    primary.focus();
+    fireEvent.click(primary);
+    expect(primary).toBeDisabled();
+    // Browsers can drop focus when the preparing button becomes disabled.
+    primary.blur();
+    await act(async () => finishSave(true));
+    const cancel = screen.getByRole("button", { name: "Cancel" });
+    expect(cancel).toHaveFocus();
+    fireEvent.keyDown(cancel, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).toBeNull();
+    await waitFor(() => expect(primary).toHaveFocus());
+    expect(requests.every((entry) => !entry.body || entry.body.action === "save")).toBe(
+      true,
+    );
+  });
+
+  it("marks both schedule inputs and waits for missing values before confirmation", async () => {
+    mount();
+    await act(async () =>
+      fireEvent.click(await screen.findByRole("button", { name: "Schedule" })),
+    );
+    const date = screen.getByLabelText("Date");
+    const time = screen.getByLabelText("Time (Central)");
+    const confirm = screen.getByRole("button", { name: "Schedule this message" });
+    expect(date).toBeRequired();
+    expect(time).toBeRequired();
+    expect(confirm).toBeEnabled();
+    fireEvent.change(date, { target: { value: "" } });
+    expect(date).toHaveAccessibleDescription("Choose a send date.");
+    expect(confirm).toBeDisabled();
+    fireEvent.click(confirm);
+    fireEvent.change(date, { target: { value: "2026-12-20" } });
+    fireEvent.change(time, { target: { value: "" } });
+    expect(time).toHaveAccessibleDescription("Choose a send time.");
+    expect(confirm).toBeDisabled();
+    fireEvent.click(confirm);
+    fireEvent.change(time, { target: { value: "10:00" } });
+    expect(confirm).toBeEnabled();
+    expect(requests.every((entry) => !entry.body || entry.body.action === "save")).toBe(
+      true,
+    );
   });
 
   it("BEH-S249-1: a review read while the lease read is being replaced is read again and then shown", async () => {
@@ -372,13 +496,16 @@ describe("S249 the prepared owner message on the Now card", () => {
       fireEvent.click(screen.getByRole("button", { name: "Review and send" })),
     );
     const form = screen.getByRole("form", { name: "Your signature" });
+    const name = screen.getByLabelText("Sender name");
+    expect(name).toBeRequired();
     await act(async () => fireEvent.submit(form));
     expect(
       screen.getByText("To save your signature, add: Sender name."),
     ).toBeInTheDocument();
+    expect(name).toHaveFocus();
     // Nothing was prepared for sending while the signature is missing.
     expect(fetchMock).not.toHaveBeenCalled();
-    fireEvent.change(screen.getByLabelText("Sender name"), {
+    fireEvent.change(name, {
       target: { value: "Example Staff" },
     });
     await act(async () => fireEvent.submit(form));

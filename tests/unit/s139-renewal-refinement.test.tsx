@@ -14,6 +14,9 @@ import { STALE_REFINED_BODY_MESSAGE } from "@/lib/lease-renewal/refined-message"
 // drafted state shows the S140 hint once. S139 duplicate disclosure: the app cannot replace an
 // earlier Gmail draft.
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: vi.fn() }),
+}));
 vi.mock("@/components/lease-renewal/RenewalManualWorkspace", () => ({
   useRenewalManualWorkspace: () => ({
     leaseId: "701",

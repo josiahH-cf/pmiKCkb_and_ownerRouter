@@ -20,7 +20,7 @@ import {
   readFileSync,
   writeFileSync,
 } from "node:fs";
-import { createServer } from "node:net";
+import { createServer, Socket } from "node:net";
 import { join, resolve } from "node:path";
 import { chromium } from "playwright-core";
 
@@ -60,6 +60,11 @@ const option = (name) => {
 };
 
 assert.ok(flag("--managed"), "Run through scripts/run-renewal-one-path-rehearsal.sh.");
+assert.ok(
+  globalThis.fetch?.name === "guardedFetch" &&
+    Socket.prototype.connect.name === "guardedConnect",
+  "The rehearsal requires its network guard preload.",
+);
 assert.match(process.cwd(), /^\/tmp\/pmi-kc-one-path-rehearsal-[^/]+\/worktree$/);
 assert.match(process.env.FIRESTORE_EMULATOR_HOST ?? "", /^127\.0\.0\.1:\d+$/);
 assert.match(process.env.FIREBASE_AUTH_EMULATOR_HOST ?? "", /^127\.0\.0\.1:\d+$/);
@@ -134,6 +139,7 @@ try {
     monthsShifted: mix.monthsShifted,
     standInOrigin: standIns.origin,
     mailAdapter,
+    automaticComparisonHeld: flag("--hold-automatic-comparison"),
     firestoreEmulatorHost: process.env.FIRESTORE_EMULATOR_HOST,
     authEmulatorHost: process.env.FIREBASE_AUTH_EMULATOR_HOST,
     projectId: PROJECT_ID,

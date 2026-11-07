@@ -121,6 +121,61 @@ function setup() {
   fixture.progress.mockResolvedValue(new Map());
 }
 describe("S113 fresh desk read scheduling", () => {
+  it("waits for a current source before the assistant states working-batch membership", async () => {
+    setup();
+    fixture.snapshot.mockResolvedValueOnce({
+      ...snapshot,
+      currency: { ...snapshot.currency, state: "stale", refreshing: true },
+    });
+    const now = new Date("2026-09-10T16:00:00Z");
+    const result = await runRenewalAssistantSource(actor, now, null, { aiContext: true });
+    expect(result.outcome.status).toBe("ok");
+    expect(fixture.snapshot).toHaveBeenCalledTimes(2);
+    expect(fixture.snapshot.mock.calls[1][3]).toEqual({
+      sourceRefreshAfter: now.getTime(),
+    });
+    expect(fixture.project.mock.calls[0][8]).toBe(snapshot);
+  });
+
+  it("reports an unavailable assistant source when the stale source cannot refresh", async () => {
+    setup();
+    fixture.snapshot
+      .mockResolvedValueOnce({
+        ...snapshot,
+        currency: { ...snapshot.currency, state: "stale" },
+      })
+      .mockRejectedValueOnce(new Error("Synthetic refresh refused"));
+    const result = await runRenewalAssistantSource(
+      actor,
+      new Date("2026-09-10T16:00:00Z"),
+      null,
+      { aiContext: true },
+    );
+    expect(result.outcome.status).toBe("read_error");
+    expect(fixture.project).not.toHaveBeenCalled();
+  });
+
+  it.each(["stale", "status_unavailable"] as const)(
+    "keeps a display fallback with %s evidence out of an assistant target answer",
+    async (reason) => {
+      setup();
+      fixture.snapshot.mockResolvedValue(
+        reason === "stale"
+          ? { ...snapshot, currency: { ...snapshot.currency, state: "stale" } }
+          : { ...snapshot, statusTable: { status: "unavailable" } },
+      );
+      const result = await runRenewalAssistantSource(
+        actor,
+        new Date("2026-09-10T16:00:00Z"),
+        null,
+        { aiContext: true },
+      );
+      expect(result.outcome.status).toBe("read_error");
+      expect(fixture.snapshot).toHaveBeenCalledTimes(2);
+      expect(fixture.project).not.toHaveBeenCalled();
+    },
+  );
+
   it.each(["snapshot", "sheet"] as const)(
     "S168 stops waiting for a stalled primary %s and reports read_error",
     async (source) => {

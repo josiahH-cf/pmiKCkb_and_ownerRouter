@@ -10,6 +10,20 @@ import { SHEET_FIELD_LABELS } from "@/lib/lease-renewal/sheet-writeback/field-in
 
 export const RENEWAL_WORKING_RECORD_SCHEMA_VERSION = "renewal-working-record/v1";
 
+const OWNER_MESSAGE_WORKING_FIELDS = ["current_rent", "terms_rent"] as const;
+const TENANT_MESSAGE_WORKING_FIELDS = [
+  "terms_rent",
+  "terms_effective_date",
+  "terms_end_date",
+] as const;
+
+/** Only these ordinary working values supply figures to the audience's prepared message. */
+export function messageWorkingFieldsFor(channel: "owner" | "tenant"): readonly string[] {
+  return channel === "owner"
+    ? OWNER_MESSAGE_WORKING_FIELDS
+    : TENANT_MESSAGE_WORKING_FIELDS;
+}
+
 const workingDate = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/)

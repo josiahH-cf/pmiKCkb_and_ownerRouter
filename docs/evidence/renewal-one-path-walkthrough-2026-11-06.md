@@ -10,6 +10,25 @@ rehearsal's loopback mail stand-in.
 
 Human verdict: NOT RUN — no human observer
 
+## Scope of the resumed review
+
+The builder runs below are retained provenance. They predate the resumed review's guard repairs
+and do not establish fresh independent acceptance or final-source qualification. The resumed
+[UX review](renewal-one-path-ux-review-2026-11-06.md) records the offline guard falsification,
+the corrected committed-source observations and each remaining evidence gap. The original
+builder outcomes retain their dates, source commits and actual qualification limits.
+
+The fresh starting-commit walk reached nine required actions plus one optional action across
+three tabs before its preserved Demo gate refused Send. Its exact final review, confirmation
+and completed baseline send remain UNVERIFIED. The older ten-action count below is the builder's
+reported count; it is not substituted for that fresh observation or for an actual provider result.
+
+The default S252 driver includes a phase that deliberately enables automatic preparation. The
+owner's current hard limit leaves that phase unrun. Its documented phase selector permits the
+other five phases with `--hold-automatic-comparison`; a selected-phase result is reported with
+that scope and never as a full default-driver pass. Human and client-answer columns stay NOT RUN
+or retain their named outside input.
+
 The first weekly staff session is November 10, 2026. No staff session was held for this evidence,
 so every human column below reads NOT RUN and no human result is inferred. Nothing in this file
 marks a litmus check Yes; the S254 litmus runs in a fresh session after S252 merges.
@@ -154,6 +173,13 @@ checks) runs in its own run with `--no-mail-adapter`: in `20261106T161242Z-f88ce
 
 ## Defect ledger and walkthrough matrix (R-S252-3 to R-S252-5, R-S252-9 to R-S252-11)
 
+Independent review on the resumed source contradicted N4-18's covered-owner primary (L46/L60):
+the earlier check verified the coverage label and current path, while the primary still asked to
+send. The UX repair and the strengthened variants driver now require Continue to Offer the
+tenant and activate it to check its destination. This updates the current checked ledger in
+place; the historical runs below retain their original scope and outcomes. Current independent
+observations are in `docs/evidence/renewal-one-path-ux-review-2026-11-06.md`.
+
 The ledger is checked data: `scripts/lib/one-path-walkthrough/defect-ledger.json`, checked by
 `scripts/lib/one-path-walkthrough/ledger-check.mjs` (`node scripts/check-one-path-defect-ledger.mjs`,
 and `tests/unit/s252-defect-ledger.test.ts`). The check resolves every owning id against its
@@ -227,7 +253,7 @@ matrix human column other than NOT RUN) are each a test that the check rejects.
   field (`formerly`) for a renamed control (none needed). The guide-controls smoke finds every one
   of the 70 starting rows by role and accessible name on its own page (the lease page in Guided,
   Focus or Full view, the desk in the batch or in All leases and filters, Connections, Home).
-- **Pictures:** every scene was recaptured for V2.0 from the help rehearsal into `public/help/V2.0/`
+- **Pictures:** every scene was recaptured for V2.0 from the help rehearsal into public/help/V2.0/
   (27 scenes, each at 1280 by 800 or 375 by 812, synthetic values only, each looked at against its
   alt text); the V1.1 picture folder was retired (Git history keeps it). The rehearsal prepares its
   lease through the app's own routes (templates published, the owner message saved with a
@@ -426,3 +452,54 @@ Observed and kept, not changed:
     step's own action when the covered state names none); sending stays a staff choice.
 - **Not run:** `npm run verify:dependencies` (it reads the public npm registry) and a whole-tree
   `npm run lint` (ESLint ran on every touched file instead).
+
+## Resumed reviewer evidence
+
+This section is separate from the builder's dated observations above. The allowed S252 replay
+`20261107T034423Z-4d3359d7` ran these five phases: the S254 stand-in proof, the S254 smoke
+journey, the S252 recorded-outcome journey, the S247/S248 path and stage exercise, and the
+S250/S251 variants. All 79 checks and all five budgets checked in that invocation passed.
+Opening the prepared lease and completing the exact review took three actions and one page;
+the observed owner decision took three with nothing preselected. The reviewed synthetic send,
+decision and completion produced their own readback. Each consequential action retained its
+review and confirmation. The default automatic-start phase did not run. The hold was read
+at startup, on resets and at exit. All 105 Node PIDs reported the guard; only two public npm
+requests were refused. Four kickoff requests were explicit staff seed or phase-reset operations.
+
+The actual historical kickoff comparison stops at the starting commit's own Demo send refusal.
+It reached nine required actions and one optional action across three tabs. The candidate completed
+the synthetic kickoff in three actions and one tab. The old run's completed send and exact
+confirmation are UNVERIFIED. This direct comparison narrows the earlier builder count above;
+it does not erase the earlier record.
+
+The existing checked ledger retains all 20 November 4 items and all nine supplemental rows.
+The 36-row walkthrough matrix retains its seven budget rows and 29 ledger rows. The four open
+ledger items remain exactly scoped; the first staff case, approval handoff, client inputs and real
+provider outcomes retain their original holds. Each human column remains
+`Human verdict: NOT RUN — no human observer`.
+
+Help V2.1 was captured on `3602f69ab4ca2e448b9e727641a9e36cbeb9551e`, run
+`20261107T061029Z-3602f69a`. All 27 scenes captured and all PNG hashes matched. Nine changed
+from the previous capture; the other eighteen were byte-identical. The changed pictures and
+the unchanged exact review picture were visually inspected; it shows the sender, recipients
+and wording at the top. The source contained only synthetic records. The capture had 22 guarded
+Node PIDs, two refused public npm connections and zero kickoff preparation requests. The
+asset-only commit is `edba7cbb29dfc7942257e91e91932516a449fbf2`. The
+[independent litmus](renewal-one-path-litmus-2026-11-06.md) gives the exact L61 guide-to-screen
+coverage and L60/L62 ledger checks. The [UX review](renewal-one-path-ux-review-2026-11-06.md) gives
+the component and release-assurance changes and their final qualification.
+
+The exact Help control walk at `eb7f4d69`, run `20261107T072612Z-eb7f4d69`, checked
+840 entries: 629 visible, 211 conditional-unavailable and zero missing. The wrapper and
+emulator finished. The 36 guarded Node PIDs recorded two public npm requests and ten hosted
+identity requests refused before dispatch. There were zero kickoff requests. This covers the
+browser control gate's named fixture states; conditional-unavailable controls and human
+comprehension retain their separate limits.
+
+The independent corrected-frame follow-up `20261107T075249Z-eb7f4d69` matched all nine
+previously partial scenes for layout, labels and control placement. The 15 image blobs and
+scene manifest stayed byte-identical to `edba7cbb`. With the six earlier direct matches,
+the observations cover all 15 renewal guide images. The only differences were incidental
+synthetic clock text and a development indicator where visible. The same guide-named
+actions also reached the separate exact confirmation and accepted stand-in in the
+independent path walk (L23 and L25). This adds no staff verdict.
