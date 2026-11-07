@@ -356,6 +356,37 @@ async function scenes(checkOnly) {
   return uncaptured.length || drift.length ? 1 : 0;
 }
 
+// Preserve the real search results and format their generated timestamps from one fixed
+// fixture instant. Keep any older source metadata and absent timestamps as served.
+async function pinSearchCaptureTime(page) {
+  const start = Date.parse(HELP_FIXTURE_INSTANT);
+  const duringFixtureRun = (value) => {
+    const ms = typeof value === "string" ? Date.parse(value) : Number.NaN;
+    return ms >= start && ms <= start + 30 * 60_000;
+  };
+  let pinned = false;
+  await page.route(
+    (url) => url.origin === origin && url.pathname === "/api/search/entities",
+    async (route) => {
+      const response = await route.fetch({ maxRedirects: 0 });
+      const result = await response.json();
+      assert.ok(response.ok() && duringFixtureRun(result.readAt));
+      assert.ok(Array.isArray(result.results) && result.results.length > 0);
+      const results = result.results.map((row) =>
+        duringFixtureRun(row.entity.asOf)
+          ? { ...row, entity: { ...row.entity, asOf: HELP_FIXTURE_INSTANT } }
+          : row,
+      );
+      await route.fulfill({
+        status: response.status(),
+        json: { ...result, readAt: HELP_FIXTURE_INSTANT, results },
+      });
+      pinned = true;
+    },
+  );
+  return () => assert.ok(pinned, "The synthetic search read must reach its scene.");
+}
+
 async function captureScene(scene) {
   const context = await browser.newContext({
     viewport: scene.viewport,
@@ -377,6 +408,10 @@ async function captureScene(scene) {
   try {
     if (fixedFixture) await page.clock.setFixedTime(new Date(HELP_FIXTURE_INSTANT));
     await signIn(page, scene.role);
+    const verifySearchTime =
+      fixedFixture && scene.id === "search-results"
+        ? await pinSearchCaptureTime(page)
+        : null;
     await page.goto(`${origin}${await resolveRoute(page, scene.route)}`, {
       waitUntil: "domcontentloaded",
     });
@@ -408,6 +443,7 @@ async function captureScene(scene) {
       );
     } else if (framed) await region.first().scrollIntoViewIfNeeded();
     await quiet(page);
+    verifySearchTime?.();
     let verifiedText = [];
     let verifiedIdentifier;
     if (scene.id === "help-contents-narrow") {

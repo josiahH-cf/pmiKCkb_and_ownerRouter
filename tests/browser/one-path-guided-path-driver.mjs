@@ -753,14 +753,20 @@ export async function runGuidedPath() {
       "expect L07 linked reply: opening the received message prepares no effect. Reviewing and selecting Send accepts one exact reply on that same synthetic thread. Reload keeps the receipt and the original incoming message.\n",
     );
     await page.goto(origin + "/gmail-hub", { waitUntil: "domcontentloaded" });
+    await page.waitForLoadState("networkidle", { timeout: 15_000 });
     await page
       .getByRole("tab", { name: "Outgoing", exact: true })
       .click({ timeout: 30_000 });
+    await page
+      .getByRole("tab", { name: "Outgoing", selected: true })
+      .waitFor({ timeout: 15_000 });
     const previous = page
       .getByRole("tabpanel", { name: "Outgoing", exact: true })
       .getByRole("article")
       .filter({
-        has: page.getByRole("heading", { name: new RegExp("Lease " + replied + "$") }),
+        has: page.getByRole("heading", {
+          name: new RegExp("\\bLease " + replied + "\\b"),
+        }),
       });
     await previous
       .getByRole("button", { name: "Open communication", exact: true })
@@ -805,13 +811,13 @@ export async function runGuidedPath() {
         await replyComposer.getByText(/^To:/).first().innerText(),
         /@example\.invalid\b/,
       );
-      const wording = "Thank you for reviewing the synthetic renewal example.";
-      await replyBody.fill(wording);
-      assert.equal(await replyBody.innerText(), wording);
       const replyEntry = new URL(replyPage.url());
       assert.equal(replyEntry.searchParams.get("reply_from"), parentSequence);
       const thread = replyEntry.searchParams.get("reply_thread");
       assert.ok(thread);
+      const wording = "Thank you for reviewing the synthetic renewal example.";
+      await replyBody.fill(wording);
+      assert.equal(await replyBody.innerText(), wording);
       const prior = new Set((await sentMessages()).map((entry) => entry.id));
       const confirm = replyComposer.getByRole("button", { name: "Send", exact: true });
       const [response] = await Promise.all([

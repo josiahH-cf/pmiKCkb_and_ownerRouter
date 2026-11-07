@@ -59,6 +59,14 @@ Staff session: none
   cycle case stopped on a source refresh without the required fresh response. Neither group
   earns a pass from those checkpoints.
 
+- L07 on `8149b612` in `20261107T165949Z-8149b612`. The new outgoing reply
+  driver timed out before the exact linked conversation opened. The 105 other S252 checks
+  and all five numerical budgets passed. L14 remains unaccepted for that run.
+- L03 and L13 on `93b3e91d`. The scoped collection response and screenshot both showed
+  the saved unavailable member without a link. The locator still timed out on the full row.
+  Rendered Help flagged Tenant offer and Entity search as material changes in
+  `canonical-93b3e91d-20261107T171838Z`.
+
 ## Repairs
 
 - L03 now waits for the initial collection list before enabling New collection. The focused
@@ -268,3 +276,29 @@ Accepted: No
 | L12 | Yes | Browser outcome `20261107T161743Z-cec7c4f0/L12-connection-retry`. The Admin reopened the named RentVine task, saw the injected 503, retried the actual check and read a verified synthetic result, then returned to the task index. The Editor saw the role refusal and no write control. The separate legacy safety anchor reached the exact focused section and returned to the index. | No additional change was needed for these checkpoints. | None on this run. |
 | L13 | UNVERIFIED | Expected a matching guide, scene and print return. The Editor worked the guide through exact confirmation and completion in the effect run. The narrow keyboard case invoked Print this guide and verified 32 heading rules, then returned to the old lease section. | Use the same isolated renderer for V2.2 verification and captures. | Verify the required isolated recapture and deliberate missing-control and stale-scene rejection. |
 | L14 | No | Expected an accepted same-SHA matrix and canonical verification. Core E2E passed 46 with 23 explicit skips. The S252 rehearsal passed 103 checks and all five numerical action budgets, with one failed readback. The mailbox-disabled rehearsal passed 11 of 13 cases. | Preserve both logs and use exact source and confirmation boundaries in the rerun. | Complete the full matrix, required canonical verification and exact CI. |
+
+## Run 4
+
+Commit: 8149b6128ec54bbad9a569fb24262806e5b5ba2b
+Starting commit: ef81b8917209f4eec3f22097142b559f3cce875b
+Run: 4
+Goal groups: all
+Accepted: No
+
+<!-- prettier-ignore -->
+| Check | Verdict | Evidence | Repair | Blocker |
+| ----- | ------- | -------- | ------ | ------- |
+| L01 | UNVERIFIED | The Editor expected the exact table and its preserved saved filters. All 38 group IDs and the month and saved or empty views matched in `20261107T165608Z-8149b612/L01-desk`. The effect rehearsal read an unavailable source and recovered it. | Retained the independent fixture partition. | Record the original focus and position through each requested scoped return. |
+| L02 | Yes | Browser outcome `20261107T165608Z-8149b612/L02-linked-entries`. The Editor opened the prepared lease from the desk by keyboard, from the Dashboard result and from the explicit private task. Each showed the same stage and the task returned to My Work. A second permitted actor did not see the private task. | Counted only workspace links in the month answer and used the actual task form. | None for the observed scoped paths. |
+| L03 | No | The Editor expected the unavailable member's exact saved row and version after Refresh statuses. The reviewed save, recovery, second actor and stale refusal had occurred. The unavailable row did not appear within the case's wait. The imported period selection separately reread one exact member. | Wait for the changed desk inventory, then capture the exact collection response before checking the row. | Reobserve the unavailable row and retained membership after exact source read. |
+| L04 | UNVERIFIED | The prepared Editor saw comparison, recommendation, stage and action on the first screen, then opened a later step without a write and restored the view and step after reload. All five numerical S252 budgets passed. | Keep the prior bounds and exact confirmations. | Complete the independent later control and keyboard return proof together. |
+| L05 | UNVERIFIED | The Editor expected an exact owner decision, correction and note. The decision advanced the same lease, the correction retained the reason, and the failed note retained 1,362 characters through reload and saved once. | Kept the status and message evidence separate. | Reobserve the conflicting staff and derived records across lease, desk and Dashboard. |
+| L06 | UNVERIFIED | All five Guided links and their legacy Focus URLs focused the requested heading below the sticky toolbar, returned to the same step, resolved a valid step link and handled a malformed fragment. A separate case verified tab-private note recovery. | The live workspace now owns fragment-only navigation and leaves embedded Focus behavior covered by its unit check. | Observe the delayed acknowledgment and newer incomplete working value through the exact alternate view. |
+| L07 | No | The subject and body matched across Copy, Send, Schedule and composer. The draft receipt and replacement both read back exact unsent bytes. Pause and Resume kept reviewed content and the due tick accepted one exact message. The outgoing reply case timed out before the worklist opened the linked sequence. | Wait for the actual Outgoing tab selection and exact linked row before opening the reply. | Complete the outbound linked reply and readback on the candidate. |
+| L08 | Yes | Browser outcome `20261107T165949Z-8149b612/s250-s251-variants`. The Editor worked standing agreement scope and override, program contact, No answer yet, Renew with the rent path, and Do not renew. The separate annual review and source move-out case saved, reread and returned to the counted groups. | Preserved all fixture variants and held automatic preparation. | None for the observed synthetic variants. |
+| L09 | No | A reviewed retirement and stale refusal were worked. The later source cycle check reached the refreshed Coming up later route, but the restoration leg did not receive the required fresh source read. Pending and ambiguous cases each gave their exact Communications recovery link. | Respect the source refresh cooldown and assert the fresh result on both sides of the override. | Observe the later cycle, restored scope and history together. |
+| L10 | UNVERIFIED | The Editor reached Complete and reopened the same lease from Completed. The synthetic Admin's $50 fee, the Editor's $250 deposit and the $300 total and two paragraphs persisted on reload. The packet reached Ready for preview, the other lease stayed blank, and the cross-lease rent and date check passed after exact save responses. | The form test now forces a fresh document load before reread. | Finish the browser file-byte and untouched-region observations. |
+| L11 | UNVERIFIED | The narrow Editor followed named Operations, the renewal procedure, its legacy entry and exact lease return. My Work opened the same stage and the other actor could not see the task. | Kept the task result private. | Observe the requested Dashboard task answer and missing target case together. |
+| L12 | Yes | Browser outcome `20261107T165608Z-8149b612/L12-connection-retry`. A narrow Admin followed the named service and an old entry, saw the injected failed read and retried successfully. The separate legacy safety task returned to the index. The Editor saw the denial and no write control. | Used the verified synthetic health response from the RentVine stand-in. | None for the observed scoped tasks. |
+| L13 | UNVERIFIED | The Editor used the actual Help guide through review and completion and requested browser printing. All 32 tested heading rules kept content together, then Back returned to the exact lease section. Earlier required Help rendered all 27 scenes without drift on its own exact source. | Kept the same isolated renderer and synthetic assets. | Run deliberate missing-control and material-change injection and repeat the required positive gate on the final candidate. |
+| L14 | No | The full S252 rehearsal passed 105 checks and five numerical budgets with one failure at the outgoing linked reply entry. The mailbox-disabled rehearsal passed 13 of 15. Stand-in and guard reports preserved the same effect boundaries. | Kept prior failures, the versioned S254 crosswalk and the same-date comparisons. | Complete the exact-candidate matrix, canonical and core gates, and CI. |

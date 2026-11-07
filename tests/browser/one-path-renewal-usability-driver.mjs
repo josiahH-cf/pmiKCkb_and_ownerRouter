@@ -523,9 +523,11 @@ try {
           },
         });
         assert.ok(read.ok() && absent?.state === "unavailable" && absent.href === null);
-        const revoked = detail
-          .getByRole("row")
-          .filter({ hasText: new RegExp("Lease " + outside + "\\b") });
+        const revoked = detail.getByRole("row").filter({
+          has: page.getByRole("rowheader", {
+            name: new RegExp("Lease " + outside + "$"),
+          }),
+        });
         await revoked
           .getByText("Unavailable; saved membership is kept", { exact: true })
           .waitFor();
@@ -820,6 +822,106 @@ try {
         recognizedStep: true,
         malformedTargetSafe: true,
       };
+    },
+  );
+  await check(
+    "L06-working-value-revisions",
+    "Editor",
+    wide,
+    "dark",
+    "keyboard",
+    "An incomplete working amount stays available across Guided, Full and a reload without a save. A held acknowledgment of an older valid amount cannot overwrite the newer typed amount. Confirming the newer amount writes it once to the exact lease.",
+    async (page) => {
+      await open(page, path(separate, "?step=ask-owner"));
+      const field = page.getByRole("textbox", {
+        name: "Working monthly rent",
+        exact: true,
+      });
+      const shown = () => field.filter({ visible: true });
+      await shown().waitFor();
+      const pending = Promise.withResolvers();
+      const release = Promise.withResolvers();
+      const writes = [];
+      const intercept = async (route) => {
+        const request = route.request();
+        if (request.method() !== "POST") return route.continue();
+        const data = request.postDataJSON();
+        if (data.leaseId !== separate || data.field !== "terms_rent")
+          return route.continue();
+        writes.push(data.value);
+        if (writes.length !== 1) return route.continue();
+        try {
+          const accepted = await route.fetch({ maxRedirects: 0 });
+          assert.ok(accepted.ok());
+          pending.resolve();
+          await release.promise;
+          await route.fulfill({ response: accepted });
+        } catch (error) {
+          pending.reject(error);
+          throw error;
+        }
+      };
+      await page.route(origin + "/api/lease-renewal/working-record", intercept);
+      try {
+        const partial = "$";
+        await shown().fill(partial);
+        await leaseViews(page)
+          .getByRole("button", { name: "Full view", exact: true })
+          .press("Enter");
+        assert.equal(await shown().inputValue(), partial);
+        await shown().focus();
+        await page.reload({ waitUntil: "domcontentloaded" });
+        await page.waitForFunction(
+          (text) =>
+            document.activeElement instanceof HTMLInputElement &&
+            document.activeElement.value === text,
+          partial,
+        );
+        assert.deepEqual(writes, []);
+        const older = 1377;
+        const newer = 1386;
+        await shown().fill(String(older));
+        await page.keyboard.press("Tab");
+        await Promise.race([
+          pending.promise,
+          page.waitForTimeout(20_000).then(() => {
+            throw new Error("The first working save never started.");
+          }),
+        ]);
+        await shown().fill(String(newer));
+        const oldAcknowledged = page.waitForResponse(
+          (response) =>
+            new URL(response.url()).pathname === "/api/lease-renewal/working-record" &&
+            response.request().method() === "POST" &&
+            response.request().postDataJSON()?.value === older,
+        );
+        release.resolve();
+        assert.ok((await oldAcknowledged).ok());
+        assert.equal(await shown().inputValue(), String(newer));
+        const [newAcknowledgment] = await Promise.all([
+          page.waitForResponse(
+            (response) =>
+              new URL(response.url()).pathname === "/api/lease-renewal/working-record" &&
+              response.request().method() === "POST" &&
+              response.request().postDataJSON()?.value === newer,
+          ),
+          page.keyboard.press("Tab"),
+        ]);
+        const saved = await newAcknowledgment.json();
+        assert.ok(newAcknowledgment.ok());
+        assert.equal(saved.record?.fields?.terms_rent?.value, newer);
+        assert.deepEqual(writes, [older, newer]);
+        await page.reload({ waitUntil: "domcontentloaded" });
+        assert.equal(await shown().inputValue(), String(newer));
+        return {
+          incompleteAmountRestored: true,
+          newerEditWon: true,
+          exactSuccessfulSaves: writes.length,
+        };
+      } finally {
+        release.resolve();
+        await page.unroute(origin + "/api/lease-renewal/working-record", intercept);
+      }
     },
   );
   await check(
