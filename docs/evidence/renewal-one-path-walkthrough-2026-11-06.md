@@ -10,6 +10,25 @@ rehearsal's loopback mail stand-in.
 
 Human verdict: NOT RUN — no human observer
 
+## Scope of the resumed review
+
+The builder runs below are retained provenance. They predate the resumed review's guard repairs
+and do not establish fresh independent acceptance or final-source qualification. The resumed
+[UX review](renewal-one-path-ux-review-2026-11-06.md) records the offline guard falsification,
+the corrected committed-source observations and each remaining evidence gap. The original
+builder outcomes retain their dates, source commits and actual qualification limits.
+
+The fresh starting-commit walk reached nine required actions plus one optional action across
+three tabs before its preserved Demo gate refused Send. Its exact final review, confirmation
+and completed baseline send remain UNVERIFIED. The older ten-action count below is the builder's
+reported count; it is not substituted for that fresh observation or for an actual provider result.
+
+The default S252 driver includes a phase that deliberately enables automatic preparation. The
+owner's current hard limit leaves that phase unrun. Its documented phase selector permits the
+other five phases with `--hold-automatic-comparison`; a selected-phase result is reported with
+that scope and never as a full default-driver pass. Human and client-answer columns stay NOT RUN
+or retain their named outside input.
+
 The first weekly staff session is November 10, 2026. No staff session was held for this evidence,
 so every human column below reads NOT RUN and no human result is inferred. Nothing in this file
 marks a litmus check Yes; the S254 litmus runs in a fresh session after S252 merges.

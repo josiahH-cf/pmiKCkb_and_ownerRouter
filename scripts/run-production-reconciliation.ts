@@ -11,6 +11,8 @@ import { ASSURANCE_RENEWAL_DESK_PATH } from "../lib/production-assurance/manifes
 // Visible work fields in Guided view belong to the Now card, including the existing hand records.
 // Early-step primary geometry stays within one desktop screen or two phone screens. The oracle
 // reads the actual viewport; assurance retains its existing 1440x1000 viewport and all bounds.
+// A shown recommendation keeps its required label and live per-field save feedback. The
+// independent oracle refuses an absent required field/status instead of inferring saved work.
 export { countIndependentGuidedWorkspaceMismatches } from "../lib/production-assurance/guided-workspace-projection";
 export type { IndependentGuidedWorkspaceSnapshot } from "../lib/production-assurance/guided-workspace-projection";
 import {

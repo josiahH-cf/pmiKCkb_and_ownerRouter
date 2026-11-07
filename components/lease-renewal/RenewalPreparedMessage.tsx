@@ -39,7 +39,10 @@ import {
   withLiveKickoff,
   type RenewalPreparation,
 } from "@/lib/lease-renewal/renewal-preparation";
-import { workingRenewalTerms } from "@/lib/lease-renewal/working-record";
+import {
+  workingRenewalTerms,
+  messageWorkingFieldsFor,
+} from "@/lib/lease-renewal/working-record";
 import { fetchWithDeadline } from "@/lib/ui/fetch-lifetime";
 import { focusRenewalDashboardControl } from "./RenewalDashboardNavigation";
 import { RentToRecommendField, StoredComparisonSummary } from "./RenewalKickoffFields";
@@ -367,6 +370,7 @@ function PreparedMessageBlock({
   const [review, setReview] = useState<ReviewState | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [changedReview, setChangedReview] = useState<string | null>(null);
   const [scheduleDate, setScheduleDate] = useState(tomorrowIso);
   const [scheduleTime, setScheduleTime] = useState("09:00");
   const [draftOpen, setDraftOpen] = useState(false);
@@ -498,6 +502,7 @@ function PreparedMessageBlock({
   const prepareReview = async (mode: "send" | "schedule") => {
     setBusy(true);
     setMessage("");
+    setChangedReview(null);
     try {
       if (!(await api.flush())) {
         setMessage(
@@ -505,6 +510,14 @@ function PreparedMessageBlock({
         );
         return;
       }
+      const workingFields = messageWorkingFieldsFor(api.channel);
+      const workingVersion = working?.confirmedVersion?.(workingFields);
+      const figuresChanged = () =>
+        Boolean(
+          working?.hasUnsettled?.(workingFields) ||
+          working?.confirmedVersion?.(workingFields) !== workingVersion,
+        );
+      const changedMessage = `Working figures changed while this review was loading. Your entries are kept. Choose ${mode === "schedule" ? KICKOFF_WORDS.schedule : KICKOFF_WORDS.reviewAndSend} again to review the current message.`;
       const readComposition = () =>
         json<{
           context: WorkflowCommunicationContext;
@@ -528,6 +541,10 @@ function PreparedMessageBlock({
         setMessage(
           `This message cannot be sent yet: ${composition.target.blockers.join(" ")}`,
         );
+        return;
+      }
+      if (figuresChanged()) {
+        setChangedReview(changedMessage);
         return;
       }
       type Saved = { sequence: CommunicationSequence; reviewedDraftHash: string };
@@ -592,6 +609,10 @@ function PreparedMessageBlock({
         saved = await send(attemptFor(null));
       }
       sequenceRef.current = { id: saved.sequence.id, version: saved.sequence.version };
+      if (figuresChanged()) {
+        setChangedReview(changedMessage);
+        return;
+      }
       const rendered = renderEditableCommunicationBody(saved.sequence.initial.paragraphs);
       setReview({
         mode,
@@ -700,9 +721,11 @@ function PreparedMessageBlock({
     }
     void prepareReview("send");
   };
-  const reason = ready
-    ? null
-    : `Before sending, add ${missingWords.map((item) => item.missing).join(", ")}.`;
+  const reason =
+    changedReview ||
+    (ready
+      ? null
+      : `Before sending, add ${missingWords.map((item) => item.missing).join(", ")}.`);
   // The Now card holds one stable action; it always runs the latest review step.
   const latestRun = useRef(runReview);
   useEffect(() => {
@@ -979,6 +1002,7 @@ function PreparedMessageBlock({
         </div>
       ) : null}
       {message ? <p role="status">{message}</p> : null}
+      {changedReview ? <p role="status">{changedReview}</p> : null}
       {api.notice && api.notice !== message ? <p role="status">{api.notice}</p> : null}
     </section>
   );

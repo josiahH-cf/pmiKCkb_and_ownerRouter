@@ -73,7 +73,11 @@ import {
   standingRuleSourceLabel,
 } from "@/lib/lease-renewal/standing-agreement";
 import { nowSlotKey, useRenewalNowCard } from "./RenewalNowCardContext";
-import { workingFieldLabel } from "@/lib/lease-renewal/working-record";
+import {
+  workingFieldLabel,
+  messageWorkingFieldsFor,
+} from "@/lib/lease-renewal/working-record";
+import { focusWorkingField } from "./WorkingFieldEditor";
 import {
   PreparedMessageSlot,
   draftPreviewWaitsOnGeneration,
@@ -483,10 +487,7 @@ function MessagePreparationEditor({
   const router = useRouter();
   const working = useRenewalWorkingRecord();
   const nowCard = useRenewalNowCard();
-  const messageWorkingFields =
-    channel === "owner"
-      ? ["current_rent", "terms_rent"]
-      : ["terms_rent", "terms_effective_date", "terms_end_date"];
+  const messageWorkingFields = messageWorkingFieldsFor(channel);
   const [current, setCurrent] = useState<Preparation | null>(null);
   const [inputs, setInputs] = useState(emptyMessagePreparationInputs);
   // S161: the authored body (typed here or accepted from a refinement) and the authored subject.
@@ -505,6 +506,14 @@ function MessagePreparationEditor({
   const [pending, setPending] = useState(false),
     [notice, setNotice] = useState("");
   const [confirming, setConfirming] = useState(false);
+  const workingRefusal = useRef<{ field: string; message: string } | null>(null);
+  useEffect(() => {
+    const refusal = workingRefusal.current;
+    if (refusal && working?.hasUnsettled && !working.hasUnsettled([refusal.field])) {
+      setNotice((shown) => (shown === refusal.message ? "" : shown));
+      workingRefusal.current = null;
+    }
+  }, [working]);
   const [outcome, setOutcome] = useState<RenewalNoticeDraftOutcome | null>(null);
   // S249 R-S249-9: the message revision the unsent Gmail draft created here carries, and whether
   // creating it replaced an earlier created draft (which stays in Gmail).
@@ -622,12 +631,18 @@ function MessagePreparationEditor({
   /** A transport reads the confirmed entered figures. Blank and unrelated fields stay usable. */
   async function settleWorkingFields(): Promise<boolean> {
     if (!working?.settle) return true;
+    setNotice("");
     const result = await working.settle(messageWorkingFields);
     if (!result.ok) {
-      setNotice(
-        `${workingFieldLabel(result.field)} is not confirmed. Your entry is kept; correct or retry its save before preparing this message.`,
-      );
-      if (result.controlId) focusRenewalDashboardControl(result.controlId);
+      const control = result.controlId ? document.getElementById(result.controlId) : null;
+      const label =
+        control instanceof HTMLInputElement
+          ? control.labels?.[0]?.textContent?.trim()
+          : null;
+      const message = `${label || workingFieldLabel(result.field)} is not confirmed. Your entry is kept; correct or retry its save before preparing this message.`;
+      workingRefusal.current = { field: result.field, message };
+      setNotice(message);
+      if (control) focusWorkingField(control);
       return false;
     }
     // The normal projection is read after the acknowledgments. If another entry arrived while

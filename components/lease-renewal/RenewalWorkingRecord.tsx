@@ -84,6 +84,7 @@ interface WorkingRecordContextValue {
   ) => number;
   readonly confirmLocalDraft: (field: string, version: number) => boolean;
   readonly hasUnsettled: (fields: readonly string[]) => boolean;
+  readonly confirmedVersion: (fields: readonly string[]) => string;
   readonly settle: (
     fields: readonly string[],
   ) => Promise<
@@ -117,6 +118,16 @@ function visibleWorkingEditor(editor: WorkingFieldEditor) {
   return Boolean(
     control?.isConnected &&
     !control.closest("[hidden], [data-renewal-focus-hidden], details:not([open])"),
+  );
+}
+
+function preferredWorkingEditor(entries: readonly WorkingFieldEditor[]) {
+  const visible = entries.filter(visibleWorkingEditor);
+  return (
+    visible.find((editor) => editor.control() === document.activeElement) ??
+    visible.find((editor) => editor.control()?.closest(".renewal-now-rent")) ??
+    visible[0] ??
+    entries[0]
   );
 }
 
@@ -320,18 +331,26 @@ export function RenewalWorkingRecordProvider({
       ),
     [],
   );
+  const confirmedVersion = useCallback(
+    (fields: readonly string[]) =>
+      fields
+        .map(
+          (field) => `${field}:${workingEntry(recordRef.current, field)?.revision ?? 0}`,
+        )
+        .join("|"),
+    [],
+  );
   const settle = useCallback(async (fields: readonly string[]) => {
     const before = recordRef.current?.revision ?? 0;
     let active = true;
     let fieldInProgress = fields[0] ?? "terms_rent";
-    const failure = (field: string) => ({
-      ok: false as const,
-      field,
-      controlId:
-        [...(editors.current.get(field)?.values() ?? [])]
-          .sort((a, b) => b.order() - a.order())[0]
-          ?.control()?.id ?? null,
-    });
+    const failure = (field: string) => {
+      const entries = [...(editors.current.get(field)?.values() ?? [])].sort(
+        (a, b) => b.order() - a.order(),
+      );
+      const editor = preferredWorkingEditor(entries);
+      return { ok: false as const, field, controlId: editor?.control()?.id ?? null };
+    };
     try {
       return await boundedLocalWait(
         (async () => {
@@ -348,7 +367,7 @@ export function RenewalWorkingRecordProvider({
                 const entries = [...(editors.current.get(field)?.values() ?? [])].filter(
                   (editor) => editor.dirty(),
                 );
-                const editor = entries.find(visibleWorkingEditor) ?? entries[0];
+                const editor = preferredWorkingEditor(entries);
                 return editor ? [{ field, editor }] : [];
               })
               .sort((a, b) => a.editor.order() - b.editor.order());
@@ -391,6 +410,7 @@ export function RenewalWorkingRecordProvider({
       editLocalDraft,
       confirmLocalDraft,
       hasUnsettled,
+      confirmedVersion,
       settle,
     }),
     [
@@ -406,6 +426,7 @@ export function RenewalWorkingRecordProvider({
       editLocalDraft,
       confirmLocalDraft,
       hasUnsettled,
+      confirmedVersion,
       settle,
       draftRevision,
     ],

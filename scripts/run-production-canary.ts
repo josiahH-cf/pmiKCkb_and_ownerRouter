@@ -858,7 +858,37 @@ async function hasGuidedWorkspaceLandmarks(
       '[data-renewal-field="next-step"], [data-renewal-field="now-detail"]',
     );
     const rect = action?.getBoundingClientRect();
+    const rentWidgets = [
+      ...element.querySelectorAll<HTMLElement>(".renewal-now-rent"),
+    ].filter(
+      (widget) =>
+        widget.getClientRects().length > 0 &&
+        getComputedStyle(widget).visibility !== "hidden",
+    );
+    const needsRent =
+      (element.getAttribute("data-renewal-now-step") === "compare-market" &&
+        element.getAttribute("data-renewal-now-state") !== "not_part") ||
+      (element.getAttribute("data-renewal-now-step") === "ask-owner" &&
+        action?.textContent?.trim() === "Review and send");
     return {
+      workingFigureFeedbackPresent:
+        (!needsRent || rentWidgets.length === 1) &&
+        rentWidgets.every((widget) => {
+          const input = widget.querySelector<HTMLInputElement>("input");
+          const status = widget.querySelector(
+            '[data-autosave][role="status"][aria-live="polite"]',
+          );
+          return Boolean(
+            input?.required &&
+            input.getClientRects().length > 0 &&
+            getComputedStyle(input).visibility !== "hidden" &&
+            input.labels?.[0]?.textContent?.trim() &&
+            status &&
+            ["idle", "edited", "saving", "saved", "failed"].includes(
+              status.getAttribute("data-autosave") ?? "",
+            ),
+          );
+        }),
       primaryTop: rect?.top ?? NaN,
       primaryBottom: rect?.bottom ?? NaN,
       viewportHeight: window.innerHeight,

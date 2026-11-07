@@ -310,6 +310,26 @@ time and zone, or Comparison time unavailable for unreadable metadata. It change
 instant, comparison, provider call or allowance. Winter/summer midnight and malformed-time
 regressions passed; actual shared desk/Now recheck is pending.
 
+UX-036, observed on committed `269b4f16`: a successful composition response for the earlier
+rent was held while a newer rent was entered and saved. Releasing the response opened an enabled
+exact send review with the older amount while both the field and actual working record held the
+newer amount at revision two. The review was cancelled. This is a consequential stale snapshot
+(P02, P05, P09, P12; SC02, SC04, SC05, SC08), with core-outcome priority. Review and Schedule
+now check their actual relevant field revisions and local save state after composition and after
+the application draft save. Changed figures leave the older review closed and give recovery beside
+the existing Now action; the next review updates the same saved app draft. The shared audience
+field list and client revision read add no persistent data or HTTP fields. Verification is pending.
+
+UX-037, introduced by the financial recovery on `269b4f16`: a refused save kept the amount and
+blocked an older review, but keyboard focus stayed on BODY. The visible Now input crossed the
+viewport's bottom at 804 px and Try again was below it at 902 to 942 px. The retained Full input
+shared the field but used a generated ID outside the dashboard helper's canonical prefix. This
+fails P05, P12, P13, P14 and SC04, SC05, SC09, SC10. Recovery now prefers the Now editor, focuses
+the actual generated or canonical input, opens its existing disclosure when needed and centers
+the field and nearby status. Its error names the rendered field label. Only that financial refusal
+clears after its own confirmed recovery. Existing IDs, controls and view navigation stay intact.
+Verification is pending; the earlier partial safety/value pass does not pass this focus outcome.
+
 Preserved by decision: exact review/confirmation, the required Gmail banner, stale authored wording,
 who-approved validation, role/Space and Action Registry checks, blank unsettled legal fields,
 assistance-animal holds, existing controls/views/filters/collections/old links, historical failed
@@ -557,4 +577,25 @@ goals while retaining their original authority and meaning.
   content; the rent retry names its actual Owner message region. The repeated 21-file run
   passed all 287 tests, TypeScript passed at 3 GB, Help names passed 834, Help content passed
   3,151 strings, copy voice passed with zero violations and all 273 active document paths passed.
-  The current Help digest is `c68a7e6b213dab958b3eb5b751cf03e7cdcef1cac645af58b903422807e0e554`.
+  The Help digest at that checkpoint was `c68a7e6b213dab958b3eb5b751cf03e7cdcef1cac645af58b903422807e0e554`.
+- Committed checkpoint `269b4f16` passed all 96 maximum/normal-name geometry cases and the
+  standard 16 step/theme/width cases. The five-tenant maximum ended at 797 px desktop and
+  1,558.25 px phone, with full labels and zero horizontal overflow. Its five pristine default
+  entries passed the local canary and independent actual-DOM oracle with zero mismatches.
+  All 17 selected standard/assisted steps kept their visible work inside Now. Four actual
+  money/date newer-input races saved and reloaded the latest entry; the same connected control
+  retained its typing through all three views. Both recipient/template handoffs and both
+  standing-rule adoption/rebuild paths passed. UX-036 and UX-037 remained failures on that
+  source and were never counted as passes. The qualified controller/wrapper exited zero,
+  all 56 Node PIDs had the guard, three npm and one Firebase CLI metadata requests were refused,
+  and its browser/helper/server/emulators and disposable worktree were removed. The helper's
+  intentional SIGTERM/PTY one remains separate from the completed controller outcome.
+- The next 21-file focused run passed 288 and failed two assertions: one checked refusal
+  clearance before its state effect, and the other exposed unnecessarily duplicated generic
+  review feedback. The clearance check now awaits the actual state transition; only the
+  changed-figure recovery supplies the new action-adjacent hint. The repeated run passed all
+  290 tests, targeted lint and TypeScript, then 834 Help names, 3,151 Help strings, copy voice
+  with zero violations and all 273 active document paths. New delayed composition and app-draft
+  tests assert no old dialog and reuse the same application draft for the fresh review.
+  The subsequent assurance update also requires the recommendation's visible required label
+  and live save status from actual DOM; its focused check follows before this source commits.

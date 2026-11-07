@@ -1,6 +1,14 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -83,6 +91,8 @@ function server() {
   let messageRevision = 0;
   const calls: Call[] = [];
   const queue: Array<(body: Record<string, unknown>) => Promise<Response>> = [];
+  const compositionQueue: Array<(response: Response) => Promise<Response>> = [];
+  const sequenceQueue: Array<(response: Response) => Promise<Response>> = [];
   const inputs = {
     ...emptyMessagePreparationInputs(),
     signature: {
@@ -199,8 +209,8 @@ function server() {
       subject: composed.subject,
       paragraphs: [[{ text: composed.plainText }]],
     };
-    if (url.startsWith("/api/gmail-hub/composition"))
-      return Response.json({
+    if (url.startsWith("/api/gmail-hub/composition")) {
+      const response = Response.json({
         context: {
           purpose: "renewal_owner",
           entityType: "renewal_lease",
@@ -211,22 +221,29 @@ function server() {
         reviewedTargetHash: "synthetic-target",
         carriedRecommendation: null,
       });
-    if (url === "/api/gmail-hub/sequences" && body?.action === "save")
-      return Response.json({
+      return compositionQueue.shift()?.(response) ?? response;
+    }
+    if (url === "/api/gmail-hub/sequences" && body?.action === "save") {
+      const draft = body.draft as { id: string; initial: typeof initial };
+      const response = Response.json({
         sequence: {
-          id: (body.draft as { id: string }).id,
-          version: 1,
-          initial,
+          id: draft.id,
+          version: Number(body.expectedVersion) + 1,
+          initial: draft.initial,
           threads: [],
         },
         reviewedDraftHash: "synthetic-draft",
       });
+      return sequenceQueue.shift()?.(response) ?? response;
+    }
     throw new Error(`Unexpected synthetic request: ${url}`);
   });
   vi.stubGlobal("fetch", fetch);
   return {
     calls,
     queue,
+    compositionQueue,
+    sequenceQueue,
     accept,
     record: () => record,
     writes: () =>
@@ -248,6 +265,11 @@ function Now() {
           {primary.label}
         </button>
       ) : null}
+      {primary?.reason ? (
+        <p data-primary-reason role="status">
+          {primary.reason}
+        </p>
+      ) : null}
       {(["message-preview", "review-and-send"] as const).map((slot) => (
         <div
           key={slot}
@@ -259,9 +281,16 @@ function Now() {
   );
 }
 
-function mount(initialRecord: RenewalWorkingRecord | null = null) {
+function mount(
+  initialRecord: RenewalWorkingRecord | null = null,
+  extra: "terms" | "current" | null = null,
+) {
   return render(
     <RenewalWorkingRecordProvider canEdit leaseId="9101" initialRecord={initialRecord}>
+      {extra === "terms" ? (
+        <WorkingMoneyField field="terms_rent" label="Retained Full rent" />
+      ) : null}
+      {extra === "current" ? <WorkingMoneyField field="current_rent" /> : null}
       <RenewalNowCardProvider preparation={preparation}>
         <Now />
         <WorkingDateField
@@ -314,7 +343,7 @@ describe("a reviewed message uses confirmed working figures", () => {
     const api = server();
     const slow = deferred<Response>();
     api.queue.push(() => slow.promise);
-    mount();
+    mount(null, "terms");
     const input = await recommended();
     fireEvent.change(input, { target: { value: "1499" } });
     fireEvent.blur(input);
@@ -324,17 +353,95 @@ describe("a reviewed message uses confirmed working figures", () => {
         Response.json({ error: "Synthetic save unavailable." }, { status: 503 }),
       ),
     );
-    await screen.findByText(/Working renewal rent is not confirmed/);
+    await screen.findByText(/Rent to recommend is not confirmed/);
     expect(input).toHaveValue("1499");
     expect(input).toHaveFocus();
     expect(api.compositions()).toHaveLength(0);
     expect(screen.queryByRole("dialog")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
-    await screen.findByText("Saved");
+    fireEvent.click(
+      within(screen.getByRole("region", { name: "Owner message" })).getByRole("button", {
+        name: "Try again",
+      }),
+    );
+    await within(screen.getByRole("region", { name: "Owner message" })).findByText(
+      "Saved",
+    );
+    await waitFor(() =>
+      expect(screen.queryByText(/Rent to recommend is not confirmed/)).toBeNull(),
+    );
     await review();
     expect(await screen.findByRole("dialog")).toHaveTextContent("$1,499.00");
     expect(api.record()?.fields.terms_rent?.value).toBe(1499);
   });
+
+  it("focuses the actual generated-id current-rent field after its own save fails", async () => {
+    const api = server();
+    api.queue.push(async () =>
+      Response.json({ error: "Synthetic save unavailable." }, { status: 503 }),
+    );
+    mount(null, "current");
+    await recommended();
+    const input = screen.getByLabelText("Working current rent");
+    expect(input.id.startsWith("renewal-")).toBe(false);
+    fireEvent.change(input, { target: { value: "1401" } });
+    fireEvent.blur(input);
+    await screen.findByText(/Save failed/);
+    await review();
+    await screen.findByText(/Working current rent is not confirmed/);
+    expect(input).toHaveFocus();
+    expect(api.compositions()).toHaveLength(0);
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    await screen.findByText("Saved");
+    await waitFor(() =>
+      expect(screen.queryByText(/Working current rent is not confirmed/)).toBeNull(),
+    );
+  });
+
+  for (const interval of ["composition", "sequence"] as const) {
+    it(`keeps a newer confirmed rent out of an older review while ${interval} is delayed`, async () => {
+      const api = server();
+      const started = deferred<Response>();
+      const released = deferred<Response>();
+      const queue = interval === "composition" ? api.compositionQueue : api.sequenceQueue;
+      queue.push((response) => {
+        started.resolve(response);
+        return released.promise;
+      });
+      mount();
+      const input = await recommended();
+      fireEvent.change(input, { target: { value: "1499" } });
+      fireEvent.blur(input);
+      await within(screen.getByRole("region", { name: "Owner message" })).findByText(
+        "Saved",
+      );
+      await review();
+      const response = await started.promise;
+      fireEvent.change(input, { target: { value: "1511" } });
+      fireEvent.blur(input);
+      await waitFor(() => expect(api.record()?.fields.terms_rent?.value).toBe(1511));
+      await within(screen.getByRole("region", { name: "Owner message" })).findByText(
+        "Saved",
+      );
+      await act(async () => released.resolve(response));
+      await screen.findAllByText(/Working figures changed while this review was loading/);
+      expect(screen.queryByRole("dialog")).toBeNull();
+      expect(document.querySelector("[data-primary-reason]")).toHaveTextContent(
+        "Choose Review and send again",
+      );
+      expect(input).toHaveValue("1511");
+      await review();
+      expect(await screen.findByRole("dialog")).toHaveTextContent("$1,511.00");
+      const saves = api.calls.filter((call) => call.url === "/api/gmail-hub/sequences");
+      if (interval === "composition") expect(saves).toHaveLength(1);
+      else {
+        expect(saves).toHaveLength(2);
+        expect((saves[1]!.body!.draft as { id: string }).id).toBe(
+          (saves[0]!.body!.draft as { id: string }).id,
+        );
+        expect(saves[1]!.body!.expectedVersion).toBe(1);
+      }
+    });
+  }
 
   for (const transport of [
     "Schedule",
@@ -364,7 +471,7 @@ describe("a reviewed message uses confirmed working figures", () => {
       );
       fireEvent.click(control);
       expect(
-        (await screen.findAllByText(/Working renewal rent is not confirmed/)).length,
+        (await screen.findAllByText(/Rent to recommend is not confirmed/)).length,
       ).toBeGreaterThan(0);
       expect(input).toHaveValue("1499");
       expect(api.compositions()).toHaveLength(0);

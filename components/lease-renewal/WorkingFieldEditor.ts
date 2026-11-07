@@ -2,6 +2,34 @@
 
 import { useId, useLayoutEffect, useMemo, useRef, type RefObject } from "react";
 import type { WorkingValueOrigin } from "@/lib/lease-renewal/working-record";
+import {
+  focusProgrammatically,
+  focusRenewalDashboardControl,
+} from "./RenewalDashboardNavigation";
+
+/** Generated field ids stay intact; recovery focuses the actual input and its nearby status. */
+export function focusWorkingField(control: HTMLElement) {
+  if (!control.isConnected) return;
+  for (let ancestor = control.parentElement; ancestor; ancestor = ancestor.parentElement)
+    if (ancestor instanceof HTMLDetailsElement) ancestor.open = true;
+  const focus = () => {
+    if (
+      !control.isConnected ||
+      control.matches(":disabled") ||
+      control.closest("[hidden], [data-renewal-focus-hidden]")
+    )
+      return false;
+    focusProgrammatically(control);
+    control.scrollIntoView?.({ block: "center" });
+    return document.activeElement === control;
+  };
+  if (focus()) return;
+  const destination = control.closest<HTMLElement>("[id^='renewal-']");
+  if (destination) {
+    focusRenewalDashboardControl(destination.id);
+    window.setTimeout(focus, 0);
+  }
+}
 
 export interface WorkingLocalCommand {
   readonly value: number | string | null;

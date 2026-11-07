@@ -97,6 +97,14 @@ choose to work. RentVine readable; RentCast allowance available for a new lookup
   working figures that their message uses through the ordinary field saves, then read the
   current preparation. Pending work stays visibly pending. A refused, incomplete or unconfirmed
   relevant save keeps its entry, names and focuses its field, and prepares no older message.
+  Recovery chooses the current visible editor, including the Now recommendation when the
+  retained Full editor shares that value. Its notice uses that field's rendered label, the
+  focused field and nearby retry scroll into view, and the refusal clears only after that
+  field is confirmed. Generated input IDs and all retained editors stay intact.
+  The relevant confirmed field versions are checked again after composition and communication
+  draft saving. If a newer value arrived during either wait, an older exact review stays closed
+  and the Now action asks for the current message to be reviewed again. The saved application
+  draft is reused through its ordinary versioned update; no second effect or confirmation runs.
   Unrelated incomplete fields remain usable. Copy keeps the exact displayed bytes during a
   pending or failed save and states when working figures were unconfirmed when copying began.
   Authored wording keeps its existing deliberate changed-fact recovery.

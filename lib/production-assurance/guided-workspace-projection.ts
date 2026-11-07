@@ -16,6 +16,7 @@ export interface IndependentGuidedWorkspaceSnapshot {
   readonly primaryTarget: string | null;
   readonly primaryTargetPresent: boolean;
   readonly workFieldsOutsideNow: number;
+  readonly workingFigureFeedbackPresent: boolean;
   readonly primaryTop: number;
   readonly primaryBottom: number;
   readonly viewportHeight: number;
@@ -65,6 +66,7 @@ export function countIndependentGuidedWorkspaceMismatches(
       ? 0
       : 1) +
     (snapshot.workFieldsOutsideNow === 0 ? 0 : 1) +
+    (snapshot.workingFigureFeedbackPresent ? 0 : 1) +
     (!earlyStep || primaryInView ? 0 : 1)
   );
 }
