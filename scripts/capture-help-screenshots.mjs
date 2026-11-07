@@ -519,9 +519,12 @@ async function controls(file) {
     }
     let status = null;
     try {
-      const response = await page.goto(`${origin}${await resolveRoute(page, route)}`, {
-        waitUntil: "domcontentloaded",
-      });
+      const requested = new URL(await resolveRoute(page, route), origin);
+      let response = await page.goto(requested.href, { waitUntil: "domcontentloaded" });
+      // A different fragment on the same document has no HTTP response. Reload that exact
+      // destination to require a fresh successful signed-in read before checking its controls.
+      if (!response && page.url() === requested.href)
+        response = await page.reload({ waitUntil: "domcontentloaded" });
       status = response?.status() ?? null;
       const destination = new URL(page.url());
       if (
