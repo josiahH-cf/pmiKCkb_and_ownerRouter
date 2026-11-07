@@ -149,6 +149,12 @@ Staff session: none
   approval landed reproduced the same 1,318-pixel position and exact focus.
   This reproduction changed only the driver.
 
+- L14 GitHub CI attempt 1 for PR #193 at head `423230af` and base `bf9753d6`
+  stopped before rendered Help or E2E. The hosted Ubuntu 26.04 runner reached the
+  locked Playwright 1.60.0 installer, which refused to install Chromium on that
+  OS. The other five parallel jobs passed. The aggregate job failed.
+  [Failed browser job](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/42423821889/job/128557717666)
+
 ## Repairs
 
 - L03 now waits for the initial collection list before enabling New collection. The focused
@@ -212,6 +218,11 @@ the reviewed owner copy, record the rent and save a versioned blank signature be
 each setup, including the mid-case database reset. Their review hash binds the same
 target and signature choice as the app. The three isolated fixture replays preserved
 their 549/6, 554/1 and 555/0 backend results. No runtime source changed in that repair.
+
+The E2E job now uses the GitHub-hosted Ubuntu 24.04 label supported by the locked
+Playwright build. The verified WSL run used Ubuntu 24.04 as well. This changes
+runner selection for that job. The exact browser, commands, controls and scene
+thresholds remain the same.
 
 ## Final observations
 
