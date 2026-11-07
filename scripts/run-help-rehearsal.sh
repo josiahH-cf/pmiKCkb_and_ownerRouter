@@ -36,6 +36,27 @@ run_id="$(date -u +%Y%m%dT%H%M%SZ)-${sha:0:8}$($overlay && echo -overlay || true
 isolated=""
 state="$HOME/.local/state/pmi-kc-help-rehearsal"
 output="$state/$run_id"
+# Required verification and review captures use the same public Chromium and font bytes.
+# Inside the existing canonical lane this script already has the private namespace.
+if [[ "$repo" != /app && ( "${1:-}" == --verify || "${1:-}" == --review-captures ) ]]; then
+  [[ $# == 1 ]]
+  task=help-rendered
+  [[ "$1" != --review-captures ]] || task=help-captures
+  java_root=$(java -XshowSettings:properties -version 2>&1 | sed -n 's/^ *java\.home = //p')
+  if [[ "$java_root" != /* || "$java_root" == / || ! -r "$java_root/release" || ! -x "$java_root/bin/java" ]] ||
+    find "$java_root" -type l -xtype d -print -quit | rg -q .; then
+    echo "A native Java21 installation with a verified Java home is required." >&2
+    exit 2
+  fi
+  options=()
+  jar="$HOME/.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar"
+  if [[ -r "$jar" ]]; then options+=(--emulator-jar "$jar"); fi
+  if [[ -d "$HOME/.npm" ]]; then options+=(--npm-cache "$HOME/.npm"); fi
+  cd "$repo"
+  printf 'Isolated Help evidence: %s\n' "$output"
+  exec python3 -B scripts/isolated-verify.py --task "$task" --output "$output" \
+    --java-root "$java_root" --memory-mib 6144 "${options[@]}"
+fi
 if [[ "$repo" == /app ]]; then
   [[ -r /evidence/controls.json && -r /evidence/monitor-ready.json && -n "${PMI_SOURCE_MANIFEST_SHA256:-}" ]]
   isolated=kernel-v1

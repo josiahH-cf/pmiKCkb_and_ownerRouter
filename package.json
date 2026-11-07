@@ -49,6 +49,7 @@
     "verify:help-content": "tsx scripts/check-help-content.mjs",
     "help:capture": "bash scripts/run-help-rehearsal.sh",
     "help:capture:check": "bash scripts/run-help-rehearsal.sh --check",
+    "help:capture:review": "bash scripts/run-renewal-one-path-rehearsal.sh --hold-automatic-comparison --no-mail-adapter --help-rendered --review-captures",
     "help:rehearsal": "bash scripts/run-help-rehearsal.sh --serve",
     "help:digest": "node lib/help/content-digest.mjs",
     "host:setup": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/setup-windows-google-dev.ps1 -EnableApis",

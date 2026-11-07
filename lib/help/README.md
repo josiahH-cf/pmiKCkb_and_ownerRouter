@@ -68,9 +68,10 @@ Required local verification and the E2E CI lane run the rendered control and sce
 npm run verify:help-rendered
 ```
 
-Use the lockfile-pinned Chromium and a clean commit. The rehearsal holds automatic comparison and
-uses an isolated Firestore emulator, synthetic fixture dates, and a browser restricted to the local
-app. Provider-only scenes and conditional controls are reported separately from passing cases.
+Use a clean commit. Local verification, review capture and CI use the same isolated renderer.
+It uses lockfile-pinned Chromium and the reviewed public Poppins bytes staged before the network
+namespace starts. The rehearsal holds automatic comparison and uses an isolated Firestore
+emulator, synthetic fixture dates, and a browser restricted to the local app. Provider-only scenes and conditional controls are reported separately from passing cases.
 A material difference saves the expected and observed synthetic images in the private run directory
 and fails the gate. The comparison tolerates small color changes from rasterization and checks both
 whole-scene and local areas for larger changes. The report names the source and served commits,

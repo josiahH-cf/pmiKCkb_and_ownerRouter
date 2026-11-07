@@ -28,6 +28,8 @@
     ["run", "verify:help-rendered"],
     ["run", "test:e2e", "--", "--firestore"]
   ],
+  "help-rendered": [["run", "verify:help-rendered"]],
+  "help-captures": [["run", "help:capture:review"]],
   "e2e-core": [["run", "test:e2e:core"]],
   "renewal-journey": [["run", "smoke:renewal-novdec-journey"]]
 }
