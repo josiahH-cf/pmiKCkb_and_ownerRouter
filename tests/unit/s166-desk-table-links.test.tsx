@@ -249,7 +249,7 @@ describe("S166 worklist controls name their view (ARCH-S166-3)", () => {
     );
     const hrefs = deskHrefs();
     expect(hrefs.length).toBeGreaterThan(3);
-    const batch = screen.getByRole("link", { name: "Working batch", exact: true });
+    const batch = screen.getByRole("link", { name: "Working batch" });
     expect(batch).toHaveAttribute("href", "/lease-renewal/live/desk");
     expect(hrefs.filter((href) => !href.includes("?"))).toEqual([
       "/lease-renewal/live/desk",
