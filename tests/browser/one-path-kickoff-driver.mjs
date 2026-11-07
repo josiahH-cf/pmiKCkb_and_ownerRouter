@@ -987,101 +987,187 @@ export async function runKickoff() {
       { messages: sent.length },
     );
 
-    // L28 (and the L40 line where the served commit shows it): a Gmail draft, then an edit.
+    // L28: retain the exact unsent receipt, then replace it through a new review.
+    process.stdout.write(
+      "expect L28: an explicit review and confirmation create one exact unsent draft. A changed message requires a separate replacement review and keeps the earlier draft.\n",
+    );
     await openLease(covered);
     await chooseStep("Ask the owner");
-    const draftsBefore = mail.mailboxes.reduce(
-      (n, box) => n + (box.drafts ?? []).length,
-      0,
-    );
+    const draftCount = async () => (await mailEntries("DRAFT")).length;
+    const draftsBefore = await draftCount();
     const coveredDraft = now().getByRole("button", {
       name: "Create Gmail draft instead",
       exact: true,
     });
     const coveredDraftEnabled = await coveredDraft.isEnabled();
     const draftNotices = [];
+    const draftResponse = (confirmed) =>
+      page.waitForResponse(
+        (response) => {
+          const request = response.request();
+          if (
+            new URL(response.url()).pathname !==
+              "/api/lease-renewal/message-preparation" ||
+            request.method() !== "POST"
+          )
+            return false;
+          const payload = request.postDataJSON();
+          return (
+            payload.leaseId === String(covered) &&
+            payload.kind === "draft" &&
+            !payload.reconcile &&
+            Boolean(payload.confirm) === confirmed
+          );
+        },
+        { timeout: 30_000 },
+      );
+    const settledReview = async (dialog) => {
+      await dialog.waitFor();
+      await dialog
+        .and(page.locator('[aria-busy="true"]'))
+        .waitFor({ state: "hidden", timeout: 45_000 });
+      return dialog.locator('[data-renewal-field="draft-review"]');
+    };
+    const confirmDraft = async (dialog, preview) => {
+      const exactDraft = await readReview(preview);
+      const confirmed = draftResponse(true);
+      await dialog
+        .getByRole("button", { name: "Create this unsent draft", exact: true })
+        .click();
+      const response = await confirmed;
+      const outcome = await response.json();
+      await dialog.waitFor({ state: "hidden", timeout: 120_000 });
+      const mailboxes = (await standInState(rehearsal)).mail.mailboxes;
+      const holder = mailboxes.find((box) =>
+        box.drafts.some((draft) => draft.id === outcome.draftId && draft.unsent),
+      );
+      const draft = holder?.drafts.find((entry) => entry.id === outcome.draftId);
+      const readback = holder?.messages.find((entry) => entry.id === draft?.messageId);
+      return {
+        status: outcome.status,
+        executionId: outcome.executionId ?? null,
+        draftId: outcome.draftId ?? null,
+        exactReadback:
+          outcome.status === "created" &&
+          readback?.text === exactDraft.body &&
+          readback.subject === exactDraft.subject,
+      };
+    };
+    let firstDraft = null;
+    let freshRead = false;
     if (coveredDraftEnabled) {
       for (let attempt = 1; attempt <= 2; attempt += 1) {
-        const previewResponse = page.waitForResponse(
-          (response) => {
-            if (
-              new URL(response.url()).pathname !==
-                "/api/lease-renewal/message-preparation" ||
-              response.request().method() !== "POST"
-            )
-              return false;
-            const request = response.request().postDataJSON();
-            return request.kind === "draft" && !request.confirm && !request.reconcile;
-          },
-          { timeout: 30_000 },
-        );
+        const requested = draftResponse(false);
         await coveredDraft.click();
-        const response = await previewResponse;
-        const create = page.getByRole("dialog", { name: "Create Gmail draft instead" });
-        const preview = create.locator('[data-renewal-field="draft-review"]');
-        const previewed = response.ok() && (await shownWithin(preview, 10_000));
-        if (previewed) {
-          await create
-            .getByRole("button", { name: "Create this unsent draft", exact: true })
-            .click();
-          await create.waitFor({ state: "hidden", timeout: 120_000 });
+        await requested;
+        const dialog = page.getByRole("dialog", { name: "Create Gmail draft instead" });
+        const preview = await settledReview(dialog);
+        if (await preview.isVisible()) {
+          firstDraft = await confirmDraft(dialog, preview);
           break;
         }
-        const notice = (await create.textContent())?.slice(0, 700) ?? "";
-        draftNotices.push(notice);
-        await create.getByRole("button", { name: "Cancel" }).click();
+        const notice = (await dialog.getByRole("status").textContent()) ?? "";
+        draftNotices.push(notice.slice(0, 500));
+        await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
         if (
           attempt !== 1 ||
+          (await draftCount()) !== draftsBefore ||
           !/Notice approval safety|source generations|Current notice evidence/i.test(
             notice,
           )
         )
           break;
-        // The first save can establish the cycle after the prior source generation. Use the
-        // existing explicit refresh before requesting a fresh exact review of that cycle.
+        // Saving the first message can establish the cycle after the prior source generation.
         const refreshed = page.waitForResponse(
           (result) =>
             new URL(result.url()).pathname === "/api/lease-renewal/refresh" &&
-            result.request().method() === "POST",
+            result.request().method() === "POST" &&
+            result.request().postDataJSON()?.mode === "force",
           { timeout: 30_000 },
         );
-        await page.getByRole("button", { name: "Refresh data", exact: true }).click();
-        if (!(await refreshed).ok()) break;
+        await page.locator("#renewal-refresh").click();
+        const response = await refreshed;
+        const result = await response.json();
+        freshRead =
+          response.ok() && result.refreshed === true && result.state === "fresh";
+        if (!freshRead) break;
         await openLease(covered);
         await chooseStep("Ask the owner");
       }
-      await page.waitForTimeout(1500);
     }
-    const draftsAfter = (await standInState(rehearsal)).mail.mailboxes.reduce(
-      (n, box) => n + (box.drafts ?? []).length,
-      0,
+    const draftsAfter = await draftCount();
+    const currentDraft = now().locator('[data-renewal-field="draft-current"]');
+    let readbackOnReload = false;
+    if (firstDraft?.exactReadback) {
+      await openLease(covered);
+      await chooseStep("Ask the owner");
+      readbackOnReload = await shownWithin(currentDraft, 15_000);
+    }
+    check(
+      "L40: the exact receipt identifies one unsent synthetic Gmail draft and the same message revision is current after reload",
+      firstDraft?.exactReadback && draftsAfter === draftsBefore + 1 && readbackOnReload,
+      {
+        coveredDraftEnabled,
+        draftNotices,
+        freshRead,
+        draftsBefore,
+        draftsAfter,
+        receipt: firstDraft,
+        readbackOnReload,
+      },
     );
     await now().getByLabel("Reason to include").fill("Recent leases nearby support it.");
     await now().getByLabel("Reason to include").blur();
-    await page.waitForTimeout(3000);
     const olderDraftLine = now().locator('[data-renewal-field="draft-older"]');
     const older = (await shownWithin(olderDraftLine, 15_000))
       ? await olderDraftLine.textContent()
       : null;
+    let replacement = null;
+    if (firstDraft?.exactReadback && older) {
+      const requested = draftResponse(false);
+      await olderDraftLine
+        .getByRole("button", { name: "Replace the Gmail draft", exact: true })
+        .click();
+      await requested;
+      const dialog = page.getByRole("dialog", {
+        name: "Replace the Gmail draft",
+        exact: true,
+      });
+      const preview = await settledReview(dialog);
+      if (
+        (await preview.isVisible()) &&
+        (await draftCount()) === draftsAfter &&
+        (await preview.getByRole("note").innerText()).includes(
+          "The earlier draft stays in Gmail",
+        )
+      )
+        replacement = await confirmDraft(dialog, preview);
+      else await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+    }
+    let earlierKept = false;
+    if (replacement?.exactReadback) {
+      await openLease(covered);
+      await chooseStep("Ask the owner");
+      const earlier = now().locator('[data-renewal-field="draft-earlier"]');
+      const kept = (await standInState(rehearsal)).mail.mailboxes.flatMap((box) =>
+        box.drafts.filter((draft) => draft.unsent),
+      );
+      earlierKept =
+        (await shownWithin(earlier, 15_000)) &&
+        kept.some((draft) => draft.id === firstDraft.draftId) &&
+        kept.some((draft) => draft.id === replacement.draftId);
+    }
     check(
-      'L28: after a Gmail draft is created and the message changes, the card reads "The Gmail draft is older than this message" and offers "Replace the Gmail draft"',
-      draftsAfter === draftsBefore + 1 &&
-        (older ?? "").includes("The Gmail draft is older than this message") &&
-        (await now()
-          .getByRole("button", { name: "Replace the Gmail draft", exact: true })
-          .count()) === 1,
-      { coveredDraftEnabled, draftNotices, draftsBefore, draftsAfter, older },
+      "L28: after a wording change the older draft is named, one separately confirmed replacement has the reviewed bytes, and both unsent drafts remain after reload",
+      Boolean(older?.includes("The Gmail draft is older than this message")) &&
+        replacement?.exactReadback &&
+        replacement.executionId !== firstDraft?.executionId &&
+        earlierKept &&
+        (await draftCount()) === draftsAfter + 1,
+      { older, receipt: replacement, earlierKept, draftCount: await draftCount() },
     );
     phase = "L44";
     await openLease(covered);
-    const waitingLine = await page.getByText(/Draft waiting in Gmail since/).count();
-    check(
-      'L40 (rehearsal means): the unsent Gmail draft reached the mail stand-in, and the lease reads "Draft waiting in Gmail since" with "I sent it from Gmail" where the served commit shows it',
-      draftsAfter === draftsBefore + 1 &&
-        (waitingLine === 0 ||
-          (await page.getByRole("button", { name: "I sent it from Gmail" }).count()) > 0),
-      { waitingLine },
-    );
 
     // Each later section records its own failure and the run carries on to the next.
     const attempt = async (name, run) => {
