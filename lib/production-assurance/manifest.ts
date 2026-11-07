@@ -22,7 +22,7 @@ export const ASSURANCE_RENEWAL_DESK_PATH = "/lease-renewal/live/desk?v=2&scope=a
 /**
  * S247: a lease opened from the desk opens in Guided view. The canary asserts this exact contract
  * as rendered, selecting and clicking nothing: one view switch offering exactly these three views
- * with Guided view pressed; one visible Guided view region; inside it one visible path navigation
+ * with Guided view pressed; one visible main landmark with the Guided region; inside it one visible path navigation
  * whose steps begin with "Check the numbers" (or the month-to-month review) and end with
  * "Complete", with exactly one current step; one visible Now region with exactly one primary
  * action; and one navigation of the five sections, each a link to its Full view anchor. A revision

@@ -870,7 +870,15 @@ async function hasGuidedWorkspaceLandmarks(
         element.getAttribute("data-renewal-now-state") !== "not_part") ||
       (element.getAttribute("data-renewal-now-step") === "ask-owner" &&
         action?.textContent?.trim() === "Review and send");
+    const main = [
+      ...document.querySelectorAll<HTMLElement>('main, [role="main"]'),
+    ].filter(
+      (landmark) =>
+        landmark.getClientRects().length > 0 &&
+        getComputedStyle(landmark).visibility !== "hidden",
+    );
     return {
+      mainLandmarkPresent: main.length === 1 && Boolean(main[0]?.contains(element)),
       openDialogs: [
         ...document.querySelectorAll<HTMLElement>('[role="dialog"][aria-modal="true"]'),
       ].filter(

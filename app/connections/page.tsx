@@ -59,7 +59,7 @@ export default async function ConnectionsPage({
 
   return (
     <AppShell user={user}>
-      <section className="content">
+      <section className="content" role="main">
         <ConnectionCenter
           dotloopCallbackResult={dotloopCallbackResult}
           dotloopPicker={dotloopPicker}

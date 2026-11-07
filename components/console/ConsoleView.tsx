@@ -72,7 +72,7 @@ export function ConsoleView({ user }: { user: AuthenticatedUser }) {
       : null;
 
   return (
-    <section className="content console">
+    <section className="content console" role="main">
       <h1 className="section-title">Dashboard</h1>
       <AskForm
         historyMode={historyMode}

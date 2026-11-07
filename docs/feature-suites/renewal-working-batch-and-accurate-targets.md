@@ -84,7 +84,8 @@ rows to an explicit retained state and never removes them from the list.
 - **R-S246-9 — Everything else stays.** "All leases and filters" opens the existing table with its
   views, columns, filters, sorts, window chip, per-reason counts and URL keys unchanged. A saved view
   is offered as "Open my saved view" and no longer applies by itself on the bare route. A shared
-  collection link opens the table filtered to that collection's membership.
+  collection link opens the table filtered to that collection's membership. The working batch
+  and table use one main landmark so assistive navigation can move directly to the desk.
 - **R-S246-10 — Same answer everywhere.** A Dashboard assistant answer about a month's renewals
   uses the same target definition and names the excluded counts by reason. "This batch" and
   "working month" mean the next calendar month's renewal targets. A question about which leases

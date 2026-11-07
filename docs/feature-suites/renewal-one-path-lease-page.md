@@ -70,8 +70,9 @@ or staff-record read failure shows on the Now card as the thing to resolve; it n
   Stage names reuse the existing staff work-status wording. The lifecycle category, overall status and action
   status groups are not shown in the guided view and stay available in the full desk table, Focus
   view and Full view.
-- **R-S247-4 — The Now card holds the work.** For every path step the Now card shows what the app
-  prepared, the inputs the person decides, one primary action and its secondary actions, using the
+- **R-S247-4 — The Now card holds the work.** The lease page's one main landmark contains the
+  Now card. For every path step it shows what the app prepared, the inputs the person decides,
+  one primary action and its secondary actions, using the
   existing controls in place. The primary action follows the heading and any consequential alert;
   supporting next-step and detail text follows the action. No path step sends the person to another view or tab to act.
   The selected step's existing fields and hand records, including the assisted owner/rent choices

@@ -4,6 +4,7 @@
  * reconciliation continues to compare every loaded lease in the complete desk table.
  */
 export interface IndependentGuidedWorkspaceSnapshot {
+  readonly mainLandmarkPresent: boolean;
   readonly stageLines: number;
   readonly stageText: string;
   readonly stageCurrentStep: string | null;
@@ -52,6 +53,7 @@ export function countIndependentGuidedWorkspaceMismatches(
     snapshot.primaryBottom <=
       snapshot.viewportHeight * (snapshot.viewportWidth <= 640 ? 2 : 1);
   return (
+    (snapshot.mainLandmarkPresent ? 0 : 1) +
     (snapshot.stageLines === 1 && snapshot.stageText.trim() ? 0 : 1) +
     (snapshot.stageCurrentStep &&
     snapshot.stageCurrentStep === snapshot.pathCurrentStep &&

@@ -134,6 +134,7 @@ interface GuidedOptions {
   primaryTarget?: string | null;
   primaryTargetPresent?: boolean;
   workFieldsOutsideNow?: number;
+  mainLandmarkPresent?: boolean;
   visiblePricingBasisChoosers?: number;
   visibleExactDraftRecoveries?: number;
   workingFigureFeedbackPresent?: boolean;
@@ -185,6 +186,7 @@ function guidedFixture(options: GuidedOptions = {}): Page {
     ),
     evaluate: async () => ({
       primaryBeforeContext: options.primaryBeforeContext ?? true,
+      mainLandmarkPresent: options.mainLandmarkPresent ?? true,
       workingFigureFeedbackPresent: options.workingFigureFeedbackPresent ?? true,
       openDialogs: options.openDialogs ?? 0,
       primaryTop: options.primaryTop ?? 100,
@@ -324,6 +326,7 @@ describe("S113 candidate and captured predecessor workspace landmarks", () => {
       { viewportHeight: 0 },
       { viewportWidth: 0 },
       { workFieldsOutsideNow: 1 },
+      { mainLandmarkPresent: false },
       { visiblePricingBasisChoosers: 2 },
       { visibleExactDraftRecoveries: 2 },
       { workingFigureFeedbackPresent: false },
@@ -346,6 +349,7 @@ describe("S113 candidate and captured predecessor workspace landmarks", () => {
 
   it("independently reconciles the visible stage, path and Now step without application projections", () => {
     const snapshot = {
+      mainLandmarkPresent: true,
       stageLines: 1,
       stageText: "Checking the numbers, waiting on the PMI KC team, nothing recorded yet",
       stageCurrentStep: "check-numbers",
@@ -368,6 +372,12 @@ describe("S113 candidate and captured predecessor workspace landmarks", () => {
       viewportWidth: 1280,
     };
     expect(countIndependentGuidedWorkspaceMismatches(snapshot)).toBe(0);
+    expect(
+      countIndependentGuidedWorkspaceMismatches({
+        ...snapshot,
+        mainLandmarkPresent: false,
+      }),
+    ).toBe(1);
     expect(
       countIndependentGuidedWorkspaceMismatches({
         ...snapshot,

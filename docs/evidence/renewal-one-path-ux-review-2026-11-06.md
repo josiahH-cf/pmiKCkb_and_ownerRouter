@@ -503,6 +503,14 @@ notice and action, present them once and keep the original Full controls.
 Undo appears once when the compact preview supplies it. The user's authored
 text and prior revision stay exact (DR-02, DR-03; P06, P09, P12; SC06, SC08).
 
+UX-056, observed on `30fa69ea`: the guarded desktop and phone scans found zero main
+landmarks on the desk, the table, all three lease views and the Admin pricing screen;
+Help already had one. The existing content wrapper now supplies one main landmark
+on the scoped staff surfaces, including the adjoining Console, Communications,
+Connections and live review routes. This lets assistive navigation enter the main
+work directly. It adds no visible content and changes no handler. The read-only
+Guided landmark check and independent oracle require it (P10, P14; SC08, SC09).
+
 Preserved by decision: exact review/confirmation, the required Gmail banner, stale authored wording,
 who-approved validation, role/Space and Action Registry checks, blank unsettled legal fields,
 assistance-animal holds, existing controls/views/filters/collections/old links, historical failed

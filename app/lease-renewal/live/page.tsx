@@ -80,7 +80,7 @@ export default async function LiveRenewalReviewPage() {
 
   return (
     <AppShell user={user}>
-      <section className="content">
+      <section className="content" role="main">
         <Link className="back-link" href="/lease-renewal">
           ← Renewals
         </Link>
