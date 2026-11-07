@@ -1128,15 +1128,41 @@ async function journey(browser) {
   await view.open(replied, "?step=ask-owner");
   const rentField = page.getByLabel("Working monthly rent", { exact: true });
   const dateField = page.getByLabel("Working effective date", { exact: true });
+  const saveWorkingValue = async (field, value, edit) => {
+    const [response] = await Promise.all([
+      page.waitForResponse(
+        (response) => {
+          const request = response.request();
+          if (
+            request.method() !== "POST" ||
+            new URL(response.url()).pathname !== "/api/lease-renewal/working-record"
+          )
+            return false;
+          const payload = request.postDataJSON();
+          return (
+            payload.leaseId === String(replied) &&
+            payload.field === field &&
+            payload.value === value
+          );
+        },
+        { timeout: 30_000 },
+      ),
+      edit(),
+    ]);
+    assert.ok(response.ok(), field + " was refused");
+  };
   let typed = false;
   if ((await shownWithin(rentField, 20_000)) && (await shownWithin(dateField, 5_000))) {
-    await rentField.fill(String(RENT));
-    await rentField.blur();
+    await saveWorkingValue("terms_rent", RENT, async () => {
+      await rentField.fill(String(RENT));
+      await rentField.blur();
+    });
     log.optional("values", "Working monthly rent (typed for AC-S252-5)");
-    await dateField.fill(DATE);
-    await dateField.blur();
+    await saveWorkingValue("terms_effective_date", DATE, async () => {
+      await dateField.fill(DATE);
+      await dateField.blur();
+    });
     log.optional("values", "Working effective date (typed for AC-S252-5)");
-    await page.waitForTimeout(3000);
     typed = true;
   }
   const own = await route(`/api/lease-renewal/working-record?leaseId=${replied}`);
@@ -1153,12 +1179,15 @@ async function journey(browser) {
   );
   const policies = await route("/api/lease-renewal/pricing-policy");
   const agreements = await route("/api/lease-renewal/pricing-policy?standing=all");
+  const containsValue = (data, value) =>
+    data && typeof data === "object"
+      ? Object.values(data).some((part) => containsValue(part, value))
+      : data === value;
   const carried = (value) =>
     others
       .filter(
         ({ record, pricing }) =>
-          JSON.stringify(record ?? {}).includes(String(value)) ||
-          JSON.stringify(pricing ?? {}).includes(String(value)),
+          containsValue(record, value) || containsValue(pricing, value),
       )
       .map(({ leaseId }) => leaseId);
   check(
@@ -1166,11 +1195,13 @@ async function journey(browser) {
     "a rent and a date typed on one lease are kept on that lease and suggested on no other lease, portfolio or policy (AC-S252-5, L70)",
     typed &&
       own.body?.record?.fields?.terms_rent?.value === RENT &&
+      own.body?.record?.fields?.terms_effective_date?.value === DATE &&
       carried(RENT).length === 0 &&
       carried(DATE).length === 0 &&
-      !JSON.stringify(policies.body ?? {}).includes(String(RENT)) &&
-      !JSON.stringify(agreements.body ?? {}).includes(String(RENT)) &&
-      !JSON.stringify(policies.body ?? {}).includes(DATE),
+      !containsValue(policies.body, RENT) &&
+      !containsValue(agreements.body, RENT) &&
+      !containsValue(policies.body, DATE) &&
+      !containsValue(agreements.body, DATE),
     {
       typed,
       ownRent: own.body?.record?.fields?.terms_rent?.value ?? null,

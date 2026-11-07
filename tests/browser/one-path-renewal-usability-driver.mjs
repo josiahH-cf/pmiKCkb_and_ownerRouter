@@ -241,21 +241,34 @@ try {
       await page.getByRole("button", { name: "Get answer", exact: true }).click();
       const answer = page.getByRole("region", { name: "Assistant answer", exact: true });
       await answer.waitFor();
-      const leaseLinks = answer.locator(`a[href^="${desk}/lease/"]`);
+      const leaseLinks = answer.locator(
+        `a[href^="${desk}/lease/"]:not([href$="/rentvine"])`,
+      );
       await leaseLinks.first().waitFor();
-      const ids = await leaseLinks.evaluateAll((links) => [
-        ...new Set(
-          links.map((link) => Number(new URL(link.href).pathname.split("/").at(-1))),
-        ),
-      ]);
+      const ids = await leaseLinks.evaluateAll(
+        (links, prefix) => [
+          ...new Set(
+            links.map((link) => {
+              const leaseId = new URL(link.href).pathname.slice(prefix.length);
+              if (!/^\d+$/.test(leaseId))
+                throw new Error("Unexpected renewal workspace link");
+              return Number(leaseId);
+            }),
+          ),
+        ],
+        desk + "/lease/",
+      );
       assert.deepEqual(
         ids.sort((a, b) => a - b),
         [...expectedGroups.this_batch].sort((a, b) => a - b),
       );
-      await answer
-        .locator(`a[href^="${path(prepared)}"]`)
+      await leaseLinks
+        .and(
+          answer.locator(`a[href^="${path(prepared)}?"] , a[href="${path(prepared)}"]`),
+        )
         .first()
         .click();
+      await page.waitForURL((url) => url.pathname === path(prepared));
       await stage(page).waitFor();
       assert.equal(
         await stage(page).locator('[data-renewal-field="stage-line"]').innerText(),
@@ -630,6 +643,169 @@ try {
     },
   );
   await check(
+    "L06-full-destinations",
+    "Editor",
+    wide,
+    "dark",
+    "keyboard",
+    "Each Guided detail link and exact legacy Focus URL visibly lands in its Full section. Guided returns to the same step, a recognized step link opens its step, and a malformed target leaves the normal lease usable.",
+    async (page) => {
+      const destinations = [
+        ["lease-details", "Lease details"],
+        ["comps", "Market rent comparison"],
+        ["owner", "Owner approval"],
+        ["tenant", "Tenant offer and response"],
+        ["documents", "Documents and completion"],
+      ];
+      const pathNav = page.getByRole("navigation", { name: "Renewal path", exact: true });
+      const nowHeading = page.locator("#renewal-now-heading");
+      const guided = leaseViews(page).getByRole("button", {
+        name: "Guided view",
+        exact: true,
+      });
+      const full = leaseViews(page).getByRole("button", {
+        name: "Full view",
+        pressed: true,
+      });
+      const detailNav = page.getByRole("navigation", {
+        name: "Every section in Full view",
+      });
+      const landed = async (id) => {
+        await full.waitFor();
+        await page.locator("#" + id).waitFor();
+        await page.waitForFunction((targetId) => {
+          const section = document.getElementById(targetId);
+          const active = document.activeElement;
+          if (!section || !active || !section.contains(active)) return false;
+          const bounds = active.getBoundingClientRect();
+          return bounds.height > 0 && bounds.top >= 0 && bounds.top < window.innerHeight;
+        }, id);
+      };
+      await open(page, path(prepared));
+      await nowHeading.waitFor();
+      const current = await nowHeading.innerText();
+      for (const [key, label] of destinations) {
+        const id = "renewal-section-" + key;
+        await detailNav.getByRole("link", { name: label, exact: true }).press("Enter");
+        await landed(id);
+        await guided.press("Enter");
+        await nowHeading.waitFor();
+        assert.equal(await nowHeading.innerText(), current);
+        await open(page, path(prepared, "?view=focus#" + id));
+        await landed(id);
+        await guided.press("Enter");
+        await nowHeading.waitFor();
+        assert.equal(await nowHeading.innerText(), current);
+      }
+      await open(page, path(prepared, "?view=focus&step=offer-tenant"));
+      await pathNav
+        .getByRole("button", { name: "Offer the tenant", pressed: true })
+        .waitFor();
+      assert.equal(await nowHeading.innerText(), "Offer the tenant");
+      await open(page, path(prepared, "?view=focus#%E0%A4%A"));
+      await pathNav.waitFor();
+      assert.equal(await guided.getAttribute("aria-pressed"), "true");
+      assert.equal(await nowHeading.innerText(), current);
+      return {
+        fullDestinations: destinations.length,
+        oldFocusDestinations: destinations.length,
+        recognizedStep: true,
+        malformedTargetSafe: true,
+      };
+    },
+  );
+  await check(
+    "L08-month-and-move-out",
+    "Editor",
+    wide,
+    "light",
+    "pointer",
+    "The counted month-to-month and move-out rows open the correct lease. Recording the annual term context and the staff non-renewal handoff keeps each record on its own lease after reload and leads back to the same desk group.",
+    async (page) => {
+      const fromGroup = async (group, lease) => {
+        await open(page, desk + "?group=" + group);
+        const panel = page.locator('[data-batch-open-group="' + group + '"]');
+        const row = panel.locator('tr[data-batch-lease="' + lease + '"]');
+        await row.waitFor();
+        const deskLine = await row.innerText();
+        await row.getByRole("rowheader").getByRole("link").click();
+        await page.waitForURL((url) => url.pathname === path(lease));
+        await stage(page).waitFor();
+        return { row, deskLine };
+      };
+      const annual = String(expectedGroups.month_to_month_reviews[0]);
+      const monthly = await fromGroup("month_to_month_reviews", annual);
+      assert.match(monthly.deskLine, /Review due|Review date/i);
+      await open(page, path(annual, "?view=full#renewal-section-lease-details"));
+      const term = page.locator("#renewal-card-lease-term");
+      await term.locator('[data-lease-term="month_to_month"]').waitFor();
+      const anchor = term.getByLabel(
+        "Month-to-month since (the annual review is 12 months later)",
+        { exact: true },
+      );
+      const sourceDate = await anchor.inputValue();
+      assert.match(sourceDate, /^\d{4}-\d{2}-\d{2}$/);
+      const termContext = term.getByRole("textbox", {
+        name: "Context (optional)",
+        exact: true,
+      });
+      const [termSaved] = await Promise.all([
+        page.waitForResponse(
+          (response) =>
+            new URL(response.url()).pathname === "/api/lease-renewal/term-review" &&
+            response.request().method() === "POST",
+        ),
+        termContext.fill("Synthetic annual term review").then(() => termContext.blur()),
+      ]);
+      assert.ok(termSaved.ok());
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await term.getByText(/Recorded term: Month.to.month/i).waitFor();
+      assert.equal(await anchor.inputValue(), sourceDate);
+      const recorded = await page.evaluate(
+        async (lease) =>
+          (await fetch("/api/lease-renewal/term-review?lease_id=" + lease)).json(),
+        annual,
+      );
+      assert.equal(recorded.review?.reason, "Synthetic annual term review");
+      await open(page, desk + "?group=month_to_month_reviews");
+      await monthly.row.waitFor();
+      assert.match(await monthly.row.innerText(), /Review due|Review date/i);
+
+      const moveOut = String(expectedGroups.non_renewals[0]);
+      const notice = await fromGroup("non_renewals", moveOut);
+      assert.match(notice.deskLine, /non.renewal|move.out/i);
+      await stage(page)
+        .locator('[data-renewal-current-step="non-renewal-handoff"]')
+        .waitFor();
+      const handoff = page.locator("#renewal-manual-non_renewal_handoff");
+      const outcome = handoff.getByLabel("Non-renewal handoff recorded outcome", {
+        exact: true,
+      });
+      if (!(await outcome.isVisible())) await handoff.locator("summary").click();
+      const [handoffSaved] = await Promise.all([
+        page.waitForResponse(
+          (response) =>
+            new URL(response.url()).pathname === "/api/lease-renewal/workspace" &&
+            response.request().method() === "POST",
+        ),
+        outcome.selectOption("done"),
+      ]);
+      assert.ok(handoffSaved.ok());
+      await open(page, path(moveOut, "?view=focus#renewal-manual-non_renewal_handoff"));
+      await handoff
+        .locator("summary")
+        .filter({ hasText: /Non-renewal handoff recorded.*done/i })
+        .waitFor();
+      await open(page, desk + "?group=non_renewals");
+      await page.locator('[data-batch-open-group="non_renewals"]').waitFor();
+      return {
+        annualTermReadback: true,
+        noticeHandoffReadback: true,
+        returnedToDeskGroups: true,
+      };
+    },
+  );
+  await check(
     "L09-disposition",
     "Editor",
     wide,
@@ -776,11 +952,12 @@ try {
         );
       try {
         await open(admin.page, "/admin?task=renewal#admin-renewal-packet-policy");
+        await admin.page.waitForLoadState("networkidle", { timeout: 15_000 });
+        const familyUse = admin.page.locator("#family-use-brokerage_disclosure");
+        assert.notEqual(await familyUse.inputValue(), "mandatory");
         const [family] = await Promise.all([
           postResponse(admin.page, "/api/admin/lease-artifact-family-use"),
-          admin.page
-            .locator("#family-use-brokerage_disclosure")
-            .selectOption("mandatory"),
+          familyUse.selectOption("mandatory"),
         ]);
         assert.ok(family.ok());
         await admin.page.locator("#policy-pet-fee").fill("50");
@@ -805,6 +982,11 @@ try {
           Number(await admin.page.locator("#policy-pet-fee").inputValue()),
           50,
         );
+      } catch (error) {
+        await admin.page
+          .screenshot({ path: join(runDir, "L10-admin-failure.png") })
+          .catch(() => undefined);
+        throw error;
       } finally {
         await admin.context.close();
       }
