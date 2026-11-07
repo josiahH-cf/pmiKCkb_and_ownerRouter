@@ -34,6 +34,9 @@ stale, missing and unreadable data come from the actual status owners.
   stops and access to their current status prominent. Use the established task destinations
   first. Give long clusters a focused page with the matching controls and a clear return
   to the index. Reuse actual operations. Avoid embedding full settings forms on the index.
+  The task index links **Migration readiness** to the existing read-only report and
+  **Communication governance** to the existing governed settings. The focused readiness
+  page retains its **Open migration console** link.
 - **R-S257-2 — Open the exact setting, including from old links.** Inventory all
   existing Admin panels, subroutes, link targets and actions before regrouping.
   Assign each one a destination and preserve its capabilities. Existing `/admin#…`

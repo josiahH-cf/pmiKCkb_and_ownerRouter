@@ -5,6 +5,12 @@
 
 > Intake: ready, batch 003 item 010. Additive presentation scope; implementation and release not started.
 
+The November 7 [S258 contract](renewal-lease-details-and-continuity.md) supersedes the selectable
+Focus view on the live renewal lease. The live choices are **Guided view** and **Full view**.
+S258 preserves existing Focus URLs, step and section destinations, lease and cycle context,
+working entries and return behavior. The original implementation requirements below record the
+starting scope.
+
 **Goal.**
 
 Staff can switch within the same lease and cycle between the current comprehensive dashboard and a separate one-action working view without losing context or silently losing edits.

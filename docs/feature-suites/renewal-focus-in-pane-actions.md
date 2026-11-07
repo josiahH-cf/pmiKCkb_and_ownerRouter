@@ -5,6 +5,11 @@
 
 > Intake: ready, batch 003 item 011. Scope is the existing human-operated renewal lifecycle; no new provider action or release has started.
 
+The November 7 [S247](renewal-one-path-lease-page.md) and [S258](renewal-lease-details-and-continuity.md)
+contracts carry the applicable actions into Guided or Full on the live renewal lease. The forms,
+permission checks, explicit confirmations, recorded outcomes and recovery paths below still apply.
+A legacy Focus URL opens the equivalent live destination.
+
 **Goal.**
 
 Staff can perform each applicable existing renewal action in the Focus pane and advance only after its actual completion condition is established.
