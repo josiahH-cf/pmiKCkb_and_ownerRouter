@@ -116,7 +116,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "The preview is the message exactly as the owner receives it, and What sending needs lists each input as Ready or names what is missing with its fix. A stored comparison is reused, so reaching the message needs no second comparison.",
         effect: "reads",
-        note: "Changing Rent to recommend or Reason to include is optional and updates the same preview. Schedule, Create Gmail draft instead, Copy and Open in Communications show the same message. A lease with no rent to recommend asks for one here before Send.",
+        note: "Changing Rent to recommend or Reason to include is optional and updates the same preview. Schedule, Create Gmail draft instead, Copy and Open in Communications show the same message. A lease with no rent to recommend asks for one here before Send. A missing owner recipient's fix shows its reasons and source record links; when only the lease record is available, open its owner record there and refresh this lease after saving. A missing template's fix shows its publication status for the Approver handoff.",
       },
       {
         id: "review-and-send",
@@ -581,7 +581,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "A comparison stored for this lease and cycle is reused by the owner message, so it never needs a second run. A figure you type saves with this lease and always wins over the suggestion.",
         effect: "saves-in-app",
-        note: "On a lease under a standing agreement, Rent to recommend is the agreement's rule applied to the current rent, with the rule shown as its basis.",
+        note: "On a lease under a standing agreement, Rent to recommend is the agreement's rule applied to the current rent, with the rule shown as its basis. A saved rent from an earlier rule keeps its value and reads Built on the earlier rule. Choose Rebuild with the current rule to adopt the new proposal.",
       },
       {
         id: "prepare-this-lease",

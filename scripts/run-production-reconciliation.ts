@@ -7,6 +7,8 @@ import { ASSURANCE_RENEWAL_DESK_PATH } from "../lib/production-assurance/manifes
 // The independent workspace oracle is also used by the canary's default-lease read. The table
 // reconciliation below retains all source/projected/rendered rows and its existing bounds.
 // The oracle also requires the Now action before its supporting next-step/detail context.
+// A missing owner recipient names its specific source-record handoff rather than the composer.
+// Visible work fields in Guided view belong to the Now card, including the existing hand records.
 export { countIndependentGuidedWorkspaceMismatches } from "../lib/production-assurance/guided-workspace-projection";
 export type { IndependentGuidedWorkspaceSnapshot } from "../lib/production-assurance/guided-workspace-projection";
 import {

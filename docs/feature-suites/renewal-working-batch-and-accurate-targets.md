@@ -89,6 +89,8 @@ rows to an explicit retained state and never removes them from the list.
   uses the same target definition and names the excluded counts by reason. "This batch" and
   "working month" mean the next calendar month's renewal targets. A question about which leases
   need renewal work asks for lease records; an explicit task question retains the My Work route.
+  Display phrases such as "Show me", "Tell me" and "Give me" keep the visible lease scope.
+  An assignment filter follows explicit ownership wording such as "my", "mine" or "assigned to me".
   When its cached source is stale, the assistant waits for a current coherent read before stating
   the batch membership, or reports that the source could not be verified.
   A person-supplied numeric lease reference selects that exact lease within the current read

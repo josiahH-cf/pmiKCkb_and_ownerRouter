@@ -52,7 +52,9 @@ verified RentVine read; a lease whose portfolio cannot be verified is never cove
 - **R-S250-1 — One agreement record.** A standing agreement has a name, the pricing rule (an
   existing policy), whether the owner has pre-approved renewals at that rule, the date it took
   effect, an optional end date, and who agreed, how and when in words. It is versioned; a change
-  keeps the earlier versions.
+  keeps the earlier versions. Required inputs are marked, and an invalid save names the fields
+  in plain words, focuses the first one and retains the entry. Schema and portfolio verification
+  keep their existing bounds.
 - **R-S250-2 — Set once for the portfolio.** An agreement applies to every lease in a verified
   RentVine portfolio, shown by the portfolio and owner names staff recognize, with the numeric id
   kept as the stored reference. It can also be applied to single leases. A lease assignment wins
@@ -77,6 +79,10 @@ verified RentVine read; a lease whose portfolio cannot be verified is never cove
 - **R-S250-7 — Rule changes apply forward.** A changed rule changes later proposals only. A sent
   message, a recorded approval and recorded terms keep their values; a prepared message built on
   the earlier rule reads "Built on the earlier rule" and offers to rebuild.
+  Both the untouched prefill and the existing Use policy proposal action retain the actual
+  agreement and policy version as the saved rent's basis. Its earlier rent remains recognizable
+  on the message after a rule change. Explicit rebuild updates an adopted rule rent and the
+  prepared message through their ordinary saves; a staff typed rent keeps precedence.
 - **R-S250-8 — Visible everywhere it matters.** The desk row carries a "Standing agreement" tag;
   the lease page names the agreement, its rule and when it took effect; the tenant offer and the
   source update previews show the rule as their basis.

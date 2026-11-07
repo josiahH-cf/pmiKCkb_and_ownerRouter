@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { Field } from "@/components/ui";
 import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import { formatBusinessTimestamp } from "@/lib/date-display";
 import {
@@ -110,6 +111,11 @@ export function SharedLeaseCollections({
   const [busy, setBusy] = useState(false),
     [notice, setNotice] = useState(""),
     [error, setError] = useState("");
+  const [validationAttempted, setValidationAttempted] = useState(false);
+  const fieldId = useId();
+  const nameInput = useRef<HTMLInputElement>(null);
+  const fromInput = useRef<HTMLInputElement>(null);
+  const throughInput = useRef<HTMLInputElement>(null);
   const lock = useRef(false),
     live = useRef(true),
     readGeneration = useRef(0),
@@ -285,6 +291,7 @@ export function SharedLeaseCollections({
     setReview(null);
     setNotice("");
     setError("");
+    setValidationAttempted(false);
   }
   async function act(work: () => Promise<void>) {
     if (lock.current) return;
@@ -305,6 +312,14 @@ export function SharedLeaseCollections({
     await act(async () => {
       if (pending)
         throw new Error("Check the original save before reviewing another change.");
+      setValidationAttempted(true);
+      if (!name.trim() || !basis.from || !basis.through) {
+        const first = !name.trim() ? nameInput : !basis.from ? fromInput : throughInput;
+        first.current?.focus();
+        throw new Error(
+          "Complete the required collection fields before reviewing membership.",
+        );
+      }
       const selectedLeaseIds = [...new Set(memberText.split(/[,\s]+/).filter(Boolean))];
       const parsed = CollectionBasisSchema.safeParse({ ...basis, selectedLeaseIds });
       if (!parsed.success)
@@ -526,9 +541,17 @@ export function SharedLeaseCollections({
             : "Name and review a monthly lease group"}
         </h2>
         <fieldset disabled={busy || !!pending} className="ui-stack">
-          <label className="field">
-            Collection name
+          <Field
+            htmlFor={`${fieldId}-name`}
+            label="Collection name"
+            required
+            error={
+              validationAttempted && !name.trim() ? "Enter a collection name." : undefined
+            }
+          >
             <input
+              ref={nameInput}
+              required
               value={name}
               maxLength={160}
               onChange={(e) => {
@@ -536,7 +559,7 @@ export function SharedLeaseCollections({
                 changed();
               }}
             />
-          </label>
+          </Field>
           {detail ? (
             <button
               type="button"
@@ -575,9 +598,15 @@ export function SharedLeaseCollections({
               <option value="annual_review">Month-to-month annual review</option>
             </select>
           </label>
-          <label className="field">
-            Period from
+          <Field
+            htmlFor={`${fieldId}-from`}
+            label="Period from"
+            required
+            error={validationAttempted && !basis.from ? "Choose Period from." : undefined}
+          >
             <input
+              ref={fromInput}
+              required
               type="date"
               value={basis.from}
               onChange={(e) => {
@@ -585,10 +614,18 @@ export function SharedLeaseCollections({
                 changed();
               }}
             />
-          </label>
-          <label className="field">
-            Period through
+          </Field>
+          <Field
+            htmlFor={`${fieldId}-through`}
+            label="Period through"
+            required
+            error={
+              validationAttempted && !basis.through ? "Choose Period through." : undefined
+            }
+          >
             <input
+              ref={throughInput}
+              required
               type="date"
               value={basis.through}
               onChange={(e) => {
@@ -596,7 +633,7 @@ export function SharedLeaseCollections({
                 changed();
               }}
             />
-          </label>
+          </Field>
           <label className="field">
             Selected lease IDs
             <textarea

@@ -130,6 +130,10 @@ interface GuidedOptions {
   nextSteps?: number;
   nextStepText?: string;
   primaryBeforeContext?: boolean;
+  primaryLabel?: string;
+  primaryTarget?: string | null;
+  primaryTargetPresent?: boolean;
+  workFieldsOutsideNow?: number;
 }
 const GUIDED_STEPS = [
   "Check the numbers",
@@ -179,7 +183,15 @@ function guidedFixture(options: GuidedOptions = {}): Page {
             textContent: async () =>
               options.nextStepText ?? "Next step: Check the numbers",
           }
-        : locator(options.primaries ?? 1, options.primaryVisible ?? true),
+        : {
+            ...locator(
+              options.primaries ?? 1,
+              options.primaryVisible ?? true,
+              options.primaryTarget ?? null,
+            ),
+            textContent: async () => options.primaryLabel ?? "Check the numbers",
+            evaluate: async () => options.primaryTargetPresent ?? true,
+          },
   };
   const sections = {
     ...locator(options.sectionNavs ?? 1),
@@ -196,6 +208,7 @@ function guidedFixture(options: GuidedOptions = {}): Page {
   };
   const region = {
     ...locator(options.regions ?? 1, options.regionVisible ?? true),
+    evaluate: async () => options.workFieldsOutsideNow ?? 0,
     locator: () => ({
       ...locator(
         options.stageLines ?? 1,
@@ -285,6 +298,16 @@ describe("S113 candidate and captured predecessor workspace landmarks", () => {
       { nextSteps: 2 },
       { nextStepText: "Next step: " },
       { primaryBeforeContext: false },
+      { workFieldsOutsideNow: 1 },
+      {
+        primaryLabel: "Add the owner's email on the owner record in RentVine",
+        primaryTarget: "renewal-card-message-owner",
+      },
+      {
+        primaryLabel: "Add the owner's email on the owner record in RentVine",
+        primaryTarget: "renewal-message-owner-recipients",
+        primaryTargetPresent: false,
+      },
     ] satisfies GuidedOptions[])
       expect(
         await hasRenewalWorkspaceLandmarks(guidedFixture(options)),
@@ -302,6 +325,10 @@ describe("S113 candidate and captured predecessor workspace landmarks", () => {
       nextSteps: 1,
       nextStepText: "Next step: Check the numbers",
       primaryBeforeContext: true,
+      primaryLabel: "Check the numbers",
+      primaryTarget: null,
+      primaryTargetPresent: false,
+      workFieldsOutsideNow: 0,
     };
     expect(countIndependentGuidedWorkspaceMismatches(snapshot)).toBe(0);
     expect(
@@ -318,6 +345,28 @@ describe("S113 candidate and captured predecessor workspace landmarks", () => {
         ...snapshot,
         primaryBeforeContext: false,
       }),
+    ).toBe(1);
+    const recipient = {
+      ...snapshot,
+      primaryLabel: "Add the owner's email on the owner record in RentVine",
+      primaryTarget: "renewal-message-owner-recipients",
+      primaryTargetPresent: true,
+    };
+    expect(countIndependentGuidedWorkspaceMismatches(recipient)).toBe(0);
+    expect(
+      countIndependentGuidedWorkspaceMismatches({
+        ...recipient,
+        primaryTarget: "renewal-card-message-owner",
+      }),
+    ).toBe(1);
+    expect(
+      countIndependentGuidedWorkspaceMismatches({
+        ...recipient,
+        primaryTargetPresent: false,
+      }),
+    ).toBe(1);
+    expect(
+      countIndependentGuidedWorkspaceMismatches({ ...snapshot, workFieldsOutsideNow: 1 }),
     ).toBe(1);
   });
 

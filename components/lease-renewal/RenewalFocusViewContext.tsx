@@ -48,6 +48,14 @@ interface FocusViewValue {
   readonly setSelectedActionId: (id: string | null) => void;
   readonly slot: HTMLElement | null;
   readonly setSlot: (element: HTMLElement | null) => void;
+  readonly nowSlot: HTMLElement | null;
+  readonly setNowSlot: (element: HTMLElement | null) => void;
+  readonly afterSlot: HTMLElement | null;
+  readonly setAfterSlot: (element: HTMLElement | null) => void;
+  readonly nowPresentation: { readonly stepId: string; readonly state: string } | null;
+  readonly setNowPresentation: (
+    value: { readonly stepId: string; readonly state: string } | null,
+  ) => void;
   /**
    * The one reveal over the workspace body, shared by Guided view and Focus view so the two never
    * hide and show the same regions against each other. Full view clears it.
@@ -231,6 +239,22 @@ export function RenewalFocusViewProvider({
   const [view, setViewState] = useState<RenewalWorkspaceView>(initialView);
   const [selectedActionId, setSelectedActionId] = useState<string | null>(null);
   const [slot, setSlot] = useState<HTMLElement | null>(null);
+  const [nowSlot, setNowSlot] = useState<HTMLElement | null>(null);
+  const [afterSlot, setAfterSlot] = useState<HTMLElement | null>(null);
+  const [nowPresentation, setNowPresentationState] = useState<{
+    readonly stepId: string;
+    readonly state: string;
+  } | null>(null);
+  const setNowPresentation = useCallback(
+    (next: { readonly stepId: string; readonly state: string } | null) => {
+      setNowPresentationState((previous) =>
+        previous?.stepId === next?.stepId && previous?.state === next?.state
+          ? previous
+          : next,
+      );
+    },
+    [],
+  );
   const current = useRef<RenewalWorkspaceView>(initialView);
   const scrollY = useRef<number | null>(null);
   const fullTarget = useRef<string | null>(null);
@@ -396,6 +420,12 @@ export function RenewalFocusViewProvider({
       setSelectedActionId,
       slot,
       setSlot,
+      nowSlot,
+      setNowSlot,
+      afterSlot,
+      setAfterSlot,
+      nowPresentation,
+      setNowPresentation,
       applyReveal,
       explicitView,
       rememberStep,
@@ -407,6 +437,10 @@ export function RenewalFocusViewProvider({
       showInFull,
       selectedActionId,
       slot,
+      nowSlot,
+      afterSlot,
+      nowPresentation,
+      setNowPresentation,
       applyReveal,
       explicitView,
       rememberStep,
@@ -472,14 +506,63 @@ export function RenewalFocusViewSwitch({
   );
 }
 
-/** The Guided or Focus pane's place at the top of the workspace body; absent in Full view. */
-export function RenewalFocusViewSlot() {
+/**
+ * S247: the existing controls stay at one stable React/DOM position in all three views. Guided
+ * puts its header before them and its Now introduction above them in one visual and named card.
+ * Full and Focus use transparent wrappers, keeping their layout and the controls' unsaved state.
+ */
+export function RenewalFocusViewSlot({
+  children,
+  enabled = true,
+}: Readonly<{ children?: ReactNode; enabled?: boolean }>) {
   const context = useRenewalFocusView();
   const setSlot = context?.setSlot;
+  const setNowSlot = context?.setNowSlot;
+  const setAfterSlot = context?.setAfterSlot;
   const attach = useCallback(
     (element: HTMLDivElement | null) => setSlot?.(element),
     [setSlot],
   );
-  if (!context || context.view === "full") return null;
-  return <div className="renewal-focus-slot" data-renewal-view-switch ref={attach} />;
+  const attachNow = useCallback(
+    (element: HTMLDivElement | null) => setNowSlot?.(element),
+    [setNowSlot],
+  );
+  const attachAfter = useCallback(
+    (element: HTMLDivElement | null) => setAfterSlot?.(element),
+    [setAfterSlot],
+  );
+  if (!context || !enabled) return <>{children}</>;
+  const guided = context.view === "guided";
+  return (
+    <div
+      aria-label={guided ? "Guided view" : undefined}
+      className={guided ? "panel ui-stack renewal-guided" : "renewal-preserved-workspace"}
+      data-renewal-guided={guided ? true : undefined}
+      role={guided ? "region" : undefined}
+    >
+      <div
+        className={guided ? "ui-stack renewal-guided-header" : "renewal-focus-slot"}
+        data-renewal-view-switch
+        hidden={context.view === "full"}
+        ref={attach}
+      />
+      <div
+        aria-busy={guided && !context.nowPresentation ? true : undefined}
+        aria-label={guided ? "Now" : undefined}
+        className={guided ? "ui-stack renewal-now-card" : "renewal-preserved-workspace"}
+        data-renewal-now-state={guided ? context.nowPresentation?.state : undefined}
+        data-renewal-now-step={guided ? context.nowPresentation?.stepId : undefined}
+        role={guided ? "region" : undefined}
+      >
+        <div className="ui-stack renewal-now-intro" hidden={!guided} ref={attachNow} />
+        {children}
+      </div>
+      <div
+        className="ui-stack renewal-guided-after"
+        data-renewal-presentation-control
+        hidden={!guided}
+        ref={attachAfter}
+      />
+    </div>
+  );
 }

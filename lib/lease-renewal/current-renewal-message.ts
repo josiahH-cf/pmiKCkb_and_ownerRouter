@@ -34,6 +34,7 @@ import {
 } from "@/lib/firestore/renewal-message-preparations";
 import {
   STANDING_AGREEMENT_WORDS,
+  adoptedStandingRule,
   standingRuleWords,
 } from "@/lib/lease-renewal/standing-agreement";
 import {
@@ -107,6 +108,7 @@ import { listMarketObservations } from "@/lib/firestore/renewal-market-observati
 import {
   storedComparisonFor,
   typedRecommendation,
+  workingRecommendationBasis,
 } from "@/lib/lease-renewal/kickoff-facts";
 import {
   marketBasisFromCapturedResult,
@@ -312,7 +314,20 @@ async function standingAgreementRule(
       pricing.today,
       { workingRent: workingRenewalTerms(working).rent },
     );
-    const authority = resolved.authority;
+    // An earlier adopted rent can differ from today's rule. Resolve the current rule without
+    // that amount only to describe the difference; ordinary owner coverage is unchanged.
+    const authority =
+      !resolved.authority.covered &&
+      stamp &&
+      resolved.standingAgreement?.id === stamp.agreementId
+        ? resolveRenewalPricing(
+            pricing.snapshot,
+            facts,
+            effectiveRenewalTerms(working).complete,
+            pricing.today,
+            { workingRent: null },
+          ).authority
+        : resolved.authority;
     if (
       !authority.covered ||
       authority.kind !== "standing" ||
@@ -650,17 +665,27 @@ export async function currentRenewalMessage(
           db,
         ).catch(() => null)
       : null;
+  const rentEntry = workingRecord?.fields.terms_rent;
+  const workingRuleBasis = rentEntry ? adoptedStandingRule(rentEntry) : null;
   const standingRule = await standingAgreementRule(
     actor,
     lease,
     workingRecord,
     nowMs,
     leaseRead.snapshot.complete !== false,
-    savedRuleBasis,
+    savedRuleBasis ?? workingRuleBasis,
     db,
   );
+  const adoptedRuleRent =
+    workingRuleBasis &&
+    standingRule.ruleBasis &&
+    workingRuleBasis.agreementId === standingRule.ruleBasis.agreementId &&
+    workingRuleBasis.policyId === standingRule.ruleBasis.policyId &&
+    workingRuleBasis.policyVersion === standingRule.ruleBasis.policyVersion &&
+    rentEntry?.value === standingRule.rent?.value;
   const rentToRecommend = renewalRentToRecommend({
-    typedRent: typedRecommendation(workingRecord, workspace),
+    typedRent: adoptedRuleRent ? null : typedRecommendation(workingRecord, workspace),
+    workingRentBasis: workingRecommendationBasis(workingRecord),
     agreementRent: standingRule.rent,
     comparison: stored ? { state: "stored", comparison: stored } : { state: "none" },
     currentRent: leaseCurrentRent(lease) ?? null,

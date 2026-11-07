@@ -1315,7 +1315,7 @@ async function journey(browser) {
         heading: squash(
           await view
             .now()
-            .getByRole("heading", { level: 2 })
+            .locator("h2#renewal-now-heading")
             .textContent()
             .catch(() => ""),
         ),
@@ -1371,7 +1371,7 @@ async function journey(browser) {
       .replace(/[^0-9]/g, "")
       .replace(/00$/, "");
   const reloaded = {
-    heading: squash(await view.now().getByRole("heading", { level: 2 }).textContent()),
+    heading: squash(await view.now().locator("h2#renewal-now-heading").textContent()),
     pressed: await view.viewButton("Guided view").getAttribute("aria-pressed"),
     scrollY: await page.evaluate(() => Math.round(window.scrollY)),
     placeBefore,

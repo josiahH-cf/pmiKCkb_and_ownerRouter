@@ -77,6 +77,11 @@ import { saveMessagePreparation } from "@/lib/firestore/renewal-message-preparat
 import { ensureRenewalWorkRecord } from "@/lib/firestore/renewal-workspace";
 import { currentRenewalMessage } from "@/lib/lease-renewal/current-renewal-message";
 import type { RenewalPricingPolicyInput } from "@/lib/lease-renewal/renewal-pricing-policy";
+import { saveRenewalWorkingField } from "@/lib/firestore/renewal-working-record";
+import {
+  standingRuleContext,
+  standingRuleSourceLabel,
+} from "@/lib/lease-renewal/standing-agreement";
 
 const projectId = "pmi-kc-kb-s250-message-earlier-rule";
 const admin: AuthenticatedUser = {
@@ -198,6 +203,61 @@ async function save(
 }
 
 describe("S250 R-S250-7: the one message record keeps the rule it was built on", () => {
+  it("keeps a saved adopted rule rent recognizable after a rule change, while a later typed rent wins", async () => {
+    const { policy, agreement, changeRule } = await coveredByThreePercent();
+    await ensureRenewalWorkRecord(editor, "701", db, async () => ({
+      kind: "lease_end",
+      dateIso: "2026-12-31",
+      source: "RentVine lease end",
+    }));
+    const basis = { agreementId: agreement.id, policyId: policy.id, policyVersion: 1 };
+    await saveRenewalWorkingField(
+      editor,
+      {
+        leaseId: "701",
+        field: "terms_rent",
+        value: 1030,
+        expectedRevision: 0,
+        operationId: randomUUID(),
+        origin: "adopted_source",
+        sourceLabel: standingRuleSourceLabel(agreement.name, 1),
+        context: standingRuleContext({
+          ...basis,
+          basis: "Current rent $1,000 plus 3 percent.",
+        }),
+      },
+      db,
+    );
+    const adopted = await currentRenewalMessage(editor, "701", "owner", db);
+    expect(adopted.rentToRecommend).toMatchObject({ value: 1030, origin: "agreement" });
+    expect(adopted.ruleBasis).toEqual(basis);
+    await save("701", adopted, adopted.ruleBasis);
+    await changeRule(5);
+    const earlier = await currentRenewalMessage(editor, "701", "owner", db);
+    expect(earlier.rentToRecommend).toMatchObject({ value: 1030, origin: "agreement" });
+    expect(earlier.earlierRule).toMatchObject({
+      currentRent: 1050,
+      currentBasis: { policyVersion: 2 },
+    });
+    expect(earlier.content.plainText).toContain("$1,030.00");
+    await saveRenewalWorkingField(
+      editor,
+      {
+        leaseId: "701",
+        field: "terms_rent",
+        value: 1111,
+        expectedRevision: 1,
+        operationId: randomUUID(),
+        origin: "staff_entry",
+      },
+      db,
+    );
+    const typed = await currentRenewalMessage(editor, "701", "owner", db);
+    expect(typed.rentToRecommend).toMatchObject({ value: 1111, origin: "typed" });
+    expect(typed.earlierRule).toBeNull();
+    expect(typed.ruleBasis).toBeNull();
+  });
+
   it("a saved message reads Built on the earlier rule after the rule changes, keeps its rent, and rebuilds only when chosen", async () => {
     const { policy, agreement, changeRule } = await coveredByThreePercent();
     for (const leaseId of ["701", "702"])

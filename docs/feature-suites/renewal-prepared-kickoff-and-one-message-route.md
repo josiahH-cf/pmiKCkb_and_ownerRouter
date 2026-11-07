@@ -113,6 +113,10 @@ choose to work. RentVine readable; RentCast allowance available for a new lookup
   verified owner recipient, the sender's signature, an approved template, complete marked values.
   Each missing item has its fix in place; a staff member sets up their own signature on the card
   the first time, and the desk shows the same missing items before a lease is opened.
+  A recipient fix focuses the recipient reasons and the already-read source record links. When
+  an owner-record link is unavailable, the existing lease-record link explains the route to its
+  owner record and the subsequent refresh. A template fix focuses its actual publication status.
+  Source edits and an Approver's publication remain their existing separate handoffs.
 - **R-S249-12 — Rewording that works.** An AI rewording replaces the body only when the staff member
   chooses "Use this revision". A rejected result keeps the typed instruction, says what to change
   and leaves the message as it was. The card shows when the message was last edited.

@@ -12,6 +12,7 @@ import type {
   StandingAgreement,
   StandingAgreementInput,
 } from "@/lib/lease-renewal/standing-agreement";
+import { StandingAgreementInputSchema } from "@/lib/lease-renewal/standing-agreement";
 import type { OwnerPolicyRule } from "@/lib/firestore/owner-policy-rules";
 const usd = (amount: number) =>
   `$${amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
@@ -597,7 +598,17 @@ function PortfolioStandingAgreementEditor({
     [version, setVersion] = useState(0),
     [rows, setRows] = useState<PortfolioAgreementRow[]>([]),
     [exactRows, setExactRows] = useState<StandingOwnerAgreement[] | null>(null),
-    [notice, setNotice] = useState("");
+    [notice, setNotice] = useState(""),
+    [errors, setErrors] = useState<Partial<Record<keyof StandingAgreementInput, string>>>(
+      {},
+    );
+  function change<K extends keyof StandingAgreementInput>(
+    key: K,
+    value: StandingAgreementInput[K],
+  ) {
+    setAgreement((current) => ({ ...current, [key]: value }));
+    setErrors((current) => ({ ...current, [key]: undefined }));
+  }
   const read = useCallback(async () => {
     try {
       const r = await fetch(`${endpoint}?standing=all`);
@@ -617,6 +628,7 @@ function PortfolioStandingAgreementEditor({
     return () => clearTimeout(timer);
   }, [read]);
   function edit(id: string) {
+    setErrors({});
     const row = rows.find((entry) => entry.id === id);
     if (!row) {
       setAgreement(emptyPortfolioAgreement);
@@ -647,10 +659,53 @@ function PortfolioStandingAgreementEditor({
         : null,
       endsOn: agreement.endsOn || null,
     };
+    const checked = StandingAgreementInputSchema.safeParse(next);
+    if (!checked.success) {
+      const messages: Partial<Record<keyof StandingAgreementInput, string>> = {};
+      const fieldMessages: Partial<Record<keyof StandingAgreementInput, string>> = {
+        name: agreement.name.trim()
+          ? "Use an agreement name of 100 characters or fewer."
+          : "Enter an agreement name.",
+        policyId: "Choose a pricing rule.",
+        portfolioId:
+          "Enter a RentVine portfolio ID of 1 to 10 digits, starting with 1 to 9.",
+        preApprovalStatement:
+          "Use a pre-approval statement of 1,000 characters or fewer.",
+        effectiveFrom: "Choose the date the agreement takes effect.",
+        endsOn:
+          "Choose an end date on or after the date the agreement takes effect, or leave it blank.",
+        agreedBy: agreement.agreedBy.trim()
+          ? "Use 200 characters or fewer for who agreed."
+          : "Enter who agreed.",
+        agreedHow: agreement.agreedHow.trim()
+          ? "Use 300 characters or fewer for how they agreed."
+          : "Enter how they agreed.",
+        agreedWhen: agreement.agreedWhen.trim()
+          ? "Use 200 characters or fewer for when they agreed."
+          : "Enter when they agreed.",
+      };
+      for (const issue of checked.error.issues) {
+        const key = (issue.path[0] ?? "endsOn") as keyof StandingAgreementInput;
+        messages[key] = fieldMessages[key] ?? "Review this agreement field.";
+      }
+      setErrors(messages);
+      const first = Object.keys(messages)[0];
+      document
+        .getElementById(
+          first === "policyId"
+            ? "standing-policy"
+            : first === "preApprovalStatement"
+              ? "standing-pre-approval"
+              : `standing-${first}`,
+        )
+        ?.focus();
+      return;
+    }
+    setErrors({});
     if (!agreement.id) setAgreement({ ...agreement, id: next.id });
     const result = await command({
       action: "standing_agreement",
-      agreement: next,
+      agreement: checked.data,
       expectedVersion: version,
     });
     if (result?.standingAgreement) {
@@ -666,11 +721,27 @@ function PortfolioStandingAgreementEditor({
     label: string,
     hint?: string,
   ) => (
-    <Field htmlFor={`standing-${key}`} label={label} hint={hint}>
+    <Field
+      htmlFor={`standing-${key}`}
+      label={label}
+      hint={hint}
+      required
+      error={errors[key]}
+    >
       <input
         id={`standing-${key}`}
+        required
+        maxLength={
+          key === "name"
+            ? 100
+            : key === "agreedHow"
+              ? 300
+              : key === "portfolioId"
+                ? 10
+                : 200
+        }
         value={agreement[key]}
-        onChange={(e) => setAgreement({ ...agreement, [key]: e.target.value })}
+        onChange={(e) => change(key, e.target.value)}
       />
     </Field>
   );
@@ -741,11 +812,17 @@ function PortfolioStandingAgreementEditor({
         <p>No older portfolio rule is recorded.</p>
       )}
       {text("name", "Agreement name")}
-      <Field htmlFor="standing-policy" label="Pricing rule">
+      <Field
+        htmlFor="standing-policy"
+        label="Pricing rule"
+        required
+        error={errors.policyId}
+      >
         <select
           id="standing-policy"
+          required
           value={agreement.policyId}
-          onChange={(e) => setAgreement({ ...agreement, policyId: e.target.value })}
+          onChange={(e) => change("policyId", e.target.value)}
         >
           <option value="">Choose a reusable policy</option>
           {policies.map((p) => (
@@ -760,30 +837,39 @@ function PortfolioStandingAgreementEditor({
         "RentVine portfolio ID",
         "The verified numeric portfolio id; the lease page shows the owner names for it.",
       )}
-      <Field htmlFor="standing-pre-approval" label="The owner's pre-approval">
+      <Field
+        htmlFor="standing-pre-approval"
+        label="The owner's pre-approval"
+        error={errors.preApprovalStatement}
+      >
         <textarea
           id="standing-pre-approval"
           rows={2}
+          maxLength={1000}
           value={agreement.preApprovalStatement ?? ""}
-          onChange={(e) =>
-            setAgreement({ ...agreement, preApprovalStatement: e.target.value })
-          }
+          onChange={(e) => change("preApprovalStatement", e.target.value)}
         />
       </Field>
-      <Field htmlFor="standing-effectiveFrom" label="Takes effect">
+      <Field
+        htmlFor="standing-effectiveFrom"
+        label="Takes effect"
+        required
+        error={errors.effectiveFrom}
+      >
         <input
           id="standing-effectiveFrom"
           type="date"
+          required
           value={agreement.effectiveFrom}
-          onChange={(e) => setAgreement({ ...agreement, effectiveFrom: e.target.value })}
+          onChange={(e) => change("effectiveFrom", e.target.value)}
         />
       </Field>
-      <Field htmlFor="standing-endsOn" label="Ends (optional)">
+      <Field htmlFor="standing-endsOn" label="Ends (optional)" error={errors.endsOn}>
         <input
           id="standing-endsOn"
           type="date"
           value={agreement.endsOn ?? ""}
-          onChange={(e) => setAgreement({ ...agreement, endsOn: e.target.value || null })}
+          onChange={(e) => change("endsOn", e.target.value || null)}
         />
       </Field>
       {text("agreedBy", "Who agreed")}
@@ -805,6 +891,7 @@ function PortfolioStandingAgreementEditor({
           onClick={() => {
             setAgreement(emptyPortfolioAgreement);
             setVersion(0);
+            setErrors({});
           }}
           size="compact"
           variant="tertiary"

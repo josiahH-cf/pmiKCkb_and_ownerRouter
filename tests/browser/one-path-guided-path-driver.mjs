@@ -238,9 +238,7 @@ export async function runGuidedPath() {
     const currentBefore = await strip().locator('[aria-current="step"]').textContent();
     await strip().getByRole("button", { name: "Offer the tenant", exact: true }).click();
     await page.waitForTimeout(500);
-    const heading = (
-      await now().getByRole("heading", { level: 2 }).textContent()
-    )?.trim();
+    const heading = (await now().locator("h2#renewal-now-heading").textContent())?.trim();
     check(
       "a later step opens in the Now card while the current step stays as it was",
       heading === "Offer the tenant" &&
@@ -309,7 +307,7 @@ export async function runGuidedPath() {
     });
     const reloaded = {
       url: page.url(),
-      heading: (await now().getByRole("heading", { level: 2 }).textContent())?.trim(),
+      heading: (await now().locator("h2#renewal-now-heading").textContent())?.trim(),
       pressed: await viewButton("Guided view").getAttribute("aria-pressed"),
       scrollY: await page.evaluate(() => window.scrollY),
       scrolled,

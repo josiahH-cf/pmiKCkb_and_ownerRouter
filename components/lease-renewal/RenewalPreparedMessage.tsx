@@ -45,6 +45,7 @@ import { focusRenewalDashboardControl } from "./RenewalDashboardNavigation";
 import { RentToRecommendField, StoredComparisonSummary } from "./RenewalKickoffFields";
 import { nowSlotKey, useRenewalNowCard } from "./RenewalNowCardContext";
 import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
+import { workingRecommendationBasis } from "@/lib/lease-renewal/kickoff-facts";
 import { useRenewalPricingPolicy } from "./RenewalPricingPolicy";
 import {
   STANDING_AGREEMENT_WORDS,
@@ -397,12 +398,14 @@ function PreparedMessageBlock({
     }
   }, [api.draft.pending, api.draft.recoveryRequired, previewSlot]);
   const typedRent = workingRenewalTerms(working?.record ?? null).rent;
+  const workingRentBasis = workingRecommendationBasis(working?.record);
   const live = useMemo(
     () =>
       preparation && api.channel === "owner"
         ? withLiveKickoff(preparation, {
             signature: api.signaturePresent,
             typedRent,
+            workingRentBasis,
             recipientReady: api.to !== null,
             templateApproved: api.templateApproved,
             marked: api.marked,
@@ -413,6 +416,7 @@ function PreparedMessageBlock({
       api.channel,
       api.signaturePresent,
       typedRent,
+      workingRentBasis,
       api.to,
       api.templateApproved,
       api.marked,

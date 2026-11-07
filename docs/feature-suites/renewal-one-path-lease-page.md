@@ -70,6 +70,9 @@ or staff-record read failure shows on the Now card as the thing to resolve; it n
   prepared, the inputs the person decides, one primary action and its secondary actions, using the
   existing controls in place. The primary action follows the heading and any consequential alert;
   supporting next-step and detail text follows the action. No path step sends the person to another view or tab to act.
+  The selected step's existing fields and hand records, including the assisted owner/rent choices
+  and ordinary working terms, are inside the same visual and named Now card. Their components
+  stay mounted at one position across Guided, Focus and Full view, preserving unsaved entries.
 - **R-S247-5 — Waiting is a state, not a dead end.** A waiting step states who it waits on, since
   when, the last contact and what the app is watching, and offers the actions that fit: record what
   happened, send again, or work a later step now.

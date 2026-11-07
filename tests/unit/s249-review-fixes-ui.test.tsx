@@ -7,12 +7,15 @@ import "@testing-library/jest-dom/vitest";
 
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { RenewalWorkingRecord } from "@/lib/lease-renewal/working-record";
+import { fixtureWorkingRecord } from "@/tests/helpers/rent-charge-fixtures";
+import { standingRuleContext } from "@/lib/lease-renewal/standing-agreement";
 
 const router = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 const working = vi.hoisted(() => ({
   current: null as null | {
-    record: null;
+    record: RenewalWorkingRecord | null;
     canEdit: boolean;
     save: (...args: unknown[]) => Promise<boolean>;
   },
@@ -496,6 +499,99 @@ function tenantPreparation(overrides: Record<string, unknown> = {}) {
     ...overrides,
   };
 }
+
+it("rebuilds an adopted standing rent only on the explicit choice and keeps a failed save recoverable", async () => {
+  const basis = {
+    agreementId: "2c3d4e5f-6071-4b82-9c93-ad4e5f6a7b8c",
+    policyId: "1b2c3d4e-5f60-4a71-8b82-9c3d4e5f6a7b",
+    policyVersion: 1,
+  };
+  const currentBasis = { ...basis, policyVersion: 2 };
+  const saveRent = vi.fn().mockResolvedValueOnce(false).mockResolvedValue(true);
+  const record = fixtureWorkingRecord({
+    terms_rent: { value: 1751, revision: 1, origin: "adopted_source" },
+  });
+  working.current = {
+    record: {
+      ...record,
+      leaseId: "9101",
+      fields: {
+        ...record.fields,
+        terms_rent: {
+          ...record.fields.terms_rent!,
+          context: standingRuleContext({ ...basis, basis: "Original 3 percent rule." }),
+        },
+      },
+    },
+    canEdit: true,
+    save: saveRent,
+  };
+  const earlier = {
+    agreement: "Synthetic standing agreement",
+    earlier: "Raise rent by 3 percent",
+    current: "Raise rent by 4 percent",
+    currentRent: 1768,
+    currentBasis,
+  };
+  const payload = tenantPreparation({ ruleBasis: basis, earlierRule: earlier });
+  const posts: Record<string, unknown>[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (_url: string, init?: RequestInit) => {
+      if (init?.method === "POST") {
+        const body = JSON.parse(String(init.body));
+        posts.push(body);
+        return Response.json({
+          ...payload,
+          inputs: body.inputs,
+          ruleBasis: body.ruleBasis,
+          earlierRule: null,
+          saved: {
+            revision: 1,
+            inputs: body.inputs,
+            signatureEmail: null,
+            signatureActorUid: null,
+          },
+        });
+      }
+      return Response.json(payload);
+    }),
+  );
+  render(
+    <RenewalNowCardProvider preparation={null}>
+      <StepCard step="offer-tenant" />
+      <RenewalMessagePreparation canEdit channel="tenant" />
+    </RenewalNowCardProvider>,
+  );
+  const rebuild = await screen.findByRole("button", {
+    name: "Rebuild with the current rule",
+  });
+  expect(saveRent).not.toHaveBeenCalled();
+  fireEvent.click(rebuild);
+  await screen.findByText(
+    "The rent could not be rebuilt. Your saved rent is kept; choose Rebuild with the current rule to retry.",
+  );
+  expect(posts).toHaveLength(0);
+  expect(
+    screen.getByRole("button", { name: "Rebuild with the current rule" }),
+  ).toBeVisible();
+  fireEvent.click(rebuild);
+  await waitFor(() => expect(posts).toHaveLength(1));
+  expect(saveRent).toHaveBeenLastCalledWith(
+    "terms_rent",
+    1768,
+    expect.objectContaining({
+      origin: "adopted_source",
+      context: expect.stringContaining(":v2."),
+    }),
+  );
+  expect(posts[0].ruleBasis).toEqual(currentBasis);
+  expect(
+    screen.queryByText(
+      "The rent could not be rebuilt. Your saved rent is kept; choose Rebuild with the current rule to retry.",
+    ),
+  ).toBeNull();
+});
 
 describe("S249 D: the Gmail draft signal reads the last created draft", () => {
   function mountTenant(payload: Record<string, unknown>) {

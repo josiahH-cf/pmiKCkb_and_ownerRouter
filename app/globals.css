@@ -2332,6 +2332,16 @@ label.secondary-button:focus-within {
   gap: var(--space-2);
 }
 
+.renewal-preserved-workspace {
+  display: contents;
+}
+
+.renewal-guided-header,
+.renewal-guided-after,
+.renewal-now-intro {
+  gap: var(--space-2);
+}
+
 /* S247: keep the action in reach even when a saved program name wraps. The lease title and
    sticky copy controls keep their full content; only repeated layout spacing is reduced. */
 .content:has(.renewal-guided) {
@@ -2347,6 +2357,7 @@ label.secondary-button:focus-within {
 }
 
 .content:has(.renewal-guided) .ui-page-header {
+  gap: var(--space-1);
   margin-bottom: 0;
 }
 
@@ -2354,7 +2365,7 @@ label.secondary-button:focus-within {
   align-items: baseline;
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  gap: var(--space-1);
 }
 
 .content:has(.renewal-guided) .ui-page-subtitle {
@@ -2367,6 +2378,10 @@ label.secondary-button:focus-within {
 
 .renewal-workspace-shell:has(.renewal-guided) .renewal-workspace-toolbar {
   padding-block: var(--space-1);
+}
+
+.renewal-workspace-shell:has(.renewal-guided) .renewal-workspace-toolbar-row {
+  row-gap: var(--space-1);
 }
 
 .renewal-guided.panel {
@@ -2433,7 +2448,9 @@ label.secondary-button:focus-within {
 }
 
 .renewal-now-card > p,
-.renewal-now-card > h2 {
+.renewal-now-card > h2,
+.renewal-now-intro > p,
+.renewal-now-intro > h2 {
   margin: 0;
 }
 
@@ -5284,6 +5301,7 @@ body {
   .topbar {
     align-items: center;
     flex-direction: row;
+    row-gap: var(--space-2);
   }
 
   .topbar .primary-navigation {

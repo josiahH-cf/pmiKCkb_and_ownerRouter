@@ -51,15 +51,13 @@
   {
     "step": "5",
     "page": "/lease-renewal",
-    "control": "Refresh source facts",
+    "control": "Refresh data",
+    "formerly": { "control": "Refresh source facts", "role": "button" },
     "role": "button",
     "scope": "",
     "availability": "conditional",
     "expectation": "Refresh sources with returned freshness.",
-    "source": [
-      "lib/lease-renewal/meeting-walkthrough.ts",
-      "lib/lease-renewal/role-action-governance.ts"
-    ]
+    "source": ["components/lease-renewal/RenewalDeskRefresh.tsx"]
   },
   {
     "step": "6",

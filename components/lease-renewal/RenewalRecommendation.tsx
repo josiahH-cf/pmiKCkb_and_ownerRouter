@@ -8,6 +8,10 @@ import { workingRenewalTerms } from "@/lib/lease-renewal/working-record";
 import { useRenewalWorkingRecord } from "@/components/lease-renewal/RenewalWorkingRecord";
 import { useRenewalManualWorkspace } from "@/components/lease-renewal/RenewalManualWorkspace";
 import { useRenewalPricingPolicy } from "@/components/lease-renewal/RenewalPricingPolicy";
+import {
+  standingRuleContext,
+  standingRuleSourceLabel,
+} from "@/lib/lease-renewal/standing-agreement";
 export function RenewalRecommendation({
   currentRent,
   fresh = true,
@@ -45,6 +49,14 @@ export function RenewalRecommendation({
   }
   const disabled =
     !working.canEdit || working.readUnavailable || manual.readUnavailable || pending;
+  const standing = pricing?.view?.standingAgreement;
+  const rule = pricing?.view?.policy;
+  const fromStanding =
+    standing &&
+    rule &&
+    proposal?.amount !== null &&
+    proposal?.amount !== undefined &&
+    proposal.policyId === rule.id;
   return (
     <section aria-label="Renewal recommendation" className="panel">
       <h3>Recommendation and working offer</h3>
@@ -76,8 +88,17 @@ export function RenewalRecommendation({
               onClick={() =>
                 void adoptProposal(
                   proposal.amount!,
-                  `Pricing policy v${proposal.policyVersion}`,
-                  `${proposal.policyId}: ${proposal.reason}`,
+                  fromStanding
+                    ? standingRuleSourceLabel(standing.name, rule.version)
+                    : `Pricing policy v${proposal.policyVersion}`,
+                  fromStanding
+                    ? standingRuleContext({
+                        agreementId: standing.id,
+                        policyId: rule.id,
+                        policyVersion: rule.version,
+                        basis: proposal.reason,
+                      })
+                    : `${proposal.policyId}: ${proposal.reason}`,
                 )
               }
             >

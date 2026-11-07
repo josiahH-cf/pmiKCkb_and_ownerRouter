@@ -43,6 +43,8 @@ export const KICKOFF_FIX_TARGETS = {
   rentAndCharges: "renewal-rent-and-charges",
   comparison: "renewal-section-comps",
   ownerMessage: "renewal-card-message-owner",
+  ownerRecipient: "renewal-message-owner-recipients",
+  ownerTemplate: "renewal-message-owner-publication",
   rentToRecommend: "renewal-now-rent-to-recommend",
   signature: "renewal-now-signature",
   markedValues: "renewal-message-owner-readiness",
@@ -113,6 +115,8 @@ export interface RenewalKickoffFacts {
   readonly comparison: RenewalComparisonFacts;
   /** The rent staff typed (the working renewal rent), or null. A typed figure always wins. */
   readonly typedRent: number | null;
+  /** A saved adopted amount names its recorded source; historical data gains no inferred basis. */
+  readonly workingRentBasis?: string | null;
   /** S250 slot: the covering standing agreement's rent and its basis in words. Null today. */
   readonly agreementRent: { readonly value: number; readonly basis: string } | null;
   /** The current rent a comparison proposal is held near. */
@@ -430,14 +434,15 @@ function comparisonView(facts: RenewalComparisonFacts): RenewalComparisonView {
 export function renewalRentToRecommend(
   facts: Pick<
     RenewalKickoffFacts,
-    "typedRent" | "agreementRent" | "comparison" | "currentRent"
+    "typedRent" | "workingRentBasis" | "agreementRent" | "comparison" | "currentRent"
   >,
 ): RenewalRentView {
   if (usable(facts.typedRent))
     return {
       value: facts.typedRent,
       origin: "typed",
-      basis: "Entered by staff. A later proposal never replaces it.",
+      basis:
+        facts.workingRentBasis ?? "Entered by staff. A later proposal never replaces it.",
     };
   if (facts.agreementRent && usable(facts.agreementRent.value))
     return {
@@ -533,7 +538,7 @@ export function projectRenewalPreparation(
         facts.ownerRecipient?.state === "missing"
           ? {
               label: "Add the owner's email on the owner record in RentVine",
-              target: KICKOFF_FIX_TARGETS.ownerMessage,
+              target: KICKOFF_FIX_TARGETS.ownerRecipient,
             }
           : null,
       ...(facts.ownerRecipient === null ? { unknown: true } : {}),
@@ -558,7 +563,7 @@ export function projectRenewalPreparation(
         facts.templateApproved === false
           ? {
               label: "Ask an Approver to publish the owner template",
-              target: KICKOFF_FIX_TARGETS.ownerMessage,
+              target: KICKOFF_FIX_TARGETS.ownerTemplate,
             }
           : null,
       ...(facts.templateApproved === null ? { unknown: true } : {}),
@@ -611,6 +616,7 @@ export function withLiveKickoff(
   live: {
     readonly signature?: boolean | null;
     readonly typedRent?: number | null;
+    readonly workingRentBasis?: string | null;
     readonly recipientReady?: boolean | null;
     readonly templateApproved?: boolean | null;
     /** The values the live message still marks, by name; empty when it carries none. */
@@ -622,7 +628,9 @@ export function withLiveKickoff(
       ? {
           value: live.typedRent,
           origin: "typed",
-          basis: "Entered by staff. A later proposal never replaces it.",
+          basis:
+            live.workingRentBasis ??
+            "Entered by staff. A later proposal never replaces it.",
         }
       : preparation.rent;
   const items = preparation.items.map((item): RenewalKickoffItem => {
@@ -653,12 +661,12 @@ export function withLiveKickoff(
       case "recipient":
         return set(live.recipientReady, "a verified owner recipient", {
           label: "Add the owner's email on the owner record in RentVine",
-          target: KICKOFF_FIX_TARGETS.ownerMessage,
+          target: KICKOFF_FIX_TARGETS.ownerRecipient,
         });
       case "template":
         return set(live.templateApproved, "an approved owner template", {
           label: "Ask an Approver to publish the owner template",
-          target: KICKOFF_FIX_TARGETS.ownerMessage,
+          target: KICKOFF_FIX_TARGETS.ownerTemplate,
         });
       case "marked_values":
         return live.marked

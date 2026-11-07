@@ -12,6 +12,8 @@ import {
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { RenewalMessagePreparation } from "@/components/lease-renewal/RenewalMessagePreparation";
+import { focusRenewalDashboardControl } from "@/components/lease-renewal/RenewalDashboardNavigation";
+import { MESSAGE_CONTROL_IDS } from "@/lib/lease-renewal/message-readiness";
 import { emptyMessagePreparationInputs } from "@/lib/lease-renewal/renewal-message-preparation";
 import {
   composeRenewalMessage,
@@ -179,6 +181,105 @@ function savedResponse(
 const composed = () => composeRenewalMessage(tenantFacts());
 
 describe("S161 editable message with missing information", () => {
+  for (const channel of ["owner", "tenant"] as const) {
+    it(`focuses the actual ${channel} recipient source handoff when its addresses are missing`, async () => {
+      const api = server(
+        preparation({
+          facts: { ...tenantFacts(), channel },
+          recipients: {
+            status: "blocked",
+            reasons: ["A verified recipient is required."],
+          },
+        }),
+        () => Response.json({}),
+      );
+      render(<RenewalMessagePreparation channel={channel} canEdit />);
+      await screen.findByText("A verified recipient is required.");
+      expect(focusRenewalDashboardControl(MESSAGE_CONTROL_IDS.recipients(channel))).toBe(
+        true,
+      );
+      const source = screen.getByRole("link", { name: "Open lease record in RentVine" });
+      expect(source).toHaveFocus();
+      expect(source).toHaveAttribute(
+        "href",
+        "https://fixture.rentvine.invalid/leases/8800",
+      );
+      expect(
+        document.getElementById(MESSAGE_CONTROL_IDS.recipients(channel)),
+      ).toContainElement(source);
+      expect(api.posts()).toHaveLength(0);
+    });
+  }
+
+  it("focuses the already-read owner record when the source supplies that destination", async () => {
+    server(
+      preparation({
+        facts: { ...tenantFacts(), channel: "owner" },
+        recipients: {
+          status: "blocked",
+          reasons: ["The owner's email needs verification."],
+        },
+        destinations: {
+          gmailDrafts: null,
+          lease: {
+            href: "https://fixture.rentvine.invalid/leases/8800",
+            label: "Lease 8800",
+          },
+          messages: null,
+          owners: [
+            {
+              name: "Example Owner",
+              record: {
+                href: "https://fixture.rentvine.invalid/owners/7",
+                label: "Example Owner",
+              },
+              messages: {
+                href: "https://fixture.rentvine.invalid/owners/7/messages",
+                label: "Owner messages",
+              },
+            },
+          ],
+        },
+      }),
+      () => Response.json({}),
+    );
+    render(<RenewalMessagePreparation channel="owner" canEdit />);
+    const source = await screen.findByRole("link", {
+      name: "open owner record in RentVine",
+    });
+    expect(focusRenewalDashboardControl(MESSAGE_CONTROL_IDS.recipients("owner"))).toBe(
+      true,
+    );
+    expect(source).toHaveFocus();
+    expect(source).toHaveAttribute("href", "https://fixture.rentvine.invalid/owners/7");
+    expect(
+      screen.getAllByRole("link", { name: "open owner record in RentVine" }),
+    ).toHaveLength(1);
+  });
+
+  it("focuses the actual template status and opens its source disclosure for an approval handoff", async () => {
+    const api = server(
+      preparation({
+        facts: { ...tenantFacts(), channel: "owner" },
+        publication: {
+          status: "needs_approval",
+          reason: "An Approver reviews this owner template.",
+        },
+      }),
+      () => Response.json({}),
+    );
+    render(<RenewalMessagePreparation channel="owner" canEdit />);
+    await screen.findByLabelText("Subject");
+    const target = document.getElementById(MESSAGE_CONTROL_IDS.publication("owner"))!;
+    expect(focusRenewalDashboardControl(MESSAGE_CONTROL_IDS.publication("owner"))).toBe(
+      true,
+    );
+    expect(target).toHaveFocus();
+    expect(target.closest("details")).toHaveAttribute("open");
+    expect(target).toHaveTextContent("An Approver reviews this owner template.");
+    expect(api.posts()).toHaveLength(0);
+  });
+
   it("BEH-S161-3, BEH-S161-4, BEH-S161-5, AC-S161-1, BEH-S162-5: with no work record and several values absent, the subject and body are editable, the gaps are named, and no cycle, review or save step is asked for", async () => {
     server(preparation(), () => Response.json({}));
     render(<RenewalMessagePreparation channel="tenant" canEdit />);

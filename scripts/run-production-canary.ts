@@ -868,6 +868,22 @@ async function hasGuidedWorkspaceLandmarks(
       nowStep: await now.getAttribute("data-renewal-now-step"),
       nextSteps: await nextStep.count(),
       nextStepText: (await nextStep.textContent()) ?? "",
+      primaryLabel: (await primary.textContent()) ?? "",
+      primaryTarget: await primary.getAttribute("data-renewal-now-target"),
+      primaryTargetPresent: await primary.evaluate((element) => {
+        const target = element.getAttribute("data-renewal-now-target");
+        return Boolean(target && document.getElementById(target));
+      }),
+      workFieldsOutsideNow: await region.evaluate((element) => {
+        const body = element.closest(".renewal-workspace-body") ?? element;
+        const nowCard = body.querySelector('[role="region"][aria-label="Now"]');
+        return [...body.querySelectorAll<HTMLElement>("input, select, textarea")].filter(
+          (field) =>
+            field.getClientRects().length > 0 &&
+            getComputedStyle(field).visibility !== "hidden" &&
+            !nowCard?.contains(field),
+        ).length;
+      }),
       primaryBeforeContext: await now.evaluate((element) => {
         const action = element.querySelector("[data-renewal-now-primary]");
         const context = element.querySelectorAll(

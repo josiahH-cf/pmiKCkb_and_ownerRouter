@@ -91,6 +91,9 @@ describe("S246 the assistant and the desk agree on a month (BEH-S246-4, AC-S246-
     "Show this batch of renewals",
     "Which renewals are in the working month?",
     "Which leases need renewal work for December 2026?",
+    "Show me the working month's renewals.",
+    "Tell me which leases need renewal work next month.",
+    "Give me the renewals in the working month.",
   ]) {
     it(`keeps the batch meaning in the staff wording: ${question}`, async () => {
       const { answer, partition } = await deskAndAnswer(question);
@@ -98,6 +101,7 @@ describe("S246 the assistant and the desk agree on a month (BEH-S246-4, AC-S246-
         partition.groups.this_batch.map((row) => row.key).sort(),
       );
       expect(answer.groups[0].source).toBe("renewals");
+      expect(answer.execution?.plan.filters.assignee).toBeNull();
       expect(answer.groups[0].notes).toEqual(
         expect.arrayContaining(renewalBatchExcludedNotes(partition)),
       );

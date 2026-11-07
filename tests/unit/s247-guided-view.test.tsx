@@ -2,7 +2,15 @@
 import "@testing-library/jest-dom/vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -133,9 +141,7 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
       view: "default",
     });
     const user = userEvent.setup();
-    await user.click(
-      within(guidedPane()).getByRole("button", { name: "Ask the owner" }),
-    );
+    await user.click(within(guidedPane()).getByRole("button", { name: "Ask the owner" }));
     expect(
       within(nowCard()).getByRole("button", { name: "Continue to Offer the tenant" }),
     ).toBeVisible();
@@ -225,9 +231,12 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
     expect(visible("renewal-manual-owner_outreach")).toBe(false);
     await user.click(within(strip).getByRole("button", { name: "Ask the owner" }));
     await settle();
-    expect(within(nowCard()).getByRole("heading", { level: 2 })).toHaveTextContent(
-      "Ask the owner",
-    );
+    expect(
+      within(nowCard()).getByRole("heading", {
+        level: 2,
+        name: "Ask the owner",
+      }),
+    ).toHaveTextContent("Ask the owner");
     expect(within(strip).getByRole("button", { name: "Ask the owner" })).toHaveAttribute(
       "aria-pressed",
       "true",
@@ -235,6 +244,12 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
     // The step's existing controls are shown in place, and the current step is unchanged.
     expect(visible("renewal-manual-owner_outreach")).toBe(true);
     expect(visible("renewal-card-message-owner")).toBe(true);
+    expect(nowCard()).toContainElement(
+      document.getElementById("renewal-manual-owner_outreach"),
+    );
+    expect(nowCard()).toContainElement(
+      document.getElementById("renewal-card-message-owner"),
+    );
     expect(strip.querySelector("[aria-current='step']")?.textContent).toBe(
       current.textContent,
     );
@@ -245,6 +260,43 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
     expect(router.push).not.toHaveBeenCalled();
   });
 
+  it("keeps every visible step field inside Now while preserving the actual typed controls across all views", async () => {
+    const routes = stubRenewalRoutes(manualState());
+    await renderWorkspace({ manual: manualState(), view: "default" });
+    const user = userEvent.setup();
+    await user.click(viewButton("Full view"));
+    const comment = document
+      .getElementById("renewal-manual-owner_outreach")!
+      .querySelector<HTMLInputElement | HTMLTextAreaElement>('[id$="-reason"]')!;
+    expect(comment).not.toBeNull();
+    comment.focus();
+    fireEvent.change(comment, { target: { value: "Unsaved synthetic activity detail" } });
+    await user.click(viewButton("Guided view"));
+    const path = within(guidedPane()).getByRole("navigation", { name: "Renewal path" });
+    for (const button of within(path).getAllByRole("button")) {
+      await user.click(button);
+      await settle();
+      const fields = [
+        ...document.querySelectorAll<HTMLElement>(
+          ".renewal-workspace-body input, .renewal-workspace-body select, .renewal-workspace-body textarea",
+        ),
+      ].filter(
+        (field) =>
+          !field.matches('input[type="hidden"]') &&
+          !field.closest("[hidden], [data-renewal-focus-hidden]"),
+      );
+      for (const field of fields) expect(nowCard()).toContainElement(field);
+    }
+    await user.click(within(path).getByRole("button", { name: "Ask the owner" }));
+    expect(nowCard()).toContainElement(comment);
+    expect(comment).toHaveValue("Unsaved synthetic activity detail");
+    await user.click(viewButton("Focus view"));
+    await user.click(viewButton("Full view"));
+    expect(document.getElementById(comment.id)).toBe(comment);
+    expect(comment).toHaveValue("Unsaved synthetic activity detail");
+    expect(routes.writes()).toEqual([]);
+  });
+
   it("R-S247-11: an older step value opens Guided view at the step that holds it", async () => {
     stubRenewalRoutes(manualState());
     await renderWorkspace({
@@ -252,9 +304,12 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
       view: "default",
       extra: { selectedStepId: "owner-decision" },
     });
-    expect(within(nowCard()).getByRole("heading", { level: 2 })).toHaveTextContent(
-      "Ask the owner",
-    );
+    expect(
+      within(nowCard()).getByRole("heading", {
+        level: 2,
+        name: "Ask the owner",
+      }),
+    ).toHaveTextContent("Ask the owner");
   });
 
   it("R-S247-11: an older link to a control opens Full view at that control", async () => {
@@ -295,9 +350,12 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
     await settle(5);
     expect(viewButton("Full view")).toHaveAttribute("aria-pressed", "true");
     await user.click(viewButton("Guided view"));
-    expect(within(nowCard()).getByRole("heading", { level: 2 })).toHaveTextContent(
-      "Ask the owner",
-    );
+    expect(
+      within(nowCard()).getByRole("heading", {
+        level: 2,
+        name: "Ask the owner",
+      }),
+    ).toHaveTextContent("Ask the owner");
     // Opened any other way (not a reload), the lease starts in Guided view at its current step.
     act(() => {
       window.dispatchEvent(new Event("pagehide"));
@@ -376,7 +434,9 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
       await user.click(viewButton("Full view"));
       await settle();
       expect(fullViewSignature(view.container)).toEqual(BASELINE[name]);
-      expect(document.querySelectorAll("[data-renewal-focus-hidden]")).toHaveLength(0);
+      expect(
+        document.querySelectorAll<HTMLElement>("[data-renewal-focus-hidden]"),
+      ).toHaveLength(0);
       expect(routes.calls.length).toBe(requests);
       expect(routes.writes()).toEqual([]);
       expect(router.refresh).not.toHaveBeenCalled();
@@ -395,7 +455,10 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
     await settle();
     // Choosing a step moves focus to the Now card's heading.
     expect(document.activeElement).toBe(
-      within(nowCard()).getByRole("heading", { level: 2 }),
+      within(nowCard()).getByRole("heading", {
+        level: 2,
+        name: "Finish up",
+      }),
     );
     expect(document.activeElement).toHaveTextContent("Finish up");
   });

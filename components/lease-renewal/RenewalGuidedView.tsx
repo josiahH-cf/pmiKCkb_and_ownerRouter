@@ -193,6 +193,12 @@ export function RenewalGuidedView({
   }, [rememberStep, preferred]);
   const shown = stage.steps.find((step) => step.id === shownId) ?? stage.steps[0]!;
   const guided = view?.view === "guided";
+  const setNowPresentation = view?.setNowPresentation;
+  useLayoutEffect(() => {
+    if (!guided || !setNowPresentation) return;
+    setNowPresentation({ stepId: shown.id, state: shown.state });
+    return () => setNowPresentation(null);
+  }, [guided, setNowPresentation, shown.id, shown.state]);
   const heading = useRef<HTMLHeadingElement | null>(null);
   const pendingFocus = useRef<string | null>(null);
   const focusHeading = useRef(false);
@@ -221,7 +227,14 @@ export function RenewalGuidedView({
       .filter(
         (element): element is HTMLElement => element !== null && body.contains(element),
       );
-    view.applyReveal([view.slot, ...contexts, ...targets]);
+    view.applyReveal([
+      view.slot,
+      ...[view.nowSlot, view.afterSlot].filter(
+        (element): element is HTMLElement => element !== null,
+      ),
+      ...contexts,
+      ...targets,
+    ]);
     if (pendingFocus.current) {
       const id = pendingFocus.current;
       pendingFocus.current = null;
@@ -307,6 +320,7 @@ function GuidedPane({
   showInFull: (id: string | null) => void;
   stage: RenewalStage;
 }>) {
+  const view = useRenewalFocusView();
   // S249 R-S249-1 (D-OP-7): where the numbers check states "Numbers agree" on RentVine, an
   // operating Sheet difference is information on that check, never a second item to work.
   const alsoNeedsYou = facts.advisories.filter(
@@ -317,12 +331,7 @@ function GuidedPane({
       ),
   );
   return (
-    <section
-      aria-label="Guided view"
-      className="panel ui-stack renewal-guided"
-      data-renewal-guided
-      data-renewal-presentation-control
-    >
+    <>
       <p
         className="renewal-guided-stage"
         data-renewal-field="stage-line"
@@ -380,65 +389,80 @@ function GuidedPane({
           ))}
         </ol>
       </nav>
-      <NowCard
-        canEdit={canEdit}
-        choose={choose}
-        context={context}
-        heading={heading}
-        leaseId={leaseId}
-        shown={shown}
-        stage={stage}
-      />
-      {alsoNeedsYou.length > 0 ? (
-        <section
-          aria-label="Also needs you"
-          className="ui-stack-tight renewal-also-needs"
-        >
-          <h3 className="renewal-focus-group">Also needs you</h3>
-          <ul>
-            {alsoNeedsYou.map((advisory) => (
-              <li data-renewal-issue-id={advisory.id} key={advisory.id}>
-                <span className="renewal-issue-kind">{advisory.kindLabel}:</span>{" "}
-                {advisory.reason}{" "}
-                <button
-                  className="text-link"
-                  onClick={() =>
-                    advisory.id === "advisory:current_rent_sources"
-                      ? choose("check-numbers")
-                      : showInFull(issueTarget(advisory.issue))
-                  }
-                  type="button"
+      {view?.nowSlot
+        ? createPortal(
+            <NowCard
+              canEdit={canEdit}
+              choose={choose}
+              context={context}
+              heading={heading}
+              leaseId={leaseId}
+              shown={shown}
+              stage={stage}
+            />,
+            view.nowSlot,
+          )
+        : null}
+      {view?.afterSlot
+        ? createPortal(
+            <>
+              {alsoNeedsYou.length > 0 ? (
+                <section
+                  aria-label="Also needs you"
+                  className="ui-stack-tight renewal-also-needs"
                 >
-                  Work on this
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-      <nav aria-label="Every section in Full view" className="renewal-guided-sections">
-        <h3 className="renewal-focus-group">Every section in Full view</h3>
-        <ul className="ui-row">
-          {RENEWAL_DASHBOARD_SECTIONS.map((section) => (
-            <li key={section.id}>
-              <a
-                className="text-link renewal-workspace-link"
-                href={`#renewal-section-${section.id}`}
-                onClick={(event) => {
-                  event.preventDefault();
-                  showInFull(`renewal-section-${section.id}`);
-                }}
+                  <h3 className="renewal-focus-group">Also needs you</h3>
+                  <ul>
+                    {alsoNeedsYou.map((advisory) => (
+                      <li data-renewal-issue-id={advisory.id} key={advisory.id}>
+                        <span className="renewal-issue-kind">{advisory.kindLabel}:</span>{" "}
+                        {advisory.reason}{" "}
+                        <button
+                          className="text-link"
+                          onClick={() =>
+                            advisory.id === "advisory:current_rent_sources"
+                              ? choose("check-numbers")
+                              : showInFull(issueTarget(advisory.issue))
+                          }
+                          type="button"
+                        >
+                          Work on this
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ) : null}
+              <nav
+                aria-label="Every section in Full view"
+                className="renewal-guided-sections"
               >
-                {section.label}
-              </a>
-            </li>
-          ))}
-        </ul>
-      </nav>
-      <p aria-live="polite" className="sr-only" role="status">
-        {announcement}
-      </p>
-    </section>
+                <h3 className="renewal-focus-group">Every section in Full view</h3>
+                <ul className="ui-row">
+                  {RENEWAL_DASHBOARD_SECTIONS.map((section) => (
+                    <li key={section.id}>
+                      <a
+                        className="text-link renewal-workspace-link"
+                        href={`#renewal-section-${section.id}`}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          showInFull(`renewal-section-${section.id}`);
+                        }}
+                      >
+                        {section.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+              <p aria-live="polite" className="sr-only" role="status">
+                {announcement}
+              </p>
+            </>,
+            view.afterSlot,
+          )
+        : null}
+    </>
   );
 }
 
@@ -634,13 +658,7 @@ function NowCard({
   };
 
   return (
-    <section
-      aria-label="Now"
-      className="ui-stack renewal-now-card"
-      data-renewal-now-state={shown.state}
-      data-renewal-now-step={shown.id}
-      role="region"
-    >
+    <>
       <h2
         className="section-subtitle"
         id="renewal-now-heading"
@@ -669,6 +687,7 @@ function NowCard({
           <Button
             busy={busy || (fillerActive && filler?.busy === true)}
             data-renewal-now-primary
+            data-renewal-now-target={fillerActive ? undefined : primary.target}
             disabled={busy || (fillerActive && filler?.disabled === true)}
             onClick={runPrimary}
             ref={confirmTrigger}
@@ -976,6 +995,6 @@ function NowCard({
           you can reopen it from the lease.
         </p>
       </ConfirmationDialog>
-    </section>
+    </>
   );
 }

@@ -68,6 +68,12 @@ import {
   messageRevisionOf,
 } from "@/lib/lease-renewal/message-revision";
 import {
+  adoptedStandingRule,
+  standingRuleContext,
+  standingRuleSourceLabel,
+} from "@/lib/lease-renewal/standing-agreement";
+import { nowSlotKey, useRenewalNowCard } from "./RenewalNowCardContext";
+import {
   PreparedMessageSlot,
   draftPreviewWaitsOnGeneration,
   previewAgainWhileGenerationReplaced,
@@ -408,6 +414,8 @@ function MessagePreparationEditor({
   canEdit: boolean;
 }) {
   const router = useRouter();
+  const working = useRenewalWorkingRecord();
+  const nowCard = useRenewalNowCard();
   const [current, setCurrent] = useState<Preparation | null>(null);
   const [inputs, setInputs] = useState(emptyMessagePreparationInputs);
   // S161: the authored body (typed here or accepted from a refinement) and the authored subject.
@@ -656,8 +664,25 @@ function MessagePreparationEditor({
    * then a message built on the earlier rule keeps that rule's rent.
    */
   async function rebuildRule() {
-    const target = currentRef.current?.earlierRule?.currentBasis;
+    const earlier = currentRef.current?.earlierRule;
+    const target = earlier?.currentBasis;
     if (!target) return;
+    setNotice("");
+    const entry = working?.record?.fields.terms_rent;
+    const adopted = entry ? adoptedStandingRule(entry) : null;
+    if (adopted?.agreementId === target.agreementId && working && earlier) {
+      const saved = await working.save("terms_rent", earlier.currentRent, {
+        origin: "adopted_source",
+        sourceLabel: standingRuleSourceLabel(earlier.agreement, target.policyVersion),
+        context: standingRuleContext({ ...target, basis: earlier.current }),
+      });
+      if (!saved) {
+        setNotice(
+          "The rent could not be rebuilt. Your saved rent is kept; choose Rebuild with the current rule to retry.",
+        );
+        return;
+      }
+    }
     ruleOverride.current = target;
     await runAutosave(true);
   }
@@ -1282,7 +1307,18 @@ function MessagePreparationEditor({
         Schedule when its current checks pass. Resume requires a fresh review. You can
         also create an unsent Gmail draft below and send it from Gmail.
       </p>
-      {notice ? <p role="status">{notice}</p> : null}
+      {notice &&
+      !(
+        preparedData &&
+        nowCard?.slots[
+          nowSlotKey(
+            channel === "owner" ? "ask-owner" : "offer-tenant",
+            "message-preview",
+          )
+        ]
+      ) ? (
+        <p role="status">{notice}</p>
+      ) : null}
       {[...new Set(current?.notices ?? [])].map((value) => (
         <p key={value} className="muted">
           {value}
@@ -1322,25 +1358,53 @@ function MessagePreparationEditor({
                 }}
               />
             </Field>
-            {current?.recipients ? (
-              current.recipients.status === "ready" ? (
-                <p className="renewal-message-recipients">
-                  <strong>To:</strong> {current.recipients.to}
-                  {current.recipients.cc.length > 0 ? (
+            <div id={MESSAGE_CONTROL_IDS.recipients(channel)}>
+              {current?.recipients ? (
+                current.recipients.status === "ready" ? (
+                  <p className="renewal-message-recipients">
+                    <strong>To:</strong> {current.recipients.to}
+                    {current.recipients.cc.length > 0 ? (
+                      <>
+                        {" "}
+                        <strong>Cc:</strong> {current.recipients.cc.join(", ")}
+                      </>
+                    ) : null}
+                  </p>
+                ) : (
+                  <ul className="renewal-message-recipients" role="status">
+                    {[...new Set(current.recipients.reasons)].map((reason) => (
+                      <li key={reason}>{reason}</li>
+                    ))}
+                  </ul>
+                )
+              ) : null}
+              {current.recipients?.status === "blocked" ? (
+                <p className="muted renewal-message-destinations">
+                  {channel === "owner" && current.destinations?.owners.length ? (
+                    current.destinations.owners.map((owner, index) => (
+                      <span key={owner.record.href}>
+                        {index > 0 ? " · " : ""}
+                        {owner.name}:{" "}
+                        {externalLink(owner.record, "open owner record in RentVine")}
+                      </span>
+                    ))
+                  ) : current.destinations?.lease ? (
                     <>
-                      {" "}
-                      <strong>Cc:</strong> {current.recipients.cc.join(", ")}
+                      {externalLink(
+                        current.destinations.lease,
+                        "Open lease record in RentVine",
+                      )}
+                      {". "}
+                      {channel === "owner"
+                        ? "Open its owner record to add the owner's email, then refresh this lease."
+                        : "Check the tenant email addresses, then refresh this lease."}
                     </>
-                  ) : null}
+                  ) : (
+                    "Refresh data to read this lease's recipient record links."
+                  )}
                 </p>
-              ) : (
-                <ul className="renewal-message-recipients" role="status">
-                  {[...new Set(current.recipients.reasons)].map((reason) => (
-                    <li key={reason}>{reason}</li>
-                  ))}
-                </ul>
-              )
-            ) : null}
+              ) : null}
+            </div>
             <div className="ui-actions">
               <Button
                 variant="secondary"
@@ -1390,8 +1454,12 @@ function MessagePreparationEditor({
                           owner.messages,
                           `${owner.name}: open owner messages in RentVine`,
                         )}
-                        {" · "}
-                        {externalLink(owner.record, "open owner record in RentVine")}
+                        {current.recipients?.status !== "blocked" ? (
+                          <>
+                            {" · "}
+                            {externalLink(owner.record, "open owner record in RentVine")}
+                          </>
+                        ) : null}
                       </span>
                     ))
                   : current.destinations.messages
@@ -1400,7 +1468,11 @@ function MessagePreparationEditor({
                         "Open lease messages in RentVine",
                       )
                     : null}
-                {current.destinations.lease ? (
+                {current.destinations.lease &&
+                !(
+                  current.recipients?.status === "blocked" &&
+                  (channel !== "owner" || current.destinations.owners.length === 0)
+                ) ? (
                   <>
                     {" · "}
                     {externalLink(
@@ -2184,7 +2256,7 @@ function MessagePreparationEditor({
                 responsible sender and current recipients for its saved app draft. Gmail
                 creation separately rechecks the source and exact confirmation.
               </p>
-              <p>
+              <p id={MESSAGE_CONTROL_IDS.publication(channel)}>
                 Message template: {current.publication.status}
                 {current.publication.ref ? ` (${current.publication.ref})` : ""}.{" "}
                 {current.publication.reason ?? ""}

@@ -144,6 +144,22 @@ describe("S249 R-S249-5 Rent to recommend: typed, agreement, comparison", () => 
     expect(rent.value).toBeNull();
     expect(rent.basis).toMatch(/Enter the rent to recommend/);
   });
+
+  it("names an adopted working rent's recorded source while preserving its amount", () => {
+    expect(
+      renewalRentToRecommend({
+        ...FACTS,
+        typedRent: 1751,
+        workingRentBasis:
+          "Saved working rent from Pricing policy v1. Later proposals keep this saved amount.",
+      }),
+    ).toMatchObject({
+      value: 1751,
+      origin: "typed",
+      basis:
+        "Saved working rent from Pricing policy v1. Later proposals keep this saved amount.",
+    });
+  });
 });
 
 describe("S249 ARCH-S249-1 / R-S249-11 one projection: ready or the named missing input", () => {
@@ -169,6 +185,7 @@ describe("S249 ARCH-S249-1 / R-S249-11 one projection: ready or the named missin
     expect(preparation.missing).toEqual(["a verified owner recipient"]);
     const item = preparation.items.find((entry) => entry.key === "recipient")!;
     expect(item.fix?.label).toMatch(/owner record in RentVine/);
+    expect(item.fix?.target).toBe("renewal-message-owner-recipients");
     expect(kickoffRowLine(preparation)).toBe("Missing: a verified owner recipient");
   });
 
@@ -183,6 +200,9 @@ describe("S249 ARCH-S249-1 / R-S249-11 one projection: ready or the named missin
       label: "Set up your signature",
       target: "renewal-now-signature",
     });
+    expect(preparation.items.find((item) => item.key === "template")?.fix?.target).toBe(
+      "renewal-message-owner-publication",
+    );
   });
 
   it("at the allowance, the comparison reads the stated words and offers own figures", () => {

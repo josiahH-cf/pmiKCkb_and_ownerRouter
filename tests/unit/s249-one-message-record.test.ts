@@ -238,6 +238,17 @@ describe("S249 R-S249-11: readiness on the Now card", () => {
       "Response request date",
     );
     expect(live.rent).toMatchObject({ value: 1410, origin: "typed" });
+    expect(
+      withLiveKickoff(preparation, {
+        typedRent: 1751,
+        workingRentBasis:
+          "Saved working rent from Pricing policy v1. Later proposals keep this saved amount.",
+      }).rent,
+    ).toMatchObject({
+      value: 1751,
+      basis:
+        "Saved working rent from Pricing policy v1. Later proposals keep this saved amount.",
+    });
     expect(sendReady(live)).toBe(false);
     expect(sendReady(withLiveKickoff(preparation, { marked: [] }))).toBe(true);
   });

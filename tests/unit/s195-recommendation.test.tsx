@@ -9,6 +9,8 @@ import { RenewalWorkingRecordProvider } from "@/components/lease-renewal/Renewal
 import { manualFixture } from "@/tests/helpers/renewal-action-fixtures";
 import { fixtureWorkingRecord, jsonResponse } from "@/tests/helpers/rent-charge-fixtures";
 import { renewalCompRecommendation } from "@/lib/lease-renewal/renewal-recommendation";
+import { RenewalPricingPolicyProvider } from "@/components/lease-renewal/RenewalPricingPolicy";
+import { adoptedStandingRule } from "@/lib/lease-renewal/standing-agreement";
 const preparation = {
   market: {
     provider: {
@@ -29,6 +31,60 @@ const preparation = {
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+});
+it("keeps the actual standing agreement and rule version when staff use its policy proposal", async () => {
+  const policyId = "1b2c3d4e-5f60-4a71-8b82-9c3d4e5f6a7b";
+  const agreementId = "2c3d4e5f-6071-4b82-9c93-ad4e5f6a7b8c";
+  const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+    if (init?.method === "POST") {
+      const body = JSON.parse(String(init.body));
+      return jsonResponse(200, {
+        record: fixtureWorkingRecord({ terms_rent: { value: body.value, revision: 1 } }),
+      });
+    }
+    return jsonResponse(200, {
+      policies: [],
+      cursor: null,
+      authority: { covered: true, kind: "standing" },
+      policy: { id: policyId, version: 1 },
+      standingAgreement: {
+        id: agreementId,
+        name: "Synthetic standing agreement",
+        policyId,
+      },
+      proposal: {
+        amount: 1751,
+        policyId,
+        policyVersion: 1,
+        reason: "Current rent $1,700 plus 3 percent, rounded.",
+      },
+      prefill: null,
+      manualRevision: 0,
+      workingRevision: 0,
+    });
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  render(
+    <RenewalWorkingRecordProvider leaseId="4821" canEdit initialRecord={null}>
+      <RenewalManualProvider leaseId="4821" initialState={manualFixture({}, "4821")}>
+        <RenewalPricingPolicyProvider leaseId="4821" canEdit>
+          <RenewalRecommendation currentRent={1700} />
+        </RenewalPricingPolicyProvider>
+      </RenewalManualProvider>
+    </RenewalWorkingRecordProvider>,
+  );
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Use policy proposal $1,751" }),
+  );
+  await screen.findByText("Working offer saved with its proposal basis.");
+  const posts = fetchMock.mock.calls.filter((call) => call[1]?.method === "POST");
+  expect(posts).toHaveLength(1);
+  const body = JSON.parse(String(posts[0][1]?.body));
+  expect(body.sourceLabel).toBe(
+    "Standing agreement Synthetic standing agreement, rule v1",
+  );
+  expect(adoptedStandingRule(body)).toEqual({ agreementId, policyId, policyVersion: 1 });
+  expect(body).not.toHaveProperty("decision");
 });
 it("calculates over the full retained set with the existing clamp, independently of five-card display", () => {
   const c = renewalCompRecommendation(preparation, 1200);

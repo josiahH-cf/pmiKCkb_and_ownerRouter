@@ -12,6 +12,10 @@ export interface IndependentGuidedWorkspaceSnapshot {
   readonly nextSteps: number;
   readonly nextStepText: string;
   readonly primaryBeforeContext: boolean;
+  readonly primaryLabel: string;
+  readonly primaryTarget: string | null;
+  readonly primaryTargetPresent: boolean;
+  readonly workFieldsOutsideNow: number;
 }
 
 export function countIndependentGuidedWorkspaceMismatches(
@@ -27,6 +31,13 @@ export function countIndependentGuidedWorkspaceMismatches(
     (snapshot.nextSteps === 1 && /^Next step: \S/.test(snapshot.nextStepText.trim())
       ? 0
       : 1) +
-    (snapshot.primaryBeforeContext ? 0 : 1)
+    (snapshot.primaryBeforeContext ? 0 : 1) +
+    (snapshot.primaryLabel.trim() !==
+      "Add the owner's email on the owner record in RentVine" ||
+    (snapshot.primaryTarget === "renewal-message-owner-recipients" &&
+      snapshot.primaryTargetPresent)
+      ? 0
+      : 1) +
+    (snapshot.workFieldsOutsideNow === 0 ? 0 : 1)
   );
 }
