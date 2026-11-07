@@ -387,7 +387,14 @@ export function focusProgrammatically(target: HTMLElement) {
   }
 }
 
-/** Focus the unresolved control, opening enclosing disclosures without recording any progress. */
+export function setRenewalStickyOffset(shell: HTMLElement, toolbar: HTMLElement) {
+  shell.style.setProperty(
+    "--renewal-sticky-offset",
+    String(Math.ceil(toolbar.getBoundingClientRect().height) + 12) + "px",
+  );
+}
+
+/** Focus the linked heading or control, opening disclosures without recording any progress. */
 export function focusRenewalDashboardControl(
   id: string,
   {
@@ -424,22 +431,27 @@ export function focusRenewalDashboardControl(
       (allowButtons ||
         !element.matches("button, input[type='submit'], input[type='button']")),
   );
-  const target = focusContainer
-    ? root
-    : (candidates.find(
-        (element) =>
-          element.hasAttribute("data-renewal-next-control") &&
-          !element.matches(":disabled"),
-      ) ??
-      (!allowButtons
-        ? candidates.find((element) => element.matches("input, select, textarea"))
-        : undefined) ??
-      candidates.find(
-        (element) =>
-          !element.matches(":disabled") &&
-          element.getAttribute("aria-disabled") !== "true",
-      ) ??
-      root);
+  const sectionHeading = root.matches("section[id^='renewal-section-']")
+    ? root.querySelector<HTMLElement>(":scope > .renewal-heading-row > h2")
+    : null;
+  const target =
+    sectionHeading ??
+    (focusContainer
+      ? root
+      : (candidates.find(
+          (element) =>
+            element.hasAttribute("data-renewal-next-control") &&
+            !element.matches(":disabled"),
+        ) ??
+        (!allowButtons
+          ? candidates.find((element) => element.matches("input, select, textarea"))
+          : undefined) ??
+        candidates.find(
+          (element) =>
+            !element.matches(":disabled") &&
+            element.getAttribute("aria-disabled") !== "true",
+        ) ??
+        root));
   if (
     !allowButtons &&
     target.matches("button, input[type='submit'], input[type='button']")
@@ -452,6 +464,9 @@ export function focusRenewalDashboardControl(
   }
   if (!target.matches("input, select, textarea, button, summary, a[href], [tabindex]"))
     target.tabIndex = -1;
+  const shell = target.closest<HTMLElement>(".renewal-workspace-shell");
+  const toolbar = shell?.querySelector<HTMLElement>(".renewal-workspace-toolbar");
+  if (shell && toolbar) setRenewalStickyOffset(shell, toolbar);
   focusProgrammatically(target);
   target.scrollIntoView?.({ block: "start" });
   return document.activeElement === target;

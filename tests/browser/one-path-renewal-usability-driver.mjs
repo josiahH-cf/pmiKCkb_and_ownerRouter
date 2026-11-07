@@ -278,13 +278,19 @@ try {
       await open(page, "/work");
       await page.getByText("Create my task", { exact: true }).click();
       const taskTitle = "Example renewal readback task";
-      await page.getByLabel("Space", { exact: true }).selectOption("lease-renewals");
-      await page.getByLabel("Task type", { exact: true }).fill("Renewal");
+      const createTask = page.locator(".work-create-panel form");
+      const taskSpace = createTask.locator('select[name="space_id"]');
+      assert.equal(await taskSpace.inputValue(), "lease-renewals");
+      await createTask
+        .getByRole("textbox", { name: "Task type", exact: true })
+        .fill("Renewal");
       await page.getByLabel("Title", { exact: true }).fill(taskTitle);
       await page
         .getByLabel("Next action", { exact: true })
         .fill("Review the stored comparison");
-      await page.getByLabel("Source", { exact: true }).selectOption("renewal_lease");
+      await createTask
+        .getByRole("combobox", { name: /^Source\b/ })
+        .selectOption("renewal_lease");
       await page.getByLabel("Source id", { exact: true }).fill(prepared);
       await page.getByRole("button", { name: "Create task", exact: true }).click();
       await page.getByText(taskTitle, { exact: true }).waitFor();
@@ -678,10 +684,17 @@ try {
         await page.locator("#" + id).waitFor();
         await page.waitForFunction((targetId) => {
           const section = document.getElementById(targetId);
-          const active = document.activeElement;
-          if (!section || !active || !section.contains(active)) return false;
-          const bounds = active.getBoundingClientRect();
-          return bounds.height > 0 && bounds.top >= 0 && bounds.top < window.innerHeight;
+          const heading = section?.querySelector(":scope > .renewal-heading-row > h2");
+          const toolbar = section
+            ?.closest(".renewal-workspace-shell")
+            ?.querySelector(".renewal-workspace-toolbar");
+          if (!heading || !toolbar || document.activeElement !== heading) return false;
+          const bounds = heading.getBoundingClientRect();
+          return (
+            bounds.height > 0 &&
+            bounds.top >= toolbar.getBoundingClientRect().bottom &&
+            bounds.bottom <= window.innerHeight
+          );
         }, id);
       };
       await open(page, path(prepared));
@@ -1001,9 +1014,16 @@ try {
       const inputs = packet.getByRole("region", { name: "Packet inputs", exact: true });
       const openInputs = async (id) => {
         await open(page, documentPath(id));
-        await packet
-          .getByRole("button", { name: "Open packet inputs", exact: true })
-          .click();
+        await page.waitForLoadState("networkidle", { timeout: 15_000 });
+        const [current] = await Promise.all([
+          page.waitForResponse(
+            (response) =>
+              new URL(response.url()).pathname === "/api/lease-renewal/packet-inputs" &&
+              response.request().method() === "GET",
+          ),
+          packet.getByRole("button", { name: "Open packet inputs", exact: true }).click(),
+        ]);
+        assert.ok(current.ok());
         await inputs.waitFor();
       };
       await openInputs(prepared);

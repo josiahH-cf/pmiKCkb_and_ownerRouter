@@ -5,8 +5,6 @@ import { renewalWorkspaceHashTarget } from "@/lib/lease-renewal/workspace-view";
 
 import { focusRenewalDashboardControl } from "./RenewalDashboardNavigation";
 
-const NATIVELY_FOCUSABLE = new Set(["INPUT", "SELECT", "TEXTAREA", "BUTTON", "A"]);
-
 /**
  * S127 (R-F07-03): when a workspace URL carries a section or control id in its hash (the desk's
  * blocker links, the next-action link, a refresh that returns to the same control), move keyboard
@@ -19,17 +17,7 @@ export function RenewalFocusHashTarget() {
   useEffect(() => {
     const focusTarget = () => {
       const id = renewalWorkspaceHashTarget(window.location.hash);
-      if (!id) return;
-      const element = document.getElementById(id);
-      if (!(element instanceof HTMLElement)) return;
-      if (element.closest("[data-renewal-focus-hidden]")) {
-        focusRenewalDashboardControl(id, { focusContainer: true });
-        return;
-      }
-      if (!element.hasAttribute("tabindex") && !NATIVELY_FOCUSABLE.has(element.tagName)) {
-        element.setAttribute("tabindex", "-1");
-      }
-      element.focus();
+      if (id) focusRenewalDashboardControl(id, { focusContainer: true });
     };
     // After the Focus view has revealed its task and attached its request listener.
     const frame = window.requestAnimationFrame(focusTarget);

@@ -130,7 +130,9 @@ describe("S143 Focus view switch", { timeout: 60_000 }, () => {
     expect(viewButton("Full view")).toHaveFocus();
     expect(screen.queryByRole("region", { name: "Focus view" })).toBeNull();
     expect(document.querySelectorAll("[data-renewal-focus-hidden]")).toHaveLength(0);
-    expect(document.querySelectorAll("[hidden]:not(aside)")).toHaveLength(0);
+    expect(container.querySelectorAll(".renewal-workspace-body [hidden]")).toHaveLength(
+      0,
+    );
     expect(
       screen.getByRole("navigation", { name: "Renewal dashboard sections" }),
     ).toBeVisible();

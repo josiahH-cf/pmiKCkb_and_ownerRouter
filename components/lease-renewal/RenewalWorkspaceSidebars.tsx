@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/WorkspaceResizer";
 import { PersonalViewStatus } from "@/components/layout/PersonalViewProvider";
 import { useRenewalFocusView } from "./RenewalFocusViewContext";
+import { setRenewalStickyOffset } from "./RenewalDashboardNavigation";
 
 // S114: two separate, independent slide-out surfaces over the same projections the workspace
 // renders. The lease-information panel holds the consolidated header facts; the process-guide panel
@@ -145,11 +146,7 @@ export function RenewalWorkspaceSidebars({
     const shell = shellRef.current;
     const toolbar = toolbarRef.current;
     if (!shell || !toolbar) return;
-    const apply = () =>
-      shell.style.setProperty(
-        "--renewal-sticky-offset",
-        `${Math.ceil(toolbar.getBoundingClientRect().height) + 12}px`,
-      );
+    const apply = () => setRenewalStickyOffset(shell, toolbar);
     apply();
     if (typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(apply);
