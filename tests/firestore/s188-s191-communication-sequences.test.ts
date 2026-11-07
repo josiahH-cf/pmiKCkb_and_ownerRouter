@@ -168,9 +168,59 @@ function fixture(now?: () => number) {
       }),
     });
   }
-  return { store, service, send, draft, approve };
+  return { store, service, send, draft, approve, target };
 }
 describe("S188–S191 real Firestore transaction ordering with isolated Gmail", () => {
+  it("S224 keeps an unfinished follow-up private during a one-off send and refuses a repeating schedule", async () => {
+    const f = fixture(() => Date.parse("2026-11-05T18:00:00Z"));
+    f.draft.followUp = {
+      subject: "",
+      paragraphs: [[{ text: "Synthetic unfinished follow-up" }]],
+      attachmentIds: [],
+    };
+    const saved = await f.service.save(actor, f.draft, 0, randomUUID());
+    const command = {
+      id: saved.id,
+      expectedVersion: saved.version,
+      reviewedDraftHash: sequenceHash({
+        initial: saved.initial,
+        followUp: saved.followUp,
+      }),
+      reviewedTargetHash: sequenceHash({
+        to: f.target.to,
+        cc: f.target.cc,
+        materialSourceHash: f.target.materialSourceHash,
+      }),
+    };
+    await expect(
+      f.service.authorize(actor, {
+        ...command,
+        action: "schedule",
+        operationId: randomUUID(),
+        schedule: {
+          firstDate: "2026-11-06",
+          time: "12:00",
+          timeZone: "America/Chicago",
+          everyDays: 3,
+          endDate: null,
+          sendLimit: null,
+        },
+      }),
+    ).rejects.toThrow("A repeating schedule needs a complete follow-up message.");
+    expect(f.send).not.toHaveBeenCalled();
+    expect((await f.store.get(saved.id))?.followUp).toEqual(f.draft.followUp);
+    const authorized = await f.service.authorize(actor, {
+      ...command,
+      action: "send",
+      operationId: randomUUID(),
+      schedule: null,
+    });
+    expect(authorized.authorization?.followUp).toBeNull();
+    await f.service.dispatch(authorized.id);
+    expect(f.send).toHaveBeenCalledTimes(1);
+    expect(f.send.mock.calls[0][0].body).toBe("Synthetic emulator content");
+    expect((await f.store.get(saved.id))?.followUp).toEqual(f.draft.followUp);
+  });
   it("S255 serializes retirement against activation and preserves exact review and history", async () => {
     const f = fixture();
     const source = { kind: "lease_end", dateIso: "2026-12-31" } as const;

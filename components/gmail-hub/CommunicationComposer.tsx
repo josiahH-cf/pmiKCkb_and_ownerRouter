@@ -22,6 +22,7 @@ import { RefineWithAi } from "@/components/email/RefineWithAi";
 import { Button, Field } from "@/components/ui";
 import {
   RichCommunicationMessageSchema,
+  SequenceDraftSchema,
   renderEditableCommunicationBody,
   type CommunicationAttachment,
   type CommunicationOccurrence,
@@ -445,14 +446,7 @@ export function CommunicationComposer({
       saveIntent.current
     )
       return;
-    const parsed = RichCommunicationMessageSchema.safeParse(draft.initial);
-    if (
-      !parsed.success ||
-      (draft.followUp &&
-        !RichCommunicationMessageSchema.safeParse(draft.followUp).success)
-    ) {
-      return;
-    }
+    if (!SequenceDraftSchema.safeParse(draft).success) return;
     const timer = setTimeout(() => {
       void save().catch((e) => {
         setError(e.message);
@@ -660,15 +654,27 @@ export function CommunicationComposer({
   const recipientTo = target?.to ?? sequence?.authorization?.to ?? [],
     recipientCc = target?.cc ?? sequence?.authorization?.cc ?? [];
   const blocks = target?.blockers ?? [];
-  const draftIncomplete =
-    !RichCommunicationMessageSchema.safeParse(draft.initial).success ||
-    !!(
-      draft.followUp && !RichCommunicationMessageSchema.safeParse(draft.followUp).success
-    );
-  const filesUnverified = [
-    ...draft.initial.attachmentIds,
-    ...(draft.followUp?.attachmentIds ?? []),
-  ].some((id) => !attachments[id]);
+  const draftCanSave = SequenceDraftSchema.safeParse(draft).success;
+  const initialFilesUnverified = draft.initial.attachmentIds.some(
+    (id) => !attachments[id],
+  );
+  const followUpReady =
+    RichCommunicationMessageSchema.safeParse(draft.followUp).success &&
+    !draft.followUp?.attachmentIds.some((id) => !attachments[id]) &&
+    !pendingFile;
+  const initialBlocked =
+    busy ||
+    terminal ||
+    conflict ||
+    (pendingFile && uploadIntent.current?.which !== "followUp") ||
+    !canAuthorize ||
+    !draftCanSave ||
+    initialFilesUnverified ||
+    !reviewedTargetHash ||
+    !recipientTo.length ||
+    blocks.length > 0 ||
+    !!sequence?.unresolvedOccurrenceId;
+  const resumeRepeats = sequence?.authorization?.schedule?.everyDays != null;
   return (
     <section
       className="ui-card ui-stack communication-composer"
@@ -785,7 +791,7 @@ export function CommunicationComposer({
         </p>
       ) : null}
       <p role="status">
-        {draftIncomplete ? "Finish the subject and message to save" : status}
+        {draftCanSave ? status : "Check the draft subject and message to save"}
         {sequence
           ? ` · ${sequence.confirmedCount} confirmed message${sequence.confirmedCount === 1 ? "" : "s"}`
           : ""}
@@ -1014,45 +1020,15 @@ export function CommunicationComposer({
       </p>
       <div className="ui-row">
         <button
-          disabled={busy || terminal}
+          disabled={busy || terminal || !draftCanSave}
           onClick={() => void save().catch((e) => setError(e.message))}
         >
           {saveNeedsRetry ? "Retry same save" : "Save draft"}
         </button>
-        <button
-          disabled={
-            busy ||
-            terminal ||
-            conflict ||
-            pendingFile ||
-            !canAuthorize ||
-            draftIncomplete ||
-            filesUnverified ||
-            !reviewedTargetHash ||
-            !recipientTo.length ||
-            !!blocks.length ||
-            !!sequence?.unresolvedOccurrenceId
-          }
-          onClick={() => void run("send")}
-        >
+        <button disabled={initialBlocked} onClick={() => void run("send")}>
           Send
         </button>
-        <button
-          disabled={
-            busy ||
-            terminal ||
-            conflict ||
-            pendingFile ||
-            !canAuthorize ||
-            draftIncomplete ||
-            filesUnverified ||
-            !reviewedTargetHash ||
-            !recipientTo.length ||
-            !!blocks.length ||
-            !!sequence?.unresolvedOccurrenceId
-          }
-          onClick={() => setScheduleOpen((v) => !v)}
-        >
+        <button disabled={initialBlocked} onClick={() => setScheduleOpen((v) => !v)}>
           Schedule
         </button>
       </div>
@@ -1132,22 +1108,15 @@ export function CommunicationComposer({
               return null;
             }
           })()}
+          {every && !followUpReady ? (
+            <p role="status">
+              A repeating schedule needs a complete follow-up message and verified
+              attachments.
+            </p>
+          ) : null}
           <button
             type="button"
-            disabled={
-              !scheduleReady ||
-              busy ||
-              terminal ||
-              conflict ||
-              pendingFile ||
-              !canAuthorize ||
-              draftIncomplete ||
-              filesUnverified ||
-              !reviewedTargetHash ||
-              !recipientTo.length ||
-              !!blocks.length ||
-              !!sequence?.unresolvedOccurrenceId
-            }
+            disabled={!scheduleReady || initialBlocked || (!!every && !followUpReady)}
             onClick={() => void run("schedule")}
           >
             Schedule messages
@@ -1183,19 +1152,7 @@ export function CommunicationComposer({
           </button>
           {sequence.state === "paused" ? (
             <button
-              disabled={
-                busy ||
-                terminal ||
-                conflict ||
-                pendingFile ||
-                !canAuthorize ||
-                draftIncomplete ||
-                filesUnverified ||
-                !reviewedTargetHash ||
-                !recipientTo.length ||
-                !!blocks.length ||
-                !!sequence?.unresolvedOccurrenceId
-              }
+              disabled={initialBlocked || (resumeRepeats && !followUpReady)}
               onClick={() => void run("resume")}
             >
               Resume reviewed sequence

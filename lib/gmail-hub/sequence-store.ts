@@ -12,6 +12,7 @@ import { GMAIL_STATE_COLLECTIONS, gmailMailboxKey } from "./state-store";
 import {
   INBOUND_EVIDENCE_LIMIT,
   RichCommunicationMessageSchema,
+  WorkingCommunicationMessageSchema,
   communicationSendKey,
 } from "./sequence-model";
 import { localDateAt, nextOccurrence } from "./schedule-calendar";
@@ -150,6 +151,9 @@ function storedSequence(s: CommunicationSequence) {
     ...m,
     paragraphs: m.paragraphs.map((runs) => ({ runs })),
   });
+  const followUp = s.followUp ? message(s.followUp) : null;
+  const followUpComplete =
+    !!s.followUp && RichCommunicationMessageSchema.safeParse(s.followUp).success;
   return {
     ...s,
     ...sequenceRetentionFields(s),
@@ -162,7 +166,9 @@ function storedSequence(s: CommunicationSequence) {
       ]),
     ],
     initial: message(s.initial),
-    followUp: s.followUp ? message(s.followUp) : null,
+    // Older readers retain a usable sequence if the current follow-up is still being written.
+    followUp: followUpComplete ? followUp : null,
+    ...(followUp && !followUpComplete ? { workingFollowUp: followUp } : {}),
   };
 }
 function assertRecord(data: unknown): CommunicationSequence {
@@ -175,15 +181,19 @@ function assertRecord(data: unknown): CommunicationSequence {
       raw.version < 1
     )
       throw new Error("Invalid sequence header");
-    const message = (m: ReturnType<typeof storedSequence>["initial"]) =>
-      RichCommunicationMessageSchema.parse({
-        ...m,
-        paragraphs: m.paragraphs.map((p) => p.runs),
-      });
+    const message = (m: ReturnType<typeof storedSequence>["initial"]) => ({
+      ...m,
+      paragraphs: m.paragraphs.map((p) => p.runs),
+    });
+    const { workingFollowUp, ...sequence } = raw;
     return {
-      ...raw,
-      initial: message(raw.initial),
-      followUp: raw.followUp ? message(raw.followUp) : null,
+      ...sequence,
+      initial: RichCommunicationMessageSchema.parse(message(raw.initial)),
+      followUp: raw.followUp
+        ? RichCommunicationMessageSchema.parse(message(raw.followUp))
+        : workingFollowUp
+          ? WorkingCommunicationMessageSchema.parse(message(workingFollowUp))
+          : null,
     };
   } catch {
     throw new EditableLayerError("This communication state needs reconciliation.", 409);

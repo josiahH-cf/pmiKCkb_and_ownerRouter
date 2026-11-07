@@ -827,6 +827,59 @@ export async function runKickoff() {
       .click({ timeout: 30_000 });
     await composer.getByText("Message copied; files remain attached here").waitFor();
     const composerBody = await composer.evaluate(() => navigator.clipboard.readText());
+    process.stdout.write(
+      "expect L07: an unfinished follow-up stays in the app draft on reload, while the complete initial message remains ready for a one-off send.\n",
+    );
+    const followUpSave = composer.waitForResponse(
+      (response) => {
+        const request = response.request();
+        if (
+          new URL(response.url()).pathname !== "/api/gmail-hub/sequences" ||
+          request.method() !== "POST"
+        )
+          return false;
+        const body = request.postDataJSON();
+        return (
+          body.action === "save" &&
+          body.draft.followUp?.paragraphs[0][0].text ===
+            "Synthetic wording for a later follow-up."
+        );
+      },
+      { timeout: 20_000 },
+    );
+    await composer
+      .getByRole("button", { name: "Add follow-up message", exact: true })
+      .click();
+    await composer
+      .getByRole("textbox", { name: "Follow-up message body", exact: true })
+      .fill("Synthetic wording for a later follow-up.");
+    const followUpSaved = await followUpSave;
+    assert.ok(followUpSaved.ok());
+    const restoredUrl = new URL(composer.url());
+    assert.ok(restoredUrl.searchParams.has("communication"));
+    await composer.reload({ waitUntil: "domcontentloaded" });
+    const savedFollowUp = composer.getByRole("textbox", {
+      name: "Follow-up message body",
+      exact: true,
+    });
+    await savedFollowUp
+      .getByText("Synthetic wording for a later follow-up.", {
+        exact: true,
+      })
+      .waitFor();
+    const oneOff = composer.getByRole("button", { name: "Send", exact: true });
+    const oneOffReady = await oneOff
+      .click({ trial: true, timeout: 15_000 })
+      .then(() => true)
+      .catch(() => false);
+    check(
+      "L07: unfinished optional follow-up wording survives reload and leaves the complete initial message ready for a one-off send",
+      oneOffReady &&
+        (await composer
+          .getByRole("textbox", { name: "Follow-up message subject", exact: true })
+          .inputValue()) === "",
+      { followUpSaved: followUpSaved.ok(), oneOffReady },
+    );
     await composer.close();
     const exactMessages = {
       schedule: scheduled?.body === copied && scheduled.subject === composerSubject,

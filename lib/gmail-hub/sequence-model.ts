@@ -9,7 +9,6 @@ import {
 const header = z
   .string()
   .trim()
-  .min(1)
   .max(998)
   .refine((s) => !/[\r\n\x00-\x1f\x7f]/.test(s));
 const run = z
@@ -32,7 +31,7 @@ const run = z
       .optional(),
   })
   .strict();
-export const RichCommunicationMessageSchema = z
+export const WorkingCommunicationMessageSchema = z
   .object({
     subject: header,
     layout: z.literal("renewal").optional(),
@@ -41,20 +40,23 @@ export const RichCommunicationMessageSchema = z
   })
   .strict()
   .refine(
-    (s) => s.paragraphs.some((p) => p.some((r) => r.text.trim())),
-    "Enter a message.",
-  )
-  .refine(
     (s) => JSON.stringify(s).length <= 100_000,
     "The message exceeds the supported size.",
   );
+export const RichCommunicationMessageSchema = WorkingCommunicationMessageSchema.refine(
+  (s) => !!s.subject,
+  "Enter a subject.",
+).refine(
+  (s) => s.paragraphs.some((p) => p.some((r) => r.text.trim())),
+  "Enter a message.",
+);
 export type RichCommunicationMessage = z.infer<typeof RichCommunicationMessageSchema>;
 export const SequenceDraftSchema = z
   .object({
     id: z.string().uuid(),
     context: WorkflowCommunicationContextSchema,
     initial: RichCommunicationMessageSchema,
-    followUp: RichCommunicationMessageSchema.nullable(),
+    followUp: WorkingCommunicationMessageSchema.nullable(),
   })
   .strict()
   .refine((s) => {

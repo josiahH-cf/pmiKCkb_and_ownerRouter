@@ -42,6 +42,7 @@ import {
   type CommunicationSchedule,
 } from "./schedule-calendar";
 import {
+  RichCommunicationMessageSchema,
   SequenceDraftSchema,
   communicationSendKey,
   renderCommunicationMessage,
@@ -456,9 +457,12 @@ export class WorkflowCommunicationSequenceService {
     if (input.action === "resume") schedule = s.authorization!.schedule;
     const authorizesFollowUp =
       schedule?.everyDays !== null && schedule?.everyDays !== undefined;
-    if (authorizesFollowUp && !s.followUp)
+    if (
+      authorizesFollowUp &&
+      !RichCommunicationMessageSchema.safeParse(s.followUp).success
+    )
       throw new EditableLayerError(
-        "A repeating schedule needs reviewed follow-up content.",
+        "A repeating schedule needs a complete follow-up message.",
         400,
       );
     if (
