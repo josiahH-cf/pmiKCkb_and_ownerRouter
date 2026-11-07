@@ -201,7 +201,8 @@ quoted=""
 unset DISPLAY WAYLAND_DISPLAY
 # The rehearsal process (stand-ins, seeding, the browser) loads the same refusal preload as the
 # server: loopback only, every other connection refused and logged.
-ONE_PATH_REHEARSAL_OUTPUT="$output" ONE_PATH_REHEARSAL_SERVED_SHA="$served" \
+# The Firebase CLI's CI mode skips its optional public message-of-the-day/remote config fetch.
+CI=true ONE_PATH_REHEARSAL_OUTPUT="$output" ONE_PATH_REHEARSAL_SERVED_SHA="$served" \
   ONE_PATH_REHEARSAL_HARNESS_SHA="$head_sha" ONE_PATH_REHEARSAL_OVERLAY="$overlay" \
   ONE_PATH_REHEARSAL_NAMED_COMMIT="$named" \
   FIRESTORE_EMULATOR_HOST="127.0.0.1:$firestore_port" FIREBASE_AUTH_EMULATOR_HOST="127.0.0.1:$auth_port" \

@@ -41,7 +41,7 @@ JS
   port=$(node -e 'const s=require("net").createServer();s.listen(0,"127.0.0.1",()=>{console.log(s.address().port);s.close()})')
   config="$output/firebase.json"
   node -e 'const fs=require("fs");const [cfg,port]=process.argv.slice(1);fs.writeFileSync(cfg,JSON.stringify({firestore:{rules:"/app/firestore.rules",indexes:"/app/firestore.indexes.json"},emulators:{singleProjectMode:true,firestore:{host:"127.0.0.1",port:Number(port)},ui:{enabled:false}}}))' "$config" "$port"
-  FIRESTORE_EMULATOR_HOST="127.0.0.1:$port" NOVDEC_JOURNEY_OUTPUT="$output" NOVDEC_JOURNEY_SOURCE_SHA="$sha" \
+  CI=true FIRESTORE_EMULATOR_HOST="127.0.0.1:$port" NOVDEC_JOURNEY_OUTPUT="$output" NOVDEC_JOURNEY_SOURCE_SHA="$sha" \
     NOVDEC_JOURNEY_OVERLAY="$overlay" NOVDEC_JOURNEY_ISOLATED=kernel-v1 \
     node node_modules/firebase-tools/lib/bin/firebase.js emulators:exec --only firestore --project pmi-kc-kb-novdec-journey-test --config "$config" \
     "node tests/browser/renewal-novdec-journey-browser.mjs" 2>&1 | tee "$output/journey.log"
@@ -79,7 +79,7 @@ config="$root/firebase.json"
 node -e 'const fs=require("fs");const [cfg,port,cwd]=process.argv.slice(1);fs.writeFileSync(cfg,JSON.stringify({firestore:{rules:cwd+"/firestore.rules",indexes:cwd+"/firestore.indexes.json"},emulators:{singleProjectMode:true,firestore:{host:"127.0.0.1",port:Number(port)},ui:{enabled:false}}}))' "$config" "$port" "$root/worktree"
 printf '{"run_id":"%s","source_sha":"%s","overlay":%s,"emulator_port":%s}\n' "$run_id" "$sha" "$overlay" "$port" >"$output/run.json"
 cd "$root/worktree"
-FIRESTORE_EMULATOR_HOST="127.0.0.1:$port" NOVDEC_JOURNEY_OUTPUT="$output" NOVDEC_JOURNEY_SOURCE_SHA="$sha" \
+CI=true FIRESTORE_EMULATOR_HOST="127.0.0.1:$port" NOVDEC_JOURNEY_OUTPUT="$output" NOVDEC_JOURNEY_SOURCE_SHA="$sha" \
   NOVDEC_JOURNEY_OVERLAY="$overlay" \
   npx firebase emulators:exec --only firestore --project pmi-kc-kb-novdec-journey-test --config "$config" \
   "node tests/browser/renewal-novdec-journey-browser.mjs" 2>&1 | tee "$output/journey.log"

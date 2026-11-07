@@ -369,6 +369,14 @@ markup or layout. The store, permissions and default lease rendering stay unchan
 the fix, two keyboard checks failed and eight other housing checks passed. A final rehearsal
 is needed to verify the person's outcome.
 
+UX-042, verified on `0546d986`: the selected five S252 phases finished with 77 checks passing
+and two failing L58 log checks, both pointing to the guarded emulator CLI's public `/cli.json`
+metadata request. The guard refused it; the other three refusals were npm tooling. All five
+measured budgets were within their bounds. The installed Firebase CLI skips the optional metadata
+fetch in CI mode. Apply that mode only to the emulator invocation in each rehearsal launcher.
+No refusal is hidden, reclassified or allowed through, and both checks remain unchanged.
+This preserves the audit's isolation boundary (P07, P12). The repeated journey must confirm it.
+
 Preserved by decision: exact review/confirmation, the required Gmail banner, stale authored wording,
 who-approved validation, role/Space and Action Registry checks, blank unsettled legal fields,
 assistance-animal holds, existing controls/views/filters/collections/old links, historical failed

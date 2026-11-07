@@ -80,6 +80,8 @@ is No and every UNVERIFIED check names its evidence gap.
   triggering automatic comparisons, use `--hold-automatic-comparison` on the rehearsal. It keeps
   the reviewed setting off after initial seeding and every reset. Report the automatic-start
   observation in L33 as UNVERIFIED with that boundary; the check itself remains unchanged.
+  The rehearsal guards the Firebase emulator CLI from startup and uses its CI mode to omit the
+  optional public CLI metadata read. The refusal log and L58 checks still examine the whole run.
 - **R-S254-5 — Reporting.** For every check the runner reports Yes or No with concise observed
   evidence, or UNVERIFIED with the reason and what would resolve it. It separates initial
   failures, repairs, final observations and remaining blockers. The report is committed as

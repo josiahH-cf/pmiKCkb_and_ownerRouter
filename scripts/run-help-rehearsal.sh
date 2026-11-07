@@ -65,7 +65,7 @@ cd "$root/worktree"
 quoted=$(printf ' %q' "${args[@]}")
 # The capture process (fixture seeding, readbacks, the browser driver) loads the same refusal
 # preload as the server: loopback only, every other connection refused and logged.
-HELP_REHEARSAL_OUTPUT="$output" HELP_REHEARSAL_SOURCE_SHA="$sha" HELP_REHEARSAL_OVERLAY="$overlay" \
+CI=true HELP_REHEARSAL_OUTPUT="$output" HELP_REHEARSAL_SOURCE_SHA="$sha" HELP_REHEARSAL_OVERLAY="$overlay" \
   HELP_REHEARSAL_TARGET_ROOT="$repo" FIRESTORE_EMULATOR_HOST="127.0.0.1:$port" \
   NOVDEC_JOURNEY_NETWORK_LOG="$output/capture-network.jsonl" \
   npx firebase emulators:exec --only firestore --project pmi-kc-kb-help-rehearsal-test --config "$config" \
