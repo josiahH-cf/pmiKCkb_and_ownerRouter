@@ -305,7 +305,7 @@ try {
     wide,
     "dark",
     "pointer",
-    "A clean collection can choose an in-period and out-of-period lease. The exact reviewed membership is saved, recovered after a lost response, reopened and shown on the desk. Refresh and cancel retain the saved version.",
+    "A clean collection can choose an in-period and out-of-period lease. The exact reviewed membership is saved, recovered after a lost response, reopened and shown on the desk. A concurrent rename makes an older removal review stale. Refresh and cancel retain the two saved members.",
     async (page) => {
       const route = "/lease-renewal/collections";
       const name = "Example December working group";
@@ -382,6 +382,51 @@ try {
       } finally {
         await other.context.close();
       }
+      const renamed = "Example renamed December working group";
+      const stale = await page.context().newPage();
+      try {
+        await open(stale, reopened.pathname + reopened.search);
+        const staleDetail = stale.getByRole("region", {
+          name: "Current collection status",
+        });
+        await staleDetail.getByRole("heading", { name, exact: true }).waitFor();
+        await staleDetail.getByRole("button", { name: "Edit membership" }).click();
+        const staleEditor = stale.getByRole("region", {
+          name: "Collection membership editor",
+        });
+        const staleIds = staleEditor.getByLabel("Selected lease IDs", { exact: true });
+        await staleIds.fill(prepared);
+        await staleEditor.getByRole("button", { name: "Review membership" }).click();
+        const staleReview = staleEditor.getByRole("region", {
+          name: "Reviewed membership",
+        });
+        await staleReview
+          .getByRole("heading", { name: "Removals (1)", exact: true })
+          .waitFor();
+
+        await detail
+          .getByRole("button", { name: "Rename collection", exact: true })
+          .click();
+        await detail.getByLabel("New collection name", { exact: true }).fill(renamed);
+        await detail
+          .getByRole("button", { name: "Save collection name", exact: true })
+          .click();
+        await detail.getByRole("heading", { name: renamed, exact: true }).waitFor();
+        await staleReview
+          .getByRole("button", { name: "Save reviewed collection" })
+          .click();
+        await stale
+          .getByRole("alert")
+          .filter({ hasText: /collection changed/i })
+          .waitFor();
+        assert.equal(await staleIds.inputValue(), prepared);
+        assert.match(await staleDetail.innerText(), /membership version 2/);
+        assert.match(await staleDetail.innerText(), /2 saved members/);
+        await staleEditor.getByRole("button", { name: "Discard changes" }).click();
+        await staleEditor.waitFor({ state: "hidden" });
+      } finally {
+        await stale.close();
+      }
       await detail
         .getByRole("link", { name: "Open this collection on the Renewals desk" })
         .click();
@@ -400,14 +445,62 @@ try {
         [Number(prepared), outside].sort((a, b) => a - b),
       );
       await page.goBack({ waitUntil: "domcontentloaded" });
-      await detail.getByRole("heading", { name, exact: true }).waitFor();
+      await detail.getByRole("heading", { name: renamed, exact: true }).waitFor();
+      assert.match(await detail.innerText(), /membership version 2/);
       return {
         exactMembership: 2,
-        version: 1,
+        version: 2,
         lostSaveRecovered: dropped,
         approverReadback: true,
+        staleRemovalRefused: true,
         returnedToCollection: true,
       };
+    },
+  );
+  await check(
+    "L03-collection-from-filter",
+    "Editor",
+    wide,
+    "light",
+    "pointer",
+    "The exact authorized filter offers a lease for a new collection. Match a period applies that same filter. Review and confirm the one member, then reopen the same version.",
+    async (page) => {
+      await open(page, desk + "?v=2&scope=all&lease=" + prepared);
+      await page
+        .getByRole("link", {
+          name: "Save reviewed leases as a shared collection",
+          exact: true,
+        })
+        .click();
+      const editor = page.getByRole("region", { name: "Collection membership editor" });
+      const name = "Example collection from one filtered lease";
+      await editor.getByText("1 leases were offered by the source selection.").waitFor();
+      assert.equal(await editor.getByLabel("Selected lease IDs").inputValue(), prepared);
+      assert.equal(
+        await editor.getByLabel("Membership selection").inputValue(),
+        "explicit",
+      );
+      await editor.getByLabel("Membership selection").selectOption("period");
+      const period = rehearsal.workingMonth;
+      const [year, month] = period.split("-").map(Number);
+      const last = new Date(Date.UTC(year, month, 0)).getUTCDate();
+      await editor.getByLabel("Collection name").fill(name);
+      await editor.getByLabel("Period from").fill(period + "-01");
+      await editor.getByLabel("Period through").fill(period + "-" + last);
+      await editor.getByRole("button", { name: "Review membership" }).click();
+      const review = editor.getByRole("region", { name: "Reviewed membership" });
+      await review.getByRole("heading", { name: "Additions (1)", exact: true }).waitFor();
+      assert.match(await review.innerText(), new RegExp("· " + prepared + " · cycle"));
+      await review.getByRole("button", { name: "Save reviewed collection" }).click();
+      const detail = page.getByRole("region", { name: "Current collection status" });
+      await detail.getByRole("heading", { name, exact: true }).waitFor();
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await detail.getByRole("heading", { name, exact: true }).waitFor();
+      assert.match(await detail.innerText(), /membership version 1/);
+      const saved = detail.getByRole("table", { name: "Saved members" });
+      await saved.locator('a[href^="' + path(prepared) + '"]').waitFor();
+      assert.equal(await saved.getByRole("row").count(), 2);
+      return { imported: 1, matchedByPeriod: 1, version: 1 };
     },
   );
   await check(

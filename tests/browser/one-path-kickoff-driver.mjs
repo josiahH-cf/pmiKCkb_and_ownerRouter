@@ -1,8 +1,8 @@
 // S249: the prepared kickoff and the one message route, through the one-path rehearsal. Run it with
 //
-//   bash scripts/run-renewal-one-path-rehearsal.sh --overlay --driver tests/browser/one-path-kickoff-driver.mjs
+//   bash scripts/run-renewal-one-path-rehearsal.sh --hold-automatic-comparison --driver tests/browser/one-path-kickoff-driver.mjs
 //
-// (drop --overlay to run a committed tree). As the local demo roles it works the November 5 mix
+// As the local demo roles it works the November 5 mix
 // in a browser and checks, each by name: the allowance stop (L34) and a lease asked for its rent
 // to recommend before Send (L29); the reviewed setting turned off by an Admin in the app, nothing
 // starting by itself while it is off, and "Prepare this batch" still running when chosen (L35);
@@ -62,6 +62,7 @@ assert.notEqual(
 );
 const { prepared, covered, assisted, missingRecipient } = rehearsal.roles;
 const INTERNAL_SENTENCE = "The working offer remains a staff decision";
+const DRAFT_BANNER = "Draft — Review before sending";
 
 const checks = [];
 const steps = [];
@@ -718,6 +719,9 @@ export async function runKickoff() {
 
     // L27: changing the rent and the reason updates the one preview, and every delivery form shows
     // that same message.
+    process.stdout.write(
+      "expect L27: the lease, Schedule, Send and Communications use the exact edited body. Gmail draft review adds only the required banner. Cancel leaves no synthetic effect.\n",
+    );
     const reason = "Current market conditions in the area support this figure.";
     act("type the rent to recommend");
     await now().getByLabel("Rent to recommend").fill("1410");
@@ -817,13 +821,18 @@ export async function runKickoff() {
     // Clear the prior copy so only this action can yield the comparison body.
     await composer.bringToFront();
     await composer.evaluate(() => navigator.clipboard.writeText(""));
-    await initial.getByRole("button", { name: "Copy message", exact: true }).click();
+    await initial
+      .locator("xpath=..")
+      .getByRole("button", { name: "Copy message", exact: true })
+      .click({ timeout: 30_000 });
     await composer.getByText("Message copied; files remain attached here").waitFor();
     const composerBody = await composer.evaluate(() => navigator.clipboard.readText());
     await composer.close();
     const exactMessages = {
       schedule: scheduled?.body === copied && scheduled.subject === composerSubject,
-      draft: drafted?.body === copied && drafted.subject === composerSubject,
+      draft:
+        drafted?.body === DRAFT_BANNER + "\n\n" + copied &&
+        drafted.subject === composerSubject,
       composer: composerRevision === edited.fingerprint && composerBody === copied,
     };
     const canceledWithoutEffect =
