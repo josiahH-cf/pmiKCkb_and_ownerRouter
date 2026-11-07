@@ -72,6 +72,13 @@ Staff session: none
   The same driver's working-value revision case passed. The screenshot and the failed wait
   remain in that run's evidence.
 
+- L09 and L10 on `2c029709` in `20261107T175831Z-2c029709`. The lease
+  retired and disappeared from the active Dashboard answer. The collection locator expected
+  the reason as the whole cell, but the cell includes the separate source lifecycle. The pet PDF
+  downloaded with its exact saved hash, but the ESM loader returned zero text runs. A local
+  fixture reproduction returned 0 lines with that loader and 17 pet-agreement lines with
+  the CommonJS reader. The browser cases require new observations.
+
 ## Repairs
 
 - L03 now waits for the initial collection list before enabling New collection. The focused
@@ -331,5 +338,5 @@ Accepted: No
 | L10 | UNVERIFIED | The standard Editor journey completed and reopened from Completed. The synthetic fee and deposit added to $300, the owner explanation retained two paragraphs, and the downloaded prepared pet PDF matched its recorded digest. Values on another lease stayed blank. | The extended check observes the separate owner form and unchanged brochure bytes. | Observe the protected areas, overflow and applicable assistance cases in the browser. |
 | L11 | UNVERIFIED | The narrow Editor entered named Communications and Internal Processes and followed the old procedure link back to the exact lease. The same private My Work task did not appear for a second actor. | Added an exact Dashboard task answer and target availability case. | Reobserve the extended entry and return paths. |
 | L12 | Yes | Browser outcome `20261107T173720Z-ccb8fae8/L12-connection-retry`. The narrow Admin read the focused service, received the synthetic refusal, retried with a verified result and returned. The old Admin anchor and the Editor refusal were observed. | Used the exact role and local metadata read. | None for the observed scoped tasks. |
-| L13 | UNVERIFIED | Help printed and returned to the exact lease section. The separate exact `b4a01582` capture review rendered 27 scenes without material changes. The fixed search image was visually checked and committed at `ccb8fae8`. | The search scene uses the fixed synthetic time for generated read timestamps. | Repeat required positive verification and demonstrate deliberate control and scene rejection. |
+| L13 | UNVERIFIED | Help printed and returned to the exact lease section. The separate exact `b4a01582` capture review generated all 27 scenes. The fixed search image was visually checked and committed at `ccb8fae8`. | The search scene uses the fixed synthetic time for generated read timestamps. | Repeat required positive verification and demonstrate deliberate control and scene rejection. |
 | L14 | No | S252 passed all 106 checks and five numerical action budgets. The mailbox-disabled rehearsal passed 15 of 16 cases, with Owner approval focus unresolved. The local core and complete canonical lanes have no result on this commit. | Keep the failed detail proof alongside the positive synthetic effect and cleanup results. | Complete the same-candidate matrix, local gates and exact CI. |

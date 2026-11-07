@@ -3,10 +3,11 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { appendFileSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { Socket } from "node:net";
 import { join } from "node:path";
 import { chromium } from "playwright-core";
-import { tsImport } from "tsx/esm/api";
+import { register } from "tsx/cjs/api";
 import {
   ONE_PATH_EXECUTION_DATE_AREA,
   ONE_PATH_OLD_FEE_TEXT,
@@ -1297,7 +1298,7 @@ try {
         exact: true,
       });
       await members
-        .getByText("Retired · Synthetic inactive cycle", { exact: true })
+        .getByRole("cell", { name: / · Retired · Synthetic inactive cycle$/ })
         .waitFor();
       assert.match(await collection.innerText(), /1 saved member.*membership version 1/s);
       const memberLink = members.getByRole("link");
@@ -1569,10 +1570,13 @@ try {
       const bytes = readFileSync(await download.path());
       assert.equal(bytes.subarray(0, 5).toString(), "%PDF-");
       assert.equal(createHash("sha256").update(bytes).digest("hex"), savedHash);
-      const { readStaticPageRuns, readStaticPdfLines } = await tsImport(
+      // Keep the parser and its collaborators on one CommonJS instance of pdf-lib.
+      // Mixing the ESM and CommonJS loaders prevents its PDF object checks from matching.
+      const unregister = register();
+      const { readStaticPageRuns, readStaticPdfLines } = createRequire(import.meta.url)(
         "../../lib/lease-documents/static-pdf.ts",
-        import.meta.url,
       );
+      unregister();
       const petText = (await readStaticPdfLines(bytes))
         .map((line) => line.text)
         .join("\n");
