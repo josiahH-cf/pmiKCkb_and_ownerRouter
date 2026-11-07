@@ -47,6 +47,18 @@ Staff session: none
   then stopped on a render-time ref access in Communications. The queued browser rerun
   stopped before startup because the emulator launcher selected the same port twice.
 
+- L06 on `9fca1cbc` in `20261107T163645Z-9fca1cbc`. Full opened while the
+  named heading stayed above the visible area. The focused component regression saw a link
+  get focus where the section heading should have received it.
+- L06 and L10 on `e1cf8905` in `20261107T164528Z-e1cf8905`. A direct legacy
+  section worked after the focus repair. A fragment-only change to the next section stayed in
+  Guided. The Admin family and charge-policy saves and both packet input saves succeeded. The
+  form driver reopened the same URL without a fresh document load and found the form still open.
+- L03 and L09 on `8149b612` in `20261107T165608Z-8149b612`. The member-removal
+  fixture did not produce the required visible unavailable row in the recorded case. The later
+  cycle case stopped on a source refresh without the required fresh response. Neither group
+  earns a pass from those checkpoints.
+
 ## Repairs
 
 - L03 now waits for the initial collection list before enabling New collection. The focused
@@ -126,6 +138,43 @@ live mailbox access as verification, so release admission and assurance remain h
 
 Raw logs, receipts, screenshots and fixture data remain in private rehearsal state. The run
 identifiers identify the exact source and never stand in for a later candidate pass.
+
+The `8c216ee6` canonical run passed the required rendered Help lane in 536.773 seconds.
+All 27 scenes matched. It checked 838 controls, with 630 visible, 208 conditionally unavailable
+and zero missing. Lint later refused a ref read during render. The composer now keeps the
+pending attachment slot in render state and keeps the exact upload intent in its existing ref.
+The next browser process failed before startup when the launcher selected one port for both
+emulators. It now reserves both ephemeral listeners until it has distinct ports. On
+`8c216ee6` an intentional no-preload startup stopped before starting an emulator or app.
+
+The same-date serial comparisons used the November 5 mix with automatic comparison held and
+the mail adapter disabled. `20261107T164935Z-e1cf8905` showed nine default rows as a table,
+zero closed, two views and the same stage in Guided and Full. `20261107T165018Z-ef81b891-named`
+showed nine default rows as a list, zero closed and three views. Both opened the prepared lease
+in one tab and returned to the working month. `20261107T165100Z-6491c06f-named` showed 37
+default rows, including ten closed. All three runs exited zero. In the first historical
+comparison attempt a separate focused test wrote the shared Vitest cache. Both wrappers
+rejected cleanup despite recording their browser readings. The serial results above are the
+rechecks. The existing historical three-tab kickoff remains separately scoped.
+
+The `8149b612` mailbox-disabled run passed 13 of 15 cases. The Editor opened the same
+prepared lease from the desk, Dashboard and explicit My Work task. The Approver did not see
+the private task. All five section destinations and their exact legacy fragments focused the
+named heading below the toolbar and returned to the prior step. The ordinary annual review
+and move-out handoff reread their saved records. The synthetic Admin published the $50 fee
+and the Editor saved the $250 deposit for a $300 total and two-paragraph owner explanation.
+These persisted on a fresh load, the packet reached Ready for preview, and the other lease
+kept its values blank. The missing-member and later-cycle attempts retained their failures.
+The final comparison still needs those cases on one candidate.
+
+Approved CLI-only metadata at 16:31 UTC read Ready on
+`pmi-kc-app-rmw65wgt2-8c8249a0547c` with all canonical traffic at `ef81b891`, 54
+environment keys and five secret bindings. Production and Live, Demo=false, Sheet=true and
+RentCast allowance 50 matched. Billing and the existing cost-control check passed. The
+registered pair was clean at the serving source and the prior checkpoint was complete with
+its permit consumed. A separate open found the release lock free at 16:26 UTC. Print-only
+preflight was NOT READY with zero queued items. Fresh guarded admission is held by the
+required real Gmail profile read. No production application route supplied this evidence.
 
 ## Remaining blockers
 

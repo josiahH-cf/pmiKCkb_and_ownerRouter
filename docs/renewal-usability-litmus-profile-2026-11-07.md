@@ -28,6 +28,11 @@ The November 5 handoff and its report retain every original check and verdict.
 | L13        | L61                                                     | Walk the real Help guide, required rendered controls, material scene comparison, versioned recapture, print and return.                                                                                    |
 | L14        | L11, L24, L54, L58 to L60, L62, L71                     | Retain both before and after measures, the original 70-control inventory, S252 budgets and ledger, guarded effect scope, cleanup and exact canonical verification.                                         |
 
+The original 70-row control inventory matches 69 current page, role and accessible-name entries
+directly. At step 5 the original `/lease-renewal` button named Refresh source facts is now
+Refresh data. The current control map holds that name on the same page and step. The remaining
+current rows extend the inventory. Rendered verification records conditional availability separately.
+
 The settled November 5 and November 7 owner decisions in S246, S248, S258, S255 and S224 authorize
 the changed expectations above. S252 retains the original seven budget rows and each defect-ledger
 row. Before navigating a case, record the exact candidate and clean-tree state, fixture and guard

@@ -1,6 +1,7 @@
 // Focused, mailbox-disabled November 7 rehearsal. This is a subset of S259.
 // It records expectations before each case and retains the raw results outside Git.
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { appendFileSync, readFileSync } from "node:fs";
 import { Socket } from "node:net";
 import { join } from "node:path";
@@ -111,21 +112,34 @@ async function check(id, role, viewport, theme, input, expected, work) {
 const wide = { width: 1280, height: 800 };
 const narrow = { width: 390, height: 800 };
 const open = (page, href) => page.goto(origin + href, { waitUntil: "domcontentloaded" });
-async function refreshDesk(page) {
+async function refreshDesk(page, expectedTotal = 38) {
   await open(page, desk);
-  await page.getByRole("region", { name: "Working batch", exact: true }).waitFor();
+  const batch = page.getByRole("region", { name: "Working batch", exact: true });
+  await batch.waitFor();
   await page.waitForLoadState("networkidle", { timeout: 15_000 });
-  const [response] = await Promise.all([
-    page.waitForResponse(
-      (response) =>
-        new URL(response.url()).pathname === "/api/lease-renewal/refresh" &&
-        response.request().method() === "POST" &&
-        response.request().postDataJSON()?.mode === "force",
-    ),
-    page.getByRole("button", { name: "Refresh data", exact: true }).click(),
-  ]);
-  const result = await response.json();
-  assert.ok(response.ok() && result.refreshed === true && result.state === "fresh");
+  const read = async () => {
+    const [response] = await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          new URL(response.url()).pathname === "/api/lease-renewal/refresh" &&
+          response.request().method() === "POST" &&
+          response.request().postDataJSON()?.mode === "force",
+      ),
+      page.getByRole("button", { name: "Refresh data", exact: true }).click(),
+    ]);
+    assert.ok(response.ok());
+    return response.json();
+  };
+  let result = await read();
+  if (result.throttled) {
+    await page.waitForTimeout(10_100);
+    result = await read();
+  }
+  assert.ok(
+    result.refreshed === true && result.state === "fresh",
+    JSON.stringify(result),
+  );
+  await page.locator('[data-batch-total="' + expectedTotal + '"]').waitFor();
 }
 const leaseViews = (page) => page.getByRole("group", { name: "Lease view", exact: true });
 const stage = (page) => page.getByRole("region", { name: "Current renewal stage" });
@@ -480,12 +494,35 @@ try {
       const collectionPath = reopened.pathname + reopened.search;
       try {
         setUnavailableSourceLease(rehearsal, outside);
-        await refreshDesk(page);
+        await refreshDesk(page, 37);
         await open(page, collectionPath);
         await detail.getByRole("heading", { name: renamed, exact: true }).waitFor();
-        await detail
-          .getByRole("button", { name: "Refresh statuses", exact: true })
-          .click();
+        await page.waitForLoadState("networkidle", { timeout: 15_000 });
+        const [read] = await Promise.all([
+          page.waitForResponse((response) => {
+            const url = new URL(response.url());
+            return (
+              url.pathname === "/api/lease-renewal/collections" &&
+              url.searchParams.get("id") === reopened.searchParams.get("id") &&
+              response.request().method() === "GET"
+            );
+          }),
+          detail.getByRole("button", { name: "Refresh statuses", exact: true }).click(),
+        ]);
+        const scoped = await read.json();
+        const absent = scoped.statuses?.find(
+          (entry) => entry.member.leaseId === String(outside),
+        );
+        log({
+          id: "L03-collection",
+          state: "checkpoint",
+          observed: {
+            refreshed: read.ok(),
+            memberState: absent?.state,
+            hasLink: Boolean(absent?.href),
+          },
+        });
+        assert.ok(read.ok() && absent?.state === "unavailable" && absent.href === null);
         const revoked = detail
           .getByRole("row")
           .filter({ hasText: new RegExp("Lease " + outside + "\\b") });
@@ -495,6 +532,11 @@ try {
         assert.equal(await revoked.getByRole("link").count(), 0);
         assert.match(await detail.innerText(), /2 saved members/);
         assert.match(await detail.innerText(), /membership version 2/);
+      } catch (error) {
+        await page
+          .screenshot({ path: join(runDir, "L03-missing-member-before-restore.png") })
+          .catch(() => undefined);
+        throw error;
       } finally {
         setUnavailableSourceLease(rehearsal, null);
         await refreshDesk(page);
@@ -1023,7 +1065,7 @@ try {
     wide,
     "light",
     "pointer",
-    "A synthetic Admin's published fee and the Editor's recorded deposit add exactly. A missing deposit leaves the total blank. The owner explanation keeps its paragraphs and neither value appears on a second lease.",
+    "A synthetic Admin's published fee and the Editor's recorded deposit add exactly. A missing deposit leaves the total blank. The owner explanation keeps its paragraphs and neither value appears on a second lease. The prepared pet PDF matches the recorded digest.",
     async (page) => {
       log({
         id: "L10-synthetic-forms-admin",
@@ -1147,6 +1189,34 @@ try {
       const visibleState = await packet
         .locator('[data-renewal-field="packet-shown-state"]')
         .innerText();
+      const pet = snapshot.manifest?.includedArtifacts.find(
+        (entry) => entry.kind === "animal_agreement",
+      );
+      assert.ok(pet?.label);
+      const petFile = packet.getByRole("listitem").filter({
+        hasText: pet.label,
+        has: page.getByRole("button", { name: /^(?:Check|Refresh) filled document$/ }),
+      });
+      await petFile
+        .getByRole("button", { name: "Check filled document", exact: true })
+        .click();
+      await petFile
+        .getByRole("button", { name: "Prepare filled PDF", exact: true })
+        .click();
+      await petFile.getByText("Filled values and provenance", { exact: true }).click();
+      const savedHash = (
+        await petFile.getByText(/^Output SHA-256:/).textContent()
+      )?.match(/[0-9a-f]{64}/)?.[0];
+      assert.ok(savedHash);
+      const [download] = await Promise.all([
+        page.waitForEvent("download"),
+        petFile
+          .getByRole("link", { name: "Download filled PDF for inspection", exact: true })
+          .click(),
+      ]);
+      const bytes = readFileSync(await download.path());
+      assert.equal(bytes.subarray(0, 5).toString(), "%PDF-");
+      assert.equal(createHash("sha256").update(bytes).digest("hex"), savedHash);
       await openInputs(String(rehearsal.roles.covered));
       assert.match(await amount("total").innerText(), /left blank/);
       assert.equal(
@@ -1164,6 +1234,7 @@ try {
         exactDepositAndTotal: [250, 300],
         twoParagraphsReread: true,
         packetEvaluationState: visibleState,
+        filledPetBytesMatched: true,
         otherLeaseStayedBlank: true,
       };
     },
