@@ -9,6 +9,20 @@
     "runId": "help-rehearsal-run",
     "fieldKey": "current_rent"
   },
+  "controlFixtures": {
+    "guide work-a-renewal#read-the-prepared-message": {
+      "route": "/lease-renewal/live/desk/lease/5001",
+      "actions": []
+    },
+    "guide work-a-renewal#review-and-send": {
+      "route": "/lease-renewal/live/desk/lease/5001",
+      "actions": []
+    },
+    "guide work-a-renewal#send-the-message": {
+      "route": "/lease-renewal/live/desk/lease/5001",
+      "actions": ["click-button:Review and send"]
+    }
+  },
   "outlineRoutes": [
     "/search",
     "/spaces",

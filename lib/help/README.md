@@ -61,3 +61,27 @@ Space and About id is documented; exclusions in `coverage-allow-list.ts` need a 
 (every referenced picture exists, is manifested and is referenced) and `verify:help-content` (no em
 dash, jargon, roadmap or hold language). `bash scripts/run-help-rehearsal.sh --controls` checks
 every control by role and exact accessible name on the real pages.
+
+Required local verification and the E2E CI lane run the rendered control and scene gate.
+
+```sh
+npm run verify:help-rendered
+```
+
+Use the lockfile-pinned Chromium and a clean commit. The rehearsal holds automatic comparison and
+uses an isolated Firestore emulator, synthetic fixture dates, and a browser restricted to the local
+app. Provider-only scenes and conditional controls are reported separately from passing cases.
+A material difference saves the expected and observed synthetic images in the private run directory
+and fails the gate. The comparison tolerates small color changes from rasterization and checks both
+whole-scene and local areas for larger changes. The report names the source and served commits,
+the scene and fixture, and the measured difference.
+
+To propose fresh images in private state for review, run the same entry point in capture mode.
+
+```sh
+bash scripts/run-renewal-one-path-rehearsal.sh --hold-automatic-comparison --no-mail-adapter --help-rendered --review-captures
+```
+
+Review each proposed image and adopt it with its current Help version and wording. Only the
+current version stays under `public/help`. The application redirects earlier known image names
+to their current asset.

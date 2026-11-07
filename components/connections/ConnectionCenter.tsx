@@ -1,5 +1,9 @@
 import { TaskAnchorContinuation } from "@/components/layout/TaskAnchorContinuation";
-import { connectionNextStep } from "@/lib/connections/connection-status";
+import {
+  connectionNextStep,
+  summarizeConnections,
+} from "@/lib/connections/connection-status";
+import { formatBusinessTimestamp } from "@/lib/date-display";
 // The Connection Center — the app-managed place to connect the systems that power every process
 // (RentVine, Sheets, RentCast, Drive, Dotloop, LeadSimple, Gmail, QuickBooks). Shared infrastructure,
 // not tied to one process. Server component; live checks are read-only and cached (S13 D1), and no
@@ -33,8 +37,15 @@ export function ConnectionCenter({
   dotloopCallbackResult = null,
   resourcePanel = null,
   needsSetup,
+  storedConnectionsAvailable = true,
+  observations,
 }: Readonly<{
   view: ConnectionCenterView;
+  storedConnectionsAvailable?: boolean;
+  observations?: ReadonlyMap<
+    string,
+    { readonly verified: boolean; readonly checkedAt: number }
+  >;
   dotloopReadiness?: DotloopReadiness;
   /** S106: Admin-only cached resource list for the picker; null for other roles. */
   dotloopPicker?: DotloopPickerView | null;
@@ -52,6 +63,16 @@ export function ConnectionCenter({
   needsSetup?: readonly { label: string; detail?: string; href: string }[];
 }>) {
   const groups = groupConnectionItems(view.items);
+  const unknownIds = new Set(
+    storedConnectionsAvailable
+      ? []
+      : view.items
+          .filter((item) => item.def.method === "oauth" && item.status.state !== "closed")
+          .map((item) => item.def.id),
+  );
+  const visibleSummary = summarizeConnections(
+    view.items.filter((item) => !unknownIds.has(item.def.id)).map((item) => item.status),
+  );
 
   return (
     <div className="ui-stack">
@@ -79,10 +100,13 @@ export function ConnectionCenter({
       </p>
 
       <div className="ui-metric-grid">
-        <Metric label="Connected" value={view.summary.connected} />
-        <Metric label="Need attention" value={view.summary.action} />
-        <Metric label="Not connected" value={view.summary.none} />
-        <Metric label="Closed by governance" value={view.summary.closed} />
+        <Metric label="Connected" value={visibleSummary.connected} />
+        <Metric label="Need attention" value={visibleSummary.action} />
+        <Metric label="Not connected" value={visibleSummary.none} />
+        <Metric label="Closed by governance" value={visibleSummary.closed} />
+        {unknownIds.size ? (
+          <Metric label="Status unavailable" value={unknownIds.size} />
+        ) : null}
       </div>
 
       {needsSetup ? (
@@ -117,39 +141,80 @@ export function ConnectionCenter({
               </h2>
             </div>
             <div className="grid two">
-              {group.items.map((item) => (
-                <details
-                  className="panel connection-service"
-                  key={item.def.id}
-                  open={
-                    item.def.id === "dotloop" && dotloopCallbackResult ? true : undefined
-                  }
-                >
-                  <summary>
-                    <strong>{item.def.name}</strong>
-                    {" · "}
-                    {item.status.label}
-                    <span className="muted">
+              {group.items.map((item) => {
+                const unavailable = unknownIds.has(item.def.id);
+                const dotloop = item.def.id === "dotloop";
+                const observation = observations?.get(item.def.id);
+                const freshness =
+                  dotloop && dotloopReadiness?.freshness?.observedAt
+                    ? `Resources checked ${formatBusinessTimestamp(dotloopReadiness.freshness.observedAt)}${dotloopReadiness.freshness.stale ? " · Check out of date" : ""}`
+                    : observation &&
+                        item.status.configuredCount === item.status.requiredCount
+                      ? `${observation.verified ? "Verified" : "Check did not pass"} ${formatBusinessTimestamp(new Date(observation.checkedAt).toISOString())}`
+                      : null;
+                return (
+                  <details
+                    className="panel connection-service"
+                    key={item.def.id}
+                    open={
+                      item.def.id === "dotloop" && dotloopCallbackResult
+                        ? true
+                        : undefined
+                    }
+                  >
+                    <summary>
+                      <strong>{item.def.name}</strong>
                       {" · "}
-                      {connectionNextStep(item.status, canManage)}
-                    </span>
-                  </summary>
-                  <ConnectorCard
-                    canManage={canManage}
-                    item={item}
-                    verifiable={verifiableIds.includes(item.def.id)}
-                  />
-                  {item.def.id === "dotloop" && dotloopReadiness ? (
-                    <DotloopConnectionPanel
-                      callbackResult={dotloopCallbackResult}
-                      canManage={canManage}
-                      picker={canManage ? dotloopPicker : null}
-                      readiness={dotloopReadiness}
-                      selection={dotloopSelection}
-                    />
-                  ) : null}
-                </details>
-              ))}
+                      {unavailable ? "Saved connection unavailable" : item.status.label}
+                      {freshness ? (
+                        <span className="muted">
+                          {" · "}
+                          {freshness}
+                        </span>
+                      ) : null}
+                      <span className="muted">
+                        {" · "}
+                        {unavailable
+                          ? "Open the service to retry the read."
+                          : connectionNextStep(item.status, canManage)}
+                      </span>
+                    </summary>
+                    {unavailable ? (
+                      <section
+                        id={`connector-${item.def.id}`}
+                        tabIndex={-1}
+                        className="ui-stack-tight"
+                      >
+                        <p role="status">
+                          The saved connection could not be read. Its current state is
+                          unknown.
+                        </p>
+                        <form
+                          action={`/connections#connector-${item.def.id}`}
+                          method="get"
+                        >
+                          <button type="submit">Retry saved connection read</button>
+                        </form>
+                      </section>
+                    ) : (
+                      <ConnectorCard
+                        canManage={canManage}
+                        item={item}
+                        verifiable={verifiableIds.includes(item.def.id)}
+                      />
+                    )}
+                    {dotloop && !unavailable && dotloopReadiness ? (
+                      <DotloopConnectionPanel
+                        callbackResult={dotloopCallbackResult}
+                        canManage={canManage}
+                        picker={canManage ? dotloopPicker : null}
+                        readiness={dotloopReadiness}
+                        selection={dotloopSelection}
+                      />
+                    ) : null}
+                  </details>
+                );
+              })}
             </div>
           </section>
           {group.id === "documents-storage" && resourcePanel ? (

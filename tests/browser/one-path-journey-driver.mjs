@@ -194,6 +194,7 @@ async function signIn(page, role) {
 
 const lease = (page) => {
   const guided = () => page.getByRole("region", { name: "Guided view", exact: true });
+  const stageLine = () => page.locator('[data-renewal-field="stage-line"]');
   const now = () => guided().getByRole("region", { name: "Now", exact: true });
   const strip = () =>
     guided().getByRole("navigation", { name: "Renewal path", exact: true });
@@ -218,17 +219,15 @@ const lease = (page) => {
     },
     async stageLine() {
       return squash(
-        await guided()
-          .locator('[data-renewal-field="stage-line"]')
-          .textContent()
+        await stageLine()
+          .textContent({ timeout: 15_000 })
           .catch(() => ""),
       );
     },
     async currentStep() {
       return (
-        (await guided()
-          .locator('[data-renewal-field="stage-line"]')
-          .getAttribute("data-renewal-current-step")
+        (await stageLine()
+          .getAttribute("data-renewal-current-step", { timeout: 15_000 })
           .catch(() => null)) ?? null
       );
     },

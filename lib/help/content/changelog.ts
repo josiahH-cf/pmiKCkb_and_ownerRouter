@@ -22,7 +22,7 @@ export const HELP_CHANGELOG: readonly HelpChangelogEntry[] = [
       "admin-tasks",
       "publish-a-process",
     ],
-    contentDigest: "9478b29f9c252353d42bd48316da3f19358b6bb89f4060115affe4beadaa550a",
+    contentDigest: "6116187bc75b7050a4e225a05906673d0900ddaa8eb42f4ab6f7cf6ac24b6c07",
   },
   {
     version: "V2.1",

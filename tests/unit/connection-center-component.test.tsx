@@ -64,6 +64,34 @@ describe("ConnectionCenter", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("keeps saved OAuth status unknown while other services report their checks", () => {
+    render(
+      <ConnectionCenter
+        canManage
+        storedConnectionsAvailable={false}
+        observations={
+          new Map([
+            ["rentvine", { verified: true, checkedAt: Date.UTC(2026, 10, 7, 18) }],
+          ])
+        }
+        verifiableIds={["rentvine", "dotloop"]}
+        view={buildConnectionView(configuredPresence, new Set(["rentvine"]))}
+      />,
+    );
+    expect(service("dotloop").querySelector("summary")).toHaveTextContent(
+      "Saved connection unavailable",
+    );
+    const detail = openService("dotloop");
+    expect(
+      detail.getByRole("button", { name: "Retry saved connection read" }),
+    ).toBeVisible();
+    expect(detail.queryByRole("button", { name: "Connect with Dotloop" })).toBeNull();
+    expect(service("rentvine").querySelector("summary")).toHaveTextContent("Verified");
+    expect(
+      openService("rentvine").getByRole("button", { name: "Check RentVine connection" }),
+    ).toBeVisible();
+  });
+
   it("gives an Admin a contextual return path to the task index", () => {
     render(<ConnectionCenter canManage view={buildConnectionView({})} />);
 

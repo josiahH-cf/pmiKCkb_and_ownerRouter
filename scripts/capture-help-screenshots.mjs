@@ -221,6 +221,7 @@ if (managed) {
       false,
       "Automatic preparation must stay off.",
     );
+    record({ event: "automation-held", automaticComparison: false, mailAdapter: false });
     const prepared = await seedHelpPreparedLease({
       page,
       signIn: (role) => signIn(page, role),
@@ -424,7 +425,12 @@ async function controls(file) {
   page.setDefaultTimeout(30_000);
   page.setDefaultNavigationTimeout(ROUTE_BUDGET_MS);
   const byPage = new Map();
-  for (const control of list.controls) {
+  for (const described of list.controls) {
+    const fixture =
+      manifest.controlFixtures?.[`${described.owner}#${described.step ?? ""}`];
+    const control = fixture
+      ? { ...described, ...fixture, documentedRoute: described.route }
+      : described;
     const key = `${control.role ?? "Admin"}|${control.route}|${(control.actions ?? []).join(",")}`;
     if (!byPage.has(key)) byPage.set(key, []);
     byPage.get(key).push(control);

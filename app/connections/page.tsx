@@ -21,6 +21,7 @@ import {
 import {
   getVerifiedConnectorIds,
   LIVE_VERIFIABLE_CONNECTOR_IDS,
+  readConnectorObservations,
 } from "@/lib/connections/verification";
 import { getConnectorConnectionStore } from "@/lib/firestore/connector-connections";
 import { FirestoreDotloopObservationStore } from "@/lib/firestore/dotloop-connection-observations";
@@ -40,20 +41,33 @@ export default async function ConnectionsPage({
 }: Readonly<{ searchParams?: Promise<Record<string, string | string[] | undefined>> }>) {
   const user = await requirePageCapability("read");
   const canManage = can(user.role, "manageAdmin");
-  const verifiedIds = await getVerifiedConnectorIds();
-  const connections = await loadConnectorConnections(canManage);
-  const dotloopReadiness = await readDotloopRuntimeReadiness();
-  const dotloopSelection = await loadDotloopSelection(user);
-  const dotloopPicker = canManage ? await loadDotloopPicker() : null;
+  const [
+    verifiedIds,
+    connections,
+    dotloopReadiness,
+    dotloopSelection,
+    dotloopPicker,
+    resourceSettings,
+  ] = await Promise.all([
+    getVerifiedConnectorIds(),
+    loadConnectorConnections(canManage),
+    readDotloopRuntimeReadiness(),
+    loadDotloopSelection(user),
+    canManage ? loadDotloopPicker() : null,
+    getRenewalResourceLocations(user).catch(() => null),
+  ]);
   const params = (await searchParams) ?? {};
   const rawResult = params[DOTLOOP_CALLBACK_QUERY];
   const dotloopCallbackResult = readDotloopCallbackResult(
     Array.isArray(rawResult) ? rawResult[0] : rawResult,
   );
-  const view = buildConnectionView(readConnectorPresence(), verifiedIds, connections);
+  const view = buildConnectionView(
+    readConnectorPresence(),
+    verifiedIds,
+    connections ?? undefined,
+  );
   // S120 (R120.3): the shared renewal resource entries live here with the other shared setup.
   // A failed read renders as unknown, never as an empty settings record.
-  const resourceSettings = await getRenewalResourceLocations(user).catch(() => null);
   // S147: the setup summary that used to sit on the Dashboard, with the same Space scoping.
   const needsSetup = resolveConnectionsState(process.env).items;
 
@@ -69,6 +83,8 @@ export default async function ConnectionsPage({
           needsSetup={needsSetup}
           verifiableIds={LIVE_VERIFIABLE_CONNECTOR_IDS}
           view={view}
+          storedConnectionsAvailable={connections !== null}
+          observations={readConnectorObservations()}
           resourcePanel={
             <RenewalResourceLocations
               role={user.role}
@@ -81,11 +97,10 @@ export default async function ConnectionsPage({
   );
 }
 
-// Load the app-held connection records (status only) keyed by connectorId. Any read failure degrades
-// to an empty map so the page still renders configuration-only status.
+// A failed saved-status read is distinct from a successful read with no connection.
 async function loadConnectorConnections(
   canManage: boolean,
-): Promise<Map<string, ConnectorConnectionView>> {
+): Promise<Map<string, ConnectorConnectionView> | null> {
   try {
     const records = await getConnectorConnectionStore().listConnections();
     return new Map(
@@ -95,7 +110,7 @@ async function loadConnectorConnections(
       ]),
     );
   } catch {
-    return new Map();
+    return null;
   }
 }
 

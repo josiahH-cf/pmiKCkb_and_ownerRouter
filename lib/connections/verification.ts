@@ -128,7 +128,17 @@ export const LIVE_VERIFIABLE_CONNECTOR_IDS: readonly string[] = LIVE_PROBES.map(
   (probe) => probe.connectorId,
 );
 
-let cache: { ids: ReadonlySet<string>; expiresAt: number } | null = null;
+type ConnectorObservation = { readonly verified: boolean; readonly checkedAt: number };
+let cache: {
+  ids: ReadonlySet<string>;
+  expiresAt: number;
+  observations: ReadonlyMap<string, ConnectorObservation>;
+} | null = null;
+
+/** The last observations already made by this process. Reading them starts no probe. */
+export function readConnectorObservations(): ReadonlyMap<string, ConnectorObservation> {
+  return cache?.observations ?? new Map();
+}
 
 /** Test seam: drop the in-process cache. */
 export function clearConnectorVerificationCache(): void {
@@ -177,7 +187,15 @@ export async function getVerifiedConnectorIds(
   const ids: ReadonlySet<string> = new Set(
     outcomes.filter(([, ok]) => ok).map(([id]) => id),
   );
-  cache = { ids, expiresAt: now + VERIFICATION_TTL_MS };
+  cache = {
+    ids,
+    expiresAt: now + VERIFICATION_TTL_MS,
+    observations: new Map(
+      outcomes
+        .filter(([id]) => id !== "dotloop")
+        .map(([id, verified]) => [id, { verified, checkedAt: now }]),
+    ),
+  };
   return ids;
 }
 
@@ -237,9 +255,12 @@ export async function verifyConnectorNow(
   } else {
     baseline.delete(connectorId);
   }
+  const observations = new Map(validCache?.observations);
+  if (!def.cached) observations.set(connectorId, { verified, checkedAt: now });
   cache = {
     ids: baseline,
     expiresAt: validCache?.expiresAt ?? now + VERIFICATION_TTL_MS,
+    observations,
   };
   return { supported: true, verified };
 }
