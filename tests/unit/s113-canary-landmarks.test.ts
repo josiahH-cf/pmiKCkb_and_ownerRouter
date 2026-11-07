@@ -135,6 +135,7 @@ interface GuidedOptions {
   primaryTargetPresent?: boolean;
   workFieldsOutsideNow?: number;
   workingFigureFeedbackPresent?: boolean;
+  openDialogs?: number;
   primaryTop?: number;
   primaryBottom?: number;
   viewportHeight?: number;
@@ -183,6 +184,7 @@ function guidedFixture(options: GuidedOptions = {}): Page {
     evaluate: async () => ({
       primaryBeforeContext: options.primaryBeforeContext ?? true,
       workingFigureFeedbackPresent: options.workingFigureFeedbackPresent ?? true,
+      openDialogs: options.openDialogs ?? 0,
       primaryTop: options.primaryTop ?? 100,
       primaryBottom: options.primaryBottom ?? 144,
       viewportHeight: options.viewportHeight ?? 800,
@@ -317,6 +319,7 @@ describe("S113 candidate and captured predecessor workspace landmarks", () => {
       { viewportWidth: 0 },
       { workFieldsOutsideNow: 1 },
       { workingFigureFeedbackPresent: false },
+      { openDialogs: 1 },
       {
         primaryLabel: "Add the owner's email on the owner record in RentVine",
         primaryTarget: "renewal-card-message-owner",
@@ -348,12 +351,16 @@ describe("S113 candidate and captured predecessor workspace landmarks", () => {
       primaryTargetPresent: false,
       workFieldsOutsideNow: 0,
       workingFigureFeedbackPresent: true,
+      openDialogs: 0,
       primaryTop: 100,
       primaryBottom: 144,
       viewportHeight: 800,
       viewportWidth: 1280,
     };
     expect(countIndependentGuidedWorkspaceMismatches(snapshot)).toBe(0);
+    expect(
+      countIndependentGuidedWorkspaceMismatches({ ...snapshot, openDialogs: 1 }),
+    ).toBe(1);
     expect(
       countIndependentGuidedWorkspaceMismatches({
         ...snapshot,

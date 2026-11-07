@@ -13,7 +13,7 @@ export const HELP_CHANGELOG: readonly HelpChangelogEntry[] = [
     summary:
       "V2.1, each path step keeps its work on Now, covered and assisted continuations follow the lease, reply and draft recovery stay in place, required fields and missing-source fixes name the next action, newer typing survives saves and view changes, financial recovery focuses its own field, delivery preparation waits for current working figures, Copy reports unconfirmed figures, and comparison times use Central time",
     affectedGuides: ["work-a-renewal", "tenant-offer", "compare-rent"],
-    contentDigest: "22ff3d9e26b5c47ca09cc821a7e2e3b77637dd1f20cf5396e3c5b4badce2264c",
+    contentDigest: "77ad8863d1a4faf13e6f2bab70257ee18e17986bc8e7f86a302ef4c7226da028",
   },
   {
     version: "V2.0",

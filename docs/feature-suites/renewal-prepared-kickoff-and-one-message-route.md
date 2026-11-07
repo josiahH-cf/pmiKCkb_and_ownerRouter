@@ -101,6 +101,10 @@ choose to work. RentVine readable; RentCast allowance available for a new lookup
   retained Full editor shares that value. Its notice uses that field's rendered label, the
   focused field and nearby retry scroll into view, and the refusal clears only after that
   field is confirmed. Generated input IDs and all retained editors stay intact.
+  If an entered figure prevents a Gmail preview, its empty dialog closes before the field
+  receives recovery focus. The dialog completes its ordinary focus return first; keyboard
+  work continues at the failed input. Successful exact previews retain their review and
+  separate confirmation. An earlier deliberate cancel or step change keeps its newer focus.
   The relevant confirmed field versions are checked again after composition and communication
   draft saving. If a newer value arrived during either wait, an older exact review stays closed
   and the Now action asks for the current message to be reviewed again. The saved application

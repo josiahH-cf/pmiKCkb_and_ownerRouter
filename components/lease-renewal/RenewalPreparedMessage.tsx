@@ -158,7 +158,8 @@ export interface PreparedMessageApi {
       readonly body: string;
       readonly to: string;
     } | null;
-    readonly requestPreview: () => Promise<void>;
+    /** A failed field returns its local recovery, after the empty review dialog closes. */
+    readonly requestPreview: () => Promise<void | (() => void)>;
     readonly create: () => Promise<void>;
     readonly cancel: () => void;
   };
@@ -374,6 +375,31 @@ function PreparedMessageBlock({
   const [scheduleDate, setScheduleDate] = useState(tomorrowIso);
   const [scheduleTime, setScheduleTime] = useState("09:00");
   const [draftOpen, setDraftOpen] = useState(false);
+  const draftOpenRef = useRef(false);
+  const failedDraftRecovery = useRef<(() => void) | null>(null);
+  const finishDraftRecovery = useCallback(() => {
+    const recover = failedDraftRecovery.current;
+    failedDraftRecovery.current = null;
+    recover?.();
+  }, []);
+  useEffect(() => {
+    draftOpenRef.current = draftOpen && Boolean(previewSlot);
+  }, [draftOpen, previewSlot]);
+  function closeDraft() {
+    draftOpenRef.current = false;
+    setDraftOpen(false);
+  }
+  async function showDraftPreview() {
+    draftOpenRef.current = true;
+    setDraftOpen(true);
+    const recover = await api.draft.requestPreview();
+    if (recover) {
+      // A deliberate cancel or step change keeps its newer focus. Otherwise the failed
+      // preview closes first, and the dialog's ordinary focus return finishes before recovery.
+      if (draftOpenRef.current) failedDraftRecovery.current = recover;
+      closeDraft();
+    }
+  }
   const [signatureOpen, setSignatureOpen] = useState(false);
   const [signature, setSignature] = useState<PreparedSignatureFields>({
     name: "",
@@ -953,8 +979,7 @@ function PreparedMessageBlock({
           <Button
             disabled={!api.draft.available || api.draft.pending}
             onClick={() => {
-              setDraftOpen(true);
-              void api.draft.requestPreview();
+              void showDraftPreview();
             }}
             size="compact"
             variant="secondary"
@@ -1023,8 +1048,7 @@ function PreparedMessageBlock({
         disabled={!api.draft.available || api.draft.pending || busy}
         onClick={(event) => {
           trigger.current = event.currentTarget;
-          setDraftOpen(true);
-          void api.draft.requestPreview();
+          void showDraftPreview();
         }}
         size="compact"
         variant="secondary"
@@ -1107,11 +1131,12 @@ function PreparedMessageBlock({
         confirmLabel="Create this unsent draft"
         description="Review the exact unsent draft. Confirming creates it in the displayed managed mailbox. Nothing is sent; a person sends it from Gmail."
         onCancel={() => {
-          setDraftOpen(false);
+          closeDraft();
           api.draft.cancel();
         }}
+        onAfterClose={finishDraftRecovery}
         onConfirm={() => {
-          void api.draft.create().then(() => setDraftOpen(false));
+          void api.draft.create().then(closeDraft);
         }}
         open={draftOpen}
         title={staleDraft ? KICKOFF_WORDS.replaceDraft : KICKOFF_WORDS.createGmailDraft}

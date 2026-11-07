@@ -507,6 +507,7 @@ function MessagePreparationEditor({
     [notice, setNotice] = useState("");
   const [confirming, setConfirming] = useState(false);
   const workingRefusal = useRef<{ field: string; message: string } | null>(null);
+  const workingRefusalControl = useRef<HTMLElement | null>(null);
   useEffect(() => {
     const refusal = workingRefusal.current;
     if (refusal && working?.hasUnsettled && !working.hasUnsettled([refusal.field])) {
@@ -629,9 +630,10 @@ function MessagePreparationEditor({
     });
   }, [adopt, channel, leaseId]);
   /** A transport reads the confirmed entered figures. Blank and unrelated fields stay usable. */
-  async function settleWorkingFields(): Promise<boolean> {
+  async function settleWorkingFields(restoreFocus = true): Promise<boolean> {
     if (!working?.settle) return true;
     setNotice("");
+    workingRefusalControl.current = null;
     const result = await working.settle(messageWorkingFields);
     if (!result.ok) {
       const control = result.controlId ? document.getElementById(result.controlId) : null;
@@ -641,8 +643,9 @@ function MessagePreparationEditor({
           : null;
       const message = `${label || workingFieldLabel(result.field)} is not confirmed. Your entry is kept; correct or retry its save before preparing this message.`;
       workingRefusal.current = { field: result.field, message };
+      workingRefusalControl.current = control;
       setNotice(message);
-      if (control) focusWorkingField(control);
+      if (restoreFocus && control) focusWorkingField(control);
       return false;
     }
     // The normal projection is read after the acknowledgments. If another entry arrived while
@@ -1011,6 +1014,7 @@ function MessagePreparationEditor({
   async function draft(
     kind: "preview" | "create" | "reconcile",
     priorExecutionId?: string,
+    deferWorkingFocus = false,
   ) {
     setPending(true);
     setConfirming(false);
@@ -1021,7 +1025,16 @@ function MessagePreparationEditor({
       let preview: Record<string, unknown> = {};
       let savedWith: string | null = null;
       if (kind === "preview") {
-        if (!(await settleWorkingFields())) return;
+        if (!(await settleWorkingFields(!deferWorkingFocus))) {
+          if (outcome?.status === "preview") setOutcome(null);
+          if (deferWorkingFocus) {
+            const control = workingRefusalControl.current;
+            return () => {
+              if (control) focusWorkingField(control);
+            };
+          }
+          return;
+        }
         // An autosave already on its way finishes first, so the two never save over each other.
         await saving.current?.catch(() => undefined);
         const server = currentRef.current;
@@ -1344,9 +1357,11 @@ function MessagePreparationEditor({
         <PreparedMessageSlot
           data={preparedData}
           onCopy={() => copy("formatted")}
-          onDraftCreate={() => draft("create")}
+          onDraftCreate={async () => {
+            await draft("create");
+          }}
           onDraftRecover={() => recoverDraft()}
-          onDraftPreview={() => draft("preview")}
+          onDraftPreview={() => draft("preview", undefined, true)}
           onFlush={flush}
           onOpenComposer={(event) => void openComposer(event)}
           onReasonChange={(value) =>

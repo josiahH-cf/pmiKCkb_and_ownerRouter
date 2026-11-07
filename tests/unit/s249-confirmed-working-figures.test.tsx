@@ -10,6 +10,7 @@ import {
   within,
 } from "@testing-library/react";
 import { useState } from "react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -478,6 +479,17 @@ describe("a reviewed message uses confirmed working figures", () => {
       expect(api.calls.filter((call) => call.body?.kind === "draft")).toHaveLength(0);
       expect(replace).not.toHaveBeenCalled();
       if (transport === "Open in Communications") expect(close).toHaveBeenCalledOnce();
+      if (transport === "Create Gmail draft instead") {
+        await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+        await waitFor(() => expect(input).toHaveFocus());
+        const user = userEvent.setup();
+        await user.tab();
+        await screen.findByText("Saved");
+        await user.keyboard("{Escape}");
+        expect(screen.queryByRole("dialog")).toBeNull();
+        expect(api.record()?.fields.terms_rent?.value).toBe(1499);
+        expect(api.calls.filter((call) => call.body?.kind === "draft")).toHaveLength(0);
+      }
     });
   }
 

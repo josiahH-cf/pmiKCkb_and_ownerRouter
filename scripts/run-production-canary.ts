@@ -871,6 +871,13 @@ async function hasGuidedWorkspaceLandmarks(
       (element.getAttribute("data-renewal-now-step") === "ask-owner" &&
         action?.textContent?.trim() === "Review and send");
     return {
+      openDialogs: [
+        ...document.querySelectorAll<HTMLElement>('[role="dialog"][aria-modal="true"]'),
+      ].filter(
+        (dialog) =>
+          dialog.getClientRects().length > 0 &&
+          getComputedStyle(dialog).visibility !== "hidden",
+      ).length,
       workingFigureFeedbackPresent:
         (!needsRent || rentWidgets.length === 1) &&
         rentWidgets.every((widget) => {

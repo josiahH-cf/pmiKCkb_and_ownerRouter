@@ -3,7 +3,7 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ConfirmationDialog } from "@/components/ui";
@@ -14,6 +14,44 @@ afterEach(() => {
 });
 
 describe("S86 ConfirmationDialog", () => {
+  it("finishes a failed field's recovery after the dialog closes and ordinary trigger focus returns", async () => {
+    const returned: string[] = [];
+    function FailedFieldHarness() {
+      const [open, setOpen] = useState(false);
+      const field = useRef<HTMLInputElement>(null);
+      const trigger = useRef<HTMLButtonElement>(null);
+      const recover = useCallback(() => {
+        returned.push(document.activeElement?.textContent ?? "");
+        field.current?.focus();
+      }, []);
+      return (
+        <>
+          <input aria-label="Unconfirmed rent" defaultValue="1499" ref={field} />
+          <button onClick={() => setOpen(true)} ref={trigger}>
+            Open failed preview
+          </button>
+          <ConfirmationDialog
+            open={open}
+            title="Failed preview"
+            confirmLabel="Create"
+            confirmDisabled
+            triggerRef={trigger}
+            onAfterClose={recover}
+            onCancel={() => setOpen(false)}
+            onConfirm={() => undefined}
+          />
+        </>
+      );
+    }
+    const user = userEvent.setup();
+    render(<FailedFieldHarness />);
+    await user.click(screen.getByRole("button", { name: "Open failed preview" }));
+    expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(returned).toEqual(["Open failed preview"]);
+    expect(screen.getByLabelText("Unconfirmed rent")).toHaveFocus();
+  });
   for (const removed of [false, true]) {
     it(`returns to the fallback when the original trigger is ${removed ? "removed" : "disabled"}`, async () => {
       const user = userEvent.setup();

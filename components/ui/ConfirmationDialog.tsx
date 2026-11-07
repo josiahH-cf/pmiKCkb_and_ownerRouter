@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useCallback,
   useId,
   useRef,
   type KeyboardEvent,
@@ -37,6 +38,7 @@ export function ConfirmationDialog({
   onConfirm,
   triggerRef,
   fallbackFocusRef,
+  onAfterClose,
 }: Readonly<{
   open: boolean;
   title: ReactNode;
@@ -54,12 +56,19 @@ export function ConfirmationDialog({
   triggerRef?: RefObject<HTMLElement | null>;
   /** A usable continuation when the original trigger is disabled or removed by the outcome. */
   fallbackFocusRef?: RefObject<HTMLElement | null>;
+  /** Runs after ordinary focus restoration, for a failed operation's actual input recovery. */
+  onAfterClose?: () => void;
 }>) {
   const titleId = useId();
   const descriptionId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  // The continuation can appear only after the operation, so read it when closing.
+  const currentFallback = useCallback(
+    () => fallbackFocusRef?.current,
+    [fallbackFocusRef],
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -77,11 +86,12 @@ export function ConfirmationDialog({
             '[hidden], [inert], [data-renewal-focus-hidden], [aria-hidden="true"]',
           );
         const previous = previousFocusRef.current;
-        const target = usable(previous) ? previous : fallbackFocusRef?.current;
+        const target = usable(previous) ? previous : currentFallback();
         if (usable(target)) target?.focus();
+        onAfterClose?.();
       });
     };
-  }, [open, triggerRef, fallbackFocusRef]);
+  }, [open, triggerRef, currentFallback, onAfterClose]);
 
   if (!open) return null;
 

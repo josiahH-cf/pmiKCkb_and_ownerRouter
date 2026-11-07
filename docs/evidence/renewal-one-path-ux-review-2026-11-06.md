@@ -330,6 +330,18 @@ the field and nearby status. Its error names the rendered field label. Only that
 clears after its own confirmed recovery. Existing IDs, controls and view navigation stay intact.
 Verification is pending; the earlier partial safety/value pass does not pass this focus outcome.
 
+UX-038, introduced by the financial focus recovery on `c1981cd8`: a refused Gmail preview
+kept its modal open with Create disabled while focus moved to the underlying rent input.
+Tab then moved to BODY, and Escape left the modal open after 25 seconds; only pointer Cancel
+closed it. No draft was created or confirmed. This excludes keyboard users from a core task
+(P12, P13, P14; SC05, SC09, SC10), with top priority. A failed financial preparation now returns
+its local focus recovery to the existing preview controller. The empty dialog closes first,
+finishes ordinary focus restoration and then focuses the actual field and its nearby retry.
+Create and Replace share that controller. A successful preview and its separate exact
+confirmation retain their original behavior; an earlier cancel/step change keeps its own focus.
+This client-only recovery callback changes no request, permission, provider seam or saved record.
+The focused mounted keyboard case and actual browser recheck are pending.
+
 Preserved by decision: exact review/confirmation, the required Gmail banner, stale authored wording,
 who-approved validation, role/Space and Action Registry checks, blank unsettled legal fields,
 assistance-animal holds, existing controls/views/filters/collections/old links, historical failed
