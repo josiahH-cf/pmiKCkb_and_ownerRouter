@@ -43,7 +43,9 @@ their own evidence. The current release changes no workflow authority or held cl
 ## Awaiting release
 
 The queue is empty. Run `72c6456a` delivered S246–S254 in one candidate.
-Documentation closure does not require an application revision.
+Documentation closure does not require an application revision. The [November 7 follow-up](feature-suites/README.md#november-7-renewal-usability--finalized-specifications)
+is authoring ready, with [S259](feature-suites/renewal-usability-final-journey-litmus.md) last.
+Its [execution handoff](renewal-ux-followup-handoff.md) awaits the owner's launch.
 
 ## Continuation contract
 

@@ -3,24 +3,20 @@
 
 # S224 — Staff business profiles and message signatures
 
-> Status: READY — finalized authoring contract; not implemented, queued, activated or released by this specification. Execution requires explicit owner direction under the existing native loop.
+> Status: READY. The business profile contract, intake 096, shipped in run `5b3dfb90`. November 7 intake 125 finalizes the sender setup and message readiness revision for future implementation.
 
 **Goal.**
 
-Manage staff business titles and contact details clearly and reuse them in accurate future message signatures.
+Staff can prepare a message, resolve its actual required inputs and review exactly what will
+leave the app. Each managed sender has an explicit saved signature choice, including blank.
 
 **Current state / intended end state.**
 
-Current: Access roles such as Admin/Editor govern permissions. Retained sender signatures already exist in lib/firestore/renewal-sender-signatures.ts for the actor’s own email and presentation fields. Those are not an organization-wide business profile or permission service.
-
-Intended: Admin can maintain staff business title and approved business contact details; current staff can see their profile and preview the resulting own-sender signature in workflow communications.
-
-The current implementation baseline was inspected in the clean WSL main checkout at
-`43bad3adc7777ea035bc70eb8d2bee913427c810`; production readback identified the October 8
-serving revision `pmi-kc-app-rmuz9g28p-0a2909d490e1` at
-`337ac163c5709381e8db8d2c18810bec357d8a96`. The Windows authoring checkout is older and contains
-unrelated work. Re-verify the implementation checkout and live state before execution; these
-observations do not authorize copying/resetting either checkout or rerunning completed proofs.
+The November 7 rehearsal at `ef81b891` showed Send and Schedule in Communications beside a
+notice that the managed sender had no approved business profile. The current sequence service
+can build a message snapshot with a null signature. The lease kickoff form requires a sender
+name for new signature setup. Approved Admin profiles and staff-retained signatures already
+exist. The revision provides one sender setup and a shared readiness check on outgoing actions.
 
 **Actors and entry conditions.**
 
@@ -33,34 +29,80 @@ working data and deterministic test fixtures.
 
 **What it is / how it functions.**
 
-Admin can maintain staff business title and approved business contact details; current staff can see their profile and preview the resulting own-sender signature in workflow communications. Each requirement below is independently falsifiable; implementation must satisfy the
-structural obligation and the observed behavior, including the named failure/alternate cases.
+Retain Admin ownership of approved staff business profiles and staff ownership of their own
+managed-sender signature. R-S224-1 through R-S224-5 preserve the versioned profile, same-sender
+prefill, prior retained values and exact preview. The revision adds the following.
+
+- **R-S224-6 — Save the sender's signature choice.** Put a clear setup or edit action in
+  preparation and make the same setting reachable from the sender's profile. Prefill
+  available approved business details for that sender and let them save filled fields or
+  explicitly save a blank signature. Every visible signature field is optional. The
+  managed identity still comes from the session and existing responsibility rules.
+  A blank save is versioned and distinguishable from an absent, unreadable or other-sender
+  record. Blank inserts no signature text or missing-value marker. A valid existing
+  saved signature for the same sender satisfies setup. Approved profile prefill respects
+  an explicitly saved blank. Show save, failure and retry state. Return to the same draft
+  with edits retained.
+- **R-S224-7 — Require only the inputs of the exact outgoing message.** Determine readiness
+  from the actual purpose, audience, recipient or reply thread, selected content and any
+  attachments in the exact message. Retain verified sender, recipient, source, publication
+  and attachment gates where they apply. A rent recommendation requires its rent. A
+  renewal offer requires the terms it offers. An assisted renew-or-not message can be
+  ready before rent is set. Omit unused optional content before exact review and show
+  the same resulting message on each outgoing path. An unresolved required value or
+  outgoing placeholder names the fact
+  and links to its owner. Text edits do not supply verified facts. Staff can still
+  prepare, save, refine and Copy in-app wording, including marked working text. Give
+  the same readiness reasons on the lease and in Communications.
+- **R-S224-8 — Apply readiness at every supported outgoing boundary.** Apply R-S224-6 and
+  R-S224-7 to existing customer-facing Send, Schedule, Resume, linked replies and Create
+  Gmail draft paths, including replacement drafts. Check each message being authorized,
+  including follow-up wording only when it is in scope. Show the exact payload with its
+  signature choice and enforce readiness on the server at review and final claim,
+  including scheduled dispatch. Use the existing exact confirmation, one-attempt claim,
+  receipt and ambiguity recovery. Changed material inputs require fresh exact review.
+  Opening, preparing and checking readiness create no effect.
+- **R-S224-9 — Handle existing drafts and schedules explicitly.** Keep historical sends and
+  exact approved snapshots readable. A prior schedule can dispatch under its existing
+  gates when its immutable authorization proves the required inputs and configured
+  signature for its own sender. When that evidence is missing, show the hold and offer
+  setup and fresh review or Resume. Preserve approved bytes, timing, counts and receipts.
+  A sender takeover rebinds to that person's setup and requires their fresh exact review.
+  Reconcile an ambiguous existing attempt through its original receipt flow.
 
 **In scope / out of scope.**
 
-Business presentation metadata and future signatures. No IAM/claim change, new staff account, identity impersonation, Gmail global signature management or change to existing approved message bytes.
+Business profiles, sender-owned setup, and readiness of already-supported customer-facing
+message actions are in scope. The existing managed-mailbox and workflow authority define
+each action. Internal transactional notices, document signatures and activity performed
+manually in Gmail are separate contracts.
 
 **Open questions & assumptions.**
 
-No missing behavior decision. Actual titles, phones and hours are runtime business data entered by authorized Admin; they are not inferred from role or invented during implementation.
+The owner accepted Q5 and confirmed a saved blank signature and message-specific required
+fields. Actual approved profile details, message facts and managed mailbox authority come
+from their existing owners. Incomplete drafts remain editable and copyable.
 
 **Cross-product impacts.**
 
 - Admin staff management and existing managed staff identity projection.
 - lib/firestore/renewal-sender-signatures.ts; lib/lease-renewal/renewal-message-preparation.ts.
-- S187 composer and S188 managed sender ownership.
+- S187 composer, S188 managed sender ownership, S189–S192 sequence authorization and dispatch,
+  S162 draft transport, S249 renewal-message readiness, and S242 Help checks.
+- `app/profile/page.tsx`, `lib/gmail-hub/sequence-service.ts`, the linked reply owner and
+  `lib/lease-renewal/execution/renewal-notice-draft-service.ts`.
 
 These are evidence-grounded owning areas, not an instruction to create an invented file/schema.
 Use the current owning service when the implementation checkout differs.
 
 **Authority and evidence map.**
 
-| Input                                                                              | Classification                                | Use and limitation                                                                                                                         |
-| ---------------------------------------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| Router; current committed source/tests; fresh readback                             | Current authority and implementation evidence | Establish current boundaries and starting state; authoring changes no live key, role, setting or provider state.                           |
-| October 8 meeting/PDF/images and October 9 owner corrections in this clarification | Confirmed product intent                      | Establish the desired behavior in the requirement rows. New explicit corrections govern; historical screenshots are not operational proof. |
-| Existing native suites and actual provider contracts                               | Compatibility and integration evidence        | Reuse delivered behavior and exact provider semantics; absent inputs do not become assumed capabilities.                                   |
-| WSL baseline and October 8 serving identity above                                  | Bounded observation                           | Prevent stale Windows code from being mistaken for current implementation; re-verify before execution.                                     |
+| Input                                                                              | Classification                                             | Use and limitation                                                                                                                         |
+| ---------------------------------------------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Router; current committed source/tests; fresh readback                             | Current authority and implementation evidence              | Establish current boundaries and starting state; authoring changes no live key, role, setting or provider state.                           |
+| October 8 meeting/PDF/images and October 9 owner corrections in this clarification | Confirmed product intent                                   | Establish the desired behavior in the requirement rows. New explicit corrections govern; historical screenshots are not operational proof. |
+| Existing native suites and actual provider contracts                               | Compatibility and integration evidence                     | Reuse delivered behavior and exact provider semantics; absent inputs do not become assumed capabilities.                                   |
+| November 7 rehearsal and accepted Q5                                               | Browser observation, committed source and confirmed intent | A saved same-sender choice is required, blank is valid, and the exact message determines its required facts.                               |
 
 **Architecture outcome (deterministic, fail-first).**
 
@@ -70,6 +112,15 @@ Use the current owning service when the implementation checkout differs.
 - **ARCH-S224-4** — Record the signature version/content in the prepared message; later profile edits apply to new preparation and require the normal explicit schedule update to change an approved schedule.
 - **ARCH-S224-5** — Preserve prior actor-owned signature values, make conflicts with Admin profile visible, and choose current profile for new prefill without rewriting prior snapshots.
 
+- **ARCH-S224-6** — The sender identity and signature owner distinguish a saved blank from
+  absent and unreadable state. Fail-first: an empty form cannot save setup or an absent
+  signature can authorize an outgoing message.
+- **ARCH-S224-7** — One exact-payload readiness decision is shared by the lease, composer,
+  preview and final claim owners. Fail-first: an unused lease field blocks a path or a direct
+  request bypasses a required input.
+- **ARCH-S224-8** — Signature and required facts bind to immutable outgoing authorization.
+  Fail-first: a changed sender or legacy snapshot without proof can reach a provider claim.
+
 **Behavior outcome (deterministic, fail-first).**
 
 - **BEH-S224-1** — Manage business title separately from access role. Changing a title such as Property Manager changes presentation only; Admin/Editor permissions and claims remain unchanged. Invalid or unknown staff identities cannot be assigned profiles.
@@ -78,16 +129,24 @@ Use the current owning service when the implementation checkout differs.
 - **BEH-S224-4** — Keep prepared and approved message content stable. An Admin title change does not mutate a queued exact message or historical send; new composition can deliberately use the current profile.
 - **BEH-S224-5** — Migrate existing retained signatures without losing useful staff data. Existing staff can inspect their prior signature and current profile; migration/retry cannot delete history or silently change a sent/approved payload.
 
+- **BEH-S224-6** — A new sender saves blank once, returns to the same draft and proceeds
+  when the required inputs are ready. Missing and unavailable states point to their
+  remedies. Preview shows exactly the choice that was saved.
+- **BEH-S224-7** — Copy and in-app editing work with incomplete information. Each outgoing
+  route names only its required inputs and refuses consistently at the server. A held
+  legacy schedule shows the reason and the existing review path.
+
 **Human litmus outcome.**
 
 ### Staff business profiles and message signatures
 
-**If this was built correctly:** Manage staff business titles and contact details clearly and reuse them in accurate future message signatures. A staff operator can carry out the primary journey,
-understand the stated pending/failure states and recover without silently losing work or creating a
-duplicate effect. The implementation evidence must exercise the specific scenarios in every row.
+**If this was built correctly:** A new staff member opens a prepared message, saves a blank
+signature and returns to the same wording. They can resolve a missing recipient or lease
+fact from the action that needs it. They can edit or copy their work. Final review shows
+the exact outgoing message and its destination.
 
-- Model verdict: ENGINEERING VERIFIED / DELIVERED — all mapped engineering scopes and independent deployment verified in run 5b3dfb90 /780f48db; exact CI, full observation, eleven readbacks and mobile scope are recorded in the native ledger. Human NOT RUN; no customer send was test proof.
-  with evidence after execution.
+- Model verdict: November 7 revision NOT RUN. The original profile contract has scoped
+  engineering and delivery evidence in run `5b3dfb90`.
 - Human verdict: NOT RUN — no human observer.
 
 **Requirement-to-outcome traceability.**
@@ -99,6 +158,16 @@ duplicate effect. The implementation evidence must exercise the specific scenari
 | R-S224-3: Use the responsible sender’s profile for future composition.           | `ARCH-S224-3`        | `BEH-S224-3`     | Staff business profiles and message signatures | `AC-S224-3`: Two staff users see their own correct signature; takeover loads the new responsible staff profile and never borrows another mailbox identity.                                               |
 | R-S224-4: Keep prepared and approved message content stable.                     | `ARCH-S224-4`        | `BEH-S224-4`     | Staff business profiles and message signatures | `AC-S224-4`: An Admin title change does not mutate a queued exact message or historical send; new composition can deliberately use the current profile.                                                  |
 | R-S224-5: Migrate existing retained signatures without losing useful staff data. | `ARCH-S224-5`        | `BEH-S224-5`     | Staff business profiles and message signatures | `AC-S224-5`: Existing staff can inspect their prior signature and current profile; migration/retry cannot delete history or silently change a sent/approved payload.                                     |
+
+November 7 requirements for intake 125. The rows above retain the original program's
+requirement identities.
+
+| Requirement                              | Architecture outcome     | Behavior outcome | Human litmus                                   | Deterministic evidence / falsification                                                    |
+| ---------------------------------------- | ------------------------ | ---------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `R-S224-6` saved sender setup            | ARCH-S224-6              | BEH-S224-6       | Staff business profiles and message signatures | AC-S224-6. Compare absent, unreadable, retained, explicitly blank and wrong-sender cases. |
+| `R-S224-7` message-specific inputs       | ARCH-S224-7              | BEH-S224-7       | Staff business profiles and message signatures | AC-S224-7. Exercise required and omitted facts for each message type.                     |
+| `R-S224-8` outgoing admission            | ARCH-S224-7, ARCH-S224-8 | BEH-S224-7       | Staff business profiles and message signatures | AC-S224-8. Exercise every supported action, exact claim and refusal.                      |
+| `R-S224-9` existing drafts and schedules | ARCH-S224-8              | BEH-S224-7       | Staff business profiles and message signatures | AC-S224-9. Use snapshots with and without provable readiness and a changed sender.        |
 
 **Preservation set.**
 
@@ -112,6 +181,24 @@ Managed-domain identities, existing authentication/roles, own-sender signature o
 - **AC-S224-4** — Falsify `ARCH-S224-4` / `BEH-S224-4`: An Admin title change does not mutate a queued exact message or historical send; new composition can deliberately use the current profile.
 - **AC-S224-5** — Falsify `ARCH-S224-5` / `BEH-S224-5`: Existing staff can inspect their prior signature and current profile; migration/retry cannot delete history or silently change a sent/approved payload.
 
+- **AC-S224-6** — As a managed sender with no setup, inspect the same blocked action on
+  the lease and in Communications. Save blank, reload, and compare preview and adapter
+  payload. Exercise failed save, unavailable read and another sender. Confirm identity
+  and permissions (ARCH-S224-6, BEH-S224-6).
+- **AC-S224-7** — Check each existing message type. Omit an optional detail and an
+  unused resource. Remove a required recipient, rent, offer term, resource or selected
+  attachment in its applicable scenario. Only applicable deficiencies hold the action
+  and each points to its owner. Copy and edit in every case (ARCH-S224-7, BEH-S224-7).
+- **AC-S224-8** — Use deterministic adapters for Send, Schedule, Resume, linked reply and
+  Gmail draft creation/replacement. Missing setup or a required fact refuses a direct
+  request before an effect. Change inputs after exact review and verify conflict. With
+  a saved blank and ready facts, assert exact confirmation, identical authorized and
+  resulting content, one effect and its receipt (ARCH-S224-7, ARCH-S224-8).
+- **AC-S224-9** — Dispatch a previously authorized and provably ready snapshot with its
+  approved bytes. Hold a snapshot that lacks required proof. Verify sender takeover,
+  pause, Resume, restart and ambiguous-attempt recovery preserve history and require
+  the applicable fresh review (ARCH-S224-8, BEH-S224-7).
+
 **Forbidden actions / hard gates.**
 
 This authoring request does not implement, commit, push, deploy, activate, send or mutate provider
@@ -124,7 +211,9 @@ unrelated identity, cost, security, provider action or historical proof rerun.
 
 **Dependencies / sequencing.**
 
-Consumes S188 sender identity and S187 exact preview; can deliver independent Admin profile management with signature preview. S183 preserves role distinction.
+Consumes S188 sender identity, S187 exact preview, and the existing authorization, dispatch
+and draft owners. S183 preserves role distinction. This suite supplies the shared readiness
+contract to S162 and S249.
 
 **Standalone delivery contract.**
 

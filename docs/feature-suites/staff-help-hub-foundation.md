@@ -3,7 +3,7 @@
 
 # S242 — Staff help hub foundation: section, navigation, content model, versioning, print
 
-> Status: DELIVERED 2026-11-04 by run 74d79a9d at 323e8be3; its S245 litmus repairs (unknown step ids land on the section page, pictures declare their size, screen control rows have unique keys) DELIVERED 2026-11-05 by run 6951545a at 3f2e3f5d; its print repair from the same litmus (every help heading stays with the content it introduces) DELIVERED 2026-11-05 by run 8bf183d8 at 5b5c65c6; authoring FINAL / READY (intake 108). Owner decisions of 2026-11-04: help content is repository-managed and ships as a release; screenshots come from the isolated synthetic rehearsal, with blurred production captures only where the rehearsal cannot show a state; one global help version; browser print; a table of contents sidebar with collapsible sections; a backend coverage check proves every developed staff feature is documented.
+> Status: November 7 verification revision AUTHORING READY, intake 128. The Help foundation and its November 5 repairs are delivered. The required browser gate and reviewable capture evidence await implementation.
 
 **Goal.**
 
@@ -16,11 +16,16 @@ names exists in the real interface, and that every screenshot a guide references
 
 **Current state / intended end state.**
 
-Authoring baseline: main `173ad2a602111fb4e8c2446ecbad96299a17d2dd` (PR 173 merged
-2026-11-04); production serves `b5ba780279be0eb5661e463d2e73b5add1064056` /
-`pmi-kc-app-rmw123csb-dc0ce89a8583` at 100% traffic. This is a newly specified delta.
+The November 7 rehearsal of `ef81b891` showed Help V2.1. The canonical local gate and
+CI policy lane run coverage, source control names, image references and copy checks.
+The separate `run-help-rehearsal.sh --controls` verifies rendered controls. Scene check
+mode renders and hashes scenes. The revision makes rendered drift and affected scene
+fidelity part of required verification.
 
-Present behavior, verified in source:
+Original November 4 authoring baseline was main `173ad2a6`, with `b5ba7802` serving.
+The starting interface for that original delivery is recorded below.
+
+November 4 starting behavior, verified in source:
 
 - There is no Help section and no help entry in `lib/navigation/primary-navigation.ts`
   (`PRIMARY_NAVIGATION_MANIFEST` has the groups My Work, Operations and Admin; the Dashboard item
@@ -140,10 +145,30 @@ post-implementation machine litmus is S245.
   Closed gates are described as present behavior (what the screen shows and what the staff member
   does next). The phrase list is a constant in the gate so it can be extended.
 
+- **R-S242-11 — Require rendered Help verification.** Run the existing synthetic browser
+  Help checks as a required part of `bash scripts/verify.sh` and required CI. Tie them to the
+  app revision being verified. For affected guides and screen references, verify documented
+  route, role, region, exact accessible control and applicable state. Reuse the current
+  manifest and fixtures. Shared shell or unclear impact requires checking the applicable
+  whole inventory. Missing or misnamed controls and broken navigation fail the gate.
+  A missing fixture for a required synthetic state fails with its owner and case named.
+  Record any explicitly conditional state that needs separate evidence, with its reason,
+  and keep it distinct from a pass. Keep the source and mounted checks as separate signals.
+- **R-S242-12 — Catch and show material screenshot drift.** In the same gate, resolve and
+  compare affected synthetic scenes to the checked-in guides using stable fixtures, viewport,
+  fonts and controlled dynamic values. A material change to the documented region, action,
+  label or layout fails until the guide and picture describe the current behavior. Ignore
+  only documented rendering noise that cannot hide a relevant change. Produce reviewable
+  replacement captures for affected scenes as isolated artifacts, with current and expected
+  scene, revision and reason. Staff-facing assets, wording, changelog and version are
+  reconciled and reviewed in the application change. The check writes no source or
+  production state. Report existing provider-only scenes separately with their evidence
+  scope. S243 owns scene capture and the existing approved exception for those scenes.
+
 **In scope / out of scope.**
 
 In scope: the route family, navigation item, content model and types, version and changelog
-mechanics, sidebar and deep links, print layout, the four gates above and their unit tests, and
+mechanics, sidebar and deep links, print layout, the source and browser gates and their checks, and
 the documentation of the content model for authors (a short README under the content path).
 Out of scope: writing the guides and capturing screenshots (S243), refreshing hover and inline
 copy (S244), the adversary litmus (S245), an in-app editor, operational pages, a server-side PDF,
@@ -167,21 +192,21 @@ providers or protected paths.
 
 Surfaces: primary navigation (all staff), a new `/help` route family, print output. Stores: none
 (no Firestore collection, no provider). Gates: `bash scripts/verify.sh` gains the coverage,
-control-name, screenshot and content-rules checks; the rehearsal smoke lane gains the browser
-control check for help steps. Documentation: `docs/products/README.md` points to the hub as the
+control-name, screenshot and content-rules checks. The November 7 revision adds the
+required rendered checks and scene evidence to the local and CI verification entry points. Documentation: `docs/products/README.md` points to the hub as the
 canonical staff guidance once S243 consolidates the handouts; `docs/README.md` lists the help
 content path. Release: help content is a served asset, so every content change ships through the
 ordinary candidate, observation and readback gates.
 
 **Authority and evidence map.**
 
-| Input                                                                                             | Classification                   | Use and limitation                                                                                  |
-| ------------------------------------------------------------------------------------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------- |
-| AGENTS.md, `lib/navigation/primary-navigation.ts`, `components/ui/InfoTip.tsx`, `app/globals.css` | Authority / implementation truth | Navigation manifest shape and validator; existing help affordances; existing print rules.           |
-| `scripts/lib/renewal-guide-controls.mjs`, `scripts/check-batch005-evidence.mjs`                   | Existing pattern                 | Reuse semantic-locator control checks and route/component enumeration for the gates.                |
-| `docs/voice-and-audience.md`, `scripts/check-copy-voice.mjs`, `scripts/check-redaction.mjs`       | Authority                        | Copy rules and the customer-data boundary every help string and image must respect.                 |
-| Owner clarification 2026-11-04 (this suite's decisions)                                           | Intent evidence                  | Repository-managed content, release-shipped, browser print, global version, sidebar with dropdowns. |
-| `lib/firestore/operational-pages.ts`                                                              | Rejected alternative             | Not used for help; preserved unchanged.                                                             |
+| Input                                                                                             | Classification                      | Use and limitation                                                                                     |
+| ------------------------------------------------------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| AGENTS.md, `lib/navigation/primary-navigation.ts`, `components/ui/InfoTip.tsx`, `app/globals.css` | Authority / implementation truth    | Navigation manifest shape and validator; existing help affordances; existing print rules.              |
+| `scripts/lib/renewal-guide-controls.mjs`, `scripts/check-batch005-evidence.mjs`                   | Existing pattern                    | Reuse semantic-locator control checks and route/component enumeration for the gates.                   |
+| `docs/voice-and-audience.md`, `scripts/check-copy-voice.mjs`, `scripts/check-redaction.mjs`       | Authority                           | Copy rules and the customer-data boundary every help string and image must respect.                    |
+| Owner clarification 2026-11-04 (this suite's decisions)                                           | Intent evidence                     | Repository-managed content, release-shipped, browser print, global version, sidebar with dropdowns.    |
+| November 7 browser audit and accepted Q7                                                          | Current source and confirmed intent | Make rendered Help drift a required verification result and produce reviewable synthetic replacements. |
 
 **Architecture outcome (deterministic, fail-first).**
 
@@ -202,6 +227,14 @@ ordinary candidate, observation and readback gates.
 - **ARCH-S242-6** — The version test fails when a help content module changes without a
   `HELP_VERSION` or changelog change in the same tree.
 
+- **ARCH-S242-7** — The canonical gate and CI invoke the existing guarded, exact-revision
+  browser path and report per-step and per-scene outcomes. Fail-first: a rendered failure
+  with the expected string still in source passes required verification.
+- **ARCH-S242-8** — Deterministic scene comparison separates material drift, fixture
+  failure and documented render noise and produces reviewable synthetic evidence.
+  Fail-first: changing the framed layout while retaining the old image passes required
+  verification.
+
 **Behavior outcome (deterministic, fail-first).**
 
 - **BEH-S242-1** — Signed in as each role, the primary navigation shows Help; opening it renders
@@ -218,6 +251,10 @@ ordinary candidate, observation and readback gates.
 - **BEH-S242-5** — A guide containing a forbidden roadmap phrase or an em dash fails the content
   rules gate with the guide and phrase named.
 
+- **BEH-S242-6** — A reviewer sees the affected guide, step, role, route, region, fixture,
+  control or scene and result in the ordinary verification output. A documented
+  synthetic failure blocks it and a corrected guide or capture passes on recheck.
+
 **Human litmus outcome.**
 
 ### Find and print how to do anything in the app
@@ -228,23 +265,26 @@ open any guide, jump straight to a step from a link, see which version of the ma
 release of the app it describes, and print the guide or the entire manual to PDF from their
 browser with the pictures and the version on every page.
 
-- Model verdict: PASS | FAIL - why: completed by the implementation runner with evidence.
+- Model verdict: November 7 revision NOT RUN. The original foundation and its delivered
+  repairs retain their recorded evidence.
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**
 
-| Requirement                           | Architecture outcome | Behavior outcome | Human litmus                                 | Deterministic evidence / falsification                                          |
-| ------------------------------------- | -------------------- | ---------------- | -------------------------------------------- | ------------------------------------------------------------------------------- |
-| R-S242-1 section and navigation       | ARCH-S242-1          | BEH-S242-1       | Find and print how to do anything in the app | Navigation resolution test per role; route render test; 404 before.             |
-| R-S242-2 table of contents sidebar    | ARCH-S242-2          | BEH-S242-2       | Find and print how to do anything in the app | Mounted sidebar test for open state, toggle, announcement and narrow layout.    |
-| R-S242-3 content model                | ARCH-S242-2          | BEH-S242-1       | Find and print how to do anything in the app | Schema test over every module; a malformed module fails.                        |
-| R-S242-4 global version and changelog | ARCH-S242-6          | BEH-S242-1       | Find and print how to do anything in the app | Version appears on landing, guide header and print footer; change test.         |
-| R-S242-5 deep links                   | ARCH-S242-2          | BEH-S242-3       | Find and print how to do anything in the app | Known id scrolls and highlights; unknown id falls back visibly.                 |
-| R-S242-6 print layout                 | ARCH-S242-2          | BEH-S242-4       | Find and print how to do anything in the app | Print media render test for removed shell and present steps, images and footer. |
-| R-S242-7 coverage gate                | ARCH-S242-3          | BEH-S242-1       | Find and print how to do anything in the app | Gate fails on an undocumented route and passes with the allow-list.             |
-| R-S242-8 control-name gate            | ARCH-S242-4          | BEH-S242-1       | Find and print how to do anything in the app | Renamed label fails with guide, step and label named.                           |
-| R-S242-9 screenshot gate              | ARCH-S242-5          | BEH-S242-4       | Find and print how to do anything in the app | Missing, orphan or unmanifested image fails.                                    |
-| R-S242-10 content rules gate          | ARCH-S242-2          | BEH-S242-5       | Find and print how to do anything in the app | Forbidden phrase or em dash fails with location.                                |
+| Requirement                             | Architecture outcome | Behavior outcome | Human litmus                                 | Deterministic evidence / falsification                                                           |
+| --------------------------------------- | -------------------- | ---------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| R-S242-1 section and navigation         | ARCH-S242-1          | BEH-S242-1       | Find and print how to do anything in the app | Navigation resolution test per role; route render test; 404 before.                              |
+| R-S242-2 table of contents sidebar      | ARCH-S242-2          | BEH-S242-2       | Find and print how to do anything in the app | Mounted sidebar test for open state, toggle, announcement and narrow layout.                     |
+| R-S242-3 content model                  | ARCH-S242-2          | BEH-S242-1       | Find and print how to do anything in the app | Schema test over every module; a malformed module fails.                                         |
+| R-S242-4 global version and changelog   | ARCH-S242-6          | BEH-S242-1       | Find and print how to do anything in the app | Version appears on landing, guide header and print footer; change test.                          |
+| R-S242-5 deep links                     | ARCH-S242-2          | BEH-S242-3       | Find and print how to do anything in the app | Known id scrolls and highlights; unknown id falls back visibly.                                  |
+| R-S242-6 print layout                   | ARCH-S242-2          | BEH-S242-4       | Find and print how to do anything in the app | Print media render test for removed shell and present steps, images and footer.                  |
+| R-S242-7 coverage gate                  | ARCH-S242-3          | BEH-S242-1       | Find and print how to do anything in the app | Gate fails on an undocumented route and passes with the allow-list.                              |
+| R-S242-8 control-name gate              | ARCH-S242-4          | BEH-S242-1       | Find and print how to do anything in the app | Renamed label fails with guide, step and label named.                                            |
+| R-S242-9 screenshot gate                | ARCH-S242-5          | BEH-S242-4       | Find and print how to do anything in the app | Missing, orphan or unmanifested image fails.                                                     |
+| R-S242-10 content rules gate            | ARCH-S242-2          | BEH-S242-5       | Find and print how to do anything in the app | Forbidden phrase or em dash fails with location.                                                 |
+| R-S242-11 required browser verification | ARCH-S242-7          | BEH-S242-6       | Find and print how to do anything in the app | AC-S242-9. Prove ordinary verification catches rendered drift even when the source check passes. |
+| R-S242-12 screenshot fidelity           | ARCH-S242-8          | BEH-S242-6       | Find and print how to do anything in the app | AC-S242-10. Detect a stale scene and verify the proposed replacement under the same fixture.     |
 
 **Preservation set.**
 
@@ -271,6 +311,16 @@ it, `bash scripts/verify.sh` lanes, copy-voice, redaction, active-doc-paths and 
   the same guide with present-tense wording passes.
 - **AC-S242-8** — Safety: opening, navigating and printing help performs no write, provider call,
   send or action-key read; the route has no POST handler.
+
+- **AC-S242-9** — Leave the label in source and change the rendered name, role or route
+  for a documented fixture. Verify both required entry points fail with the exact guide
+  step and condition. Exercise a missing fixture and a separately tracked conditional
+  state. Restore the behavior and verify the gate passes.
+- **AC-S242-10** — Change a documented synthetic scene while keeping its old screenshot.
+  Verify material drift blocks the gate and yields the reviewable current capture. Repeat
+  the unchanged fixture to prove stable results. Verify reviewed guide, image and version
+  pass together, with only private synthetic captures, guarded loopback traffic and zero
+  provider effects or automatic rent comparisons.
 
 **Forbidden actions / hard gates.**
 
@@ -318,7 +368,8 @@ S242 and S243 are built together and released together; S244 may ship earlier on
 2. Materialize ARCH-S242-1..6 and BEH-S242-1..5 as failing checks with fixtures.
 3. Build the content model, routes, sidebar, version, deep links and print layout.
 4. Build the four gates and wire them into `verify.sh` and the rehearsal smoke lane.
-5. Falsify with AC-S242-1..8, run focused and canonical tests, update `docs/README.md` and
+5. Falsify with AC-S242-1 through AC-S242-10 as applicable, run focused and canonical
+   checks, update `docs/README.md` and
    `docs/products/README.md`, and ship with S243 under the ordinary release gates.
 
 **Deletion/merge recommendation.**

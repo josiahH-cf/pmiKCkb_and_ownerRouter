@@ -1,277 +1,257 @@
 <!-- spec-shape: overhaul-v1 -->
 <!-- feature-handoff: renewal-one-path-2026-11 -->
 
-# S247 — One renewal path per lease: one page, one current step
+# S247 — Open a lease and work the current step
 
-> Status: AUTHORING READY: intake 113; implementation merged in PR #187 at `20d55104`. Resumed UX repairs and scoped qualification are recorded on `codex/renewal-one-path-ux`; production delivered at `ef81b891`, human verdict NOT RUN. D-OP-6 remains settled: Guided is the default, and Focus and Full views, handlers and projections are kept. This specification grants no provider effect.
+> Status: November 7 intake 121 revision AUTHORING READY. The original three-view delivery shipped at `ef81b891`. This revision owns the Guided journey. S248 owns status and recording. S258 owns access to Full, the Focus transition and continuity.
 
 **Goal.**
 
-Opening any lease shows one page that says where the renewal stands, puts the one step to do now
-in front with its controls in place, and keeps every other existing tool one action away with
-nothing blocked.
+A staff member opens the right lease, sees which step needs attention and works it in place.
+They can inspect another step and return to the current one without losing the meaning of either.
 
 **Current state / intended end state.**
 
-Verified at `6491c06f` and by a read-only production observation of one lease page on November 5,
-2026 (no control activated):
+On the November 7 guarded replay of `ef81b891`, a prepared lease opened in Guided from
+the desk table and from a Dashboard answer, both showing "Now: Ask the owner". Selecting
+"Offer the tenant" by keyboard moved focus to that step. The stage and next step still
+described the owner's message. The tenant action then read "Review and send", the same
+wording seen in the prepared owner's step after it loaded. The step heading and recipient
+preview therefore matter to distinguish what is being reviewed.
 
-- The lease page `app/lease-renewal/live/desk/lease/[leaseId]/page.tsx` opens in Focus view with a
-  Focus view and Full view switch (`components/lease-renewal/RenewalFocusViewContext.tsx`). Focus
-  shows the chosen task; when its controls are not mounted it reads "This task's controls are shown
-  in Full view" (`components/lease-renewal/RenewalFocusViewPane.tsx`).
-- Below the Focus pane the page always renders the pricing policy panel, "Suggested next",
-  "Recorded renewal work", "Staff status and Status log" and lease follow-up tasks, then five
-  sections holding about twenty-five cards (`components/lease-renewal/RenewalWorkspace.tsx`,
-  `components/lease-renewal/RenewalManualWorkspace.tsx`, `lib/lease-renewal/dashboard-sections.ts`).
-- Three systems each name a next step: desk guidance (`lib/lease-renewal/desk-guidance.ts`), the
-  staff activity summary (`lib/lease-renewal/workspace-state.ts`) and the Focus action graph
-  (`lib/lease-renewal/renewal-actions.ts`, `lib/lease-renewal/action-graph.ts`). Staff also set a
-  separate work status by hand (`lib/lease-renewal/work-status.ts`), and the page shows a lifecycle
-  category, an overall status and per-action statuses beside it.
-- Observed: one lease named "Owner outreach" as the next step in three places on the same page,
-  with "Also ready for you (19)" and "All renewal work (28)". On the desk the same day, one lease
-  read "Waiting on: the owner" while its staff status read "Preparing tenant offer".
-- The in-app guide (`lib/help/content/guides/lease-renewals.ts`) tells staff to choose Full view as
-  its fourth step. Kicking off one lease by the guides takes at least eleven deliberate actions
-  across three browser tabs.
-- November 4 staff walkthrough: staff could not start the rent comparison from Focus, searched for
-  the status control, prepared a draft in the tenant section when they meant the owner section, and
-  lost their place when the page reloaded.
-
-Intended: a guided view that is the default for every lease, with a path strip and one "Now" card
-that holds the current step's real controls. Focus view and Full view stay beside it as options,
-unchanged, and Full view remains the place for every other section and control.
+The covered fixture continued to the tenant offer. The assisted fixture led to program
+contact. A lease with notice led to the non-renewal handoff. A later source end date offered
+"Confirm this renewal is finished". A synthetic source read with a missing status kept
+the prepared lease in the working batch and named the unavailable status. A fresh read
+restored the status after the refresh window. The prior independent run walked the later
+steps through explicit staff completion. That run's conditions and unresolved provider controls
+retain their recorded scope. The intended page keeps these useful paths and makes the
+current action, its target and its outcome clear with short, state-specific context.
 
 **Actors and entry conditions.**
 
-The same signed-in staff, roles and lease access as today. Every lease is workable (S154). A source
-or staff-record read failure shows on the Now card as the thing to resolve; it never blanks the page.
+Existing authorized Renewal staff enter from a scoped desk row, a Dashboard answer, a
+linked My Work item, an existing lease URL or a permitted process handoff. A source or
+supporting read failure leaves the available lease page intact and labels the affected
+part with its available recovery. Every authorized lease remains workable under S154.
+The existing lease and operation guards determine who can view or act.
 
 **What it is / how it functions.**
 
-- **R-S247-1 — One path definition.** The renewal path is one ordered definition in code: Check the
-  numbers, Compare market rent, Ask the owner, Offer the tenant, Documents and signatures, Finish up
-  (RentVine, the operating Sheet and follow-ups), Complete. Each step declares its label, when it
-  applies, what the app shows ready, what the person decides, its primary action and existing
-  handler, its completion evidence, its waiting state and the step that follows. The definition is
-  built over the existing predicates and handlers and stores no new progress.
-- **R-S247-2 — Variants are part of the path.** A covered standing agreement replaces Ask the owner
-  with a "Covered by agreement" state (S250). A recorded or source non-renewal replaces the later
-  steps with the non-renewal handoff. A month-to-month lease shows its review step. Housing
-  assistance puts the program contact and the owner's renew-or-not answer ahead of rent (S251). A
-  step that does not apply is shown as not part of this lease's path and asks for nothing.
-- **R-S247-3 — One stage and one next step everywhere.** One projection supplies the stage and the
-  next step to the desk row, the lease page, assistant answers and My Work links. Guided shows
-  the current next step once even while staff inspect a different step. Show current step
-  returns there on the same page. Selecting or arriving on the current step follows the next
-  current step after the projection advances; a deliberate inspection of another step stays
-  available in any order.
-  Stage names reuse the existing staff work-status wording. The lifecycle category, overall status and action
-  status groups are not shown in the guided view and stay available in the full desk table, Focus
-  view and Full view.
-- **R-S247-4 — The Now card holds the work.** The lease page's one main landmark contains the
-  Now card. For every path step it shows what the app prepared, the inputs the person decides,
-  one primary action and its secondary actions, using the
-  existing controls in place. The primary action follows the heading and any consequential alert;
-  supporting next-step and detail text follows the action. No path step sends the person to another view or tab to act.
-  The selected step's existing fields and hand records, including the assisted owner/rent choices
-  and ordinary working terms, are inside the same visual and named Now card. Their components
-  stay mounted at one position across Guided, Focus and Full view, preserving unsaved entries.
-- **R-S247-5 — Waiting is a state, not a dead end.** A waiting step states who it waits on, since
-  when, the last contact and what the app is watching, and offers the actions that fit: record what
-  happened, send again, or work a later step now.
-- **R-S247-6 — Nothing is gated.** Any step can be chosen from the path strip and worked at any
-  time. Only a step's own real inputs and authority limit its action (S156). The suggestion never
-  disables another control.
-- **R-S247-7 — Focus view and Full view stay.** The lease view control offers Guided view, Focus
-  view and Full view. Guided view is selected on every open. Focus view and Full view keep their
-  present content and behavior. The guided view lists the five existing sections as links that open
-  Full view at that section, so every existing control stays one action away. Lease information
-  stays (D-OP-6).
-- **R-S247-8 — Staff status and notes.** The stage is derived. The manual work status stays
-  available as "Set status by hand" with the Status log, and a hand-set status that differs from the
-  derived stage shows both in one line. "Add a note" sits on the Now card.
-- **R-S247-9 — Keeps its place.** A lease opens in the same tab. After a reload or a release the
-  page returns to the same view, step and scroll position, and unsaved typing is kept by the
-  existing autosave and retained-input behavior. A reload retains the complete focused text
-  field in that tab for that lease, in every view of its main region. A unique visible field
-  name also identifies it when a generated ID changes; ambiguous fields keep their current
-  values. If the person resumes typing or navigating before restoration,
-  their newer input and focus take precedence. Password and choice controls are never retained.
-  The existing Full and Guided financial controls share the latest local working entry for
-  their field. A view or step change keeps that entry local; the ordinary completed-field save
-  or the message action that uses it persists it. An older acknowledgment confirms only its
-  own entry, so newer typing keeps its unsaved feedback until its own save succeeds.
-- **R-S247-10 — Fits the screen.** At 1280 by 800 the header, path strip and the Now card's primary
-  action are visible without scrolling for the first four steps. At 390 wide the primary action is
-  within two screen heights. Both themes, keyboard order and status announcements follow the
-  existing design system. Full program names and all existing header controls stay visible as
-  they wrap; compact spacing and shared phone-header rows keep the action within these bounds.
-- **R-S247-11 — Old links still land.** Older lease links, `step` parameters, section anchors and
-  help links keep working: a link that names a path step opens the guided view at that step, and a
-  link that names a section or control opens Full view there.
+- **R-S247-1 — One path definition.** Use one ordered path: Check the numbers, Compare
+  market rent, Ask the owner, Offer the tenant, Documents and signatures, Finish up
+  and Complete. Each applicable step declares its existing control and handler,
+  prepared facts, staff decision, waiting state, completion evidence and next step.
+  Display the lease and unit, current cycle or review basis, and applicable notice or
+  source uncertainty near the top so staff can recognize the record before acting.
+- **R-S247-2 — Make the applicable path clear.** Show standing agreement coverage
+  under S250 and the owner step again when a different rent requires it. Housing
+  assistance follows S251's program contact, owner decision and rent sequence. The
+  existing month-to-month review policy supplies its review date, eligibility and
+  applicable work. Recorded non-renewal or move-out routes to its handoff. A later
+  RentVine end date offers the existing confirm-or-keep-working choice. Completed,
+  retired, closed, pending and unreadable states keep their own reasons. S255 owns
+  retirement. Label which steps apply, including an annual review whose next action
+  is a comparison. A step outside this lease's path asks for no action.
+- **R-S247-3 — Keep one current recommendation.** Consume the shared evidence-based
+  stage and next step owned by S248. On normal entry show the current step. An
+  explicit task or a deliberate inspection opens that step with the current next
+  step still identifiable and "Show current step" available. While following the
+  current step, staff see it move after its evidence changes. Staff inspecting another
+  step stay there until they choose to return. Desk, Dashboard, lease and My Work
+  use the same lease/cycle and applicable recommendation. Supplemental lifecycle and
+  action statuses stay available in Full and the desk table.
+- **R-S247-4 — Put the work in the Now card.** Use one main landmark and one named
+  Now card. Keep the shown step's actual fields and action owners in the card, including
+  working terms and assisted owner and rent choices. Reuse the shared controls and keep
+  their usable input when changing views. Place one primary action after the heading and
+  any consequential alert. State the specific missing input, decision or effect beside
+  the control, including the audience for a shared "Review and send" label. Use one concise
+  next-step cue and keep required supporting context close. The current action can
+  carry the cue itself when it already states the next step. Keep genuinely secondary
+  actions lower. The first four steps use existing numbers, stored comparison, pricing
+  basis, prepared messages and exact review under S249 and S224. Later steps expose
+  the existing document, signature evidence, source preview and follow-up controls.
+  In-app path steps are operable in place. A deliberate external handoff states its
+  destination, consequence and next action on return.
+- **R-S247-5 — Explain waiting and recovery in place.** Read S248 evidence to distinguish
+  waiting on a person, scheduled, draft, delivery failure, ambiguous attempt, held
+  input and confirmed completion. Show who needs to act, since when, the last known
+  contact and what the app is watching when applicable. Offer the existing exact retry,
+  record, review or reconcile action for its state. Show legitimate independent later work while waiting.
+  Preserve meaningful warnings about permission, source currency and blocked inputs.
+- **R-S247-6 — Keep the path advisory.** Staff may open or work an applicable step in
+  any order. Existing required facts, role, operation review and confirmation govern
+  its action. Path selection alone changes presentation and grants no effect.
+- **R-S247-10 — Fit and focus the work.** At 1280 by 800 the header, path strip and
+  primary action fit without scrolling on the first four steps. At 390 pixels wide
+  the primary action is within two viewport heights. Test both themes, long program
+  names, wrapping and visible keyboard focus. All header controls stay visible as they
+  wrap. Selecting a step announces and focuses its heading. A pending action retains
+  usable feedback and a visible route to the current step.
+
+**Journey coverage.**
+
+Each row states what staff should be able to do and what a rehearsal must observe. The
+current evidence labels distinguish browser replay, prior proof and work still to verify.
+
+| Journey and entry                                                                         | Decision, action and visible result                                                                                                                                                                    | Preserve or disclose                                                                                                                            | Evidence and verification                                                                                                                                                                                                                           |
+| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Find a lease from the desk, a Dashboard answer, a My Work task or an allowed process link | Recognize the lease, cycle and current action. An explicit linked task opens its applicable step and shows how to return to current work.                                                              | Scope and exact lease identity, including saved collection and filtered desk entries. S258 owns the route and return.                           | Desk and Dashboard were replayed. The My Work task route and process handoff use current source contracts and require candidate coverage.                                                                                                           |
+| Check the numbers and comparison                                                          | Distinguish current base rent, an actual Sheet discrepancy, working terms and the recommended rent. Reuse the stored comparison or follow the exact permitted missing-input path.                      | Source and date basis, approved allowance, existing own-figures and required review. Details stay in Full or on the exact source control.       | Prior J07 and current prepared fixture. Exercise stale, unavailable and incomplete reads without an automatic lookup in the verification browser.                                                                                                   |
+| Review the owner or tenant message                                                        | See who will receive the shown message, the required fields and the action before exact review. A blocked action names the specific input.                                                             | Existing S224 and S249 readiness, exact confirmation and shared wording across routes. Keep secondary Schedule, Gmail draft and Copy reachable. | The current replay reached both audiences using a shared button label. Use prior J07–J11 and test an applicable missing recipient, saved blank signature and stale preview on the candidate.                                                        |
+| Apply a standing agreement or program path                                                | Identify why the ordinary owner step is covered, or why program contact comes first. A changed rent exposes the applicable staff decision.                                                             | Existing agreement and assistance scope, choice, readback and the optional outreach tools.                                                      | Both paths were visible in the replay. J13–J14 supply earlier saved, invalid and recovery cases.                                                                                                                                                    |
+| Work a non-renewal, annual review or source renewal                                       | Recognize the disposition and its basis before following the handoff, due review or explicit confirm-or-keep-working route.                                                                            | Actual provider status and date, existing notice and review rules, and recorded staff attribution.                                              | Move-out, month-to-month and changed-source examples were opened. In the working batch the unreadable target stayed visible and recovered on a fresh read. Test due and not-due cases, lease-side recovery, and the absence of inferred completion. |
+| Finish after tenant work                                                                  | See the next required document or source action, its current input and result. Where a person signs outside the app, return to the same packet and record only actual evidence.                        | S253 approved form requirements, exact handoffs, versioned documents, signatures and receipts.                                                  | Prior J12 followed synthetic stages to staff completion. Real signing and provider effects are separate evidence.                                                                                                                                   |
+| Wait, inspect another step or recover                                                     | Recognize the real hold and its next action. Keyboard-select a different step, then use "Show current step". After a failed read or refused action, retain the known state and a scoped retry or exit. | Already available control paths, source authority, role and honest status.                                                                      | Keyboard inspection and stage stability were replayed. Exercise offline/failed, partial, conflicting, empty and restricted cases on the candidate.                                                                                                  |
 
 **In scope / out of scope.**
 
-In scope: the path definition, the single stage projection, the guided view with its path strip,
-Now card and section links, the three-way view control, link compatibility, layout and continuity. Out of scope: new business rules, new stored
-progress, forced stages, removing any control, the rules that derive a stage from evidence (S248),
-what is prepared ahead (S249), and Communications scheduling features.
+This suite owns orientation, the Guided path and the in-place next action. S248 owns
+stage evidence and the header's recording interaction. S258 owns detailed work, view
+choice, legacy routing and continuity. S246 and S256 own desk and process navigation
+changes. Existing business decisions, permissions and effect owners supply the controls.
 
 **Open questions & assumptions.**
 
-- D-OP-6 (owner decision, November 5, 2026): the guided page is the default, Focus view and Full
-  view remain selectable, and a lease opens in the same tab.
-- Assumption: the new view is labeled "Guided view". A view chosen by hand lasts for that visit and
-  survives a reload; the next lease opens in Guided view again.
-- Consequence to accept: three views of one lease are maintained, documented and tested.
-- Assumption: stage names reuse the eleven existing work-status labels so staff vocabulary and
-  stored statuses keep their meaning.
-- Assumption: "Also needs you" lists only ready work that sits outside the main path (for example
-  a source difference to settle), never the nineteen-item list observed today.
+Owner decisions D-OP-2 through D-OP-9 and the accepted November 7 direction are settled.
+A shorter decision cue is an evidence-informed design choice. The staff walkthrough
+tests whether newcomers can recognize the next action from the page. Fixture coverage
+does not stand in for a human verdict or actual provider evidence.
 
 **Cross-product impacts.**
 
-`components/lease-renewal/RenewalWorkspace.tsx`, `components/lease-renewal/RenewalFocusViewPane.tsx`,
-`components/lease-renewal/RenewalFocusViewContext.tsx`,
-`components/lease-renewal/RenewalWorkspaceSidebars.tsx`,
-`components/lease-renewal/RenewalDashboardNavigation.tsx`,
-`components/lease-renewal/RenewalManualWorkspace.tsx`,
-`components/lease-renewal/RenewalWorkStatusControl.tsx`, `lib/lease-renewal/renewal-actions.ts`,
-`lib/lease-renewal/desk-guidance.ts`, `lib/lease-renewal/lease-work-status.ts`,
-`lib/lease-renewal/workspace-state.ts`, `lib/lease-renewal/renewal-process.ts`, the assistant's
-renewal adapter, My Work lease links, the control map `lib/help/content/renewal-control-map.json`,
-the Focus and guide-control smokes, the release canary landmarks and the help content (S252).
+`components/lease-renewal/RenewalWorkspace.tsx`,
+`components/lease-renewal/RenewalGuidedView.tsx`,
+`components/lease-renewal/RenewalManualWorkspace.tsx`, the shared lease-stage and desk
+projection, My Work and Dashboard lease links, Help and the R-S252-7 read-only assurance
+landmarks.
 
 **Authority and evidence map.**
 
-| Input                                                             | Classification       | Use and limitation                                                                   |
-| ----------------------------------------------------------------- | -------------------- | ------------------------------------------------------------------------------------ |
-| `AGENTS.md`, `docs/facts.md` (D-RENEWAL-STAFF-OPERATIONS, F-S156) | Authority            | Guidance is advisory; no forced stage, approval or role handoff returns.             |
-| Committed code and tests at `6491c06f`                            | Implementation truth | Present views, three next-step systems, sections and handlers.                       |
-| Read-only production lease observation, November 5, 2026          | Bounded observation  | One lease page's presentation; not a proof of failure handling or every state.       |
-| November 4 staff walkthrough notes and November 5 owner direction | Intent evidence      | One entry, one route, the next step evident, nothing gated.                          |
-| Human acceptance                                                  | External dependency  | Staff verdict stays NOT RUN until S252 runs it; the code slice does not wait for it. |
+| Input                                                                                                                                     | Classification              | Use and limitation                                                                                    |
+| ----------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `AGENTS.md`, D-RENEWAL-STAFF-OPERATIONS and F-S156                                                                                        | Authority                   | Work remains advisory and effect-specific.                                                            |
+| November 7 replay of `ef81b891`                                                                                                           | Browser observation         | Direct entries, current and inspected steps, and the sampled variant labels.                          |
+| [November 6 review](../evidence/renewal-one-path-ux-review-2026-11-06.md) and [litmus](../evidence/renewal-one-path-litmus-2026-11-06.md) | Recorded synthetic evidence | J04–J05 and J07–J15 establish their named outcomes. L54's conditional gaps are still open.            |
+| Accepted intake 121 and follow-up split                                                                                                   | Confirmed intent            | Keep one ordinary path and move evidence recording and view continuity into their own specifications. |
 
 **Architecture outcome (deterministic, fail-first).**
 
-- **ARCH-S247-1** — One path definition and one stage projection are consumed by the desk row, the
-  lease page and the assistant. Fail-first: a fixture where the staff summary, desk guidance and
-  action graph name different next steps renders all three.
-- **ARCH-S247-2** — The Now card mounts the existing controls for path steps, Focus view and Full
-  view are unchanged, and every row of the control map stays reachable from the guided view in at
-  most one action. Fail-first: path steps whose controls are reachable only through Full view.
-- **ARCH-S247-3** — The path stores nothing and gates nothing: no new progress field, and no control
-  is disabled because of path position. Fail-first: not applicable to storage; the gating check is a
-  preservation of S156 that must stay green.
+- **ARCH-S247-1** — One path definition consumes the shared stage and cycle. A conflicting
+  input fixture still yields one recommendation on the lease, desk and assistant.
+- **ARCH-S247-2** — The Now card owns the shown step's real controls and exact action
+  context. Switching to another step changes the target without moving the recorded stage.
+- **ARCH-S247-3** — Opening and inspecting are read/presentation paths. Admission remains
+  in the underlying handler. Preserve zero navigation-created domain or provider effects.
 
 **Behavior outcome (deterministic, fail-first).**
 
-- **BEH-S247-1** — Opening a lease with nothing recorded shows the first applicable step on the Now
-  card with its controls usable in place.
-- **BEH-S247-2** — Choosing a later step from the path strip and completing it works with earlier
-  steps unfinished.
-- **BEH-S247-3** — Every control in the control map is reachable through the Now card or Full view,
-  Focus view and Full view render as before, and older links and anchors open the matching step or
-  section.
-- **BEH-S247-4** — For fixtures at every stage, the desk row, the lease page and the assistant show
-  the same stage and next step.
-- **BEH-S247-5** — After a reload the page shows the same view, step and position, with unsaved
-  typing kept.
+- **BEH-S247-1** — A staff member can identify the lease, current step and one primary
+  action on entry or understand why the current state needs no immediate action.
+- **BEH-S247-2** — The correct controls and target are available for a different
+  applicable step. The current recommendation stays visible.
+- **BEH-S247-4** — Each variant and recovery state names its actual reason, action and
+  applicable next step, with desk and assistant parity.
 
 **Human litmus outcome.**
 
-### Open a lease and know what to do
+### Find and work the next lease step
 
-**If this was built correctly:** A staff member opens a lease and can say in one breath where it
-stands and what to do next. The thing to do is on the screen with its button. They can jump to any
-other step or tool without being stopped, and after a refresh they are where they left off.
+**If this was built correctly:** A staff member opens a lease, can tell which record and
+cycle they are working, sees who or what needs attention, and can explain what the main
+action will do. On an assisted or non-renewal lease they can tell why the action differs.
+They can inspect another step, work it if permitted, and return to the current step using
+the page itself.
 
-- Model verdict: RUN in Guided, Focus and Full (J04–J06). The L54 conditional-control evidence limits remain explicit. See the [review](../evidence/renewal-one-path-ux-review-2026-11-06.md) and [individual litmus results](../evidence/renewal-one-path-litmus-2026-11-06.md).
+- Model verdict: November 7 revised requirements NOT RUN. The guarded replay is starting-state evidence.
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**
 
-| Requirement                       | Architecture outcome | Behavior outcome | Human litmus                     | Deterministic evidence / falsification                                        |
-| --------------------------------- | -------------------- | ---------------- | -------------------------------- | ----------------------------------------------------------------------------- |
-| R-S247-1 one path definition      | ARCH-S247-1          | BEH-S247-1       | Open a lease and know what to do | Definition test: seven steps, each with handler and completion predicate.     |
-| R-S247-2 variants in the path     | ARCH-S247-1          | BEH-S247-4       | Open a lease and know what to do | Agreement, non-renewal, month-to-month and assistance fixtures.               |
-| R-S247-3 one stage everywhere     | ARCH-S247-1          | BEH-S247-4       | Open a lease and know what to do | Parity test across desk row, lease page and assistant for each stage.         |
-| R-S247-4 the Now card holds work  | ARCH-S247-2          | BEH-S247-1       | Open a lease and know what to do | Each path step's primary action is operable on the Now card in a browser run. |
-| R-S247-5 waiting is a state       | ARCH-S247-1          | BEH-S247-4       | Open a lease and know what to do | Waiting fixtures render party, since, last contact and offered actions.       |
-| R-S247-6 nothing is gated         | ARCH-S247-3          | BEH-S247-2       | Open a lease and know what to do | Complete a later step with earlier steps unfinished; no disabled-by-order.    |
-| R-S247-7 Focus and Full view stay | ARCH-S247-2          | BEH-S247-3       | Open a lease and know what to do | Control-map reachability over every row; Focus and Full view render parity.   |
-| R-S247-8 staff status and notes   | ARCH-S247-3          | BEH-S247-4       | Open a lease and know what to do | Hand-set status differing from the stage shows both; log entries unchanged.   |
-| R-S247-9 keeps its place          | ARCH-S247-2          | BEH-S247-5       | Open a lease and know what to do | Reload during typing restores view, step, scroll and text.                    |
-| R-S247-10 fits the screen         | ARCH-S247-2          | BEH-S247-1       | Open a lease and know what to do | Viewport checks at 1280 by 800 and 390 wide in both themes.                   |
-| R-S247-11 old links still land    | ARCH-S247-2          | BEH-S247-3       | Open a lease and know what to do | Older lease URL, each `step` value and each section anchor.                   |
+| Requirement                         | Architecture outcome | Behavior outcome       | Human litmus                      | Deterministic evidence / falsification                                                       |
+| ----------------------------------- | -------------------- | ---------------------- | --------------------------------- | -------------------------------------------------------------------------------------------- |
+| R-S247-1 path and identity          | ARCH-S247-1          | BEH-S247-1             | Find and work the next lease step | AC-S247-1. Resolve the seven steps and one scoped recommendation.                            |
+| R-S247-2 variants                   | ARCH-S247-1          | BEH-S247-4             | Find and work the next lease step | AC-S247-5. Variant matrix includes actual due basis, disposition and the available controls. |
+| R-S247-3 one current recommendation | ARCH-S247-1          | BEH-S247-4             | Find and work the next lease step | AC-S247-1 and AC-S247-3. Compare entry, inspection and return.                               |
+| R-S247-4 work in Now                | ARCH-S247-2          | BEH-S247-1, BEH-S247-2 | Find and work the next lease step | AC-S247-2. Each path step has its actual control and named target in place.                  |
+| R-S247-5 waiting and recovery       | ARCH-S247-2          | BEH-S247-4             | Find and work the next lease step | AC-S247-5. Exercise known, unavailable and unresolved states with precise next actions.      |
+| R-S247-6 advisory path              | ARCH-S247-3          | BEH-S247-2             | Find and work the next lease step | AC-S247-3 and AC-S247-4. Check ordering, permissions and no effect on navigation.            |
+| R-S247-10 viewport and focus        | ARCH-S247-2          | BEH-S247-1             | Find and work the next lease step | AC-S247-6. Verify the existing bounds at both sizes in both themes.                          |
+
+**November 5 requirement references.**
+
+These identifiers keep the delivered evidence and defect ledger resolvable. Each revised
+behavior has one active owner.
+
+| Delivered identifier | Active owner for intake 121                                                                                      |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **R-S247-7**         | [S258](renewal-lease-details-and-continuity.md) R-S258-1 and R-S258-2 for the view choice and control inventory. |
+| **R-S247-8**         | [S248](renewal-evidence-driven-stage.md) R-S248-13 and R-S248-14 for header recording, log and feedback.         |
+| **R-S247-9**         | S258 R-S258-4 and R-S258-5 for same-tab navigation, restoration and retained work.                               |
+| **R-S247-11**        | S258 R-S258-3 for legacy destinations and fallback.                                                              |
 
 **Preservation set.**
 
-Focus view and Full view themselves (S143, S152) with the S145 validation ledger, every S113
-section and control, the S144 in-pane handlers and their completion predicates, S142 dependency
-facts as inputs, S152–S167 behavior, S176 concise copy, S232 issue resolvers and links,
-S234 approval evidence, S235–S237 panels, control identifiers used by help and tests, the staff
-work status and Status log records, exact confirmation and receipt contracts for every external
-effect, and role checks.
+S113 capabilities, S142 dependency facts, S144 in-pane handlers, S145 coverage, S152–S167
+behavior, S176 concise copy, S232 issue resolvers and S234–S237 controls. Keep each exact
+confirmation, receipt and role check. S258 verifies the full control inventory, including
+the originally conditional cases, independently from the primary Guided walkthrough.
 
 **Adversarial acceptance checks.**
 
-- **AC-S247-1** — A fixture built so the three existing next-step sources disagree renders exactly
-  one stage and one next step on the desk row, the lease page and the assistant (ARCH-S247-1,
-  BEH-S247-4).
-- **AC-S247-2** — Every row of the control map is reachable and operable from the guided view in at
-  most one action, no path step reads that its controls are elsewhere, and Focus view and Full view
-  render as they did before this suite (ARCH-S247-2, BEH-S247-3).
-- **AC-S247-3** — With no owner response recorded, the tenant offer, the source updates and
-  completion can each be worked from the path strip; no control is disabled by order
-  (ARCH-S247-3, BEH-S247-2).
-- **AC-S247-4** — Opening, choosing a step, switching views and reloading cause zero domain or
-  provider effects (BEH-S247-5).
+- **AC-S247-1** — From desk, Dashboard and an explicit task link verify the same lease,
+  cycle and authoritative next step. Run a conflicting evidence fixture and compare the
+  lease, desk and assistant without a second competing recommendation.
+- **AC-S247-2** — Each applicable step exposes its real in-app action. Inspect owner and
+  tenant steps where the action label is shared. Verify the audience and exact review
+  target before confirmation. Exercise the forms, source proposal and completion entries.
+- **AC-S247-3** — With the owner response unfinished, inspect and work the tenant offer,
+  source updates and completion with their real prerequisites. The current stage stays
+  identifiable throughout. Return to the current step and confirm no path-order restriction.
+- **AC-S247-4** — Opening a lease, selecting a step, and showing the current step cause
+  zero navigation-created records or provider effects. Existing exact authority remains.
+- **AC-S247-5** — Exercise the journeys above with covered, assisted, notice, due annual
+  review, changed source end, closed or pending, completed, unavailable and permission
+  fixtures. Match each actual blocker and its recovery. Missing evidence never reads as
+  verified progress.
+- **AC-S247-6** — Check first-four-step geometry at 1280 by 800 and at 390 pixels wide in
+  both themes. Use a full program name, keyboard selection and a pending or refused action.
+  Preserve focus, no horizontal page overflow, and the original primary-action bounds.
 
 **Forbidden actions / hard gates.**
 
-No forced stage, approval checkbox or attestation. No removed control or view. No new stored step
-counter. No data change from viewing, choosing a step or switching views. No protected-path change.
+Use isolated synthetic rehearsal evidence, with automatic comparison held. Existing
+review, exact confirmation, recipient, scope, action-key and provider contracts govern
+effects. Opening or inspecting a step is a read.
 
 **Dependencies / sequencing.**
 
-Consumes S142 and S156 projections, S232 guidance, and S246 for the desk row. S248 supplies the
-evidence rules that move the stage; S249 supplies what the first steps show ready; S250 and S251
-supply variants. Each of those degrades cleanly when absent: the stage then follows the staff
-record alone and the Now card shows the existing controls.
+Consumes existing S248 evidence, S249 preparation and S250/S251 variants. The Guided
+improvements work with the delivered header and view switch. S258 consumes the same
+existing Guided controls for its view transition. The follow-up keeps S246 and S255
+outcomes independently verifiable.
 
 **Standalone delivery contract.**
 
-- **Deliverable now:** R-S247-1 to R-S247-11 with the path definition, projection parity tests,
-  browser checks, updated smokes and canary landmarks.
-- **Consumes, but does not assume:** S248 evidence (absent: staff record only), S249 prepared
-  content (absent: existing controls), S250 and S251 variants (absent: standard path).
-- **Externally blocked effect:** none for the code slice; the staff verdict waits for S252.
-- **Produces for downstream suites:** the path definition, the stage projection and the Now card
-  slots that S248–S251 fill.
+Deliver scoped Guided orientation, primary action, waiting and recovery improvements
+with synthetic browser checks and corresponding Help. The existing switch and detailed
+controls serve as the baseline for S258. Staff observation is separate.
 
 **Verification and delivery contract.**
 
-1. Before edits, record the current readback, the preservation baseline and each ARCH and BEH check
-   failing for the stated reason.
-2. Run the focused checks for every ARCH, BEH and AC row; keep preservation separate.
-3. Run `bash scripts/verify.sh`; audit secrets, PII, gates, runtime configuration and diff scope
-   before any authorized delivery.
-4. Report `ALL_GATES_GREEN`, `BUDGET_EXHAUSTED` only under an explicit budget, or `BLOCKED` only
-   for an exact unavailable external input after all fail-closed work is green.
+1. Observe the current entry and action journeys in the guarded rehearsal.
+2. Run the named acceptance cases, preserving ordinary work and exact-effect admission.
+3. Update the Help map and the read-only canary and reconciliation checks where rendered
+   landmarks change. Run focused and canonical gates before authorized delivery.
 
 **Ordered prompt sequence.**
 
-1. Re-verify current code and take a read-only lease page observation.
-2. Materialize the ARCH and BEH checks, litmus and preservation baseline; record fail-first results.
-3. Build the path definition and projection, then the guided view over the existing controls,
-   leaving Focus view and Full view as they are.
-4. Falsify, run focused and canonical tests, update smokes, canary landmarks and help content, and
-   ship only when authorized.
+1. Pin the current action inventory and entry outcomes.
+2. Falsify the orientation, audience, variant and recovery cases on that baseline.
+3. Verify the Guided changes and preservation cases using the actual routes and controls.
 
 **Deletion/merge recommendation.**
 
-Remove this suite when its checks are represented by code, tests and current facts. Focus view and
-Full view remain delivered contracts; keep S142–S145, S152 and S156 history.
+Keep the spec until its revised acceptance cases and the delivered requirement references
+are represented by current implementation and evidence.

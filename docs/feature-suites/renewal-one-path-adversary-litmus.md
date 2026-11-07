@@ -61,7 +61,22 @@ is No and every UNVERIFIED check names its evidence gap.
 - **R-S254-1 — The handoff is a repository artifact, derived from the goals.** The paste-ready
   brief and checks below are the deliverable. Each check states an outcome the owner asked for in
   observable terms, so a suite's own acceptance checks can pass while a litmus check is No. The
-  handoff is regenerated when S246–S253 or an owner decision changes.
+  handoff is regenerated for a new implementation candidate when S246–S253 or an owner
+  decision changes. Keep the November 5 handoff below and its committed verdicts bound to
+  that release. For the November 7 revision, publish a versioned handoff alongside the
+  implementation. Carry forward the unaffected checks and their identities. Revise L16 for
+  Guided and Full and legacy Focus destinations (AC-S258-1 and AC-S258-2). Extend L18
+  to verify view, exact return context and usable working text across interruptions
+  (AC-S258-3 and AC-S258-4). Revise L20 for the header, actual staff evidence, conflict
+  and the Status log (AC-S248-6 and AC-S248-7). Preserve the current action, layout
+  bounds and no path-order restriction in L12–L17 (S247). Add the desk switching,
+  retirement and message admission checks from AC-S246-6, S255 and S224. Exercise the
+  complete original inventory in the new destinations for L54. Keep any unexercised
+  conditional control separate from a pass.
+  The original counts, bounds and verdicts remain the evidence for their original fixture
+  and source. A revised expectation earns its own verdict. [S259](renewal-usability-final-journey-litmus.md)
+  integrates this versioned profile into the final November 7 run. It preserves the historical
+  L55 No and requires exact current-rule reconciliation for the new candidate.
 - **R-S254-2 — One fixture with the November 5 shape.** The rehearsal gains one named synthetic
   desk, "November 5 mix", of 38 leases: five active fixed-term leases ending in the working month,
   four that ended the month before with no recorded completion, twelve ending later, ten closed in
@@ -227,9 +242,10 @@ customer value in Git. No human verdict inferred from the model's run. No passwo
 
 **Dependencies / sequencing.**
 
-Consumes the built S246–S253 suites and the S252 rehearsal. Runs last in the bundle, after the
-suites it covers report green, and again after any change to them. Enables acceptance of the
-batch. The handoff, the fixture, the coverage test and the shared validator can be built first.
+Consumes the built S246–S253 suites and the S252 rehearsal. Runs last in the November 5 bundle,
+after the suites it covers report green, and again after a change to them. The November 7
+versioned profile supplies evidence to the later S259 final gate. The handoff, fixture, coverage
+test and shared validator can be built first.
 
 **Standalone delivery contract.**
 
