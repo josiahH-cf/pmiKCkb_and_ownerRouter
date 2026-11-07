@@ -747,10 +747,29 @@ try {
     },
   );
 
+  async function chooseFullView(target) {
+    const full = target.getByRole("group", { name: "Lease view" }).getByRole("button", {
+      name: "Full view",
+      exact: true,
+    });
+    // An enabled SSR control can appear before hydration. Read its real selected state.
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      if ((await full.getAttribute("aria-pressed")) === "true") break;
+      await full.click();
+      if ((await full.getAttribute("aria-pressed")) === "true") break;
+      await target.waitForTimeout(1000);
+    }
+    assert.equal(
+      await full.getAttribute("aria-pressed"),
+      "true",
+      "Full view did not open",
+    );
+  }
+
   await step(
     "S236-establish-cycle",
     "R-S236 binding prerequisite (S123/S154 first deliberate save)",
-    "A staff activity save on the lease page establishes one cycle in the emulator",
+    "A staff activity save reached through Full view establishes one cycle in the emulator",
     async () => {
       await page.goto(
         `${origin}/lease-renewal/live/desk/lease/${LEASE}?step=signatures-follow-up`,
@@ -758,6 +777,7 @@ try {
           waitUntil: "domcontentloaded",
         },
       );
+      await chooseFullView(page);
       const select = page
         .locator("#renewal-manual-owner_outreach select, [id$='owner_outreach-outcome']")
         .first();
@@ -831,21 +851,7 @@ try {
   // Full view keeps every section; Focus view shows one task at a time.
   const openDocuments = async () => {
     await page.goto(documentsUrl, { waitUntil: "domcontentloaded" });
-    const full = page.getByRole("group", { name: "Lease view" }).getByRole("button", {
-      name: "Full view",
-      exact: true,
-    });
-    // A click before hydration does nothing, so retry until the switch reports Full view.
-    for (let attempt = 0; attempt < 30; attempt += 1) {
-      await full.click();
-      if ((await full.getAttribute("aria-pressed")) === "true") break;
-      await page.waitForTimeout(1000);
-    }
-    assert.equal(
-      await full.getAttribute("aria-pressed"),
-      "true",
-      "Full view did not open",
-    );
+    await chooseFullView(page);
     await panel().waitFor();
     await panel().scrollIntoViewIfNeeded();
   };

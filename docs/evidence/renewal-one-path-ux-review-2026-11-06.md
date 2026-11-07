@@ -395,6 +395,16 @@ the observed dead end (DR-06; P01, P05, P12, P13, P14; SC01, SC04, SC05, SC09, S
 authorization, evidence reads, app-draft idempotency and exact dispatch review are unchanged.
 The full browser rerun must verify whether duplicate reads caused the timeout.
 
+UX-045, observed on `eb846ea5` in the older journey: its document prerequisite tried an
+owner-outreach field while Guided view displayed Documents and signatures. No workspace save
+was sent and later document checks had no cycle. The driver now deliberately chooses the
+preserved Full view and confirms its pressed state before using the same staff activity field.
+It still requires the actual save, exactly one stored work record and the same document and
+readback outcomes. This keeps the later-step check on the person's real route (P04, P09;
+SC03, SC08), without adding a product requirement or using a fixture record as proof.
+The failing run was stopped after the dependent document failures; its isolation controller
+terminated the owned children and reported zero remaining. Later steps were unobserved there.
+
 Preserved by decision: exact review/confirmation, the required Gmail banner, stale authored wording,
 who-approved validation, role/Space and Action Registry checks, blank unsettled legal fields,
 assistance-animal holds, existing controls/views/filters/collections/old links, historical failed
