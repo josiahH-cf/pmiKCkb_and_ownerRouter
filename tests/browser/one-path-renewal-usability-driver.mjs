@@ -975,6 +975,51 @@ try {
           throw error;
         }
       };
+      // Hold the actual retained-comps response above Owner approval until the link has
+      // landed. Releasing it grows the earlier section without any user scroll or lookup.
+      log({
+        id: "L06-full-destinations",
+        state: "checkpoint",
+        expected:
+          "Owner approval stays visible and focused when the earlier stored comparison finishes loading.",
+      });
+      const workspaceRead = origin + "/api/lease-renewal/workspace?leaseId=" + prepared;
+      const retainedRead = Promise.withResolvers();
+      const releaseRead = Promise.withResolvers();
+      const holdRead = async (requestRoute) => {
+        if (requestRoute.request().method() !== "GET") return requestRoute.continue();
+        const response = await requestRoute.fetch({ maxRedirects: 0 });
+        const data = await response.json();
+        if (response.ok() && data.observations?.some((row) => row.market?.provider)) {
+          retainedRead.resolve();
+          await releaseRead.promise;
+        }
+        await requestRoute.fulfill({ response });
+      };
+      await page.route(workspaceRead, holdRead);
+      try {
+        await open(page, path(prepared));
+        await nowHeading.waitFor();
+        await Promise.race([
+          retainedRead.promise,
+          page.waitForTimeout(20_000).then(() => {
+            throw new Error("The retained comparison read never arrived.");
+          }),
+        ]);
+        const owner = "renewal-section-owner";
+        await detailNav
+          .getByRole("link", { name: "Owner approval", exact: true })
+          .press("Enter");
+        await landed(owner, "Guided detail link before delayed comparison");
+        const comps = page.locator("#renewal-section-comps").getByText(/^Address sent:/);
+        assert.equal(await comps.count(), 0);
+        releaseRead.resolve();
+        await comps.waitFor();
+        await landed(owner, "Guided detail link after delayed comparison");
+      } finally {
+        releaseRead.resolve();
+        await page.unroute(workspaceRead, holdRead);
+      }
       await open(page, path(prepared));
       await nowHeading.waitFor();
       const current = await nowHeading.innerText();
@@ -1013,6 +1058,7 @@ try {
       return {
         fullDestinations: destinations.length,
         oldFocusDestinations: destinations.length,
+        delayedComparisonKeptOwnerHeading: true,
         recognizedStep: true,
         malformedTargetSafe: true,
       };
