@@ -1,9 +1,9 @@
 // S247 and S248: the guided path through the one-path rehearsal. Run it with
 //
-//   bash scripts/run-renewal-one-path-rehearsal.sh --overlay --driver tests/browser/one-path-guided-path-driver.mjs
+//   bash scripts/run-renewal-one-path-rehearsal.sh --hold-automatic-comparison --driver tests/browser/one-path-guided-path-driver.mjs
 //
 // As the local demo Editor it opens each of the five working-month role leases and checks the
-// Guided view default (the three-way view control with Guided view pressed, the path strip with
+// Guided view default (Guided view pressed, the path strip with
 // one current step, one Now card with one primary action, the five section links); works a later
 // step while an earlier one is unfinished; reloads and returns to the same view, step and place;
 // switches views and follows a section link into Full view; sends an owner message through the
@@ -17,6 +17,7 @@
 // directory. Synthetic data only; nothing leaves this machine.
 import assert from "node:assert/strict";
 import { writeFileSync } from "node:fs";
+import { Socket } from "node:net";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { chromium } from "playwright-core";
@@ -30,11 +31,12 @@ import {
 } from "../../scripts/lib/one-path-rehearsal/control.mjs";
 import {
   routeFromPage,
-  sendOwnerMessage,
   sequenceStanding,
 } from "../../scripts/lib/one-path-rehearsal/seeds.mjs";
 import { runDueMessageTick } from "../../scripts/lib/one-path-rehearsal/due-message-tick.mjs";
 
+assert.equal(globalThis.fetch.name, "guardedFetch", "The rehearsal preload is required.");
+assert.equal(Socket.prototype.connect.name, "guardedConnect");
 const origin = requireLoopbackRehearsalOrigin(process.env.ONE_PATH_REHEARSAL_ORIGIN);
 const runDir = process.env.ONE_PATH_REHEARSAL_RUN_DIR;
 assert.ok(runDir, "Run through scripts/run-renewal-one-path-rehearsal.sh.");
@@ -81,6 +83,7 @@ export async function runGuidedPath() {
       viewport: { width: 1280, height: 800 },
       timezoneId: "America/Chicago",
       locale: "en-US",
+      serviceWorkers: "block",
     });
     await context.route("**/*", (route) =>
       new URL(route.request().url()).origin === origin
@@ -199,6 +202,61 @@ export async function runGuidedPath() {
         check(`L09 retirement refusal: ${expected}`, false, String(error).slice(0, 800));
       }
     }
+
+    const communicationResponse = (action) =>
+      page.waitForResponse(
+        (response) => {
+          const request = response.request();
+          return (
+            request.method() === "POST" &&
+            new URL(response.url()).pathname === "/api/gmail-hub/sequences" &&
+            request.postDataJSON()?.action === action
+          );
+        },
+        { timeout: 45_000 },
+      );
+    const composer = () =>
+      page.getByRole("region", {
+        name: "Workflow communication composer",
+        exact: true,
+      });
+    const sendOwnerMessage = async (leaseId) => {
+      process.stdout.write(
+        "expect owner send: the composer shows verified recipients and prepared wording before the Editor selects Send.\n",
+      );
+      await page.goto(origin + "/gmail-hub?compose=renewal_owner&lease=" + leaseId, {
+        waitUntil: "domcontentloaded",
+      });
+      const subject = composer().getByRole("textbox", {
+        name: "Initial message subject",
+        exact: true,
+      });
+      const body = composer().getByRole("textbox", {
+        name: "Initial message body",
+        exact: true,
+      });
+      await body.locator("p").first().waitFor({ timeout: 30_000 });
+      const reviewed = {
+        subject: await subject.inputValue({ timeout: 30_000 }),
+        visibleText: await body.innerText(),
+        recipients: await composer().getByText(/^To:/).first().innerText(),
+      };
+      assert.ok(reviewed.subject && reviewed.visibleText.trim());
+      assert.match(reviewed.recipients, /@example\.invalid\b/);
+      const [response] = await Promise.all([
+        communicationResponse("send"),
+        composer()
+          .getByRole("button", { name: "Send", exact: true })
+          .click({ timeout: 30_000 }),
+      ]);
+      const result = await response.json();
+      return {
+        step: "send",
+        sent: { status: response.status(), body: result },
+        sequenceId: result.sequence?.id,
+        refusal: response.ok() ? null : result.error,
+      };
+    };
 
     // 1. Guided view is the default on each working-month lease (BEH-S247-1, L12 to L14).
     for (const leaseId of WORKING) {
@@ -457,7 +515,7 @@ export async function runGuidedPath() {
       `/api/lease-renewal/workspace?leaseId=${prepared}`,
     );
     await setNextSend(rehearsal, "normal");
-    const sent = await sendOwnerMessage(page, prepared);
+    const sent = await sendOwnerMessage(prepared);
     check(
       "the owner message for the prepared lease is accepted by the mail stand-in",
       sent.sent?.status === 200 &&
@@ -545,7 +603,7 @@ export async function runGuidedPath() {
 
     // 8. An unconfirmed send (L37).
     await setNextSend(rehearsal, "unconfirmed");
-    const unconfirmed = await sendOwnerMessage(page, covered);
+    const unconfirmed = await sendOwnerMessage(covered);
     await open(covered, "?step=ask-owner");
     const unconfirmedCard = ((await now().textContent()) ?? "").replace(/\s+/g, " ");
     check(
@@ -566,7 +624,7 @@ export async function runGuidedPath() {
 
     // 9. A failed delivery (L38).
     await setNextSend(rehearsal, "bounce");
-    const bounced = await sendOwnerMessage(page, assisted);
+    const bounced = await sendOwnerMessage(assisted);
     if (bounced.sequenceId)
       await route("/api/gmail-hub/sequences", {
         action: "refresh",
@@ -582,82 +640,114 @@ export async function runGuidedPath() {
     );
     await setNextSend(rehearsal, "normal");
 
-    // 10. A scheduled message (L39): shown as scheduled, counted only after Gmail accepts it.
-    const target = missingRecipient ?? covered;
-    const composition = await route(
-      `/api/gmail-hub/composition?purpose=renewal_owner&lease=${prepared}`,
+    // 10. Schedule, pause and Resume the reviewed communication using the visible controls.
+    process.stdout.write(
+      "expect L07 and L10: the Editor schedules the exact message, pauses and resumes the same sequence, then sees one accepted synthetic send and the recorded waiting stage.\n",
     );
-    let scheduledLine = "";
-    let afterTick = "";
-    let tick = {};
-    if (composition.status === 200) {
-      const uuid = () => page.evaluate(() => crypto.randomUUID());
-      const { context: messageContext, initial, reviewedTargetHash } = composition.body;
-      const saved = await route("/api/gmail-hub/sequences", {
-        action: "save",
-        draft: { id: await uuid(), context: messageContext, initial, followUp: null },
-        expectedVersion: 0,
-        operationId: await uuid(),
-      });
-      const tomorrow = new Date(Date.now() + 86_400_000).toLocaleDateString("en-CA", {
-        timeZone: "America/Chicago",
-      });
-      const scheduled = await route("/api/gmail-hub/sequences", {
-        action: "schedule",
-        id: saved.body?.sequence?.id,
-        expectedVersion: saved.body?.sequence?.version,
-        operationId: await uuid(),
-        reviewedDraftHash: saved.body?.reviewedDraftHash,
-        reviewedTargetHash,
-        schedule: {
-          firstDate: tomorrow,
-          time: "09:00",
-          timeZone: "America/Chicago",
-          everyDays: null,
-          endDate: null,
-          sendLimit: 1,
-        },
-      });
+    await open(prepared, "?step=ask-owner");
+    const sentMessages = async () =>
+      (await standInState(rehearsal)).mail.mailboxes
+        .flatMap((box) => box.messages)
+        .filter((message) => message.labelIds.includes("SENT"));
+    const priorSends = new Set((await sentMessages()).map((entry) => entry.id));
+    await now()
+      .getByRole("button", { name: "Schedule", exact: true })
+      .click({ timeout: 30_000 });
+    const dialog = page.getByRole("dialog", { name: "Review and schedule", exact: true });
+    const review = dialog.locator('[data-renewal-field="exact-review"]');
+    await review.waitFor({ timeout: 45_000 });
+    const subject = await review.locator("strong").textContent();
+    const body = await review.locator(".draft-box").textContent();
+    const tomorrow = new Date(Date.now() + 86_400_000).toLocaleDateString("en-CA", {
+      timeZone: "America/Chicago",
+    });
+    await review.getByLabel("Date", { exact: true }).fill(tomorrow);
+    await review.getByLabel("Time (Central)", { exact: true }).fill("09:00");
+    const [scheduleResponse] = await Promise.all([
+      communicationResponse("schedule"),
+      dialog.getByRole("button", { name: "Schedule this message", exact: true }).click(),
+    ]);
+    const scheduled = (await scheduleResponse.json()).sequence;
+    assert.ok(scheduleResponse.ok() && scheduled?.id);
+    await dialog.waitFor({ state: "hidden" });
+    await open(prepared, "?step=ask-owner");
+    const scheduledLine = ((await now().textContent()) ?? "").replace(/\s+/g, " ");
+    check(
+      "the exact reviewed message reads scheduled for its date and remains unsent",
+      /Owner message scheduled for/.test(scheduledLine) &&
+        scheduled.authorization?.initial.subject === subject &&
+        scheduled.authorization?.initial.plainText === body &&
+        scheduled.authorization?.schedule?.firstDate === tomorrow &&
+        scheduled.authorization?.schedule?.time === "09:00" &&
+        (await sentMessages()).length === priorSends.size,
+      {
+        scheduled: sequenceStanding(scheduled),
+        scheduledLine: scheduledLine.slice(0, 300),
+      },
+    );
+    await refusedRetirement(
+      scheduled.id,
+      "Pause or cancel the scheduled communication before retiring this cycle.",
+    );
+    await page.goto(
+      origin + "/gmail-hub?communication=" + encodeURIComponent(scheduled.id),
+      {
+        waitUntil: "domcontentloaded",
+      },
+    );
+    const [pauseResponse] = await Promise.all([
+      communicationResponse("pause"),
+      composer()
+        .getByRole("button", { name: "Pause", exact: true })
+        .click({ timeout: 30_000 }),
+    ]);
+    const paused = (await pauseResponse.json()).sequence;
+    assert.ok(pauseResponse.ok() && paused?.state === "paused");
+    const resume = composer().getByRole("button", {
+      name: "Resume reviewed sequence",
+      exact: true,
+    });
+    const [resumeResponse] = await Promise.all([
+      communicationResponse("resume"),
+      resume.click({ timeout: 30_000 }),
+    ]);
+    const resumed = (await resumeResponse.json()).sequence;
+    const resumedWithoutEffect = (await sentMessages()).length === priorSends.size;
+    check(
+      "Resume preserves the reviewed schedule and exact message with no immediate effect",
+      resumeResponse.ok() &&
+        resumed?.id === scheduled.id &&
+        resumed.state === "active" &&
+        resumed.authorization?.revision === scheduled.authorization.revision + 1 &&
+        JSON.stringify(resumed.authorization?.schedule) ===
+          JSON.stringify(scheduled.authorization.schedule) &&
+        resumed.authorization?.initial.plainText === body &&
+        resumed.authorization?.initial.subject === subject &&
+        resumedWithoutEffect,
+      {
+        paused: sequenceStanding(paused),
+        resumed: sequenceStanding(resumed),
+        resumedWithoutEffect,
+      },
+    );
+    if (resumeResponse.ok() && resumed?.state === "active") {
+      const tick = await runDueMessageTick(rehearsal, { sequenceId: resumed.id });
       await open(prepared, "?step=ask-owner");
-      scheduledLine = ((await now().textContent()) ?? "").replace(/\s+/g, " ");
-      await refusedRetirement(
-        scheduled.body?.sequence?.id,
-        "Pause or cancel the scheduled communication before retiring this cycle.",
+      const afterTick = await stageLine();
+      const standing = await route("/api/gmail-hub/sequences?id=" + resumed.id);
+      const newSends = (await sentMessages()).filter(
+        (entry) => !priorSends.has(entry.id),
       );
-      // The server's own reading of the same source just before the tick (a read), so a held send
-      // shows whether the source moved or the tick read it differently.
-      const recomposed = await route(
-        `/api/gmail-hub/composition?purpose=renewal_owner&lease=${prepared}`,
+      check(
+        "the due tick accepts one exact message and the lease records Waiting on owner response",
+        /^Waiting on owner response/.test(afterTick) &&
+          newSends.length === 1 &&
+          standing.body?.sequence?.confirmedCount === 1 &&
+          newSends[0].subject === subject &&
+          newSends[0].text === body,
+        { tick, afterTick, standing: sequenceStanding(standing.body?.sequence) },
       );
-      const serverSource = {
-        atSchedule: composition.body?.target?.materialSourceHash ?? null,
-        beforeTick: recomposed.body?.target?.materialSourceHash ?? null,
-        noticeCycleId: recomposed.body?.target?.noticeCycleId ?? null,
-        blockers: recomposed.body?.target?.blockers ?? null,
-      };
-      // The harness's in-process tick: the due message is sent through the mail stand-in.
-      tick = await runDueMessageTick(rehearsal, {
-        sequenceId: scheduled.body?.sequence?.id,
-      }).catch((error) => ({ error: String(error?.message ?? error) }));
-      tick = { ...tick, serverSource };
-      await open(prepared, "?step=ask-owner");
-      afterTick = await stageLine();
-      // Where the app's own record of the scheduled message stands after the tick.
-      const standing = await route(
-        `/api/gmail-hub/sequences?id=${scheduled.body?.sequence?.id}`,
-      );
-      tick = { ...tick, standing: sequenceStanding(standing.body?.sequence) };
     }
-    check(
-      "a scheduled message reads Owner message scheduled for its date and is not counted before Gmail accepts it",
-      /Owner message scheduled for/.test(scheduledLine),
-      { target, scheduledLine: scheduledLine.slice(0, 300) },
-    );
-    check(
-      "after the due-message tick has Gmail accept it, the scheduled message counts as the outreach",
-      /^Waiting on owner response/.test(afterTick),
-      { tick, afterTick },
-    );
   } catch (error) {
     check(
       "the guided path ran to its end",
