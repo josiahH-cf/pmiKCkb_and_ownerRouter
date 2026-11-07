@@ -49,7 +49,16 @@ describe("admin migration console", () => {
 
     const { response, html } = await client.getHtml("/admin");
     expect(response.status).toBe(200);
-    expect(html).toContain("Open migration console");
+    expect(html).toContain("Connected services and migration");
+    expect(html).toMatch(
+      /<a\b[^>]*\bhref="\/admin\/migration"[^>]*>Migration readiness<\/a>/,
+    );
+
+    const readiness = await client.getHtml("/admin?task=readiness");
+    expect(readiness.response.status).toBe(200);
+    expect(readiness.html).toMatch(
+      /<a\b[^>]*\bhref="\/admin\/migration"[^>]*>Open migration console<\/a>/,
+    );
   });
 });
 

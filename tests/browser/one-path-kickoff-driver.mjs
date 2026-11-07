@@ -735,12 +735,30 @@ export async function runKickoff() {
         (await now().locator('[data-renewal-field="message-revision"]').textContent()) ??
           "",
       )?.[1] ?? null;
-    const edited = { preview: await previewText(), revision: await revisionLabel() };
+    const edited = {
+      preview: await previewText(),
+      revision: await revisionLabel(),
+      fingerprint: await now()
+        .locator("[data-renewal-message-revision]")
+        .getAttribute("data-renewal-message-revision"),
+    };
+    const copiedNotice = now().getByText(/^Body copied as shown\./);
     await now().getByRole("button", { name: "Copy", exact: true }).click();
-    await page.waitForTimeout(800);
-    const copied = await page
-      .evaluate(() => navigator.clipboard.readText())
-      .catch(() => "");
+    const copied = (await shownWithin(copiedNotice, 5_000))
+      ? await page.evaluate(() => navigator.clipboard.readText()).catch(() => "")
+      : "";
+    const mailEntries = async (label) =>
+      (await standInState(rehearsal)).mail.mailboxes
+        .flatMap((box) => box.messages)
+        .filter((message) => message.labelIds.includes(label));
+    const sentBeforeReview = new Set(
+      (await mailEntries("SENT")).map((entry) => entry.id),
+    );
+    const draftsBeforeReview = (await mailEntries("DRAFT")).length;
+    const readReview = async (review) => ({
+      subject: await review.locator("strong").textContent(),
+      body: await review.locator(".draft-box").textContent(),
+    });
     // A disabled delivery action is recorded with what the card says it needs; it is never waited on.
     // Read at once: a card with nothing missing has no such line, and that is never waited on.
     const needsNow = async () => {
@@ -753,38 +771,30 @@ export async function runKickoff() {
         : null;
     };
     const scheduleButton = now().getByRole("button", { name: "Schedule", exact: true });
-    let scheduled = "";
+    let scheduled = null;
     const scheduleEnabled = await scheduleButton.isEnabled();
     if (scheduleEnabled) {
       await scheduleButton.click();
       const scheduleDialog = page.getByRole("dialog", { name: "Review and schedule" });
-      await scheduleDialog
-        .locator('[data-renewal-field="exact-review"]')
-        .waitFor({ timeout: 120_000 });
-      scheduled =
-        (await scheduleDialog
-          .locator('[data-renewal-field="exact-review"]')
-          .textContent()) ?? "";
+      scheduled = await readReview(
+        scheduleDialog.locator('[data-renewal-field="exact-review"]'),
+      );
       await scheduleDialog.getByRole("button", { name: "Cancel" }).click();
     }
     const draftButton = now().getByRole("button", {
       name: "Create Gmail draft instead",
       exact: true,
     });
-    let drafted = "";
+    let drafted = null;
     const draftEnabled = await draftButton.isEnabled();
     if (draftEnabled) {
       await draftButton.click();
       const draftDialog = page.getByRole("dialog", {
         name: "Create Gmail draft instead",
       });
-      await draftDialog
-        .locator('[data-renewal-field="draft-review"]')
-        .waitFor({ timeout: 120_000 });
-      drafted =
-        (await draftDialog
-          .locator('[data-renewal-field="draft-review"]')
-          .textContent()) ?? "";
+      drafted = await readReview(
+        draftDialog.locator('[data-renewal-field="draft-review"]'),
+      );
       await draftDialog.getByRole("button", { name: "Cancel" }).click();
     }
     const composer = await context.newPage();
@@ -794,20 +804,31 @@ export async function runKickoff() {
     await composer
       .locator("[data-communication-message-revision]")
       .waitFor({ timeout: 120_000 });
-    const composerRevision = /revision ([0-9A-F]{6})/.exec(
-      (await composer.locator("[data-communication-message-revision]").textContent()) ??
-        "",
-    )?.[1];
-    // The composer's editable body is a field; its value is the message text.
-    const composerBody = await composer.evaluate(() =>
-      [
-        document.body.innerText,
-        ...[...document.querySelectorAll("textarea, input, [contenteditable]")].map(
-          (field) => ("value" in field ? field.value : field.textContent) ?? "",
-        ),
-      ].join("\n"),
-    );
+    const composerRevision = await composer
+      .locator("[data-communication-message-revision]")
+      .getAttribute("data-communication-message-revision");
+    const initial = composer.getByRole("region", {
+      name: "Initial message",
+      exact: true,
+    });
+    const composerSubject = await initial
+      .getByRole("textbox", { name: "Initial message subject", exact: true })
+      .inputValue();
+    // Clear the prior copy so only this action can yield the comparison body.
+    await composer.bringToFront();
+    await composer.evaluate(() => navigator.clipboard.writeText(""));
+    await initial.getByRole("button", { name: "Copy message", exact: true }).click();
+    await composer.getByText("Message copied; files remain attached here").waitFor();
+    const composerBody = await composer.evaluate(() => navigator.clipboard.readText());
     await composer.close();
+    const exactMessages = {
+      schedule: scheduled?.body === copied && scheduled.subject === composerSubject,
+      draft: drafted?.body === copied && drafted.subject === composerSubject,
+      composer: composerRevision === edited.fingerprint && composerBody === copied,
+    };
+    const canceledWithoutEffect =
+      (await mailEntries("SENT")).length === sentBeforeReview.size &&
+      (await mailEntries("DRAFT")).length === draftsBeforeReview;
     markers.push(await noticeMarker(prepared, "after L27"));
     check(
       'L27: changing "Rent to recommend" and "Reason to include" updates the one preview, and Review and send, Schedule, Create Gmail draft instead, Copy and the composer show that same message',
@@ -815,19 +836,15 @@ export async function runKickoff() {
         edited.preview.includes(reason) &&
         copied.includes(reason) &&
         copied.includes("$1,410.00") &&
-        scheduled.includes(reason) &&
-        drafted.includes(reason) &&
-        composerRevision === edited.revision &&
-        (composerBody ?? "").includes(reason),
+        Object.values(exactMessages).every(Boolean) &&
+        canceledWithoutEffect,
       {
         revision: edited.revision,
-        composerRevision,
-        preview: edited.preview.slice(0, 1500),
-        copied: copied.includes(reason),
+        comparedBodySha256: createHash("sha256").update(copied).digest("hex"),
+        exactMessages,
         scheduleEnabled,
-        scheduled: scheduled.includes(reason),
         draftEnabled,
-        drafted: drafted.includes(reason),
+        canceledWithoutEffect,
         needs: await needsNow(),
       },
     );
@@ -849,7 +866,7 @@ export async function runKickoff() {
     act("choose Review and send");
     await now().locator("[data-renewal-now-primary]").click();
     const review = page.getByRole("dialog", { name: "Review and send" });
-    let exact = "";
+    let exact = null;
     const reviewShown = await review
       .locator('[data-renewal-field="exact-review"]')
       .waitFor({ timeout: 120_000 })
@@ -857,8 +874,7 @@ export async function runKickoff() {
       .catch(() => false);
     markers.push(await noticeMarker(prepared, "after Review and send"));
     if (reviewShown) {
-      exact =
-        (await review.locator('[data-renewal-field="exact-review"]').textContent()) ?? "";
+      exact = await readReview(review.locator('[data-renewal-field="exact-review"]'));
       act("confirm Send this message");
       await review
         .getByRole("button", { name: "Send this message", exact: true })
@@ -868,23 +884,30 @@ export async function runKickoff() {
     const sendSteps = steps.slice(before).map((entry) => entry.action);
     const mail = (await standInState(rehearsal)).mail;
     const sent = mail.mailboxes.flatMap((box) => box.messages ?? []);
-    const ownerMessages = sent.filter((message) =>
-      /Our reviewed rental analysis suggests/.test(message.text ?? message.body ?? ""),
+    const newlySent = (await mailEntries("SENT")).filter(
+      (entry) => !sentBeforeReview.has(entry.id),
     );
+    const exactSend =
+      exact?.subject === composerSubject &&
+      exact?.body === copied &&
+      newlySent.length === 1 &&
+      newlySent[0].subject === exact.subject &&
+      newlySent[0].text === exact.body;
     check(
       "L23: the owner message is sent in three deliberate actions on one page, with the exact review and the confirmation shown",
       sendSteps.length === 3 &&
         context.pages().length === 1 &&
-        exact.includes(reason) &&
-        exact.includes("$1,410.00") &&
-        ownerMessages.some((message) => (message.text ?? "").includes("$1,410.00")),
+        copied.includes(reason) &&
+        copied.includes("$1,410.00") &&
+        exactSend,
       {
         sendSteps,
         reviewShown,
         needsBeforeSend,
         markers,
         pages: context.pages().length,
-        sent: sent.length,
+        exactSend,
+        newlySent: newlySent.length,
         statuses: reviewShown
           ? null
           : await now()
