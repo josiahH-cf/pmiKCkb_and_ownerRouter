@@ -534,7 +534,7 @@ try {
     wide,
     "light",
     "pointer",
-    "The exact synthetic cycle moves from active work to Retired only after confirmation, reads back after reload, then restores through a second deliberate record.",
+    "The exact cycle moves to Retired after confirmation. A stale review in another tab keeps its reason and creates no second record. Restoration persists, and the Status log lists both recorded decisions.",
     async (page) => {
       await open(page, path(separate));
       const header = stage(page);
@@ -548,10 +548,35 @@ try {
         exact: true,
       });
       await dialog.getByLabel("Reason", { exact: true }).fill("Synthetic inactive cycle");
-      await dialog
-        .getByRole("button", { name: "Retire from renewals", exact: true })
-        .click();
-      await header.getByText("Retired from renewals", { exact: true }).waitFor();
+      const staleTab = await page.context().newPage();
+      try {
+        await open(staleTab, path(separate));
+        const staleStage = stage(staleTab);
+        await staleStage
+          .getByRole("button", { name: "Record work", exact: true })
+          .click();
+        await staleStage
+          .getByRole("button", { name: "Retire from renewals", exact: true })
+          .click();
+        const staleDialog = staleTab.getByRole("dialog", {
+          name: "Retire from renewals",
+          exact: true,
+        });
+        const staleReason = staleDialog.getByLabel("Reason", { exact: true });
+        await staleReason.fill("Example stale retirement review");
+        await dialog
+          .getByRole("button", { name: "Retire from renewals", exact: true })
+          .click();
+        await header.getByText("Retired from renewals", { exact: true }).waitFor();
+        await staleDialog
+          .getByRole("button", { name: "Retire from renewals", exact: true })
+          .click();
+        await staleDialog.getByText(/The current cycle or retirement changed/).waitFor();
+        assert.equal(await staleReason.inputValue(), "Example stale retirement review");
+        await staleDialog.getByRole("button", { name: "Cancel", exact: true }).click();
+      } finally {
+        await staleTab.close();
+      }
       await page.reload({ waitUntil: "domcontentloaded" });
       await header.getByText("Retired from renewals", { exact: true }).waitFor();
       await open(page, desk + "?group=retired");
@@ -578,7 +603,23 @@ try {
       await header
         .locator('[data-renewal-field="stage-line"]:not([data-renewal-stage="retired"])')
         .waitFor();
-      return { retiredCountedAndOpened: true, bothDecisionsSurvivedReload: true };
+      const statusLog = page.getByRole("region", {
+        name: "Staff status and Status log",
+        exact: true,
+      });
+      const history = statusLog.locator("details").filter({
+        has: page.getByText("Retirement and restoration history", { exact: true }),
+      });
+      await history.locator("summary").click();
+      await history.getByText(/Synthetic retirement corrected/).waitFor();
+      await history.getByText(/Synthetic inactive cycle/).waitFor();
+      assert.equal(await history.getByRole("listitem").count(), 2);
+      return {
+        retiredCountedAndOpened: true,
+        bothDecisionsSurvivedReload: true,
+        staleReasonKept: true,
+        recordedEvents: 2,
+      };
     },
   );
   await check(
