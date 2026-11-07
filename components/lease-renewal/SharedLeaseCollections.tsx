@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
-import { Field } from "@/components/ui";
+import { Button, Field } from "@/components/ui";
 import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import { formatBusinessTimestamp, formatCalendarDate } from "@/lib/date-display";
 import {
@@ -136,7 +136,7 @@ export function SharedLeaseCollections({
   const [renaming, setRenaming] = useState(false);
   const [newName, setNewName] = useState("");
   const [lookingUp, setLookingUp] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
   const [choices, setChoices] = useState<LeaseChoice[]>([]);
   const [labels, setLabels] = useState<Record<string, string>>({});
@@ -225,10 +225,12 @@ export function SharedLeaseCollections({
     try {
       const result = await read<{ leases: LeaseChoice[]; complete: boolean }>(query);
       if (!live.current) return;
-      setLabels((old) => ({
-        ...old,
-        ...Object.fromEntries(result.leases.map((row) => [row.leaseId, row.label])),
-      }));
+      if (!Array.isArray(result.leases))
+        throw new Error("The source search result is unavailable.");
+      const labels = Object.fromEntries(
+        result.leases.map((row) => [row.leaseId, row.label]),
+      );
+      setLabels((old) => ({ ...old, ...labels }));
       if (!imported) setChoices(result.leases);
       setLookupStatus(
         !result.complete
@@ -645,9 +647,13 @@ export function SharedLeaseCollections({
             Load older collections
           </button>
         ) : null}
-        <button type="button" disabled={busy || !!pending} onClick={newCollection}>
+        <Button
+          type="button"
+          disabled={loading || busy || !!pending}
+          onClick={newCollection}
+        >
           New collection
-        </button>
+        </Button>
       </nav>
       {notice ? <p role="status">{notice}</p> : null}
       {error ? <p role="alert">{error}</p> : null}

@@ -8,6 +8,23 @@ import type { HelpChangelogEntry } from "@/lib/help/types";
  */
 export const HELP_CHANGELOG: readonly HelpChangelogEntry[] = [
   {
+    version: "V2.2",
+    date: "2026-11-07",
+    summary:
+      "V2.2, Renewals opens the working batch table and lets you switch to All leases and filters. The lease header shows the current stage and opens Record work. Guided and Full keep the applicable controls and older links. You can retire and restore an exact renewal cycle, review shared membership, and save a blank signature. Operations includes Communications, and Admin and Connections open the task you choose.",
+    affectedGuides: [
+      "find-your-way",
+      "work-a-renewal",
+      "compare-rent",
+      "owner-message",
+      "tenant-offer",
+      "manage-connections",
+      "admin-tasks",
+      "publish-a-process",
+    ],
+    contentDigest: "9478b29f9c252353d42bd48316da3f19358b6bb89f4060115affe4beadaa550a",
+  },
+  {
     version: "V2.1",
     date: "2026-11-06",
     summary:

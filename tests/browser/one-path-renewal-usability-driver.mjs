@@ -181,6 +181,90 @@ try {
     },
   );
   await check(
+    "L02-linked-entries",
+    "Editor",
+    wide,
+    "light",
+    "keyboard",
+    "The desk, a Dashboard month answer and an explicit My Work task open the same lease and its current renewal step. The task remains private to its owner.",
+    async (page) => {
+      await open(page, desk);
+      const row = page.locator(`tr[data-batch-lease="${prepared}"]`);
+      const link = row.getByRole("link", { name: "Open the lease", exact: true });
+      await link.focus();
+      await page.keyboard.press("Enter");
+      await page.waitForURL((url) => url.pathname === path(prepared));
+      const original = await stage(page)
+        .locator('[data-renewal-field="stage-line"]')
+        .innerText();
+      await page.goBack({ waitUntil: "domcontentloaded" });
+      await row.waitFor();
+
+      await open(page, "/");
+      await page
+        .getByLabel("Question", { exact: true })
+        .fill("Which lease renewals are due next month?");
+      await page.getByRole("button", { name: "Get answer", exact: true }).click();
+      const answer = page.getByRole("region", { name: "Assistant answer", exact: true });
+      await answer.waitFor();
+      const leaseLinks = answer.locator(`a[href^="${desk}/lease/"]`);
+      const ids = await leaseLinks.evaluateAll((links) => [
+        ...new Set(
+          links.map((link) => Number(new URL(link.href).pathname.split("/").at(-1))),
+        ),
+      ]);
+      assert.deepEqual(
+        ids.sort((a, b) => a - b),
+        [...expectedGroups.this_batch].sort((a, b) => a - b),
+      );
+      await answer
+        .locator(`a[href^="${path(prepared)}"]`)
+        .first()
+        .click();
+      await stage(page).waitFor();
+      assert.equal(
+        await stage(page).locator('[data-renewal-field="stage-line"]').innerText(),
+        original,
+      );
+
+      await open(page, "/work");
+      await page.getByText("Create my task", { exact: true }).click();
+      const taskTitle = "Example renewal readback task";
+      await page.getByLabel("Space", { exact: true }).selectOption("renewals");
+      await page.getByLabel("Task type", { exact: true }).fill("Renewal");
+      await page.getByLabel("Title", { exact: true }).fill(taskTitle);
+      await page
+        .getByLabel("Next action", { exact: true })
+        .fill("Review the stored comparison");
+      await page.getByLabel("Source", { exact: true }).selectOption("renewal_lease");
+      await page.getByLabel("Source id", { exact: true }).fill(prepared);
+      await page.getByRole("button", { name: "Create task", exact: true }).click();
+      await page.getByText(taskTitle, { exact: true }).waitFor();
+      await page
+        .getByRole("link", { name: "Open linked renewal lease", exact: true })
+        .click();
+      await page.waitForURL((url) => url.pathname === path(prepared));
+      assert.equal(
+        await stage(page).locator('[data-renewal-field="stage-line"]').innerText(),
+        original,
+      );
+      await page.goBack({ waitUntil: "domcontentloaded" });
+      await page.getByText(taskTitle, { exact: true }).waitFor();
+
+      const other = await session("Approver", narrow, "light");
+      try {
+        await open(other.page, "/work");
+        await other.page
+          .getByRole("region", { name: "Assigned tasks", exact: true })
+          .waitFor();
+        assert.equal(await other.page.getByText(taskTitle, { exact: true }).count(), 0);
+      } finally {
+        await other.context.close();
+      }
+      return { dashboardTargets: ids.length, sameLeaseAndStage: true, privateTask: true };
+    },
+  );
+  await check(
     "L03-collection",
     "Editor",
     wide,
@@ -212,7 +296,7 @@ try {
       const review = editor.getByRole("region", { name: "Reviewed membership" });
       await review.getByRole("heading", { name: "Additions (2)", exact: true }).waitFor();
       assert.match(await review.innerText(), /Chosen outside the period/);
-      const apiPath = "**/api/lease-renewal/collections";
+      const apiPath = origin + "/api/lease-renewal/collections";
       let dropped = false;
       const loseSave = async (request) => {
         if (!dropped && request.request().postDataJSON()?.action === "save") {
@@ -403,6 +487,48 @@ try {
         "",
       );
       return { versionedBlankReadback: true };
+    },
+  );
+  await check(
+    "L11-operations-procedure",
+    "Editor",
+    narrow,
+    "light",
+    "touch",
+    "Communications is reachable under Operations. Internal Processes distinguishes working leases from the renewal procedure and can return to a linked lease.",
+    async (page) => {
+      await open(page, "/");
+      await page.getByRole("button", { name: "Operations", exact: true }).tap();
+      await page.getByRole("link", { name: "Communications", exact: true }).tap();
+      await page
+        .getByRole("heading", { name: "Workflow Communications", exact: true })
+        .waitFor();
+      await page.getByRole("button", { name: "Operations", exact: true }).tap();
+      await page.getByRole("link", { name: "Internal Processes", exact: true }).tap();
+      const directory = page.getByRole("heading", {
+        name: "Internal Processes",
+        exact: true,
+      });
+      await directory.waitFor();
+      const procedure = page.getByRole("link", {
+        name: /Open the owner outreach checklist/,
+      });
+      await procedure.tap();
+      await page.waitForURL((url) => url.searchParams.get("tab") === "process");
+      const workLink = page.getByRole("link", { name: "Open renewal work", exact: true });
+      await workLink.waitFor();
+      assert.equal(await workLink.getAttribute("href"), desk);
+      const procedurePath = new URL(page.url()).pathname;
+      await open(page, `${procedurePath}?tab=process&lease=${prepared}`);
+      await workLink.tap();
+      await page.waitForURL((url) => url.pathname === path(prepared));
+      await stage(page).waitFor();
+      await page.goBack({ waitUntil: "domcontentloaded" });
+      await page
+        .getByRole("link", { name: "Back to Internal Processes", exact: true })
+        .tap();
+      await directory.waitFor();
+      return { namedOperationsAndProcedure: true, exactLeaseReturn: true };
     },
   );
   await check(

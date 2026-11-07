@@ -1,5 +1,5 @@
 {
-  "version": "V2.1",
+  "version": "V2.2",
   "routeParameters": {
     "leaseId": "4821",
     "propertyKey": "4821",
@@ -312,6 +312,7 @@
       },
       "region": "region:Owner message preparation",
       "frame": "viewport",
+      "align": "center",
       "actions": ["click-button:Full view", "wait-text:Copy the message"],
       "source": "rehearsal",
       "alt": "Owner message preparation in Owner approval: Compose owner message in Communications, the lease's notes, then Copy the message with the Subject and To lines.",
