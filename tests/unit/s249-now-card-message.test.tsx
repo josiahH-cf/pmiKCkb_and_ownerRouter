@@ -120,7 +120,11 @@ function AskOwnerCard() {
       </h2>
       {primary ? (
         <p>
-          <button disabled={primary.disabled} onClick={primary.run} type="button">
+          <button
+            disabled={primary.disabled}
+            onClick={(event) => primary.run(event.currentTarget)}
+            type="button"
+          >
             {primary.label}
           </button>
           {primary.reason ? <span data-testid="send-needs">{primary.reason}</span> : null}
@@ -350,6 +354,28 @@ describe("S249 the prepared owner message on the Now card", () => {
       schedule: null,
     });
     expect(requests.filter((entry) => entry.body?.action === "send")).toHaveLength(1);
+  });
+
+  it("returns focus to Review and send after cancelling a prepared review", async () => {
+    const on = handlers();
+    let finishSave!: (ok: boolean) => void;
+    on.onFlush.mockReturnValue(new Promise((resolve) => (finishSave = resolve)));
+    mount({}, on);
+    const primary = await screen.findByRole("button", { name: "Review and send" });
+    primary.focus();
+    fireEvent.click(primary);
+    expect(primary).toBeDisabled();
+    // Browsers can drop focus when the preparing button becomes disabled.
+    primary.blur();
+    await act(async () => finishSave(true));
+    const cancel = screen.getByRole("button", { name: "Cancel" });
+    expect(cancel).toHaveFocus();
+    fireEvent.keyDown(cancel, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).toBeNull();
+    await waitFor(() => expect(primary).toHaveFocus());
+    expect(requests.every((entry) => !entry.body || entry.body.action === "save")).toBe(
+      true,
+    );
   });
 
   it("BEH-S249-1: a review read while the lease read is being replaced is read again and then shown", async () => {

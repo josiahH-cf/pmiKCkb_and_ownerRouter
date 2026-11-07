@@ -9,6 +9,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type MouseEvent,
 } from "react";
 import { createPortal } from "react-dom";
 
@@ -636,13 +637,13 @@ function NowCard({
     !blocker &&
     (shown.state === "current" || shown.state === "open") &&
     shown.primary?.label === definition.primary.label;
-  const runPrimary = () => {
+  const runPrimary = (event: MouseEvent<HTMLButtonElement>) => {
     if (coveredOwnerStep) {
       choose("offer-tenant");
       return;
     }
     if (fillerActive && filler) {
-      filler.run();
+      filler.run(event.currentTarget);
       return;
     }
     if (!primary) return;

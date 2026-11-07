@@ -19,7 +19,7 @@ export const HELP_CHANGELOG: readonly HelpChangelogEntry[] = [
       "compare-rent",
       "admin-tasks",
     ],
-    contentDigest: "004c29f0b9e83ced9bfae70d3c25a968129a6fd29257ee4db6783dae27462bb7",
+    contentDigest: "9beeb19a0f1736a2dd01ac984aea451e452d0b5dd5490e14141d2912c38f1c97",
   },
   {
     version: "V2.0",

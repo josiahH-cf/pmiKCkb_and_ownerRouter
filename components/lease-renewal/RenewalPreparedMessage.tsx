@@ -743,13 +743,15 @@ function PreparedMessageBlock({
   }
 
   // R-S249-8: "Review and send" is the Now card's primary action while the step asks for its send.
-  const runReview = () => {
+  const runReview = (button: HTMLButtonElement) => {
     if (!ready) {
       const first = needs.find((item) => !item.ready);
       if (first?.key === "signature") setSignatureOpen(true);
       else if (first?.fix) focusRenewalDashboardControl(first.fix.target);
       return;
     }
+    // Preparing the review can disable the button before the dialog opens.
+    trigger.current = button;
     void prepareReview("send");
   };
   const reason =
@@ -762,7 +764,10 @@ function PreparedMessageBlock({
   useEffect(() => {
     latestRun.current = runReview;
   });
-  const stableRun = useCallback(() => latestRun.current(), []);
+  const stableRun = useCallback(
+    (button: HTMLButtonElement) => latestRun.current(button),
+    [],
+  );
   useEffect(() => {
     if (!setPrimary) return;
     setPrimary(step, {

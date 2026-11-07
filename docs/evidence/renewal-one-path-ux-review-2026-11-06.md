@@ -511,6 +511,14 @@ Connections and live review routes. This lets assistive navigation enter the mai
 work directly. It adds no visible content and changes no handler. The read-only
 Guided landmark check and independent oracle require it (P10, P14; SC08, SC09).
 
+UX-057, observed on `30013219`: from the prepared owner message, Tab and Enter opened the
+exact review and moved focus inside at 1280 by 800 light and 390 by 844 dark. Escape closed
+the dialog in both, but focus never returned to Review and send. Preparing the exact
+review can disable its button before the dialog takes focus. The Now action now supplies
+the original button synchronously, just as Schedule and Gmail already do. Cancel and
+Escape return to that button when it remains available. The exact review and confirmation
+are unchanged (P12, P13, P14; SC09, SC10).
+
 Preserved by decision: exact review/confirmation, the required Gmail banner, stale authored wording,
 who-approved validation, role/Space and Action Registry checks, blank unsettled legal fields,
 assistance-animal holds, existing controls/views/filters/collections/old links, historical failed

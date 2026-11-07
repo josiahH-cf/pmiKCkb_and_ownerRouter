@@ -262,7 +262,11 @@ function Now() {
   return (
     <section aria-label="Now">
       {primary ? (
-        <button disabled={primary.disabled} onClick={primary.run} type="button">
+        <button
+          disabled={primary.disabled}
+          onClick={(event) => primary.run(event.currentTarget)}
+          type="button"
+        >
           {primary.label}
         </button>
       ) : null}
