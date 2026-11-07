@@ -58,6 +58,21 @@ const SCROLL_TO_TOP = new Function(
   window.scrollBy(0, -(cover + 12));`,
 );
 
+// Anchor the settled Full section to an integer position below its own toolbar. In this long
+// workspace, chaining native alignment and scrollBy can leave otherwise identical captures one
+// pixel apart. This changes the framing only. The comparator still checks every scene pixel.
+const FRAME_TENANT_SECTION = new Function(
+  "heading",
+  `const toolbar = heading.closest(".renewal-workspace-shell")
+    ?.querySelector(".renewal-workspace-toolbar");
+  if (!toolbar) return false;
+  const top = Math.ceil(toolbar.getBoundingClientRect().bottom) + 12;
+  const destination = Math.floor(window.scrollY + heading.getBoundingClientRect().top - top);
+  window.scrollTo({ top: destination, behavior: "instant" });
+  const landed = heading.getBoundingClientRect().top;
+  return landed >= top && landed < top + 1;`,
+);
+
 // A scene with `align: "center"` centers its region in the viewport instead.
 const SCROLL_TO_CENTER = new Function(
   "element",
@@ -443,6 +458,11 @@ async function captureScene(scene) {
       );
     } else if (framed) await region.first().scrollIntoViewIfNeeded();
     await quiet(page);
+    if (scene.id === "tenant-offer")
+      assert.ok(
+        await region.first().evaluate(FRAME_TENANT_SECTION),
+        "The Tenant offer heading must frame below the settled toolbar.",
+      );
     verifySearchTime?.();
     let verifiedText = [];
     let verifiedIdentifier;
