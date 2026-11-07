@@ -671,16 +671,13 @@ export async function runKickoff() {
     // the page: read them once they are shown (L22 counts what is there with no action).
     await shownWithin(now().locator('[data-renewal-comparison="stored"]'), 120_000);
     await shownWithin(now().locator('[data-renewal-field="rent-basis"]'), 60_000);
+    const sendNeeds = now().locator('[data-renewal-field="send-needs"]');
     const opened = {
       heading: (await now().locator("h2#renewal-now-heading").textContent())?.trim(),
       comparison: await now().locator('[data-renewal-comparison="stored"]').count(),
       comparisonAge: await now().locator('[data-renewal-field="comparison-age"]').count(),
       comps: await now().locator('[aria-label="Comparables"] li').count(),
-      needs:
-        (await now()
-          .locator('[data-renewal-field="send-needs"]')
-          .textContent()
-          .catch(() => null)) ?? null,
+      needs: (await sendNeeds.count()) ? await sendNeeds.textContent() : null,
       readiness: await now()
         .locator("[data-renewal-ready]")
         .evaluateAll((items) =>
@@ -945,10 +942,10 @@ export async function runKickoff() {
     await now().getByLabel("Reason to include").fill("Recent leases nearby support it.");
     await now().getByLabel("Reason to include").blur();
     await page.waitForTimeout(3000);
-    const older = await now()
-      .locator('[data-renewal-field="draft-older"]')
-      .textContent()
-      .catch(() => null);
+    const olderDraftLine = now().locator('[data-renewal-field="draft-older"]');
+    const older = (await shownWithin(olderDraftLine, 15_000))
+      ? await olderDraftLine.textContent()
+      : null;
     check(
       'L28: after a Gmail draft is created and the message changes, the card reads "The Gmail draft is older than this message" and offers "Replace the Gmail draft"',
       draftsAfter === draftsBefore + 1 &&

@@ -412,6 +412,72 @@ try {
     },
   );
   await check(
+    "L05-L06-note-recovery",
+    "Editor",
+    wide,
+    "dark",
+    "keyboard",
+    "A refused note save keeps the exact long entry. The same tab restores its text and focus on reload, another tab cannot see the unsaved entry, and saving adds one Status log note without changing the stage.",
+    async (page) => {
+      await open(page, path(separate));
+      const stageLine = stage(page).locator('[data-renewal-field="stage-line"]');
+      const start = await stageLine.innerText();
+      const note = page.getByRole("textbox", { name: "Add a note", exact: true });
+      const noteText =
+        "Synthetic continuation note. " +
+        "Review the example source before outreach. ".repeat(31);
+      const notesRoute = origin + "/api/lease-renewal/work-status";
+      let refused = 0;
+      const refuse = (request) => {
+        if (request.request().method() !== "POST") return request.continue();
+        refused += 1;
+        return request.fulfill({
+          status: 503,
+          contentType: "application/json",
+          body: JSON.stringify({ error: "Synthetic note save unavailable." }),
+        });
+      };
+      await page.route(notesRoute, refuse);
+      await note.focus();
+      await note.fill(noteText);
+      await page.getByText("Synthetic note save unavailable.", { exact: true }).waitFor();
+      assert.equal(await note.inputValue(), noteText);
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await page.waitForFunction(
+        (text) =>
+          document.activeElement instanceof HTMLTextAreaElement &&
+          document.activeElement.value === text,
+        noteText,
+      );
+      const other = await page.context().newPage();
+      try {
+        await open(other, path(separate));
+        const otherNote = other.getByRole("textbox", { name: "Add a note", exact: true });
+        assert.equal(await otherNote.inputValue(), "");
+      } finally {
+        await other.close();
+      }
+      await page.unroute(notesRoute, refuse);
+      await note.focus();
+      await page.keyboard.press("Tab");
+      const statusLog = page.getByTestId("renewal-status-log");
+      await statusLog.getByText(noteText.trim(), { exact: true }).waitFor();
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await statusLog.getByText(noteText.trim(), { exact: true }).waitFor();
+      assert.equal(
+        await statusLog.getByText(noteText.trim(), { exact: true }).count(),
+        1,
+      );
+      assert.equal(await stageLine.innerText(), start);
+      return {
+        refused,
+        preservedCharacters: noteText.length,
+        isolatedTab: true,
+        recordedNotes: 1,
+      };
+    },
+  );
+  await check(
     "L09-disposition",
     "Editor",
     wide,
@@ -631,6 +697,57 @@ try {
         .waitFor();
       assert.equal(await page.locator("#admin-runtime-suspensions").count(), 0);
       return { legacyAnchorResolved: true, returnedToIndex: true };
+    },
+  );
+  await check(
+    "L13-help-print-return",
+    "Editor",
+    narrow,
+    "dark",
+    "keyboard",
+    "An existing Help step link opens the current guide. The actual Print this guide control requests browser printing, all printed headings stay with their content, and Back returns to the same lease section.",
+    async (page) => {
+      const destination = path(prepared, "?view=focus#renewal-section-documents");
+      await open(page, destination);
+      const documents = page.getByRole("region", {
+        name: "Documents and completion",
+        exact: true,
+      });
+      await documents.waitFor();
+      const address = page.url();
+      await page.addInitScript(() => {
+        window.print = () => {
+          document.documentElement.dataset.rehearsalPrintRequested = "true";
+        };
+      });
+      await open(page, "/help/lease-renewals/work-a-renewal#record-renewal-work");
+      const heading = page.getByRole("heading", {
+        name: "Work a renewal from the desk to a recorded outcome",
+        exact: true,
+      });
+      await heading.waitFor();
+      await page.locator("#record-renewal-work .help-step-title").waitFor();
+      const print = page.getByRole("button", { name: "Print this guide", exact: true });
+      await print.focus();
+      await page.keyboard.press("Enter");
+      await page.locator('html[data-rehearsal-print-requested="true"]').waitFor();
+      await page.emulateMedia({ media: "print" });
+      assert.equal(await print.isVisible(), false);
+      const printed = await page
+        .locator(".help-guide h1, .help-guide h2, .help-guide h3")
+        .evaluateAll((headings) =>
+          headings.map((node) => getComputedStyle(node).breakAfter),
+        );
+      assert.ok(printed.length > 0 && printed.every((rule) => rule === "avoid"));
+      await page.emulateMedia({ media: "screen" });
+      await page.goBack({ waitUntil: "domcontentloaded" });
+      await documents.waitFor();
+      assert.equal(page.url(), address);
+      return {
+        headingsKeptWithContent: printed.length,
+        nativePrintRequested: true,
+        returnedToLease: true,
+      };
     },
   );
 } finally {
