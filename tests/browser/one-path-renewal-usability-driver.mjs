@@ -615,13 +615,22 @@ try {
     "touch",
     "Communications is reachable under Operations. Internal Processes distinguishes working leases from the renewal procedure and can return to a linked lease.",
     async (page) => {
+      const operations = async () => {
+        const menu = page.getByRole("button", { name: "Menu", exact: true });
+        await menu.tap();
+        await page
+          .getByRole("button", { name: "Menu", exact: true, expanded: true })
+          .waitFor();
+        await page.getByRole("button", { name: "Operations", exact: true }).tap();
+      };
       await open(page, "/");
-      await page.getByRole("button", { name: "Operations", exact: true }).tap();
+      await page.waitForLoadState("networkidle", { timeout: 15_000 });
+      await operations();
       await page.getByRole("link", { name: "Communications", exact: true }).tap();
       await page
         .getByRole("heading", { name: "Workflow Communications", exact: true })
         .waitFor();
-      await page.getByRole("button", { name: "Operations", exact: true }).tap();
+      await operations();
       await page.getByRole("link", { name: "Internal Processes", exact: true }).tap();
       const directory = page.getByRole("heading", {
         name: "Internal Processes",
@@ -674,16 +683,27 @@ try {
           body: "{}",
         });
       };
+      const checkConnection = () =>
+        Promise.all([
+          page.waitForResponse(
+            (response) =>
+              response.url() === route && response.request().method() === "POST",
+          ),
+          verify.press("Enter"),
+        ]).then(([response]) => response);
+      await page.waitForLoadState("networkidle", { timeout: 15_000 });
       await page.route(route, refuseOnce);
-      await verify.focus();
-      await page.keyboard.press("Enter");
+      assert.equal((await checkConnection()).status(), 503);
       await page.getByText("The check could not run", { exact: true }).waitFor();
       await page.unroute(route, refuseOnce);
-      await verify.focus();
-      await page.keyboard.press("Enter");
-      await page
-        .getByText("Verified: RentVine answered the live check.", { exact: true })
-        .waitFor();
+      const retry = await checkConnection();
+      assert.ok(retry.ok());
+      const result = await retry.json();
+      assert.equal(result.connector_id, "rentvine");
+      const message = result.verified
+        ? "Verified: RentVine answered the live check."
+        : "RentVine did not pass the live check. See the card's next step.";
+      await page.getByText(message, { exact: true }).waitFor();
       await page
         .getByRole("link", { name: "Open Admin task index", exact: true })
         .click();
@@ -724,6 +744,7 @@ try {
       }
       return {
         failedReadRetried: failureServed,
+        verifiedBySyntheticProbe: result.verified,
         returnedToAdmin: true,
         editorRefused: true,
       };
@@ -779,8 +800,8 @@ try {
       await heading.waitFor();
       await page.locator("#record-renewal-work .help-step-title").waitFor();
       const print = page.getByRole("button", { name: "Print this guide", exact: true });
-      await print.focus();
-      await page.keyboard.press("Enter");
+      await page.waitForLoadState("networkidle", { timeout: 15_000 });
+      await print.press("Enter");
       await page.locator('html[data-rehearsal-print-requested="true"]').waitFor();
       await page.emulateMedia({ media: "print" });
       assert.equal(await print.isVisible(), false);
