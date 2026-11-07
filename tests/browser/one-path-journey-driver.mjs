@@ -797,6 +797,9 @@ async function journey(browser) {
 
   // J09 to J13: the rest of the path to Complete on the guided path (L53, L17), with hand records
   // where a provider step is closed, and exactly one next step at every point.
+  process.stdout.write(
+    "expect completion: the Editor reviews the offer, records the response and applicable follow-ups, confirms staff completion, then reopens the same lease from Completed.\n",
+  );
   const points = [];
   const otherPages = [];
   // Every staff record on the path, by route and status, so a record that did not hold is named.
@@ -989,17 +992,29 @@ async function journey(browser) {
   const pathCount = countActions(log.since(mark));
   await page.goto(`${origin}/lease-renewal/live/desk`, { waitUntil: "domcontentloaded" });
   await page.getByRole("region", { name: "Working batch", exact: true }).waitFor();
-  const completedRow = squash(
-    await page
-      .locator(`[data-batch-lease="${prepared}"]`)
-      .first()
-      .textContent()
-      .catch(() => ""),
-  ).slice(0, 300);
+  let completedRow = "";
+  let completedOnReopen = false;
+  if (completed) {
+    await page.locator('button[data-batch-group="completed"]').click();
+    const row = page
+      .locator('[data-batch-open-group="completed"]')
+      .locator(`[data-batch-lease="${prepared}"]`);
+    completedRow = squash(
+      await row.textContent({ timeout: 15_000 }).catch(() => ""),
+    ).slice(0, 300);
+    if (completedRow) {
+      await row.getByRole("link", { name: "Open the lease", exact: true }).click();
+      completedOnReopen =
+        (await view.currentStep()) === "complete" &&
+        /complete/i.test(await view.stageLine());
+      await page.goBack({ waitUntil: "domcontentloaded" });
+      await row.waitFor({ timeout: 15_000 });
+    }
+  }
   check(
     "journey.complete",
-    "the prepared lease is taken from the desk to Complete on the guided path with hand records where a provider step is closed (L53)",
-    completed,
+    "the prepared lease reaches explicit completion, appears in Completed, and still reads complete when reopened (L53, S259 L10)",
+    completed && completedRow.length > 0 && completedOnReopen,
     {
       points,
       tenantOffer,
@@ -1007,6 +1022,7 @@ async function journey(browser) {
       pathActions: pathCount,
       pathWrites,
       completedRow,
+      completedOnReopen,
     },
   );
   check(
