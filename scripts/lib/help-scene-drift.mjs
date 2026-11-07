@@ -2,7 +2,7 @@
 // antialiasing variation. The tile bound catches a local change even on a mostly empty viewport.
 import sharp from "sharp";
 
-export async function compareHelpScene(expected, observed) {
+export async function compareHelpScene(expected, observed, releaseText = null) {
   const pixels = async (image) =>
     sharp(image)
       .removeAlpha()
@@ -30,6 +30,15 @@ export async function compareHelpScene(expected, observed) {
   let changed = 0;
   for (let y = 0; y < height; y += 1)
     for (let x = 0; x < width; x += 1) {
+      // The cover prints the current serving SHA. The browser verifies its exact text separately.
+      if (
+        releaseText &&
+        x >= Math.floor(releaseText.x) &&
+        x < Math.ceil(releaseText.x + releaseText.width) &&
+        y >= Math.floor(releaseText.y) &&
+        y < Math.ceil(releaseText.y + releaseText.height)
+      )
+        continue;
       const index = (y * width + x) * channels;
       const difference = Math.max(
         Math.abs(before.data[index] - after.data[index]),

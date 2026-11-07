@@ -289,7 +289,7 @@ async function scenes(checkOnly) {
       continue;
     }
     try {
-      const png = await captureScene(scene);
+      const { png, releaseText } = await captureScene(scene);
       const sha256 = createHash("sha256").update(png).digest("hex");
       const filename = `${scene.id}.png`;
       let state = checkOnly ? "resolved" : "captured";
@@ -298,7 +298,7 @@ async function scenes(checkOnly) {
       if (verify) {
         const baseline = join(target, filename);
         difference = existsSync(baseline)
-          ? await compareHelpScene(readFileSync(baseline), png)
+          ? await compareHelpScene(readFileSync(baseline), png, releaseText)
           : { material: true, reason: "The committed synthetic picture is missing." };
         if (difference.material) {
           const replacement = join(output, "scene-drift", scene.id);
@@ -309,7 +309,14 @@ async function scenes(checkOnly) {
           state = "drift";
         } else state = "matched";
       }
-      results.push({ id: scene.id, fixture: scene.fixture, state, sha256, difference });
+      results.push({
+        id: scene.id,
+        fixture: scene.fixture,
+        state,
+        sha256,
+        difference,
+        ...(releaseText ? { verifiedReleaseText: served.commit } : {}),
+      });
       process.stdout.write(`${state} ${scene.id}\n`);
     } catch (error) {
       results.push({
@@ -394,9 +401,20 @@ async function captureScene(scene) {
       );
     } else if (framed) await region.first().scrollIntoViewIfNeeded();
     await quiet(page);
-    return scene.frame === "region"
-      ? await region.first().screenshot({ animations: "disabled", caret: "hide" })
-      : await page.screenshot({ animations: "disabled", caret: "hide" });
+    let releaseText = null;
+    if (scene.id === "help-contents-narrow") {
+      const version = page.locator("main .help-guide-header .help-meta code");
+      assert.equal(await version.textContent(), served.commit);
+      releaseText = await version.boundingBox();
+      assert.ok(
+        releaseText && releaseText.y > 0 && releaseText.y < scene.viewport.height,
+      );
+    }
+    const png =
+      scene.frame === "region"
+        ? await region.first().screenshot({ animations: "disabled", caret: "hide" })
+        : await page.screenshot({ animations: "disabled", caret: "hide" });
+    return { png, releaseText };
   } finally {
     await context.close();
   }
