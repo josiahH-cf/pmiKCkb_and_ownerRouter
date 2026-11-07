@@ -28,6 +28,7 @@ import {
   type StandingAgreement,
 } from "@/lib/lease-renewal/standing-agreement";
 import { formatCalendarDate } from "@/lib/date-display";
+import { useRenewalFocusView } from "./RenewalFocusViewContext";
 import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
 class PricingResponseError extends Error {}
 function pricingFailure(e: unknown, fallback: string) {
@@ -84,6 +85,16 @@ interface PricingContext {
 const Context = createContext<PricingContext | null>(null);
 export function useRenewalPricingPolicy() {
   return useContext(Context);
+}
+
+export function showsPricingBasisOnNow(
+  step: { readonly stepId: string; readonly state: string } | null | undefined,
+) {
+  return Boolean(
+    step &&
+    (step.stepId === "compare-market" || step.stepId === "ask-owner") &&
+    step.state !== "not_part",
+  );
 }
 /**
  * S194 binds the exact authority to the staff record revision it was read with. An S250 standing
@@ -514,6 +525,7 @@ export function StandingRuleNotice() {
 /** A normal Save assigns a policy; it neither sends a message nor records an owner decision. */
 export function RenewalPricingPolicyPanel() {
   const c = useRenewalPricingPolicy();
+  const display = useRenewalFocusView();
   const [chosen, setChosen] = useState<string | null>(null);
   const [reason, setReason] = useState("");
   const [pending, setPending] = useState(false);
@@ -523,6 +535,10 @@ export function RenewalPricingPolicyPanel() {
   const htmlId = useId();
   if (!c) return null;
   const { view } = c;
+  const basisOnNow =
+    display?.view === "guided" && showsPricingBasisOnNow(display.nowPresentation);
+  const agreementOnNow =
+    basisOnNow && view?.standingAgreement && view.basisChoice?.kind === "agreement";
   async function assign() {
     if (!c || !view || lock.current) return;
     lock.current = true;
@@ -598,10 +614,12 @@ export function RenewalPricingPolicyPanel() {
               authorized communications retain their own basis.
             </p>
           ) : null}
-          <p role="status">{view.authority.reason}</p>
-          {/* S250 R-S250-3: the same pricing basis the Now card offers, in the same store. */}
-          <StandingAgreementSummary />
-          <PricingBasisChooser context="panel" />
+          {!agreementOnNow ? <p role="status">{view.authority.reason}</p> : null}
+          {!basisOnNow ? <StandingAgreementSummary /> : null}
+          {/* Keep the original chooser's entries across views. Only one chooser is visible. */}
+          <div hidden={basisOnNow && c.canEdit}>
+            <PricingBasisChooser context="panel" />
+          </div>
           <details>
             <summary>Policy assignment</summary>
             <Field htmlFor={`${htmlId}-policy`} label="Lease pricing policy">

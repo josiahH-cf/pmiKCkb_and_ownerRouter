@@ -5,7 +5,15 @@
 // Synthetic values only (Example and Sample names, example.invalid addresses).
 import "@testing-library/jest-dom/vitest";
 
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { RenewalWorkingRecord } from "@/lib/lease-renewal/working-record";
 import { fixtureWorkingRecord } from "@/tests/helpers/rent-charge-fixtures";
@@ -635,6 +643,69 @@ describe("S249 D: the Gmail draft signal reads the last created draft", () => {
   }
   const shown = composeRenewalMessage(tenantFacts());
 
+  it.each(["owner", "tenant"] as const)(
+    "shows one current exact Gmail recovery in either view for %s",
+    async (channel) => {
+      const executionId = `exec_${"d".repeat(40)}`;
+      const payload = tenantPreparation({
+        facts: tenantFacts({ channel }),
+        draftAttempt: {
+          executionId,
+          state: "Needs reconciliation",
+          recoveryAvailable: true,
+          outcome: null,
+        },
+      });
+      const commands: unknown[] = [];
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (_url: string, init?: RequestInit) => {
+          if ((init?.method ?? "GET") === "GET") return Response.json(payload);
+          commands.push(JSON.parse(String(init?.body)));
+          return Response.json({
+            status: "reconciliation",
+            resolution: "needs_review",
+            channel,
+            executionId,
+            reason: "The exact attempt still needs review.",
+          });
+        }),
+      );
+      const step = channel === "owner" ? "ask-owner" : "offer-tenant";
+      const ui = (guided: boolean) => (
+        <RenewalNowCardProvider preparation={null}>
+          {guided ? <StepCard step={step} /> : null}
+          <RenewalMessagePreparation canEdit channel={channel} />
+        </RenewalNowCardProvider>
+      );
+      const view = render(ui(true));
+      const name = "Recover exact Gmail attempt";
+      const guided = await within(screen.getByRole("region", { name: "Now" })).findByRole(
+        "button",
+        { name },
+      );
+      expect(screen.getAllByRole("button", { name })).toEqual([guided]);
+      expect(commands).toEqual([]);
+      fireEvent.click(guided);
+      await waitFor(() =>
+        expect(commands).toEqual([
+          { kind: "draft", channel, leaseId: "9101", reconcile: { executionId } },
+        ]),
+      );
+      await screen.findByText("The exact attempt still needs review.");
+      view.rerender(ui(false));
+      await waitFor(() =>
+        expect(screen.getAllByRole("button", { name })).toEqual([
+          within(screen.getByRole("region", { name: "Unsent Gmail draft" })).getByRole(
+            "button",
+            { name },
+          ),
+        ]),
+      );
+      expect(commands).toHaveLength(1);
+    },
+  );
+
   it("offers the tenant recipient source handoff directly from its missing-input row", async () => {
     mountTenant(
       tenantPreparation({
@@ -678,6 +749,57 @@ describe("S249 D: the Gmail draft signal reads the last created draft", () => {
       "An Approver reviews this synthetic tenant template.",
     );
     expect(vi.mocked(fetch).mock.calls.every((call) => !call[1]?.method)).toBe(true);
+  });
+
+  it("leads an incomplete tenant offer to its actual marked values and exact shared form setting", async () => {
+    mountTenant(
+      tenantPreparation({
+        facts: tenantFacts({
+          ownerTerms: {
+            rent: 1437,
+            effectiveDate: "2027-01-01",
+            endDate: "2027-12-31",
+            source: "Synthetic reviewed terms",
+          },
+        }),
+        inputs: {
+          ...emptyMessagePreparationInputs(),
+          signature: {
+            name: "Example Staff",
+            role: null,
+            phone: null,
+            hours: null,
+            website: null,
+            source: "Synthetic staff entry",
+          },
+        },
+      }),
+    );
+    const review = await screen.findByRole("button", { name: "Review and send" });
+    const readiness = document.getElementById(MESSAGE_CONTROL_IDS.readiness("tenant"))!;
+    const link = within(readiness).getByRole("link", {
+      name: "Shared resource link: Renewal information form",
+    });
+    expect(link).toHaveAttribute(
+      "href",
+      "/connections#renewal-resource-entry-renewal_information_form",
+    );
+    fireEvent.click(review);
+    expect(readiness.querySelector("summary")).toHaveFocus();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    fireEvent.click(
+      within(screen.getByRole("region", { name: "Tenant offer" })).getByRole("button", {
+        name: "Review the marked values",
+      }),
+    );
+    expect(readiness.querySelector("summary")).toHaveFocus();
+    expect(
+      vi
+        .mocked(fetch)
+        .mock.calls.every(
+          ([url, init]) => String(url).includes("/message-preparation") && !init?.method,
+        ),
+    ).toBe(true);
   });
 
   it("reads a freshly created banner-marked draft as the current message after reload", async () => {

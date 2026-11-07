@@ -14,6 +14,7 @@ import { ASSURANCE_RENEWAL_DESK_PATH } from "../lib/production-assurance/manifes
 // A shown recommendation keeps its required label and live per-field save feedback. The
 // independent oracle refuses an absent required field/status instead of inferring saved work.
 // A default read-only lease entry opens no modal review on its own.
+// The rendered chooser and exact draft recovery each appear at most once in the guided work.
 export { countIndependentGuidedWorkspaceMismatches } from "../lib/production-assurance/guided-workspace-projection";
 export type { IndependentGuidedWorkspaceSnapshot } from "../lib/production-assurance/guided-workspace-projection";
 import {

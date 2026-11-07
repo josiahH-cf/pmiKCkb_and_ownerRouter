@@ -134,6 +134,8 @@ interface GuidedOptions {
   primaryTarget?: string | null;
   primaryTargetPresent?: boolean;
   workFieldsOutsideNow?: number;
+  visiblePricingBasisChoosers?: number;
+  visibleExactDraftRecoveries?: number;
   workingFigureFeedbackPresent?: boolean;
   openDialogs?: number;
   primaryTop?: number;
@@ -222,7 +224,11 @@ function guidedFixture(options: GuidedOptions = {}): Page {
   };
   const region = {
     ...locator(options.regions ?? 1, options.regionVisible ?? true),
-    evaluate: async () => options.workFieldsOutsideNow ?? 0,
+    evaluate: async () => ({
+      workFieldsOutsideNow: options.workFieldsOutsideNow ?? 0,
+      visiblePricingBasisChoosers: options.visiblePricingBasisChoosers ?? 0,
+      visibleExactDraftRecoveries: options.visibleExactDraftRecoveries ?? 0,
+    }),
     locator: () => ({
       ...locator(
         options.stageLines ?? 1,
@@ -318,6 +324,8 @@ describe("S113 candidate and captured predecessor workspace landmarks", () => {
       { viewportHeight: 0 },
       { viewportWidth: 0 },
       { workFieldsOutsideNow: 1 },
+      { visiblePricingBasisChoosers: 2 },
+      { visibleExactDraftRecoveries: 2 },
       { workingFigureFeedbackPresent: false },
       { openDialogs: 1 },
       {
@@ -350,6 +358,8 @@ describe("S113 candidate and captured predecessor workspace landmarks", () => {
       primaryTarget: null,
       primaryTargetPresent: false,
       workFieldsOutsideNow: 0,
+      visiblePricingBasisChoosers: 0,
+      visibleExactDraftRecoveries: 0,
       workingFigureFeedbackPresent: true,
       openDialogs: 0,
       primaryTop: 100,
@@ -358,6 +368,20 @@ describe("S113 candidate and captured predecessor workspace landmarks", () => {
       viewportWidth: 1280,
     };
     expect(countIndependentGuidedWorkspaceMismatches(snapshot)).toBe(0);
+    expect(
+      countIndependentGuidedWorkspaceMismatches({
+        ...snapshot,
+        visiblePricingBasisChoosers: 1,
+        visibleExactDraftRecoveries: 1,
+      }),
+    ).toBe(0);
+    expect(
+      countIndependentGuidedWorkspaceMismatches({
+        ...snapshot,
+        visiblePricingBasisChoosers: 2,
+        visibleExactDraftRecoveries: 2,
+      }),
+    ).toBe(2);
     expect(
       countIndependentGuidedWorkspaceMismatches({ ...snapshot, openDialogs: 1 }),
     ).toBe(1);

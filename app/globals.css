@@ -2350,6 +2350,13 @@ label.secondary-button:focus-within {
 
 /* S247: keep the action in reach even when a saved program name wraps. The lease title and
    sticky copy controls keep their full content; only repeated layout spacing is reduced. */
+.renewal-now-card:has([data-renewal-signature-setup="owner"])
+  [data-renewal-signature-editor="owner"],
+.renewal-now-card:has([data-renewal-signature-setup="tenant"])
+  [data-renewal-signature-editor="tenant"] {
+  display: none;
+}
+
 .content:has(.renewal-guided) {
   padding-top: var(--space-3);
 }

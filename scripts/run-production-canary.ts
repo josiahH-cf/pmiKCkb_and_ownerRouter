@@ -933,16 +933,30 @@ async function hasGuidedWorkspaceLandmarks(
         const target = element.getAttribute("data-renewal-now-target");
         return Boolean(target && document.getElementById(target));
       }),
-      workFieldsOutsideNow: await region.evaluate((element) => {
+      ...(await region.evaluate((element) => {
         const body = element.closest(".renewal-workspace-body") ?? element;
         const nowCard = body.querySelector('[role="region"][aria-label="Now"]');
-        return [...body.querySelectorAll<HTMLElement>("input, select, textarea")].filter(
-          (field) =>
-            field.getClientRects().length > 0 &&
-            getComputedStyle(field).visibility !== "hidden" &&
-            !nowCard?.contains(field),
-        ).length;
-      }),
+        const visible = (control: HTMLElement) =>
+          control.getClientRects().length > 0 &&
+          getComputedStyle(control).visibility !== "hidden";
+        return {
+          workFieldsOutsideNow: [
+            ...body.querySelectorAll<HTMLElement>("input, select, textarea"),
+          ].filter((field) => visible(field) && !nowCard?.contains(field)).length,
+          visiblePricingBasisChoosers: [
+            ...body.querySelectorAll<HTMLElement>("fieldset > legend"),
+          ].filter(
+            (legend) => visible(legend) && legend.textContent?.trim() === "Pricing basis",
+          ).length,
+          visibleExactDraftRecoveries: [
+            ...(nowCard?.querySelectorAll<HTMLElement>("button") ?? []),
+          ].filter(
+            (button) =>
+              visible(button) &&
+              button.textContent?.trim() === "Recover exact Gmail attempt",
+          ).length,
+        };
+      })),
       ...layout,
     }) !== 0
   )

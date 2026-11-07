@@ -44,6 +44,7 @@ import {
   PricingBasisChooser,
   StandingAgreementSummary,
   StandingRuleNotice,
+  showsPricingBasisOnNow,
   standingAuthorityCurrent,
   useRenewalPricingPolicy,
 } from "./RenewalPricingPolicy";
@@ -169,11 +170,13 @@ export function RenewalGuidedView({
   // The step shown: one chosen on this page, else the one a reload returns to (R-S247-9), else
   // the one the address names (an older `step` value names the path step that holds it,
   // R-S247-11), else the current step.
-  const [chosen, setChosen] = useState<RenewalPathStepId | null>(null);
+  const [chosen, setChosen] = useState<RenewalPathStepId | "follow-current" | null>(null);
   const preferred =
-    chosen ??
-    pathStepForLinkStep(view?.restoredStep ?? null) ??
-    pathStepForLinkStep(selectedStepId);
+    chosen === "follow-current"
+      ? null
+      : (chosen ??
+        pathStepForLinkStep(view?.restoredStep ?? null) ??
+        pathStepForLinkStep(selectedStepId));
   // S251: on an assisted lease Ask the owner is not part of the path until Propose a change;
   // a link to it opens the step that holds the owner message there, the renewing question.
   const linked =
@@ -183,6 +186,23 @@ export function RenewalGuidedView({
     stage.steps.some((step) => step.id === "assisted-owner-renewal-answer")
       ? "assisted-owner-renewal-answer"
       : preferred;
+  const [priorStep, setPriorStep] = useState({
+    current: stage.currentStepId,
+    linked,
+  });
+  if (priorStep.current !== stage.currentStepId || priorStep.linked !== linked) {
+    // A link or restored choice that was showing the then-current step follows its progress.
+    // A deliberate inspection of some other step stays available in any order.
+    const followsProgress =
+      priorStep.current !== stage.currentStepId &&
+      priorStep.linked === priorStep.current &&
+      linked === priorStep.linked;
+    if (followsProgress) setChosen("follow-current");
+    setPriorStep({
+      current: stage.currentStepId,
+      linked: followsProgress ? null : linked,
+    });
+  }
   const shownId =
     linked && stage.steps.some((step) => step.id === linked)
       ? linked
@@ -204,16 +224,28 @@ export function RenewalGuidedView({
   const focusHeading = useRef(false);
   const [announcement, setAnnouncement] = useState("");
 
-  const choose = useCallback((id: RenewalPathStepId) => {
-    focusHeading.current = true;
-    setChosen(id);
-  }, []);
+  const choose = useCallback(
+    (id: RenewalPathStepId) => {
+      focusHeading.current = true;
+      setChosen(id === stage.currentStepId ? "follow-current" : id);
+    },
+    [stage.currentStepId],
+  );
+  const previouslyRevealed = useRef<RenewalPathStepId | null>(null);
 
   // Reveal the shown step's existing controls in place; everything else stays mounted, hidden.
   useLayoutEffect(() => {
     if (!guided || !view?.slot) return;
     const body = view.slot.parentElement;
     if (!body) return;
+    const previous = previouslyRevealed.current;
+    previouslyRevealed.current = shown.id;
+    const oldFocus = document.activeElement;
+    const focusedOldWork =
+      previous !== null &&
+      previous !== shown.id &&
+      oldFocus instanceof HTMLElement &&
+      view.nowSlot?.parentElement?.contains(oldFocus);
     const contexts = [
       ...body.querySelectorAll<HTMLElement>("[data-renewal-focus-context]"),
     ].filter(
@@ -242,6 +274,8 @@ export function RenewalGuidedView({
     } else if (focusHeading.current) {
       focusHeading.current = false;
       if (heading.current) focusProgrammatically(heading.current);
+    } else if (focusedOldWork && oldFocus.closest("[hidden]") && heading.current) {
+      focusProgrammatically(heading.current);
     }
   });
 
@@ -267,7 +301,7 @@ export function RenewalGuidedView({
       const owner = stepOwning(stage.steps, element);
       if (owner) {
         pendingFocus.current = id;
-        setChosen(owner.id);
+        setChosen(owner.id === stage.currentStepId ? "follow-current" : owner.id);
       } else view.showInFull(id);
     };
     document.addEventListener(RENEWAL_FOCUS_REQUEST_EVENT, onRequest);
@@ -705,9 +739,21 @@ function NowCard({
           ) : null}
         </p>
       ) : null}
-      {isCurrent ? (
-        <p data-renewal-field="next-step">Next step: {stage.nextStep.label}</p>
-      ) : null}
+      <p data-renewal-field="next-step">
+        Next step: {stage.nextStep.label}
+        {!isCurrent ? (
+          <>
+            {" "}
+            <button
+              className="text-link"
+              onClick={() => choose(stage.currentStepId)}
+              type="button"
+            >
+              Show current step
+            </button>
+          </>
+        ) : null}
+      </p>
       {shown.state === "not_part" ? (
         <p data-renewal-field="not-part">{NOT_PART_OF_PATH_LABEL}.</p>
       ) : shown.detail ? (
@@ -800,8 +846,7 @@ function NowCard({
       ) : null}
       {/* S250 R-S250-3 / R-S250-8: the pricing basis where the rent and the owner's decision are
           worked: the agreement in force, a message built on an earlier rule, and the chooser. */}
-      {(shown.id === "compare-market" || shown.id === "ask-owner") &&
-      shown.state !== "not_part" ? (
+      {showsPricingBasisOnNow({ stepId: shown.id, state: shown.state }) ? (
         <div className="ui-stack-tight" data-renewal-now-pricing-basis>
           <StandingAgreementSummary />
           <StandingRuleNotice />

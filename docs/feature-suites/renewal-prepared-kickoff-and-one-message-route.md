@@ -92,7 +92,8 @@ choose to work. RentVine readable; RentCast allowance available for a new lookup
   silently rewrites a staff-authored or accepted AI body. The Now card shows the existing
   changed-information notice, Return to the standard wording and Undo the last refinement in
   place, so staff can deliberately rebuild the shared message from current inputs or keep their
-  wording. The same controls remain in the message editor.
+  wording. These appear once when the compact preview shows them. The same controls remain
+  in the message editor in Full view.
   Review, Schedule, Gmail preview and the Communications handoff first confirm any entered
   working figures that their message uses through the ordinary field saves, then read the
   current preparation. Pending work stays visibly pending. A refused, incomplete or unconfirmed
@@ -126,9 +127,10 @@ choose to work. RentVine readable; RentCast allowance available for a new lookup
   "Replace the Gmail draft". The required draft-review banner remains in the exact Gmail preview
   and draft, and is excluded only from the wording revision comparison. After confirmed creation,
   the lease refreshes its draft evidence so the waiting state appears without a manual reload.
-  An uncertain create offers Recover exact Gmail attempt on the same Now card, through the
-  existing own-attempt recovery. A confirmed recovery refreshes its draft currency and stage;
-  unresolved recovery keeps its own state. Full view retains its recovery control.
+  An uncertain create offers one Recover exact Gmail attempt on the current Now card, through
+  the existing own-attempt recovery. When the compact preview is shown, it is the location
+  for that recovery. A confirmed recovery refreshes its draft currency and stage; unresolved
+  recovery keeps its own state. Full view retains its recovery control.
   If the draft dialog's trigger becomes unavailable, focus returns to its exact recovery action.
   Confirmed recovery returns visible keyboard focus to Now; an unresolved check keeps focus on
   the recovery control. The existing dialog trap, cancel and confirmation rules stay intact.
@@ -141,8 +143,11 @@ choose to work. RentVine readable; RentCast allowance available for a new lookup
   reaches an owner. Template wording changes go through the existing template publication.
 - **R-S249-11 — Readiness before the step.** The Now card lists what Send needs and its state:
   verified owner recipient, the sender's signature, an approved template, complete marked values.
-  Each missing item has its fix in place; a staff member sets up their own signature on the card
-  the first time, and the desk shows the same missing items before a lease is opened.
+  Each missing item has its fix in place, and the desk shows the same missing items before a
+  lease is opened. Staff set up their signature for the first time through one visible form
+  on the card. Sender name is required, and a refused save names and focuses the
+  first field to correct. The full managed signature editor remains available in Full view and
+  when the compact setup is closed.
   A recipient fix focuses the recipient reasons and the already-read source record links. When
   an owner-record link is unavailable, the existing lease-record link explains the route to its
   owner record and the subsequent refresh. A template fix focuses its actual publication status.
@@ -158,7 +163,10 @@ choose to work. RentVine readable; RentCast allowance available for a new lookup
   with the named input; waiting and finished leases follow those.
 - **R-S249-14 — The same pattern for later steps.** Each later path step shows its deterministic
   preparation when the stage reaches it: the tenant offer from the working terms once the owner
-  step is settled, and the RentVine and Sheet update previews once the terms are final. These are
+  step is settled, and the RentVine and Sheet update previews once the terms are final. If a
+  marked value holds the tenant offer, Review and send brings staff to its existing marked-value
+  links on the current step, including the exact shared resource setting when a link is missing.
+  The shared setting keeps its existing edit role and verified-value requirement. These are
   reads and assembly only; every send and every source update keeps its own exact confirmation.
 
 **In scope / out of scope.**

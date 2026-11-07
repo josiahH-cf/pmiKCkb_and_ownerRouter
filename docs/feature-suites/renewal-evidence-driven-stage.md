@@ -54,7 +54,9 @@ and its own source reads for the current cycle.
   reads "Owner replied {date}" and makes "Record the owner's decision" the next step with the reply
   shown beside it. The Now card uses the existing bounded, authorized linked-thread read to show
   the exact observed message as plain text in client memory. Loading, missing, partial and failed
-  reads are stated explicitly and a failed read can be retried in place. No reply body is persisted
+  reads are stated explicitly and a failed read can be retried in place. Try again retains
+  keyboard focus while reading; success leads into the reply heading if focus is still on
+  Try again. Staff who already moved to a decision keep that focus. No reply body is persisted
   or inferred from metadata. No outcome is chosen for staff (S234). A tenant reply behaves the same way.
 - **R-S248-5 — A failed delivery changes the next step.** A bounce or failed delivery correlated to
   the message reads "Delivery failed" and makes "Check the address and send again" the next step.

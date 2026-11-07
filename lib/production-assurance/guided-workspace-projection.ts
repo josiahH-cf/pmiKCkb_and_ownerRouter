@@ -16,6 +16,8 @@ export interface IndependentGuidedWorkspaceSnapshot {
   readonly primaryTarget: string | null;
   readonly primaryTargetPresent: boolean;
   readonly workFieldsOutsideNow: number;
+  readonly visiblePricingBasisChoosers: number;
+  readonly visibleExactDraftRecoveries: number;
   readonly workingFigureFeedbackPresent: boolean;
   readonly openDialogs: number;
   readonly primaryTop: number;
@@ -67,6 +69,8 @@ export function countIndependentGuidedWorkspaceMismatches(
       ? 0
       : 1) +
     (snapshot.workFieldsOutsideNow === 0 ? 0 : 1) +
+    ([0, 1].includes(snapshot.visiblePricingBasisChoosers) ? 0 : 1) +
+    ([0, 1].includes(snapshot.visibleExactDraftRecoveries) ? 0 : 1) +
     (snapshot.workingFigureFeedbackPresent ? 0 : 1) +
     (snapshot.openDialogs === 0 ? 0 : 1) +
     (!earlyStep || primaryInView ? 0 : 1)

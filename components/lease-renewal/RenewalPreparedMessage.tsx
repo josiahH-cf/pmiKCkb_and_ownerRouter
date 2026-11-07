@@ -15,7 +15,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { Button, ConfirmationDialog } from "@/components/ui";
+import { Button, ConfirmationDialog, Field } from "@/components/ui";
 import { formatBusinessTimestamp } from "@/lib/date-display";
 import { renderEditableCommunicationBody } from "@/lib/gmail-hub/sequence-model";
 import type {
@@ -508,7 +508,12 @@ function PreparedMessageBlock({
           label: "Complete marked values",
           ready: api.marked.length === 0,
           missing: api.marked.length === 0 ? null : api.marked.join(", "),
-          fix: null,
+          fix: api.marked.length
+            ? {
+                label: "Review the marked values",
+                target: MESSAGE_CONTROL_IDS.readiness(api.channel),
+              }
+            : null,
         },
       ];
   const ready = live ? sendReady(live) : needs.every((item) => item.ready);
@@ -869,11 +874,23 @@ function PreparedMessageBlock({
         <form
           aria-label="Your signature"
           className="ui-stack-tight renewal-now-signature-form"
+          data-renewal-signature-setup={api.channel}
+          noValidate
           onSubmit={(event) => {
             event.preventDefault();
             const refusal = api.saveSignature(signature);
-            if (refusal) setSignatureNotice(refusal);
-            else {
+            if (refusal) {
+              setSignatureNotice(refusal);
+              const first =
+                !signature.name.trim() || signature.name.trim().length > 240
+                  ? "name"
+                  : signature.role.trim().length > 240
+                    ? "role"
+                    : signature.phone.trim().length > 240
+                      ? "phone"
+                      : "name";
+              document.getElementById(`${base}-sig-${first}`)?.focus();
+            } else {
               setSignatureNotice(
                 "Your signature is on this message. It saves with the message and is kept for your next lease.",
               );
@@ -888,10 +905,15 @@ function PreparedMessageBlock({
               ["phone", "Verified phone (optional)"],
             ] as const
           ).map(([field, label]) => (
-            <div className="ui-stack-tight" key={field}>
-              <label htmlFor={`${base}-sig-${field}`}>{label}</label>
+            <Field
+              htmlFor={`${base}-sig-${field}`}
+              key={field}
+              label={label}
+              required={field === "name"}
+            >
               <input
                 id={`${base}-sig-${field}`}
+                required={field === "name"}
                 onChange={(event) =>
                   setSignature((previous) => ({
                     ...previous,
@@ -900,7 +922,7 @@ function PreparedMessageBlock({
                 }
                 value={signature[field]}
               />
-            </div>
+            </Field>
           ))}
           <div className="ui-row">
             <Button size="compact" type="submit">

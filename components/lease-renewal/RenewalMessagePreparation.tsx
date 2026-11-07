@@ -1343,6 +1343,12 @@ function MessagePreparationEditor({
           notice,
         }
       : null;
+  const preparedPreviewInNow = Boolean(
+    preparedData &&
+    nowCard?.slots[
+      nowSlotKey(channel === "owner" ? "ask-owner" : "offer-tenant", "message-preview")
+    ],
+  );
   return (
     <Card
       title={renewalCardTitle(
@@ -1391,18 +1397,7 @@ function MessagePreparationEditor({
         Schedule when its current checks pass. Resume requires a fresh review. You can
         also create an unsent Gmail draft below and send it from Gmail.
       </p>
-      {notice &&
-      !(
-        preparedData &&
-        nowCard?.slots[
-          nowSlotKey(
-            channel === "owner" ? "ask-owner" : "offer-tenant",
-            "message-preview",
-          )
-        ]
-      ) ? (
-        <p role="status">{notice}</p>
-      ) : null}
+      {notice && !preparedPreviewInNow ? <p role="status">{notice}</p> : null}
       {[...new Set(current?.notices ?? [])].map((value) => (
         <p key={value} className="muted">
           {value}
@@ -1599,7 +1594,7 @@ function MessagePreparationEditor({
                   }}
                 />
               </Field>
-              {authoredBody ? (
+              {authoredBody && (!preparedPreviewInNow || !wordingChangedSince) ? (
                 <div className="ui-stack-tight">
                   <p className="muted" role="status">
                     {wordingChangedSince
@@ -1608,7 +1603,7 @@ function MessagePreparationEditor({
                   </p>
                   {canEdit ? (
                     <div className="ui-actions">
-                      {previousOverride !== undefined ? (
+                      {previousOverride !== undefined && !preparedPreviewInNow ? (
                         <Button onClick={undoWording} type="button" variant="secondary">
                           Undo the last refinement
                         </Button>
@@ -1727,7 +1722,7 @@ function MessagePreparationEditor({
                 )}
               </div>
             ) : null}
-            {unresolved ? (
+            {unresolved && !preparedPreviewInNow ? (
               <div>
                 <p>
                   Do not create a duplicate. Recover this exact attempt; copy remains
@@ -1767,10 +1762,12 @@ function MessagePreparationEditor({
                 exact preview and confirmation above.
               </p>
               <p>{current.draftAttempt?.state ?? outcome?.status}</p>
-              {current.draftAttempt?.recoveryAvailable && !unresolved ? (
-                <Button disabled={pending} onClick={() => recoverDraft()}>
-                  Recover exact Gmail attempt
-                </Button>
+              {current.draftAttempt?.recoveryAvailable ? (
+                unresolved ? null : (
+                  <Button disabled={pending} onClick={() => recoverDraft()}>
+                    Recover exact Gmail attempt
+                  </Button>
+                )
               ) : (
                 <p>Its original managed sender must recover this attempt.</p>
               )}
@@ -2148,7 +2145,10 @@ function MessagePreparationEditor({
                 </details>
               </>
             ) : null}
-            <details open={current.signatureMatchesActor === false}>
+            <details
+              data-renewal-signature-editor={channel}
+              open={current.signatureMatchesActor === false}
+            >
               <summary>Managed sender signature · {current.senderEmail}</summary>
               <p className="muted" data-testid="renewal-message-signature-origin">
                 {signatureEdited

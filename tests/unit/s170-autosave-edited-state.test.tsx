@@ -135,9 +135,15 @@ describe("S170 autosave says when an entry is edited and not stored yet", () => 
       await user.keyboard("{Enter}");
       expect(retry).not.toHaveBeenCalled();
       // The actual response changes props while focus remains on the same DOM button.
+      const scroll = vi.fn();
+      Object.defineProperty(button, "scrollIntoView", { value: scroll });
+      vi.spyOn(button, "getBoundingClientRect").mockReturnValue(
+        new DOMRect(0, window.innerHeight + 25, 100, 40),
+      );
       act(finish);
       expect(screen.getByRole("button", { name: "Try again" })).toBe(button);
       expect(button).toHaveFocus();
+      expect(scroll).toHaveBeenCalledWith({ block: "nearest", inline: "nearest" });
       if (outcome === "failed") {
         await user.keyboard("{Enter}");
         expect(retry).toHaveBeenCalledTimes(1);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 
 import { Button, Field } from "@/components/ui";
 import { formatBusinessTimestamp } from "@/lib/date-display";
@@ -20,15 +20,19 @@ const REPLY_PREFIX = "reply\u0000";
 
 /** Display one observed reply through the existing exact linked-thread read; never store its body. */
 function OwnerReplyPreview({ reply }: Readonly<{ reply: OwnerReplyChoice }>) {
-  const [retry, setRetry] = useState(0);
   // Until this exact read settles, its loading state follows its inputs directly.
-  const key = JSON.stringify([
+  const replyKey = JSON.stringify([
     reply.sequenceId,
     reply.threadId,
     reply.messageId,
     reply.senderEmail,
-    retry,
   ]);
+  const [retry, setRetry] = useState<{ replyKey: string; attempt: number }>();
+  const attempt = retry?.replyKey === replyKey ? retry.attempt : 0;
+  const key = JSON.stringify([replyKey, attempt]);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const retryRef = useRef<HTMLButtonElement>(null);
+  const returnToReply = useRef<string | null>(null);
   const [read, setRead] = useState<{
     key: string;
     state: "ready" | "failed";
@@ -56,13 +60,18 @@ function OwnerReplyPreview({ reply }: Readonly<{ reply: OwnerReplyChoice }>) {
           : null;
         if (!message || typeof message.bodyText !== "string" || !message.bodyText.trim())
           throw new Error("reply_unavailable");
-        if (!controller.signal.aborted)
+        if (!controller.signal.aborted) {
+          returnToReply.current =
+            retryRef.current !== null && document.activeElement === retryRef.current
+              ? key
+              : null;
           setRead({
             key,
             state: "ready",
             body: message.bodyText,
             truncated: message.bodyTruncated === true,
           });
+        }
       })
       .catch(() => {
         if (!controller.signal.aborted) setRead({ key, state: "failed" });
@@ -70,9 +79,17 @@ function OwnerReplyPreview({ reply }: Readonly<{ reply: OwnerReplyChoice }>) {
     return () => controller.abort();
   }, [key, reply.sequenceId, reply.threadId, reply.messageId, reply.senderEmail]);
   const current = read?.key === key ? read : null;
+  const retrying = attempt > 0 && current === null;
+  useLayoutEffect(() => {
+    if (current?.state !== "ready" || returnToReply.current !== key) return;
+    returnToReply.current = null;
+    headingRef.current?.focus();
+  }, [current, key]);
   return (
     <section aria-label="Owner reply" className="ui-stack-tight">
-      <h3 className="section-subtitle">Owner reply</h3>
+      <h3 className="section-subtitle" ref={headingRef} tabIndex={-1}>
+        Owner reply
+      </h3>
       <p className="muted">
         Received {formatBusinessTimestamp(reply.receivedAt)} in {reply.senderEmail}.
       </p>
@@ -92,22 +109,26 @@ function OwnerReplyPreview({ reply }: Readonly<{ reply: OwnerReplyChoice }>) {
           ) : null}
         </>
       ) : current?.state === "failed" ? (
-        <>
-          <p role="alert">
-            The owner&apos;s reply text could not be read. The reply record and your
-            entries are kept.
-          </p>
-          <Button
-            onClick={() => setRetry((value) => value + 1)}
-            variant="secondary"
-            size="compact"
-          >
-            Try again
-          </Button>
-        </>
+        <p role="alert">
+          The owner&apos;s reply text could not be read. The reply record and your entries
+          are kept.
+        </p>
       ) : (
         <p role="status">Reading the owner&apos;s reply.</p>
       )}
+      {current?.state === "failed" || retrying ? (
+        <Button
+          aria-disabled={retrying || undefined}
+          onClick={() => {
+            if (!retrying) setRetry({ replyKey, attempt: attempt + 1 });
+          }}
+          ref={retryRef}
+          variant="secondary"
+          size="compact"
+        >
+          Try again
+        </Button>
+      ) : null}
     </section>
   );
 }

@@ -95,7 +95,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         route: LEASE,
         where: "Lease page, Guided view, under the stage line",
         result:
-          "On a prepared lease Check the numbers and Compare market rent read Done and the Now card is on Ask the owner. Choosing a step shows it in the Now card, and any step can be worked while an earlier one is open. Choosing a step saves nothing.",
+          "On a prepared lease Check the numbers and Compare market rent read Done and the Now card is on Ask the owner. Choosing a step shows it in the Now card, and any step can be worked while an earlier one is open. Choosing a step saves nothing. While you inspect another step, Next step names the current work and Show current step takes you there.",
         effect: "reads",
         note: "Check the numbers states Numbers agree on RentVine, or names the one difference to settle with its fix; an operating Sheet value shows there only when it differs.",
       },
@@ -116,7 +116,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "The preview is the message exactly as the owner receives it, and What sending needs lists each input as Ready or names what is missing with its fix. A stored comparison is reused, so reaching the message needs no second comparison.",
         effect: "reads",
-        note: "Changing Rent to recommend or Reason to include is optional and updates the same preview. Rent to recommend shows its save state and offers Try again after a failed save. Retry keeps keyboard focus while saving and becomes available again if saving fails. Review, Schedule, Create Gmail draft instead and Open in Communications wait for their entered working figures to save. A failure keeps the entry and brings its field and nearby retry into view; its refusal clears when that field is confirmed. A Gmail preview that needs an entered figure closes its empty dialog before returning focus to that field. A loading preview keeps focus inside its dialog, then focuses Cancel when ready; Escape closes the ready preview. If figures change while Review loads, choose Review and send again to review the current message. Copy keeps the displayed bytes and says when working figures were unconfirmed. A lease with no rent to recommend asks for one here before Send. A missing owner recipient's fix shows its reasons and source record links; when only the lease record is available, open its owner record there and refresh this lease after saving. A missing template's fix shows its publication status for the Approver handoff.",
+        note: "Changing Rent to recommend or Reason to include is optional and updates the same preview. Rent to recommend shows its save state and offers Try again after a failed save. Retry keeps keyboard focus while saving and becomes available again if saving fails. Review, Schedule, Create Gmail draft instead and Open in Communications wait for their entered working figures to save. A failure keeps the entry and brings its field and nearby retry into view; its refusal clears when that field is confirmed. A Gmail preview that needs an entered figure closes its empty dialog before returning focus to that field. A loading preview keeps focus inside its dialog, then focuses Cancel when ready; Escape closes the ready preview. If figures change while Review loads, choose Review and send again to review the current message. Copy keeps the displayed bytes and says when working figures were unconfirmed. A lease with no rent to recommend asks for one here before Send. A missing owner recipient's fix shows its reasons and source record links; when only the lease record is available, open its owner record there and refresh this lease after saving. A missing template's fix shows its publication status for the Approver handoff. Set up your signature opens one form with Sender name required. Full view keeps the full managed signature editor.",
       },
       {
         id: "review-and-send",
@@ -150,7 +150,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "Once Gmail accepts the message, the lease reads Waiting on owner response on its page and its desk row with nothing more to enter, and its outreach record names the message, the time and the sender it came from.",
         effect: "explicit-send",
-        note: "Schedule opens Review and schedule, where Schedule this message sets the date and time. Create Gmail draft instead makes an unsent draft that you send from Gmail; choose I sent it from Gmail once you have. If creation is uncertain, Recover exact Gmail attempt is on Now and checks that same attempt. Your authored wording stays as written when inputs change. The Now card names that change and offers Return to the standard wording to rebuild from current inputs, with Undo the last refinement to recover your wording.",
+        note: "Schedule opens Review and schedule, where Schedule this message sets the date and time. Create Gmail draft instead makes an unsent draft that you send from Gmail; choose I sent it from Gmail once you have. If creation is uncertain, use the one Recover exact Gmail attempt beside the preview on Now. Full view keeps this check in Unsent Gmail draft. Your authored wording stays as written when inputs change. The Now card names that change and offers Return to the standard wording to rebuild from current inputs, with Undo the last refinement to recover your wording.",
       },
       {
         id: "wait-for-the-owner",
@@ -186,7 +186,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "The decision saves with your name and time, and the path moves on to Offer the tenant. An approval records who approved, the reply it came in and the time that reply was received. The owner's decision starts with no choice made, and a reply records a decision only when you choose one.",
         effect: "saves-in-app",
-        note: "Owner reply reads the observed message from the linked conversation. A failed read offers Try again and keeps your entries; a partial reply says to read the full conversation. Owner response in Full view records an approval from an authorized representative, another written channel or a conversation, with Who approved, How they approved and When they approved, then Record approval.",
+        note: "Owner reply reads the observed message from the linked conversation. A failed read offers Try again and keeps your entries. Retry keeps keyboard focus while reading and leads into the reply when ready. If you already moved to a decision, focus stays there. A partial reply says to read the full conversation. Owner response in Full view records an approval from an authorized representative, another written channel or a conversation, with Who approved, How they approved and When they approved, then Record approval.",
       },
       {
         id: "offer-the-tenant",
@@ -290,7 +290,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "The path continues at Offer the tenant. If you opened the covered Ask the owner step, choose Continue to Offer the tenant on its Now card. The message tools stay available below. Choosing an agreement asks This lease only or Every lease in this owner's portfolio and saves on one action, and typing a different rent returns the lease to Ask the owner with the reason in words.",
         effect: "saves-in-app",
-        note: "The desk row carries the Standing agreement tag. Owner decides each renewal returns the lease to asking the owner each cycle.",
+        note: "The desk row carries the Standing agreement tag. Owner decides each renewal returns the lease to asking the owner each cycle. When Now shows Pricing basis, use that chooser. Full view keeps it in Renewal pricing policy.",
       },
       {
         id: "work-an-assisted-lease",
@@ -755,7 +755,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "The Now card shows the tenant offer, What sending needs and the same delivery actions as the owner message. Once Gmail accepts the offer, the lease reads Waiting on tenant response with nothing more to enter.",
         effect: "explicit-send",
-        note: "Choosing the step saves nothing. Send this message in the exact review is the one action that sends the offer.",
+        note: "Choosing the step saves nothing. When a value is missing, Review and send brings you to Marked values and its links. A missing Renewal information form link opens its existing shared setting in Connections. An Admin checks and saves shared links. Send this message in the exact review is the one action that sends the offer.",
       },
       {
         id: "open-tenant-section",

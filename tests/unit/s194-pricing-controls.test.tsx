@@ -1,11 +1,23 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen, fireEvent, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { afterEach, beforeEach, it, expect, vi } from "vitest";
 import {
+  PricingBasisChooser,
   RenewalPricingPolicyProvider,
   RenewalPricingPolicyPanel,
 } from "@/components/lease-renewal/RenewalPricingPolicy";
+import {
+  RenewalFocusViewProvider,
+  useRenewalFocusView,
+} from "@/components/lease-renewal/RenewalFocusViewContext";
 import {
   RenewalWorkingRecordProvider,
   WorkingMoneyField,
@@ -61,6 +73,65 @@ function field(record: ReturnType<typeof fixtureWorkingRecord> | null = null) {
     </RenewalWorkingRecordProvider>
   );
 }
+function PricingViewProbe() {
+  const display = useRenewalFocusView()!;
+  return (
+    <>
+      <button
+        onClick={() => {
+          display.setNowPresentation({ stepId: "ask-owner", state: "ready" });
+          display.setView("guided");
+        }}
+        type="button"
+      >
+        Show Guided
+      </button>
+      <button onClick={() => display.setView("full")} type="button">
+        Show Full
+      </button>
+      {display.view === "guided" ? (
+        <section aria-label="Now">
+          <PricingBasisChooser context="now" />
+        </section>
+      ) : null}
+      <RenewalPricingPolicyPanel />
+    </>
+  );
+}
+
+it("keeps one visible Pricing basis and restores the Full chooser's unsubmitted selection", async () => {
+  render(
+    <RenewalFocusViewProvider initialView="full">
+      <RenewalPricingPolicyProvider leaseId="4821" canEdit>
+        <PricingViewProbe />
+      </RenewalPricingPolicyProvider>
+    </RenewalFocusViewProvider>,
+  );
+  const choice = await screen.findByRole("radio", { name: "Owner decides each renewal" });
+  fireEvent.click(choice);
+  fireEvent.click(screen.getByRole("radio", { name: "This lease only" }));
+  fireEvent.change(screen.getByLabelText("Reason (optional)"), {
+    target: { value: "Keep this entry on returning to Full." },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Show Guided" }));
+  const now = within(screen.getByRole("region", { name: "Now" }));
+  expect(screen.getAllByRole("group", { name: "Pricing basis" })).toEqual([
+    now.getByRole("group", { name: "Pricing basis" }),
+  ]);
+  expect(
+    now.getByRole("radio", { name: "Owner decides each renewal" }),
+  ).not.toBeChecked();
+  expect(screen.getByText("Policy assignment")).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Show Full" }));
+  expect(screen.getAllByRole("radio", { name: "Owner decides each renewal" })).toEqual([
+    choice,
+  ]);
+  expect(choice).toBeChecked();
+  expect(screen.getByLabelText("Reason (optional)")).toHaveValue(
+    "Keep this entry on returning to Full.",
+  );
+  expect(fetchMock.mock.calls.every((c) => !c[1]?.method)).toBe(true);
+});
 it("prefills a never-touched amount with basis but opening a lease produces no mutation", async () => {
   render(field());
   await waitFor(() => expect(screen.getByLabelText("Offer rent")).toHaveValue("1243"));

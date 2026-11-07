@@ -62,7 +62,10 @@ verified RentVine read; a lease whose portfolio cannot be verified is never cove
 - **R-S250-3 — Chosen on the lease.** The Now card shows "Pricing basis" with the choices "Owner
   decides each renewal" and each active agreement by name and rule. Choosing an agreement asks
   "This lease only" or "Every lease in this owner's portfolio" and saves on one action with an
-  optional reason. The existing panel in More shows the same assignment.
+  optional reason. When Pricing basis is on Now, its chooser and standing-agreement summary
+  appear once. The existing pricing panel keeps the same assignment and policy controls,
+  and its original chooser remains available in Focus and Full view.
+  The reusable pricing rule it refers to uses the required fields and recovery in S194.
 - **R-S250-4 — Rent from the rule.** For a covered lease the rent to recommend is the rule applied
   to the authoritative current rent with the existing whole-dollar rounding, shown with its basis.
   A staff typed rent always wins and is never overwritten.

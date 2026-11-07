@@ -62,8 +62,12 @@ or staff-record read failure shows on the Now card as the thing to resolve; it n
   assistance puts the program contact and the owner's renew-or-not answer ahead of rent (S251). A
   step that does not apply is shown as not part of this lease's path and asks for nothing.
 - **R-S247-3 — One stage and one next step everywhere.** One projection supplies the stage and the
-  next step to the desk row, the lease page, assistant answers and My Work links. The stage names
-  reuse the existing staff work-status wording. The lifecycle category, overall status and action
+  next step to the desk row, the lease page, assistant answers and My Work links. Guided shows
+  the current next step once even while staff inspect a different step. Show current step
+  returns there on the same page. Selecting or arriving on the current step follows the next
+  current step after the projection advances; a deliberate inspection of another step stays
+  available in any order.
+  Stage names reuse the existing staff work-status wording. The lifecycle category, overall status and action
   status groups are not shown in the guided view and stay available in the full desk table, Focus
   view and Full view.
 - **R-S247-4 — The Now card holds the work.** For every path step the Now card shows what the app

@@ -37,6 +37,7 @@ import {
   viewButton,
 } from "@/tests/helpers/focus-workspace";
 import { getRenewalLeaseWorkspace } from "@/tests/helpers/sample-desk";
+import { manualFixture } from "@/tests/helpers/renewal-action-fixtures";
 
 // S247 R-S247-4 to R-S247-11, BEH-S247-1 to BEH-S247-5, AC-S247-2 to AC-S247-4: the Guided view is
 // the lease page's default, beside Focus view and Full view. It names every step of the path and
@@ -253,12 +254,60 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
     expect(strip.querySelector("[aria-current='step']")?.textContent).toBe(
       current.textContent,
     );
+    expect(nowCard().querySelectorAll('[data-renewal-field="next-step"]')).toHaveLength(
+      1,
+    );
+    await user.click(
+      within(nowCard()).getByRole("button", { name: "Show current step" }),
+    );
+    expect(strip.querySelector("[aria-current='step']")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     // Choosing a step leaves the address as it was and saves nothing.
     expect(window.location.search).toBe("");
     expect(routes.writes()).toEqual([]);
     expect(router.replace).not.toHaveBeenCalled();
     expect(router.push).not.toHaveBeenCalled();
   });
+
+  it.each([false, true])(
+    "moves to the current next step when the tenant form return is recorded (linked entry: %s)",
+    async (linked) => {
+      const manual = manualFixture({
+        owner: "approved_terms",
+        tenant: "accepted",
+        done: ["owner_outreach", "tenant_offer", "information_form"],
+      });
+      const routes = stubRenewalRoutes(manual);
+      await renderWorkspace({
+        manual,
+        view: "default",
+        ...(linked ? { extra: { selectedStepId: "offer-tenant" } } : {}),
+      });
+      const user = userEvent.setup();
+      expect(nowCard()).toHaveAttribute("data-renewal-now-step", "offer-tenant");
+      if (!linked)
+        await user.click(
+          within(guidedPane()).getByRole("button", {
+            name: "Offer the tenant",
+          }),
+        );
+      const form = document.getElementById("renewal-manual-form_returned")!;
+      await user.selectOptions(within(form).getByRole("combobox"), "done");
+      await waitFor(() =>
+        expect(nowCard()).toHaveAttribute("data-renewal-now-step", "documents"),
+      );
+      expect(nowCard().querySelectorAll('[data-renewal-field="next-step"]')).toHaveLength(
+        1,
+      );
+      expect(
+        within(nowCard()).queryByRole("button", { name: "Send the tenant offer" }),
+      ).toBeNull();
+      expect(routes.state()?.activities.form_returned?.outcome).toBe("done");
+      expect(routes.writes()).toHaveLength(1);
+    },
+  );
 
   it("keeps every visible step field inside Now while preserving the actual typed controls across all views", async () => {
     const routes = stubRenewalRoutes(manualState());

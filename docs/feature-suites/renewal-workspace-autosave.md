@@ -33,8 +33,9 @@ An authorized staff user edits existing lease working fields, selections, messag
 - **R-S155-4** — Keep failed input and support retry or existing recovery without reconstruction. Source: U-F04.
   When leaving an input starts another save, its existing retry remains reachable by Tab.
   During that request the retry keeps focus and exposes its unavailable state, with no
-  duplicate activation. After confirmed success it remains until focus leaves it; the next
-  control receives focus normally. Failed saves keep the same usable retry.
+  duplicate activation. After confirmed success it remains visible in the viewport until
+  focus leaves it, including when the saved value changes nearby content. The next control
+  receives focus normally. Failed saves keep the same usable retry.
 - **R-S155-5** — Preserve request/revision protection: retry cannot duplicate activity and an older response cannot overwrite newer input. Source: P-F04.
   Working money and date controls acknowledge only the local entry carried by their response.
   A later completed choice queues behind that field's pending save and uses the returned field

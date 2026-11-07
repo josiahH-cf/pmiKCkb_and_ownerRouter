@@ -28,7 +28,8 @@ Human verdict: NOT RUN, no human observer.
 - The original lane later added `120b4966`, waiting for the settled prepared Now card before
   framing its help picture. It was included as `87908f80`, followed by its four curated picture
   updates `d76dc72e`, included as `9102ed63`. All 27 current Help pictures were subsequently
-  recaptured from `fdaf9614`, with every recorded PNG hash checked before copying.
+  captured from `fdaf9614` and recaptured for the current assets from `a3a24d43`,
+  with every recorded PNG hash checked before copying.
 - The remaining uncommitted generated-ID field lookup and its regression were inspected and integrated
   with complete-text recovery, legacy snapshot compatibility and cancellation for newer input.
   The original working file is untouched. The existing 20-second recovery window is preserved.
@@ -405,6 +406,103 @@ SC03, SC08), without adding a product requirement or using a fixture record as p
 The failing run was stopped after the dependent document failures; its isolation controller
 terminated the owned children and reported zero remaining. Later steps were unobserved there.
 
+UX-046, observed in the first full gate on `2ef9a967`: the branch's global Help
+picture redirects crossed the sign-in test's strict configuration boundary. The same-origin
+picture compatibility now runs only for known previous-version PNG names on GET or HEAD,
+after the existing request policies. All 27 previous V2.0 picture names redirect temporarily
+to the matching current asset. The original Next configuration, sign-in test, relay rewrites,
+authentication, roles and request policies are unchanged. This keeps old embeds usable
+without a broader route rule (P09, P12, P13; SC08, SC10).
+
+The same gate also found five mounted-message suites that lacked an App Router context, a
+composer heading-focus race in the test, four in-place help strings missing from the S244
+inventory, and an old S132 runbook and control inventory name for Refresh data. The corrections
+supply the mounted tests' normal route context, focus the ready heading as it renders, add
+the four specific recovery messages to the inventory and reconcile the real, unchanged label
+across the walkthrough and inventory. Every substantive test assertion is retained. The
+focused rerun passed all 204 checks across 15 files, including the original sign-in and
+request-boundary assertions, exact recovery focus, old-picture scope, the help inventory and
+the older walkthrough. TypeScript and the Help, copy-voice and traceability checks also passed.
+
+UX-047, observed on `76160a22`: Enter on the linked reply's Try again correctly
+started the exact read and retained entered decisions, but it removed the focused
+button before replacing it. Visible focus briefly fell to the body. The next Tab
+still reached the selected decision radio. Preserve the same button and focus while
+reading; if it still has focus on success, the visible reply heading receives focus.
+A newer decision focus stays in place. No linked-thread scope, data, retry limit or
+recording authority changes (P05, P12, P14; SC04, SC09).
+
+UX-048, observed on `76160a22`: after one confirmed synthetic draft's response was
+lost, Guided Now exposed two accessible Recover exact Gmail attempt buttons for
+that same attempt. One was under Owner message and the other under Owner approval.
+There is one visible current recovery beside the compact preview in either audience's
+Now card. The original Unsent Gmail draft control remains where that compact preview
+is absent, including Full view; earlier distinct attempts remain available. No draft
+attempt, exact request, permission or confirmation changes (DR-02, DR-03; P06, P09,
+P12; SC06, SC08).
+
+UX-049, observed on `76160a22`: on the covered lease after a typed rent override,
+Guided exposed two visible Pricing basis fieldsets with the same owner and agreement
+choices and repeated the departure explanation. A staff member could enter two
+different scopes for the same assignment. The existing chooser in the pricing panel
+stays mounted with its own unsubmitted entry and is hidden only when its equivalent
+chooser is on Now. The standing summary appears once; the old policy assignment,
+panel, authority and Full/Focus chooser stay available. Read-only assurance now
+falsifies duplicate visible choosers or current exact recoveries without relaxing
+its existing checks (DR-02, DR-03; P06, P09, P11, P12; SC03, SC06, SC08).
+
+UX-050, observed in the Admin part of `76160a22`: the reusable pricing policy's
+blank name, date and purpose were unmarked and made a POST with schema diagnostics.
+The original portfolio default Save also compared two initially empty values.
+Mark the existing required policy fields, keep a blank increase blank, check the
+existing schema before sending, name and focus the first correction, and retain
+the entry. A portfolio default awaits a current successful read for its entered
+ID; stale reads cannot enable Save for a different ID. The same server validation,
+role, command identity, version and saved rule remain (P02, P05, P07, P12, P14;
+SC04, SC05, SC09).
+
+UX-051, observed on `76160a22` after exact owner approval: Offer the tenant showed
+the prepared terms and a missing renewal information form link. The enabled
+Review and send gave no new focus, dialog, request or next action. Use the existing
+tenant Marked values resolver the owner route already uses. It links to the actual
+shared form setting for Admin, with the existing role and verified-value checks.
+The specific missing value still holds the send; ordinary hand records and other
+work remain available (P02, P09, P12, P13, P14; SC03, SC04, SC05, SC09, SC10).
+
+UX-052, observed in both housing placements on `76160a22`: the same focused
+Retry survived the confirmed save, but the resulting layout change moved it
+below the visible window. Its desktop bounds moved from y710–750 to y855–895
+in 800 px, and its phone bounds moved from y810–850 to y955–995 in 844 px.
+Keep the focused shared autosave retry visible after the state and layout update.
+When staff already moved to another control, leave their focus and viewport
+alone. Preserve the same saved acknowledgment and normal next Tab (P05, P14;
+SC04, SC07, SC09).
+
+UX-053, observed on `76160a22`: when the Approver chose Set up your signature,
+the same Guided Now card showed two rendered Sender name entries. The compact
+form named the empty name, while its duplicate under the Owner approval section
+made the active form ambiguous. Show one setup form while it is open, with a
+visible required marker and focus on the first refused field. The longer
+managed editor, optional fields and retained signature action stay mounted and
+available in Full view or when the compact form is closed (DR-02, P02, P06,
+P09, P12, P14; SC05, SC06, SC09).
+
+UX-054, observed on `76160a22`: the coherent completion advanced the derived
+stage after staff recorded a returned form, signatures and follow-ups. A
+selected earlier step stayed on Now, with no Next step line and a primary for
+the earlier work. A visit that selected or arrived on the current step now
+follows the projection. When staff deliberately inspect another step, one
+authoritative Next step stays visible and Show current step returns to it.
+All old controls and intentional out-of-order work stay available
+(DR-05, P01, P02, P04, P09, P13, P14; SC01, SC03, SC08, SC09, SC10).
+
+UX-055, observed on `76160a22`: after an accepted authored revision and later
+change to its facts, two Return to the standard wording controls appeared on
+the same Guided card. When its compact preview supplies the stale-wording
+notice and action, present them once and keep the original Full controls.
+Undo appears once when the compact preview supplies it. The user's authored
+text and prior revision stay exact (DR-02, DR-03; P06, P09, P12; SC06, SC08).
+
 Preserved by decision: exact review/confirmation, the required Gmail banner, stale authored wording,
 who-approved validation, role/Space and Action Registry checks, blank unsettled legal fields,
 assistance-animal holds, existing controls/views/filters/collections/old links, historical failed
@@ -427,6 +525,8 @@ goals while retaining their original authority and meaning.
 | Shared collection required fields   | SharedLeaseCollections validates before the existing `/api/lease-renewal/collections` review handler                                                          | Existing collection review and explicit-member/period basis store remain authoritative; entered client state survives validation                                                                                                             | No request while required input is blank. Valid input retains the ordinary review and confirmed app-owned save.                                                                                                                                                    |
 | Standing rule adoption and recovery | RenewalRecommendation and MessagePreparationEditor use the ordinary working-record and message-preparation routes; Admin uses existing pricing-policy handler | StandingAgreementInputSchema owns validation; RenewalPricingPolicyStore owns versioned agreements/policies and verified portfolio; currentRenewalMessage reads actual adopted rule stamps                                                    | Only existing app-owned saves. Earlier-rule description does not grant current owner coverage; a typed rent wins. Exact provider confirmations and all permission gates stay unchanged.                                                                            |
 | Confirmed financial preparation     | RenewalWorkingRecordProvider and existing `/api/lease-renewal/working-record`; MessagePreparationEditor then reads `/api/lease-renewal/message-preparation`   | Existing versioned working-record store owns durable values, actors and operation IDs. The provider holds only each field's local text/generation and pending save; the message record and communication sequence keep their existing owners | Normal app saves and confirmed reads precede review or preview. Failure focuses the actual field and starts no older transport. Copy remains local and explicit exact confirmation remains mandatory.                                                              |
+| Linked composer recovery            | `/api/gmail-hub/composition` GET uses `prepareWorkflowComposition`; `/api/gmail-hub/sequences` saves only a current draft                                     | The mounted composer shares an in-flight read for its exact entry and actor; the existing sequence service and versioned Firestore store own the app draft                                                                                   | No composition retry has send or schedule authority. Previewed recipient and message evidence still goes through the existing actor, reviewed hash and one-attempt gates.                                                                                          |
+| Previous Help pictures              | `proxy.ts` responds only after the existing request policies; its picture helper matches known historical names and versions                                  | The Help manifest owns existing names; `public/help/V2.1` owns the synthetic picture bytes                                                                                                                                                   | A temporary same-origin GET/HEAD redirect to a static asset, with no effect or credential change.                                                                                                                                                                  |
 
 ## Specification and label maintenance
 
@@ -502,6 +602,12 @@ goals while retaining their original authority and meaning.
 - Preserve source-evidence re-review even when the visible draft wording is unchanged. The
   snapshot shows an advanced safety version; accepting the older preview would cross the
   guardrail boundary. Improve its error wording and retain the separate new review.
+- Keep reply retry focused using the same ready-heading convention as the composer, and leave
+  a newer decision focus alone. The real keyboard failure was visible before the reply loaded.
+- Show one exact current draft recovery and one Pricing basis on Now. Retain the original
+  controls, earlier attempts and hidden Full choice state so view switching preserves capability.
+- Keep legacy Help images under the request proxy's exact known-name rule. The global Next
+  configuration and its sign-in relay restriction stay unchanged.
 - Use manual synthetic preparation and the explicit automatic hold for this audit. Automatic
   start remains UNVERIFIED and its requirement stays intact.
 - Measure the historical baseline only as far as its own Demo gate permits. The nine-action,
@@ -674,3 +780,24 @@ goals while retaining their original authority and meaning.
   tests assert no old dialog and reuse the same application draft for the fresh review.
   The subsequent assurance update also requires the recommendation's visible required label
   and live save status from actual DOM; its focused check follows before this source commits.
+
+- `4d3359d7` selected S252 run `20261107T034423Z-4d3359d7`: all five permitted
+  phases, 79 checks, zero failures, and all five action budgets passed. The default
+  automatic-start phase was intentionally excluded. The 105 guarded Node PIDs recorded
+  only two refused public npm requests. Four kickoff POSTs were the explicit staff seed
+  and phase-reset preparations. The off setting held at startup, after resets and at exit.
+- `2ef9a967` separate degraded-mode core: 46 passed and 23 existing no-emulator skips,
+  14 files. The earlier November/December gate was 35 PASS, 1 FAIL because the added
+  status-outage probe used a closed test page; the retained negative and positive assertions
+  now use a new page in the active fenced Editor session.
+- First full gate, `qualification-verify-20261107T043440Z-2ef9a967`: real Linux dependency
+  installation, production dependency audit, policy, format, lint and type checks passed.
+  Unit ended with 11,498 passed, 25 failed, and four existing skips. The gate stopped before
+  Firestore, build and full served E2E. UX-044/046 record the correction and focused rerun.
+- The older November/December journey on `76160a22` finished 36 PASS, zero FAIL
+  (`qualification-journey-20261107T044951Z-76160a22`), with all 17 kernel controls
+  passing and zero owned processes left. One cold composition GET answered 200 before
+  saving a draft; the reopened draft read independently. The synthetic status outage
+  kept the December target visible and counted at three through two failed status reads;
+  one fresh read cleared the unavailable wording. The log shows 281 synthetic RentVine
+  reads and the only refused destination was public npm tooling.

@@ -3,7 +3,8 @@
 // recorded on the Now card in at most three deliberate actions, nothing preselected, with the same
 // S234 approval evidence the Owner response form records. Synthetic values only.
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -200,36 +201,69 @@ describe("S248 L36: read the observed owner reply before recording its meaning",
     for (const radio of screen.getAllByRole("radio")) expect(radio).not.toBeChecked();
   });
 
-  it("keeps staff entries through a failed read and recovers through Try again", async () => {
-    const fetch = vi
-      .fn()
-      .mockResolvedValueOnce(new Response("{}", { status: 503 }))
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            thread: {
-              messages: [{ id: "reply-1", bodyText: "Synthetic reply recovered." }],
-            },
-          }),
+  it.each([false, true])(
+    "keeps staff entries and keyboard focus through a failed read (Tab while reading: %s)",
+    async (continueToDecision) => {
+      let finish!: (response: Response) => void;
+      const fetch = vi
+        .fn()
+        .mockResolvedValueOnce(new Response("{}", { status: 503 }))
+        .mockImplementationOnce(
+          () => new Promise<Response>((resolve) => (finish = resolve)),
+        );
+      vi.stubGlobal("fetch", fetch);
+      const onRecord = renderForm(LINKED_CHOICES);
+      const choice = screen.getByRole("radio", { name: "Asked for a change" });
+      fireEvent.click(choice);
+      const note = screen.getByLabelText(/What the owner asked to change/);
+      fireEvent.change(note, {
+        target: { value: "Keep this staff note." },
+      });
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "reply text could not be read",
+      );
+      const user = userEvent.setup();
+      note.focus();
+      await user.tab({ shift: true });
+      expect(choice).toHaveFocus();
+      await user.tab({ shift: true });
+      const retry = screen.getByRole("button", { name: "Try again" });
+      expect(retry).toHaveFocus();
+      await user.keyboard("{Enter}");
+      expect(screen.getByText("Reading the owner's reply.")).toBeVisible();
+      expect(retry).toHaveFocus();
+      expect(retry).toHaveAttribute("aria-disabled", "true");
+      await user.keyboard("{Enter}");
+      expect(fetch).toHaveBeenCalledTimes(2);
+      if (continueToDecision) {
+        await user.tab();
+        expect(choice).toHaveFocus();
+      }
+      act(() =>
+        finish(
+          new Response(
+            JSON.stringify({
+              thread: {
+                messages: [{ id: "reply-1", bodyText: "Synthetic reply recovered." }],
+              },
+            }),
+          ),
         ),
       );
-    vi.stubGlobal("fetch", fetch);
-    const onRecord = renderForm(LINKED_CHOICES);
-    fireEvent.click(screen.getByRole("radio", { name: "Asked for a change" }));
-    fireEvent.change(screen.getByLabelText(/What the owner asked to change/), {
-      target: { value: "Keep this staff note." },
-    });
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "reply text could not be read",
-    );
-    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
-    expect(screen.getByText("Reading the owner's reply.")).toBeVisible();
-    expect(await screen.findByText("Synthetic reply recovered.")).toBeVisible();
-    expect(screen.getByLabelText(/What the owner asked to change/)).toHaveValue(
-      "Keep this staff note.",
-    );
-    expect(onRecord).not.toHaveBeenCalled();
-  });
+      expect(await screen.findByText("Synthetic reply recovered.")).toBeVisible();
+      await waitFor(() =>
+        expect(
+          continueToDecision
+            ? choice
+            : screen.getByRole("heading", { name: "Owner reply" }),
+        ).toHaveFocus(),
+      );
+      expect(screen.getByLabelText(/What the owner asked to change/)).toHaveValue(
+        "Keep this staff note.",
+      );
+      expect(onRecord).not.toHaveBeenCalled();
+    },
+  );
 
   it("reports an unavailable exact message instead of showing another thread message", async () => {
     vi.stubGlobal(

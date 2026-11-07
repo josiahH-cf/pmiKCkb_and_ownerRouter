@@ -2,6 +2,7 @@
 import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -75,9 +76,41 @@ it("administering all four actual policy form types validates input, retains the
   await waitFor(() => expect(fetch).toHaveBeenCalled());
   expect(screen.getByText(/intended MKD percentage is 3.5%/)).toBeInTheDocument();
   expect(screen.getByLabelText("Increase percent")).toHaveValue(3.5);
-  change("Policy name", "Incomplete policy");
+  for (const label of [
+    "Policy name",
+    "Increase percent",
+    "Effective from",
+    "Purpose and change context",
+  ])
+    expect(screen.getByLabelText(label)).toBeRequired();
   save();
-  await screen.findByText("A valid policy name, type and effective date are required.");
+  expect(screen.getByLabelText("Policy name")).toHaveFocus();
+  expect(screen.getByText("Enter a policy name.")).toBeVisible();
+  expect(screen.getByText("Choose the date the policy takes effect.")).toBeVisible();
+  expect(screen.getByText("Enter the purpose and change context.")).toBeVisible();
+  expect(calls).toHaveLength(0);
+  change("Policy name", "Incomplete policy");
+  change("Effective from", "2026-10-10");
+  change("Purpose and change context", "Synthetic reviewed reusable policy");
+  change("Increase percent", "");
+  save();
+  expect(screen.getByLabelText("Increase percent")).toHaveFocus();
+  expect(screen.getByLabelText("Increase percent")).toHaveValue(null);
+  expect(
+    screen.getByText("Enter a percent greater than zero and at most 100."),
+  ).toBeVisible();
+  expect(calls).toHaveLength(0);
+  change("Increase percent", "3.5");
+  change("Effective through (optional)", "2026-10-09");
+  save();
+  expect(screen.getByLabelText("Effective through (optional)")).toHaveFocus();
+  expect(
+    screen.getByText(
+      "Choose an end date on or after the effective date, or leave it blank.",
+    ),
+  ).toBeVisible();
+  expect(calls).toHaveLength(0);
+  change("Effective through (optional)", "");
   expect(rows).toHaveLength(0);
   for (const [kind, name, value] of [
     ["percentage", "Reviewed percentage", "3.5"],
@@ -117,6 +150,49 @@ it("administering all four actual policy form types validates input, retains the
   });
   change("Edit policy", rows[0].id);
   expect(screen.getByLabelText("Increase percent")).toHaveValue(3.5);
+});
+it("keeps portfolio Save unavailable until the entered portfolio has been read", async () => {
+  render(<RenewalPricingPolicyAdmin />);
+  await waitFor(() => expect(fetch).toHaveBeenCalled());
+  const field = document.getElementById("pricing-portfolio")!;
+  const read = screen.getByRole("button", { name: "Read portfolio assignment" });
+  const apply = screen.getByRole("button", { name: "Save portfolio default" });
+  expect(field).toBeRequired();
+  expect(apply).toBeDisabled();
+  fireEvent.click(read);
+  expect(field).toHaveFocus();
+  expect(
+    screen.getByText(
+      "Enter a RentVine portfolio ID of 1 to 10 digits, starting with 1 to 9.",
+    ),
+  ).toBeVisible();
+  fireEvent.change(field, { target: { value: "12345678901" } });
+  fireEvent.click(read);
+  expect(field).toHaveValue("12345678901");
+  expect(apply).toBeDisabled();
+  expect(
+    vi.mocked(fetch).mock.calls.every(([url]) => !String(url).includes("portfolioId=")),
+  ).toBe(true);
+  const originalFetch = vi.mocked(fetch).getMockImplementation()!;
+  let stale!: (response: Response) => void;
+  vi.mocked(fetch).mockImplementation((url, init) =>
+    String(url).endsWith("portfolioId=91")
+      ? new Promise<Response>((resolve) => (stale = resolve))
+      : originalFetch(url, init),
+  );
+  fireEvent.change(field, { target: { value: "91" } });
+  fireEvent.click(read);
+  expect(read).toBeDisabled();
+  expect(apply).toBeDisabled();
+  fireEvent.change(field, { target: { value: "92" } });
+  fireEvent.click(read);
+  await waitFor(() => expect(apply).toBeEnabled());
+  await act(async () => stale(Response.json({ assignment: { version: 4 } })));
+  expect(apply).toBeEnabled();
+  expect(field).toHaveValue("92");
+  fireEvent.change(field, { target: { value: "93" } });
+  expect(apply).toBeDisabled();
+  expect(calls).toHaveLength(0);
 });
 it("a lost accepted policy save retries the same ID, operation and exact fields, then a deliberate edit uses its read-back version", async () => {
   render(<RenewalPricingPolicyAdmin />);

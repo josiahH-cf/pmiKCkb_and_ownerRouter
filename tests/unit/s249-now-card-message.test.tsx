@@ -443,13 +443,16 @@ describe("S249 the prepared owner message on the Now card", () => {
       fireEvent.click(screen.getByRole("button", { name: "Review and send" })),
     );
     const form = screen.getByRole("form", { name: "Your signature" });
+    const name = screen.getByLabelText("Sender name");
+    expect(name).toBeRequired();
     await act(async () => fireEvent.submit(form));
     expect(
       screen.getByText("To save your signature, add: Sender name."),
     ).toBeInTheDocument();
+    expect(name).toHaveFocus();
     // Nothing was prepared for sending while the signature is missing.
     expect(fetchMock).not.toHaveBeenCalled();
-    fireEvent.change(screen.getByLabelText("Sender name"), {
+    fireEvent.change(name, {
       target: { value: "Example Staff" },
     });
     await act(async () => fireEvent.submit(form));

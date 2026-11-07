@@ -8,6 +8,7 @@ import type {
   RenewalPricingPolicyInput,
   StandingOwnerAgreement,
 } from "@/lib/lease-renewal/renewal-pricing-policy";
+import { RenewalPricingPolicyInputSchema } from "@/lib/lease-renewal/renewal-pricing-policy";
 import type {
   StandingAgreement,
   StandingAgreementInput,
@@ -27,6 +28,17 @@ const blank: RenewalPricingPolicyInput = {
   purpose: "",
 };
 const endpoint = "/api/lease-renewal/pricing-policy";
+const PORTFOLIO_ID = /^[1-9]\d{0,9}$/;
+const POLICY_INPUT_IDS = {
+  name: "pricing-name",
+  value: "pricing-value",
+  effectiveFrom: "pricing-from",
+  effectiveThrough: "pricing-through",
+  purpose: "pricing-purpose",
+} as const;
+type PolicyField = keyof typeof POLICY_INPUT_IDS;
+const policyNeedsAmount = (kind: RenewalPricingPolicyInput["kind"]) =>
+  kind === "percentage" || kind === "fixed_dollar";
 class PricingAdminResponseError extends Error {}
 function pricingAdminFailure(error: unknown, fallback: string) {
   return error instanceof PricingAdminResponseError
@@ -42,15 +54,24 @@ export function RenewalPricingPolicyAdmin({
   const [policies, setPolicies] = useState<RenewalPricingPolicy[]>([]),
     [cursor, setCursor] = useState<string | null>(null),
     [policy, setPolicy] = useState(blank),
+    [valueEntry, setValueEntry] = useState(String(blank.value)),
+    [policyErrors, setPolicyErrors] = useState<Partial<Record<PolicyField, string>>>({}),
     [version, setVersion] = useState(0),
     [pending, setPending] = useState(false),
     [message, setMessage] = useState("");
   const [portfolio, setPortfolio] = useState(""),
     [assigned, setAssigned] = useState(""),
     [assignmentVersion, setAssignmentVersion] = useState(0),
-    [assignmentRead, setAssignmentRead] = useState("");
+    [assignmentRead, setAssignmentRead] = useState(""),
+    [assignmentLoading, setAssignmentLoading] = useState(false),
+    [portfolioError, setPortfolioError] = useState("");
+  const portfolioId = portfolio.trim();
+  const assignmentReady =
+    PORTFOLIO_ID.test(portfolioId) && assignmentRead === portfolioId;
+  const amountRequired = policyNeedsAmount(policy.kind);
   const lock = useRef(false),
-    intent = useRef<{ key: string; body: object } | null>(null);
+    intent = useRef<{ key: string; body: object } | null>(null),
+    assignmentReadRun = useRef(0);
   const load = useCallback(async (after: string | null = null) => {
     try {
       const r = await fetch(
@@ -73,6 +94,9 @@ export function RenewalPricingPolicyAdmin({
     const timer = setTimeout(() => void load(), 0);
     return () => clearTimeout(timer);
   }, [load]);
+  function clearPolicyError(field: PolicyField) {
+    if (policyErrors[field]) setPolicyErrors((old) => ({ ...old, [field]: undefined }));
+  }
   async function command(input: object) {
     if (lock.current) return;
     lock.current = true;
@@ -108,11 +132,46 @@ export function RenewalPricingPolicyAdmin({
     }
   }
   async function savePolicy() {
-    const next = { ...policy, id: policy.id || crypto.randomUUID() };
-    if (!policy.id) setPolicy(next);
+    if (lock.current) return;
+    const next = {
+      ...policy,
+      id: policy.id || crypto.randomUUID(),
+      value: amountRequired && valueEntry.trim() ? Number(valueEntry) : null,
+    };
+    const checked = RenewalPricingPolicyInputSchema.safeParse(next);
+    if (!checked.success) {
+      const messages: Partial<Record<PolicyField, string>> = {};
+      const fieldMessages: Record<PolicyField, string> = {
+        name: policy.name.trim()
+          ? "Use a policy name of 100 characters or fewer."
+          : "Enter a policy name.",
+        value:
+          policy.kind === "percentage"
+            ? "Enter a percent greater than zero and at most 100."
+            : "Enter an increase greater than zero and at most $1,000,000.",
+        effectiveFrom: "Choose the date the policy takes effect.",
+        effectiveThrough:
+          "Choose an end date on or after the effective date, or leave it blank.",
+        purpose: policy.purpose.trim()
+          ? "Use 1,000 characters or fewer for the purpose and change context."
+          : "Enter the purpose and change context.",
+      };
+      for (const issue of checked.error.issues) {
+        const field = issue.path[0];
+        if (typeof field === "string" && Object.hasOwn(POLICY_INPUT_IDS, field))
+          messages[field as PolicyField] = fieldMessages[field as PolicyField];
+      }
+      const first = (Object.keys(messages) as PolicyField[])[0];
+      setPolicyErrors(messages);
+      setMessage(first ? "" : "Review the pricing policy fields, then save again.");
+      if (first) document.getElementById(POLICY_INPUT_IDS[first])?.focus();
+      return;
+    }
+    setPolicyErrors({});
+    if (!policy.id) setPolicy({ ...policy, id: checked.data.id });
     const result = await command({
       action: "policy",
-      policy: next,
+      policy: checked.data,
       expectedVersion: version,
     });
     if (result?.policy) {
@@ -121,26 +180,47 @@ export function RenewalPricingPolicyAdmin({
     }
   }
   async function readAssignment() {
+    if (!PORTFOLIO_ID.test(portfolioId)) {
+      setPortfolioError(
+        "Enter a RentVine portfolio ID of 1 to 10 digits, starting with 1 to 9.",
+      );
+      setAssignmentRead("");
+      setMessage("");
+      document.getElementById("pricing-portfolio")?.focus();
+      return;
+    }
+    setPortfolioError("");
+    setAssignmentRead("");
+    setAssignmentLoading(true);
+    setMessage("");
+    const run = ++assignmentReadRun.current;
     try {
-      const r = await fetch(`${endpoint}?portfolioId=${encodeURIComponent(portfolio)}`);
+      const r = await fetch(`${endpoint}?portfolioId=${encodeURIComponent(portfolioId)}`);
       const p = await r.json();
+      if (assignmentReadRun.current !== run) return;
       if (!r.ok)
         throw new PricingAdminResponseError(
           p.error ?? "Portfolio membership could not be verified.",
         );
       setAssignmentVersion(p.assignment?.version ?? 0);
       setAssigned(p.assignment?.policyId ?? "");
-      setAssignmentRead(portfolio);
+      setAssignmentRead(portfolioId);
       setMessage("Current portfolio assignment read.");
     } catch (e) {
+      if (assignmentReadRun.current !== run) return;
       setAssignmentRead("");
       setMessage(pricingAdminFailure(e, "The portfolio assignment could not be read."));
+    } finally {
+      if (assignmentReadRun.current === run) setAssignmentLoading(false);
     }
   }
   function edit(id: string) {
     const p = policies.find((p) => p.id === id);
+    setPolicyErrors({});
+    setMessage("");
     if (!p) {
       setPolicy(blank);
+      setValueEntry(String(blank.value));
       setVersion(0);
       return;
     }
@@ -148,6 +228,7 @@ export function RenewalPricingPolicyAdmin({
     void updatedAt;
     void updatedByUid;
     setPolicy(input);
+    setValueEntry(input.value === null ? "" : String(input.value));
     setVersion(version);
   }
   return (
@@ -177,12 +258,21 @@ export function RenewalPricingPolicyAdmin({
           Load more policies
         </Button>
       ) : null}
-      <Field htmlFor="pricing-name" label="Policy name">
+      <Field
+        htmlFor="pricing-name"
+        label="Policy name"
+        required
+        error={policyErrors.name}
+      >
         <input
           id="pricing-name"
+          required
           value={policy.name}
           maxLength={100}
-          onChange={(e) => setPolicy({ ...policy, name: e.target.value })}
+          onChange={(e) => {
+            clearPolicyError("name");
+            setPolicy({ ...policy, name: e.target.value });
+          }}
         />
       </Field>
       <Field htmlFor="pricing-kind" label="Policy type">
@@ -191,13 +281,10 @@ export function RenewalPricingPolicyAdmin({
           value={policy.kind}
           onChange={(e) => {
             const kind = e.target.value as RenewalPricingPolicyInput["kind"];
-            setPolicy({
-              ...policy,
-              kind,
-              value: ["no_increase", "manual_review"].includes(kind)
-                ? null
-                : (policy.value ?? 3.5),
-            });
+            if (policyNeedsAmount(kind) !== amountRequired)
+              setValueEntry(policyNeedsAmount(kind) ? String(blank.value) : "");
+            clearPolicyError("value");
+            setPolicy({ ...policy, kind });
           }}
         >
           <option value="percentage">Percentage increase</option>
@@ -206,50 +293,77 @@ export function RenewalPricingPolicyAdmin({
           <option value="manual_review">Manual review</option>
         </select>
       </Field>
-      {policy.value !== null ? (
+      {amountRequired ? (
         <Field
           htmlFor="pricing-value"
           label={policy.kind === "percentage" ? "Increase percent" : "Increase dollars"}
+          required
+          error={policyErrors.value}
         >
           <input
             id="pricing-value"
+            required
             type="number"
             step="0.01"
-            value={policy.value}
-            onChange={(e) => setPolicy({ ...policy, value: Number(e.target.value) })}
+            value={valueEntry}
+            onChange={(e) => {
+              clearPolicyError("value");
+              setValueEntry(e.target.value);
+            }}
           />
         </Field>
       ) : null}
       <Field
         htmlFor="pricing-from"
         label="Effective from"
+        required
+        error={policyErrors.effectiveFrom}
         hint={
           policy.effectiveFrom ? formatCalendarDate(policy.effectiveFrom) : "MM/DD/YYYY"
         }
       >
         <input
           id="pricing-from"
+          required
           type="date"
           value={policy.effectiveFrom}
-          onChange={(e) => setPolicy({ ...policy, effectiveFrom: e.target.value })}
+          onChange={(e) => {
+            clearPolicyError("effectiveFrom");
+            clearPolicyError("effectiveThrough");
+            setPolicy({ ...policy, effectiveFrom: e.target.value });
+          }}
         />
       </Field>
-      <Field htmlFor="pricing-through" label="Effective through (optional)">
+      <Field
+        htmlFor="pricing-through"
+        label="Effective through (optional)"
+        error={policyErrors.effectiveThrough}
+      >
         <input
           id="pricing-through"
           type="date"
           value={policy.effectiveThrough ?? ""}
-          onChange={(e) =>
-            setPolicy({ ...policy, effectiveThrough: e.target.value || null })
-          }
+          onChange={(e) => {
+            clearPolicyError("effectiveThrough");
+            setPolicy({ ...policy, effectiveThrough: e.target.value || null });
+          }}
         />
       </Field>
-      <Field htmlFor="pricing-purpose" label="Purpose and change context">
+      <Field
+        htmlFor="pricing-purpose"
+        label="Purpose and change context"
+        required
+        error={policyErrors.purpose}
+      >
         <textarea
           id="pricing-purpose"
+          required
           maxLength={1000}
           value={policy.purpose}
-          onChange={(e) => setPolicy({ ...policy, purpose: e.target.value })}
+          onChange={(e) => {
+            clearPolicyError("purpose");
+            setPolicy({ ...policy, purpose: e.target.value });
+          }}
         />
       </Field>
       <label>
@@ -264,14 +378,33 @@ export function RenewalPricingPolicyAdmin({
         Save pricing policy
       </Button>
       <h3>Portfolio default</h3>
-      <Field htmlFor="pricing-portfolio" label="RentVine portfolio ID">
+      <Field
+        htmlFor="pricing-portfolio"
+        label="RentVine portfolio ID"
+        required
+        error={portfolioError}
+      >
         <input
           id="pricing-portfolio"
+          required
+          inputMode="numeric"
           value={portfolio}
-          onChange={(e) => setPortfolio(e.target.value)}
+          onChange={(e) => {
+            setPortfolio(e.target.value);
+            setPortfolioError("");
+            if (e.target.value.trim() !== portfolioId) {
+              assignmentReadRun.current += 1;
+              setAssignmentRead("");
+              setAssignmentLoading(false);
+            }
+          }}
         />
       </Field>
-      <Button onClick={() => void readAssignment()} disabled={pending}>
+      <Button
+        busy={assignmentLoading}
+        onClick={() => void readAssignment()}
+        disabled={pending || assignmentLoading}
+      >
         Read portfolio assignment
       </Button>
       <Field htmlFor="pricing-default" label="Default pricing policy">
@@ -289,12 +422,12 @@ export function RenewalPricingPolicyAdmin({
         </select>
       </Field>
       <Button
-        disabled={pending || assignmentRead !== portfolio}
+        disabled={pending || assignmentLoading || !assignmentReady}
         onClick={() =>
           void command({
             action: "assignment",
             scope: "portfolio",
-            sourceId: portfolio,
+            sourceId: portfolioId,
             policyId: assigned || null,
             expectedVersion: assignmentVersion,
             reason: "Admin portfolio policy assignment",
@@ -731,13 +864,14 @@ function PortfolioStandingAgreementEditor({
       <input
         id={`standing-${key}`}
         required
+        inputMode={key === "portfolioId" ? "numeric" : undefined}
         maxLength={
           key === "name"
             ? 100
             : key === "agreedHow"
               ? 300
               : key === "portfolioId"
-                ? 10
+                ? undefined
                 : 200
         }
         value={agreement[key]}

@@ -5,7 +5,7 @@
 // only after the server confirmed and returned the stored value. A failure keeps the entered value
 // in its control and offers the same save again.
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui";
 
@@ -52,6 +52,7 @@ export function AutosaveStatus({
   // same button through the request, and until focus leaves it after success.
   const [retryShown, setRetryShown] = useState(state.phase === "failed");
   const [retryFocused, setRetryFocused] = useState(false);
+  const retryButton = useRef<HTMLButtonElement>(null);
   const [retryConflict, setRetryConflict] = useState(
     state.phase === "failed" && state.conflict === true,
   );
@@ -67,6 +68,21 @@ export function AutosaveStatus({
   ) {
     setRetryShown(false);
   }
+  useLayoutEffect(() => {
+    if (!retryFocused) return;
+    const button = retryButton.current;
+    if (!button) return;
+    function keepFocusedRetryVisible() {
+      if (!button || !button.isConnected || document.activeElement !== button) return;
+      const bounds = button.getBoundingClientRect();
+      if (bounds.top < 0 || bounds.bottom > window.innerHeight)
+        button.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+    }
+    keepFocusedRetryVisible();
+    // A saved record can also change the surrounding path in the same render cycle.
+    const frame = window.requestAnimationFrame(keepFocusedRetryVisible);
+    return () => window.cancelAnimationFrame(frame);
+  }, [state.phase, retryFocused]);
   if (hideWhenIdle && state.phase === "idle" && !(onRetry && retryShown)) return null;
   return (
     <span
@@ -94,6 +110,7 @@ export function AutosaveStatus({
             if (state.phase === "failed") onRetry();
           }}
           onFocus={() => setRetryFocused(true)}
+          ref={retryButton}
           size="compact"
           variant="tertiary"
         >
