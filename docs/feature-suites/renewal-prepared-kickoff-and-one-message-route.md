@@ -3,7 +3,7 @@
 
 # S249 — Renewal kickoff prepared ahead, with one message and one route to send it
 
-> Status: AUTHORING READY: intake 115; implementation merged in PR #188 at `aec5a309`, including the D-OP-1 router amendment. Resumed UX repairs and scoped qualification are recorded on `codex/renewal-one-path-ux`; production delivered at `ef81b891`, human verdict NOT RUN. D-OP-1, D-OP-2 and D-OP-7 remain settled. This specification grants no provider effect.
+> Status: November 7 readiness revision AUTHORING READY, intake 125. The November 5 preparation and message route shipped at `ef81b891`. This revision uses the S224 readiness contract.
 
 **Goal.**
 
@@ -143,16 +143,16 @@ choose to work. RentVine readable; RentCast allowance available for a new lookup
   a newer safety version with unchanged visible wording; the refusal names that evidence change.
   Creating a draft takes one review and one confirmation.
 - **R-S249-10 — Owner wording.** An owner message never contains internal working language. With a
-  staff recommendation it uses the approved suggestion wording. With none, the Now card asks for the
-  rent to recommend before Send; the sentence "The working offer remains a staff decision" never
+  rent recommendation it uses the approved suggestion wording. A message that recommends
+  rent requires the amount before Send. An assisted renew-or-not message follows S251; the sentence "The working offer remains a staff decision" never
   reaches an owner. Template wording changes go through the existing template publication.
-- **R-S249-11 — Readiness before the step.** The Now card lists what Send needs and its state:
-  verified owner recipient, the sender's signature, an approved template, complete marked values.
-  Each missing item has its fix in place, and the desk shows the same missing items before a
-  lease is opened. Staff set up their signature for the first time through one visible form
-  on the card. Sender name is required, and a refused save names and focuses the
-  first field to correct. The full managed signature editor remains available in Full view and
-  when the compact setup is closed.
+- **R-S249-11 — Readiness before the step.** The Now card and desk read the exact message's
+  required inputs and their state from S224, including the verified recipient and applicable
+  publication. Provide the actual fix beside each missing input. Use the sender-owned setup
+  in the current step. All visible signature fields are optional and an explicitly saved
+  blank is ready. The same setup and exact readiness reasons are available in Full view and
+  Communications. The gate covers the existing outgoing routes. Edit and Copy remain usable
+  with incomplete working content.
   A recipient fix focuses the recipient reasons and the already-read source record links. When
   an owner-record link is unavailable, the existing lease-record link explains the route to its
   owner record and the subsequent refresh. A template fix focuses its actual publication status.
@@ -252,9 +252,10 @@ batch rows (S246) and the help guides (S252).
 - **BEH-S249-3** — Prepare this batch runs at most one billed lookup per lease per cycle, shows
   progress, stops at the allowance with the stated message and can be resumed.
 - **BEH-S249-4** — A missing recipient, signature or template shows on the desk and the Now card
-  with its fix; a staff member sets their signature on the card and Send becomes available.
-- **BEH-S249-5** — An owner message with no staff recommendation cannot be sent and never contains
-  internal working language; a rejected rewording changes nothing and explains itself.
+  with its fix. When setup is the only hold, saving even a blank signature makes the
+  prepared message ready for its exact review. An unused optional input creates no hold.
+- **BEH-S249-5** — An owner rent recommendation needs its amount before Send and uses approved
+  customer wording. A rejected rewording keeps the prior message and names what to change.
 - **BEH-S249-6** — Once the owner step is settled the tenant offer is shown prepared from the
   working terms; once terms are final the source update previews are shown; neither sends nor writes.
 
@@ -267,27 +268,31 @@ there, a suggested rent is filled in with its reason, and the owner message is w
 the rent, add a sentence about the market, watch the message change, and send it. They did not
 scroll through sections, open another tab or run anything.
 
-- Model verdict: RUN for the prepared message, review and guarded delivery routes (J07–J09). The starting Demo send, automatic start and enable-to-off comparison remain unverified. See the [review](../evidence/renewal-one-path-ux-review-2026-11-06.md) and [individual litmus results](../evidence/renewal-one-path-litmus-2026-11-06.md).
+- Model verdict: November 7 readiness revision NOT RUN. The November 5 prepared message,
+  review and guarded delivery evidence is J07–J09. The starting Demo send, automatic start
+  and enable-to-off comparison remain unverified in that baseline. See the
+  [review](../evidence/renewal-one-path-ux-review-2026-11-06.md) and
+  [litmus results](../evidence/renewal-one-path-litmus-2026-11-06.md).
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**
 
-| Requirement                         | Architecture outcome | Behavior outcome | Human litmus                       | Deterministic evidence / falsification                                                          |
-| ----------------------------------- | -------------------- | ---------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------- |
-| R-S249-1 numbers check              | ARCH-S249-1          | BEH-S249-1       | Review a ready renewal and send it | Agreeing, differing charge, blank Sheet and differing Sheet fixtures.                           |
-| R-S249-2 comparison ready           | ARCH-S249-1          | BEH-S249-1       | Review a ready renewal and send it | Stored observation feeds the message with no second lookup.                                     |
-| R-S249-3 preparing a batch          | ARCH-S249-3          | BEH-S249-3       | Review a ready renewal and send it | Batch run test: one claim per lease and cycle, allowance stop, resume.                          |
-| R-S249-4 starting without a click   | ARCH-S249-4          | BEH-S249-3       | Review a ready renewal and send it | Setting on: opening the batch starts lookups inside the limits. Setting off: zero billed calls. |
-| R-S249-5 suggested rent             | ARCH-S249-1          | BEH-S249-1       | Review a ready renewal and send it | Agreement, comparison and typed-value precedence fixtures.                                      |
-| R-S249-6 reason to include          | ARCH-S249-2          | BEH-S249-2       | Review a ready renewal and send it | Typed reason appears verbatim in every delivery form.                                           |
-| R-S249-7 one current message        | ARCH-S249-2          | BEH-S249-2       | Review a ready renewal and send it | Edit then Send, Schedule, draft and Copy all carry the same revision.                           |
-| R-S249-8 one route                  | ARCH-S249-2          | BEH-S249-1       | Review a ready renewal and send it | Browser check: send from the Now card in one review and one confirmation.                       |
-| R-S249-9 draft never stale silently | ARCH-S249-2          | BEH-S249-2       | Review a ready renewal and send it | Edit after draft creation marks it older; replace updates the revision.                         |
-| R-S249-10 owner wording             | ARCH-S249-2          | BEH-S249-5       | Review a ready renewal and send it | Content test: no internal sentence in any owner body; send refused without a recommendation.    |
-| R-S249-11 readiness before the step | ARCH-S249-1          | BEH-S249-4       | Review a ready renewal and send it | Missing recipient, signature and template fixtures on desk and card.                            |
-| R-S249-12 rewording that works      | ARCH-S249-2          | BEH-S249-5       | Review a ready renewal and send it | Echoed-instruction fixture keeps instruction and body; accepted revision applies once.          |
-| R-S249-13 ready for review on desk  | ARCH-S249-1          | BEH-S249-4       | Review a ready renewal and send it | Batch ordering test across prepared, missing-input, waiting and finished rows.                  |
-| R-S249-14 pattern for later steps   | ARCH-S249-1          | BEH-S249-6       | Review a ready renewal and send it | Tenant offer and source preview fixtures; zero sends or writes.                                 |
+| Requirement                         | Architecture outcome | Behavior outcome | Human litmus                       | Deterministic evidence / falsification                                                                                  |
+| ----------------------------------- | -------------------- | ---------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| R-S249-1 numbers check              | ARCH-S249-1          | BEH-S249-1       | Review a ready renewal and send it | Agreeing, differing charge, blank Sheet and differing Sheet fixtures.                                                   |
+| R-S249-2 comparison ready           | ARCH-S249-1          | BEH-S249-1       | Review a ready renewal and send it | Stored observation feeds the message with no second lookup.                                                             |
+| R-S249-3 preparing a batch          | ARCH-S249-3          | BEH-S249-3       | Review a ready renewal and send it | Batch run test: one claim per lease and cycle, allowance stop, resume.                                                  |
+| R-S249-4 starting without a click   | ARCH-S249-4          | BEH-S249-3       | Review a ready renewal and send it | Setting on: opening the batch starts lookups inside the limits. Setting off: zero billed calls.                         |
+| R-S249-5 suggested rent             | ARCH-S249-1          | BEH-S249-1       | Review a ready renewal and send it | Agreement, comparison and typed-value precedence fixtures.                                                              |
+| R-S249-6 reason to include          | ARCH-S249-2          | BEH-S249-2       | Review a ready renewal and send it | Typed reason appears verbatim in every delivery form.                                                                   |
+| R-S249-7 one current message        | ARCH-S249-2          | BEH-S249-2       | Review a ready renewal and send it | Edit then Send, Schedule, draft and Copy all carry the same revision.                                                   |
+| R-S249-8 one route                  | ARCH-S249-2          | BEH-S249-1       | Review a ready renewal and send it | Browser check: send from the Now card in one review and one confirmation.                                               |
+| R-S249-9 draft never stale silently | ARCH-S249-2          | BEH-S249-2       | Review a ready renewal and send it | Edit after draft creation marks it older; replace updates the revision.                                                 |
+| R-S249-10 owner wording             | ARCH-S249-2          | BEH-S249-5       | Review a ready renewal and send it | Owner recommendation requires its amount. The S251 renew-or-not message uses its own facts.                             |
+| R-S249-11 readiness before the step | ARCH-S249-1          | BEH-S249-4       | Review a ready renewal and send it | Desk, card and composer parity for missing recipient, absent setup, saved blank, unused resource and required template. |
+| R-S249-12 rewording that works      | ARCH-S249-2          | BEH-S249-5       | Review a ready renewal and send it | Echoed-instruction fixture keeps instruction and body; accepted revision applies once.                                  |
+| R-S249-13 ready for review on desk  | ARCH-S249-1          | BEH-S249-4       | Review a ready renewal and send it | Batch ordering test across prepared, missing-input, waiting and finished rows.                                          |
+| R-S249-14 pattern for later steps   | ARCH-S249-1          | BEH-S249-6       | Review a ready renewal and send it | Tenant offer and source preview fixtures; zero sends or writes.                                                         |
 
 **Preservation set.**
 

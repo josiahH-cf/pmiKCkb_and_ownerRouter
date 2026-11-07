@@ -30,7 +30,8 @@ A staff user opens owner/tenant preparation using actual roster, working/source 
 - **R-S161-1** — Assemble approved existing templates from available facts, working values, applicable saved comps, and verified resources. Source: U-F10; P-F10.
 - **R-S161-2** — Tenant preparation uses working terms without a recorded owner-approved outcome. Source: U-F10.
 - **R-S161-3** — Expose editable subject/body despite missing business information. Source: U-F10.
-- **R-S161-4** — Use named fill-in markers and a concise missing-value callout; preserve markers in output. Source: U-F10; S162.
+- **R-S161-4** — Use named fill-in markers and a concise missing-value callout in working
+  content and Copy. S162 and S224 govern exact outgoing content. Source: U-F10; S162.
 - **R-S161-5** — Derive known values instead of repeat questions or mandatory verification checkboxes. Source: U-F10.
 - **R-S161-6** — Use staff-entered rent/working information in new preparation. Source: T-F10; U-F10.
 - **R-S161-7** — Refresh/new preparation does not silently replace existing authored subject/body. Source: U-F10; P-F10.
@@ -78,7 +79,8 @@ Meeting source: `Cherry Bridge & PMI sync - 2026_10_01 13_58 CDT - Notes by Gemi
 - **BEH-S161-1** — Assemble approved existing templates from available facts, working values, applicable saved comps, and verified resources. Deterministic observation: Prepare with differing source/working values and inspect labels.
 - **BEH-S161-2** — Tenant preparation uses working terms without a recorded owner-approved outcome. Deterministic observation: Prepare with terms and no response.
 - **BEH-S161-3** — Expose editable subject/body despite missing business information. Deterministic observation: Edit with several business fields absent.
-- **BEH-S161-4** — Use named fill-in markers and a concise missing-value callout; preserve markers in output. Deterministic observation: Inspect and export incomplete text.
+- **BEH-S161-4** — Show named fill-in markers and a concise callout. Inspect and Copy
+  incomplete working text. S224 governs readiness for its eventual outgoing action.
 - **BEH-S161-5** — Derive known values instead of repeat questions or mandatory verification checkboxes. Deterministic observation: Inspect required interactions with existing known facts.
 - **BEH-S161-6** — Use staff-entered rent/working information in new preparation. Deterministic observation: Enter a working rent and prepare the relevant audiences.
 - **BEH-S161-7** — Refresh/new preparation does not silently replace existing authored subject/body. Deterministic observation: Edit, refresh facts, and compare exact text.
@@ -105,7 +107,7 @@ Meeting source: `Cherry Bridge & PMI sync - 2026_10_01 13_58 CDT - Notes by Gemi
 | R-S161-1    | ARCH-S161-1          | BEH-S161-1       | Prepare without the questionnaire | Prepare with differing source/working values and inspect labels. |
 | R-S161-2    | ARCH-S161-1          | BEH-S161-2       | Prepare without the questionnaire | Prepare with terms and no response.                              |
 | R-S161-3    | ARCH-S161-1          | BEH-S161-3       | Prepare without the questionnaire | Edit with several business fields absent.                        |
-| R-S161-4    | ARCH-S161-1          | BEH-S161-4       | Prepare without the questionnaire | Inspect and export incomplete text.                              |
+| R-S161-4    | ARCH-S161-1          | BEH-S161-4       | Prepare without the questionnaire | Inspect and Copy incomplete working text.                        |
 | R-S161-5    | ARCH-S161-1          | BEH-S161-5       | Prepare without the questionnaire | Inspect required interactions with existing known facts.         |
 | R-S161-6    | ARCH-S161-1          | BEH-S161-6       | Prepare without the questionnaire | Enter a working rent and prepare the relevant audiences.         |
 | R-S161-7    | ARCH-S161-2          | BEH-S161-7       | Prepare without the questionnaire | Edit, refresh facts, and compare exact text.                     |

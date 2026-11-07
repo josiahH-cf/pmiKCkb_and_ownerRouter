@@ -112,7 +112,10 @@ the hub, and the existing guide checkers pointed at the hub's step tables.
   the named region, captures at a fixed viewport and writes
   `public/help/<HELP_VERSION>/<scene>.png`. Re-running the script against the same build and
   fixtures reproduces every rehearsal scene; the script reports scenes it could not capture
-  instead of skipping them.
+  instead of skipping them. For the November 7 revision, expose the same synthetic capture
+  through the required S242 comparison. Drift evidence includes the reviewable replacement
+  image, scene, fixture and app revision. The verifier keeps captures as artifacts. An
+  approved Help change adopts its assets and version through the usual review.
 - **R-S243-6 — Fidelity.** Rehearsal screenshots show the same build the release ships (the
   capture run records the commit) and the same interface a staff member sees; only the data is
   synthetic, with fixture names that are visibly not real people or properties. A scene whose
@@ -157,8 +160,8 @@ behavior that a guide would prefer.
 
 Surfaces: the hub pages (S242), every staff route as a screenshot subject. Stores: none. Gates:
 coverage, control-name, screenshot and content rules (S242) run against this content; the
-rehearsal smoke lane runs the capture script in check mode (no writes) to prove scenes still
-resolve. Documentation: `docs/products/**` consolidation, `docs/README.md`. Release: ships with
+S242 required rendered gate checks affected synthetic scenes and reports missing or outdated
+evidence. The ordinary capture command remains the source for reviewed replacement assets. Documentation: `docs/products/**` consolidation, `docs/README.md`. Release: ships with
 S242 under the ordinary gates; content updates after that are minor help versions released the
 same way.
 
@@ -208,7 +211,8 @@ an item, fix a connection, change an admin setting) and complete it by following
 step, with every picture matching the screen in front of them and no step that sends them to a
 feature that is not there.
 
-- Model verdict: PASS | FAIL - why: completed by the implementation runner with evidence.
+- Model verdict: November 7 capture integration NOT RUN. The delivered guides and captures
+  retain their original evidence.
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**

@@ -3,7 +3,7 @@
 
 # S246 — Working batch and accurate renewal targets on the desk
 
-> Status: AUTHORING READY: intake 112; implementation merged in PR #186 at `64a12692`. Resumed UX repairs and scoped qualification are recorded on `codex/renewal-one-path-ux`; production delivered at `ef81b891`, human verdict NOT RUN. Owner decisions D-OP-4 and D-OP-5 remain settled. This specification grants no provider effect.
+> Status: November 7 revision AUTHORING READY, intake 123. The November 5 contract shipped at `ef81b891`. The revised desk presentation awaits implementation.
 
 **Goal.**
 
@@ -42,9 +42,10 @@ customer values stay outside Git):
   desk when the intent was to open the lease; saving a shared collection returned to the desk
   without applying it; several tabs accumulated.
 
-Intended: the desk opens on a working batch that contains only real renewal targets, grouped by
-what they need, with every excluded lease counted under a plain reason. The existing table, views,
-filters, saved views and collections stay available one action away.
+On the November 7 browser rehearsal of `ef81b891`, the working month had five targets below
+four carried-over rows. The link to the existing table followed the other groups. That table
+opened with all 38 fixture leases. The revised desk puts the view, month and count above a
+compact working-batch table. The broad table stays one action away.
 
 **Actors and entry conditions.**
 
@@ -57,7 +58,8 @@ rows to an explicit retained state and never removes them from the list.
 - **R-S246-1 — One target definition.** A lease is a renewal target for a month when RentVine
   reports it active, its term is fixed-term or needs review under S103, its end date falls in that
   month, no move-out is initiated, no skip signal applies and no completion is recorded for that
-  cycle. One pure function owns this definition for the desk, the lease page and assistant answers.
+  cycle. A current-cycle retirement from S255 also excludes the cycle with its own counted
+  reason. One pure function owns this definition for the desk, the lease page and assistant answers.
 - **R-S246-2 — Working batch as the default.** The bare desk route opens "This batch": the targets
   whose end date falls in the working month. The working month defaults to the next calendar month
   on the Central business date (D-OP-4) and changes with Previous month and Next month. The month
@@ -67,25 +69,31 @@ rows to an explicit retained state and never removes them from the list.
 - **R-S246-4 — Not a renewal target, with a reason.** A lease RentVine reports closed or pending
   leaves the batch and is counted under "Not renewal targets" with its RentVine status name. Owner
   hold and program leases keep their existing reasons. The count opens the rows; every lease stays
-  openable and workable (S154). Nothing is deleted or archived (D-OP-5).
+  openable with its existing controls (S154). D-OP-5 is the automatic source-status rule.
+  Staff retirement is a separate, reversible S255 disposition.
 - **R-S246-5 — Renewed in RentVine.** A lease whose recorded cycle date is earlier than the current
   RentVine end date (`lib/lease-renewal/cycle-source-date.ts`) leaves "This batch" and shows under
   "Renewed in RentVine, confirm and close" with two actions: record staff completion with that
   source evidence, or keep working. Nothing completes by itself.
 - **R-S246-6 — Other groups as counts.** "Month-to-month reviews due", "Non-renewals to hand off"
   and "Coming up later" show as counts that open their rows. The S232 month context stays true.
-- **R-S246-7 — One short row.** A batch row shows address and unit, tenant names, end date, one
-  stage line with who it waits on and since when, and one next-step link, plus at most three tags
-  (standing agreement, housing assistance, needs a check). Stage and next step come from the single
-  S247 projection; until S247 is delivered the row shows the existing S232 status and action text.
+- **R-S246-7 — Read the batch as a table.** Render the working batch and carried-over rows as
+  grouped data tables with accessible column headers. Show lease address and unit, tenant names,
+  the cycle or due date with its basis, one current stage with its waiting context, and one next
+  action. Show labeled current base rent and rent to recommend when available and applicable.
+  A missing amount stays visibly missing where it matters, and a proposed amount carries its
+  existing pricing basis. Preserve up to three existing tags and the ready, needs-input and
+  waiting or done groups from S249. The table is usable by keyboard and at 390 pixels wide,
+  with lease identity and next action reachable and horizontal overflow contained to the table.
+
 - **R-S246-8 — Opening a lease.** Choosing the row or its next step opens the lease in the same tab
   at its current step. Back to renewals restores the same month, group and scroll position. Names in
   the batch list are text; name filters remain in the full table.
-- **R-S246-9 — Everything else stays.** "All leases and filters" opens the existing table with its
-  views, columns, filters, sorts, window chip, per-reason counts and URL keys unchanged. A saved view
-  is offered as "Open my saved view" and no longer applies by itself on the bare route. A shared
-  collection link opens the table filtered to that collection's membership. The working batch
-  and table use one main landmark so assistive navigation can move directly to the desk.
+- **R-S246-9 — Reach the existing table and saved views.** "All leases and filters" opens the
+  existing table with its views, columns, filters, sorts, window chip, per-reason counts and URL
+  keys. "Open my saved view" opens the explicit saved scope. A shared collection link opens the
+  table with its saved membership. The working batch and broad table use one main landmark.
+
 - **R-S246-10 — Same answer everywhere.** A Dashboard assistant answer about a month's renewals
   uses the same target definition and names the excluded counts by reason. "This batch" and
   "working month" mean the next calendar month's renewal targets. A question about which leases
@@ -100,6 +108,15 @@ rows to an explicit retained state and never removes them from the list.
   total loaded, and each lease is in exactly one group.
 - **R-S246-12 — Fail closed.** When the status table or a lease's status cannot be read, the lease
   stays listed with "RentVine status unavailable" and is never excluded on a guess.
+- **R-S246-13 — Switch views at the top.** Show "Working batch" and "All leases and filters"
+  above the rows with an announced active view, its scope and its result count. In the batch,
+  show the selected month, its target count and the carried-over count before the groups.
+  Give staff a direct route to the current month's rows from this summary. Previous month and
+  Next month change the selected month on the same table. Switching to All leases and filters
+  opens the explicitly indicated table scope. Switching back, using browser Back, or returning
+  from a lease restores the relevant month, group, table filters and scroll for that visit.
+  A fresh bare desk entry keeps the next-calendar-month default. This is the one-month planning
+  view. Cross-month planning is outside this revision.
 
 **In scope / out of scope.**
 
@@ -114,9 +131,9 @@ cadence; removing a view, filter, saved view or collection; a new person-assignm
   on the batch. Evidence: on November 4 staff worked December end dates and asked for "next month".
 - D-OP-5 (owner decision, November 5, 2026): closed and pending leases leave the batch automatically with a visible
   reason and count.
-- Assumption: an inactive property is excluded only when the RentVine read already exposes that
-  fact for the lease. Both leases staff called inactive on November 4 read Closed in RentVine, so
-  the lease status covers the observed cases. No property state is inferred.
+- The automatic exclusion continues to use source facts. Staff reported additional inactive
+  records in the November to December window. Their exact production state was outside the
+  rehearsal. S255 covers staff-confirmed retirement for the specific cycle.
 - Reported timing practice (owner outreach early in the month, tenant offers mid-month) is context
   only and derives no deadline (D-TIMING-UNSET).
 
@@ -133,13 +150,13 @@ landmarks (they follow the default view), the help guides and screenshots (S252)
 
 **Authority and evidence map.**
 
-| Input                                                             | Classification       | Use and limitation                                                                       |
-| ----------------------------------------------------------------- | -------------------- | ---------------------------------------------------------------------------------------- |
-| `AGENTS.md`, `docs/facts.md` (D-LEASE-WORKABLE-AUTOSAVE, F-S154)  | Authority            | Every lease stays workable; membership is context, never a gate.                         |
-| Committed code and tests at `6491c06f`                            | Implementation truth | Present membership, window, entry and row behavior.                                      |
-| Read-only production desk observation, November 5, 2026           | Bounded observation  | Counts for the default view only; no control activated; not a behavior or failure proof. |
-| November 4 staff walkthrough notes and November 5 owner direction | Intent evidence      | Accurate targets and simple entry; not policy, deadlines or permissions.                 |
-| RentVine property active state                                    | External dependency  | Used only if the existing read exposes it; otherwise unset and nothing is inferred.      |
+| Input                                                             | Classification                         | Use and limitation                                                                                                       |
+| ----------------------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `AGENTS.md`, `docs/facts.md` (D-LEASE-WORKABLE-AUTOSAVE, F-S154)  | Authority                              | Every lease stays workable; membership is context, never a gate.                                                         |
+| Committed code and tests at `6491c06f`                            | Implementation truth                   | Present membership, window, entry and row behavior.                                                                      |
+| Read-only production desk observation, November 5, 2026           | Bounded observation                    | Counts for the default view only; no control activated; not a behavior or failure proof.                                 |
+| November 4 staff walkthrough notes and November 5 owner direction | Intent evidence                        | Accurate targets and simple entry; not policy, deadlines or permissions.                                                 |
+| November 7 rehearsal and accepted Q3                              | Browser observation and owner decision | The broad table switch sat below the working rows. Use one monthly prep table and a visible switch to the broader table. |
 
 **Architecture outcome (deterministic, fail-first).**
 
@@ -152,6 +169,9 @@ landmarks (they follow the default view), the help guides and screenshots (S252)
 - **ARCH-S246-3** — Entry resolution opens the batch on the bare route and keeps explicit table
   links, `v=2` links and saved-view links on the table. Fail-first: the bare route applies the
   remembered view.
+- **ARCH-S246-4** — Both table views use the existing row and stage projections and the
+  existing desk continuation. View state and business month are distinct from saved filters.
+  Fail-first: the default surface has card rows and reaches the table through a footer link.
 
 **Behavior outcome (deterministic, fail-first).**
 
@@ -165,6 +185,9 @@ landmarks (they follow the default view), the help guides and screenshots (S252)
   the excluded counts by reason.
 - **BEH-S246-5** — With the status table unreadable, every lease stays listed and labeled; none is
   excluded.
+- **BEH-S246-6** — Staff can identify the current view, its scope and count before reading a
+  row. They scan the month's table, change the month, switch to broader filters, and return
+  with their position and view context intact.
 
 **Human litmus outcome.**
 
@@ -175,25 +198,29 @@ handful of leases ending in December that still need work, anything left over fr
 above them, and a short line of counts for everything else. No moved-out or closed lease is in the
 list. They choose a lease and it opens in the same tab at the step that needs them.
 
-- Model verdict: RUN in the synthetic desk and assistant (J01–J03). L55 retains its literal per-reason count discrepancy under the settled assistance rule. See the [review](../evidence/renewal-one-path-ux-review-2026-11-06.md) and [individual litmus results](../evidence/renewal-one-path-litmus-2026-11-06.md).
+- Model verdict: November 7 revision NOT RUN. The shipped baseline has the synthetic desk and
+  assistant evidence for J01–J03. L55 retains its literal discrepancy under the settled assistance
+  rule. See the [review](../evidence/renewal-one-path-ux-review-2026-11-06.md) and
+  [litmus results](../evidence/renewal-one-path-litmus-2026-11-06.md).
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**
 
-| Requirement                        | Architecture outcome | Behavior outcome | Human litmus                                 | Deterministic evidence / falsification                                    |
-| ---------------------------------- | -------------------- | ---------------- | -------------------------------------------- | ------------------------------------------------------------------------- |
-| R-S246-1 one target definition     | ARCH-S246-1          | BEH-S246-1       | Open Renewals and see this month's real work | Fixture portfolio: each lease state yields the expected target verdict.   |
-| R-S246-2 working batch default     | ARCH-S246-3          | BEH-S246-1       | Open Renewals and see this month's real work | Bare route on a fixed Central date renders the next month's targets.      |
-| R-S246-3 carried over              | ARCH-S246-2          | BEH-S246-1       | Open Renewals and see this month's real work | Earlier-month unfinished and ended-without-outcome fixtures list first.   |
-| R-S246-4 not a target, with reason | ARCH-S246-1          | BEH-S246-1       | Open Renewals and see this month's real work | Closed and pending fixtures counted with status name and still openable.  |
-| R-S246-5 renewed in RentVine       | ARCH-S246-2          | BEH-S246-2       | Open Renewals and see this month's real work | Changed source date fixture offers both actions; no automatic completion. |
-| R-S246-6 other groups as counts    | ARCH-S246-2          | BEH-S246-1       | Open Renewals and see this month's real work | Review, non-renewal and later fixtures land in their counted groups.      |
-| R-S246-7 one short row             | ARCH-S246-2          | BEH-S246-3       | Open Renewals and see this month's real work | Row render test: five facts, one next-step link, at most three tags.      |
-| R-S246-8 opening a lease           | ARCH-S246-3          | BEH-S246-3       | Open Renewals and see this month's real work | Browser check: same tab, step anchor, restored month and scroll.          |
-| R-S246-9 everything else stays     | ARCH-S246-3          | BEH-S246-3       | Open Renewals and see this month's real work | Existing table URL keys, saved view and collection link tests stay green. |
-| R-S246-10 same answer everywhere   | ARCH-S246-1          | BEH-S246-4       | Open Renewals and see this month's real work | Assistant month answer equals batch membership on the same fixture.       |
-| R-S246-11 counts reconcile         | ARCH-S246-2          | BEH-S246-1       | Open Renewals and see this month's real work | Property test: group counts sum to total loaded; no lease in two groups.  |
-| R-S246-12 fail closed              | ARCH-S246-1          | BEH-S246-5       | Open Renewals and see this month's real work | Unavailable status table fixture retains and labels every row.            |
+| Requirement                             | Architecture outcome | Behavior outcome | Human litmus                                 | Deterministic evidence / falsification                                                                   |
+| --------------------------------------- | -------------------- | ---------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| R-S246-1 one target definition          | ARCH-S246-1          | BEH-S246-1       | Open Renewals and see this month's real work | Fixture portfolio: each lease state yields the expected target verdict.                                  |
+| R-S246-2 working batch default          | ARCH-S246-3          | BEH-S246-1       | Open Renewals and see this month's real work | Bare route on a fixed Central date renders the next month's targets.                                     |
+| R-S246-3 carried over                   | ARCH-S246-2          | BEH-S246-1       | Open Renewals and see this month's real work | Earlier-month unfinished and ended-without-outcome fixtures list first.                                  |
+| R-S246-4 not a target, with reason      | ARCH-S246-1          | BEH-S246-1       | Open Renewals and see this month's real work | Closed and pending fixtures counted with status name and still openable.                                 |
+| R-S246-5 renewed in RentVine            | ARCH-S246-2          | BEH-S246-2       | Open Renewals and see this month's real work | Changed source date fixture offers both actions; no automatic completion.                                |
+| R-S246-6 other groups as counts         | ARCH-S246-2          | BEH-S246-1       | Open Renewals and see this month's real work | Review, non-renewal and later fixtures land in their counted groups.                                     |
+| R-S246-7 batch table rows               | ARCH-S246-4          | BEH-S246-6       | Open Renewals and see this month's real work | Browser check for table headers, one stage and action, separate rent meanings, groups and narrow layout. |
+| R-S246-8 opening a lease                | ARCH-S246-3          | BEH-S246-3       | Open Renewals and see this month's real work | Browser check: same tab, step anchor, restored month and scroll.                                         |
+| R-S246-9 everything else stays          | ARCH-S246-3          | BEH-S246-3       | Open Renewals and see this month's real work | Existing table URL keys, saved view and collection link tests stay green.                                |
+| R-S246-10 same answer everywhere        | ARCH-S246-1          | BEH-S246-4       | Open Renewals and see this month's real work | Assistant month answer equals batch membership on the same fixture.                                      |
+| R-S246-11 counts reconcile              | ARCH-S246-2          | BEH-S246-1       | Open Renewals and see this month's real work | Property test: group counts sum to total loaded; no lease in two groups.                                 |
+| R-S246-12 fail closed                   | ARCH-S246-1          | BEH-S246-5       | Open Renewals and see this month's real work | Unavailable status table fixture retains and labels every row.                                           |
+| R-S246-13 visible view and month switch | ARCH-S246-4          | BEH-S246-6       | Open Renewals and see this month's real work | AC-S246-6. Switch views and months, follow a lease, use Back, then open the bare URL in a new visit.     |
 
 **Preservation set.**
 
@@ -216,6 +243,11 @@ count of source, projected and rendered records.
 - **AC-S246-4** — The assistant answer and the desk agree on membership and excluded counts for
   the same month and fixture (BEH-S246-4).
 - **AC-S246-5** — An unreadable lease status never removes a lease from the list (BEH-S246-5).
+- **AC-S246-6** — At desktop and phone widths, the month, count and view switch precede the
+  rows. Keyboard users reach the current-month table and its next actions. Switch to the broad
+  table, apply a filter, open a lease and return. Switch back to the month and reload. Verify
+  continuation in each view, a fresh bare default, and unchanged old table, saved view and
+  collection links (ARCH-S246-4, BEH-S246-6).
 
 **Forbidden actions / hard gates.**
 
@@ -226,15 +258,15 @@ protected-path change.
 **Dependencies / sequencing.**
 
 Consumes S103 lease term, S123 cycle date change, S124 move-out disposition, S232 scopes and
-reasons, and the S247 stage projection when present. Produces the target definition and group
+reasons, and the shared S248 stage and S247 path when present. Produces the target definition and group
 membership that S247, S248, S249 and S252 read. Independently buildable; recommended first in the
 bundle because every later step depends on a trustworthy list.
 
 **Standalone delivery contract.**
 
-- **Deliverable now:** R-S246-1 to R-S246-12 with fixtures, focused tests, the updated desk smoke
+- **Deliverable now:** R-S246-1 to R-S246-13 with fixtures, focused tests, the updated desk smoke
   and the assurance landmark update.
-- **Consumes, but does not assume:** the S247 stage (absent: existing S232 status and action text);
+- **Consumes, but does not assume:** the S248 stage (absent: existing S232 status and action text);
   property active state (absent: unset, nothing inferred).
 - **Externally blocked effect:** none.
 - **Produces for downstream suites:** the target definition, group membership and counts.
@@ -251,7 +283,7 @@ bundle because every later step depends on a trustworthy list.
 
 **Ordered prompt sequence.**
 
-1. Re-verify current code and take a read-only desk observation.
+1. Re-verify current code and observe the desk in the guarded synthetic rehearsal.
 2. Materialize the ARCH and BEH checks, litmus and preservation baseline; record fail-first results.
 3. Build the target definition, grouping, batch presentation, entry resolution and assistant parity.
 4. Falsify, run focused and canonical tests, update the assurance landmarks and help content, and

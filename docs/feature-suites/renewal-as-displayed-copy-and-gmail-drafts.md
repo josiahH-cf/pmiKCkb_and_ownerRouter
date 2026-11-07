@@ -3,7 +3,7 @@
 
 # S162 — Copy and create an unsent Gmail draft as displayed
 
-> Status: IMPLEMENTED AND DEPLOYED. Owner-confirmed F11 change; implemented on 2026-10-02 under the owner's execution prompt (program commit `ba3f9719`, merged to main in PR #126) and released on 2026-10-03 by run `47fabb7c` at `e106a88a`. No provider effect was used; human verdict NOT RUN.
+> Status: IMPLEMENTED AND DEPLOYED. Owner-confirmed F11 change; implemented on 2026-10-02 under the owner's execution prompt (program commit `ba3f9719`, merged to main in PR #126) and released on 2026-10-03 by run `47fabb7c` at `e106a88a`. No provider effect was used; human verdict NOT RUN. The November 7 revision adopts S224's outgoing readiness contract for Gmail export. The revised behavior awaits implementation.
 
 **Goal.**
 
@@ -15,7 +15,9 @@ Program goal: Make PMI KC a practical hub where staff can open any lease, unders
 
 Present baseline: Existing copy/Gmail controls depend on bodyReady, reviewed cycle, saved preparation, and review/preflight states. Managed transport, verified recipients, exact draft binding, receipts, and recovery exist.
 
-Required end state: Edited current content, including missing business markers, is directly usable with a compact reminder to review before sending.
+Required end state: Staff can edit and Copy the current message with its working markers.
+The exact unsent Gmail draft uses the same current content once S224 verifies the saved
+signature choice and facts that the message requires. The existing review reminder stays.
 
 This is the new bounded change to the deployed owners below. Their unchanged contracts remain; the named conflicting intended behavior is superseded for this program. Previous receipts and acceptance outcomes keep their original scope.
 
@@ -29,13 +31,18 @@ A staff user viewing a message. Gmail creation consumes actual managed mailbox a
 **What it is / how it functions.**
 
 - **R-S162-1** — Copy displayed subject/body through applicable existing controls, including plain/formatted body. Source: U-F11.
-- **R-S162-2** — Preserve edits/markers without regenerate, completion, save, or review prerequisites. Source: U-F11.
+- **R-S162-2** — Preserve edits and working markers for Copy without regeneration or a save step. Source: U-F11.
 - **R-S162-3** — Keep copy usable while autosave is pending or failed. Source: U-F11.
 - **R-S162-4** — Provide explicit unsent Gmail creation from displayed content. Source: U-F11.
-- **R-S162-5** — Remove cycle, source-agreement, approval/acceptance, business-completeness, and Save-and-Review gates. Source: U-F11.
+- **R-S162-5** — Keep preparation and Copy available with incomplete working inputs.
+  Gmail creation uses S224's required-input check at exact preview and final claim.
+  Unrelated cycle, agreement, approval and completeness steps stay outside this action.
+  Sources: U-F11 and November 7 Q5.
 - **R-S162-6** — Show actual mailbox, To/Cc, and content for exact confirmation without silent changes or fanout. Source: U-F11; P-F11.
 - **R-S162-7** — Perform needed persistence/binding inside the explicit draft action, without another Save; report real failure honestly. Source: U-F11; P-F11.
-- **R-S162-8** — Allow business markers in the unsent draft and give a concise review-before-send reminder without an approval checkbox. Source: U-F11.
+- **R-S162-8** — Name unresolved required facts and link to their controls before Gmail
+  creation. Working markers stay available in-app and through Copy. An eligible unsent
+  draft keeps its concise review reminder and exact confirmation. Sources: U-F11 and Q5.
 - **R-S162-9** — Keep verified-recipient/managed-mailbox requirements local to the exact action. Source: P-F11; U-F11.
 - **R-S162-10** — Keep duplicate prevention, lost-response reconciliation, and receipt recovery before another creation. Source: P-F11.
 - **R-S162-11** — Later autosave does not silently update/replace Gmail drafts; existing changed-wording refinement discloses a separate draft. Source: P-F11.
@@ -47,7 +54,9 @@ In scope: existing owner/tenant copy, deliberate renewal draft creation, reminde
 
 **Open questions & assumptions.**
 
-No material product clarification remains. The confirmed behavior is embedded above; source facts are not supplied by acceptance of a recommendation. Visible content and actual mailbox/verified recipients; business absence is marked, transport identity absence remains local unavailable. Missing actual mailbox/recipient blocks that live draft (AC-S162-2), not copy or independent work. No proof customer draft is authorized.
+November 7 Q5 settles the export gate. Sender setup, required facts and transport state
+come from their actual owners. A missing or unavailable input holds its own outgoing action
+with a specific recovery. Draft editing and Copy remain available.
 
 **Cross-product impacts.**
 
@@ -60,7 +69,7 @@ Use these inspected owners as the starting point and inspect actual current inte
 | Input                                                                                                                                                    | Classification                         | Use and limitation                                                                                                                                                                                                                                                                  |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | AGENTS.md; docs/facts.md; current code and authorized live readback                                                                                      | Router / implementation truth          | Safety and actual present state. October 1 recorded release is baseline only; refresh evidence during an authorized execution run. Specification intake grants no execution.                                                                                                        |
-| U-F11: Confirmed Q3/Q5 and as-is copy/draft clarification                                                                                                | Owner product decision                 | Remove cycle/completeness/Save-and-Review/approval gates; preserve markers.                                                                                                                                                                                                         |
+| U-F11 and November 7 Q5                                                                                                                                  | Owner decisions                        | Preserve working markers in Copy. Apply S224 readiness to the exact Gmail draft action.                                                                                                                                                                                             |
 | P-F11: components/lease-renewal/RenewalMessagePreparation.tsx; lib/lease-renewal/message-preflight.ts; lib/lease-renewal/message-readiness.ts; S113/S139 | Inspected transport / content contract | Keep exact snapshot, actual mailbox/recipients, recovery, and disclosed separate drafts on changed wording.                                                                                                                                                                         |
 | Actual dependent input                                                                                                                                   | External dependency                    | Visible content and actual mailbox/verified recipients; business absence is marked, transport identity absence remains local unavailable. Missing actual mailbox/recipient blocks that live draft (AC-S162-2), not copy or independent work. No proof customer draft is authorized. |
 
@@ -69,7 +78,9 @@ Meeting source: `Cherry Bridge & PMI sync - 2026_10_01 13_58 CDT - Notes by Gemi
 **Architecture outcome (deterministic, fail-first).**
 
 - **ARCH-S162-1** — Copy reads visible subject/body and existing plain/formatted representations independently of persistence/completeness. A failed-save scenario detects stale/regenerated output.
-- **ARCH-S162-2** — The existing draft action binds visible content/recipients through deliberate exact confirmation without obsolete preflight. An incomplete/no-cycle scenario detects a residual gate.
+- **ARCH-S162-2** — The draft action binds ready content and recipients through the exact
+  confirmation and S224 gate. Verify one ready scenario with unrelated inputs absent and
+  one with a required fact missing.
 - **ARCH-S162-3** — Existing receipt/reconciliation and refinement contracts own created drafts. A lost-response/later-edit scenario detects duplicate creation or silent update.
 
 **Behavior outcome (deterministic, fail-first).**
@@ -78,10 +89,12 @@ Meeting source: `Cherry Bridge & PMI sync - 2026_10_01 13_58 CDT - Notes by Gemi
 - **BEH-S162-2** — Preserve edits/markers without regenerate, completion, save, or review prerequisites. Deterministic observation: Copy marked edited text with unrelated values absent.
 - **BEH-S162-3** — Keep copy usable while autosave is pending or failed. Deterministic observation: Delay/fail save and copy current text.
 - **BEH-S162-4** — Provide explicit unsent Gmail creation from displayed content. Deterministic observation: Compare adapter-created subject/body with the visible snapshot.
-- **BEH-S162-5** — Remove cycle, source-agreement, approval/acceptance, business-completeness, and Save-and-Review gates. Deterministic observation: Draft with valid actual transport inputs and removed prerequisites absent.
+- **BEH-S162-5** — Create the unsent draft with its required inputs and valid transport.
+  Unused facts do not hold it. A missing required fact holds only the outgoing action.
 - **BEH-S162-6** — Show actual mailbox, To/Cc, and content for exact confirmation without silent changes or fanout. Deterministic observation: Compare confirmed snapshot and resulting draft.
 - **BEH-S162-7** — Perform needed persistence/binding inside the explicit draft action, without another Save; report real failure honestly. Deterministic observation: Invoke with unsaved preparation and fail the necessary persistence boundary.
-- **BEH-S162-8** — Allow business markers in the unsent draft and give a concise review-before-send reminder without an approval checkbox. Deterministic observation: Inspect marked output, reminder, and control sequence.
+- **BEH-S162-8** — Inspect a marked working draft, follow its required-input fix and review
+  the eligible outgoing draft with the existing reminder.
 - **BEH-S162-9** — Keep verified-recipient/managed-mailbox requirements local to the exact action. Deterministic observation: Use unknown recipient/disconnected mailbox, then copy/edit normally.
 - **BEH-S162-10** — Keep duplicate prevention, lost-response reconciliation, and receipt recovery before another creation. Deterministic observation: Lose the create response and reconcile without blind retry.
 - **BEH-S162-11** — Later autosave does not silently update/replace Gmail drafts; existing changed-wording refinement discloses a separate draft. Deterministic observation: Edit after creation and inspect dispatch/disclosure.
@@ -93,7 +106,8 @@ Meeting source: `Cherry Bridge & PMI sync - 2026_10_01 13_58 CDT - Notes by Gemi
 
 **If this was built correctly:** Edit marked text and copy it immediately. Create its unsent Gmail draft with the displayed recipients/content. See its destination and review reminder. Later app edits do not silently change that draft.
 
-- Model verdict: PASS on the full local gate and exact main CI for the program head (unit, backend, core E2E; counts in docs/facts.md, Current feature). Per-suite evidence is the F-row for this suite in docs/facts.md. Live verification follows the release.
+- Model verdict: November 7 export revision NOT RUN. The October program head passed its
+  local gate and main CI. The original S162 evidence remains in `docs/facts.md`.
 - Human verdict: NOT RUN — no human observer.
 
 **Requirement-to-outcome traceability.**
@@ -104,10 +118,10 @@ Meeting source: `Cherry Bridge & PMI sync - 2026_10_01 13_58 CDT - Notes by Gemi
 | R-S162-2    | ARCH-S162-1          | BEH-S162-2       | Use the message on screen | Copy marked edited text with unrelated values absent.                        |
 | R-S162-3    | ARCH-S162-1          | BEH-S162-3       | Use the message on screen | Delay/fail save and copy current text.                                       |
 | R-S162-4    | ARCH-S162-2          | BEH-S162-4       | Use the message on screen | Compare adapter-created subject/body with the visible snapshot.              |
-| R-S162-5    | ARCH-S162-2          | BEH-S162-5       | Use the message on screen | Draft with valid actual transport inputs and removed prerequisites absent.   |
+| R-S162-5    | ARCH-S162-2          | BEH-S162-5       | Use the message on screen | Draft with S224 readiness and valid transport. Omit unrelated inputs.        |
 | R-S162-6    | ARCH-S162-2          | BEH-S162-6       | Use the message on screen | Compare confirmed snapshot and resulting draft.                              |
 | R-S162-7    | ARCH-S162-2          | BEH-S162-7       | Use the message on screen | Invoke with unsaved preparation and fail the necessary persistence boundary. |
-| R-S162-8    | ARCH-S162-2          | BEH-S162-8       | Use the message on screen | Inspect marked output, reminder, and control sequence.                       |
+| R-S162-8    | ARCH-S162-2          | BEH-S162-8       | Use the message on screen | Resolve a required marker, then inspect the draft reminder and exact review. |
 | R-S162-9    | ARCH-S162-2          | BEH-S162-9       | Use the message on screen | Use unknown recipient/disconnected mailbox, then copy/edit normally.         |
 | R-S162-10   | ARCH-S162-3          | BEH-S162-10      | Use the message on screen | Lose the create response and reconcile without blind retry.                  |
 | R-S162-11   | ARCH-S162-3          | BEH-S162-11      | Use the message on screen | Edit after creation and inspect dispatch/disclosure.                         |
@@ -123,7 +137,9 @@ Preservation is assessed separately from the new outcomes. Expectations intentio
 **Adversarial acceptance checks.**
 
 - **AC-S162-1** — Failed/pending save and incomplete values do not disable or change copy under BEH-S162-1/2/3.
-- **AC-S162-2** — Valid transport without cycle/approvals creates the exact marked draft; unknown recipient fails only draft creation under BEH-S162-5/6/8/9.
+- **AC-S162-2** — Valid transport and S224 readiness create the exact unsent draft.
+  Missing setup, required facts or verified recipients hold creation and retain editable
+  working content and Copy (BEH-S162-5/6/8/9).
 - **AC-S162-3** — Lost response and later edits do not duplicate or silently update drafts under ARCH-S162-3 and BEH-S162-10/11/12.
 
 **Forbidden actions / hard gates.**
@@ -134,7 +150,8 @@ The repository’s permanent send, identity, private-data, and exact-effect boun
 
 **Dependencies / sequencing.**
 
-Consumes S155/S156/S161/S163/S167; existing transport owns effects; S165 carries copy/draft to mobile.
+Consumes S155/S156/S161/S163/S167 and S224. Existing transport owns effects.
+S165 carries Copy and Gmail draft to mobile.
 
 Dependencies describe compatible interfaces and co-delivery, not independent execution authority. Follow the program order in [the canonical suite index](README.md); no completed baseline suite restarts.
 

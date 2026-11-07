@@ -80,6 +80,17 @@ deployed before the walkthrough; the rehearsal runs before release.
   | There was nowhere to record housing assistance                      | R-S251-1           |
   | A sent owner message left the lease at Owner outreach               | R-S248-1           |
 
+  The November 4 ledger keeps the delivered requirement identities. For intake 121,
+  S247 maps its former view, status and continuity rows to S248 and S258. In the next
+  synthetic walkthrough, observe entry and the actual next action (S247), record and
+  confirm or reconcile an event (S248), and find a detail and return after an interruption
+  (S258). Carry the same lease across the desk, an alternate entry, and the relevant
+  message, task or guidance handoff. Preserve the original action budgets and record
+  which conditional and restricted states the fixture can exercise. [S259](renewal-usability-final-journey-litmus.md)
+  consumes these engineering results and runs last for the November 7 batch. In a staff session,
+  observe whether a person can locate and explain the action and confirm the result
+  without coaching. Keep that judgment separate from synthetic navigation evidence.
+
 - **R-S252-4 — Outside this bundle, recorded.** Two assistant observations from the same session
   are recorded with their owners and are not fixed here: no sign of progress after a question
   (S171), and an answer that reused an earlier conversation's month (S199). The month answer's
@@ -89,17 +100,21 @@ deployed before the walkthrough; the rehearsal runs before release.
   pass or fail with a one-line reason. A real send or update made in that session is real work and
   is never release proof.
 - **R-S252-6 — The manual matches.** The renewal guides, screen references, glossary and control map
-  are rewritten for the batch, the guided view and its Now card, with the Focus view and Full view
-  pages kept current; screenshots are recaptured
-  from the rehearsal; the help version increases; "What changed" names the change; and the help
-  coverage, control, screenshot and content gates pass. Prior help-picture URLs continue to the
+  describe the exact views and controls at the candidate revision. For the November 7 revision,
+  teach S247's current action, S248's status and recording, S258's Guided and Full choices
+  and return behavior, the desk view switch, retirement and revised message readiness. Preserve existing guide destinations and record any control label changes
+  in the renewal control map. Use the required S242 rendered check and S243 scene capture.
+  Recapture affected pictures, increase the Help version and record the changes in "What changed". Prior help-picture URLs continue to the
   current same-named pictures through temporary same-origin redirects for the existing picture
   names, after the request policies run. The current-only asset-folder gate stays intact.
   An ordinary-flow picture uses complete synthetic source status fields consistent
   with its declared Active lease; unavailable-evidence pictures retain their explicit error state.
 - **R-S252-7 — Assurance follows the screens.** The release canary landmarks and the reconciliation
   oracle are updated in the same change as the default view and status rules they read, and the
-  read-only desk and lease smokes are updated deliberately, never loosened.
+  read-only desk and lease smokes are updated deliberately, never loosened. The change covers
+  `scripts/run-production-canary.ts`, `lib/production-assurance/**`,
+  `scripts/run-production-reconciliation.ts` and
+  `tests/unit/s113-canary-landmarks.test.ts` when their rendered surfaces change.
 - **R-S252-8 — Evidence.** One evidence file records budgets measured, ledger results, journey step
   results, help gate results and the staff verdict or its exact NOT RUN value, with no customer
   value.
@@ -206,7 +221,8 @@ real leases to their next step, and at no point asks where to click. The printed
 shows the same screens. Everything that went wrong on November 4 either no longer happens or is on
 a short list with a reason.
 
-- Model verdict: RUN for the permitted synthetic phases, Help and evidence matrix (J15). Staff verdict NOT RUN. See the [review](../evidence/renewal-one-path-ux-review-2026-11-06.md) and [individual litmus results](../evidence/renewal-one-path-litmus-2026-11-06.md).
+- Model verdict: November 7 revision NOT RUN. J15 records the November 5 baseline's
+  permitted synthetic phases, Help and evidence matrix. Staff verdict NOT RUN. See the [review](../evidence/renewal-one-path-ux-review-2026-11-06.md) and [individual litmus results](../evidence/renewal-one-path-litmus-2026-11-06.md).
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**

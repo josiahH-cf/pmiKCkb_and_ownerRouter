@@ -3,7 +3,7 @@
 
 # S201 — Named shared monthly lease collections with stable membership
 
-> Intake: READY, 2026-10-09, intake 073. Finalized specification; implementation, live verification and delivery have not run. Registration alone grants no execution authority.
+> Intake: READY. The original collection contract, intake 073, shipped in run `5b3dfb90`. November 7 intake 124 finalizes the revised journey for future implementation.
 
 **Goal.**
 
@@ -11,7 +11,12 @@ Renewal staff share a named monthly group of reviewed leases, track current stat
 
 **Current state / intended end state.**
 
-The Renewal Desk already lists and filters leases, and the assistant can return source-scoped lease results with record references. Private history and saved plans preserve answers or rerun queries; they do not establish a shared team collection with stable reviewed membership. End state: a named collection stores a reviewed lease/cycle set and its selection context; current status refreshes independently from explicit membership changes.
+On the November 7 rehearsal of `ef81b891`, an Editor saved one synthetic lease. An Admin
+reopened the same member, refreshed its status and opened a one-row desk table. A reload
+before save cleared the reviewed selection and its inputs. "New collection" kept the previous
+dates and selected lease. The desk entry carried the 38 shown leases into period matching
+with blank dates. The revised journey opens on useful current status and separates creating,
+reviewing and saving a membership change.
 
 **Actors and entry conditions.**
 
@@ -19,15 +24,45 @@ Existing managed staff with current Renewal Space access. Creation and membershi
 
 **What it is / how it functions.**
 
-1. **R-S201-1: Create a named reviewed monthly collection.** From accessible renewal results or explicit selection, let staff review the actual lease/cycle members and save a friendly name plus month/period and the source selection criteria/date field used. The collection name, Period from and Period through are marked required in both membership modes; a missing value is named beside its field before review, with focus on the first missing field and the entered selection retained. A query interpretation is visible before saving. Use stable lease/cycle identities, not row numbers, addresses alone or the wording of a prompt. Store only the collection context needed for renewal work, not a private transcript.
+1. **R-S201-1 — Create a reviewed collection.** From the collection list, "New collection"
+   opens a clean form. From a desk or assistant result it starts with exactly the accessible
+   leases offered by that result and shows which leases were imported. Staff can select and
+   remove named lease/cycle rows and look up accessible leases by address, name or exact ID.
+   Preserve the existing ID entry capability as a secondary input. A collection name and an
+   ordered period are required. Show field errors, focus the first missing field and retain
+   entered values. Confirm the actual lease/cycle membership before saving.
 
-2. **R-S201-2: Hold membership stable until explicit review.** Reopening or refreshing status never automatically adds/removes members. An explicit Refresh membership action computes a proposed difference against the recorded selection, shows additions/removals and requires staff confirmation before committing that new version. If the source read is incomplete, do not claim a complete difference or silently remove unseen members.
+2. **R-S201-2 — Edit membership explicitly.** Opening a collection starts on a member table
+   with the period and count. "Refresh statuses" reads current status for the saved members.
+   "Edit membership" shows the saved selection and prepares a separate review of additions,
+   removals and the resulting members with lease identity and cycle dates. Show the basis and
+   version being reviewed. Save only the reviewed difference after staff confirmation. An
+   incomplete source read holds the membership change and leaves the saved set intact. Use
+   a separate rename action and keep "Open this collection on the Renewals desk".
 
 3. **R-S201-3: Refresh current status honestly.** For stored members, load current lifecycle, work status and source freshness/coverage through existing renewal projections. Historical saved membership remains distinguishable from current status. Unavailable, deleted, cycle-changed or no-longer-accessible members receive an honest scoped unavailable/stale indication and cannot leak protected details or be silently dropped.
 
 4. **R-S201-4: Share only within existing scope.** List/open/edit collections according to existing Renewal Space capability without a new role or lease-assignment gate. Re-evaluate member access per actor. A shared collection never expands source permissions, exposes another user's history or makes saved chat context team-wide.
 
-5. **R-S201-5: Version edits and preserve collaboration.** Use ordinary app-owned save/version/audit patterns for name and membership changes, recording actual actor/time and reviewed version. Repeated confirmation is idempotent; concurrent edits and lost responses reconcile to current state instead of replacing newer membership. Do not create Sheet or RentVine writes merely by saving a collection.
+5. **R-S201-5 — Version edits and preserve collaboration.** Use the ordinary app-owned
+   save/version/audit contract. Record the actor, time and reviewed version. Repeat
+   confirmation idempotently. A concurrent edit or a lost response shows the current state
+   and the original intent's result when known. Staff can recover or review again without
+   overwriting newer membership.
+6. **R-S201-6 — Make the selection basis explicit.** Default to "Choose leases" for a new
+   or imported selection. The period describes a group of explicitly chosen leases. A chosen
+   lease outside that period remains in review with its actual cycle date visible. "Match a
+   period" applies the selected date field, ordered date range and any recorded worklist filters.
+   Show those filters in staff terms and the actual matching leases before the save. Do not
+   infer a matching period from imported IDs. A saved group reopens with its recorded basis.
+7. **R-S201-7 — Keep the review recoverable.** Refreshing or returning within the original
+   signed-in tab restores a still-current review and the entered name, period and selection.
+   A changed collection version, expired review or changed access prompts a new scoped
+   review, keeping any input still permitted. Recovery does not apply the proposed change.
+   Starting a fresh collection clears the previous form. Leaving an edited form offers a
+   clear way to keep or discard the local work. Offer a next action on empty lists and a
+   retry on failed reads. Announce loading, the reviewed difference, saved result and failures
+   and move keyboard focus to the relevant result or recovery.
 
 **In scope / out of scope.**
 
@@ -35,7 +70,9 @@ In scope: named shared monthly lease sets, reviewed stable membership, current s
 
 **Open questions & assumptions.**
 
-No product-blocking question remains. Month/period and selection basis are supplied by the staff action and resolved using existing date interpretation; no unstated month or date field is hardcoded. Exact storage shape is an implementation choice; required semantics above are fixed.
+The owner accepted Q4 on November 7. Staff-supplied periods describe explicit membership and
+bound matched membership. Reopen and status refresh use the reviewed set in both modes.
+Historical collections keep their saved basis, member/cycle identities and links.
 
 **Cross-product impacts.**
 
@@ -47,8 +84,8 @@ Renewal Desk results and accessible assistant lease results; shared app-owned Fi
 | ------------------------------------------------------------------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `AGENTS.md`, current code/tests and serving readback                      | Authority / implementation truth | Existing identity, Space, provider and exact-operation boundaries apply. Starting reference for this batch: WSL main `43bad3ad`, serving `337ac163` on 2026-10-08; recheck before implementation. A reference is not fresh live proof. |
 | Existing Renewal Desk, S137 operational-context projections and S148–S150 | Project evidence                 | Existing lists, scoped references and private history are reusable foundations; neither saved answers nor dynamic saved queries prove shared stable membership.                                                                        |
-| Owner's 2026-10-09 clarification and accepted recommendations             | Confirmed desired behavior       | Named team monthly lease collections retain reviewed members while statuses refresh, and membership refresh remains explicit.                                                                                                          |
-| Current record permissions and source availability                        | Runtime dependency               | Resolve against current server authority; historical answers and saved references never grant access or effect authority.                                                                                                              |
+| October 9 clarification and November 7 accepted Q4                        | Confirmed owner decisions        | Keep team membership stable. Make opening, selecting, reviewing and recovering explicit.                                                                                                                                               |
+| Browser rehearsal at `ef81b891` and `SharedLeaseCollections.tsx`          | Observation and current source   | Confirmed saved-set stability, a retained prior selection on New collection and a lost review after reload.                                                                                                                            |
 
 **Architecture outcome (deterministic, fail-first).**
 
@@ -58,6 +95,12 @@ Renewal Desk results and accessible assistant lease results; shared app-owned Fi
 - **ARCH-S201-4** — Server collection operations and member resolution enforce the real actor's existing Space/source scope, separate from private history ownership. Cross-Space and guessed-ID tests fail if a shared collection becomes an access grant.
 - **ARCH-S201-5** — Versioned durable collection mutations record actor and reviewed membership basis and use existing idempotency/conflict conventions. Duplicate/concurrent fixtures fail against last-writer-wins replacement.
 
+- **ARCH-S201-6** — One scoped review pipeline records whether the period is context or a
+  matching rule. The collection editor uses the existing server review and version boundaries.
+  Fail-first: imported exact IDs silently start period matching.
+- **ARCH-S201-7** — Recovery binds the exact draft or review to the signed-in actor, collection
+  and version. Fail-first: refresh loses a valid review or recovery can apply a stale version.
+
 **Behavior outcome (deterministic, fail-first).**
 
 - **BEH-S201-1** — A staff member reviews a monthly lease set, names and saves it, and another authorized colleague opens the same identified members without accessing the originating conversation.
@@ -66,13 +109,22 @@ Renewal Desk results and accessible assistant lease results; shared app-owned Fi
 - **BEH-S201-4** — Authorized renewal colleagues collaborate on the collection; users outside its applicable scope cannot retrieve it or use its member references to open restricted leases.
 - **BEH-S201-5** — A colleague sees who last changed the collection; a conflicting update shows current state and requires review rather than erasing another person's work.
 
+- **BEH-S201-6** — From a list or an imported result, staff can identify the selected leases
+  and explain why a lease is included before confirming.
+- **BEH-S201-7** — A teammate opens the saved members directly. A new edit starts clean, and a
+  reload during a valid review returns to the same selection and next action.
+
 **Human litmus outcome.**
 
 ### Work the same monthly lease group together
 
-**If this was built correctly:** One staff member saves a reviewed monthly list under a useful name. A colleague opens the same leases and sees today's statuses. New qualifying leases appear only after someone reviews and accepts the membership changes; their private discussions stay private.
+**If this was built correctly:** A staff member names a collection from the leases they are
+looking at and can see each member before saving. After a reload they finish the same review.
+A colleague opens the same table and refreshes its statuses. They can see which leases would
+change before choosing to save a membership edit.
 
-- Model verdict: ENGINEERING VERIFIED / DELIVERED — all mapped engineering scopes and independent deployment verified in run 5b3dfb90 /780f48db; exact CI, full observation, eleven readbacks and mobile scope are recorded in the native ledger. Human NOT RUN; no customer send was test proof.
+- Model verdict: November 7 revision NOT RUN. The original stable membership contract has
+  scoped engineering and delivery evidence in run `5b3dfb90`.
 - Human verdict: NOT RUN — no human observer.
 
 **Requirement-to-outcome traceability.**
@@ -85,6 +137,14 @@ Renewal Desk results and accessible assistant lease results; shared app-owned Fi
 | R-S201-4: Share only within existing scope             | ARCH-S201-4          | BEH-S201-4       | Work the same monthly lease group together | AC-S201-4: Use permitted staff, an excluded Space actor and guessed collection/member IDs through UI/route/store boundaries; assert no new role/claim and no private conversation content.                                      |
 | R-S201-5: Version edits and preserve collaboration     | ARCH-S201-5          | BEH-S201-5       | Work the same monthly lease group together | AC-S201-5: Race two membership edits and a name edit, repeat a confirmation and lose a response. Assert one committed intended version, readable conflict state and zero provider writes.                                       |
 
+November 7 requirements for intake 124. The rows above retain the original program's
+requirement identities.
+
+| Requirement                   | Architecture outcome | Behavior outcome | Human litmus                               | Deterministic evidence / falsification                                               |
+| ----------------------------- | -------------------- | ---------------- | ------------------------------------------ | ------------------------------------------------------------------------------------ |
+| `R-S201-6` explicit basis     | ARCH-S201-6          | BEH-S201-6       | Work the same monthly lease group together | AC-S201-6. Compare period matching with explicitly choosing an out-of-period member. |
+| `R-S201-7` recoverable review | ARCH-S201-7          | BEH-S201-7       | Work the same monthly lease group together | AC-S201-7. Reopen, refresh, resume review, then start a clean collection.            |
+
 **Preservation set.**
 
 Existing renewal filters, lifecycle semantics, current-access and source-coverage checks, private history isolation, exact Sheet/RentVine operation gates and per-lease cycle scoping. No source snapshot is relabeled current.
@@ -96,6 +156,17 @@ Existing renewal filters, lifecycle semantics, current-access and source-coverag
 - **AC-S201-3** — Advance a member's renewal status, change its cycle, fail one source and revoke access. Assert fresh permitted states, honest coverage and no membership mutation or protected detail. This falsifies ARCH-S201-3 / BEH-S201-3 and the named human litmus.
 - **AC-S201-4** — Use permitted staff, an excluded Space actor and guessed collection/member IDs through UI/route/store boundaries; assert no new role/claim and no private conversation content. This falsifies ARCH-S201-4 / BEH-S201-4 and the named human litmus.
 - **AC-S201-5** — Race two membership edits and a name edit, repeat a confirmation and lose a response. Assert one committed intended version, readable conflict state and zero provider writes. This falsifies ARCH-S201-5 / BEH-S201-5 and the named human litmus.
+
+- **AC-S201-6** — Open from the desk and from the assistant. Confirm the imported accessible
+  identities before saving. Choose an end date outside the period and verify it remains in an
+  explicit review with the actual date shown. Switch to period matching and check membership
+  against its date field, range and named filters. Save and reopen each result as a second
+  authorized actor (ARCH-S201-6, BEH-S201-6).
+- **AC-S201-7** — Reload during an uncommitted review and resume the same input. Check expired
+  and version-conflicting reviews, changed access and missing responses. Open an existing
+  collection, then start a new one and verify clean inputs. Refresh statuses and compare
+  exact membership/version before and after. At phone width and by keyboard, verify clear
+  focus and feedback after review, save and retry (ARCH-S201-7, BEH-S201-7).
 
 **Forbidden actions / hard gates.**
 
