@@ -79,6 +79,14 @@ Staff session: none
   fixture reproduction returned 0 lines with that loader and 17 pet-agreement lines with
   the CommonJS reader. The browser cases require new observations.
 
+- L01, L06 and L10 on `405b2ba1` in `20261107T180419Z-405b2ba1`. The empty
+  filter remained pending with its previous rows. The Owner approval heading held focus while
+  the obsolete Market rent comparison fragment still occupied the address and the heading
+  stood 1,318 pixels below the viewport top. The pet PDF extraction then passed, but the
+  brochure check lost its row locator when Check filled document became Refresh filled
+  document. The retirement and restoration passed across lease, desk, Dashboard and
+  saved collection, with both history events and the later source cycle verified.
+
 ## Repairs
 
 - L03 now waits for the initial collection list before enabling New collection. The focused

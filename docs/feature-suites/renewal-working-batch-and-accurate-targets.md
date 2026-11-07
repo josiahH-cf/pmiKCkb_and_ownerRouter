@@ -92,7 +92,8 @@ rows to an explicit retained state and never removes them from the list.
 - **R-S246-9 — Reach the existing table and saved views.** "All leases and filters" opens the
   existing table with its views, columns, filters, sorts, window chip, per-reason counts and URL
   keys. "Open my saved view" opens the explicit saved scope. A shared collection link opens the
-  table with its saved membership. The working batch and broad table use one main landmark.
+  table with its saved membership. An interrupted current filter request keeps the last
+  admitted view and offers a retry. The working batch and broad table use one main landmark.
 
 - **R-S246-10 — Same answer everywhere.** A Dashboard assistant answer about a month's renewals
   uses the same target definition and names the excluded counts by reason. "This batch" and

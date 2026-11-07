@@ -427,11 +427,13 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
     const sections = within(guidedPane()).getByRole("navigation", {
       name: "Every section in Full view",
     });
+    window.history.replaceState(null, "", "#renewal-section-comps");
     await user.click(
       within(sections).getByRole("link", { name: "Tenant offer and response" }),
     );
     await settle();
     expect(viewButton("Full view")).toHaveAttribute("aria-pressed", "true");
+    expect(window.location.hash).toBe("#renewal-section-tenant");
     expect(document.activeElement?.closest("#renewal-section-tenant")).not.toBeNull();
   });
 

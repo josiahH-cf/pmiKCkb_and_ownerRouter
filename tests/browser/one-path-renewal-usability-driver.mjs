@@ -276,7 +276,18 @@ try {
       await open(page, desk + "?v=2&scope=all&lease=synthetic-no-such-lease");
       await page.getByText("No renewals match these filters.", { exact: true }).waitFor();
       assert.equal(await rows.count(), 0);
-      await page.getByRole("link", { name: "Remove these filters", exact: true }).click();
+      await page.waitForLoadState("networkidle", { timeout: 15_000 });
+      const remove = page.getByRole("link", {
+        name: "Remove these filters",
+        exact: true,
+      });
+      await remove.click();
+      await rows
+        .first()
+        .or(page.getByRole("alert").filter({ hasText: /previous view; retry/ }))
+        .first()
+        .waitFor();
+      if (!(await rows.first().isVisible())) await remove.click();
       await rows.first().waitFor();
       assert.equal(await rows.count(), total);
       return {
@@ -976,10 +987,15 @@ try {
         });
         await detailNav.getByRole("link", { name: label, exact: true }).press("Enter");
         await landed(id, "Guided detail link");
+        assert.equal(new URL(page.url()).hash, "#" + id);
         await guided.press("Enter");
         await nowHeading.waitFor();
         assert.equal(await nowHeading.innerText(), current);
-        await open(page, path(prepared, "?view=focus#" + id));
+        assert.equal(new URL(page.url()).hash, "");
+        const oldEntry = path(prepared, "?view=focus#" + id);
+        if (page.url() === origin + oldEntry)
+          await open(page, path(prepared, "?view=focus"));
+        await open(page, oldEntry);
         await landed(id, "old Focus URL");
         await guided.press("Enter");
         await nowHeading.waitFor();
@@ -1589,7 +1605,7 @@ try {
       assert.ok(brochure?.label && brochure.contentHash);
       const brochureRow = packet.getByRole("listitem").filter({
         hasText: brochure.label,
-        has: page.getByRole("button", { name: "Check filled document", exact: true }),
+        has: page.getByRole("button", { name: /^(?:Check|Refresh) filled document$/ }),
       });
       await brochureRow
         .getByRole("button", { name: "Check filled document", exact: true })
@@ -1614,8 +1630,7 @@ try {
       );
 
       const ownerCheck = inputs.getByRole("button", {
-        name: "Check the owner acknowledgment",
-        exact: true,
+        name: /^Check the owner acknowledgment(?: again)?$/,
       });
       await ownerCheck.click();
       await inputs
@@ -1645,7 +1660,12 @@ try {
             run.y + run.height > blank.y,
         ),
       );
-      const ownerText = ownerRuns.map((run) => run.text).join("\n");
+      const ownerText = ownerRuns
+        .map((run) => run.text)
+        .join(" ")
+        .replace(/\s+/g, " ");
+      for (const paragraph of explanation.split("\n\n"))
+        assert.ok(ownerText.includes(paragraph));
       assert.ok(ownerText.includes(ONE_PATH_ORGANIZATIONS.owner_acknowledgment));
       const originalText = (await readStaticPdfLines(originalBytes))
         .map((line) => line.text)
@@ -1664,13 +1684,20 @@ try {
       await inputs.getByRole("button", { name: "Save explanation", exact: true }).click();
       await inputs.locator('[data-renewal-field="owner-explanation-overflow"]').waitFor();
       await ownerCheck.click();
-      await inputs
-        .getByText(/This form waits|lines too long/)
-        .first()
+      const ownerOutput = inputs.locator("[data-owner-acknowledgment-files]");
+      await ownerOutput
+        .getByRole("button", { name: "Check filled document", exact: true })
+        .click();
+      await ownerOutput
+        .getByRole("button", { name: /^Prepare (?:a replacement )?filled PDF$/ })
+        .click();
+      await ownerOutput
+        .getByRole("alert")
+        .filter({ hasText: /text is \d+ lines longer than its box holds/i })
         .waitFor();
       assert.equal(
-        await inputs
-          .getByRole("button", { name: "Prepare filled PDF", exact: true })
+        await ownerOutput
+          .getByRole("link", { name: "Download filled PDF for inspection" })
           .count(),
         0,
       );

@@ -323,7 +323,11 @@ export function RenewalDashboardNavigation({
     const onClick = (event: MouseEvent) => {
       const anchor =
         event.target instanceof Element ? event.target.closest("a[href]") : null;
-      if (!(anchor instanceof HTMLAnchorElement)) return;
+      if (
+        !(anchor instanceof HTMLAnchorElement) ||
+        anchor.hasAttribute("data-renewal-presentation-control")
+      )
+        return;
       const url = new URL(anchor.href, window.location.href);
       if (
         url.origin !== window.location.origin ||

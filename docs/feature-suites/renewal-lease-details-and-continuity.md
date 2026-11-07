@@ -45,8 +45,10 @@ the destination. An unscoped process page can lead to the desk without guessing 
   section destinations from Guided. Make the applicable action or information
   reachable from its step or one navigation to its owning Full section or control.
   A requested destination puts its heading or control visibly in the viewport after
-  layout and focuses it where appropriate, including keyboard navigation. Keep the
-  existing control identifiers used by Help and tests. Retain applicable nested details,
+  layout and focuses it where appropriate, including keyboard navigation. A Guided
+  detail link replaces an older fragment with its own destination in the same visit.
+  Choosing Guided again clears that detail fragment. Keep the existing control
+  identifiers used by Help and tests. Retain applicable nested details,
   confirmations and authority. Compare the full Focus
   action and Help control inventories, including conditional states. If a target is
   unavailable, keep a useful explanation and recovery at its nearest valid section.

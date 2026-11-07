@@ -1,6 +1,7 @@
 "use client";
 import {
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -77,7 +78,14 @@ function OwnedRenewalDeskInventory({
   const [accessChanged, setAccessChanged] = useState(false);
   const [requested, setRequested] = useState<string | null>(null);
   const operation = useOperation(scopeKey);
-  const currentScope = useRef(scopeKey);
+  const requestOwner = useRef({ active: false, revision: 0 });
+  useLayoutEffect(() => {
+    const owner = requestOwner.current;
+    owner.active = true;
+    return () => {
+      owner.active = false;
+    };
+  }, []);
   const generation = view.dataCurrency.readAtIso;
   const state = selection.generation === generation ? selection.state : query;
   const match = useMemo(
@@ -135,6 +143,9 @@ function OwnedRenewalDeskInventory({
     [view.items, state, match],
   );
   async function choose(search: string, fromHistory = false) {
+    const owner = requestOwner.current;
+    if (!owner.active) return;
+    const revision = ++owner.revision;
     const target = `${RENEWAL_DESK_ROUTE}?${search || "v=2"}`;
     const chosen = parseRenewalDeskQueryV2(new URLSearchParams(search));
     const readAt = Date.parse(view.dataCurrency.readAtIso);
@@ -148,7 +159,6 @@ function OwnedRenewalDeskInventory({
       window.location.assign(target);
       return;
     }
-    const beforeScope = scopeKey;
     setRequested(search || "v=2");
     setError("");
     const admitted = await operation.controller.run(
@@ -175,7 +185,9 @@ function OwnedRenewalDeskInventory({
         return value;
       },
     );
-    if (admitted.outcome === "superseded" || currentScope.current !== beforeScope) return;
+    // An older or unmounted request cannot settle the current view. An interruption of the
+    // latest request still clears its pending state and leaves its existing filter available.
+    if (!owner.active || owner.revision !== revision) return;
     try {
       if (admitted.outcome !== "succeeded") {
         setError(
@@ -226,6 +238,7 @@ function OwnedRenewalDeskInventory({
   }, []);
   function click(event: MouseEvent<HTMLDivElement>) {
     if (
+      !requestOwner.current.active ||
       event.button !== 0 ||
       event.metaKey ||
       event.ctrlKey ||
@@ -248,6 +261,7 @@ function OwnedRenewalDeskInventory({
   function submit(event: FormEvent<HTMLDivElement>) {
     const form = event.target as HTMLFormElement;
     if (
+      !requestOwner.current.active ||
       form.tagName !== "FORM" ||
       form.getAttribute("action") !== RENEWAL_DESK_ROUTE ||
       form.method.toLowerCase() !== "get"

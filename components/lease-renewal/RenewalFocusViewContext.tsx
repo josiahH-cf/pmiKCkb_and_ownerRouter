@@ -510,6 +510,15 @@ export function RenewalFocusViewSwitch({
   const [announcement, setAnnouncement] = useState("");
   if (!context) return null;
   const choose = (next: RenewalWorkspaceView) => {
+    if (
+      next === "guided" &&
+      context.view === "full" &&
+      !views.includes("focus") &&
+      renewalWorkspaceHashTarget(window.location.hash)
+    ) {
+      const { pathname, search } = window.location;
+      window.history.replaceState(window.history.state, "", pathname + search);
+    }
     context.setView(next);
     setAnnouncement(ANNOUNCEMENTS[next]);
   };

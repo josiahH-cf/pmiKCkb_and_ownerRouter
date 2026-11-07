@@ -488,10 +488,14 @@ function GuidedPane({
                     <li key={section.id}>
                       <a
                         className="text-link renewal-workspace-link"
+                        data-renewal-presentation-control
                         href={`#renewal-section-${section.id}`}
                         onClick={(event) => {
                           event.preventDefault();
-                          showInFull(`renewal-section-${section.id}`);
+                          const hash = event.currentTarget.hash;
+                          if (window.location.hash !== hash)
+                            window.history.replaceState(window.history.state, "", hash);
+                          showInFull(hash.slice(1));
                         }}
                       >
                         {section.label}
