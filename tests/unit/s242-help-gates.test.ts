@@ -122,6 +122,25 @@ describe("S242 ARCH-S242-3 / AC-S242-2: coverage gate", () => {
     );
   });
 
+  it("matches deep links to their page and still rejects an unknown page", () => {
+    const deepLink = (route: string) =>
+      guide({ steps: [{ ...guide().steps[0], route }] });
+    expect(
+      evaluateHelpCoverage({
+        ...inputs,
+        manual: manual([deepLink("/search?q=example#results"), deepLink("/work#tasks")]),
+        allowList: [],
+      }).problems,
+    ).toEqual([]);
+    expect(
+      evaluateHelpCoverage({
+        ...inputs,
+        manual: manual([deepLink("/unknown?q=example#results")]),
+        allowList: [],
+      }).problems,
+    ).toContain("Orphan help reference: route /unknown does not exist in the app.");
+  });
+
   it("removing one documented route from the real content fails naming that route", () => {
     const real = runHelpCoverage();
     expect(real.problems).toEqual([]);

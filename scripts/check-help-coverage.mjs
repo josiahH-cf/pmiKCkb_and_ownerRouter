@@ -82,7 +82,8 @@ export function evaluateHelpCoverage({
     aboutId: new Set(aboutIds),
   };
   const used = {
-    route: referenced.routes,
+    // Pages own query and fragment destinations. Rendered Help checks the full destinations.
+    route: new Set([...referenced.routes].map((target) => target.split(/[?#]/, 1)[0])),
     navItem: referenced.navItems,
     space: referenced.spaces,
     aboutId: referenced.aboutIds,

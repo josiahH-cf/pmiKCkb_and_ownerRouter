@@ -40,14 +40,19 @@ import { getRenewalLeaseWorkspace } from "@/tests/helpers/sample-desk";
 import { manualFixture } from "@/tests/helpers/renewal-action-fixtures";
 
 // S247 R-S247-4 to R-S247-11, BEH-S247-1 to BEH-S247-5, AC-S247-2 to AC-S247-4: the Guided view is
-// the lease page's default, beside Focus view and Full view. It names every step of the path and
+// the lease page's default beside Full view. It names every step of the path and
 // holds one Now card with one primary action over the step's existing controls. Opening,
 // choosing a step, switching views and following an older link change presentation only: no
 // request, save, navigation or refresh. Full view keeps its recorded presentation.
 
 const BASELINE = JSON.parse(
   readFileSync(
-    join(__dirname, "..", "fixtures", "s253-animal-wording-full-view-presentation.json"),
+    join(
+      __dirname,
+      "..",
+      "fixtures",
+      "s224-outgoing-readiness-full-view-presentation.json",
+    ),
     "utf8",
   ),
 ) as Record<string, ReturnType<typeof fullViewSignature>>;
