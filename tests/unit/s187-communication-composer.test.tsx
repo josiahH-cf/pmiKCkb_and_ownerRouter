@@ -216,10 +216,25 @@ it("opens the schedule controls and authorizes exactly the reviewed local date, 
     expect(screen.getByRole("button", { name: "Schedule" })).toBeEnabled(),
   );
   fireEvent.click(screen.getByRole("button", { name: "Schedule" }));
+  const schedule = screen.getByRole("button", { name: "Schedule messages" });
+  const firstDate = screen.getByLabelText("First date");
+  const localTime = screen.getByLabelText("Local time");
+  const timeZone = screen.getByLabelText("Timezone");
+  expect(firstDate).toBeRequired();
+  expect(localTime).toBeRequired();
+  expect(timeZone).toBeRequired();
+  expect(firstDate).toHaveAccessibleDescription("Choose a send date.");
+  expect(localTime).toHaveAccessibleDescription("Choose a send time.");
+  expect(schedule).toBeDisabled();
   fireEvent.change(screen.getByLabelText("First date"), {
     target: { value: "2026-10-22" },
   });
   fireEvent.change(screen.getByLabelText("Local time"), { target: { value: "09:00" } });
+  fireEvent.change(timeZone, { target: { value: "" } });
+  expect(timeZone).toHaveAccessibleDescription("Enter the time zone.");
+  expect(schedule).toBeDisabled();
+  fireEvent.click(schedule);
+  expect(commands.filter((c) => c.action === "schedule")).toHaveLength(0);
   fireEvent.change(screen.getByLabelText("Timezone"), {
     target: { value: "America/Chicago" },
   });
@@ -230,7 +245,8 @@ it("opens the schedule controls and authorizes exactly the reviewed local date, 
     screen.getByLabelText("Total send limit including initial (optional)"),
     { target: { value: "2" } },
   );
-  fireEvent.click(screen.getByRole("button", { name: "Schedule messages" }));
+  expect(schedule).toBeEnabled();
+  fireEvent.click(schedule);
   await waitFor(() =>
     expect(commands.filter((c) => c.action === "schedule")).toHaveLength(1),
   );

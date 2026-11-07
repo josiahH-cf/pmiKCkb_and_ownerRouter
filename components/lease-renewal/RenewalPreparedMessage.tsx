@@ -374,6 +374,7 @@ function PreparedMessageBlock({
   const [changedReview, setChangedReview] = useState<string | null>(null);
   const [scheduleDate, setScheduleDate] = useState(tomorrowIso);
   const [scheduleTime, setScheduleTime] = useState("09:00");
+  const scheduleReady = Boolean(scheduleDate && scheduleTime);
   const [draftOpen, setDraftOpen] = useState(false);
   const draftOpenRef = useRef(false);
   const failedDraftRecovery = useRef<(() => void) | null>(null);
@@ -668,7 +669,7 @@ function PreparedMessageBlock({
   };
 
   async function confirm() {
-    if (!review) return;
+    if (!review || (review.mode === "schedule" && !scheduleReady)) return;
     setBusy(true);
     setMessage("");
     try {
@@ -1106,7 +1107,7 @@ function PreparedMessageBlock({
       <ConfirmationDialog
         busy={busy}
         busyLabel={review?.mode === "schedule" ? "Scheduling…" : "Sending…"}
-        confirmDisabled={!review}
+        confirmDisabled={!review || (review.mode === "schedule" && !scheduleReady)}
         confirmLabel={
           review?.mode === "schedule" ? "Schedule this message" : "Send this message"
         }
@@ -1131,22 +1132,32 @@ function PreparedMessageBlock({
             <div className="draft-box">{review.body}</div>
             {review.mode === "schedule" ? (
               <div className="ui-row">
-                <label>
-                  Date
+                <Field
+                  error={scheduleDate ? undefined : "Choose a send date."}
+                  htmlFor={`${base}-schedule-date`}
+                  label="Date"
+                  required
+                >
                   <input
+                    disabled={busy}
                     onChange={(event) => setScheduleDate(event.target.value)}
                     type="date"
                     value={scheduleDate}
                   />
-                </label>
-                <label>
-                  Time (Central)
+                </Field>
+                <Field
+                  error={scheduleTime ? undefined : "Choose a send time."}
+                  htmlFor={`${base}-schedule-time`}
+                  label="Time (Central)"
+                  required
+                >
                   <input
+                    disabled={busy}
                     onChange={(event) => setScheduleTime(event.target.value)}
                     type="time"
                     value={scheduleTime}
                   />
-                </label>
+                </Field>
               </div>
             ) : null}
           </div>

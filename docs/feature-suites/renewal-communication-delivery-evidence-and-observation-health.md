@@ -99,6 +99,8 @@ scope for a real case (C11). Engineering never sends to a customer.
   every due or sent instant shows its zone; the hub's "Next:" uses the sequence's zone; when the wall
   time is a repeated or skipped hour the panel states the adjustment before "Schedule messages"
   (for example, November 1, 2026 1:30 AM is the first 1:30, CDT).
+  "First date", "Local time" and "Timezone" are required. Clearing one names the missing
+  value at its field; "Schedule messages" waits for the required entries.
 - **R-S233-7 — Disclosed Resume timing.** Before "Resume reviewed sequence" the screen states when the
   next message will go (the next worker run when the pause cleared its due time), the remaining send
   limit and end date, and points to editing and "Schedule" for a different time. Replay protection is

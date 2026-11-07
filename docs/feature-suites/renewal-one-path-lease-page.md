@@ -95,8 +95,9 @@ or staff-record read failure shows on the Now card as the thing to resolve; it n
 - **R-S247-9 — Keeps its place.** A lease opens in the same tab. After a reload or a release the
   page returns to the same view, step and scroll position, and unsaved typing is kept by the
   existing autosave and retained-input behavior. A reload retains the complete focused text
-  field in that tab for that lease. A unique visible field name also identifies it when a
-  generated ID changes; ambiguous fields keep their current values. If the person resumes typing or navigating before restoration,
+  field in that tab for that lease, in every view of its main region. A unique visible field
+  name also identifies it when a generated ID changes; ambiguous fields keep their current
+  values. If the person resumes typing or navigating before restoration,
   their newer input and focus take precedence. Password and choice controls are never retained.
   The existing Full and Guided financial controls share the latest local working entry for
   their field. A view or step change keeps that entry local; the ordinary completed-field save

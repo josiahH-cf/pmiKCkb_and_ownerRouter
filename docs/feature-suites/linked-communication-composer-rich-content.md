@@ -28,6 +28,10 @@ unreadable response keeps a plain error with Try again and Close. Retry reads th
 shows loading, and returns focused keyboard work to the loaded composer heading. Only the current
 entry can install its draft. Existing versioned saves and exact dispatch reviews still apply.
 
+The schedule controls mark First date, Local time and Timezone as required. An empty field
+names the needed value in place and Schedule messages waits for those entries. Recurrence,
+optional bounds and exact server timing validation retain their existing rules.
+
 This is intake 059 of the named program. This contract is consumable by the existing implementation process after a separate owner execution instruction; registration and READY are not execution authority.
 
 **In scope / out of scope.**

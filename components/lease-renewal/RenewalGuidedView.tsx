@@ -13,7 +13,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
-import { Button, ConfirmationDialog } from "@/components/ui";
+import { Button, ConfirmationDialog, Field } from "@/components/ui";
 import { formatCalendarDate } from "@/lib/date-display";
 import { RENEWAL_DASHBOARD_SECTIONS } from "@/lib/lease-renewal/dashboard-sections";
 import {
@@ -541,6 +541,24 @@ function NowCard({
   const operation = useRef(new Map<string, string>());
   const reasonId = useId();
   const confirmTrigger = useRef<HTMLButtonElement | null>(null);
+  const correctionTrigger = useRef<HTMLButtonElement | null>(null);
+  const reasonField = useRef<HTMLTextAreaElement | null>(null);
+  const correctionExit = useRef<"trigger" | "heading" | null>(null);
+  useLayoutEffect(() => {
+    if (correcting) {
+      if (reasonField.current) focusProgrammatically(reasonField.current);
+      return;
+    }
+    const exit = correctionExit.current;
+    correctionExit.current = null;
+    const target =
+      exit === "heading"
+        ? heading.current
+        : exit === "trigger"
+          ? correctionTrigger.current
+          : null;
+    if (target) focusProgrammatically(target);
+  }, [correcting, heading]);
   const operationId = (key: string) => {
     let id = operation.current.get(key);
     if (!id) {
@@ -864,6 +882,7 @@ function NowCard({
               <button
                 className="text-link"
                 onClick={() => setCorrecting(true)}
+                ref={correctionTrigger}
                 type="button"
               >
                 {RENEWAL_STAGE_NEXT_STEP.notOutreach}
@@ -872,10 +891,12 @@ function NowCard({
           ) : null}
           {correcting ? (
             <form
+              aria-busy={busy || undefined}
               className="ui-stack-tight"
               onSubmit={(event) => {
                 event.preventDefault();
-                if (!reason.trim()) return;
+                if (busy || !reason.trim()) return;
+                const form = event.currentTarget;
                 void post(
                   {
                     operation: "correct_outreach",
@@ -891,32 +912,45 @@ function NowCard({
                   "Removed: that message no longer counts as the renewal outreach. The record stays in its history.",
                 ).then((ok) => {
                   if (ok) {
+                    if (form.contains(document.activeElement))
+                      correctionExit.current = "heading";
                     setCorrecting(false);
                     setReason("");
                   }
                 });
               }}
             >
-              <label htmlFor={reasonId}>Why this was not the renewal outreach</label>
-              <textarea
-                id={reasonId}
-                maxLength={500}
-                onChange={(event) => setReason(event.target.value)}
+              <Field
+                htmlFor={reasonId}
+                label="Why this was not the renewal outreach"
                 required
-                rows={2}
-                value={reason}
-              />
+              >
+                <textarea
+                  maxLength={500}
+                  onChange={(event) => setReason(event.target.value)}
+                  readOnly={busy}
+                  ref={reasonField}
+                  required
+                  rows={2}
+                  value={reason}
+                />
+              </Field>
               <div className="ui-row">
                 <Button
-                  disabled={busy || !reason.trim()}
+                  aria-disabled={busy || undefined}
+                  disabled={!reason.trim()}
                   size="compact"
                   type="submit"
                   variant="secondary"
                 >
-                  Remove the derived record
+                  {busy ? "Removing the record..." : "Remove the derived record"}
                 </Button>
                 <Button
-                  onClick={() => setCorrecting(false)}
+                  disabled={busy}
+                  onClick={() => {
+                    correctionExit.current = "trigger";
+                    setCorrecting(false);
+                  }}
                   size="compact"
                   variant="tertiary"
                 >

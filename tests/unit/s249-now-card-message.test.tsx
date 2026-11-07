@@ -378,6 +378,33 @@ describe("S249 the prepared owner message on the Now card", () => {
     );
   });
 
+  it("marks both schedule inputs and waits for missing values before confirmation", async () => {
+    mount();
+    await act(async () =>
+      fireEvent.click(await screen.findByRole("button", { name: "Schedule" })),
+    );
+    const date = screen.getByLabelText("Date");
+    const time = screen.getByLabelText("Time (Central)");
+    const confirm = screen.getByRole("button", { name: "Schedule this message" });
+    expect(date).toBeRequired();
+    expect(time).toBeRequired();
+    expect(confirm).toBeEnabled();
+    fireEvent.change(date, { target: { value: "" } });
+    expect(date).toHaveAccessibleDescription("Choose a send date.");
+    expect(confirm).toBeDisabled();
+    fireEvent.click(confirm);
+    fireEvent.change(date, { target: { value: "2026-12-20" } });
+    fireEvent.change(time, { target: { value: "" } });
+    expect(time).toHaveAccessibleDescription("Choose a send time.");
+    expect(confirm).toBeDisabled();
+    fireEvent.click(confirm);
+    fireEvent.change(time, { target: { value: "10:00" } });
+    expect(confirm).toBeEnabled();
+    expect(requests.every((entry) => !entry.body || entry.body.action === "save")).toBe(
+      true,
+    );
+  });
+
   it("BEH-S249-1: a review read while the lease read is being replaced is read again and then shown", async () => {
     compositionBlockers.push([NOTICE_GENERATION_NOT_READY]);
     mount();

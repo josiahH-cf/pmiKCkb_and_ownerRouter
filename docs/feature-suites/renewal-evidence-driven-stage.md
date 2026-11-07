@@ -74,7 +74,9 @@ and its own source reads for the current cycle.
 - **R-S248-10 — Every derived fact is attributed and correctable.** A derived fact shows what it
   came from and when, in words distinct from "recorded by staff" and from provider-verified
   completion. "This was not the renewal outreach" removes the derived record with a reason and
-  returns the step to open.
+  returns the step to open. It focuses the required reason when opened. "Keep it" returns to
+  the correction action. Successful removal returns focus to the reopened Now heading when
+  staff are still in the form; a refused attempt keeps its reason and usable focus.
 - **R-S248-11 — The Sheet follows the same way.** A derived record prepares the same operating
   Sheet update proposal a staff record prepares today; applying it keeps its own exact confirmation.
 - **R-S248-12 — No timers.** No reminder, deadline, follow-up message or schedule is derived from a

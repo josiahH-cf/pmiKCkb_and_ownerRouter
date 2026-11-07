@@ -59,7 +59,7 @@ export const COMMUNICATIONS_GUIDES: readonly HelpGuide[] = [
       {
         id: "schedule-owner-message",
         action:
-          "To send later, choose Schedule, set Date and Time (Central) in Review and schedule, then choose Schedule this message.",
+          "To send later, choose Schedule and check the required Date and Time (Central) in Review and schedule, then choose Schedule this message.",
         control: {
           label: "Schedule this message",
           role: "button",
@@ -204,7 +204,7 @@ export const COMMUNICATIONS_GUIDES: readonly HelpGuide[] = [
         result:
           "After Send the reviewed message goes out from the responsible sender's mailbox, and the communication reads Sent once Gmail accepts the message, or Needs verification when the outcome is unclear. Before you choose Schedule messages, First send states the exact first time and time zone, and the communication then reads Scheduled.",
         effect: "explicit-send",
-        note: "Send and Schedule stay unavailable until the subject and message are complete, the recipients are verified and every file is checked, and only the responsible sender can choose them. A reply or a failed delivery pauses the follow-ups.",
+        note: "Send and Schedule stay unavailable until the subject and message are complete, the recipients are verified and every file is checked, and only the responsible sender can choose them. Schedule messages also needs First date, Local time and Timezone. A reply or a failed delivery pauses the follow-ups.",
       },
       {
         id: "record-owner-outreach",

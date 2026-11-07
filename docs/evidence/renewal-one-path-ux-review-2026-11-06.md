@@ -132,6 +132,11 @@ list-key warnings from the staff-status section and per-audience message editor.
 exception was captured. The correction gives those two existing nodes stable keys; it changes
 no label, layout, capability or saved state. P09 and SC08 apply. Final console recheck is pending.
 
+UX-020 follow-up on `edba7cbb`: the independent console recorded three remaining key warnings
+on the lease's manual-provider child list. Its four existing server-rendered sibling nodes now
+have stable keys across the client boundary. Their order, presentation and mounted form controls
+stay the same.
+
 UX-021, observed on `3996c380`: while an actual successful program-only response was delayed,
 staff typed a newer contact and kept focus there. At 300 ms and one second after the HTTP 200
 response, that contact was empty. The new saved entry unconditionally replaced all local fields.
@@ -526,6 +531,38 @@ the dialog, and 1,794 px against an 810 px phone dialog. The three Now message r
 the dialog; they now open overflowing content at the start. Short dialogs keep Cancel first.
 This makes the decision details visible with the same exact confirmation (P02, P04, P12, P14;
 SC03, SC07, SC09).
+
+UX-059, observed in independent run `20261107T061515Z-edba7cbb`: all five actual
+default lease screens had one visible main, stage, current path step and next action, and zero
+independent DOM mismatches. The operational canary's exported Chromium predicate threw
+`ReferenceError: __name is not defined` on each. Both the operational command and rehearsal
+import through tsx. Its named local arrow added a Node-side name helper to the serialized
+callback. Inline the anonymous predicates so the same read runs in Chromium; retain every
+count, bound, read-only restriction and oracle assertion (R-S252-7).
+
+UX-060, observed in the same independent run: Date and Time (Central) were unlabeled as
+required in the ready schedule review. Clearing either value left its confirmation enabled
+and gave no field feedback. The tester restored the defaults without confirming the incomplete
+review. The linked composer had the same missing-input path for its first date, local time
+and time zone. Both use existing required-field styling and plain errors; confirmation stays
+available after the missing entries are restored. Both preserve the existing exact review,
+timing validation and provider gates (P02, P05, P09, P12, P14; SC04, SC05, SC08, SC09).
+
+UX-061, observed in independent run `20261107T061515Z-edba7cbb`: the tester reloaded with
+5,960 characters still focused in the Full-view message at desktop Light and phone Dark.
+The exact value did not return. The document-start snapshot kept the view and scroll, but
+both records had no typed value. No message-preparation POST occurred during either test.
+The lease's semantic main is a section with role main after UX-056. Capture and restoration
+looked only for the native main tag. Both now use the same landmark selector, including the
+real lease section. Complete values, generated-ID fallback, newer-entry precedence, the
+20-second window and password exclusion remain (P05, P12, P13, P14; SC04, SC05, SC09).
+
+UX-062, observed in the same independent run: a reasoned correction kept the accepted
+message in history and reopened the owner step, but focus was on the body even after the
+new action appeared. The form now focuses its required reason, keeps its submit focus
+while saving and returns to Now on confirmed success. Keep it returns to the action that
+opened the form. Focus elsewhere takes precedence. The correction still records the same
+reason against the exact occurrence (P05, P12, P13, P14; SC04, SC05, SC09, SC10).
 
 Preserved by decision: exact review/confirmation, the required Gmail banner, stale authored wording,
 who-approved validation, role/Space and Action Registry checks, blank unsettled legal fields,

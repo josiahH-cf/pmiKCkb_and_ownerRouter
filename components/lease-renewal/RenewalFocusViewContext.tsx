@@ -76,6 +76,7 @@ export function useRenewalFocusView() {
 }
 
 const CONTINUITY_KEY = "renewal-lease-continuity";
+const MAIN_LANDMARK = 'main, [role="main"]';
 const interactions = ["wheel", "touchstart", "keydown", "mousedown"] as const;
 
 interface KeptPlace {
@@ -113,7 +114,9 @@ function usableField(field: TextField): boolean {
 
 /** A reload can change a React-generated id. A unique visible name keeps the same field. */
 function findTypedField(typed: TypedField): TextField | null {
-  const fields = [...document.querySelectorAll("main input, main textarea")].filter(
+  const fields = [
+    ...document.querySelectorAll(`:is(${MAIN_LANDMARK}) :is(input, textarea)`),
+  ].filter(
     (element): element is TextField => isTextField(element) && usableField(element),
   );
   if (!typed.name) return fields.find((field) => field.id === typed.id) ?? null;
@@ -129,7 +132,7 @@ function findTypedField(typed: TypedField): TextField | null {
  */
 function typedField(): TypedField | null {
   const element = document.activeElement;
-  if (!isTextField(element) || !usableField(element) || !element.closest("main"))
+  if (!isTextField(element) || !usableField(element) || !element.closest(MAIN_LANDMARK))
     return null;
   const name = fieldName(element);
   if (!element.id && !name) return null;

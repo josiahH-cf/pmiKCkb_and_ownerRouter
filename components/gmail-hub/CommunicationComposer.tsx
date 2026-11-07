@@ -13,11 +13,11 @@ import {
 } from "@/lib/gmail-hub/communication-evidence";
 import { classifyIncomingMessage } from "@/lib/gmail-hub/inbound-classification";
 import type { GmailThreadView } from "@/lib/gmail-runtime/types";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import { RichMessageEditor } from "./RichMessageEditor";
 import { RefineWithAi } from "@/components/email/RefineWithAi";
-import { Button } from "@/components/ui";
+import { Button, Field } from "@/components/ui";
 import {
   RichCommunicationMessageSchema,
   renderEditableCommunicationBody,
@@ -166,6 +166,8 @@ export function CommunicationComposer({
     [every, setEvery] = useState(""),
     [end, setEnd] = useState(""),
     [limit, setLimit] = useState("");
+  const scheduleId = useId();
+  const scheduleReady = Boolean(date && time && zone.trim());
   const [staff, setStaff] = useState<{ uid: string; name: string; email: string }[]>([]),
     [transferUid, setTransferUid] = useState("");
   const currentDraft = useRef<SequenceDraft | null>(null),
@@ -461,7 +463,12 @@ export function CommunicationComposer({
       | "reconcile"
       | "refresh",
   ) => {
-    if (locked.current || !currentDraft.current) return;
+    if (
+      locked.current ||
+      !currentDraft.current ||
+      (action === "schedule" && !scheduleReady)
+    )
+      return;
     locked.current = true;
     setBusy(true);
     setError("");
@@ -988,18 +995,30 @@ export function CommunicationComposer({
         <fieldset disabled={busy || terminal} className="ui-stack">
           <legend>Schedule this reviewed communication</legend>
           <div className="ui-row">
-            <label>
-              First date
+            <Field
+              error={date ? undefined : "Choose a send date."}
+              htmlFor={`${scheduleId}-date`}
+              label="First date"
+              required
+            >
               <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-            </label>
-            <label>
-              Local time
+            </Field>
+            <Field
+              error={time ? undefined : "Choose a send time."}
+              htmlFor={`${scheduleId}-time`}
+              label="Local time"
+              required
+            >
               <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
-            </label>
-            <label>
-              Timezone
+            </Field>
+            <Field
+              error={zone.trim() ? undefined : "Enter the time zone."}
+              htmlFor={`${scheduleId}-zone`}
+              label="Timezone"
+              required
+            >
               <input value={zone} onChange={(e) => setZone(e.target.value)} />
-            </label>
+            </Field>
             <label>
               Repeat every calendar days (optional)
               <input
@@ -1034,7 +1053,7 @@ export function CommunicationComposer({
           {(() => {
             // S233: state the resolved first send in its zone, and any clock-change adjustment,
             // before "Schedule messages". An incomplete or invalid entry shows nothing here.
-            if (!date || !time) return null;
+            if (!scheduleReady) return null;
             try {
               const first = resolveWallTime(date, time, zone);
               const note = describeWallTimeAdjustment(date, time, zone);
@@ -1051,6 +1070,7 @@ export function CommunicationComposer({
           <button
             type="button"
             disabled={
+              !scheduleReady ||
               busy ||
               terminal ||
               conflict ||

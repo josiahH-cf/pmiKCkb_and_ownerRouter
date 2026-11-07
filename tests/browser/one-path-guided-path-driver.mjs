@@ -431,20 +431,26 @@ export async function runGuidedPath() {
       exact: true,
     });
     const offered = await notOutreach.isVisible();
+    let correctionFocus = false;
     if (offered) {
-      await notOutreach.click();
-      await now()
-        .getByLabel("Why this was not the renewal outreach")
-        .fill("Synthetic rehearsal check of the correction.");
-      await now()
-        .getByRole("button", { name: "Remove the derived record", exact: true })
-        .click();
+      await notOutreach.focus();
+      await page.keyboard.press("Enter");
+      const reason = now().getByLabel("Why this was not the renewal outreach");
+      const reasonFocused = await reason.evaluate((el) => el === document.activeElement);
+      await reason.fill("Synthetic rehearsal check of the correction.");
+      await page.keyboard.press("Tab");
+      await page.keyboard.press("Enter");
+      await page.waitForFunction(
+        () => document.activeElement?.id === "renewal-now-heading",
+      );
+      correctionFocus = reasonFocused;
       await page.waitForTimeout(3000);
       await open(prepared, "?step=ask-owner");
     }
     check(
       "This was not the renewal outreach removes the derived record and keeps its reason",
       offered &&
+        correctionFocus &&
         !/^Waiting on owner response/.test(await stageLine()) &&
         ((await now().textContent()) ?? "").includes(
           "Synthetic rehearsal check of the correction.",

@@ -157,6 +157,49 @@ describe("S247 R-S247-9: unsaved typing survives a reload", () => {
     ).toBe(value);
   });
 
+  it("restores a long controlled message inside the lease's main role", async () => {
+    function Message({
+      id,
+      onEntry,
+    }: Readonly<{ id: string; onEntry: (text: string) => void }>) {
+      const [text, setText] = useState("");
+      return (
+        <RenewalFocusViewProvider>
+          <section role="main">
+            <label htmlFor={id}>Message body</label>
+            <textarea
+              id={id}
+              onChange={(event) => {
+                setText(event.target.value);
+                onEntry(event.target.value);
+              }}
+              value={text}
+            />
+          </section>
+        </RenewalFocusViewProvider>
+      );
+    }
+    const entered = "Complete synthetic wording. ".repeat(225);
+    const onEntry = vi.fn();
+    render(<Message id="body-before-reload" onEntry={onEntry} />);
+    const body = screen.getByLabelText("Message body");
+    body.focus();
+    fireEvent.change(body, { target: { value: entered } });
+    act(() => window.dispatchEvent(new Event("pagehide")));
+    cleanup();
+    navigation("reload");
+    onEntry.mockClear();
+    render(<Message id="body-after-reload" onEntry={onEntry} />);
+    await waitFor(
+      () => expect(screen.getByLabelText("Message body")).toHaveValue(entered),
+      {
+        timeout: 4000,
+      },
+    );
+    expect(screen.getByLabelText("Message body")).toHaveFocus();
+    expect(onEntry).toHaveBeenCalledWith(entered);
+  });
+
   it("puts the words back into the field the person was still in, as their own entry", async () => {
     renderPage();
     const user = userEvent.setup();

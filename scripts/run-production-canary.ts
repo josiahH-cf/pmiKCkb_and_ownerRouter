@@ -944,23 +944,30 @@ async function hasGuidedWorkspaceLandmarks(
       ...(await region.evaluate((element) => {
         const body = element.closest(".renewal-workspace-body") ?? element;
         const nowCard = body.querySelector('[role="region"][aria-label="Now"]');
-        const visible = (control: HTMLElement) =>
-          control.getClientRects().length > 0 &&
-          getComputedStyle(control).visibility !== "hidden";
+        // Playwright runs this callback in Chromium, without tsx's name helpers.
         return {
           workFieldsOutsideNow: [
             ...body.querySelectorAll<HTMLElement>("input, select, textarea"),
-          ].filter((field) => visible(field) && !nowCard?.contains(field)).length,
+          ].filter(
+            (field) =>
+              field.getClientRects().length > 0 &&
+              getComputedStyle(field).visibility !== "hidden" &&
+              !nowCard?.contains(field),
+          ).length,
           visiblePricingBasisChoosers: [
             ...body.querySelectorAll<HTMLElement>("fieldset > legend"),
           ].filter(
-            (legend) => visible(legend) && legend.textContent?.trim() === "Pricing basis",
+            (legend) =>
+              legend.getClientRects().length > 0 &&
+              getComputedStyle(legend).visibility !== "hidden" &&
+              legend.textContent?.trim() === "Pricing basis",
           ).length,
           visibleExactDraftRecoveries: [
             ...(nowCard?.querySelectorAll<HTMLElement>("button") ?? []),
           ].filter(
             (button) =>
-              visible(button) &&
+              button.getClientRects().length > 0 &&
+              getComputedStyle(button).visibility !== "hidden" &&
               button.textContent?.trim() === "Recover exact Gmail attempt",
           ).length,
         };

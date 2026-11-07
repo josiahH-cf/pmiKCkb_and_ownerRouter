@@ -357,7 +357,7 @@ export function RenewalWorkspace({
         : null,
   };
   const focusPane = actionSnapshot ? (
-    <RenewalFocusViewPane facts={focusFacts} snapshot={actionSnapshot} />
+    <RenewalFocusViewPane facts={focusFacts} key="focus-pane" snapshot={actionSnapshot} />
   ) : null;
   // S247: the Guided view opens by default wherever Focus view is offered, from the same stage
   // context the desk row's stage came from (the live page passes it; a sample lease builds it).
@@ -388,6 +388,7 @@ export function RenewalWorkspace({
       canEdit={can(role, "edit")}
       context={stageContext}
       facts={focusFacts}
+      key="guided-pane"
       {...(selectedStepId ? { selectedStepId } : {})}
     />
   ) : null;
@@ -574,7 +575,11 @@ export function RenewalWorkspace({
                       initialState={manualState}
                       cycleBasis={manualCycleBasis}
                       nextAction={
-                        <div id={RENEWAL_NEXT_ACTION_TARGET_ID} tabIndex={-1}>
+                        <div
+                          id={RENEWAL_NEXT_ACTION_TARGET_ID}
+                          key="next-action"
+                          tabIndex={-1}
+                        >
                           <DoThisNext
                             deskView={deskView}
                             leaseId={summary.id}
@@ -611,11 +616,15 @@ export function RenewalWorkspace({
                           leaseId={summary.id}
                           canEdit={can(role, "edit")}
                           admin={role === "Admin"}
+                          key="lease-follow-ups"
                         />
                       ) : null}
                       {guidedPane}
                       {focusPane}
-                      <RenewalDashboardNavigation selectedStepId={selectedStepId}>
+                      <RenewalDashboardNavigation
+                        key="dashboard-sections"
+                        selectedStepId={selectedStepId}
+                      >
                         {attemptSummary ? (
                           <RenewalAttemptSummaryCard summary={attemptSummary} />
                         ) : null}

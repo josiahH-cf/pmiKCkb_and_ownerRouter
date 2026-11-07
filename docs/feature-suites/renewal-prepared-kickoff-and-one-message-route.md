@@ -124,6 +124,9 @@ choose to work. RentVine readable; RentCast allowance available for a new lookup
 - **R-S249-8 — One route.** The primary action is "Review and send" on the Now card, which uses the
   existing staff-confirmed Send contract and its exact review. "Schedule", "Create Gmail draft
   instead" and "Copy" are secondary actions on the same card (D-OP-2).
+  Review and schedule marks Date and Time (Central) as required and names a cleared value at
+  its field. Both values are needed before Schedule this message becomes available. The
+  reviewed draft, recipient hashes, Central default and server timing validation stay in place.
 - **R-S249-9 — A Gmail draft never goes stale silently.** When the message changes after a Gmail
   draft was created, the card reads "The Gmail draft is older than this message" and offers
   "Replace the Gmail draft". The required draft-review banner remains in the exact Gmail preview
