@@ -404,15 +404,34 @@ async function captureScene(scene) {
       );
     } else if (framed) await region.first().scrollIntoViewIfNeeded();
     await quiet(page);
-    let releaseText = null;
+    let verifiedText = [];
+    let verifiedIdentifier;
     if (scene.id === "help-contents-narrow") {
-      const version = page.locator("main .help-guide-header .help-meta code");
-      assert.equal(await version.textContent(), served.commit);
-      releaseText = await version.boundingBox();
-      assert.ok(
-        releaseText && releaseText.y > 0 && releaseText.y < scene.viewport.height,
+      verifiedIdentifier = served.commit;
+      verifiedText = await identifierBounds(
+        page.locator("main .help-guide-header .help-meta code"),
+        "",
+        verifiedIdentifier,
+      );
+    } else if (processVersionId && scene.id === "process-publication") {
+      verifiedIdentifier = processVersionId;
+      verifiedText = await identifierBounds(
+        page
+          .locator("p")
+          .filter({ hasText: /^Active immutable version:/ })
+          .locator("code"),
+        "",
+        verifiedIdentifier,
+      );
+    } else if (processVersionId && scene.id === "process-start-run") {
+      verifiedIdentifier = processVersionId;
+      verifiedText = await identifierBounds(
+        page.getByText(/^Definition version:/),
+        "Definition version: ",
+        verifiedIdentifier,
       );
     }
+    assert.ok(verifiedText.every((box) => box.y >= 0 && box.y < scene.viewport.height));
     const png =
       scene.frame === "region"
         ? await region.first().screenshot({ animations: "disabled", caret: "hide" })
