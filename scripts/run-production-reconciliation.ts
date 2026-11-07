@@ -9,6 +9,8 @@ import { ASSURANCE_RENEWAL_DESK_PATH } from "../lib/production-assurance/manifes
 // The oracle also requires the Now action before its supporting next-step/detail context.
 // A missing owner recipient names its specific source-record handoff rather than the composer.
 // Visible work fields in Guided view belong to the Now card, including the existing hand records.
+// Early-step primary geometry stays within one desktop screen or two phone screens. The oracle
+// reads the actual viewport; assurance retains its existing 1440x1000 viewport and all bounds.
 export { countIndependentGuidedWorkspaceMismatches } from "../lib/production-assurance/guided-workspace-projection";
 export type { IndependentGuidedWorkspaceSnapshot } from "../lib/production-assurance/guided-workspace-projection";
 import {

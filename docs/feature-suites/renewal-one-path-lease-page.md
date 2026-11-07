@@ -93,6 +93,10 @@ or staff-record read failure shows on the Now card as the thing to resolve; it n
   field in that tab for that lease. A unique visible field name also identifies it when a
   generated ID changes; ambiguous fields keep their current values. If the person resumes typing or navigating before restoration,
   their newer input and focus take precedence. Password and choice controls are never retained.
+  The existing Full and Guided financial controls share the latest local working entry for
+  their field. A view or step change keeps that entry local; the ordinary completed-field save
+  or the message action that uses it persists it. An older acknowledgment confirms only its
+  own entry, so newer typing keeps its unsaved feedback until its own save succeeds.
 - **R-S247-10 — Fits the screen.** At 1280 by 800 the header, path strip and the Now card's primary
   action are visible without scrolling for the first four steps. At 390 wide the primary action is
   within two screen heights. Both themes, keyboard order and status announcements follow the

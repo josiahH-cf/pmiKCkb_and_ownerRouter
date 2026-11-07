@@ -46,6 +46,7 @@ import { RentToRecommendField, StoredComparisonSummary } from "./RenewalKickoffF
 import { nowSlotKey, useRenewalNowCard } from "./RenewalNowCardContext";
 import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
 import { workingRecommendationBasis } from "@/lib/lease-renewal/kickoff-facts";
+import { MESSAGE_CONTROL_IDS } from "@/lib/lease-renewal/message-readiness";
 import { useRenewalPricingPolicy } from "./RenewalPricingPolicy";
 import {
   STANDING_AGREEMENT_WORDS,
@@ -429,10 +430,24 @@ function PreparedMessageBlock({
     : [
         {
           key: "recipient" as const,
-          label: "Verified tenant recipient",
+          label:
+            api.channel === "owner"
+              ? "Verified owner recipient"
+              : "Verified tenant recipient",
           ready: api.to !== null,
-          missing: api.to !== null ? null : "a verified tenant recipient",
-          fix: null,
+          missing:
+            api.to !== null
+              ? null
+              : api.channel === "owner"
+                ? "a verified owner recipient"
+                : "a verified tenant recipient",
+          fix: {
+            label:
+              api.channel === "owner"
+                ? "Add the owner's email on the owner record in RentVine"
+                : "Check tenant email addresses in RentVine",
+            target: MESSAGE_CONTROL_IDS.recipients(api.channel),
+          },
         },
         {
           key: "signature" as const,
@@ -445,8 +460,18 @@ function PreparedMessageBlock({
           key: "template" as const,
           label: "Approved template",
           ready: api.templateApproved,
-          missing: api.templateApproved ? null : "an approved tenant template",
-          fix: null,
+          missing: api.templateApproved
+            ? null
+            : api.channel === "owner"
+              ? "an approved owner template"
+              : "an approved tenant template",
+          fix: {
+            label:
+              api.channel === "owner"
+                ? "Ask an Approver to publish the owner template"
+                : "Ask an Approver to publish the tenant template",
+            target: MESSAGE_CONTROL_IDS.publication(api.channel),
+          },
         },
         {
           key: "marked_values" as const,
@@ -476,7 +501,7 @@ function PreparedMessageBlock({
     try {
       if (!(await api.flush())) {
         setMessage(
-          "Your latest wording could not be saved, so nothing was prepared for review. Your words are kept; correct or retry the save.",
+          "Your latest message could not be prepared for review. Your entries are kept; correct or retry the save.",
         );
         return;
       }
@@ -636,6 +661,7 @@ function PreparedMessageBlock({
         accepted &&
         carried &&
         typedRent === null &&
+        !working?.hasUnsettled?.(["terms_rent"]) &&
         working?.canEdit
       )
         await working
@@ -952,7 +978,8 @@ function PreparedMessageBlock({
           ) : null}
         </div>
       ) : null}
-      {message || api.notice ? <p role="status">{message || api.notice}</p> : null}
+      {message ? <p role="status">{message}</p> : null}
+      {api.notice && api.notice !== message ? <p role="status">{api.notice}</p> : null}
     </section>
   );
   const actionsBlock = (

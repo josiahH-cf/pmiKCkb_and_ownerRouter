@@ -116,7 +116,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "The preview is the message exactly as the owner receives it, and What sending needs lists each input as Ready or names what is missing with its fix. A stored comparison is reused, so reaching the message needs no second comparison.",
         effect: "reads",
-        note: "Changing Rent to recommend or Reason to include is optional and updates the same preview. Schedule, Create Gmail draft instead, Copy and Open in Communications show the same message. A lease with no rent to recommend asks for one here before Send. A missing owner recipient's fix shows its reasons and source record links; when only the lease record is available, open its owner record there and refresh this lease after saving. A missing template's fix shows its publication status for the Approver handoff.",
+        note: "Changing Rent to recommend or Reason to include is optional and updates the same preview. Rent to recommend shows its save state and offers Try again after a failed save. Review, Schedule, Create Gmail draft instead and Open in Communications wait for their entered working figures to save. A failure keeps the entry and focuses its field for recovery. Copy keeps the displayed bytes and says when working figures were unconfirmed. A lease with no rent to recommend asks for one here before Send. A missing owner recipient's fix shows its reasons and source record links; when only the lease record is available, open its owner record there and refresh this lease after saving. A missing template's fix shows its publication status for the Approver handoff.",
       },
       {
         id: "review-and-send",
@@ -568,7 +568,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
       {
         id: "read-the-stored-comparison",
         action:
-          "Read the stored comparison: its range, the comparables and how old it is. Rent to recommend is filled from it, with its basis in words; type a different figure when you want one.",
+          "Read the stored comparison: its range, the comparables and its recorded Central date and time. Rent to recommend is filled from it, with its basis in words; type a different figure when you want one.",
         control: {
           label: "Rent to recommend",
           role: "label",
@@ -792,7 +792,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "Your edits save by themselves with this lease, and the formatted preview shows the message as the tenant reads it.",
         effect: "saves-in-app",
-        note: "Response request (optional wording edit) replaces one named paragraph; a blank box keeps the approved wording.",
+        note: "Response request (optional wording edit) replaces one named paragraph; a blank box keeps the approved wording. On the Now card, Check tenant email addresses in RentVine opens the recipient reasons and the existing lease record link. Ask an Approver to publish the tenant template shows its publication status for that handoff.",
       },
       {
         id: "resolve-marked-values",

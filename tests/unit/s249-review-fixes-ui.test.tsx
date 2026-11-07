@@ -10,6 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { RenewalWorkingRecord } from "@/lib/lease-renewal/working-record";
 import { fixtureWorkingRecord } from "@/tests/helpers/rent-charge-fixtures";
 import { standingRuleContext } from "@/lib/lease-renewal/standing-agreement";
+import { MESSAGE_CONTROL_IDS } from "@/lib/lease-renewal/message-readiness";
 
 const router = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
@@ -291,6 +292,30 @@ function mountOwner(overrides: Partial<PreparedMessageData> = {}) {
       <PreparedMessageSlot data={data(overrides)} {...handlers()} />
     </RenewalNowCardProvider>,
   );
+}
+
+for (const sourceLabel of [
+  "Standing agreement Example agreement, rule v1",
+  "Pricing policy v1",
+]) {
+  it(`shows the recorded ${sourceLabel} basis beside a saved working rent on Now`, () => {
+    const save = vi.fn(async () => true);
+    working.current = {
+      record: fixtureWorkingRecord({
+        terms_rent: { value: 1751, revision: 1, origin: "adopted_source", sourceLabel },
+      }),
+      canEdit: true,
+      save,
+    };
+    mountOwner();
+    const input = screen.getByLabelText("Rent to recommend");
+    expect(input).toHaveValue("1751");
+    expect(input.closest(".renewal-now-rent")).toHaveTextContent(
+      `Saved working rent from ${sourceLabel}. Later proposals keep this saved amount.`,
+    );
+    expect(input.closest(".renewal-now-rent")).not.toHaveTextContent("Entered by staff");
+    expect(save).not.toHaveBeenCalled();
+  });
 }
 
 it("shows changed-fact feedback and deliberate wording recovery on the Now card", async () => {
@@ -609,6 +634,51 @@ describe("S249 D: the Gmail draft signal reads the last created draft", () => {
     );
   }
   const shown = composeRenewalMessage(tenantFacts());
+
+  it("offers the tenant recipient source handoff directly from its missing-input row", async () => {
+    mountTenant(
+      tenantPreparation({
+        recipients: {
+          status: "blocked",
+          reasons: ["Synthetic tenant email is missing."],
+        },
+      }),
+    );
+    const fix = await screen.findByRole("button", {
+      name: "Check tenant email addresses in RentVine",
+    });
+    fireEvent.click(fix);
+    const link = screen.getByRole("link", { name: "Open lease record in RentVine" });
+    expect(link).toHaveFocus();
+    expect(link).toHaveAttribute("href", "https://fixture.rentvine.invalid/leases/9101");
+    expect(
+      document.getElementById(MESSAGE_CONTROL_IDS.recipients("tenant")),
+    ).toHaveTextContent("Synthetic tenant email is missing.");
+    expect(vi.mocked(fetch).mock.calls.every((call) => !call[1]?.method)).toBe(true);
+  });
+
+  it("offers the tenant template publication handoff from its own missing-input row", async () => {
+    mountTenant(
+      tenantPreparation({
+        publication: {
+          status: "needs_approval",
+          reason: "An Approver reviews this synthetic tenant template.",
+        },
+      }),
+    );
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Ask an Approver to publish the tenant template",
+      }),
+    );
+    const target = document.getElementById(MESSAGE_CONTROL_IDS.publication("tenant"))!;
+    expect(target).toHaveFocus();
+    expect(target.closest("details")).toHaveAttribute("open");
+    expect(target).toHaveTextContent(
+      "An Approver reviews this synthetic tenant template.",
+    );
+    expect(vi.mocked(fetch).mock.calls.every((call) => !call[1]?.method)).toBe(true);
+  });
 
   it("reads a freshly created banner-marked draft as the current message after reload", async () => {
     mountTenant(

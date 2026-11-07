@@ -1013,5 +1013,41 @@
     "expectation": "Checks the same uncertain Gmail draft attempt, with visible progress. A confirmed recovery refreshes the recorded draft and its message revision. Full view retains its existing control; a new attempt still waits on exact recovery.",
     "source": ["components/lease-renewal/RenewalPreparedMessage.tsx"],
     "actions": []
+  },
+  {
+    "step": "94",
+    "page": "workspace:tenant-offer",
+    "control": "Check tenant email addresses in RentVine",
+    "role": "button",
+    "scope": "region:Now",
+    "availability": "conditional",
+    "expectation": "A missing tenant recipient focuses its reasons and the existing lease source-record handoff. Only verified source destinations are used; a provider correction needs its own outside work and refresh.",
+    "source": ["components/lease-renewal/RenewalPreparedMessage.tsx"],
+    "actions": []
+  },
+  {
+    "step": "95",
+    "page": "workspace:tenant-offer",
+    "control": "Ask an Approver to publish the tenant template",
+    "role": "button",
+    "scope": "region:Now",
+    "availability": "conditional",
+    "expectation": "A missing tenant message template opens and focuses its current publication status for the existing Approver handoff. Publication stays with the Approver's existing controls.",
+    "source": ["components/lease-renewal/RenewalPreparedMessage.tsx"],
+    "actions": []
+  },
+  {
+    "step": "96",
+    "page": "workspace:owner-decision",
+    "control": "Try again",
+    "role": "button",
+    "scope": "region:Owner message",
+    "availability": "conditional",
+    "expectation": "Retries the retained Rent to recommend entry through its existing working-record save. Saved appears only after acknowledgment of that exact entry. Review and delivery preparation wait on their own confirmed financial fields; Copy stays available with the displayed bytes and an unconfirmed-figures notice.",
+    "source": [
+      "components/lease-renewal/RenewalKickoffFields.tsx",
+      "components/lease-renewal/AutosaveStatus.tsx"
+    ],
+    "actions": []
   }
 ]

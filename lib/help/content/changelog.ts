@@ -11,9 +11,9 @@ export const HELP_CHANGELOG: readonly HelpChangelogEntry[] = [
     version: "V2.1",
     date: "2026-11-06",
     summary:
-      "V2.1, a covered owner step continues to the tenant offer, agreed numbers continue along the lease's own path, Housing assistance names the required program, recovers a failed save with Try again and keeps newer typing while a save finishes, Owner reply shows the linked message, changed facts expose the authored-wording recovery controls, uncertain Gmail drafts recover their exact attempt on Now, Animal follow-up keeps the existing staff record, reload recovery keeps newer typing, the Now action stays in reach with full wrapping labels, each step's existing controls share its Now card, and missing recipients and templates focus their own source handoff",
-    affectedGuides: ["work-a-renewal"],
-    contentDigest: "1d3615f25bbb45a4afd50125d8faa079f84b577dd18da368d5c15c9263ee89db",
+      "V2.1, each path step keeps its work on Now, covered and assisted continuations follow the lease, reply and draft recovery stay in place, required fields and missing-source fixes name the next action, newer typing survives saves and view changes, delivery preparation waits for its working figures, Copy reports unconfirmed figures, and comparison times use Central time",
+    affectedGuides: ["work-a-renewal", "tenant-offer", "compare-rent"],
+    contentDigest: "c68a7e6b213dab958b3eb5b751cf03e7cdcef1cac645af58b903422807e0e554",
   },
   {
     version: "V2.0",

@@ -852,6 +852,28 @@ async function hasGuidedWorkspaceLandmarks(
     !(await nextStep.isVisible())
   )
     return false;
+  const layout = await now.evaluate((element) => {
+    const action = element.querySelector<HTMLElement>("[data-renewal-now-primary]");
+    const context = element.querySelectorAll(
+      '[data-renewal-field="next-step"], [data-renewal-field="now-detail"]',
+    );
+    const rect = action?.getBoundingClientRect();
+    return {
+      primaryTop: rect?.top ?? NaN,
+      primaryBottom: rect?.bottom ?? NaN,
+      viewportHeight: window.innerHeight,
+      viewportWidth: window.innerWidth,
+      primaryBeforeContext: Boolean(
+        action &&
+        context.length > 0 &&
+        [...context].every(
+          (item) =>
+            (action.compareDocumentPosition(item) & Node.DOCUMENT_POSITION_FOLLOWING) !==
+            0,
+        ),
+      ),
+    };
+  });
   if (
     countIndependentGuidedWorkspaceMismatches({
       stageLines: await stageLine.count(),
@@ -884,22 +906,7 @@ async function hasGuidedWorkspaceLandmarks(
             !nowCard?.contains(field),
         ).length;
       }),
-      primaryBeforeContext: await now.evaluate((element) => {
-        const action = element.querySelector("[data-renewal-now-primary]");
-        const context = element.querySelectorAll(
-          '[data-renewal-field="next-step"], [data-renewal-field="now-detail"]',
-        );
-        return Boolean(
-          action &&
-          context.length > 0 &&
-          [...context].every(
-            (item) =>
-              (action.compareDocumentPosition(item) &
-                Node.DOCUMENT_POSITION_FOLLOWING) !==
-              0,
-          ),
-        );
-      }),
+      ...layout,
     }) !== 0
   )
     return false;

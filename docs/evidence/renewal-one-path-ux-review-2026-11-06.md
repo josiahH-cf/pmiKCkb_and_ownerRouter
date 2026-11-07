@@ -173,6 +173,17 @@ ended at 1,611.25/1,618.25 px in both themes. The ordinary name fit at 1,427.25/
 The pending correction tightens existing header/toolbar row spacing by 40 px in Guided view;
 it preserves label text, font size, controls and touch heights. Final testing also includes the
 existing five-tenant synthetic lease. This remaining failure is retained until actual recheck.
+The committed `7e0d11af` checkpoint measured 96 cases: normal and maximum 120-character
+program names, the first four steps, three existing one/two/five-tenant leases, both widths
+and both themes. One- and two-tenant cases fit; the five-tenant maximum still failed Numbers
+and program contact, at 803/805 px on desktop and 1,635.25/1,642.25 px on phone. No horizontal
+overflow was observed. The next correction uses the existing compact 8 px inset for Guided
+and Now, preserving full labels, type and touch sizes. The read-only landmark/oracle now also
+checks actual primary top/bottom and viewport dimensions for those early steps; production's
+existing 1440 by 1000 viewport and all other bounds remain. Actual recheck is pending.
+The phone Guided canvas also uses the existing 12 px spacing token, giving full wrapping labels
+more width. This is still a pending layout correction until the same 96 cases pass on committed
+source; no prototype or static geometry assertion establishes the rendered outcome.
 
 UX-025, observed while visually reviewing the `351ace2c` Help capture: ordinary prepared-lease
 pictures showed "RentVine status unavailable" and "pending or closed lease (Active)". The
@@ -196,6 +207,14 @@ template; its fix now focuses the actual publication status. The read-only canar
 oracle additionally require a real recipient-specific target for this exact visible action.
 Focused tests and a fresh browser check are pending. The actual provider edit remains UNVERIFIED
 by hard limit.
+
+The `7e0d11af` checkpoint confirmed the actual missing-owner action now focuses its recipient
+handoff. An injected tenant-recipient failure still had no action on its missing-input row,
+although its existing lease source link was present below. The tenant fallback had null fixes
+for recipient and template. They now use the same canonical handoffs, in the existing readiness
+rows, with two conditional actions recorded in Help/map rows 94 and 95 and the same spec.
+This Add addresses a demonstrated missing resolver (DR-06); it grants no provider edit or approval.
+Mounted missing-state focus/no-dispatch tests and the next-source browser recheck are pending.
 
 UX-027, observed on `67408d3f`: "Show me the working month's renewals." returned a fresh,
 confident zero with an unrequested assignee=me filter. The same working-month question without
@@ -249,6 +268,10 @@ the next-source actor check are pending. No historic generic record is assigned 
 Existing adopted amounts also name their recorded source consistently on the desk, Now card and
 message, rather than calling every saved proposal Entered by staff. A generic historical policy
 label stays generic; it gains no inferred standing agreement or coverage.
+The `7e0d11af` checkpoint confirmed the adopted policy stamp and earlier-rule API basis/notice.
+It exposed one remaining hard-coded Entered by staff line in the shared
+Rent to recommend field. That field now uses the same recorded-source helper; mounted tests
+cover both a named agreement and a generic historical policy label without a save on read.
 
 UX-032, observed on `67408d3f`: the original control map's row 5 named Refresh source facts,
 while both the baseline and current rendered control read Refresh data. The obsolete map name
@@ -256,6 +279,36 @@ prevented a literal name lookup. P09 and SC08 apply. The map now records Refresh
 Refresh source facts in formerly, with the actual component as its source. The interface, help's
 existing Refresh data wording and litmus remain unchanged. The final preservation check must
 use the explicit recorded mapping; conditional provider-effect controls retain their own limits.
+
+UX-033, observed on `7e0d11af`: a real terms-rent save was held before the rehearsal server.
+At 800 ms the field held the newly typed synthetic amount while an enabled exact-send review
+carried the older confirmed amount. A controlled HTTP 503 produced the same older review.
+Both reviews were cancelled; no send ran. This hides state during a consequential action
+(P02, P05, P09, P12; SC02, SC04, SC05, SC08), with core-outcome priority. The existing message
+action now waits for its own working figures, reads their normal confirmed preparation and
+preserves the exact review/confirmation. Failure keeps the entry, focuses its field and prepares
+no older review, schedule, Gmail preview or Communications handoff. Copy keeps the displayed
+bytes and names unconfirmed figures. The recommendation uses the existing AutosaveStatus,
+required Field and retry. Unrelated fields remain independent. Mounted delayed, failed,
+newer-input, copy and transport cases passed; actual rehearsal recheck is pending.
+
+UX-034, observed on `7e0d11af`: a successful older rent response was held while a newer rent
+was typed and focused. Releasing it replaced the newer value at both 300 ms and one second,
+without that newer entry ever being left. This is data loss (P05, P12, P14; SC04, SC05, SC09),
+with core-outcome priority. Existing working money/date editors now share one lease-local draft
+per field. An acknowledgment clears only its own entry; later complete choices queue using the
+confirmed field revision, and Full/Guided switches retain the same draft. The local generation
+never enters HTTP or persistent state. An uncertain 5xx or unreadable response retains its exact
+operation identity for recovery. The server's CAS, actor, idempotency and validation remain.
+Money/date and shared-view mounted cases passed; actual newer-typing and reload recheck is pending.
+
+UX-035, observed on `7e0d11af`: after UTC midnight, the comparison read Compared 11/07 while
+the working business date and the stored retrieval's Central timestamp were still 11/06. The
+shared projection sliced the UTC date from its actual observation time. This misstates age
+(P02, P03, P09; SC02, SC08). It now uses the existing business timestamp formatter with Central
+time and zone, or Comparison time unavailable for unreadable metadata. It changes no stored
+instant, comparison, provider call or allowance. Winter/summer midnight and malformed-time
+regressions passed; actual shared desk/Now recheck is pending.
 
 Preserved by decision: exact review/confirmation, the required Gmail banner, stale authored wording,
 who-approved validation, role/Space and Action Registry checks, blank unsettled legal fields,
@@ -265,19 +318,20 @@ goals while retaining their original authority and meaning.
 
 ## Backend ownership and state changes
 
-| Changed experience                  | Route and handler owner                                                                                                                                       | Domain and store owner                                                                                                                                                                    | Provider seam and actual mutation                                                                                                                                                                                                                                  |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Guided labels, path and reload      | `app/lease-renewal/live/desk/lease/[leaseId]/page.tsx` renders RenewalWorkspace; RenewalGuidedView and RenewalFocusViewContext own local presentation         | Existing renewal stage/path/preparation projection remains authoritative; sessionStorage holds only bounded same-path reload continuity                                                   | No new provider action; view, focus and scroll are local. Secondary statuses remain in Focus/Full.                                                                                                                                                                 |
-| Program feedback                    | `/api/lease-renewal/working-record`, existing working-record save                                                                                             | RenewalHousingAssistance uses RenewalWorkingRecord; the same per-lease, cycle/revisioned field persists only a complete Yes/program                                                       | App-owned save only; no source inference from voucher text, provider write or automatic comparison.                                                                                                                                                                |
-| Assistant targets                   | `/api/assistant/query`, interpretation and lease-renewal assistant-source                                                                                     | Existing coherent display-source read and target projection; interpretation maps batch vocabulary to next-month semantics                                                                 | Existing RentVine read seam, replaced by the guarded synthetic transport here. One bounded fresh generation is awaited; failed evidence stays unavailable. No target data invented or saved.                                                                       |
-| Draft currency and waiting          | `/api/lease-renewal/message-preparation`, `/api/lease-renewal/renewal-notice-draft`; MessagePreparationEditor                                                 | Saved message revision and existing immutable created-draft attempt evidence; message-revision compares content without the exact review prefix                                           | Existing one-attempt Gmail draft claim/receipt/readback unchanged. Only confirmed created refreshes local page evidence. Here the loopback stand-in accepts it.                                                                                                    |
-| Owner reply on Now                  | Existing `/api/gmail-hub/sequences/thread`, communication sequence service `.thread()`                                                                        | listLeaseOwnerReplies supplies exact linked thread/message IDs from existing inbound evidence; client selects only that message                                                           | Existing read capability, actor/Space, linked sequence/thread and sender-mailbox gates remain. Plain body is read into client memory and never added to workspace/approval evidence. Approval uses the original party/channel/time action and server revalidation. |
-| Authored-wording recovery           | Existing message-preparation save and delivery/composition routes                                                                                             | Editor owns one saved override, its base hash and local Undo value. PreparedMessageSlot exposes the same state and actions                                                                | Explicit return clears only that saved override; Undo restores the previous wording. All transports read the one displayed message and retain exact review hashes.                                                                                                 |
-| Animal task wording                 | Workspace manual-activity label and renewal-readiness projection                                                                                              | Existing pet activity ID, stored history and readiness predicates stay identical                                                                                                          | No policy, registration input, animal charge default, provider effect or saved-record migration.                                                                                                                                                                   |
-| Default-page assurance              | Read-only production-canary landmarks and production-reconciliation export                                                                                    | New independent rendered-stage oracle imports no app stage/path projection; complete table source reconciliation remains intact                                                           | One visible stage and Next step plus stage/path/Now identity agreement are required. No bound is loosened and no production assurance is executed in this audit.                                                                                                   |
-| Recipient and template fixes        | MessagePreparationEditor reads `/api/lease-renewal/message-preparation`; kickoff projection names canonical recipient/publication targets                     | Existing recipient resolution, supplied publication and source destination read own the unavailable facts; the focus helper opens their existing details                                  | Focus and an already-read source handoff only. No guessed URL, provider fix, save or success is created.                                                                                                                                                           |
-| Shared collection required fields   | SharedLeaseCollections validates before the existing `/api/lease-renewal/collections` review handler                                                          | Existing collection review and explicit-member/period basis store remain authoritative; entered client state survives validation                                                          | No request while required input is blank. Valid input retains the ordinary review and confirmed app-owned save.                                                                                                                                                    |
-| Standing rule adoption and recovery | RenewalRecommendation and MessagePreparationEditor use the ordinary working-record and message-preparation routes; Admin uses existing pricing-policy handler | StandingAgreementInputSchema owns validation; RenewalPricingPolicyStore owns versioned agreements/policies and verified portfolio; currentRenewalMessage reads actual adopted rule stamps | Only existing app-owned saves. Earlier-rule description does not grant current owner coverage; a typed rent wins. Exact provider confirmations and all permission gates stay unchanged.                                                                            |
+| Changed experience                  | Route and handler owner                                                                                                                                       | Domain and store owner                                                                                                                                                                                                                       | Provider seam and actual mutation                                                                                                                                                                                                                                  |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Guided labels, path and reload      | `app/lease-renewal/live/desk/lease/[leaseId]/page.tsx` renders RenewalWorkspace; RenewalGuidedView and RenewalFocusViewContext own local presentation         | Existing renewal stage/path/preparation projection remains authoritative; sessionStorage holds only bounded same-path reload continuity                                                                                                      | No new provider action; view, focus and scroll are local. Secondary statuses remain in Focus/Full.                                                                                                                                                                 |
+| Program feedback                    | `/api/lease-renewal/working-record`, existing working-record save                                                                                             | RenewalHousingAssistance uses RenewalWorkingRecord; the same per-lease, cycle/revisioned field persists only a complete Yes/program                                                                                                          | App-owned save only; no source inference from voucher text, provider write or automatic comparison.                                                                                                                                                                |
+| Assistant targets                   | `/api/assistant/query`, interpretation and lease-renewal assistant-source                                                                                     | Existing coherent display-source read and target projection; interpretation maps batch vocabulary to next-month semantics                                                                                                                    | Existing RentVine read seam, replaced by the guarded synthetic transport here. One bounded fresh generation is awaited; failed evidence stays unavailable. No target data invented or saved.                                                                       |
+| Draft currency and waiting          | `/api/lease-renewal/message-preparation`, `/api/lease-renewal/renewal-notice-draft`; MessagePreparationEditor                                                 | Saved message revision and existing immutable created-draft attempt evidence; message-revision compares content without the exact review prefix                                                                                              | Existing one-attempt Gmail draft claim/receipt/readback unchanged. Only confirmed created refreshes local page evidence. Here the loopback stand-in accepts it.                                                                                                    |
+| Owner reply on Now                  | Existing `/api/gmail-hub/sequences/thread`, communication sequence service `.thread()`                                                                        | listLeaseOwnerReplies supplies exact linked thread/message IDs from existing inbound evidence; client selects only that message                                                                                                              | Existing read capability, actor/Space, linked sequence/thread and sender-mailbox gates remain. Plain body is read into client memory and never added to workspace/approval evidence. Approval uses the original party/channel/time action and server revalidation. |
+| Authored-wording recovery           | Existing message-preparation save and delivery/composition routes                                                                                             | Editor owns one saved override, its base hash and local Undo value. PreparedMessageSlot exposes the same state and actions                                                                                                                   | Explicit return clears only that saved override; Undo restores the previous wording. All transports read the one displayed message and retain exact review hashes.                                                                                                 |
+| Animal task wording                 | Workspace manual-activity label and renewal-readiness projection                                                                                              | Existing pet activity ID, stored history and readiness predicates stay identical                                                                                                                                                             | No policy, registration input, animal charge default, provider effect or saved-record migration.                                                                                                                                                                   |
+| Default-page assurance              | Read-only production-canary landmarks and production-reconciliation export                                                                                    | New independent rendered-stage oracle imports no app stage/path projection; complete table source reconciliation remains intact                                                                                                              | One visible stage and Next step plus stage/path/Now identity agreement are required. No bound is loosened and no production assurance is executed in this audit.                                                                                                   |
+| Recipient and template fixes        | MessagePreparationEditor reads `/api/lease-renewal/message-preparation`; kickoff projection names canonical recipient/publication targets                     | Existing recipient resolution, supplied publication and source destination read own the unavailable facts; the focus helper opens their existing details                                                                                     | Focus and an already-read source handoff only. No guessed URL, provider fix, save or success is created.                                                                                                                                                           |
+| Shared collection required fields   | SharedLeaseCollections validates before the existing `/api/lease-renewal/collections` review handler                                                          | Existing collection review and explicit-member/period basis store remain authoritative; entered client state survives validation                                                                                                             | No request while required input is blank. Valid input retains the ordinary review and confirmed app-owned save.                                                                                                                                                    |
+| Standing rule adoption and recovery | RenewalRecommendation and MessagePreparationEditor use the ordinary working-record and message-preparation routes; Admin uses existing pricing-policy handler | StandingAgreementInputSchema owns validation; RenewalPricingPolicyStore owns versioned agreements/policies and verified portfolio; currentRenewalMessage reads actual adopted rule stamps                                                    | Only existing app-owned saves. Earlier-rule description does not grant current owner coverage; a typed rent wins. Exact provider confirmations and all permission gates stay unchanged.                                                                            |
+| Confirmed financial preparation     | RenewalWorkingRecordProvider and existing `/api/lease-renewal/working-record`; MessagePreparationEditor then reads `/api/lease-renewal/message-preparation`   | Existing versioned working-record store owns durable values, actors and operation IDs. The provider holds only each field's local text/generation and pending save; the message record and communication sequence keep their existing owners | Normal app saves and confirmed reads precede review or preview. Failure focuses the actual field and starts no older transport. Copy remains local and explicit exact confirmation remains mandatory.                                                              |
 
 ## Specification and label maintenance
 
@@ -291,6 +345,11 @@ goals while retaining their original authority and meaning.
 - S249 R7 describes the existing S161 authored-wording preservation and in-place resolver; R9
   describes the banner-only comparison normalization, post-created evidence refresh and exact
   attempt recovery on Now, with the existing Full view recovery retained.
+  R2 now names the Central comparison timestamp; R5 records recommendation state/retry and
+  saved-source basis, and R7 records confirmed-figure preparation and the exact-copy limitation.
+- S155 R5/R9 and S247 R9 record same-field entry acknowledgment, retained shared-view drafts,
+  revision-ordered complete choices and independent Copy. They preserve every existing
+  validation, per-field independence, actor, idempotency and exact-effect requirement.
 - S250 R5 specifies the covered-owner continuation and retained optional message tools.
   R1 records schema-consistent plain validation; R7 records preserved proposal provenance and
   deliberate rebuild across working rent and the prepared message.
@@ -336,6 +395,13 @@ goals while retaining their original authority and meaning.
 - Retain actual agreement/policy stamps for proposal adoption and read older recorded versions
   to explain a kept rent. Give generic historical records their saved source label, with no
   invented standing agreement or retroactive coverage.
+- Keep financial draft text in the existing lease-scoped working provider, rather than adding a
+  store or a Save action. Only a confirmed response acknowledges its own entry. Wait on the
+  message's own figures and reuse the normal preparation read before review; the observed stale
+  review and lost newer typing justify this shared correction. Copy retains its existing promise
+  to match the displayed bytes and makes unconfirmed working figures visible.
+- Format comparison observations with the existing Central timestamp formatter. A UTC date
+  slice contradicted the visible business day and the saved observation's local time.
 - Treat a supplied numeric lease reference as an exact lookup in the current actor's read, with
   the same filter in its table link. Keep ordinary address and free-text matching.
 - Preserve source-evidence re-review even when the visible draft wording is unchanged. The
@@ -479,3 +545,16 @@ goals while retaining their original authority and meaning.
   document paths passed. The one-entry count reduction merges the duplicate refresh reference;
   it removes no interface control. Same-source browser checks and the new backend regression
   remain pending before the canonical gate and exact-head CI.
+- The financial-repair focused run initially passed 65 and failed seven new fixture assertions:
+  its owner comparison omitted comparable evidence, its clipboard double omitted formatted
+  copying, and a modal repeated the same error in its own status. These fixture gaps were
+  corrected without weakening the real readiness or copy contracts. The next five-file run
+  passed all 72 tests, followed by zero-error TypeScript at 3 GB. Expanded 5xx recovery,
+  preservation and static checks follow before committing and the actual browser replay.
+- The expanded run passed 285 and failed two checks: Full view retained three empty hidden
+  presentation outlets, and the two conditional Try again references shared an overly broad
+  Help scope. Empty outlets now disappear through their empty-state CSS without hidden Full
+  content; the rent retry names its actual Owner message region. The repeated 21-file run
+  passed all 287 tests, TypeScript passed at 3 GB, Help names passed 834, Help content passed
+  3,151 strings, copy voice passed with zero violations and all 273 active document paths passed.
+  The current Help digest is `c68a7e6b213dab958b3eb5b751cf03e7cdcef1cac645af58b903422807e0e554`.

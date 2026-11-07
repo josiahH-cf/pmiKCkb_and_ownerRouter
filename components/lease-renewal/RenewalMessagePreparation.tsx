@@ -73,6 +73,7 @@ import {
   standingRuleSourceLabel,
 } from "@/lib/lease-renewal/standing-agreement";
 import { nowSlotKey, useRenewalNowCard } from "./RenewalNowCardContext";
+import { workingFieldLabel } from "@/lib/lease-renewal/working-record";
 import {
   PreparedMessageSlot,
   draftPreviewWaitsOnGeneration,
@@ -402,6 +403,72 @@ function savedPayload(server: Preparation): string {
   );
 }
 
+function composedPreparation(
+  current: Preparation,
+  { inputs, override, subjectText }: LocalMessage,
+) {
+  const payload = current
+    ? savePayload({ inputs, override, subjectText }, current)
+    : null;
+  let content: ReturnType<typeof composeRenewalMessage> | null = null;
+  if (current && payload) {
+    const effective = payload.effective;
+    content = composeRenewalMessage(
+      {
+        ...current.facts,
+        attachments:
+          inputs.compScreenshotReceiptId &&
+          inputs.compScreenshotReceiptId === current.availableCompScreenshot?.receiptId
+            ? [
+                {
+                  filename: current.availableCompScreenshot.filename,
+                  source: `comp-screenshot-receipt:${inputs.compScreenshotReceiptId}`,
+                },
+              ]
+            : [],
+        charges: effective.charges,
+        recommendationReason: effective.recommendationReason ?? null,
+        leaseOrigin: effective.leaseOrigin,
+        insuranceTransition: effective.insuranceTransition,
+        otherChargesComparison: effective.otherChargesComparison,
+        signature: effective.signature
+          ? {
+              ...effective.signature,
+              email:
+                current.signatureMatchesActor ||
+                canonical(effective.signature) !==
+                  canonical(current.saved?.inputs.signature ?? null)
+                  ? current.senderEmail
+                  : (current.saved?.signatureEmail ?? current.senderEmail),
+            }
+          : null,
+      },
+      effective.edits,
+    );
+    const serverRange = current.content?.missing?.find(
+      (entry) => entry.field === "range",
+    );
+    const localRange = content.missing.find((entry) => entry.field === "range");
+    if (serverRange && localRange) localRange.message = serverRange.message;
+    if (
+      inputs.compScreenshotReceiptId &&
+      inputs.compScreenshotReceiptId !== current.availableCompScreenshot?.receiptId
+    )
+      content.missing.push({ field: "attachment", message: STALE_ATTACHMENT_MESSAGE });
+  }
+  // S161 (R-S161-7): authored wording is the body exactly as written, also after the information
+  // it started from changed. Only a deliberate return to the standard wording replaces it.
+  const authoredBody = override && override.text.trim() ? override.text : null;
+  const authoredSubject =
+    subjectText !== null && subjectText.trim() ? subjectText.trim() : null;
+  let shownContent = content;
+  if (shownContent && authoredBody)
+    shownContent = applyRefinedBody(shownContent, authoredBody);
+  if (shownContent && authoredSubject)
+    shownContent = applyAuthoredSubject(shownContent, authoredSubject);
+  return { payload, content, shownContent };
+}
+
 function MessagePreparationEditor({
   leaseId,
   refreshBasis,
@@ -416,6 +483,10 @@ function MessagePreparationEditor({
   const router = useRouter();
   const working = useRenewalWorkingRecord();
   const nowCard = useRenewalNowCard();
+  const messageWorkingFields =
+    channel === "owner"
+      ? ["current_rent", "terms_rent"]
+      : ["terms_rent", "terms_effective_date", "terms_end_date"];
   const [current, setCurrent] = useState<Preparation | null>(null);
   const [inputs, setInputs] = useState(emptyMessagePreparationInputs);
   // S161: the authored body (typed here or accepted from a refinement) and the authored subject.
@@ -450,6 +521,9 @@ function MessagePreparationEditor({
   const [loadedAtIso, setLoadedAtIso] = useState<string | null>(null);
   const base = useId();
   const loadSequence = useRef(0);
+  const invalidateReads = useCallback(() => {
+    loadSequence.current++;
+  }, []);
   // Local entries the server has not confirmed, or cannot store yet. A refresh never replaces them.
   const touchedRef = useRef(false);
   const currentRef = useRef<Preparation | null>(null);
@@ -499,6 +573,11 @@ function MessagePreparationEditor({
   const adopt = useCallback((result: Preparation) => {
     setInputs(result.inputs);
     const saved = savedOverride(result.bodyOverride ?? null);
+    localRef.current = {
+      inputs: result.inputs,
+      override: saved.override,
+      subjectText: result.subjectOverride ?? null,
+    };
     setOverride(saved.override);
     setOverrideState(saved.state);
     setPreviousOverride(undefined);
@@ -540,6 +619,28 @@ function MessagePreparationEditor({
       if (!touchedRef.current) adopt(result);
     });
   }, [adopt, channel, leaseId]);
+  /** A transport reads the confirmed entered figures. Blank and unrelated fields stay usable. */
+  async function settleWorkingFields(): Promise<boolean> {
+    if (!working?.settle) return true;
+    const result = await working.settle(messageWorkingFields);
+    if (!result.ok) {
+      setNotice(
+        `${workingFieldLabel(result.field)} is not confirmed. Your entry is kept; correct or retry its save before preparing this message.`,
+      );
+      if (result.controlId) focusRenewalDashboardControl(result.controlId);
+      return false;
+    }
+    // The normal projection is read after the acknowledgments. If another entry arrived while
+    // that read was on its way, this action stops before preparing an older message.
+    await load();
+    if (working.hasUnsettled(messageWorkingFields)) {
+      setNotice(
+        "Your working figures changed while the message was being prepared. Your entries are kept; finish their save, then prepare the message again.",
+      );
+      return false;
+    }
+    return true;
+  }
   useEffect(() => {
     let active = true;
     load().catch((error) => {
@@ -547,9 +648,9 @@ function MessagePreparationEditor({
     });
     return () => {
       active = false;
-      loadSequence.current++;
+      invalidateReads();
     };
-  }, [load, refreshBasis]); // source and working changes refresh the facts; entries are kept
+  }, [load, refreshBasis, invalidateReads]); // source and working changes refresh the facts; entries are kept
 
   /**
    * S155/S161: save the message as it stands. A completed entry saves by itself; nothing is
@@ -768,65 +869,13 @@ function MessagePreparationEditor({
   }
   // The message is composed from what would be saved now, so what is shown, copied and drafted is
   // one and the same text. Composition never refuses: a gap is a named marker and a callout line.
-  const payload = current
-    ? savePayload({ inputs, override, subjectText }, current)
+  const composed = current
+    ? composedPreparation(current, { inputs, override, subjectText })
     : null;
-  let content: ReturnType<typeof composeRenewalMessage> | null = null;
-  if (current && payload) {
-    const effective = payload.effective;
-    content = composeRenewalMessage(
-      {
-        ...current.facts,
-        attachments:
-          inputs.compScreenshotReceiptId &&
-          inputs.compScreenshotReceiptId === current.availableCompScreenshot?.receiptId
-            ? [
-                {
-                  filename: current.availableCompScreenshot.filename,
-                  source: `comp-screenshot-receipt:${inputs.compScreenshotReceiptId}`,
-                },
-              ]
-            : [],
-        charges: effective.charges,
-        recommendationReason: effective.recommendationReason ?? null,
-        leaseOrigin: effective.leaseOrigin,
-        insuranceTransition: effective.insuranceTransition,
-        otherChargesComparison: effective.otherChargesComparison,
-        signature: effective.signature
-          ? {
-              ...effective.signature,
-              email:
-                current.signatureMatchesActor ||
-                canonical(effective.signature) !==
-                  canonical(current.saved?.inputs.signature ?? null)
-                  ? current.senderEmail
-                  : (current.saved?.signatureEmail ?? current.senderEmail),
-            }
-          : null,
-      },
-      effective.edits,
-    );
-    const serverRange = current.content?.missing?.find(
-      (entry) => entry.field === "range",
-    );
-    const localRange = content.missing.find((entry) => entry.field === "range");
-    if (serverRange && localRange) localRange.message = serverRange.message;
-    if (
-      inputs.compScreenshotReceiptId &&
-      inputs.compScreenshotReceiptId !== current.availableCompScreenshot?.receiptId
-    )
-      content.missing.push({ field: "attachment", message: STALE_ATTACHMENT_MESSAGE });
-  }
-  // S161 (R-S161-7): authored wording is the body exactly as written, also after the information
-  // it started from changed. Only a deliberate return to the standard wording replaces it.
+  const payload = composed?.payload ?? null;
+  const content = composed?.content ?? null;
+  const shownContent = composed?.shownContent ?? null;
   const authoredBody = override && override.text.trim() ? override.text : null;
-  const authoredSubject =
-    subjectText !== null && subjectText.trim() ? subjectText.trim() : null;
-  let shownContent = content;
-  if (shownContent && authoredBody)
-    shownContent = applyRefinedBody(shownContent, authoredBody);
-  if (shownContent && authoredSubject)
-    shownContent = applyAuthoredSubject(shownContent, authoredSubject);
   const wordingChangedSince = Boolean(authoredBody && overrideState === "stale");
   const refineDisabledReason = !canEdit
     ? "Refining wording needs edit access to this renewal."
@@ -848,6 +897,7 @@ function MessagePreparationEditor({
     const content = shownContent;
     if (!content || copying) return;
     setCopying(true);
+    const figuresWereUnconfirmed = working?.hasUnsettled?.(messageWorkingFields) ?? false;
     setNotice("Copying the displayed message…");
     try {
       if (kind === "recipients") {
@@ -884,7 +934,7 @@ function MessagePreparationEditor({
           ),
         );
       setNotice(
-        `${kind === "subject" ? "Subject" : "Body"} copied as shown. Attachments are separate. Nothing was sent.`,
+        `${kind === "subject" ? "Subject" : "Body"} copied as shown. Attachments are separate. Nothing was sent.${figuresWereUnconfirmed && kind !== "subject" ? " Working figures were unconfirmed when this copy began. Check the saved figures before using this copy." : ""}`,
       );
     } catch (error) {
       setNotice(
@@ -901,7 +951,11 @@ function MessagePreparationEditor({
     const server = currentRef.current;
     if (!canEdit || !server) return;
     const entry = savePayload(localRef.current, server);
-    if (canonical(entry.value) === lastSavedRef.current && !entry.wordingUnfinished)
+    if (
+      !working?.hasUnsettled?.(messageWorkingFields) &&
+      canonical(entry.value) === lastSavedRef.current &&
+      !entry.wordingUnfinished
+    )
       return;
     event.preventDefault();
     if (openingComposer.current) return;
@@ -914,21 +968,15 @@ function MessagePreparationEditor({
     }
     tab.opener = null;
     openingComposer.current = true;
+    setNotice("");
     const href = event.currentTarget.href;
     try {
-      if (saving.current) await saving.current;
-      await runAutosave();
-      if (saving.current) await saving.current;
-      const latest = currentRef.current;
-      const value = latest ? savePayload(localRef.current, latest) : null;
-      if (
-        !value ||
-        value.wordingUnfinished ||
-        canonical(value.value) !== lastSavedRef.current
-      ) {
+      if (!(await flush())) {
         tab.close();
         setNotice(
-          "Your latest wording could not be saved, so Communications did not open with an older message. Your words are kept here; correct or retry the save.",
+          (current) =>
+            current ||
+            "Your latest message could not be prepared. Your entries are kept here; correct or retry the save, then open Communications again.",
         );
         return;
       }
@@ -958,10 +1006,14 @@ function MessagePreparationEditor({
       let preview: Record<string, unknown> = {};
       let savedWith: string | null = null;
       if (kind === "preview") {
+        if (!(await settleWorkingFields())) return;
         // An autosave already on its way finishes first, so the two never save over each other.
         await saving.current?.catch(() => undefined);
         const server = currentRef.current;
-        if (!server || !shownContent) return;
+        const shown = server
+          ? composedPreparation(server, localRef.current).shownContent
+          : null;
+        if (!server || !shown) return;
         const state = savePayload(localRef.current, server);
         if (state.wordingUnfinished) {
           setNotice(
@@ -986,7 +1038,7 @@ function MessagePreparationEditor({
             operationId: crypto.randomUUID(),
           };
         preview = {
-          displayed: { subject: shownContent.subject, body: shownContent.plainText },
+          displayed: { subject: shown.subject, body: shown.plainText },
           ...(needsSave
             ? {
                 save: {
@@ -1171,6 +1223,7 @@ function MessagePreparationEditor({
   /** Save what is on screen; true once the saved message reads back as shown. */
   async function flush(): Promise<boolean> {
     if (!canEdit || !currentRef.current) return false;
+    if (!(await settleWorkingFields())) return false;
     if (saving.current) await saving.current;
     await runAutosave();
     if (saving.current) await saving.current;
@@ -1179,7 +1232,8 @@ function MessagePreparationEditor({
     return Boolean(
       value &&
       !value.wordingUnfinished &&
-      canonical(value.value) === lastSavedRef.current,
+      canonical(value.value) === lastSavedRef.current &&
+      !working?.hasUnsettled?.(messageWorkingFields),
     );
   }
   /** R-S249-11: the sender's own signature, set up on the Now card; a refusal names what is missing. */

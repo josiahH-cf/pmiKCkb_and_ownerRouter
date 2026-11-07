@@ -62,6 +62,8 @@ choose to work. RentVine readable; RentCast allowance available for a new lookup
 - **R-S249-2 — Comparison ready.** Compare market rent shows the stored comparison for this lease
   and cycle: range, the first usable comparables in provider order, and its age. A stored
   comparison is reused and never needs a second run to reach the message.
+  Its recorded date and time use the app's Central business timestamp convention, including
+  the time zone. An unreadable timestamp says Comparison time unavailable.
 - **R-S249-3 — Preparing a batch.** "Prepare this batch" on the desk runs, for each target in the
   working batch that has no stored comparison for its cycle, one lookup at a time under the signed
   in staff member's session, with visible progress and safe resumption. At most one billed lookup
@@ -78,6 +80,9 @@ choose to work. RentVine readable; RentCast allowance available for a new lookup
   prefilled from the covering standing agreement (S250) or else from the comparison-based
   suggestion, each with its basis in words. A prefilled figure is a proposal; it becomes the staff
   reviewed recommendation when the staff member sends, and a typed figure always wins.
+  The field shows required, Edited, Saving, Saved or its specific failure with the existing
+  retry. Its basis names an adopted agreement or policy exactly as recorded. An older save
+  response preserves a newer entry and confirms only the value it actually stored.
 - **R-S249-6 — Reason to include.** An optional one-line "Reason to include" (for example current
   market conditions) is placed in the message beside the recommendation exactly as typed.
 - **R-S249-7 — One current message.** One message exists per lease, audience and cycle. Its preview
@@ -88,6 +93,13 @@ choose to work. RentVine readable; RentCast allowance available for a new lookup
   changed-information notice, Return to the standard wording and Undo the last refinement in
   place, so staff can deliberately rebuild the shared message from current inputs or keep their
   wording. The same controls remain in the message editor.
+  Review, Schedule, Gmail preview and the Communications handoff first confirm any entered
+  working figures that their message uses through the ordinary field saves, then read the
+  current preparation. Pending work stays visibly pending. A refused, incomplete or unconfirmed
+  relevant save keeps its entry, names and focuses its field, and prepares no older message.
+  Unrelated incomplete fields remain usable. Copy keeps the exact displayed bytes during a
+  pending or failed save and states when working figures were unconfirmed when copying began.
+  Authored wording keeps its existing deliberate changed-fact recovery.
 - **R-S249-8 — One route.** The primary action is "Review and send" on the Now card, which uses the
   existing staff-confirmed Send contract and its exact review. "Schedule", "Create Gmail draft
   instead" and "Copy" are secondary actions on the same card (D-OP-2).
@@ -117,6 +129,9 @@ choose to work. RentVine readable; RentCast allowance available for a new lookup
   an owner-record link is unavailable, the existing lease-record link explains the route to its
   owner record and the subsequent refresh. A template fix focuses its actual publication status.
   Source edits and an Approver's publication remain their existing separate handoffs.
+  The tenant offer uses the same pattern: "Check tenant email addresses in RentVine" opens its
+  recipient/source handoff, and "Ask an Approver to publish the tenant template" opens its
+  publication status when that input is missing.
 - **R-S249-12 — Rewording that works.** An AI rewording replaces the body only when the staff member
   chooses "Use this revision". A rejected result keeps the typed instruction, says what to change
   and leaves the message as it was. The card shows when the message was last edited.

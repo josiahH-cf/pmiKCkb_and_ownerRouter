@@ -110,6 +110,25 @@ describe("S249 R-S249-1 numbers check (D-OP-7: RentVine is the basis)", () => {
   });
 });
 
+describe("S249 comparison age follows the business time convention", () => {
+  for (const [observedAtIso, expected] of [
+    ["2026-11-07T00:30:00.000Z", "Compared 11/06/2026, 6:30 PM CST"],
+    ["2026-07-07T00:30:00.000Z", "Compared 07/06/2026, 7:30 PM CDT"],
+    ["unreadable", "Comparison time unavailable"],
+  ]) {
+    it(`shows ${expected} for ${observedAtIso} without a lookup`, () => {
+      const facts: RenewalKickoffFacts = {
+        ...FACTS,
+        comparison: {
+          ...STORED,
+          comparison: { ...STORED.comparison, observedAtIso: observedAtIso! },
+        },
+      };
+      expect(projectRenewalPreparation(facts).comparison.ageLine).toBe(expected);
+    });
+  }
+});
+
 describe("S249 R-S249-5 Rent to recommend: typed, agreement, comparison", () => {
   it("prefills from the comparison-based suggestion with its basis in words", () => {
     const rent = renewalRentToRecommend(FACTS);
@@ -170,7 +189,7 @@ describe("S249 ARCH-S249-1 / R-S249-11 one projection: ready or the named missin
     expect(preparation.comparison.firstComps.map((comp) => comp.rent)).toEqual([
       1380, 1420, 1460, 1500,
     ]);
-    expect(preparation.comparison.ageLine).toBe("Compared 11/04/2026");
+    expect(preparation.comparison.ageLine).toBe("Compared 11/04/2026, 9:00 AM CST");
     expect(kickoffRowLine(preparation)).toBe(
       "Ready for your review: owner message prepared",
     );

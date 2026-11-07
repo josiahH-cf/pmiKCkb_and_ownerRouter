@@ -242,7 +242,7 @@ describe("S243 R-S243-7 / BEH-S243-4 / AC-S243-7: consolidation", () => {
     // S252: the 70 rows of the starting map are kept by step id (tests/unit/s252-control-map-
     // continuity.test.ts), and the working batch and Guided view add their own rows.
     expect(renewalControlMap.length).toBeGreaterThanOrEqual(70);
-    expect(renewalControlMap.length).toBe(91);
+    expect(renewalControlMap.length).toBe(94);
     expect(
       renewalControlMap.filter((row) => row.availability === "required").length,
     ).toBeGreaterThanOrEqual(41);

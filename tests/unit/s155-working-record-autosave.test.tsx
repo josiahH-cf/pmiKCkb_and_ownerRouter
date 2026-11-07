@@ -173,6 +173,26 @@ describe("S155 autosaved working fields", () => {
     expect(second).toEqual(first);
   });
 
+  it("BEH-S155-4/5: an uncertain HTTP 503 retries the exact operation and confirms only its stored entry", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(503, { error: "The stored save could not be read back." }),
+    );
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(200, {
+        record: record({ current_rent: { value: 1850, revision: 1 } }, 1),
+      }),
+    );
+    renderFields();
+    fireEvent.change(rentInput(), { target: { value: "1850" } });
+    fireEvent.blur(rentInput());
+    await screen.findByText(/Save failed/);
+    expect(rentInput()).toHaveValue("1850");
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    await screen.findByText("Saved");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(posted(fetchMock.mock.calls[1])).toEqual(posted(fetchMock.mock.calls[0]));
+  });
+
   it("BEH-S155-6: another operator's change of the same value is shown as a conflict, the entry is kept, and other fields still save", async () => {
     const current = record({ current_rent: { value: 1900, revision: 2 } }, 2);
     fetchMock.mockImplementation(async (url: string, init?: { method?: string }) => {
@@ -216,7 +236,7 @@ describe("S155 autosaved working fields", () => {
     expect(rentInput().value).toBe("1850");
   });
 
-  it("BEH-S155-5: an older response arriving late never replaces the newer saved value", async () => {
+  it("BEH-S155-5: an older response never replaces newer input, and the queued save uses its confirmed revision", async () => {
     const slow = deferred<ReturnType<typeof jsonResponse>>();
     fetchMock.mockReturnValueOnce(slow.promise);
     fetchMock.mockResolvedValueOnce(
@@ -231,14 +251,19 @@ describe("S155 autosaved working fields", () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     fireEvent.change(rentInput(), { target: { value: "1875" } });
     fireEvent.blur(rentInput());
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
-    expect(await screen.findByText("Saved")).toBeInTheDocument();
-
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(rentInput().value).toBe("1875");
     slow.resolve(
       jsonResponse(200, {
         record: record({ current_rent: { value: 1850, revision: 1 } }, 1),
       }),
     );
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(posted(fetchMock.mock.calls[1])).toMatchObject({
+      value: 1875,
+      expectedRevision: 1,
+    });
+    expect(await screen.findByText("Saved")).toBeInTheDocument();
     await waitFor(() =>
       expect(
         screen.getByText(/differs from the working value \$1,875.00/),

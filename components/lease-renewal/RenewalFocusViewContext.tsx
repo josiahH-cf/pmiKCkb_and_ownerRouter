@@ -543,7 +543,6 @@ export function RenewalFocusViewSlot({
       <div
         className={guided ? "ui-stack renewal-guided-header" : "renewal-focus-slot"}
         data-renewal-view-switch
-        hidden={context.view === "full"}
         ref={attach}
       />
       <div
@@ -554,13 +553,12 @@ export function RenewalFocusViewSlot({
         data-renewal-now-step={guided ? context.nowPresentation?.stepId : undefined}
         role={guided ? "region" : undefined}
       >
-        <div className="ui-stack renewal-now-intro" hidden={!guided} ref={attachNow} />
+        <div className="ui-stack renewal-now-intro" ref={attachNow} />
         {children}
       </div>
       <div
         className="ui-stack renewal-guided-after"
         data-renewal-presentation-control
-        hidden={!guided}
         ref={attachAfter}
       />
     </div>

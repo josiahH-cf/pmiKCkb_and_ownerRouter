@@ -134,6 +134,10 @@ interface GuidedOptions {
   primaryTarget?: string | null;
   primaryTargetPresent?: boolean;
   workFieldsOutsideNow?: number;
+  primaryTop?: number;
+  primaryBottom?: number;
+  viewportHeight?: number;
+  viewportWidth?: number;
 }
 const GUIDED_STEPS = [
   "Check the numbers",
@@ -175,7 +179,13 @@ function guidedFixture(options: GuidedOptions = {}): Page {
       true,
       options.nowStep === undefined ? "check-numbers" : options.nowStep,
     ),
-    evaluate: async () => options.primaryBeforeContext ?? true,
+    evaluate: async () => ({
+      primaryBeforeContext: options.primaryBeforeContext ?? true,
+      primaryTop: options.primaryTop ?? 100,
+      primaryBottom: options.primaryBottom ?? 144,
+      viewportHeight: options.viewportHeight ?? 800,
+      viewportWidth: options.viewportWidth ?? 1280,
+    }),
     locator: (selector: string) =>
       selector.includes("next-step")
         ? {
@@ -298,6 +308,11 @@ describe("S113 candidate and captured predecessor workspace landmarks", () => {
       { nextSteps: 2 },
       { nextStepText: "Next step: " },
       { primaryBeforeContext: false },
+      { primaryTop: -1 },
+      { primaryBottom: 805 },
+      { primaryBottom: NaN },
+      { viewportHeight: 0 },
+      { viewportWidth: 0 },
       { workFieldsOutsideNow: 1 },
       {
         primaryLabel: "Add the owner's email on the owner record in RentVine",
@@ -329,8 +344,32 @@ describe("S113 candidate and captured predecessor workspace landmarks", () => {
       primaryTarget: null,
       primaryTargetPresent: false,
       workFieldsOutsideNow: 0,
+      primaryTop: 100,
+      primaryBottom: 144,
+      viewportHeight: 800,
+      viewportWidth: 1280,
     };
     expect(countIndependentGuidedWorkspaceMismatches(snapshot)).toBe(0);
+    expect(
+      countIndependentGuidedWorkspaceMismatches({ ...snapshot, primaryBottom: 805 }),
+    ).toBe(1);
+    expect(
+      countIndependentGuidedWorkspaceMismatches({
+        ...snapshot,
+        primaryBottom: 1642.25,
+        viewportWidth: 390,
+      }),
+    ).toBe(1);
+    expect(
+      countIndependentGuidedWorkspaceMismatches({
+        ...snapshot,
+        primaryBottom: 1586,
+        viewportWidth: 390,
+      }),
+    ).toBe(0);
+    expect(
+      countIndependentGuidedWorkspaceMismatches({ ...snapshot, primaryTop: -1 }),
+    ).toBe(1);
     expect(
       countIndependentGuidedWorkspaceMismatches({ ...snapshot, nowStep: "ask-owner" }),
     ).toBe(1);

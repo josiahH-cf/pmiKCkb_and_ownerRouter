@@ -8,7 +8,12 @@
 // figure, drafts, sends or schedules. A proposal is a proposal: a figure staff typed always wins,
 // and nothing here replaces one (AC-S249-5).
 
-import { formatCalendarDate } from "@/lib/date-display";
+import {
+  formatCalendarDate,
+  formatBusinessTimestamp,
+  TIMESTAMP_INVALID_LABEL,
+  DATE_UNAVAILABLE_LABEL,
+} from "@/lib/date-display";
 import { firstUsableComparables } from "@/lib/lease-renewal/comparable-presentation";
 import { computeRentSuggestion } from "@/lib/lease-renewal/rent-suggestion";
 
@@ -187,7 +192,7 @@ export interface RenewalComparisonView {
   readonly stored: RenewalStoredComparison | null;
   /** The first usable comparables, in provider order (S195). */
   readonly firstComps: RenewalStoredComparison["comps"];
-  /** "Compared 11/05/2026", or null. */
+  /** The stored comparison's business timestamp, or an explicit unavailable time. */
   readonly ageLine: string | null;
   /** The existing own-figures entry when no comparison is stored. */
   readonly fix: RenewalPreparationFix | null;
@@ -363,15 +368,16 @@ function comparisonView(facts: RenewalComparisonFacts): RenewalComparisonView {
       const firstComps = firstUsableComparables(stored.comps).entries.map(
         (entry) => entry.value,
       );
-      const day = stored.observedAtIso.slice(0, 10);
+      const comparedAt = formatBusinessTimestamp(stored.observedAtIso);
       return {
         state: "stored",
         line: `${stored.source} range ${money(stored.rangeLow)} to ${money(stored.rangeHigh)} from ${stored.compCount} comparable ${stored.compCount === 1 ? "listing" : "listings"}`,
         stored,
         firstComps,
-        ageLine: /^\d{4}-\d{2}-\d{2}$/.test(day)
-          ? `Compared ${formatCalendarDate(day)}`
-          : null,
+        ageLine:
+          comparedAt === TIMESTAMP_INVALID_LABEL || comparedAt === DATE_UNAVAILABLE_LABEL
+            ? "Comparison time unavailable"
+            : `Compared ${comparedAt}`,
         fix: null,
       };
     }
