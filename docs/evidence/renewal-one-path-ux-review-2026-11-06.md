@@ -342,6 +342,23 @@ confirmation retain their original behavior; an earlier cancel/step change keeps
 This client-only recovery callback changes no request, permission, provider seam or saved record.
 The focused mounted keyboard case and actual browser recheck are pending.
 
+UX-039, observed on committed `58f93a54`: Tab from a refused rent input started its blur
+save and removed Try again just as focus reached it. The 503 response restored the button,
+but focus remained on BODY. Input and operation identity stayed intact. This blocks keyboard
+recovery (P05, P12, P13, P14; SC04, SC05, SC09, SC10). The shared AutosaveStatus now keeps
+the same retry through saving, exposes aria-disabled while an operation is pending, and
+prevents duplicate activation. After success the focused retry remains until the next Tab;
+then it retires as focus reaches the following control. All consumers share this correction.
+Verification is pending.
+
+UX-040, observed on committed `58f93a54`: a successful Gmail preview opened while busy
+with disabled buttons and left focus on BODY. After loading finished, Escape still failed
+and Tab reached background Copy. Pointer Cancel worked; no draft was created. This fails
+P12, P13, P14 and SC09, SC10. ConfirmationDialog now focuses its dialog during initial
+loading and moves to Cancel when ready, with both Tab directions contained. Dispatched
+operations retain their existing cancellation boundary. No provider or saved-state contract
+changes. Verification is pending.
+
 Preserved by decision: exact review/confirmation, the required Gmail banner, stale authored wording,
 who-approved validation, role/Space and Action Registry checks, blank unsettled legal fields,
 assistance-animal holds, existing controls/views/filters/collections/old links, historical failed

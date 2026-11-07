@@ -69,7 +69,11 @@ describe("Housing assistance missing-program recovery", () => {
       ).toBe(true);
       working.states.housing_assistance = { phase: "saving" };
       view.rerender(<HousingAssistanceField placement={placement} />);
-      expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+      const pendingRetry = screen.getByRole("button", { name: "Try again" });
+      expect(pendingRetry).toHaveFocus();
+      expect(pendingRetry).toHaveAttribute("aria-disabled", "true");
+      await user.keyboard("{Enter}");
+      expect(working.save).toHaveBeenCalledTimes(attemptsBeforeRetry + 1);
       expect(
         screen
           .getAllByRole("status")

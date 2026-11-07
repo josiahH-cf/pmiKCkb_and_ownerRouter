@@ -14,6 +14,27 @@ afterEach(() => {
 });
 
 describe("S86 ConfirmationDialog", () => {
+  it("keeps initial loading focus inside, then focuses Cancel and supports Escape after loading", async () => {
+    const user = userEvent.setup();
+    const confirm = vi.fn();
+    const view = render(<DialogHarness busy onConfirm={confirm} />);
+    const trigger = screen.getByRole("button", { name: "Open exact confirmation" });
+    await user.click(trigger);
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveFocus();
+    await user.tab();
+    expect(dialog).toHaveFocus();
+    await user.keyboard("{Escape}");
+    expect(dialog).toBeInTheDocument();
+    view.rerender(<DialogHarness onConfirm={confirm} />);
+    expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus();
+    await user.tab({ shift: true });
+    expect(screen.getByRole("button", { name: "Confirm change" })).toHaveFocus();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(trigger).toHaveFocus();
+    expect(confirm).not.toHaveBeenCalled();
+  });
   it("finishes a failed field's recovery after the dialog closes and ordinary trigger focus returns", async () => {
     const returned: string[] = [];
     function FailedFieldHarness() {

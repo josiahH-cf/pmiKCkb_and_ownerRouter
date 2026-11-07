@@ -75,7 +75,8 @@ export function ConfirmationDialog({
     previousFocusRef.current =
       triggerRef?.current ?? (document.activeElement as HTMLElement);
     dismissNonModalTransientLayers();
-    cancelRef.current?.focus();
+    if (cancelRef.current && !cancelRef.current.disabled) cancelRef.current.focus();
+    else dialogRef.current?.focus();
     return () => {
       queueMicrotask(() => {
         const usable = (element: HTMLElement | null | undefined) =>
@@ -92,6 +93,19 @@ export function ConfirmationDialog({
       });
     };
   }, [open, triggerRef, currentFallback, onAfterClose]);
+
+  useEffect(() => {
+    if (!open || !dialogRef.current) return;
+    const active = document.activeElement;
+    if (
+      active === dialogRef.current ||
+      !dialogRef.current.contains(active) ||
+      active?.matches(":disabled")
+    ) {
+      if (cancelRef.current && !cancelRef.current.disabled) cancelRef.current.focus();
+      else dialogRef.current.focus();
+    }
+  }, [open, busy]);
 
   if (!open) return null;
 
@@ -115,7 +129,10 @@ export function ConfirmationDialog({
     }
     const first = focusable[0]!;
     const last = focusable.at(-1)!;
-    if (event.shiftKey && document.activeElement === first) {
+    if (!focusable.includes(document.activeElement as HTMLElement)) {
+      event.preventDefault();
+      (event.shiftKey ? last : first).focus();
+    } else if (event.shiftKey && document.activeElement === first) {
       event.preventDefault();
       last.focus();
     } else if (!event.shiftKey && document.activeElement === last) {

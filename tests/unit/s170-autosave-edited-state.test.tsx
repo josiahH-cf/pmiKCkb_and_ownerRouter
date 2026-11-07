@@ -1,14 +1,17 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { useState } from "react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   AUTOSAVE_IDLE,
   AutosaveStatus,
   withEdited,
+  type AutosaveState,
 } from "@/components/lease-renewal/AutosaveStatus";
 import { RenewalMessagePreparation } from "@/components/lease-renewal/RenewalMessagePreparation";
 import {
@@ -22,6 +25,7 @@ import type { RenewalWorkingRecord } from "@/lib/lease-renewal/working-record";
 // S170: autosave feedback tells an entry that is not stored yet apart from one that is saving,
 // saved or failed. No Save button is added: the entry still saves by itself. Values are synthetic.
 
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("@/components/lease-renewal/RenewalManualWorkspace", () => ({
   useRenewalManualWorkspace: () => ({
     leaseId: "701",
@@ -95,6 +99,58 @@ function deferred<T>() {
 const status = () => document.querySelector(".autosave-status") as HTMLElement;
 
 describe("S170 autosave says when an entry is edited and not stored yet", () => {
+  for (const outcome of ["failed", "saved"] as const) {
+    it(`keeps the retry focused when Tab starts a blur save, through ${outcome}`, async () => {
+      const retry = vi.fn();
+      let finish!: () => void;
+      function BlurHarness() {
+        const [state, setState] = useState<AutosaveState>({
+          phase: "failed",
+          message: "Please retry.",
+        });
+        finish = () =>
+          setState(
+            outcome === "failed"
+              ? { phase: "failed", message: "Please retry." }
+              : { phase: "saved" },
+          );
+        return (
+          <>
+            <input
+              aria-label="Working rent"
+              onBlur={() => setState({ phase: "saving" })}
+            />
+            <AutosaveStatus state={state} subject="Working rent" onRetry={retry} />
+            <button>Continue</button>
+          </>
+        );
+      }
+      const user = userEvent.setup();
+      render(<BlurHarness />);
+      await user.click(screen.getByLabelText("Working rent"));
+      const button = screen.getByRole("button", { name: "Try again" });
+      await user.tab();
+      expect(button).toHaveFocus();
+      expect(button).toHaveAttribute("aria-disabled", "true");
+      await user.keyboard("{Enter}");
+      expect(retry).not.toHaveBeenCalled();
+      // The actual response changes props while focus remains on the same DOM button.
+      act(finish);
+      expect(screen.getByRole("button", { name: "Try again" })).toBe(button);
+      expect(button).toHaveFocus();
+      if (outcome === "failed") {
+        await user.keyboard("{Enter}");
+        expect(retry).toHaveBeenCalledTimes(1);
+      } else {
+        expect(button).toHaveAttribute("aria-disabled", "true");
+      }
+      await user.tab();
+      expect(screen.getByRole("button", { name: "Continue" })).toHaveFocus();
+      if (outcome === "saved") {
+        expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+      }
+    });
+  }
   it("names the four states and keeps a save in flight or a failure ahead of edited", () => {
     render(<AutosaveStatus state={{ phase: "edited" }} subject="Message" />);
     expect(screen.getByRole("status")).toHaveTextContent("Edited, not saved yet");

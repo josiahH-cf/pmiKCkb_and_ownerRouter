@@ -5,6 +5,8 @@
 // only after the server confirmed and returned the stored value. A failure keeps the entered value
 // in its control and offers the same save again.
 
+import { useState } from "react";
+
 import { Button } from "@/components/ui";
 
 export type AutosaveState =
@@ -43,6 +45,25 @@ export function AutosaveStatus({
   /** What was saved, for the accessible label (for example "Working current rent"). */
   subject: string;
 }>) {
+  // A blur save can start while Tab is moving from the input to its retry. Keep that
+  // same button through the request, and until focus leaves it after success.
+  const [retryShown, setRetryShown] = useState(state.phase === "failed");
+  const [retryFocused, setRetryFocused] = useState(false);
+  const [retryConflict, setRetryConflict] = useState(
+    state.phase === "failed" && state.conflict === true,
+  );
+  if (state.phase === "failed" && !retryShown) setRetryShown(true);
+  if (state.phase === "failed" && retryConflict !== (state.conflict === true)) {
+    setRetryConflict(state.conflict === true);
+  }
+  if (
+    retryShown &&
+    state.phase !== "failed" &&
+    state.phase !== "saving" &&
+    !retryFocused
+  ) {
+    setRetryShown(false);
+  }
   return (
     <span
       aria-live="polite"
@@ -59,12 +80,21 @@ export function AutosaveStatus({
             {state.conflict ? "Changed elsewhere. " : "Save failed. "}
             {state.message} Your entry is kept.
           </span>
-          {onRetry ? (
-            <Button onClick={onRetry} size="compact" variant="tertiary">
-              {state.conflict ? "Save my entry" : "Try again"}
-            </Button>
-          ) : null}
         </>
+      ) : null}
+      {onRetry && retryShown ? (
+        <Button
+          aria-disabled={state.phase !== "failed" || undefined}
+          onBlur={() => setRetryFocused(false)}
+          onClick={() => {
+            if (state.phase === "failed") onRetry();
+          }}
+          onFocus={() => setRetryFocused(true)}
+          size="compact"
+          variant="tertiary"
+        >
+          {retryConflict ? "Save my entry" : "Try again"}
+        </Button>
       ) : null}
     </span>
   );
