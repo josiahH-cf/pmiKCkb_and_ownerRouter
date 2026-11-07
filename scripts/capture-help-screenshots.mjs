@@ -131,6 +131,10 @@ if (managed) {
   if (process.cwd() === "/app") {
     assert.equal(process.env.HELP_REHEARSAL_ISOLATED, "kernel-v1");
     assert.match(process.env.PMI_SOURCE_MANIFEST_SHA256 ?? "", /^[a-f0-9]{64}$/);
+    assert.equal(
+      process.env.NEXT_FONT_GOOGLE_MOCKED_RESPONSES,
+      "/opt/public-fonts/responses.cjs",
+    );
   } else {
     assert.match(process.cwd(), /^\/tmp\/pmi-kc-help-rehearsal-[^/]+\/worktree$/);
   }
@@ -802,6 +806,9 @@ function startServer(port) {
           process.cwd(),
           "scripts/lib/help-rehearsal-sheet.json",
         ),
+        ...(process.env.HELP_REHEARSAL_ISOLATED === "kernel-v1"
+          ? { NEXT_FONT_GOOGLE_MOCKED_RESPONSES: "/opt/public-fonts/responses.cjs" }
+          : {}),
         NEXT_E2E_ISOLATED_BUILD: "true",
         NEXT_TELEMETRY_DISABLED: "1",
         ENVIRONMENT_KIND: "demo",
