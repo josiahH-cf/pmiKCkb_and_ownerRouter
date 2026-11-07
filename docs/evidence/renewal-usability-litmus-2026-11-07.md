@@ -125,6 +125,18 @@ Staff session: none
   of comparison content separated the second difference from a layout shift. The gate
   exited 1 before formatting, lint, typecheck or tests.
 
+- L14 on `fb9799d7` in `canonical-fb9799d7-20261107T195620Z`. The required
+  rendered gate passed. The unit suite passed 11,575 with four skips and two failures
+  at the existing five-second limit. Both affected files passed all nine tests in a
+  one-worker exact-source recheck with the same per-test limit.
+
+- L14 on `fb9799d7` in `canonical-fb9799d7-20261107T205348Z`. The
+  four-worker rerun passed all 11,577 unit cases with four existing skips. The
+  backend passed 545 and failed ten. Three isolated draft journeys lacked a
+  saved signature choice or the working terms their offers used. S113 expected
+  a marker for an unused form link. Six scheduled-notice cases lacked the sender,
+  rent or publication evidence needed before authorization.
+
 ## Repairs
 
 - L03 now waits for the initial collection list before enabling New collection. The focused
@@ -168,6 +180,22 @@ material-difference thresholds and required control checks are unchanged.
 Exact capture review `20261107T195124Z-1c6b274f` produced 27 images. Market rent and
 Tenant offer matched the committed bytes. The visually reviewed one-pixel Lease details
 reframe was adopted from that run after its digest matched the capture report.
+
+L06 now clears the prior fragment on Guided return and focuses the exact Full
+heading below the sticky toolbar. The browser confirmed all five Guided and
+five legacy Focus destinations and the separate newer-edit readback.
+L09 waits for the actual fresh source result after the cooldown. The browser
+confirmed the exact restoration, retained collection membership and independent
+later source cycle.
+
+The Firestore journeys now create the required synthetic inputs through the existing
+services. The isolated draft cases keep the actual lost-save and source-expiry checks.
+S113 checks that the absent optional form link stays out of the copyable body and that
+the verified link appears after its real save. The scheduled-notice fixtures publish
+the reviewed owner copy, record the rent and save a versioned blank signature before
+each setup, including the mid-case database reset. Their review hash binds the same
+target and signature choice as the app. The three isolated fixture replays preserved
+their 549/6, 554/1 and 555/0 backend results. No runtime source changed in that repair.
 
 ## Final observations
 
@@ -265,6 +293,15 @@ working text winning delayed readback. It worked retirement through lease, desk,
 and the preserved collection. The actual downloaded synthetic documents showed the fee,
 kept the owner execution-date area blank and kept the approved brochure bytes. The
 oversized owner explanation was refused and the assistance-animal amounts stayed absent.
+
+On `fb9799d7`, the exact S252 run `20261107T201934Z-fb9799d7` passed all 107
+checks and five numerical budgets. The exact scoped run `20261107T203531Z-fb9799d7`
+passed all 17 cases with the mail adapter held. Both wrappers exited zero and
+cleaned their worktrees and emulator processes. Each reported two refused npm
+registry requests from development tooling. A separate attempt without the preload
+refused startup. The deliberate derivative `549da041`, run
+`20261107T204205Z-549da041`, rejected the hidden Record work control and nine
+materially changed scenes. Its disposable worktree was removed.
 
 ## Remaining blockers
 
@@ -410,3 +447,29 @@ Accepted: No
 | L12 | Yes | Browser outcome `20261107T173720Z-ccb8fae8/L12-connection-retry`. The narrow Admin read the focused service, received the synthetic refusal, retried with a verified result and returned. The old Admin anchor and the Editor refusal were observed. | Used the exact role and local metadata read. | None for the observed scoped tasks. |
 | L13 | UNVERIFIED | Help printed and returned to the exact lease section. The separate exact `b4a01582` capture review generated all 27 scenes. The fixed search image was visually checked and committed at `ccb8fae8`. | The search scene uses the fixed synthetic time for generated read timestamps. | Repeat required positive verification and demonstrate deliberate control and scene rejection. |
 | L14 | No | S252 passed all 106 checks and five numerical action budgets. The mailbox-disabled rehearsal passed 15 of 16 cases, with Owner approval focus unresolved. The local core and complete canonical lanes have no result on this commit. | Keep the failed detail proof alongside the positive synthetic effect and cleanup results. | Complete the same-candidate matrix, local gates and exact CI. |
+
+## Run 6
+
+Commit: fb9799d7421a78cda540e1ae48b8c95bbe05ce5c
+Starting commit: ef81b8917209f4eec3f22097142b559f3cce875b
+Run: 6
+Goal groups: all
+Accepted: No
+
+<!-- prettier-ignore -->
+| Check | Verdict | Evidence | Repair | Blocker |
+| ----- | ------- | -------- | ------ | ------- |
+| L01 | Yes | Browser outcome `20261107T203531Z-fb9799d7/L01-desk`. The Editor opened all seven nonempty groups and matched 38 unique records. The month survived both tables, an explicit saved filter and the empty-state recovery. A later row returned to its group, position and focus. The S252 run separately recovered the temporarily unreadable source. | The interrupted filter now offers the exact retry. | None within the synthetic engineering scope. |
+| L02 | Yes | Browser outcome `20261107T203531Z-fb9799d7/L02-linked-entries`. The desk, Dashboard result and private My Work task opened the same lease and stage. The Dashboard task returned to My Work. The other actor, missing lease and signed-out entries each showed their scoped result. | The verifier counts exact workspace links. | None within the synthetic engineering scope. |
+| L03 | Yes | Browser outcome `20261107T203531Z-fb9799d7/L03-collection`. The reviewed save recovered two exact members at version 1. The Approver reread them. The stale removal was refused after a rename to version 2. A revoked member kept its row without a link and regained the link after source recovery. Import and period match each saved their exact reviewed member. | The verifier waits for the changed source and exact collection read. | None within the synthetic engineering scope. |
+| L04 | Yes | Browser outcome `20261107T203531Z-fb9799d7/L04-independent-later-work`. The Editor used the keyboard to record a later document preparation and returned to the same owner action after reload. The S252 prepared lease showed its numbers, comparison, recommendation and owner preview with no write. The original layout and action bounds passed. | Later work keeps its own inputs and the current step stays available. | None within the synthetic engineering scope. |
+| L05 | Yes | Browser outcome `20261107T201934Z-fb9799d7/s247-s248-guided-path.25`. The lease, desk and Dashboard agreed on the staff and derived evidence, the conflict cue and the result after correction. The separate keyboard case restored Record work focus after Cancel. A refused note retained all 1,362 characters in its tab and one note persisted. | The shared header exposes the staff discrepancy and the separate Status log. | None within the synthetic engineering scope. |
+| L06 | Yes | Browser outcome `20261107T203531Z-fb9799d7/L06-full-destinations`. All five Guided detail links and all five old Focus destinations focused the requested heading below the toolbar and returned to the same step. The scoped working value survived reload and a view switch. The newer edit won a delayed acknowledgment. An invalid fragment resolved safely. | The workspace clears or replaces stale fragments. Older browser text without a verified actor and cycle is ineligible for restoration. | None within the synthetic engineering scope. |
+| L07 | Yes | Browser outcome `20261107T201934Z-fb9799d7/s247-s248-guided-path.26`. The Editor confirmed one linked synthetic reply with the exact subject, body, thread and durable receipt. Copy, Send, Schedule, composer and Gmail export matched the reviewed bytes. Two unsent draft receipts reread. Pause, Resume and the due send preserved authorization. The scoped Editor saved and reread a versioned blank signature. | Read the actual reply editor as rendered text and wait for the exact Outgoing row. The incomplete follow-up stayed in the app draft and the one-off message remained ready. | None within the synthetic engineering scope. |
+| L08 | Yes | Browser outcome `20261107T201934Z-fb9799d7/s250-s251-variants.05`. The Editor worked covered pricing, override and scope, assistance contact, no answer, Renew and Do not renew. The scoped run reread the annual review and non-renewal handoff on their own leases and returned to both counted groups. | The voucher-only row used the settled classification. Historical L55 keeps its own verdict. | None within the synthetic engineering scope. |
+| L09 | Yes | Browser outcome `20261107T203531Z-fb9799d7/L09-disposition`. Retirement and restoration reread as two exact events across lease, desk, collection and Dashboard. A stale review kept its reason and a later source cycle stayed active. The effect walk refused pending and ambiguous dispatch with their exact recovery links. | Wait for the applicable fresh source on each side of the cycle change. | None within the synthetic engineering scope. |
+| L10 | Yes | Browser outcome `20261107T203531Z-fb9799d7/L10-synthetic-forms`. The scoped run reread the fee, deposit and total, matched the downloaded prepared pet file and the original brochure, kept both organization names and the owner execution-date area, refused overflow and left assistance charges absent. The S252 prepared lease reached Complete and reopened from Completed. | Require the fresh document read and compare the exact downloaded bytes and untouched content. | None within the synthetic engineering scope. |
+| L11 | Yes | Browser outcome `20261107T203531Z-fb9799d7/L11-operations-procedure`. The narrow Editor opened Operations Communications, Internal Processes and the old renewal procedure, then returned to the exact lease. The linked-entry case separately confirmed the Dashboard task and its privacy. | Keep the scoped return on the existing destinations. | None within the synthetic engineering scope. |
+| L12 | Yes | Browser outcome `20261107T203531Z-fb9799d7/L12-connection-retry`. The narrow Admin followed the focused service, observed the injected failure, retried against the loopback stand-in and returned to Admin. The legacy Admin anchor returned to its index. The Editor saw the protected refusal. | Wait for the actual scoped health response. | None within the synthetic engineering scope. |
+| L13 | Yes | Browser outcome `20261107T203531Z-fb9799d7/L13-help-print-return`. The Editor requested Print this guide, verified all 32 heading rules and returned to the exact lease section. The S252 run followed the guide through exact kickoff. Required Help matched 27 scenes and found zero missing controls. Disposable derivative `549da041` rejected the hidden Record work control and nine material scenes. The candidate stayed clean. | Stabilize the two lease scenes and retain the exact rejected derivative. | None within the synthetic engineering scope. |
+| L14 | No | The exact browser runs passed 107 S252 checks and 17 scoped cases, all five numerical budgets and the network and cleanup checks. Rendered Help passed and the deliberate drift was refused. The first canonical run stopped at two unit timing failures. On the same SHA the full unit lane passed 11,577 with four skips, and Firestore then passed 545 with ten failures. | Retain the per-test limits and run with four unit workers. Update the backend fixtures to exercise the current outgoing review. | Canonical Firestore, build and served E2E plus separate core and exact-head CI still require a green final candidate. |

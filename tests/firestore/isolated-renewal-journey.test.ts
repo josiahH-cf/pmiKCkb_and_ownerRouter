@@ -145,6 +145,7 @@ import {
 } from "@/app/api/lease-renewal/message-preparation/route";
 import { saveRenewalWorkingField } from "@/lib/firestore/renewal-working-record";
 import { getRenewalWorkspace } from "@/lib/firestore/renewal-workspace";
+import { saveSenderSignatureChoice } from "@/lib/firestore/renewal-sender-signature-choice";
 
 const projectId = "demo-pmi-isolated-renewal-journey";
 let app: App;
@@ -203,6 +204,11 @@ beforeEach(async () => {
     endDate: "2026-12-31",
     increaseEligibilityDate: null,
   };
+  await saveSenderSignatureChoice(
+    editor,
+    { expectedRevision: 0, operationId: randomUUID(), signature: null },
+    db,
+  );
 });
 afterAll(async () => {
   await deleteApp(app);
@@ -270,7 +276,7 @@ function routeRequest(body: unknown) {
   });
 }
 
-async function saveTermsAndOwnerApproval() {
+async function saveOfferTerms() {
   for (const [field, value] of [
     ["terms_rent", terms.rent],
     ["terms_effective_date", terms.effectiveDate],
@@ -281,6 +287,10 @@ async function saveTermsAndOwnerApproval() {
       { leaseId: "701", field, value, expectedRevision: 0, operationId: randomUUID() },
       db,
     );
+}
+
+async function saveTermsAndOwnerApproval() {
+  await saveOfferTerms();
   await publishChargePolicy(
     approver,
     {
@@ -314,6 +324,9 @@ async function saveTermsAndOwnerApproval() {
 
 describe("synthetic isolated renewal journey through current services and durable storage", () => {
   it("replays a lost preview/save response with one saved revision, one preparation and no Gmail call", async () => {
+    // Terms live on the independent working record, so the first message save still
+    // establishes its own workspace cycle and requires the same fresh source read.
+    await saveOfferTerms();
     const initial = await read();
     await publishSuppliedRenewalTemplate(approver, "tenant", db);
     const request = {
@@ -341,6 +354,7 @@ describe("synthetic isolated renewal journey through current services and durabl
   });
 
   it("refuses confirmation after the source expires without consuming an attempt, then permits a fresh preview", async () => {
+    await saveOfferTerms();
     const initial = await read();
     await post({
       kind: "save",

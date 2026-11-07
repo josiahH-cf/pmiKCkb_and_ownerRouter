@@ -3850,16 +3850,20 @@ describe("S113 mounted operator journey with persisted backend state", () => {
           loopDelay.disable();
         }
         console.info("S113 tenant preview wait", JSON.stringify(previewWaitStats()));
-        // The publication is still pending, so only the Gmail step waits; copy is open.
+        // The publication and sender setup still hold Gmail. The unused form link is
+        // omitted from the copyable preview until a verified destination is saved.
         expect(
           tenant.queryByRole("button", { name: "Preview unsent Gmail draft" }),
         ).toBeDisabled();
         expect(tenantPreviews(tenantRegion)[0].textContent).not.toContain(
           "https://example",
         );
-        expect(
-          (tenant.getByLabelText("Email body") as HTMLTextAreaElement).value,
-        ).toContain("[Needs Verification: renewal information form link]");
+        const draftBody = (tenant.getByLabelText("Email body") as HTMLTextAreaElement)
+          .value;
+        expect(draftBody).toContain("[Needs Verification: sender signature]");
+        expect(draftBody).not.toContain(
+          "[Needs Verification: renewal information form link]",
+        );
         expect(tenant.getByRole("button", { name: "Copy plain text" })).toBeEnabled();
         // Pending team links do not block inspection/copy; save a verified fixture destination through its control.
         const form = screen.getByLabelText("Renewal information form").closest("form")!;
