@@ -661,8 +661,8 @@ export async function runGuidedPath() {
     const tomorrow = new Date(Date.now() + 86_400_000).toLocaleDateString("en-CA", {
       timeZone: "America/Chicago",
     });
-    await review.getByLabel("Date", { exact: true }).fill(tomorrow);
-    await review.getByLabel("Time (Central)", { exact: true }).fill("09:00");
+    await review.getByLabel(/^Date\b/).fill(tomorrow);
+    await review.getByLabel("Time (Central)").fill("09:00");
     const [scheduleResponse] = await Promise.all([
       communicationResponse("schedule"),
       dialog.getByRole("button", { name: "Schedule this message", exact: true }).click(),

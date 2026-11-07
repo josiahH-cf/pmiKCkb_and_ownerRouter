@@ -750,6 +750,142 @@ try {
     },
   );
   await check(
+    "L10-synthetic-forms",
+    "Editor",
+    wide,
+    "light",
+    "pointer",
+    "A synthetic Admin's published fee and the Editor's recorded deposit add exactly. A missing deposit leaves the total blank. The owner explanation keeps its paragraphs and neither value appears on a second lease.",
+    async (page) => {
+      log({
+        id: "L10-synthetic-forms-admin",
+        state: "expectation",
+        role: "Admin",
+        viewport: wide,
+        theme: "light",
+        input: "pointer",
+        expected:
+          "The scoped Admin page reads back the chosen brokerage family and the published synthetic fee.",
+      });
+      const admin = await session("Admin", wide, "light");
+      const postResponse = (actorPage, pathname) =>
+        actorPage.waitForResponse(
+          (response) =>
+            new URL(response.url()).pathname === pathname &&
+            response.request().method() === "POST",
+        );
+      try {
+        await open(admin.page, "/admin?task=renewal#admin-renewal-packet-policy");
+        const [family] = await Promise.all([
+          postResponse(admin.page, "/api/admin/lease-artifact-family-use"),
+          admin.page
+            .locator("#family-use-brokerage_disclosure")
+            .selectOption("mandatory"),
+        ]);
+        assert.ok(family.ok());
+        await admin.page.locator("#policy-pet-fee").fill("50");
+        await admin.page
+          .locator("#policy-pet-fee-source")
+          .fill("Synthetic rehearsal fee source");
+        await admin.page.locator("#policy-effective").fill(rehearsal.businessDate);
+        const [published] = await Promise.all([
+          postResponse(admin.page, "/api/admin/lease-charge-policy"),
+          admin.page
+            .getByRole("button", { name: "Publish a new policy version", exact: true })
+            .click(),
+        ]);
+        assert.ok(published.ok());
+        await admin.page.getByText(/Published charge policy version \d+/).waitFor();
+        await admin.page.reload({ waitUntil: "domcontentloaded" });
+        assert.equal(
+          await admin.page.locator("#family-use-brokerage_disclosure").inputValue(),
+          "mandatory",
+        );
+        assert.equal(
+          Number(await admin.page.locator("#policy-pet-fee").inputValue()),
+          50,
+        );
+      } finally {
+        await admin.context.close();
+      }
+      const documentPath = (id) => path(id, "?view=full#renewal-section-documents");
+      const packet = page.getByRole("region", {
+        name: "Document packet truth",
+        exact: true,
+      });
+      const inputs = packet.getByRole("region", { name: "Packet inputs", exact: true });
+      const openInputs = async (id) => {
+        await open(page, documentPath(id));
+        await packet
+          .getByRole("button", { name: "Open packet inputs", exact: true })
+          .click();
+        await inputs.waitFor();
+      };
+      await openInputs(prepared);
+      const amount = (kind) => inputs.locator('[data-pet-agreement="' + kind + '"]');
+      assert.match(await amount("fee").innerText(), /\$50\.00/);
+      assert.match(await amount("total").innerText(), /left blank/);
+      await inputs
+        .getByRole("textbox", { name: "Refundable deposit", exact: true })
+        .fill("250");
+      await inputs
+        .getByRole("textbox", { name: "Where the deposit comes from", exact: true })
+        .fill("Synthetic screening result for this lease");
+      await inputs.getByRole("button", { name: "Save animals", exact: true }).click();
+      await amount("total")
+        .filter({ hasText: /\$300\.00/ })
+        .waitFor();
+      assert.match(await amount("deposit").innerText(), /\$250\.00/);
+
+      const explanation =
+        "The example home stays on its current renewal path.\n\nThe synthetic owner may review the separate terms.";
+      await inputs
+        .getByRole("textbox", { name: "Explanation for the owner", exact: true })
+        .fill(explanation);
+      await inputs.getByRole("button", { name: "Save explanation", exact: true }).click();
+      const printed = inputs.locator('[data-renewal-field="owner-explanation-preview"]');
+      await printed.waitFor();
+      assert.equal((await printed.textContent())?.trim(), explanation);
+      await openInputs(prepared);
+      assert.match(await amount("total").innerText(), /\$300\.00/);
+      assert.equal((await printed.textContent())?.trim(), explanation);
+
+      const [evaluation] = await Promise.all([
+        postResponse(page, "/api/lease-renewal/packet-truth"),
+        packet
+          .getByRole("button", { name: /^Evaluate (?:packet|current truth)$/ })
+          .click(),
+      ]);
+      const snapshot = (await evaluation.json()).snapshot;
+      assert.ok(evaluation.ok() && snapshot?.leaseId === prepared && snapshot.snapshotId);
+      await packet
+        .getByRole("button", { name: "Evaluate current truth", exact: true })
+        .waitFor();
+      const visibleState = await packet
+        .locator('[data-renewal-field="packet-shown-state"]')
+        .innerText();
+      await openInputs(String(rehearsal.roles.covered));
+      assert.match(await amount("total").innerText(), /left blank/);
+      assert.equal(
+        await inputs
+          .getByRole("textbox", { name: "Explanation for the owner", exact: true })
+          .inputValue(),
+        "",
+      );
+      assert.equal(
+        await inputs.getByRole("textbox", { name: /Registration/i }).count(),
+        0,
+      );
+      return {
+        feePublishedAndReread: 50,
+        exactDepositAndTotal: [250, 300],
+        twoParagraphsReread: true,
+        packetEvaluationState: visibleState,
+        otherLeaseStayedBlank: true,
+      };
+    },
+  );
+  await check(
     "L11-operations-procedure",
     "Editor",
     narrow,
