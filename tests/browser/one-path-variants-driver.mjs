@@ -173,7 +173,7 @@ export async function runVariants() {
       if ((await button.getAttribute("aria-expanded")) !== "true") await button.click();
       await page.waitForTimeout(800);
     };
-    const row = (leaseId) => page.locator(`li[data-batch-lease="${leaseId}"]`).first();
+    const row = (leaseId) => page.locator(`tr[data-batch-lease="${leaseId}"]`).first();
     const rowTags = async (leaseId) =>
       row(leaseId)
         .locator("[data-batch-tag]")

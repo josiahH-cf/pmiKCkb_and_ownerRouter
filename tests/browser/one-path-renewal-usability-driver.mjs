@@ -182,13 +182,15 @@ try {
       await rows.first().waitFor();
       assert.equal(await rows.count(), 1);
       assert.equal(await rows.first().getAttribute("data-lease-id"), prepared);
-      const write = page.waitForResponse(
-        (response) =>
-          new URL(response.url()).pathname === "/api/personal-view" &&
-          response.request().method() === "POST",
-      );
-      await page.getByRole("button", { name: "Remember this view", exact: true }).click();
-      assert.ok((await write).ok());
+      const [write] = await Promise.all([
+        page.waitForResponse(
+          (response) =>
+            new URL(response.url()).pathname === "/api/personal-view" &&
+            response.request().method() === "POST",
+        ),
+        page.getByRole("button", { name: "Remember this view", exact: true }).click(),
+      ]);
+      assert.ok(write.ok());
       await open(page, desk);
       await batch.waitFor();
       await batch.getByRole("link", { name: "Open my saved view", exact: true }).click();
@@ -323,7 +325,11 @@ try {
           .getByLabel("Find leases by address, name or lease ID")
           .fill(String(lease));
         await editor.getByRole("button", { name: "Search leases" }).click();
-        await editor.getByRole("button", { name: /^Add / }).first().click();
+        await editor
+          .getByRole("listitem")
+          .filter({ hasText: new RegExp(`· Lease ${lease} ·`) })
+          .getByRole("button", { name: /^Add / })
+          .click();
       }
       await editor.getByRole("button", { name: "Review membership" }).click();
       const review = editor.getByRole("region", { name: "Reviewed membership" });
@@ -332,7 +338,11 @@ try {
       const apiPath = origin + "/api/lease-renewal/collections";
       let dropped = false;
       const loseSave = async (request) => {
-        if (!dropped && request.request().postDataJSON()?.action === "save") {
+        if (
+          !dropped &&
+          request.request().method() === "POST" &&
+          request.request().postDataJSON()?.action === "save"
+        ) {
           dropped = true;
           const result = await request.fetch({ maxRedirects: 0 });
           assert.ok(result.ok());
