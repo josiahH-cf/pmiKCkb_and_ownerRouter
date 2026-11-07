@@ -223,6 +223,7 @@ describe("S248 L36: read the observed owner reply before recording its meaning",
       "reply text could not be read",
     );
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(screen.getByText("Reading the owner's reply.")).toBeVisible();
     expect(await screen.findByText("Synthetic reply recovered.")).toBeVisible();
     expect(screen.getByLabelText(/What the owner asked to change/)).toHaveValue(
       "Keep this staff note.",

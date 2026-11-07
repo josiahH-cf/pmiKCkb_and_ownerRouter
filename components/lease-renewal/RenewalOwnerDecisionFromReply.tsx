@@ -20,18 +20,24 @@ const REPLY_PREFIX = "reply\u0000";
 
 /** Display one observed reply through the existing exact linked-thread read; never store its body. */
 function OwnerReplyPreview({ reply }: Readonly<{ reply: OwnerReplyChoice }>) {
-  const key = `${reply.sequenceId}:${reply.messageId ?? ""}`;
   const [retry, setRetry] = useState(0);
+  // Until this exact read settles, its loading state follows its inputs directly.
+  const key = JSON.stringify([
+    reply.sequenceId,
+    reply.threadId,
+    reply.messageId,
+    reply.senderEmail,
+    retry,
+  ]);
   const [read, setRead] = useState<{
     key: string;
-    state: "loading" | "ready" | "failed";
+    state: "ready" | "failed";
     body?: string;
     truncated?: boolean;
   } | null>(null);
   useEffect(() => {
     if (!reply.threadId || !reply.messageId) return;
     const controller = new AbortController();
-    setRead({ key, state: "loading" });
     const query = new URLSearchParams({
       id: reply.sequenceId,
       thread: reply.threadId,
@@ -62,7 +68,7 @@ function OwnerReplyPreview({ reply }: Readonly<{ reply: OwnerReplyChoice }>) {
         if (!controller.signal.aborted) setRead({ key, state: "failed" });
       });
     return () => controller.abort();
-  }, [key, reply.sequenceId, reply.threadId, reply.messageId, reply.senderEmail, retry]);
+  }, [key, reply.sequenceId, reply.threadId, reply.messageId, reply.senderEmail]);
   const current = read?.key === key ? read : null;
   return (
     <section aria-label="Owner reply" className="ui-stack-tight">
