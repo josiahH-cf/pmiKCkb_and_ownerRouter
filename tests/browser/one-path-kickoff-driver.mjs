@@ -1043,24 +1043,44 @@ export async function runKickoff() {
         .getByRole("button", { name: "Set up your signature", exact: true })
         .click();
       const form = now().getByRole("form", { name: "Your signature" });
-      await form.getByRole("button", { name: "Save my signature", exact: true }).click();
-      const refused = (
-        await now().locator('[data-renewal-field="signature-notice"]').textContent()
-      )?.trim();
-      await form.getByLabel("Sender name").fill("Example Approver");
-      await form.getByRole("button", { name: "Save my signature", exact: true }).click();
-      await page.waitForTimeout(3000);
-      const signatureReady = await now()
+      const saved = page.waitForResponse(
+        (response) =>
+          new URL(response.url()).pathname === "/api/lease-renewal/sender-signature" &&
+          response.request().method() === "POST",
+      );
+      await form
+        .getByRole("button", { name: "Save blank signature", exact: true })
+        .click();
+      const reply = await saved;
+      const choice = reply.ok() ? (await reply.json()).choice : null;
+      const ready = now()
         .locator('[data-renewal-ready="ready"]')
-        .filter({ hasText: "Your signature" })
+        .filter({ hasText: "Your signature" });
+      await ready.waitFor();
+      const returnedToSameLease = page.url() === leaseUrl && (await form.count()) === 0;
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await ready.waitFor();
+      const signatureReady = await ready.count();
+      const recipientStillMissing = await now()
+        .locator('[data-renewal-ready="missing"]')
+        .filter({ hasText: "Owner recipient" })
         .count();
       check(
-        "L45: a staff member with no signature sets one up on the Now card without leaving the lease, and a refused save names the missing fields",
+        "L45 November 7: a different sender can deliberately save a blank signature on the lease, reload its readiness, and still needs the verified recipient",
         hadNoSignature &&
-          (refused ?? "").includes("Sender name") &&
+          Number.isInteger(choice?.revision) &&
+          choice.revision > 0 &&
+          choice.signature === null &&
+          returnedToSameLease &&
           signatureReady === 1 &&
-          page.url() === leaseUrl,
-        { hadNoSignature, refused, signatureReady },
+          recipientStillMissing === 1,
+        {
+          hadNoSignature,
+          choiceRevision: choice?.revision,
+          returnedToSameLease,
+          signatureReady,
+          recipientStillMissing,
+        },
       );
       await signIn("Editor");
     });
