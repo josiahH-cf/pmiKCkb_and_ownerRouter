@@ -324,12 +324,12 @@
         "width": 1280,
         "height": 800
       },
-      "region": "region:Owner message preparation",
+      "region": "heading:Copy the message",
       "frame": "viewport",
       "align": "center",
       "actions": ["click-button:Full view", "wait-text:Copy the message"],
       "source": "rehearsal",
-      "alt": "Owner message preparation in Owner approval: Compose owner message in Communications, the lease's notes, then Copy the message with the Subject and To lines.",
+      "alt": "The Copy the message area in Full view with the Subject, To and Email body fields.",
       "caption": "The owner message is prepared from the lease facts and the saved comparison."
     },
     {

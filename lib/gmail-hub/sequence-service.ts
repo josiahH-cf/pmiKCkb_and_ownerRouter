@@ -438,11 +438,34 @@ export class WorkflowCommunicationSequenceService {
         "The recipients or source facts changed after the preview. Refresh and review them before Send/Schedule.",
         409,
       );
+    if (input.action === "resume" && (!s.authorization || s.state !== "paused"))
+      throw new EditableLayerError(
+        "Only a paused approved communication can resume.",
+        409,
+      );
+    let schedule = input.schedule
+      ? CommunicationScheduleSchema.parse(input.schedule)
+      : null;
+    if (input.action === "schedule" && !schedule)
+      throw new EditableLayerError(
+        "Choose the first local date, time and timezone.",
+        400,
+      );
+    if (input.action === "send" && schedule)
+      throw new EditableLayerError("Send now and Schedule are separate actions.", 400);
+    if (input.action === "resume") schedule = s.authorization!.schedule;
+    const authorizesFollowUp =
+      schedule?.everyDays !== null && schedule?.everyDays !== undefined;
+    if (authorizesFollowUp && !s.followUp)
+      throw new EditableLayerError(
+        "A repeating schedule needs reviewed follow-up content.",
+        400,
+      );
     if (
       s.context.replyTo &&
       (!target.reply ||
         s.initial.subject !== target.reply.subject ||
-        (s.followUp && s.followUp.subject !== target.reply.subject))
+        (authorizesFollowUp && s.followUp?.subject !== target.reply.subject))
     )
       throw new EditableLayerError(
         "A linked reply keeps the original subject. Review the exact thread or start a new communication for a different subject.",
@@ -456,11 +479,6 @@ export class WorkflowCommunicationSequenceService {
         409,
       );
     if (input.action === "resume") {
-      if (!s.authorization || s.state !== "paused")
-        throw new EditableLayerError(
-          "Only a paused approved communication can resume.",
-          409,
-        );
       s = await this.observe(s);
       if (s.observation?.state !== "current")
         throw new EditableLayerError(
@@ -474,7 +492,7 @@ export class WorkflowCommunicationSequenceService {
       : s.linkedThreads;
     const [initial, followUp] = await Promise.all([
       this.snapshot(s.initial, s.context, s.signatureSnapshots?.initial, actor.email),
-      s.followUp
+      authorizesFollowUp && s.followUp
         ? this.snapshot(
             s.followUp,
             s.context,
@@ -491,22 +509,6 @@ export class WorkflowCommunicationSequenceService {
       if (gaps.length) throw new EditableLayerError([...new Set(gaps)].join(" "), 409);
     }
     const nowMs = this.now();
-    let schedule = input.schedule
-      ? CommunicationScheduleSchema.parse(input.schedule)
-      : null;
-    if (input.action === "schedule" && !schedule)
-      throw new EditableLayerError(
-        "Choose the first local date, time and timezone.",
-        400,
-      );
-    if (input.action === "send" && schedule)
-      throw new EditableLayerError("Send now and Schedule are separate actions.", 400);
-    if (input.action === "resume") schedule = s.authorization!.schedule;
-    if (schedule?.everyDays !== null && schedule?.everyDays !== undefined && !followUp)
-      throw new EditableLayerError(
-        "A repeating schedule needs reviewed follow-up content.",
-        400,
-      );
     if (
       schedule?.sendLimit !== null &&
       schedule?.sendLimit !== undefined &&
@@ -879,9 +881,12 @@ export class WorkflowCommunicationSequenceService {
       target.outgoingContract && !authorization.signatureSetup
         ? target.legacyMaterialSourceHash
         : target.materialSourceHash;
+    const hasRepeat =
+      authorization.schedule?.everyDays !== undefined &&
+      authorization.schedule.everyDays !== null;
     const messages = [
       authorization.initial,
-      ...(authorization.followUp ? [authorization.followUp] : []),
+      ...(hasRepeat && authorization.followUp ? [authorization.followUp] : []),
     ];
     const signatureBound = authorization.signatureSetup
       ? authorization.signatureSetup.uid === authorization.approvedByUid &&

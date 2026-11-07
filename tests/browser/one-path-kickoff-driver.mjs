@@ -397,7 +397,7 @@ export async function runKickoff() {
 
     // L35 (first half): an Admin turns the reviewed setting off in the app (no release), and then
     // opening the batch starts nothing.
-    await toggleSetting(false);
+    if (!rehearsal.automaticComparisonHeld) await toggleSetting(false);
     await setComparisonAllowance(rehearsal, false);
     writes.length = 0;
     await desk();
@@ -442,130 +442,149 @@ export async function runKickoff() {
       { staffPosts, staffComparisons },
     );
 
-    // L33: with the setting on, opening the batch starts the preparation by itself for the leases
-    // whose kickoff needs a comparison, at most one per lease per cycle, and opening it again
-    // requests none. S250: the covered lease's rent comes from its standing agreement's rule, so it
-    // is not looked up by itself while the agreement covers it; S251 holds the assisted lease back.
-    // After Prepare this batch above, every other working-month lease is prepared, covered or held,
-    // so the first open asks for nothing. The covered lease then leaves its rule (a typed different
-    // rent, L47), which makes it an ordinary lease that needs a comparison, and the next open
-    // prepares it by itself. Typing the rule's result back covers it again for the checks below.
-    await setComparisonAllowance(rehearsal, true);
-    await toggleSetting(true);
-    await setComparisonAllowance(rehearsal, false);
-    phase = "L33 covered";
-    writes.length = 0;
-    await desk();
-    const coveredOpen = await batchState();
-    await preparationSettled(15_000);
-    const coveredPosts = kickoffPosts().map((entry) => entry.body?.leaseId);
-    const whileCovered = await comparisons();
-    check(
-      `L33 (covered lease ${covered}): while its standing agreement covers it, opening the batch looks up no comparison for it`,
-      !coveredPosts.includes(String(covered)) &&
-        (whileCovered[String(covered)] ?? 0) === 0 &&
-        coveredOpen.rows
-          ?.find((row) => row.lease === String(covered))
-          ?.tags.includes("standing_agreement") === true,
-      { coveredPosts, whileCovered, coveredOpen },
-    );
-    /** Type a rent to recommend on the lease's Now card and wait for its save to answer. */
-    const typeRent = async (leaseId, value) => {
-      await page.goto(
-        `${origin}/lease-renewal/live/desk/lease/${leaseId}?step=compare-market`,
-        { waitUntil: "domcontentloaded" },
+    if (rehearsal.automaticComparisonHeld) {
+      phase = "L33 held candidate profile";
+      writes.length = 0;
+      const beforeHeld = await comparisons();
+      await desk();
+      await page.waitForTimeout(6000);
+      const held = await batchState();
+      const afterHeld = await comparisons();
+      check(
+        "L33 November 7: the held automatic setting survives opening and rereading the working batch",
+        held.automatic === "off" &&
+          kickoffPosts().length === 0 &&
+          JSON.stringify(beforeHeld) === JSON.stringify(afterHeld) &&
+          (afterHeld[String(prepared)] ?? 0) === 0 &&
+          (afterHeld[String(assisted)] ?? 0) === 0,
+        { held, beforeHeld, afterHeld, preparationRequests: kickoffPosts().length },
       );
-      const field = page.locator("#renewal-now-rent-to-recommend");
-      await field.waitFor({ timeout: 120_000 });
-      const saved = page
-        .waitForResponse(
-          (response) =>
-            response.request().method() === "POST" &&
-            new URL(response.url()).pathname === "/api/lease-renewal/working-record",
-          { timeout: 60_000 },
-        )
-        .then((response) => response.ok())
-        .catch(() => false);
-      await field.fill(String(value));
-      await field.blur();
-      return saved;
-    };
-    phase = "L33 setup";
-    const leftRule = await typeRent(covered, 1800);
-    phase = "L33 open";
-    writes.length = 0;
-    await desk();
-    const firstOpen = await batchState();
-    await preparationSettled();
-    const automaticPosts = kickoffPosts().map((entry) => entry.body?.trigger);
-    const automaticLeases = kickoffPosts().map((entry) => entry.body?.leaseId);
-    const afterAutomatic = await comparisons();
-    phase = "L33 reopen";
-    writes.length = 0;
-    await desk();
-    const reopened = await batchState();
-    // A batch drawn from an aging read reads the desk again before anything starts; wait it out.
-    await page.waitForTimeout(9000);
-    const afterReopen = await comparisons();
-    const reopenPosts = kickoffPosts().map((entry) => entry.body?.leaseId);
-    const leasesInBatch = await page
-      .getByRole("region", { name: "This batch", exact: true })
-      .locator("[data-batch-lease]")
-      .evaluateAll((rows) => [
-        ...new Set(rows.map((row) => row.getAttribute("data-batch-lease"))),
-      ]);
-    const answers = kickoffAnswers.filter((entry) => entry.phase.startsWith("L33"));
-    check(
-      "L33: opening the batch starts preparation by itself for a lease that needs a comparison, at most one comparison per lease per cycle, and none again on reopening",
-      leftRule &&
-        automaticPosts.length >= 1 &&
-        automaticPosts.every((trigger) => trigger === "automatic") &&
-        automaticLeases.includes(String(covered)) &&
-        (afterAutomatic[String(covered)] ?? 0) === 1 &&
-        Object.values(afterAutomatic).every((n) => n <= 1) &&
-        JSON.stringify(afterReopen) === JSON.stringify(afterAutomatic) &&
-        reopenPosts.length === 0 &&
-        answers.every((entry) => entry.http === 200),
-      {
-        leftRule,
-        automaticPosts,
-        automaticLeases,
-        afterAutomatic,
-        afterReopen,
-        reopenPosts,
-        leasesInBatch,
-        answers,
-        firstOpen,
-        reopened,
-      },
-    );
-    // S251 seeds Housing assistance Yes on the assisted lease, so the hold keeps it unprepared:
-    // the batch never even asks the server for it.
-    check(
-      `L33 (assisted lease ${assisted}): no comparison is requested for it`,
-      (afterAutomatic[String(assisted)] ?? 0) === 0 &&
-        (afterReopen[String(assisted)] ?? 0) === 0 &&
-        !kickoffAnswers.some((entry) => entry.leaseId === String(assisted)),
-      {
-        requested: afterAutomatic[String(assisted)] ?? 0,
-        afterReopen: afterReopen[String(assisted)] ?? 0,
-        asked: kickoffAnswers.filter((entry) => entry.leaseId === String(assisted)),
-      },
-    );
-    // The covered state comes back with the rule's result typed (clearing a typed rent would be a
-    // staff choice of its own).
-    phase = "L33 restore";
-    const restored = await typeRent(covered, 1751);
-    assert.ok(
-      restored,
-      "Typing the rule's result back on the covered lease was refused.",
-    );
-    await desk();
-    check(
-      `L32: the prepared lease ${prepared} reuses its stored comparison (no request for it)`,
-      !(String(prepared) in afterAutomatic),
-      { afterAutomatic },
-    );
+    } else {
+      // L33: with the setting on, opening the batch starts the preparation by itself for the leases
+      // whose kickoff needs a comparison, at most one per lease per cycle, and opening it again
+      // requests none. S250: the covered lease's rent comes from its standing agreement's rule, so it
+      // is not looked up by itself while the agreement covers it; S251 holds the assisted lease back.
+      // After Prepare this batch above, every other working-month lease is prepared, covered or held,
+      // so the first open asks for nothing. The covered lease then leaves its rule (a typed different
+      // rent, L47), which makes it an ordinary lease that needs a comparison, and the next open
+      // prepares it by itself. Typing the rule's result back covers it again for the checks below.
+      await setComparisonAllowance(rehearsal, true);
+      await toggleSetting(true);
+      await setComparisonAllowance(rehearsal, false);
+      phase = "L33 covered";
+      writes.length = 0;
+      await desk();
+      const coveredOpen = await batchState();
+      await preparationSettled(15_000);
+      const coveredPosts = kickoffPosts().map((entry) => entry.body?.leaseId);
+      const whileCovered = await comparisons();
+      check(
+        `L33 (covered lease ${covered}): while its standing agreement covers it, opening the batch looks up no comparison for it`,
+        !coveredPosts.includes(String(covered)) &&
+          (whileCovered[String(covered)] ?? 0) === 0 &&
+          coveredOpen.rows
+            ?.find((row) => row.lease === String(covered))
+            ?.tags.includes("standing_agreement") === true,
+        { coveredPosts, whileCovered, coveredOpen },
+      );
+      /** Type a rent to recommend on the lease's Now card and wait for its save to answer. */
+      const typeRent = async (leaseId, value) => {
+        await page.goto(
+          `${origin}/lease-renewal/live/desk/lease/${leaseId}?step=compare-market`,
+          { waitUntil: "domcontentloaded" },
+        );
+        const field = page.locator("#renewal-now-rent-to-recommend");
+        await field.waitFor({ timeout: 120_000 });
+        const saved = page
+          .waitForResponse(
+            (response) =>
+              response.request().method() === "POST" &&
+              new URL(response.url()).pathname === "/api/lease-renewal/working-record",
+            { timeout: 60_000 },
+          )
+          .then((response) => response.ok())
+          .catch(() => false);
+        await field.fill(String(value));
+        await field.blur();
+        return saved;
+      };
+      phase = "L33 setup";
+      const leftRule = await typeRent(covered, 1800);
+      phase = "L33 open";
+      writes.length = 0;
+      await desk();
+      const firstOpen = await batchState();
+      await preparationSettled();
+      const automaticPosts = kickoffPosts().map((entry) => entry.body?.trigger);
+      const automaticLeases = kickoffPosts().map((entry) => entry.body?.leaseId);
+      const afterAutomatic = await comparisons();
+      phase = "L33 reopen";
+      writes.length = 0;
+      await desk();
+      const reopened = await batchState();
+      // A batch drawn from an aging read reads the desk again before anything starts; wait it out.
+      await page.waitForTimeout(9000);
+      const afterReopen = await comparisons();
+      const reopenPosts = kickoffPosts().map((entry) => entry.body?.leaseId);
+      const leasesInBatch = await page
+        .getByRole("region", { name: "This batch", exact: true })
+        .locator("[data-batch-lease]")
+        .evaluateAll((rows) => [
+          ...new Set(rows.map((row) => row.getAttribute("data-batch-lease"))),
+        ]);
+      const answers = kickoffAnswers.filter((entry) => entry.phase.startsWith("L33"));
+      check(
+        "L33: opening the batch starts preparation by itself for a lease that needs a comparison, at most one comparison per lease per cycle, and none again on reopening",
+        leftRule &&
+          automaticPosts.length >= 1 &&
+          automaticPosts.every((trigger) => trigger === "automatic") &&
+          automaticLeases.includes(String(covered)) &&
+          (afterAutomatic[String(covered)] ?? 0) === 1 &&
+          Object.values(afterAutomatic).every((n) => n <= 1) &&
+          JSON.stringify(afterReopen) === JSON.stringify(afterAutomatic) &&
+          reopenPosts.length === 0 &&
+          answers.every((entry) => entry.http === 200),
+        {
+          leftRule,
+          automaticPosts,
+          automaticLeases,
+          afterAutomatic,
+          afterReopen,
+          reopenPosts,
+          leasesInBatch,
+          answers,
+          firstOpen,
+          reopened,
+        },
+      );
+      // S251 seeds Housing assistance Yes on the assisted lease, so the hold keeps it unprepared:
+      // the batch never even asks the server for it.
+      check(
+        `L33 (assisted lease ${assisted}): no comparison is requested for it`,
+        (afterAutomatic[String(assisted)] ?? 0) === 0 &&
+          (afterReopen[String(assisted)] ?? 0) === 0 &&
+          !kickoffAnswers.some((entry) => entry.leaseId === String(assisted)),
+        {
+          requested: afterAutomatic[String(assisted)] ?? 0,
+          afterReopen: afterReopen[String(assisted)] ?? 0,
+          asked: kickoffAnswers.filter((entry) => entry.leaseId === String(assisted)),
+        },
+      );
+      // The covered state comes back with the rule's result typed (clearing a typed rent would be a
+      // staff choice of its own).
+      phase = "L33 restore";
+      const restored = await typeRent(covered, 1751);
+      assert.ok(
+        restored,
+        "Typing the rule's result back on the covered lease was refused.",
+      );
+      await desk();
+      check(
+        `L32: the prepared lease ${prepared} reuses its stored comparison (no request for it)`,
+        !(String(prepared) in afterAutomatic),
+        { afterAutomatic },
+      );
+    }
 
     // L31 and L30: the batch order and the missing recipient on the desk.
     const parts = await page

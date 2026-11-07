@@ -532,6 +532,86 @@ try {
     },
   );
   await check(
+    "L12-connection-retry",
+    "Admin",
+    narrow,
+    "dark",
+    "keyboard",
+    "The old RentVine anchor opens its focused service. A refused synthetic check keeps the service state and the same control can read it successfully on retry.",
+    async (page) => {
+      await open(page, "/connections#connector-rentvine");
+      const verify = page.getByRole("button", {
+        name: "Check RentVine connection",
+        exact: true,
+      });
+      await verify.waitFor();
+      const route = origin + "/api/connections/verify";
+      let failureServed = false;
+      const refuseOnce = (request) => {
+        if (failureServed) return request.continue();
+        failureServed = true;
+        return request.fulfill({
+          status: 503,
+          contentType: "application/json",
+          body: "{}",
+        });
+      };
+      await page.route(route, refuseOnce);
+      await verify.focus();
+      await page.keyboard.press("Enter");
+      await page.getByText("The check could not run", { exact: true }).waitFor();
+      await page.unroute(route, refuseOnce);
+      await verify.focus();
+      await page.keyboard.press("Enter");
+      await page
+        .getByText("Verified: RentVine answered the live check.", { exact: true })
+        .waitFor();
+      await page
+        .getByRole("link", { name: "Open Admin task index", exact: true })
+        .click();
+      await page.getByRole("region", { name: "Find an Admin task" }).waitFor();
+      const editor = await session("Editor", narrow, "light");
+      try {
+        await open(editor.page, "/connections#connector-rentvine");
+        await editor.page
+          .getByText("An Admin connects and verifies this.")
+          .first()
+          .waitFor();
+        assert.equal(
+          await editor.page
+            .getByRole("button", { name: "Check RentVine connection", exact: true })
+            .count(),
+          0,
+        );
+        const protectedRoute = await open(
+          editor.page,
+          "/admin?task=renewal#admin-renewal-packet-policy",
+        );
+        assert.ok(
+          protectedRoute?.status() === 403 ||
+            new URL(editor.page.url()).pathname !== "/admin" ||
+            (await editor.page
+              .getByText(/Admin access|permission/i)
+              .first()
+              .isVisible()),
+        );
+        assert.equal(
+          await editor.page
+            .getByRole("button", { name: "Publish a new policy version", exact: true })
+            .count(),
+          0,
+        );
+      } finally {
+        await editor.context.close();
+      }
+      return {
+        failedReadRetried: failureServed,
+        returnedToAdmin: true,
+        editorRefused: true,
+      };
+    },
+  );
+  await check(
     "L12-admin-legacy-anchor",
     "Admin",
     narrow,
