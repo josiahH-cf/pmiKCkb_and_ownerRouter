@@ -564,6 +564,14 @@ export function rentvineStandInResponse(mix, url, flags = {}) {
       body: page === 1 ? mix.leases.map((row) => servedRow(mix, row, flags)) : [],
     };
   }
+  // The Connections health check reads one record from the same synthetic inventory.
+  if (path === "leases" && url.searchParams.get("limit") === "1") {
+    return {
+      body: mix.leases.slice(0, 1).map((row) => ({
+        lease: leaseDetail(servedRow(mix, row, flags)),
+      })),
+    };
+  }
   if (path === "leases/statuses") return { body: mix.statuses };
   if (/^leases\/\d+\/recurring-charges$/.test(path)) return { body: [] };
   const one = path.match(/^leases\/(\d+)$/);

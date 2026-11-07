@@ -236,7 +236,7 @@ try {
 
       await open(page, "/");
       await page
-        .getByLabel("Question", { exact: true })
+        .getByRole("textbox", { name: "Question", exact: true })
         .fill("Which lease renewals are due next month?");
       await page.getByRole("button", { name: "Get answer", exact: true }).click();
       const answer = page.getByRole("region", { name: "Assistant answer", exact: true });
@@ -394,7 +394,10 @@ try {
         const staleEditor = stale.getByRole("region", {
           name: "Collection membership editor",
         });
-        const staleIds = staleEditor.getByLabel("Selected lease IDs", { exact: true });
+        await staleEditor.waitFor();
+        const staleIds = staleEditor.getByRole("textbox", {
+          name: /^Selected lease IDs/,
+        });
         await staleIds.fill(prepared);
         await staleEditor.getByRole("button", { name: "Review membership" }).click();
         const staleReview = staleEditor.getByRole("region", {
@@ -424,6 +427,11 @@ try {
         assert.match(await staleDetail.innerText(), /2 saved members/);
         await staleEditor.getByRole("button", { name: "Discard changes" }).click();
         await staleEditor.waitFor({ state: "hidden" });
+      } catch (error) {
+        await stale
+          .screenshot({ path: join(runDir, "L03-stale-review-failure.png") })
+          .catch(() => undefined);
+        throw error;
       } finally {
         await stale.close();
       }
@@ -751,11 +759,14 @@ try {
     async (page) => {
       const operations = async () => {
         const menu = page.getByRole("button", { name: "Menu", exact: true });
-        await menu.tap();
+        if ((await menu.getAttribute("aria-expanded")) !== "true") await menu.tap();
         await page
           .getByRole("button", { name: "Menu", exact: true, expanded: true })
           .waitFor();
-        await page.getByRole("button", { name: "Operations", exact: true }).tap();
+        const group = page.getByRole("button", {
+          name: /^Operations(?: Contains current page)?$/,
+        });
+        if ((await group.getAttribute("aria-expanded")) !== "true") await group.tap();
       };
       await open(page, "/");
       await page.waitForLoadState("networkidle", { timeout: 15_000 });
@@ -834,10 +845,10 @@ try {
       assert.ok(retry.ok());
       const result = await retry.json();
       assert.equal(result.connector_id, "rentvine");
-      const message = result.verified
-        ? "Verified: RentVine answered the live check."
-        : "RentVine did not pass the live check. See the card's next step.";
-      await page.getByText(message, { exact: true }).waitFor();
+      assert.equal(result.verified, true);
+      await page
+        .getByText("Verified: RentVine answered the live check.", { exact: true })
+        .waitFor();
       await page
         .getByRole("link", { name: "Open Admin task index", exact: true })
         .click();
