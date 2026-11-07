@@ -23,6 +23,7 @@ const facts: RenewalMessageFacts = {
   range: null,
   suggestedRent: null,
   comps: [],
+  sparseCompsQualification: null,
   trend: null,
   charges: [],
   insuranceTransition: null,

@@ -165,6 +165,7 @@ async function newPage(browser, viewport = { width: 1280, height: 800 }) {
     timezoneId: "America/Chicago",
     locale: "en-US",
     permissions: ["clipboard-read", "clipboard-write"],
+    serviceWorkers: "block",
   });
   await context.route("**/*", (route) =>
     new URL(route.request().url()).origin === origin

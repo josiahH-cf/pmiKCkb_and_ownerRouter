@@ -214,9 +214,16 @@ async function renewalTarget(actor: AuthenticatedUser, c: WorkflowCommunicationC
     legacyMaterialSourceHash,
   };
   const initial = communicationMessageFromRenewalContent(current.content);
+  const signatureParagraph =
+    f.signature || !f.signatureConfigured
+      ? (communicationMessageFromRenewalContent(current.composedContent).paragraphs.at(
+          -1,
+        ) ?? null)
+      : null;
   return {
     target,
     initial,
+    signatureParagraph,
     // S249 ARCH-S249-2: the lease message record's revision this composition was made from.
     messageRevision: current.messageRevision,
     // S249 R-S249-5 (J): the prefilled figure this composed message carries, if any.

@@ -464,9 +464,20 @@ async function controls(file) {
         });
       continue;
     }
-    for (const entry of entries) {
-      const state = await controlState(page, entry);
-      report.push({ ...entry, state, status });
+    const states = await Promise.all(entries.map((entry) => controlState(page, entry)));
+    for (const [index, entry] of entries.entries()) {
+      const state = states[index];
+      report.push({
+        ...entry,
+        state,
+        status,
+        ...(state === "unavailable"
+          ? {
+              reason:
+                "The documented conditional state did not occur for this role and synthetic fixture.",
+            }
+          : {}),
+      });
       process.stdout.write(
         `${state.padEnd(11)} ${entry.owner} ${entry.step ?? ""} ${entry.role ? `[${entry.role}]` : ""} ${entry.controlRole} "${entry.label}"\n`,
       );

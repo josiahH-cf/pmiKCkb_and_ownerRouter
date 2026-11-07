@@ -126,6 +126,13 @@ do not establish the corresponding customer destination. S66/S130 investigate av
 first; only a remaining exact destination/use question goes to Dan. Copyable preparation continues
 with visible missing-value markers.
 
+## November 7 release assurance
+
+The required Communications canary checks `/api/gmail-hub/connection`, which calls the managed
+Gmail mailbox profile read. The November 7 execution instruction excludes mailbox access as
+verification. This holds dependent release assurance under the existing runbook. Preserve the
+required check. Synthetic engineering work can continue under the existing effect limits.
+
 ## Precise client unblockers
 
 ### U1 — Confirm only unresolved form/version/map decisions (B-DL3, C01–C02)

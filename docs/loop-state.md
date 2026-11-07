@@ -21,6 +21,18 @@ The earlier [S245 delivery](evidence/s245-litmus-fixes-delivery-2026-11-05.md) a
 [November 3 configuration outcomes](evidence/application-gap-delivery-2026-11-03.md) retain
 their own evidence. The current release changes no workflow authority or held client input.
 
+## Active November 7 follow-up
+
+The owner launched intakes 121–129 for unattended execution on November 7. The published specification is `4caad68df6885d3eed4cb2b3fff7c70e5c96ae15`. Remote main at start was `bf9753d6af9c7cb90c7a17d3dee0965ae9656095`. The isolated WSL branch is `codex/renewal-usability-20261107`. The comparison baseline is the earlier deployed `ef81b891`.
+
+One implementation owner is using the isolated WSL worktree
+`/home/josiah/pmi-kc-work/renewal-usability-20261107`. Continue the named verification in order.
+Use the [versioned S254 profile](renewal-usability-litmus-profile-2026-11-07.md), S252 budgets and
+ledger, and final S259 matrix on one candidate. Every automated rehearsal holds automatic
+comparison. The focused run at `ffa59856` covered five checkpoints. Staff verdict NOT RUN.
+
+The release runbook requires a guarded Communications browser check that reads the real managed Gmail profile through `/api/gmail-hub/connection`. The November 7 execution instruction excludes mailbox access as verification. This holds release assurance and any release admission that depends on it. Engineering qualification uses only synthetic and loopback evidence. The release queue remains empty during engineering qualification.
+
 ## Exact remaining boundaries
 
 - **B-GCP-REINDEX:** the app lacks storage.objects.list on its existing corpus bucket. Bucket,
@@ -45,7 +57,7 @@ their own evidence. The current release changes no workflow authority or held cl
 The queue is empty. Run `72c6456a` delivered S246–S254 in one candidate.
 Documentation closure does not require an application revision. The [November 7 follow-up](feature-suites/README.md#november-7-renewal-usability--finalized-specifications)
 is authoring ready, with [S259](feature-suites/renewal-usability-final-journey-litmus.md) last.
-Its [execution handoff](renewal-ux-followup-handoff.md) awaits the owner's launch.
+Its [execution handoff](renewal-ux-followup-handoff.md) is active under the November 7 launch.
 
 ## Continuation contract
 

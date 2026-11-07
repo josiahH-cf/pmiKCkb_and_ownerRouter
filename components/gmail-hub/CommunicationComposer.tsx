@@ -67,6 +67,7 @@ interface Composition {
   initial: RichCommunicationMessage;
   target: { label: string; to: string[]; cc: string[]; blockers?: string[] };
   attachmentNotice: string | null;
+  signatureParagraph?: RichCommunicationMessage["paragraphs"][number] | null;
   reviewedTargetHash: string;
   /** S249: the lease message record revision a renewal composition was made from. */
   messageRevision?: string;
@@ -200,6 +201,8 @@ export function CommunicationComposer({
   const headingRef = useRef<HTMLHeadingElement>(null);
   const returnToComposer = useRef(false);
   const compositionFlight = useRef<{ key: string; promise: Promise<Composition> }>(null);
+  const loadedSignatureParagraph = useRef<Composition["signatureParagraph"]>(undefined);
+
   const readComposition = useCallback(
     (query: URLSearchParams) => {
       const key = JSON.stringify([authenticatedEmail, query.toString()]);
@@ -245,6 +248,7 @@ export function CommunicationComposer({
     // A repeated effect joins the exact pending composition. Only the current entry/run may
     // apply the response or install a new app draft.
     const run = ++loadRun.current;
+    loadedSignatureParagraph.current = undefined;
     const current = () => active.current && loadRun.current === run;
     void (async () => {
       try {
@@ -309,6 +313,7 @@ export function CommunicationComposer({
           void readComposition(q)
             .then((r) => {
               if (current()) {
+                loadedSignatureParagraph.current = r.signatureParagraph;
                 setTarget(r.target);
                 setReviewedTargetHash(r.reviewedTargetHash);
                 setAttachmentNotice(r.attachmentNotice);
@@ -330,6 +335,7 @@ export function CommunicationComposer({
             initial: p.initial,
             followUp: null,
           };
+          loadedSignatureParagraph.current = p.signatureParagraph;
           setTarget(p.target);
           setReviewedTargetHash(p.reviewedTargetHash);
           setAttachmentNotice(p.attachmentNotice);
@@ -724,7 +730,27 @@ export function CommunicationComposer({
                       }
                     : { lease: draft.context.entityId, purpose: draft.context.purpose },
                 );
+                const entryRun = loadRun.current;
                 const next = await readComposition(params);
+                if (!active.current || loadRun.current !== entryRun) return;
+                const current = currentDraft.current;
+                if (current && !sequence?.authorization) {
+                  const prior = loadedSignatureParagraph.current;
+                  const paragraphs = [...current.initial.paragraphs];
+                  const tail = JSON.stringify(paragraphs.at(-1));
+                  // Replace only a known generated footer. The rest of the draft stays as typed.
+                  if (tail !== JSON.stringify(next.signatureParagraph)) {
+                    if (prior && tail === JSON.stringify(prior)) paragraphs.pop();
+                    if (next.signatureParagraph) paragraphs.push(next.signatureParagraph);
+                  }
+                  if (!paragraphs.length) paragraphs.push([{ text: "" }]);
+                  if (
+                    JSON.stringify(paragraphs) !==
+                    JSON.stringify(current.initial.paragraphs)
+                  )
+                    change({ ...current, initial: { ...current.initial, paragraphs } });
+                }
+                loadedSignatureParagraph.current = next.signatureParagraph;
                 setTarget(next.target);
                 setReviewedTargetHash(next.reviewedTargetHash);
                 setSignatureOpen(false);

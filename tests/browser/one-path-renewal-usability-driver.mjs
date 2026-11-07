@@ -18,6 +18,11 @@ const rehearsal = readRehearsal(runDir);
 const run = JSON.parse(readFileSync(join(runDir, "run.json"), "utf8"));
 assert.match(run.args, /--hold-automatic-comparison\b/);
 assert.match(run.args, /--no-mail-adapter\b/);
+assert.equal(rehearsal.servedVersion, rehearsal.servedCommit);
+assert.equal(rehearsal.servedCommit, rehearsal.harnessCommit);
+assert.equal(rehearsal.overlay, false);
+assert.equal(rehearsal.automaticComparisonHeld, true);
+assert.equal(rehearsal.mailAdapter, false);
 const report = join(runDir, "november-7-focused.jsonl");
 const log = (entry) => {
   appendFileSync(
@@ -28,6 +33,26 @@ const log = (entry) => {
 };
 const desk = "/lease-renewal/live/desk";
 const prepared = String(rehearsal.roles.prepared);
+const expectedGroups = {
+  this_batch: rehearsal.groups.working_month,
+  carried_over: rehearsal.groups.carried_over,
+  renewed_in_rentvine: rehearsal.groups.renewed_in_rentvine,
+  month_to_month_reviews: rehearsal.groups.month_to_month,
+  non_renewals: rehearsal.groups.move_out_notice,
+  coming_up_later: rehearsal.groups.later,
+  not_targets: rehearsal.groups.closed,
+  completed: [],
+  retired: [],
+};
+log({
+  state: "frozen",
+  clean: !rehearsal.overlay,
+  businessDate: rehearsal.businessDate,
+  fixture: "November 5 mix",
+  groupCounts: Object.fromEntries(
+    Object.entries(expectedGroups).map(([group, members]) => [group, members.length]),
+  ),
+});
 const separate = String(rehearsal.roles.missingRecipient);
 const path = (lease, query = "") => `${desk}/lease/${lease}${query}`;
 const browser = await chromium.launch({
@@ -42,6 +67,7 @@ async function session(role, viewport, colorScheme) {
     serviceWorkers: "block",
     timezoneId: "America/Chicago",
     locale: "en-US",
+    hasTouch: viewport.width === 390,
   });
   await context.route("**/*", (route) =>
     new URL(route.request().url()).origin === origin
@@ -52,6 +78,7 @@ async function session(role, viewport, colorScheme) {
   page.setDefaultTimeout(30_000);
   page.setDefaultNavigationTimeout(90_000);
   await page.goto(origin + "/sign-in", { waitUntil: "domcontentloaded" });
+  if (role === "Signed out") return { context, page };
   const signedIn = await page.evaluate(`fetch("/api/auth/demo",{
     method:"POST",headers:{"content-type":"application/json"},
     body:JSON.stringify({role:${JSON.stringify(role)}})
@@ -107,6 +134,32 @@ try {
         );
       assert.equal(total, 38);
       assert.equal(counted, total);
+      const groupCounts = {};
+      for (const [group, expected] of Object.entries(expectedGroups)) {
+        const countedGroup = batch.locator(`button[data-batch-group="${group}"]`);
+        const listed = batch.locator(`[data-batch-list="${group}"]`);
+        const section = batch.locator(`[data-batch-open-group="${group}"]`);
+        const collapsed = (await countedGroup.count()) === 1;
+        if (collapsed) {
+          assert.equal(
+            Number(await countedGroup.getAttribute("data-batch-count")),
+            expected.length,
+          );
+          await countedGroup.click();
+          await section.waitFor();
+        }
+        const actual = await (collapsed ? section : listed)
+          .locator("[data-batch-lease]")
+          .evaluateAll((rows) =>
+            rows.map((row) => Number(row.getAttribute("data-batch-lease"))),
+          );
+        assert.deepEqual(
+          actual.sort((a, b) => a - b),
+          [...expected].sort((a, b) => a - b),
+          group,
+        );
+        groupCounts[group] = actual.length;
+      }
       await batch.getByRole("link", { name: "Next month", exact: true }).click();
       const shifted = await batch.getAttribute("data-batch-month");
       assert.notEqual(shifted, month);
@@ -124,7 +177,105 @@ try {
         .click();
       await batch.waitFor();
       assert.equal(await batch.getAttribute("data-batch-month"), shifted);
-      return { total, counted, shiftedMonthRestored: true };
+      return { total, counted, groupCounts, shiftedMonthRestored: true };
+    },
+  );
+  await check(
+    "L03-collection",
+    "Editor",
+    wide,
+    "dark",
+    "pointer",
+    "A clean collection can choose an in-period and out-of-period lease. The exact reviewed membership is saved, recovered after a lost response, reopened and shown on the desk. Refresh and cancel retain the saved version.",
+    async (page) => {
+      const route = "/lease-renewal/collections";
+      const name = "Example December working group";
+      await open(page, route);
+      await page.getByRole("button", { name: "New collection", exact: true }).click();
+      const editor = page.getByRole("region", { name: "Collection membership editor" });
+      assert.equal(await editor.getByLabel("Collection name").inputValue(), "");
+      const period = rehearsal.workingMonth;
+      const [year, month] = period.split("-").map(Number);
+      const last = new Date(Date.UTC(year, month, 0)).getUTCDate();
+      await editor.getByLabel("Collection name").fill(name);
+      await editor.getByLabel("Period from").fill(`${period}-01`);
+      await editor.getByLabel("Period through").fill(`${period}-${last}`);
+      const outside = expectedGroups.coming_up_later[0];
+      for (const lease of [prepared, outside]) {
+        await editor
+          .getByLabel("Find leases by address, name or lease ID")
+          .fill(String(lease));
+        await editor.getByRole("button", { name: "Search leases" }).click();
+        await editor.getByRole("button", { name: /^Add / }).first().click();
+      }
+      await editor.getByRole("button", { name: "Review membership" }).click();
+      const review = editor.getByRole("region", { name: "Reviewed membership" });
+      await review.getByRole("heading", { name: "Additions (2)", exact: true }).waitFor();
+      assert.match(await review.innerText(), /Chosen outside the period/);
+      const apiPath = "**/api/lease-renewal/collections";
+      let dropped = false;
+      const loseSave = async (request) => {
+        if (!dropped && request.request().postDataJSON()?.action === "save") {
+          dropped = true;
+          const result = await request.fetch({ maxRedirects: 0 });
+          assert.ok(result.ok());
+          await request.abort("failed");
+        } else await request.continue();
+      };
+      await page.route(apiPath, loseSave);
+      await review.getByRole("button", { name: "Save reviewed collection" }).click();
+      const recover = page.getByRole("button", { name: "Check recorded change" });
+      await recover.waitFor();
+      await page
+        .getByRole("alert")
+        .filter({ hasText: /Check the recorded change/ })
+        .waitFor();
+      await page.unroute(apiPath, loseSave);
+      await page.reload({ waitUntil: "domcontentloaded" });
+      const detail = page.getByRole("region", { name: "Current collection status" });
+      await detail.getByRole("heading", { name, exact: true }).waitFor();
+      assert.match(await detail.innerText(), /2 saved members/);
+      assert.match(await detail.innerText(), /membership version 1/);
+      await detail.getByRole("button", { name: "Refresh statuses" }).click();
+      await page
+        .getByText("Current statuses read. Saved membership is kept.", { exact: true })
+        .waitFor();
+      await detail.getByRole("button", { name: "Edit membership" }).click();
+      await editor.getByRole("button", { name: "Discard changes" }).click();
+      await editor.waitFor({ state: "hidden" });
+      assert.match(await detail.innerText(), /membership version 1/);
+      const reopened = new URL(page.url());
+      const other = await session("Approver", narrow, "light");
+      try {
+        await open(other.page, reopened.pathname + reopened.search);
+        await other.page.getByRole("heading", { name, exact: true }).waitFor();
+        await other.page
+          .getByRole("table", { name: "Saved members", exact: true })
+          .waitFor();
+      } finally {
+        await other.context.close();
+      }
+      await detail
+        .getByRole("link", { name: "Open this collection on the Renewals desk" })
+        .click();
+      const members = await page
+        .locator("table.renewal-table tr[data-lease-id]")
+        .evaluateAll((rows) =>
+          rows.map((row) => Number(row.getAttribute("data-lease-id"))),
+        );
+      assert.deepEqual(
+        members.sort((a, b) => a - b),
+        [Number(prepared), outside].sort((a, b) => a - b),
+      );
+      await page.goBack({ waitUntil: "domcontentloaded" });
+      await detail.getByRole("heading", { name, exact: true }).waitFor();
+      return {
+        exactMembership: 2,
+        version: 1,
+        lostSaveRecovered: dropped,
+        approverReadback: true,
+        returnedToCollection: true,
+      };
     },
   );
   await check(

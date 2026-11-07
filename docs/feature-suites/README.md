@@ -5,7 +5,7 @@
 Handoff **renewal-ux-followup-2026-11**. The owner accepted Q1–Q7 after an Editor and Admin
 browser audit in the isolated rehearsal at the deployed application commit `ef81b891`.
 They confirmed a saved blank signature and message-specific required facts. Intakes 121–129 are
-**AUTHORING READY**. Implementation awaits a separate execution instruction. The
+**AUTHORING READY**. The November 7 execution instruction launched implementation and qualification. The
 [November 7 release record](../evidence/renewal-one-path-delivery-2026-11-07.md) is the
 starting application evidence. Human verdict for the follow-up is NOT RUN.
 
@@ -33,8 +33,8 @@ updates [S252](renewal-one-path-staff-walkthrough-and-help.md) and
 landmarks with the interface. S224 defines outgoing admission and S162 owns the exact Gmail
 export. S255 supplies retirement to the desk, lease path, recording header and collections. The new navigation
 and Admin presentation can be qualified separately. S259 runs last on one exact candidate,
-using S252's engineering budgets and S254's versioned checks. The [execution handoff](../renewal-ux-followup-handoff.md)
-is ready for the later owner-directed run.
+using S252's engineering budgets and the [versioned S254 profile](../renewal-usability-litmus-profile-2026-11-07.md).
+The active branch and verification state are recorded in the [loop state](../loop-state.md).
 
 ## November 5 lease renewal one path — clarified specifications
 

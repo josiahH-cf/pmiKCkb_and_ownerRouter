@@ -295,12 +295,26 @@ export function SharedLeaseCollections({
       if (live.current) setLoading(false);
     }
   }
-  async function open(collectionId: string, edit = true) {
+  async function open(
+    collectionId: string,
+    edit = true,
+    options: { readonly expectedVersion?: number; readonly notice?: string } = {},
+  ) {
     const generation = ++readGeneration.current;
     setNotice("Reading saved members and current statuses…");
     try {
       const result = await read<Detail>(`id=${collectionId}`);
       if (!live.current || generation !== readGeneration.current) return;
+      if (
+        options.expectedVersion !== undefined &&
+        result.collection.version !== options.expectedVersion
+      ) {
+        setNotice("");
+        setError(
+          "Saved membership changed. Reopen the collection to read the current version. Your entries are kept.",
+        );
+        return;
+      }
       setDetail(result);
       setId(collectionId);
       setLabels((old) => ({
@@ -311,7 +325,7 @@ export function SharedLeaseCollections({
             .map((status) => [status.member.leaseId, status.label]),
         ),
       }));
-      setNotice("Current statuses read. Saved membership is kept.");
+      setNotice(options.notice ?? "Current statuses read. Saved membership is kept.");
       if (edit) {
         setName(result.collection.name);
         setBasis(result.collection.basis);
@@ -356,10 +370,10 @@ export function SharedLeaseCollections({
         setPending(null);
         setReview(null);
         address(result.collection.id);
-        setNotice(
-          `Change recorded as version ${result.acceptedVersion}. Showing the collection's current version.`,
-        );
-        await open(result.collection.id);
+        clearDraft(detail?.collection.id ?? null);
+        await open(result.collection.id, true, {
+          notice: `Change recorded as version ${result.acceptedVersion}. Showing the collection's current version.`,
+        });
         await loadList();
       } else {
         setNotice(
@@ -539,10 +553,9 @@ export function SharedLeaseCollections({
         setPending(null);
         setReview(null);
         address(result.collection.id);
-        setNotice(
-          `${intent.rename ? "Name" : "Reviewed membership"} saved as version ${result.acceptedVersion}.`,
-        );
-        await open(result.collection.id);
+        await open(result.collection.id, true, {
+          notice: `${intent.rename ? "Name" : "Reviewed membership"} saved as version ${result.acceptedVersion}.`,
+        });
         await loadList();
       } catch (e) {
         if (e instanceof CollectionHttpError && [400, 403, 404, 409].includes(e.status)) {
@@ -686,7 +699,11 @@ export function SharedLeaseCollections({
           <button
             type="button"
             disabled={busy}
-            onClick={() => void open(detail.collection.id, false)}
+            onClick={() =>
+              void open(detail.collection.id, false, {
+                expectedVersion: detail.collection.version,
+              })
+            }
           >
             Refresh statuses
           </button>{" "}
@@ -792,6 +809,7 @@ export function SharedLeaseCollections({
               <input
                 id={`${fieldId}-name`}
                 ref={nameInput}
+                readOnly={detail !== null}
                 required
                 value={name}
                 maxLength={160}
@@ -1022,6 +1040,12 @@ export function SharedLeaseCollections({
                   <li key={`${m.leaseId}:${m.cycleKey}`}>
                     {labels[m.leaseId] ?? "Lease"} · {m.leaseId} · cycle{" "}
                     {formatCalendarDate(m.cycleDate, "No dated basis")}
+                    {review.basis.mode === "explicit" &&
+                    m.cycleDate &&
+                    (m.cycleDate < review.basis.from ||
+                      m.cycleDate > review.basis.through)
+                      ? " · Chosen outside the period"
+                      : ""}
                   </li>
                 ))}
               </ul>

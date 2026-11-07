@@ -27,7 +27,7 @@ export const CONNECTIONS_GUIDES: readonly HelpGuide[] = [
         route: "/connections",
         where: "Connections, top of the page",
         result:
-          "The page is marked Read-only checks and notes that connection status does not grant action authority. Below Dotloop renewal readiness it counts Connected, Need attention, Not connected and Closed by governance, and Needs setup links each connector that is missing setup.",
+          "The page is marked Read-only checks and notes that connection status does not grant action authority. The page counts Connected, Need attention, Not connected and Closed by governance, and Needs setup links each connector that is missing setup.",
         effect: "reads",
       },
       {
@@ -59,7 +59,7 @@ export const CONNECTIONS_GUIDES: readonly HelpGuide[] = [
           source: ["components/connections/VerifyConnectionButton.tsx"],
           sourceText: "Check {connectorName} connection",
         },
-        route: "/connections",
+        route: "/connections#connector-rentvine",
         where: "Renewal data, RentVine card",
         result:
           "A line reads that RentVine answered the live check and the card then reads Connected, or that it did not pass, and the card keeps its status and next step. The check only reads.",
@@ -85,14 +85,15 @@ export const CONNECTIONS_GUIDES: readonly HelpGuide[] = [
       },
       {
         id: "read-dotloop-readiness",
-        action: "Read Dotloop renewal readiness at the top of the page.",
+        action:
+          "Open Dotloop under Documents and storage and read Dotloop renewal readiness.",
         control: {
           label: "Dotloop renewal readiness",
           role: "region",
           availability: "required",
           source: ["components/connections/DotloopConnectionPanel.tsx"],
         },
-        route: "/connections",
+        route: "/connections#connector-dotloop",
         where: "Connections, Dotloop renewal readiness",
         result:
           "The first line states the readiness, for example Ready for renewal packets, Not connected or Unavailable. Below it are the company account, the access Dotloop reports, the saved profile, renewal template, transaction type and initial status, and each reason with its next step. Loop creation and document upload stay closed behind their own keys, so this connection starts nothing in Dotloop.",
@@ -111,7 +112,7 @@ export const CONNECTIONS_GUIDES: readonly HelpGuide[] = [
           source: ["components/connections/ConnectorSetupActions.tsx"],
           sourceText: "Connect with {connectorName}",
         },
-        route: "/connections",
+        route: "/connections#connector-dotloop",
         where: "Documents and storage, Dotloop card",
         result:
           "Dotloop opens to authorize the company account, then returns you to Connections, where a notice says whether the connection and its account check passed and the readiness shows the connection. Nothing is created in Dotloop.",
@@ -129,7 +130,7 @@ export const CONNECTIONS_GUIDES: readonly HelpGuide[] = [
           availability: "conditional",
           source: ["components/connections/DotloopConnectionPanel.tsx"],
         },
-        route: "/connections",
+        route: "/connections#connector-dotloop",
         where: "Dotloop renewal readiness, below the readiness lines",
         result:
           "A status line confirms that Dotloop resources were checked, Resources last checked shows the new time, and the profile and template choices appear below.",
@@ -146,7 +147,7 @@ export const CONNECTIONS_GUIDES: readonly HelpGuide[] = [
           availability: "conditional",
           source: ["components/connections/DotloopConnectionPanel.tsx"],
         },
-        route: "/connections",
+        route: "/connections#connector-dotloop",
         where: "Dotloop renewal readiness, Dotloop profile",
         result:
           "Renewal template lists that profile's templates. A profile that cannot create lease loops shows in the list but cannot be chosen.",
@@ -162,7 +163,7 @@ export const CONNECTIONS_GUIDES: readonly HelpGuide[] = [
           availability: "conditional",
           source: ["components/connections/DotloopConnectionPanel.tsx"],
         },
-        route: "/connections",
+        route: "/connections#connector-dotloop",
         where: "Dotloop renewal readiness, Renewal template and Initial loop status",
         result:
           "Each template option names its transaction type, Listing for lease or Lease offer, and Initial loop status lists the statuses that template allows.",
@@ -179,7 +180,7 @@ export const CONNECTIONS_GUIDES: readonly HelpGuide[] = [
           availability: "conditional",
           source: ["components/connections/DotloopConnectionPanel.tsx"],
         },
-        route: "/connections",
+        route: "/connections#connector-dotloop",
         where: "Dotloop renewal readiness, below Initial loop status",
         result:
           "A status line confirms the Dotloop renewal resources were saved, and the readiness lists the profile, renewal template, transaction type and initial status that renewal packets use.",
@@ -190,7 +191,7 @@ export const CONNECTIONS_GUIDES: readonly HelpGuide[] = [
         id: "enter-resource-link",
         scene: "connections-resource-links",
         action:
-          "In Renewal resource links, type the location in a box such as Insurance flyer, then tick I checked this destination and its intended use.",
+          "In Renewal resource links, expand the panel, type the location in a box such as Insurance flyer, then tick I checked this destination and its intended use.",
         control: {
           label: "Insurance flyer",
           role: "label",
@@ -198,7 +199,7 @@ export const CONNECTIONS_GUIDES: readonly HelpGuide[] = [
           availability: "required",
           source: ["lib/lease-renewal/resource-locations.ts"],
         },
-        route: "/connections",
+        route: "/connections#renewal-resource-locations",
         where: "Connections, Renewal resource links",
         result:
           "The line under the box changes from Pending team input to Destination needs review, and to Destination checked by staff once the box is ticked.",
@@ -216,7 +217,7 @@ export const CONNECTIONS_GUIDES: readonly HelpGuide[] = [
           source: ["components/lease-renewal/RenewalResourceLocations.tsx"],
           sourceText: "Save {field.label.toLowerCase()}",
         },
-        route: "/connections",
+        route: "/connections#renewal-resource-locations",
         where: "Renewal resource links, below each box",
         result:
           "A status line confirms the link was saved and read back, and every lease reads the saved location; only a link checked by staff reaches a tenant message or packet. A blank box saves as pending team input and reads Pending team input, which is not an error.",

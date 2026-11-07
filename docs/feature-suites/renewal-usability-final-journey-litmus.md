@@ -246,6 +246,9 @@ validated result and the separately scoped S252 and S254 records in Git history.
 | Reach adjacent tasks and trust the guide | L11 to L13 | S256, S257, S242, S243, S252       |
 | Preserve and qualify the whole batch     | L14        | S252, S254                         |
 
+The [versioned November 7 profile](../renewal-usability-litmus-profile-2026-11-07.md) maps all 71
+S254 checks to the final journeys and records the authorized expectation changes.
+
 ## Litmus handoff (paste-ready)
 
 Use this runbook after implementation of intakes 121–128 on the final committed candidate.

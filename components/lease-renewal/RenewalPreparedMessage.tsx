@@ -1,5 +1,6 @@
 "use client";
 
+import type { SenderSignatureChoice } from "@/lib/lease-renewal/sender-signature-choice";
 import { RenewalSenderSignatureForm } from "./RenewalSenderSignatureForm";
 
 // S249 ARCH-S249-2 / R-S249-7 to R-S249-12: the lease's ONE message record on the Now card. The
@@ -88,7 +89,7 @@ export type PreparedMessageData = Omit<
 /** The editor's own actions, each its own prop (they read the editor's save state when run). */
 export interface PreparedMessageHandlers {
   readonly onSaveSignature: PreparedMessageApi["saveSignature"];
-  readonly onSignatureSetupSaved?: () => Promise<void>;
+  readonly onSignatureSetupSaved?: (choice: SenderSignatureChoice) => Promise<void>;
   readonly onReasonChange: PreparedMessageApi["setReason"];
   readonly onReasonCommit: PreparedMessageApi["commitReason"];
   readonly onFlush: PreparedMessageApi["flush"];
@@ -139,7 +140,8 @@ export interface PreparedMessageApi {
   readonly marked: readonly string[];
   readonly signaturePresent: boolean;
   readonly outgoingReasons?: readonly string[];
-  readonly onSignatureSetupSaved?: () => Promise<void>;
+  readonly renewOrNot?: boolean;
+  readonly onSignatureSetupSaved?: (choice: SenderSignatureChoice) => Promise<void>;
   /** Fill and save the sender's own signature on this message (it is kept for the sender). */
   readonly saveSignature: (fields: PreparedSignatureFields) => string | null;
   readonly reason: string;
@@ -312,7 +314,9 @@ export function PreparedMessageSlot({
   onUndoWording,
 }: Readonly<{ data: PreparedMessageData } & PreparedMessageHandlers>) {
   const nowCard = useRenewalNowCard();
-  const step = STEP_FOR_CHANNEL[data.channel];
+  const step = data.renewOrNot
+    ? "assisted-owner-renewal-answer"
+    : STEP_FOR_CHANNEL[data.channel];
   const api: PreparedMessageApi = {
     ...data,
     ...(onRebuildRule ? { rebuildRule: onRebuildRule } : {}),
@@ -441,7 +445,7 @@ function PreparedMessageBlock({
   const workingRentBasis = workingRecommendationBasis(working?.record);
   const live = useMemo(
     () =>
-      preparation && api.channel === "owner"
+      preparation && api.channel === "owner" && !api.renewOrNot
         ? withLiveKickoff(preparation, {
             signature: api.signaturePresent,
             typedRent,
@@ -454,6 +458,7 @@ function PreparedMessageBlock({
     [
       preparation,
       api.channel,
+      api.renewOrNot,
       api.signaturePresent,
       typedRent,
       workingRentBasis,
@@ -525,7 +530,9 @@ function PreparedMessageBlock({
             : null,
         },
       ];
-  const ready = live ? sendReady(live) : needs.every((item) => item.ready);
+  const ready =
+    (live ? sendReady(live) : needs.every((item) => item.ready)) &&
+    !api.outgoingReasons?.length;
   const missingWords = needs.filter((item) => !item.ready && item.missing);
   const staleDraft =
     api.draft.createdRevision !== null && api.draft.createdRevision !== api.revision;
@@ -550,7 +557,7 @@ function PreparedMessageBlock({
         );
         return;
       }
-      const workingFields = messageWorkingFieldsFor(api.channel);
+      const workingFields = messageWorkingFieldsFor(api.channel, api.renewOrNot);
       const workingVersion = working?.confirmedVersion?.(workingFields);
       const figuresChanged = () =>
         Boolean(
@@ -760,6 +767,7 @@ function PreparedMessageBlock({
       const first = needs.find((item) => !item.ready);
       if (first?.key === "signature") setSignatureOpen(true);
       else if (first?.fix) focusRenewalDashboardControl(first.fix.target);
+      else focusRenewalDashboardControl(MESSAGE_CONTROL_IDS.readiness(api.channel));
       return;
     }
     // Preparing the review can disable the button before the dialog opens.
@@ -770,7 +778,8 @@ function PreparedMessageBlock({
     changedReview ||
     (ready
       ? null
-      : `Before sending, add ${missingWords.map((item) => item.missing).join(", ")}.`);
+      : api.outgoingReasons?.join(" ") ||
+        `Before sending, add ${missingWords.map((item) => item.missing).join(", ")}.`);
   // The Now card holds one stable action; it always runs the latest review step.
   const latestRun = useRef(runReview);
   useEffect(() => {
@@ -902,7 +911,7 @@ function PreparedMessageBlock({
         <RenewalSenderSignatureForm
           onCancel={() => setSignatureOpen(false)}
           onSaved={async (choice) => {
-            await api.onSignatureSetupSaved?.();
+            await api.onSignatureSetupSaved?.(choice);
             setSignatureOpen(false);
             setSignatureNotice(
               choice.signature ? "Signature saved." : "Blank signature saved.",

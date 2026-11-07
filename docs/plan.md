@@ -2,6 +2,15 @@
 
 Updated: 2026-11-07 (UTC), one-path production delivery.
 
+## Active November 7 follow-up
+
+The owner launched intakes 121–129 for unattended execution on November 7. The published specification is `4caad68df6885d3eed4cb2b3fff7c70e5c96ae15`. Remote main at start was `bf9753d6af9c7cb90c7a17d3dee0965ae9656095`. The isolated WSL branch is `codex/renewal-usability-20261107`. The comparison baseline is the earlier deployed `ef81b891`.
+
+Qualify the rendered Help gate and complete the S252 walkthrough and S259 matrix. Then qualify
+the exact-head PR and push CI under the existing release procedure.
+
+The release runbook requires a guarded Communications browser check that reads the real managed Gmail profile through `/api/gmail-hub/connection`. The November 7 execution instruction excludes mailbox access as verification. This holds release assurance and any release admission that depends on it. Engineering qualification uses only synthetic and loopback evidence. The release queue remains empty during engineering qualification.
+
 ## Authorized outcome
 
 S246–S254 and the reviewed repairs in PR #191 shipped at `ef81b8917209f4eec3f22097142b559f3cce875b` / `pmi-kc-app-rmw65wgt2-8c8249a0547c`.

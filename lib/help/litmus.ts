@@ -32,6 +32,8 @@ export interface LitmusSuite {
    * prove. The S245 reports were committed before that contract existed; their runs validate.
    */
   readonly documentContract: boolean;
+  /** Every aggregate engineering check must pass. External observations are recorded separately. */
+  readonly requireAllYes?: boolean;
 }
 
 export const HELP_HUB_LITMUS: LitmusSuite = {
@@ -52,9 +54,20 @@ export const RENEWAL_ONE_PATH_LITMUS: LitmusSuite = {
   documentContract: true,
 };
 
+export const RENEWAL_USABILITY_LITMUS: LitmusSuite = {
+  id: "S259",
+  specPath: "docs/feature-suites/renewal-usability-final-journey-litmus.md",
+  reportTitle: "November 7 renewal usability litmus report",
+  reportFilePrefix: "renewal-usability-litmus",
+  subject: "the November 7 lease renewal usability batch",
+  documentContract: true,
+  requireAllYes: true,
+};
+
 export const LITMUS_SUITES: readonly LitmusSuite[] = [
   HELP_HUB_LITMUS,
   RENEWAL_ONE_PATH_LITMUS,
+  RENEWAL_USABILITY_LITMUS,
 ];
 
 /** The S245 specification path, kept for the callers that predate the shared suite list. */
@@ -129,6 +142,29 @@ function idList(cell: string, letter: "L" | "S", width: number): string[] {
     } else if (single) ids.push(numbered(letter, Number(single[1]), width));
   }
   return ids;
+}
+
+/** Compare the versioned preservation crosswalk to both immutable handoff inventories. */
+export function litmusPreservationProblems(
+  profile: string,
+  originalSpec: string,
+  currentSpec: string,
+): string[] {
+  const before = litmusCheckIds(originalSpec);
+  const after = litmusCheckIds(currentSpec);
+  const mappings = [...profile.matchAll(/^\|\s*(L\d{2})\s*\|([^|]*)\|([^|]+)\|$/gm)];
+  const current = mappings.map((row) => row[1]);
+  const preserved = mappings.flatMap((row) => idList(row[2], "L", 2));
+  const problems = [];
+  if (current.join(",") !== after.join(","))
+    problems.push(
+      "The preservation profile needs each current journey exactly once in order.",
+    );
+  if ([...preserved].sort().join(",") !== before.join(","))
+    problems.push("The preservation profile needs each original check exactly once.");
+  if (mappings.some((row) => !row[3].trim()))
+    problems.push("Each journey needs its current expectation.");
+  return problems;
 }
 
 /** The goal group table of a specification (S254 R-S254-7), in table order; empty without one. */
@@ -227,6 +263,7 @@ function countWording(text: string): string {
 }
 
 export interface LitmusRunRules {
+  readonly requireAllYes?: boolean;
   /** Every check of the handoff, in order. */
   readonly checks: readonly string[];
   /**
@@ -243,7 +280,7 @@ export interface LitmusRunRules {
 }
 
 /** The rules one run of a handoff is validated against, read from its specification. */
-export function litmusRunRules(spec: string): LitmusRunRules {
+export function litmusRunRules(spec: string, suite?: LitmusSuite): LitmusRunRules {
   const goalGroups = litmusGoalGroups(spec);
   const startingCommit = litmusStartingCommit(spec);
   const beforeAfter = handoffChecks(spec).filter((entry) =>
@@ -251,6 +288,7 @@ export function litmusRunRules(spec: string): LitmusRunRules {
   );
   return {
     checks: litmusCheckIds(spec),
+    ...(suite?.requireAllYes ? { requireAllYes: true } : {}),
     ...(goalGroups.length ? { goalGroups } : {}),
     ...(startingCommit ? { startingCommit } : {}),
     ...(beforeAfter.length
@@ -412,6 +450,13 @@ export function validateLitmusRun(markdown: string, rules: LitmusRunRules): stri
       `The report cannot be accepted while ${no.map((row) => row.check).join(", ")} is No.`,
     );
 
+  if (rules.requireAllYes && accepted === "Yes") {
+    const gaps = rows.filter((row) => row.verdict === "UNVERIFIED");
+    if (gaps.length)
+      problems.push(
+        `The engineering run cannot be accepted while ${gaps.map((row) => row.check).join(", ")} is UNVERIFIED.`,
+      );
+  }
   if (rules.goalGroups && accepted === "Yes") {
     if (progress && scopeKnown) problems.push(PROGRESS_RUN_ACCEPTED);
     // Acceptance needs every check observed on this run's own commit.
@@ -522,7 +567,7 @@ export function litmusDocumentTemplate(
     "",
     "## Run 1",
     "",
-    litmusRunTemplate(litmusRunRules(spec), { commit: options.commit, run: 1 }),
+    litmusRunTemplate(litmusRunRules(spec, suite), { commit: options.commit, run: 1 }),
   ].join("\n");
 }
 
@@ -641,7 +686,7 @@ export function validateLitmusDocument(
   spec: string,
 ): string[] {
   const problems: string[] = [];
-  const rules = litmusRunRules(spec);
+  const rules = litmusRunRules(spec, suite);
   const heading = markdown.trimStart().split("\n", 1)[0].trim();
   if (
     heading !== `# ${suite.reportTitle}` &&

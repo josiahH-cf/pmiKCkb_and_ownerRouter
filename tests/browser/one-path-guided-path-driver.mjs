@@ -328,11 +328,15 @@ export async function runGuidedPath() {
       reloaded,
     );
 
-    // 4. The three-way view control and the five section links (R-S247-7, L17, L18).
-    await viewButton("Focus view").click();
-    const focusShown = await page
-      .getByRole("region", { name: "Focus view", exact: true })
-      .isVisible();
+    // 4. Guided and Full are selectable, and an existing Focus entry continues to Guided.
+    const viewChoices = await page
+      .getByRole("group", { name: "Lease view", exact: true })
+      .getByRole("button")
+      .allTextContents();
+    await page.goto(`${origin}/lease-renewal/live/desk/lease/${prepared}?view=focus`, {
+      waitUntil: "domcontentloaded",
+    });
+    const focusContinues = await viewButton("Guided view").getAttribute("aria-pressed");
     await viewButton("Full view").click();
     await page.reload({ waitUntil: "domcontentloaded" });
     await page
@@ -359,12 +363,13 @@ export async function runGuidedPath() {
       () => document.activeElement?.closest("#renewal-section-owner") !== null,
     );
     check(
-      "the view control offers three views, a hand-chosen view lasts the visit, and a section link opens Full view there",
-      focusShown &&
+      "Guided and Full remain selectable, a legacy Focus entry continues, and a section link opens Full at that section",
+      viewChoices.join(",") === "Guided view,Full view" &&
+        focusContinues === "true" &&
         fullKept === "true" &&
         atSection &&
         (await viewButton("Full view").getAttribute("aria-pressed")) === "true",
-      { focusShown, fullKept, atSection },
+      { viewChoices, focusContinues, fullKept, atSection },
     );
     // The next lease opens in Guided view again.
     await open(covered);

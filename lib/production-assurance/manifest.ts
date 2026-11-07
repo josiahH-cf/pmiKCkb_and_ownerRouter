@@ -18,6 +18,7 @@ export interface CanaryRouteDefinition {
  * at this path.
  */
 export const ASSURANCE_RENEWAL_DESK_PATH = "/lease-renewal/live/desk?v=2&scope=all";
+export const RENEWAL_USABILITY_PREDECESSOR = "ef81b8917209f4eec3f22097142b559f3cce875b";
 
 /**
  * S247: a lease opened from the desk opens in Guided view. The canary asserts this exact contract

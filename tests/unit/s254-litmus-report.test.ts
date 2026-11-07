@@ -113,10 +113,11 @@ const problems = (markdown: string) =>
   validateLitmusDocument(markdown, RENEWAL_ONE_PATH_LITMUS, spec);
 
 describe("S254 ARCH-S254-2: one template and validator for both litmus handoffs", () => {
-  it("the shared module names both suites, and no single specification path binds it", () => {
+  it("the shared module names all three suites, and no single specification path binds it", () => {
     expect(LITMUS_SUITES.map((suite) => [suite.id, suite.specPath])).toEqual([
       ["S245", "docs/feature-suites/staff-help-hub-adversary-litmus.md"],
       ["S254", "docs/feature-suites/renewal-one-path-adversary-litmus.md"],
+      ["S259", "docs/feature-suites/renewal-usability-final-journey-litmus.md"],
     ]);
     expect(LITMUS_SPEC_PATH).toBe(HELP_HUB_LITMUS.specPath);
     expect(

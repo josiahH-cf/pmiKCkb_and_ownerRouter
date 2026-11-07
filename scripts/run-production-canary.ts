@@ -2,7 +2,10 @@ import { mapAssuranceReads } from "../lib/production-assurance/bounded-reads";
 import { pathToFileURL } from "node:url";
 import type { PredecessorExceptionObserver } from "../lib/production-assurance/predecessor-exception-observer";
 import { RENEWAL_DASHBOARD_SECTIONS } from "../lib/lease-renewal/dashboard-sections";
-import { ASSURANCE_GUIDED_WORKSPACE } from "../lib/production-assurance/manifest";
+import {
+  ASSURANCE_GUIDED_WORKSPACE,
+  RENEWAL_USABILITY_PREDECESSOR,
+} from "../lib/production-assurance/manifest";
 import { countIndependentGuidedWorkspaceMismatches } from "../lib/production-assurance/guided-workspace-projection";
 
 import { chromium, type Page, type Response } from "playwright-core";
@@ -686,7 +689,7 @@ async function assertRouteOutcome(
       exact: true,
     });
     // The captured predecessor used a separate link at the bottom of the batch.
-    if (expectedCommit !== "ef81b8917209f4eec3f22097142b559f3cce875b") {
+    if (expectedCommit !== RENEWAL_USABILITY_PREDECESSOR) {
       const working = switches.getByRole("link", { name: "Working batch", exact: true });
       const all = switches.getByRole("link", {
         name: "All leases and filters",
@@ -811,7 +814,7 @@ export async function hasRenewalWorkspaceLandmarks(
     return hasGuidedWorkspaceLandmarks(
       page,
       viewSwitch,
-      !expectedCommit || expectedCommit === "ef81b8917209f4eec3f22097142b559f3cce875b",
+      !expectedCommit || expectedCommit === RENEWAL_USABILITY_PREDECESSOR,
     );
   // S152: the lease opens in Focus view. Exactly one view switch whose Focus view is the selected
   // one and whose Full view is offered, and exactly one visible Focus view region.

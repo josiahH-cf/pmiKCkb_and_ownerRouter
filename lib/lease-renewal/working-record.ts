@@ -18,7 +18,11 @@ const TENANT_MESSAGE_WORKING_FIELDS = [
 ] as const;
 
 /** Only these ordinary working values supply figures to the audience's prepared message. */
-export function messageWorkingFieldsFor(channel: "owner" | "tenant"): readonly string[] {
+export function messageWorkingFieldsFor(
+  channel: "owner" | "tenant",
+  renewOrNot = false,
+): readonly string[] {
+  if (renewOrNot) return ["housing_assistance"];
   return channel === "owner"
     ? OWNER_MESSAGE_WORKING_FIELDS
     : TENANT_MESSAGE_WORKING_FIELDS;

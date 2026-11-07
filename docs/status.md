@@ -15,6 +15,15 @@ UNVERIFIED on its complete `edba7cbb` run, with separately dated repair rechecks
 because the settled assistance rule classifies the voucher-only lease as Ready. Batch acceptance
 remains No. Human verdict NOT RUN.
 
+## November 7 renewal usability follow-up
+
+The owner launched intakes 121–129 for unattended execution on November 7. The published specification is `4caad68df6885d3eed4cb2b3fff7c70e5c96ae15`. Remote main at start was `bf9753d6af9c7cb90c7a17d3dee0965ae9656095`. The isolated WSL branch is `codex/renewal-usability-20261107`. The comparison baseline is the earlier deployed `ef81b891`.
+
+Engineering qualification is in progress. The first focused rehearsal passed five checkpoints.
+S259 acceptance requires the full candidate matrix and canonical verification. Staff verdict NOT RUN.
+
+The release runbook requires a guarded Communications browser check that reads the real managed Gmail profile through `/api/gmail-hub/connection`. The November 7 execution instruction excludes mailbox access as verification. This holds release assurance and any release admission that depends on it. Engineering qualification uses only synthetic and loopback evidence. The release queue remains empty during engineering qualification.
+
 Current external and human holds are in [the unblock packet](open-blockers.md).
 
 ## November 5 S245 litmus fixes delivery (historical)

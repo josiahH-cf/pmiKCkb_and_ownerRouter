@@ -340,7 +340,7 @@ export const HOME_AND_ASK_SCREENS: readonly HelpScreenReference[] = [
         region: PRIMARY,
         availability: "required",
         source: NAVIGATION_SOURCE,
-        actions: ADMIN_MENU,
+        actions: ["click-button:Operations"],
         does: "Opens Communications: messages, replies and unsent drafts linked to your work.",
         who: "All staff",
       },

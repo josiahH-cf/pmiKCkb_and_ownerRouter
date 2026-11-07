@@ -1,7 +1,10 @@
 "use client";
 
 import { RenewalSenderSignatureForm } from "./RenewalSenderSignatureForm";
-import type { SenderSignatureEvidence } from "@/lib/lease-renewal/sender-signature-choice";
+import type {
+  SenderSignatureChoice,
+  SenderSignatureEvidence,
+} from "@/lib/lease-renewal/sender-signature-choice";
 import { Icon as MessageCopyIcon } from "@/components/ui";
 import { workflowComposerHref } from "@/lib/gmail-hub/composer-navigation";
 import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
@@ -492,9 +495,12 @@ function MessagePreparationEditor({
   const router = useRouter();
   const working = useRenewalWorkingRecord();
   const nowCard = useRenewalNowCard();
-  const messageWorkingFields = messageWorkingFieldsFor(channel);
   const [signatureSettingsOpen, setSignatureSettingsOpen] = useState(false);
   const [current, setCurrent] = useState<Preparation | null>(null);
+  const messageWorkingFields = messageWorkingFieldsFor(
+    channel,
+    current?.facts.ownerIntent === "renew_or_not",
+  );
   const [inputs, setInputs] = useState(emptyMessagePreparationInputs);
   // S161: the authored body (typed here or accepted from a refinement) and the authored subject.
   // Null means the text follows the standard wording composed from the current information.
@@ -635,6 +641,10 @@ function MessagePreparationEditor({
       if (!touchedRef.current) adopt(result);
     });
   }, [adopt, channel, leaseId]);
+  async function signatureSetupSaved(choice: SenderSignatureChoice) {
+    setInputs((currentInputs) => ({ ...currentInputs, signature: choice.signature }));
+    await load();
+  }
   /** A transport reads the confirmed entered figures. Blank and unrelated fields stay usable. */
   async function settleWorkingFields(restoreFocus = true): Promise<boolean> {
     if (!working?.settle) return true;
@@ -1328,6 +1338,7 @@ function MessagePreparationEditor({
               ? Boolean(payload?.effective.signature)
               : current.signatureSetup !== null,
           outgoingReasons: current.outgoingReasons,
+          renewOrNot: current.facts.ownerIntent === "renew_or_not",
           reason: inputs.recommendationReason ?? "",
           composerHref: workflowComposerHref({
             leaseId,
@@ -1388,7 +1399,9 @@ function MessagePreparationEditor({
           onReturnToStandardWording={returnToStandardWording}
           onUndoWording={undoWording}
           onSaveSignature={saveSignature}
-          onSignatureSetupSaved={current?.signatureSetup !== undefined ? load : undefined}
+          onSignatureSetupSaved={
+            current?.signatureSetup !== undefined ? signatureSetupSaved : undefined
+          }
         />
       ) : null}
       <a
@@ -2176,8 +2189,8 @@ function MessagePreparationEditor({
                   {signatureSettingsOpen ? (
                     <RenewalSenderSignatureForm
                       onCancel={() => setSignatureSettingsOpen(false)}
-                      onSaved={async () => {
-                        await load();
+                      onSaved={async (choice) => {
+                        await signatureSetupSaved(choice);
                         setSignatureSettingsOpen(false);
                       }}
                     />

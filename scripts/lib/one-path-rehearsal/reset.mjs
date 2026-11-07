@@ -51,7 +51,10 @@ export async function resetRehearsalState({ rehearsal, browser }) {
   clearRentvineFlags(rehearsal);
   setRentvineOutage(rehearsal, null);
   setRecordingCycles(rehearsal, true);
-  const context = await browser.newContext({ timezoneId: "America/Chicago" });
+  const context = await browser.newContext({
+    timezoneId: "America/Chicago",
+    serviceWorkers: "block",
+  });
   try {
     await context.route("**/*", (route) =>
       new URL(route.request().url()).origin === origin

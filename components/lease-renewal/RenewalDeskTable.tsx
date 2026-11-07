@@ -1585,6 +1585,7 @@ function DeskRow({
   sourceReadAtIso: string | null;
 }>) {
   const { guidance } = row;
+  const cycleDisposition = row.renewalTarget?.cycleDisposition;
   // S154: every resolved real lease has the normal workspace link, including a lease the cohort
   // classifies as skipped. The classification stays visible as context and as a filter; only a row
   // with no resolved lease id has no link, because no lease link is ever made up. Keeping this
@@ -1617,6 +1618,7 @@ function DeskRow({
       data-action-kind={guidance.action.kind}
       data-blocker-count={String(guidance.blockers.length)}
       data-disposition={row.disposition}
+      data-cycle-disposition={cycleDisposition?.state}
       data-guidance-contract={guidance.contract ?? undefined}
       data-is-blocked={guidance.isBlocked ? "true" : "false"}
       data-lease-id={row.id}
@@ -1687,6 +1689,14 @@ function DeskRow({
             data-disposition={row.disposition}
           >
             {row.reasonLabel}
+          </span>
+        ) : null}
+        {cycleDisposition?.state === "retired" ||
+        cycleDisposition?.state === "unavailable" ? (
+          <span className="renewal-td-secondary" data-renewal-field="cycle-disposition">
+            {cycleDisposition.state === "retired"
+              ? `Retired: ${cycleDisposition.record?.reason ?? "Recorded by staff"}`
+              : "Retirement status unavailable"}
           </span>
         ) : null}
         <UnitIdentityDetails identity={row.identity} addressLabel={row.addressLabel} />
