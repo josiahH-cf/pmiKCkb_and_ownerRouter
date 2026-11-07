@@ -1020,7 +1020,7 @@ try {
         releaseRead.resolve();
         await page.unroute(workspaceRead, holdRead);
       }
-      await open(page, path(prepared));
+      await guided.press("Enter");
       await nowHeading.waitFor();
       const current = await nowHeading.innerText();
       for (const [key, label] of destinations) {

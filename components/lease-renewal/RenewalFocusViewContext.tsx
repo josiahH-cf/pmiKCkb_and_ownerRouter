@@ -21,6 +21,7 @@ import {
 import {
   focusProgrammatically,
   focusRenewalDashboardControl,
+  setRenewalStickyOffset,
 } from "./RenewalDashboardNavigation";
 import { createFocusReveal, type FocusReveal } from "./renewal-focus-reveal";
 
@@ -81,6 +82,49 @@ export function useRenewalFocusView() {
 const CONTINUITY_KEY = "renewal-lease-continuity";
 const MAIN_LANDMARK = 'main, [role="main"]';
 const interactions = ["wheel", "touchstart", "keydown", "mousedown"] as const;
+const SCROLL_SETTLE_LIMIT_MS = 15_000;
+
+/** Keep an exact Full destination visible as earlier panels finish rendering. */
+function keepFullDestinationVisible(target: HTMLElement) {
+  const body = target.closest<HTMLElement>(".renewal-workspace-body");
+  const shell = body?.closest<HTMLElement>(".renewal-workspace-shell");
+  const toolbar = shell?.querySelector<HTMLElement>(".renewal-workspace-toolbar");
+  if (!body || !shell || !toolbar || typeof ResizeObserver === "undefined") return;
+
+  let frame: number | null = null;
+  const stop = () => {
+    observer.disconnect();
+    window.clearTimeout(timeout);
+    if (frame !== null) window.cancelAnimationFrame(frame);
+    for (const event of [...interactions, "focusin"])
+      window.removeEventListener(event, stop, true);
+  };
+  const observer = new ResizeObserver(() => {
+    if (frame !== null) return;
+    frame = window.requestAnimationFrame(() => {
+      frame = null;
+      if (!target.isConnected || document.activeElement !== target) {
+        stop();
+        return;
+      }
+      const bounds = target.getBoundingClientRect();
+      if (
+        bounds.height > 0 &&
+        (bounds.top < toolbar.getBoundingClientRect().bottom ||
+          bounds.bottom > window.innerHeight)
+      ) {
+        setRenewalStickyOffset(shell, toolbar);
+        target.scrollIntoView?.({ block: "start", behavior: "instant" });
+      }
+    });
+  });
+  const timeout = window.setTimeout(stop, SCROLL_SETTLE_LIMIT_MS);
+  for (const event of [...interactions, "focusin"])
+    window.addEventListener(event, stop, { capture: true, passive: true });
+  observer.observe(body);
+  observer.observe(toolbar);
+  return stop;
+}
 
 interface KeptPlace {
   readonly y?: unknown;
@@ -279,6 +323,8 @@ export function RenewalFocusViewProvider({
   const current = useRef<RenewalWorkspaceView>(initialView);
   const scrollY = useRef<number | null>(null);
   const fullTarget = useRef<string | null>(null);
+  const stopFullAlignment = useRef<(() => void) | undefined>(undefined);
+  const restoringScroll = useRef(false);
   const reveal = useRef<{ body: HTMLElement; reveal: FocusReveal } | null>(null);
   const stepRef = useRef<string | null>(null);
   const kept = useRef<KeptPlace | null | undefined>(undefined);
@@ -293,6 +339,8 @@ export function RenewalFocusViewProvider({
   }, []);
   const move = useCallback((next: RenewalWorkspaceView) => {
     if (next === current.current) return false;
+    stopFullAlignment.current?.();
+    stopFullAlignment.current = undefined;
     if (current.current === "full") scrollY.current = window.scrollY;
     current.current = next;
     setViewState(next);
@@ -305,16 +353,28 @@ export function RenewalFocusViewProvider({
     },
     [move],
   );
+  const focusFullTarget = useCallback(
+    (id: string) => {
+      stopFullAlignment.current?.();
+      stopFullAlignment.current = undefined;
+      if (!focusRenewalDashboardControl(id, { viewRequest: false })) return false;
+      const target = document.activeElement;
+      if (!allowLegacyFocus && !restoringScroll.current && target instanceof HTMLElement)
+        stopFullAlignment.current = keepFullDestinationVisible(target);
+      return true;
+    },
+    [allowLegacyFocus],
+  );
   const showInFull = useCallback(
     (targetId: string | null) => {
       if (current.current === "full") {
-        if (targetId) focusRenewalDashboardControl(targetId, { viewRequest: false });
+        if (targetId) focusFullTarget(targetId);
         return;
       }
       fullTarget.current = targetId;
       setView("full");
     },
-    [setView],
+    [focusFullTarget, setView],
   );
   const applyReveal = useCallback(
     (keep: readonly Element[]) => {
@@ -347,11 +407,12 @@ export function RenewalFocusViewProvider({
     const y = scrollY.current;
     fullTarget.current = null;
     scrollY.current = null;
-    if (target && focusRenewalDashboardControl(target, { viewRequest: false })) return;
+    if (target && focusFullTarget(target)) return;
     if (y !== null) window.scrollTo?.({ top: y });
-  }, [view]);
+  }, [focusFullTarget, view]);
   useEffect(
     () => () => {
+      stopFullAlignment.current?.();
       reveal.current?.reveal.clear();
       reveal.current = null;
     },
@@ -402,6 +463,9 @@ export function RenewalFocusViewProvider({
         restoreStep(saved.step);
       }
       if (typeof saved.y === "number") {
+        stopFullAlignment.current?.();
+        stopFullAlignment.current = undefined;
+        restoringScroll.current = true;
         const y = saved.y;
         // While the page's reads settle and its height shifts, it is held at the kept place: for
         // at least four seconds and until its height has held still for one, at most fifteen,
@@ -412,6 +476,7 @@ export function RenewalFocusViewProvider({
         const stop = () => {
           if (timer !== null) window.clearTimeout(timer);
           timer = null;
+          restoringScroll.current = false;
           for (const name of interactions) window.removeEventListener(name, stop);
         };
         const hold = () => {
@@ -423,8 +488,8 @@ export function RenewalFocusViewProvider({
           }
           if (Math.abs(window.scrollY - y) > 2) window.scrollTo?.({ top: y });
           const settled = now - startedAt >= 4000 && now - stillSince >= 1000;
-          timer =
-            settled || now - startedAt >= 15_000 ? null : window.setTimeout(hold, 100);
+          if (settled || now - startedAt >= SCROLL_SETTLE_LIMIT_MS) stop();
+          else timer = window.setTimeout(hold, 100);
         };
         for (const name of interactions)
           window.addEventListener(name, stop, { once: true, passive: true });

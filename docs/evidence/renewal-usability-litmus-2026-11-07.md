@@ -137,6 +137,16 @@ Staff session: none
   a marker for an unused form link. Six scheduled-notice cases lacked the sender,
   rent or publication evidence needed before authorization.
 
+- L06 on `b46f8954` in `20261107T214834Z-b46f8954/L06-full-destinations`.
+  Owner approval held keyboard focus, but its heading settled 1,318 pixels below
+  the top of the 800-pixel viewport. The stored comparison above it finished
+  expanding. The same source passed all 107 S252 checks and 16 of 17 scoped cases.
+  The serial verifier stopped before the later gates.
+- L06 on `b28d77b5` in `20261107T215730Z-b28d77b5/L06-full-destinations`.
+  Holding and releasing the actual synthetic retained comparison GET after Owner
+  approval landed reproduced the same 1,318-pixel position and exact focus.
+  This reproduction changed only the driver.
+
 ## Repairs
 
 - L03 now waits for the initial collection list before enabling New collection. The focused
@@ -184,6 +194,10 @@ reframe was adopted from that run after its digest matched the capture report.
 L06 now clears the prior fragment on Guided return and focuses the exact Full
 heading below the sticky toolbar. The browser confirmed all five Guided and
 five legacy Focus destinations and the separate newer-edit readback.
+Full destination placement now follows a focused target when an earlier panel changes
+size. The observer stops on the next input, focus or view change and after a bounded
+settling window. Saved reload position keeps priority. The browser releases the
+actual retained comparison response after Owner approval has visibly landed.
 L09 waits for the actual fresh source result after the cooldown. The browser
 confirmed the exact restoration, retained collection membership and independent
 later source cycle.
