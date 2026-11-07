@@ -6,6 +6,12 @@ import { appendFileSync, readFileSync } from "node:fs";
 import { Socket } from "node:net";
 import { join } from "node:path";
 import { chromium } from "playwright-core";
+import { tsImport } from "tsx/esm/api";
+import {
+  ONE_PATH_EXECUTION_DATE_AREA,
+  ONE_PATH_OLD_FEE_TEXT,
+  ONE_PATH_ORGANIZATIONS,
+} from "./one-path-forms-seed.mjs";
 import { requireLoopbackRehearsalOrigin } from "../../scripts/lib/help-rehearsal-origin.mjs";
 import { resolveBrowserExecutable } from "../../scripts/lib/browser-executable.mjs";
 import {
@@ -143,6 +149,15 @@ async function refreshDesk(page, expectedTotal = 38) {
 }
 const leaseViews = (page) => page.getByRole("group", { name: "Lease view", exact: true });
 const stage = (page) => page.getByRole("region", { name: "Current renewal stage" });
+async function askDashboard(page, question) {
+  await open(page, "/");
+  await page.waitForLoadState("networkidle", { timeout: 15_000 });
+  await page.getByRole("textbox", { name: "Question", exact: true }).fill(question);
+  await page.getByRole("button", { name: "Get answer", exact: true }).click();
+  const answer = page.getByRole("region", { name: "Assistant answer", exact: true });
+  await answer.waitFor();
+  return answer;
+}
 
 try {
   await check(
@@ -151,7 +166,7 @@ try {
     wide,
     "light",
     "pointer",
-    "The bare desk opens the current working month as a table and counts each loaded record once. The month survives switching tables. A personal filter opens only from its saved link, and an empty filter keeps a way back to all leases.",
+    "The bare desk opens the current working month as a table and counts each loaded record once. The month survives switching tables. A lease returns to its exact month, expanded group, position and row focus. A personal filter opens only from its saved link, and an empty filter keeps a way back to all leases.",
     async (page) => {
       await open(page, desk);
       const batch = page.getByRole("region", { name: "Working batch", exact: true });
@@ -194,6 +209,31 @@ try {
         );
         groupCounts[group] = actual.length;
       }
+      const laterGroup = batch.locator('button[data-batch-group="coming_up_later"]');
+      await laterGroup.click();
+      const later = batch.locator('[data-batch-open-group="coming_up_later"]');
+      const laterLease = String(expectedGroups.coming_up_later.at(-1));
+      const laterLink = later
+        .locator('tr[data-batch-lease="' + laterLease + '"]')
+        .getByRole("rowheader")
+        .getByRole("link");
+      await laterLink.scrollIntoViewIfNeeded();
+      const originalScroll = await page.evaluate(() => window.scrollY);
+      assert.ok(originalScroll > 0);
+      await laterLink.click();
+      await page.waitForURL((url) => url.pathname === path(laterLease));
+      assert.equal(page.context().pages().length, 1);
+      await page.getByRole("link", { name: /Back to renewals/ }).click();
+      await laterLink.waitFor();
+      assert.equal(await batch.getAttribute("data-batch-month"), month);
+      await page.waitForFunction(
+        ({ id, y }) => {
+          const link = document.querySelector('[data-batch-lease="' + id + '"] th a');
+          return link === document.activeElement && Math.abs(window.scrollY - y) <= 24;
+        },
+        { id: laterLease, y: originalScroll },
+      );
+
       await batch.getByRole("link", { name: "Next month", exact: true }).click();
       const shifted = await batch.getAttribute("data-batch-month");
       assert.notEqual(shifted, month);
@@ -243,6 +283,7 @@ try {
         counted,
         groupCounts,
         shiftedMonthRestored: true,
+        groupScrollAndFocusRestored: true,
         savedViewReopened: true,
         emptyFilterRecovered: true,
       };
@@ -254,7 +295,7 @@ try {
     wide,
     "light",
     "keyboard",
-    "The desk, a Dashboard month answer and an explicit My Work task open the same lease and its current renewal step. The task remains private to its owner.",
+    "The desk, a Dashboard month answer and an explicit My Work task open the same lease and its current renewal step. The Dashboard task answer goes to that same task, which remains private to its owner. Missing and signed-out lease entries provide a safe exit.",
     async (page) => {
       await open(page, desk);
       const row = page.locator(`tr[data-batch-lease="${prepared}"]`);
@@ -268,13 +309,7 @@ try {
       await page.goBack({ waitUntil: "domcontentloaded" });
       await row.waitFor();
 
-      await open(page, "/");
-      await page
-        .getByRole("textbox", { name: "Question", exact: true })
-        .fill("Which lease renewals are due next month?");
-      await page.getByRole("button", { name: "Get answer", exact: true }).click();
-      const answer = page.getByRole("region", { name: "Assistant answer", exact: true });
-      await answer.waitFor();
+      const answer = await askDashboard(page, "Which lease renewals are due next month?");
       const leaseLinks = answer.locator(
         `a[href^="${desk}/lease/"]:not([href$="/rentvine"])`,
       );
@@ -339,17 +374,67 @@ try {
       await page.goBack({ waitUntil: "domcontentloaded" });
       await page.getByText(taskTitle, { exact: true }).waitFor();
 
+      const workAnswer = await askDashboard(page, "Which tasks are assigned to me?");
+      const exactTask = workAnswer.getByRole("link", { name: taskTitle, exact: true });
+      const taskHref = await exactTask.getAttribute("href");
+      assert.match(taskHref, /^\/work\?task_id=.+/);
+      await exactTask.click();
+      await page.waitForURL((url) => url.pathname + url.search === taskHref);
+      await page.getByText(taskTitle, { exact: true }).waitFor();
+      await page
+        .getByRole("link", { name: "Open linked renewal lease", exact: true })
+        .click();
+      await page.waitForURL((url) => url.pathname === path(prepared));
+      assert.equal(
+        await stage(page).locator('[data-renewal-field="stage-line"]').innerText(),
+        original,
+      );
+      await page.goBack({ waitUntil: "domcontentloaded" });
+      await page.getByText(taskTitle, { exact: true }).waitFor();
+
       const other = await session("Approver", narrow, "light");
       try {
-        await open(other.page, "/work");
+        await open(other.page, taskHref);
         await other.page
           .getByRole("region", { name: "Assigned tasks", exact: true })
           .waitFor();
         assert.equal(await other.page.getByText(taskTitle, { exact: true }).count(), 0);
+        const otherAnswer = await askDashboard(
+          other.page,
+          "Which tasks are assigned to me?",
+        );
+        assert.equal(
+          await otherAnswer.getByRole("link", { name: taskTitle, exact: true }).count(),
+          0,
+        );
       } finally {
         await other.context.close();
       }
-      return { dashboardTargets: ids.length, sameLeaseAndStage: true, privateTask: true };
+
+      await open(page, path("99999999"));
+      await page
+        .getByText("This live renewal is unavailable.", { exact: true })
+        .waitFor();
+      assert.equal(await stage(page).count(), 0);
+      await page.getByRole("link", { name: /Back to renewals/ }).click();
+      await page.getByRole("region", { name: "Working batch", exact: true }).waitFor();
+
+      const signedOut = await session("Signed out", narrow, "light");
+      try {
+        await open(signedOut.page, path(prepared));
+        await signedOut.page.waitForURL((url) => url.pathname === "/sign-in");
+        assert.equal(await stage(signedOut.page).count(), 0);
+      } finally {
+        await signedOut.context.close();
+      }
+      return {
+        dashboardTargets: ids.length,
+        sameLeaseAndStage: true,
+        exactDashboardTaskReturn: true,
+        privateTask: true,
+        unavailableLeaseReturn: true,
+        signedOutDenied: true,
+      };
     },
   );
   await check(
@@ -623,6 +708,73 @@ try {
     },
   );
   await check(
+    "L04-independent-later-work",
+    "Editor",
+    wide,
+    "dark",
+    "keyboard",
+    "A prepared lease retains its current owner action while staff keyboard-select Documents and signatures, record a synthetic preparation result through its own existing control, and return to the same current action after reload.",
+    async (page) => {
+      await open(page, path(prepared));
+      await page.waitForLoadState("networkidle", { timeout: 15_000 });
+      const pathNav = page.getByRole("navigation", { name: "Renewal path", exact: true });
+      const now = page.getByRole("region", { name: "Now", exact: true });
+      const next = now.locator('[data-renewal-field="next-step"]');
+      const current = pathNav.locator('[aria-current="step"]');
+      const currentLabel = await current.innerText();
+      assert.equal(await next.count(), 1);
+      assert.equal(await now.locator("[data-renewal-now-primary]").count(), 1);
+      const documents = pathNav.getByRole("button", {
+        name: "Documents and signatures",
+        exact: true,
+      });
+      await documents.press("Enter");
+      const heading = now.getByRole("heading", {
+        name: "Documents and signatures",
+        exact: true,
+      });
+      await heading.waitFor();
+      assert.ok(await heading.evaluate((element) => element === document.activeElement));
+      assert.equal(await current.innerText(), currentLabel);
+      await now
+        .getByRole("button", { name: "Prepare the required documents", exact: true })
+        .press("Enter");
+      const outcome = page.getByLabel("Required documents prepared outcome", {
+        exact: true,
+      });
+      await outcome.waitFor();
+      assert.ok(await outcome.evaluate((element) => element === document.activeElement));
+      const [saved] = await Promise.all([
+        page.waitForResponse((response) => {
+          const request = response.request();
+          return (
+            new URL(response.url()).pathname === "/api/lease-renewal/workspace" &&
+            request.method() === "POST" &&
+            request.postDataJSON()?.action?.activity === "documents"
+          );
+        }),
+        outcome.selectOption("waiting"),
+      ]);
+      assert.equal(saved.request().postDataJSON().leaseId, prepared);
+      assert.ok(saved.ok());
+      const result = await saved.json();
+      assert.equal(result.state?.activities?.documents?.outcome, "waiting");
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await outcome.waitFor();
+      assert.equal(await outcome.inputValue(), "waiting");
+      await next
+        .getByRole("button", { name: "Show current step", exact: true })
+        .press("Enter");
+      const returned = now.getByRole("heading", {
+        name: "Now: " + currentLabel,
+        exact: true,
+      });
+      await returned.waitFor();
+      assert.ok(await returned.evaluate((element) => element === document.activeElement));
+      return { savedLaterWork: true, sameCurrentAction: true };
+    },
+  );
+  await check(
     "L05-L06-header-continuation",
     "Editor",
     narrow,
@@ -768,10 +920,10 @@ try {
       const detailNav = page.getByRole("navigation", {
         name: "Every section in Full view",
       });
-      const landed = async (id) => {
+      const landed = async (id, entry) => {
         await full.waitFor();
         await page.locator("#" + id).waitFor();
-        await page.waitForFunction((targetId) => {
+        const visibleBelowToolbar = (targetId) => {
           const section = document.getElementById(targetId);
           const heading = section?.querySelector(":scope > .renewal-heading-row > h2");
           const toolbar = section
@@ -784,7 +936,32 @@ try {
             bounds.top >= toolbar.getBoundingClientRect().bottom &&
             bounds.bottom <= window.innerHeight
           );
-        }, id);
+        };
+        try {
+          await page.waitForFunction(visibleBelowToolbar, id);
+        } catch (error) {
+          const observed = await page.evaluate((targetId) => {
+            const heading = document.getElementById(targetId)?.querySelector("h2");
+            const toolbar = document.querySelector(".renewal-workspace-toolbar");
+            const active = document.activeElement;
+            return {
+              hash: location.hash,
+              active: active?.textContent?.trim().slice(0, 80),
+              activeHeading: active === heading,
+              scrollY: window.scrollY,
+              headingTop: heading?.getBoundingClientRect().top,
+              toolbarBottom: toolbar?.getBoundingClientRect().bottom,
+            };
+          }, id);
+          log({
+            id: "L06-full-destinations",
+            state: "checkpoint",
+            target: id,
+            entry,
+            observed,
+          });
+          throw error;
+        }
       };
       await open(page, path(prepared));
       await nowHeading.waitFor();
@@ -797,12 +974,12 @@ try {
           expected: label + " in Full below the toolbar",
         });
         await detailNav.getByRole("link", { name: label, exact: true }).press("Enter");
-        await landed(id);
+        await landed(id, "Guided detail link");
         await guided.press("Enter");
         await nowHeading.waitFor();
         assert.equal(await nowHeading.innerText(), current);
         await open(page, path(prepared, "?view=focus#" + id));
-        await landed(id);
+        await landed(id, "old Focus URL");
         await guided.press("Enter");
         await nowHeading.waitFor();
         assert.equal(await nowHeading.innerText(), current);
@@ -1021,8 +1198,49 @@ try {
     wide,
     "light",
     "pointer",
-    "The exact cycle moves to Retired after confirmation. A stale review in another tab keeps its reason and creates no second record. A later verified source cycle keeps its own eligibility. Restoration persists, and the Status log lists both recorded decisions.",
+    "The exact cycle moves to Retired after confirmation, leaves the Dashboard's active month results, and stays in its collection with the retirement reason. A stale review in another tab keeps its reason and creates no second record. A later verified source cycle keeps its own eligibility. Restoration persists, including Dashboard and collection readback, and the Status log lists both recorded decisions.",
     async (page) => {
+      const monthQuestion = "Which lease renewals are due next month?";
+      const linkedLease = (answer, id) =>
+        answer.locator('a[href="' + path(id) + '"], a[href^="' + path(id) + '?"]');
+      await linkedLease(await askDashboard(page, monthQuestion), separate)
+        .first()
+        .waitFor();
+
+      await open(page, "/lease-renewal/collections");
+      await page.getByRole("button", { name: "New collection", exact: true }).click();
+      const editor = page.getByRole("region", { name: "Collection membership editor" });
+      const collectionName = "Example retirement membership";
+      await editor.getByLabel("Collection name").fill(collectionName);
+      const [year, month] = rehearsal.workingMonth.split("-").map(Number);
+      await editor.getByLabel("Period from").fill(rehearsal.workingMonth + "-01");
+      await editor
+        .getByLabel("Period through")
+        .fill(
+          rehearsal.workingMonth + "-" + new Date(Date.UTC(year, month, 0)).getUTCDate(),
+        );
+      await editor.getByRole("textbox", { name: /^Selected lease IDs/ }).fill(separate);
+      await editor
+        .getByRole("button", { name: "Review membership", exact: true })
+        .click();
+      const review = editor.getByRole("region", {
+        name: "Reviewed membership",
+        exact: true,
+      });
+      await review.getByRole("heading", { name: "Additions (1)", exact: true }).waitFor();
+      await review
+        .getByRole("button", { name: "Save reviewed collection", exact: true })
+        .click();
+      const collection = page.getByRole("region", {
+        name: "Current collection status",
+        exact: true,
+      });
+      await collection
+        .getByRole("heading", { name: collectionName, exact: true })
+        .waitFor();
+      const collectionUrl = new URL(page.url());
+      const collectionPath = collectionUrl.pathname + collectionUrl.search;
+
       await open(page, path(separate));
       const header = stage(page);
       const record = header.getByRole("button", { name: "Record work", exact: true });
@@ -1066,7 +1284,28 @@ try {
       }
       await page.reload({ waitUntil: "domcontentloaded" });
       await header.getByText("Retired from renewals", { exact: true }).waitFor();
-      const [year, month] = rehearsal.workingMonth.split("-").map(Number);
+      const retiredAnswer = await askDashboard(page, monthQuestion);
+      await linkedLease(retiredAnswer, prepared).first().waitFor();
+      assert.equal(await linkedLease(retiredAnswer, separate).count(), 0);
+
+      await open(page, collectionPath);
+      await collection
+        .getByRole("heading", { name: collectionName, exact: true })
+        .waitFor();
+      const members = collection.getByRole("table", {
+        name: "Saved members",
+        exact: true,
+      });
+      await members
+        .getByText("Retired · Synthetic inactive cycle", { exact: true })
+        .waitFor();
+      assert.match(await collection.innerText(), /1 saved member.*membership version 1/s);
+      const memberLink = members.getByRole("link");
+      assert.match(await memberLink.getAttribute("href"), new RegExp(path(separate)));
+      await memberLink.click();
+      await page.waitForURL((url) => url.pathname === path(separate));
+      await header.getByText("Retired from renewals", { exact: true }).waitFor();
+
       const futureDate = year + 1 + "-" + String(month).padStart(2, "0") + "-15";
       try {
         setSourceCycleDate(rehearsal, separate, futureDate);
@@ -1126,8 +1365,19 @@ try {
       await history.getByText(/Synthetic retirement corrected/).waitFor();
       await history.getByText(/Synthetic inactive cycle/).waitFor();
       assert.equal(await history.getByRole("listitem").count(), 2);
+      await linkedLease(await askDashboard(page, monthQuestion), separate)
+        .first()
+        .waitFor();
+      await open(page, collectionPath);
+      await collection
+        .getByRole("heading", { name: collectionName, exact: true })
+        .waitFor();
+      await members.getByRole("link").waitFor();
+      assert.equal(await members.getByText(/Retired ·/).count(), 0);
+      assert.match(await collection.innerText(), /1 saved member.*membership version 1/s);
       return {
         retiredCountedAndOpened: true,
+        dashboardAndCollectionAgreed: true,
         bothDecisionsSurvivedReload: true,
         staleReasonKept: true,
         laterSourceCycleStayedActive: true,
@@ -1167,7 +1417,7 @@ try {
     wide,
     "light",
     "pointer",
-    "A synthetic Admin's published fee and the Editor's recorded deposit add exactly. A missing deposit leaves the total blank. The owner explanation keeps its paragraphs and neither value appears on a second lease. The prepared pet PDF matches the recorded digest.",
+    "A synthetic Admin's published fee and the Editor's recorded deposit add exactly. A missing deposit leaves the total blank. The owner explanation keeps its paragraphs and neither value appears on a second lease. The prepared pet PDF matches its recorded digest, the owner execution date stays blank, the original brochure bytes and printed organizations stay distinct, and overflow and assistance-animal limits stay visible.",
     async (page) => {
       log({
         id: "L10-synthetic-forms-admin",
@@ -1319,6 +1569,112 @@ try {
       const bytes = readFileSync(await download.path());
       assert.equal(bytes.subarray(0, 5).toString(), "%PDF-");
       assert.equal(createHash("sha256").update(bytes).digest("hex"), savedHash);
+      const { readStaticPageRuns, readStaticPdfLines } = await tsImport(
+        "../../lib/lease-documents/static-pdf.ts",
+        import.meta.url,
+      );
+      const petText = (await readStaticPdfLines(bytes))
+        .map((line) => line.text)
+        .join("\n");
+      assert.match(petText, /\$50\.00/);
+      assert.ok(!petText.includes(ONE_PATH_OLD_FEE_TEXT));
+
+      const brochure = snapshot.manifest?.includedArtifacts.find(
+        (entry) => entry.kind === "brokerage_disclosure",
+      );
+      assert.ok(brochure?.label && brochure.contentHash);
+      const brochureRow = packet.getByRole("listitem").filter({
+        hasText: brochure.label,
+        has: page.getByRole("button", { name: "Check filled document", exact: true }),
+      });
+      await brochureRow
+        .getByRole("button", { name: "Check filled document", exact: true })
+        .click();
+      await brochureRow
+        .getByText("Tenant initials: four boxes", { exact: true })
+        .waitFor();
+      assert.equal(
+        await brochureRow.getByRole("button", { name: /Prepare.*PDF/ }).count(),
+        0,
+      );
+      const [original] = await Promise.all([
+        page.waitForEvent("download"),
+        brochureRow
+          .getByRole("link", { name: "Download the approved file for inspection" })
+          .click(),
+      ]);
+      const originalBytes = readFileSync(await original.path());
+      assert.equal(
+        createHash("sha256").update(originalBytes).digest("hex"),
+        brochure.contentHash,
+      );
+
+      const ownerCheck = inputs.getByRole("button", {
+        name: "Check the owner acknowledgment",
+        exact: true,
+      });
+      await ownerCheck.click();
+      await inputs
+        .getByRole("button", { name: "Check filled document", exact: true })
+        .click();
+      await inputs
+        .getByRole("button", { name: "Prepare filled PDF", exact: true })
+        .click();
+      const [ownerFile] = await Promise.all([
+        page.waitForEvent("download"),
+        inputs
+          .getByRole("link", { name: "Download filled PDF for inspection", exact: true })
+          .click(),
+      ]);
+      const ownerBytes = readFileSync(await ownerFile.path());
+      const ownerRuns = await readStaticPageRuns(
+        ownerBytes,
+        ONE_PATH_EXECUTION_DATE_AREA.pageIndex,
+      );
+      const blank = ONE_PATH_EXECUTION_DATE_AREA.rect;
+      assert.ok(
+        !ownerRuns.some(
+          (run) =>
+            run.x < blank.x + blank.width &&
+            run.x + run.width > blank.x &&
+            run.y < blank.y + blank.height &&
+            run.y + run.height > blank.y,
+        ),
+      );
+      const ownerText = ownerRuns.map((run) => run.text).join("\n");
+      assert.ok(ownerText.includes(ONE_PATH_ORGANIZATIONS.owner_acknowledgment));
+      const originalText = (await readStaticPdfLines(originalBytes))
+        .map((line) => line.text)
+        .join("\n");
+      assert.ok(originalText.includes(ONE_PATH_ORGANIZATIONS.brokerage_disclosure));
+      assert.ok(!ownerText.includes(ONE_PATH_ORGANIZATIONS.brokerage_disclosure));
+      assert.ok(!originalText.includes(ONE_PATH_ORGANIZATIONS.owner_acknowledgment));
+
+      const longExplanation = Array.from(
+        { length: 23 },
+        (_, index) => "Synthetic overflow line " + (index + 1),
+      ).join("\n");
+      await inputs
+        .getByRole("textbox", { name: "Explanation for the owner", exact: true })
+        .fill(longExplanation);
+      await inputs.getByRole("button", { name: "Save explanation", exact: true }).click();
+      await inputs.locator('[data-renewal-field="owner-explanation-overflow"]').waitFor();
+      await ownerCheck.click();
+      await inputs
+        .getByText(/This form waits|lines too long/)
+        .first()
+        .waitFor();
+      assert.equal(
+        await inputs
+          .getByRole("button", { name: "Prepare filled PDF", exact: true })
+          .count(),
+        0,
+      );
+
+      await openInputs(String(rehearsal.roles.assisted));
+      await inputs.locator('[data-packet-animal-charge="needs_rule"]').waitFor();
+      assert.equal(await inputs.locator("[data-pet-agreement]").count(), 0);
+      assert.equal(await inputs.getByLabel(/registration/i).count(), 0);
       await openInputs(String(rehearsal.roles.covered));
       assert.match(await amount("total").innerText(), /left blank/);
       assert.equal(
@@ -1337,6 +1693,11 @@ try {
         twoParagraphsReread: true,
         packetEvaluationState: visibleState,
         filledPetBytesMatched: true,
+        ownerExecutionDateUntouched: true,
+        brochureOriginalBytesMatched: true,
+        organizationTextPreservedPerForm: true,
+        ownerOverflowHeld: true,
+        assistanceAnimalChargesAbsent: true,
         otherLeaseStayedBlank: true,
       };
     },

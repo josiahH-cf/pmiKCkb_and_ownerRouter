@@ -748,10 +748,115 @@ export async function runGuidedPath() {
         { tick, afterTick, standing: sequenceStanding(standing.body?.sequence) },
       );
     }
+    process.stdout.write(
+      "expect L05: a later staff record that outreach is waiting shows both its saved outcome and the accepted send in lease, desk and Dashboard. Recording the exact correction brings all three back to the same waiting stage and keeps the earlier receipt.\n",
+    );
+    const staffHeader = page.getByRole("region", {
+      name: "Current renewal stage",
+      exact: true,
+    });
+    const recordOutreach = async (outcome) => {
+      await staffHeader.getByRole("button", { name: "Record work", exact: true }).click();
+      await staffHeader
+        .getByRole("button", { name: "Owner outreach", exact: true })
+        .click();
+      const control = page.getByLabel("Owner outreach outcome", { exact: true });
+      await control.waitFor();
+      const [response] = await Promise.all([
+        page.waitForResponse(
+          (result) => {
+            const request = result.request();
+            return (
+              new URL(result.url()).pathname === "/api/lease-renewal/workspace" &&
+              request.method() === "POST" &&
+              request.postDataJSON()?.action?.activity === "owner_outreach"
+            );
+          },
+          { timeout: 30_000 },
+        ),
+        control.selectOption(outcome),
+      ]);
+      const result = await response.json();
+      assert.equal(String(response.request().postDataJSON().leaseId), String(prepared));
+      assert.ok(
+        response.ok() && result.state?.activities?.owner_outreach?.outcome === outcome,
+      );
+    };
+    const threeStageReads = async (expected) => {
+      await open(prepared);
+      const headerLine = staffHeader.locator('[data-renewal-field="stage-line"]');
+      await headerLine.filter({ hasText: expected }).waitFor({ timeout: 30_000 });
+      const leaseLine = (await headerLine.innerText()).trim();
+      const next = now().locator('[data-renewal-field="next-step"]');
+      const nextLine = (await next.innerText()).trim();
+      await page.goto(origin + "/lease-renewal/live/desk", {
+        waitUntil: "domcontentloaded",
+      });
+      const deskRow = page.locator('tr[data-batch-lease="' + prepared + '"]').first();
+      await deskRow
+        .locator(".renewal-batch-stage")
+        .filter({ hasText: leaseLine })
+        .waitFor({
+          timeout: 30_000,
+        });
+      const deskNext = (
+        await deskRow.locator("[data-batch-next-step]").innerText()
+      ).trim();
+      await page.goto(origin + "/", { waitUntil: "domcontentloaded" });
+      await page.waitForLoadState("networkidle", { timeout: 15_000 });
+      await page
+        .getByRole("textbox", { name: "Question", exact: true })
+        .fill("Which lease renewals are due next month?");
+      await page.getByRole("button", { name: "Get answer", exact: true }).click();
+      const answer = page.getByRole("region", { name: "Assistant answer", exact: true });
+      const exactLease = answer
+        .locator(
+          'a[href="' +
+            leasePath(prepared) +
+            '"], a[href^="' +
+            leasePath(prepared) +
+            '?"]',
+        )
+        .first();
+      await exactLease.waitFor({ timeout: 30_000 });
+      const resultLine = await exactLease.locator("..").innerText();
+      return {
+        sameStage: resultLine.includes(leaseLine),
+        sameNext: nextLine === "Next step: " + deskNext && resultLine.includes(nextLine),
+        leaseLine,
+        nextLine,
+      };
+    };
+    await open(prepared);
+    await recordOutreach("waiting");
+    const conflict = await threeStageReads(
+      /Needs a check:.*outreach.*waiting.*message accepted by Gmail/i,
+    );
+    await open(prepared);
+    await recordOutreach("done");
+    const corrected = await threeStageReads(/^Waiting on owner response/);
+    const correctedRecord = await route(
+      "/api/lease-renewal/workspace?leaseId=" + prepared,
+    );
+    const acceptedStanding = resumed?.id
+      ? await route("/api/gmail-hub/sequences?id=" + resumed.id)
+      : null;
+    check(
+      "L05: staff outreach conflict and correction agree on lease, desk and Dashboard",
+      conflict.sameStage &&
+        conflict.sameNext &&
+        corrected.sameStage &&
+        corrected.sameNext &&
+        correctedRecord.body?.state?.activities?.owner_outreach?.outcome === "done" &&
+        acceptedStanding?.body?.sequence?.confirmedCount === 1,
+      { conflict, corrected },
+    );
+
     // A new reply is a separate scoped action from reading the incoming evidence.
     process.stdout.write(
       "expect L07 linked reply: opening the received message prepares no effect. Reviewing and selecting Send accepts one exact reply on that same synthetic thread. Reload keeps the receipt and the original incoming message.\n",
     );
+    const priorReplySends = new Set((await sentMessages()).map((entry) => entry.id));
     await page.goto(origin + "/gmail-hub", { waitUntil: "domcontentloaded" });
     await page.waitForLoadState("networkidle", { timeout: 15_000 });
     await page
@@ -817,8 +922,15 @@ export async function runGuidedPath() {
       assert.ok(thread);
       const wording = "Thank you for reviewing the synthetic renewal example.";
       await replyBody.fill(wording);
-      assert.equal(await replyBody.innerText(), wording);
-      const prior = new Set((await sentMessages()).map((entry) => entry.id));
+      assert.equal(await replyBody.inputValue(), wording);
+      await replyComposer
+        .getByRole("note")
+        .filter({ hasText: /Review the recipients/ })
+        .waitFor();
+      assert.deepEqual(
+        new Set((await sentMessages()).map((entry) => entry.id)),
+        priorReplySends,
+      );
       const confirm = replyComposer.getByRole("button", { name: "Send", exact: true });
       const [response] = await Promise.all([
         replyPage.waitForResponse(
@@ -836,7 +948,13 @@ export async function runGuidedPath() {
       ]);
       const accepted = (await response.json()).sequence;
       assert.ok(response.ok() && accepted?.id);
-      const sent = (await sentMessages()).filter((entry) => !prior.has(entry.id));
+      const admitted = response.request().postDataJSON();
+      assert.ok(
+        admitted.reviewedDraftHash && admitted.reviewedTargetHash && admitted.operationId,
+      );
+      const sent = (await sentMessages()).filter(
+        (entry) => !priorReplySends.has(entry.id),
+      );
       await replyPage.reload({ waitUntil: "domcontentloaded" });
       const evidence = replyComposer.getByRole("region", {
         name: "Message evidence",

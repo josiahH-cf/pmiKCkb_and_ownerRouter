@@ -67,6 +67,11 @@ Staff session: none
   Rendered Help flagged Tenant offer and Entity search as material changes in
   `canonical-93b3e91d-20261107T171838Z`.
 
+- L06 on `ccb8fae8` in `20261107T173720Z-ccb8fae8`. The Owner approval
+  checkpoint switched to Full, but the visible page remained in the preceding comparison section.
+  The same driver's working-value revision case passed. The screenshot and the failed wait
+  remain in that run's evidence.
+
 ## Repairs
 
 - L03 now waits for the initial collection list before enabling New collection. The focused
@@ -302,3 +307,29 @@ Accepted: No
 | L12 | Yes | Browser outcome `20261107T165608Z-8149b612/L12-connection-retry`. A narrow Admin followed the named service and an old entry, saw the injected failed read and retried successfully. The separate legacy safety task returned to the index. The Editor saw the denial and no write control. | Used the verified synthetic health response from the RentVine stand-in. | None for the observed scoped tasks. |
 | L13 | UNVERIFIED | The Editor used the actual Help guide through review and completion and requested browser printing. All 32 tested heading rules kept content together, then Back returned to the exact lease section. Earlier required Help rendered all 27 scenes without drift on its own exact source. | Kept the same isolated renderer and synthetic assets. | Run deliberate missing-control and material-change injection and repeat the required positive gate on the final candidate. |
 | L14 | No | The full S252 rehearsal passed 105 checks and five numerical budgets with one failure at the outgoing linked reply entry. The mailbox-disabled rehearsal passed 13 of 15. Stand-in and guard reports preserved the same effect boundaries. | Kept prior failures, the versioned S254 crosswalk and the same-date comparisons. | Complete the exact-candidate matrix, canonical and core gates, and CI. |
+
+## Run 5
+
+Commit: ccb8fae84bfd58c6ee28aa653610cd5fabd7f201
+Starting commit: ef81b8917209f4eec3f22097142b559f3cce875b
+Run: 5
+Goal groups: all
+Accepted: No
+
+<!-- prettier-ignore -->
+| Check | Verdict | Evidence | Repair | Blocker |
+| ----- | ------- | -------- | ------ | ------- |
+| L01 | UNVERIFIED | The Editor checked all 38 lease IDs, each group, both views, the explicit saved view and the empty-filter recovery in `20261107T173720Z-ccb8fae8/L01-desk`. | The driver now also measures the explicit return link's focus and scroll. | Observe the scoped position on the final candidate. |
+| L02 | UNVERIFIED | The same lease and stage opened from the desk, Dashboard and explicit private task. The Approver did not see the Editor's task. | Added the explicit Dashboard task answer and missing and signed-out entry checkpoints. | Observe those entries on the final candidate. |
+| L03 | Yes | Browser outcome `20261107T173720Z-ccb8fae8/L03-collection`. The Editor recovered the lost save and saw the exact two members. A second actor read them, a stale removal was refused, and a temporary missing member kept its row with no link. Restoring the source returned its link. The filtered period choice saved a separate exact member. | Matched the unavailable row by its accessible lease header and checked the returned scoped response. | None for the observed synthetic collection. |
+| L04 | UNVERIFIED | The prepared Editor saw the existing numbers, comparison, recommendation and preview, inspected a later step and kept the current step. All five S252 action budgets were within their original bounds. | Added a keyboard case to work a real independent later form. | Observe the independent save and return. |
+| L05 | UNVERIFIED | The decision and correction were recorded on the exact lease. The refused note kept the exact text through reload and persisted once. | Added the real staff outreach disagreement and correction across lease, desk and Dashboard. A separate rendered regression found the hand-set status cue hidden without a message conflict. | Observe all three projections and the fixed status disclosure. |
+| L06 | No | The Owner approval detail check switched to Full but the screenshot stayed within the preceding comparison section. In a separate case, the incomplete amount survived view changes and reload and the later valid edit won after the earlier acknowledgment. | Record the entry method, hash, focus and geometry if a detail transition fails again. | Reobserve all current and old detail destinations and the return to the same step. |
+| L07 | Yes | Browser outcome `20261107T174213Z-ccb8fae8/s247-s248-guided-path.25`. The actual Outgoing row opened the incoming conversation. An Editor sent one reply with the reviewed subject, body and exact thread. Both the original incoming message and new durable receipt reread. The same rehearsal matched Copy, Send, Schedule, two exact unsent draft receipts, Pause, Resume and one due effect. The mailbox-disabled profile saved and reread a versioned blank. | Waited for the rendered Outgoing tab and exact lease record. | Provider and customer effects retain their separate boundaries. |
+| L08 | Yes | Browser outcome `20261107T174213Z-ccb8fae8/s250-s251-variants`. The Editor exercised standing coverage and override and the assisted contact, no answer, renew and do-not-renew paths. The mailbox-disabled annual review and move-out records persisted after reload and returned to their desk groups. | Kept the original role, exact saved facts and counted branches. | None for the observed synthetic variants. |
+| L09 | UNVERIFIED | Retirement reached the counted desk reason. A stale tab kept its reason, a verified later source cycle stayed active, and restoration reread two exact history events. Scheduled and ambiguous work both refused with the exact recovery link. | Respect the source refresh cooldown before restoring the fixture. | Observe membership and active Dashboard scope before, during and after retirement on the final candidate. |
+| L10 | UNVERIFIED | The standard Editor journey completed and reopened from Completed. The synthetic fee and deposit added to $300, the owner explanation retained two paragraphs, and the downloaded prepared pet PDF matched its recorded digest. Values on another lease stayed blank. | The extended check observes the separate owner form and unchanged brochure bytes. | Observe the protected areas, overflow and applicable assistance cases in the browser. |
+| L11 | UNVERIFIED | The narrow Editor entered named Communications and Internal Processes and followed the old procedure link back to the exact lease. The same private My Work task did not appear for a second actor. | Added an exact Dashboard task answer and target availability case. | Reobserve the extended entry and return paths. |
+| L12 | Yes | Browser outcome `20261107T173720Z-ccb8fae8/L12-connection-retry`. The narrow Admin read the focused service, received the synthetic refusal, retried with a verified result and returned. The old Admin anchor and the Editor refusal were observed. | Used the exact role and local metadata read. | None for the observed scoped tasks. |
+| L13 | UNVERIFIED | Help printed and returned to the exact lease section. The separate exact `b4a01582` capture review rendered 27 scenes without material changes. The fixed search image was visually checked and committed at `ccb8fae8`. | The search scene uses the fixed synthetic time for generated read timestamps. | Repeat required positive verification and demonstrate deliberate control and scene rejection. |
+| L14 | No | S252 passed all 106 checks and five numerical action budgets. The mailbox-disabled rehearsal passed 15 of 16 cases, with Owner approval focus unresolved. The local core and complete canonical lanes have no result on this commit. | Keep the failed detail proof alongside the positive synthetic effect and cleanup results. | Complete the same-candidate matrix, local gates and exact CI. |

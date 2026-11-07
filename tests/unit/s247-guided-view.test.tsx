@@ -462,6 +462,43 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
     expect(within(header).getByRole("button", { name: "Record work" })).toBeVisible();
   });
 
+  it("keeps a disagreeing hand-set status and the recorded stage available together", async () => {
+    const state = manualState();
+    stubRenewalRoutes(state);
+    const workspace = getRenewalLeaseWorkspace("lease-318-cedar-7")!;
+    const context = renewalStageContextFor(
+      { ...workspace.summary, guidance: workspace.guidance },
+      null,
+      null,
+    );
+    await renderWorkspace({
+      workspace: {
+        ...workspace,
+        renewalStageContext: {
+          ...context,
+          handStatus: { key: "waiting_on_signatures", label: "Waiting on signatures" },
+        },
+      },
+      manual: state,
+      view: "default",
+    });
+    const header = screen.getByRole("region", { name: "Current renewal stage" });
+    const stage = header.querySelector('[data-renewal-field="stage-line"]');
+    const stageLine = stage?.textContent;
+    expect(stageLine).not.toContain("Waiting on signatures");
+    const discrepancy = within(header).getByText("Needs a check", { exact: true });
+    const user = userEvent.setup();
+    await user.click(discrepancy);
+    expect(
+      within(header).getByText(
+        /^Set by hand: Waiting on signatures\. From the recorded work:/,
+      ),
+    ).toBeVisible();
+    await user.click(viewButton("Full view"));
+    expect(stage?.textContent).toBe(stageLine);
+    expect(discrepancy).toBeVisible();
+  });
+
   it("R-S247-8: Add a note reaches the separate staff annotation", async () => {
     stubRenewalRoutes(manualState());
     await renderWorkspace({

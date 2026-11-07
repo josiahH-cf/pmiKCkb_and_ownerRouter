@@ -97,10 +97,10 @@ export function RenewalStageHeader({
           {formatBusinessTimestamp(disposition.record.at)}.
         </p>
       ) : null}
-      {stage.check ? (
+      {stage.check || stage.handStatusLine ? (
         <details>
           <summary>Needs a check</summary>
-          <p>{stage.check.sentence}</p>
+          {stage.check ? <p>{stage.check.sentence}</p> : null}
           {stage.handStatusLine ? <p>{stage.handStatusLine}</p> : null}
         </details>
       ) : null}
