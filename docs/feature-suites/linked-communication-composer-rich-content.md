@@ -23,6 +23,11 @@ Authorized PMI staff with accessible lease/ticket context. Actual source mapping
 
 Prepopulate the linked composer from the same current source/working values used by the workflow. Autosave app-owned drafts, permit ordinary editing and AI refinement, and show the actual sender, recipient set, subject, formatted content and attachment list. Save draft creates no dispatch authorization. Send now or Schedule authorizes exactly the displayed content/version through S189/S190; there is no separate approval queue or repeated staged review.
 
+Repeated loads of the same pending composition in one composer share its current read. An
+unreadable response keeps a plain error with Try again and Close. Retry reads the same entry,
+shows loading, and returns focused keyboard work to the loaded composer heading. Only the current
+entry can install its draft. Existing versioned saves and exact dispatch reviews still apply.
+
 This is intake 059 of the named program. This contract is consumable by the existing implementation process after a separate owner execution instruction; registration and READY are not execution authority.
 
 **In scope / out of scope.**

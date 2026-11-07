@@ -112,6 +112,9 @@ choose to work. RentVine readable; RentCast allowance available for a new lookup
   draft saving. If a newer value arrived during either wait, an older exact review stays closed
   and the Now action asks for the current message to be reviewed again. The saved application
   draft is reused through its ordinary versioned update; no second effect or confirmation runs.
+  The linked composer joins a repeated pending read for the same entry. If its read fails,
+  Try again reloads that entry, keeps keyboard focus during loading and leads into the ready
+  composer. Close remains available and the usual exact review still governs delivery.
   Unrelated incomplete fields remain usable. Copy keeps the exact displayed bytes during a
   pending or failed save and states when working figures were unconfirmed when copying began.
   Authored wording keeps its existing deliberate changed-fact recovery.

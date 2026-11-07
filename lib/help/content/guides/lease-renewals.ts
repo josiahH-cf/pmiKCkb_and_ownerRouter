@@ -884,7 +884,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "The message goes out, or waits for the time you chose, once its current checks pass, and Communications shows its delivery state.",
         effect: "explicit-send",
-        note: "A reply or a failed delivery pauses follow-ups, and Resume requires a fresh review.",
+        note: "If the communication could not be read, choose Try again or Close. A reply or a failed delivery pauses follow-ups, and Resume requires a fresh review.",
       },
       {
         id: "record-tenant-delivery",

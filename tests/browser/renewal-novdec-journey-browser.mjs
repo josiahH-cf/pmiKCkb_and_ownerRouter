@@ -445,8 +445,8 @@ try {
 
   // S246: the bare Renewals route opens the working batch. Checked on the three synthetic leases
   // before any work is recorded: 5001 ends in December 2026, 4821 ends in November 2026 with no
-  // completion, and 6001 carries a move-out notice. The synthetic status list carries no primary
-  // status, so every lease reads "RentVine status unavailable" and none is excluded (R-S246-12).
+  // completion, and 6001 carries a move-out notice. The ordinary fixture supplies primary
+  // statuses. The explicit status-table outage below checks R-S246-12 separately.
   const batch = page.locator('section[aria-label="Working batch"]');
   const batchMonth = (month) =>
     page.locator(`section[aria-label="Working batch"][data-batch-month="${month}"]`);
@@ -456,7 +456,7 @@ try {
       .evaluateAll((rows) => rows.map((row) => row.getAttribute("data-batch-lease")));
   await step(
     "S246-working-batch",
-    "R-S246-2, R-S246-3, R-S246-6, R-S246-7, R-S246-8, R-S246-9, R-S246-11, R-S246-12, AC-S246-3",
+    "R-S246-2, R-S246-3, R-S246-6, R-S246-7, R-S246-8, R-S246-9, R-S246-11, AC-S246-3",
     "The bare route opens the working batch: December's target, November's lease carried over and the move-out counted. A month, a count, a lease and Back to renewals stay in one tab, restore the same place and record nothing",
     async () => {
       const writes = [];
@@ -544,7 +544,7 @@ try {
         assert.match(rowText, /Sample Pl/);
         assert.match(rowText, /Casey Example/);
         assert.match(rowText, /Ends 12\/31\/2026/);
-        assert.match(rowText, /RentVine status unavailable/);
+        assert.doesNotMatch(rowText, /RentVine status unavailable/);
         assert.equal(await row.locator(".renewal-batch-stage").count(), 1);
         assert.equal(await row.locator("[data-batch-next-step]").count(), 1);
         assert.ok((await row.locator("[data-batch-tag]").count()) <= 3);
@@ -2134,8 +2134,8 @@ try {
 
   await step(
     "S232-resolver-refresh",
-    "R-S232-5 (an issue the next source read resolves)",
-    "During a synthetic RentVine status-table outage the notice safety issue says the app reads it on the next refresh; once RentVine answers, the page's own refresh reads it and the issue clears",
+    "R-S232-5 (an issue the next source read resolves), R-S246-12",
+    "A synthetic status-table outage keeps the December target visible with an unavailable status and explains the notice safety issue. A fresh read restores the status and clears the issue",
     async () => {
       activePage = admin;
       const STATUSES = "leases/statuses";
@@ -2153,8 +2153,14 @@ try {
           );
       const issue = () =>
         admin.locator(`${ISSUE_LISTS.full} [data-renewal-issue-id="${ISSUE}"]`).first();
+      const decemberTarget = () =>
+        page.locator('[data-batch-list="this_batch"] li[data-batch-lease="5001"]');
+      const openDecember = () =>
+        page.goto(`${origin}/lease-renewal/live/desk?batch=2026-12`, {
+          waitUntil: "domcontentloaded",
+        });
       await openLease(admin, NOTICE_LEASE);
-      let row;
+      let row, deskDuringOutage;
       writeFileSync(outageFlag, STATUSES);
       try {
         // The page's own refresh forces a source read, which meets the outage.
@@ -2162,9 +2168,15 @@ try {
         await issue().waitFor({ state: "attached", timeout: 90_000 });
         await expandIssues(admin);
         row = (await issue().innerText()).replace(/\s+/g, " ");
+        activePage = page;
+        await openDecember();
+        deskDuringOutage = (await decemberTarget().innerText()).replace(/\s+/g, " ");
+        assert.match(deskDuringOutage, /RentVine status unavailable/);
+        assert.equal(await batchMonth("2026-12").getAttribute("data-batch-total"), "3");
       } finally {
         rmSync(outageFlag, { force: true });
       }
+      activePage = admin;
       assert.match(row, /Needs: The lease's move-out status\./);
       assert.match(
         row,
@@ -2201,8 +2213,16 @@ try {
         .waitFor();
       const after = statusReads().filter((entry) => !entry.outage).length;
       assert.ok(after > answered, "the refresh read nothing");
+      activePage = page;
+      await openDecember();
+      assert.doesNotMatch(
+        await decemberTarget().innerText(),
+        /RentVine status unavailable/,
+      );
+      activePage = admin;
       return {
         row,
+        deskDuringOutage,
         outageReads,
         refreshNote,
         statusReadsAfterRefresh: after - answered,

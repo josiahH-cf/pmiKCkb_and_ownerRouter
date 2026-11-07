@@ -2,7 +2,8 @@
 import "@testing-library/jest-dom/vitest";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { CommunicationComposer } from "@/components/gmail-hub/CommunicationComposer";
 import { readRichEditor } from "@/components/gmail-hub/RichMessageEditor";
 import {
@@ -310,7 +311,7 @@ it("S233 R-S233-1: lists each attempt and incoming message once, with lease, cyc
   expect(section.textContent).not.toMatch(/\bdelivered\b|\bread\b/i);
 });
 
-it("S233 R-S233-9: a new composer whose load runs twice (development) installs and saves one draft", async () => {
+it("S233 R-S233-9: a repeated mount shares the exact load and a superseded entry saves no draft", async () => {
   const saves: { id: string; expectedVersion: number }[] = [];
   const loads: (() => void)[] = [];
   vi.stubGlobal(
@@ -319,12 +320,61 @@ it("S233 R-S233-9: a new composer whose load runs twice (development) installs a
       if (url.includes("composition")) {
         // Each load answers only when the test releases it, in order.
         await new Promise<void>((resolve) => loads.push(resolve));
-        return reply(composition);
+        const lease = new URL(url, "http://localhost").searchParams.get("lease");
+        return reply({ ...composition, context: { ...context, entityId: lease } });
       }
+      if (!options?.body) return reply({ profile: null });
       const command = JSON.parse(String(options?.body ?? "{}"));
       saves.push({ id: command.draft.id, expectedVersion: command.expectedVersion });
       return reply({
         sequence: { ...base, ...command.draft, version: command.expectedVersion + 1 },
+        reviewedDraftHash: "c".repeat(64),
+      });
+    }),
+  );
+  const entry = (lease: string) => (
+    <StrictMode>
+      <CommunicationComposer
+        entry={{ lease, purpose: "renewal_owner" }}
+        authenticatedEmail={email}
+        onClose={vi.fn()}
+        onChanged={vi.fn()}
+      />
+    </StrictMode>
+  );
+  const view = render(entry("115"));
+  expect(loads).toHaveLength(1);
+  expect(saves).toHaveLength(0);
+  view.rerender(entry("116"));
+  await waitFor(() => expect(loads).toHaveLength(2));
+  // The superseded first load answers first and must install nothing, past the autosave delay.
+  loads[0]!();
+  await new Promise((resolve) => setTimeout(resolve, 900));
+  expect(saves).toEqual([]);
+  loads[1]!();
+  await waitFor(() => expect(saves).toHaveLength(1));
+  await new Promise((resolve) => setTimeout(resolve, 900));
+  expect(saves).toHaveLength(1);
+  expect(saves[0]).toMatchObject({ expectedVersion: 0 });
+  expect(screen.queryByText(/This communication changed/)).toBeNull();
+});
+
+it("recovers a new composer from an unreadable response by keyboard, with one draft save", async () => {
+  const actions: string[] = [];
+  let loads = 0;
+  let finish!: (response: Response) => void;
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string, options?: RequestInit) => {
+      if (url.includes("composition")) {
+        if (++loads === 1) return new Response(null, { status: 500 });
+        return new Promise<Response>((resolve) => (finish = resolve));
+      }
+      if (!options?.body) return reply({ profile: null });
+      const command = JSON.parse(String(options.body));
+      actions.push(command.action);
+      return reply({
+        sequence: { ...base, ...command.draft, version: 1 },
         reviewedDraftHash: "c".repeat(64),
       });
     }),
@@ -339,17 +389,23 @@ it("S233 R-S233-9: a new composer whose load runs twice (development) installs a
       />
     </StrictMode>,
   );
-  await waitFor(() => expect(loads).toHaveLength(2));
-  // The superseded first load answers first and must install nothing, past the autosave delay.
-  loads[0]!();
-  await new Promise((resolve) => setTimeout(resolve, 900));
-  expect(saves).toEqual([]);
-  loads[1]!();
-  await waitFor(() => expect(saves).toHaveLength(1));
-  await new Promise((resolve) => setTimeout(resolve, 900));
-  expect(saves).toHaveLength(1);
-  expect(saves[0]).toMatchObject({ expectedVersion: 0 });
-  expect(screen.queryByText(/This communication changed/)).toBeNull();
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "The communication could not be read. Try again.",
+  );
+  expect(actions).toEqual([]);
+  const user = userEvent.setup();
+  await user.tab();
+  const retry = screen.getByRole("button", { name: "Try again" });
+  expect(retry).toHaveFocus();
+  await user.keyboard("{Enter}");
+  expect(retry).toHaveFocus();
+  expect(retry).toHaveAttribute("aria-disabled", "true");
+  await user.keyboard("{Enter}");
+  expect(loads).toBe(2);
+  expect(actions).toEqual([]);
+  act(() => finish(reply(composition)));
+  expect(await screen.findByRole("heading", { name: "Synthetic lease" })).toHaveFocus();
+  await waitFor(() => expect(actions).toEqual(["save"]));
 });
 
 it("S233 R-S233-1: an action whose attempts cannot be loaded keeps its result, labels the last list and recovers on the next check", async () => {

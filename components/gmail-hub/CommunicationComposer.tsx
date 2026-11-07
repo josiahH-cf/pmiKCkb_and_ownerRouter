@@ -17,6 +17,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import { RichMessageEditor } from "./RichMessageEditor";
 import { RefineWithAi } from "@/components/email/RefineWithAi";
+import { Button } from "@/components/ui";
 import {
   RichCommunicationMessageSchema,
   renderEditableCommunicationBody,
@@ -85,7 +86,16 @@ async function jsonRequest<T>(url: string, body?: unknown): Promise<T> {
           body: JSON.stringify(body),
         },
   );
-  const payload = await response.json();
+  const payload = await response.json().catch(() => {
+    throw Object.assign(
+      new Error(
+        body === undefined
+          ? "The communication could not be read. Try again."
+          : "The operation could not be confirmed. Check the recorded status.",
+      ),
+      { status: response.status },
+    );
+  });
   if (!response.ok)
     throw Object.assign(
       new Error(payload.error ?? "This communication could not be saved or checked."),
@@ -123,6 +133,7 @@ export function CommunicationComposer({
     };
   }, [authenticatedEmail]);
   const [saveNeedsRetry, setSaveNeedsRetry] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [messageRevision, setMessageRevision] = useState<string | null>(null);
   const [thread, setThread] = useState<GmailThreadView | null>(null);
   const [threadMailbox, setThreadMailbox] = useState<string | null>(null);
@@ -180,6 +191,26 @@ export function CommunicationComposer({
     active = useRef(true),
     loadRun = useRef(0);
   const entryKey = JSON.stringify(entry);
+  const retryLoadRef = useRef<HTMLButtonElement>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const returnToComposer = useRef(false);
+  const compositionFlight = useRef<{ key: string; promise: Promise<Composition> }>(null);
+  const readComposition = useCallback(
+    (query: URLSearchParams) => {
+      const key = JSON.stringify([authenticatedEmail, query.toString()]);
+      if (compositionFlight.current?.key === key)
+        return compositionFlight.current.promise;
+      const promise: Promise<Composition> = jsonRequest<Composition>(
+        `/api/gmail-hub/composition?${query}`,
+      ).finally(() => {
+        if (compositionFlight.current?.promise === promise)
+          compositionFlight.current = null;
+      });
+      compositionFlight.current = { key, promise };
+      return promise;
+    },
+    [authenticatedEmail],
+  );
   const accept = useCallback((p: SequencePayload) => {
     lastResponse.current = p;
     version.current = p.sequence.version;
@@ -206,8 +237,8 @@ export function CommunicationComposer({
   }, []);
   useEffect(() => {
     active.current = true;
-    // A re-run (React runs a new effect twice in development) starts a fresh load; only the latest
-    // run may apply its result, so a superseded load never installs a second new draft.
+    // A repeated effect joins the exact pending composition. Only the current entry/run may
+    // apply the response or install a new app draft.
     const run = ++loadRun.current;
     const current = () => active.current && loadRun.current === run;
     void (async () => {
@@ -270,7 +301,7 @@ export function CommunicationComposer({
                     : "ticket"]: p.sequence.context.entityId,
                 },
           );
-          void jsonRequest<Composition>(`/api/gmail-hub/composition?${q}`)
+          void readComposition(q)
             .then((r) => {
               if (current()) {
                 setTarget(r.target);
@@ -286,7 +317,7 @@ export function CommunicationComposer({
             });
         } else {
           const q = new URLSearchParams(entry as Record<string, string>);
-          const p = await jsonRequest<Composition>(`/api/gmail-hub/composition?${q}`);
+          const p = await readComposition(q);
           if (!current()) return;
           next = {
             id: crypto.randomUUID(),
@@ -300,6 +331,10 @@ export function CommunicationComposer({
           setMessageRevision(p.messageRevision ?? null);
           setStatus("Saving draft…");
         }
+        returnToComposer.current =
+          retryLoadRef.current !== null &&
+          document.activeElement === retryLoadRef.current;
+        setError("");
         currentDraft.current = next;
         setDraft(next);
       } catch (e) {
@@ -316,7 +351,12 @@ export function CommunicationComposer({
     };
     // The entry is stable for this mounted editor; parent keys it by the route.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entryKey, accept]);
+  }, [entryKey, accept, readComposition, loadAttempt]);
+  useEffect(() => {
+    if (!draft || !returnToComposer.current) return;
+    returnToComposer.current = false;
+    headingRef.current?.focus();
+  }, [draft]);
   const change = (next: SequenceDraft) => {
     currentDraft.current = next;
     setDraft(next);
@@ -582,6 +622,20 @@ export function CommunicationComposer({
       <section aria-label="Communication composer">
         <p role="status">{status}</p>
         {error ? <p role="alert">{error}</p> : null}
+        {error ? (
+          <Button
+            aria-disabled={status === "Loading communication…" || undefined}
+            onClick={() => {
+              if (status === "Loading communication…") return;
+              setStatus("Loading communication…");
+              setLoadAttempt((attempt) => attempt + 1);
+            }}
+            ref={retryLoadRef}
+            variant="secondary"
+          >
+            Try again
+          </Button>
+        ) : null}
         <button onClick={onClose}>Close</button>
       </section>
     );
@@ -605,7 +659,7 @@ export function CommunicationComposer({
       aria-label="Workflow communication composer"
     >
       <div className="ui-row">
-        <h2>
+        <h2 ref={headingRef} tabIndex={-1}>
           {target?.label ??
             sequence?.workflowLabel ??
             `${draft.context.purpose.replaceAll("_", " ")} · ${draft.context.entityId}`}

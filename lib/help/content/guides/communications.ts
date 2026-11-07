@@ -185,7 +185,7 @@ export const COMMUNICATIONS_GUIDES: readonly HelpGuide[] = [
         result:
           "The status line reads Saved and the communication reads Draft in app. Your wording also saves by itself a moment after each edit.",
         effect: "saves-in-app",
-        note: "Responsible sender names the managed mailbox the message goes out from, and To lists the current verified recipients. Add PDF or image (5 MiB combined) attaches a file, and Add follow-up message adds a separate reviewed follow-up.",
+        note: "If the communication could not be read, choose Try again or Close. Responsible sender names the managed mailbox the message goes out from, and To lists the current verified recipients. Add PDF or image (5 MiB combined) attaches a file, and Add follow-up message adds a separate reviewed follow-up.",
       },
       {
         id: "send-or-schedule",

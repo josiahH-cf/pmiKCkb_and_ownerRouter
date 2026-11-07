@@ -377,6 +377,24 @@ fetch in CI mode. Apply that mode only to the emulator invocation in each rehear
 No refusal is hidden, reclassified or allowed through, and both checks remain unchanged.
 This preserves the audit's isolation boundary (P07, P12). The repeated journey must confirm it.
 
+UX-043, observed on `4d3359d7` in the existing November/December journey: the ordinary
+Active fixture reached the correct December target and carried row, but the old harness
+expected the unavailable-status wording there. The normal check now requires its absence.
+The existing controlled status-table outage now also requires the target to remain visible
+with the unavailable wording, the full loaded count to stay three and a fresh read to clear
+the wording. This separates valid and failed evidence without changing classification or the
+R-S246-12 fail-closed check (P02, P09, P12; SC02, SC04, SC08).
+
+UX-044, observed in the same journey: two overlapping Communications composition reads both
+failed with Firestore transaction-lock timeouts. The page showed a raw JSON parsing error and
+Close, with no draft or usable continuation. A repeated composer load now joins the pending
+read for that exact entry and actor, and only a current result can install its app draft. A
+failed read gets a plain error and Try again beside the existing Close, with visible loading,
+keyboard focus retained during the retry and returned to the loaded heading. This Add addresses
+the observed dead end (DR-06; P01, P05, P12, P13, P14; SC01, SC04, SC05, SC09, SC10). Existing
+authorization, evidence reads, app-draft idempotency and exact dispatch review are unchanged.
+The full browser rerun must verify whether duplicate reads caused the timeout.
+
 Preserved by decision: exact review/confirmation, the required Gmail banner, stale authored wording,
 who-approved validation, role/Space and Action Registry checks, blank unsettled legal fields,
 assistance-animal holds, existing controls/views/filters/collections/old links, historical failed

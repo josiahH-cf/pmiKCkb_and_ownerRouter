@@ -217,6 +217,15 @@ export const COMMUNICATIONS_SCREENS: readonly HelpScreenReference[] = [
         who: "Renewal staff",
       },
       {
+        label: "Try again",
+        role: "button",
+        region: "region:Communication composer",
+        availability: "conditional",
+        source: COMPOSER_SOURCE,
+        does: "Reads the same communication again after a failed load. Close leaves the composer.",
+        who: "All staff",
+      },
+      {
         label: "Save draft",
         role: "button",
         region: COMPOSER,
