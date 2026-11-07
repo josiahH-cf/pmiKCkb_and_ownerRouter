@@ -34,6 +34,8 @@ export interface LitmusSuite {
   readonly documentContract: boolean;
   /** Every aggregate engineering check must pass. External observations are recorded separately. */
   readonly requireAllYes?: boolean;
+  /** Yes rows cite a browser case from the exact observed candidate. */
+  readonly requireBrowserOutcome?: boolean;
 }
 
 export const HELP_HUB_LITMUS: LitmusSuite = {
@@ -62,6 +64,7 @@ export const RENEWAL_USABILITY_LITMUS: LitmusSuite = {
   subject: "the November 7 lease renewal usability batch",
   documentContract: true,
   requireAllYes: true,
+  requireBrowserOutcome: true,
 };
 
 export const LITMUS_SUITES: readonly LitmusSuite[] = [
@@ -264,6 +267,7 @@ function countWording(text: string): string {
 
 export interface LitmusRunRules {
   readonly requireAllYes?: boolean;
+  readonly requireBrowserOutcome?: boolean;
   /** Every check of the handoff, in order. */
   readonly checks: readonly string[];
   /**
@@ -289,6 +293,7 @@ export function litmusRunRules(spec: string, suite?: LitmusSuite): LitmusRunRule
   return {
     checks: litmusCheckIds(spec),
     ...(suite?.requireAllYes ? { requireAllYes: true } : {}),
+    ...(suite?.requireBrowserOutcome ? { requireBrowserOutcome: true } : {}),
     ...(goalGroups.length ? { goalGroups } : {}),
     ...(startingCommit ? { startingCommit } : {}),
     ...(beforeAfter.length
@@ -437,6 +442,16 @@ export function validateLitmusRun(markdown: string, rules: LitmusRunRules): stri
       problems.push(`${row.check} has no verdict (Yes, No or UNVERIFIED).`);
     if (row.evidence.length < 8 || /^</.test(row.evidence))
       problems.push(`${row.check} has no observed evidence.`);
+    if (rules.requireBrowserOutcome && row.verdict === "Yes") {
+      const browserOutcome =
+        /^Browser outcome [`]\d{8}T\d{6}Z-([a-f0-9]{8})\/[a-zA-Z0-9][a-zA-Z0-9._-]*[`]\.\s+(.{12,})$/.exec(
+          row.evidence,
+        );
+      if (!browserOutcome || !commit.startsWith(browserOutcome[1]))
+        problems.push(
+          row.check + " needs an exact-candidate browser case and its observed outcome.",
+        );
+    }
     if (!row.repair) problems.push(`${row.check} has no repair field.`);
     if (
       row.verdict === "UNVERIFIED" &&

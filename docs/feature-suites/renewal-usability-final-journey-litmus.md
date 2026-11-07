@@ -3,7 +3,9 @@
 
 # S259 - Walk the November 7 renewal journeys on the final candidate
 
-> Status: AUTHORING READY, intake 129. Run this engineering litmus last, after intakes 121–128 are implemented. Candidate verdict NOT RUN. Staff verdict NOT RUN.
+> Status: execution launched, intake 129. Run this engineering litmus last, after intakes
+> 121–128 are implemented. The [current evidence](../evidence/renewal-usability-litmus-2026-11-07.md)
+> records the engineering verdicts. Staff verdict NOT RUN.
 
 **Goal.**
 
@@ -77,7 +79,9 @@ S252 owns the separate staff observation and verdict.
   report format and validator with a separate S259 suite profile and the crosswalk to S254.
   Map PASS to Yes and FAIL to No in the validator's native rows. Each row and its material
   checkpoints record expected and observed results, role, entry, fixture, exact candidate,
-  evidence reference, initial failure, repair and remaining gap when applicable. Use
+  evidence reference, initial failure, repair and remaining gap when applicable. A Yes evidence
+  cell starts with Browser outcome and the exact private run and case reference in backticks,
+  followed by the observed result. Use
   UNVERIFIED only for a named missing observation and state what would resolve it. Mark
   synthetic provider, responsive, physical-device, assistive-technology and human evidence
   separately. Commit a sanitized evidence report. Keep raw traces, screenshots, logs and

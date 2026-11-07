@@ -28,6 +28,16 @@ Staff session: none
   open that review a second time because the guide included a verifier setup action. The driver
   stopped before confirmation. Its failed run and action counts are in `20261107T134213Z-d85d7c5c`.
 
+- L02, L03, L05, L11, L12 and L13 on `8bd32d57`. The keyboard desk locator expected the
+  carried-over link label on a working-month row. The collection saved and reopened, but the
+  first desk assertion sampled the route while it still showed Opening. The refused note kept
+  the long text and added a suffix the locator missed. Mobile Communications needed the Menu
+  before Operations. The old connection retry and print cases did not observe their action.
+  The run is `20261107T143941Z-8bd32d57`.
+- L07 on `8040ed8c`. The exact composer Copy case located its button inside the editor region.
+  The control sits alongside that region, so the checkpoint timed out. The independent
+  unfinished follow-up regression then failed at the app-draft schema.
+
 ## Repairs
 
 - L03 now waits for the initial collection list before enabling New collection. The focused
@@ -42,6 +52,20 @@ Staff session: none
   `ee2d0dd2d581cc6e56b83ffe5fa37343d3d90511`.
 - L10's subsequent driver opens Completed, reopens the exact lease, and checks its recorded stage
   before returning to the group. That readback is a separate requirement from reaching Complete.
+
+- L02 targets the working row's address link. L03 waits for the collection route and table and
+  separately reviews a stale removal after a concurrent rename. L05 scopes the refusal to the
+  note status. L11 opens Menu and Operations on narrow touch emulation. L12 and L13 wait for
+  the focused action and record the response or print request.
+- L07 checks the exact plain body and subject, with the required Gmail review banner as separate
+  framing. The composer checks Copy in the initial message's action group. Unfinished follow-up
+  wording uses the existing app draft, while the authorization snapshots a follow-up only when
+  the schedule repeats. The store keeps the legacy complete follow-up field readable for older
+  readers. The repeating action continues to require complete, verified content.
+- L14 core E2E at `aa7ecd93` completed the 14-file inventory with 44 passed, 23 skipped and
+  two failures. Those assertions expected the old migration and governance labels on the Admin
+  index. The repairs check the current accessible names and exact hrefs and exercise the
+  legacy migration link on its focused page. The core gate requires a fresh pass.
 
 ## Final observations
 
@@ -64,6 +88,26 @@ staff-recorded Complete. The narrow layout, reload with saved typing, cross-leas
 and separate exact confirmation for the source-renewed lease passed. The rehearsal also exercised
 the canary's updated landmarks on the synthetic app. Physical device, assistive technology, staff verdict and real provider
 effects are separate observations with no completed verification here.
+
+The `8bd32d57` mailbox-disabled pass separately recorded 5 passed checkpoints and 6 failures.
+The passed cases covered exact counted groups, saved-view and empty-filter recovery, keyboard
+Record work and the legacy Documents anchor, versioned blank signature, retirement and restoration,
+and legacy Admin return. The lost collection save had a version 1 readback for two members, an
+Approver's read and an unchanged version after Cancel and Refresh. Its desk handoff still failed
+as recorded above.
+
+The `8040ed8c` full S252 engineering driver in `20261107T151210Z-8040ed8c` recorded
+91 passed and 1 failed. Its five numerical budgets stayed within bounds. The prepared lease
+reopened from Completed, both pending-effect retirement refusals linked the exact communication,
+all 23 Guided path checks and all 21 standing-agreement and assistance variant checks passed.
+The stand-ins recorded 15 of 15 checks, with two refusals to development tooling and none to
+production, a provider or a mailbox. The kickoff comparator did not reach draft creation on
+this commit. Cleanup removed the disposable rehearsal worktree and stopped its emulators.
+
+On `9f173cbe` the six focused tests, typecheck and all 25 targeted Firestore tests passed. The
+new backend case saved and reread incomplete optional follow-up wording, refused a repeating
+schedule and accepted exactly one synthetic one-off send containing only the reviewed initial
+body. These are focused results from that exact source.
 
 Read-only Cloud Run metadata at 14:15 UTC confirmed 100% canonical traffic on
 `pmi-kc-app-rmw65wgt2-8c8249a0547c` and its ready revision's source
@@ -114,3 +158,29 @@ Accepted: No
 | L12 | UNVERIFIED | Expected focused Admin and Connections read, retry and denial. This run did not exercise those entries. | Focused browser case includes a one-time synthetic check failure. | Verify the retry, scope, denial and index return together. |
 | L13 | UNVERIFIED | Expected an actual guide, correct scenes and print return. This run followed the served guide through a separate exact confirmation and accepted synthetic send. | Moved dialog setup out of the guide. | Finish the required rendered and material scene gate, legacy step and print return. |
 | L14 | UNVERIFIED | Expected a complete exact-candidate matrix, original budgets and guard checks. The scoped stand-in and journey evidence shows the reached synthetic checkpoints. | The versioned profile carries the 71 historical checks. | Finish the same-SHA matrix, canonical gates and CI. |
+
+## Run 2
+
+Commit: 8040ed8c1f772e1794d34450d7d02dbaa93d6e8e
+Starting commit: ef81b8917209f4eec3f22097142b559f3cce875b
+Run: 2
+Goal groups: all
+Accepted: No
+
+<!-- prettier-ignore -->
+| Check | Verdict | Evidence | Repair | Blocker |
+| ----- | ------- | -------- | ------ | ------- |
+| L01 | UNVERIFIED | Expected exact desk counts. The Editor saw the working-month group and the later variant read all 38 leases and the voucher-only suggestion. | The focused case now checks the saved view and filter return. | Reobserve exact IDs, filter and position on the final candidate. |
+| L02 | UNVERIFIED | Expected desk, Dashboard and task parity. The pointer opened the prepared row in the same tab. Variant cases compared stage and next step with assistant answers. | Target the working row's address link by keyboard. | Observe the explicit private task, Dashboard result and return on the same candidate. |
+| L03 | UNVERIFIED | Expected reviewed shared membership through recovery. This run did not exercise collections. | Wait for the table before sampling membership and exercise a stale second-tab review. | Observe both creation modes, scope, exact recovery and return. |
+| L04 | UNVERIFIED | Expected the stored comparison and current step in view. The Editor saw the ready prepared lease and no opening write. Narrow and desktop layout passed. A later step opened and reload kept its place. | The live switch checks Guided and Full with the old Focus route separately. | Exercise a later independent action with its own inputs, then return by keyboard. |
+| L05 | UNVERIFIED | Expected exact recorded work and correction. The owner decision took three actions and advanced the lease. Correcting unrelated outreach removed the derived item and retained the reason. | The separate note case observes the refused save and reload. | Complete note recovery and conflict readback in the final matrix. |
+| L06 | UNVERIFIED | Expected legacy and current controls with working entry intact. The Editor reached Full by old section link, checked two selectable views and reloaded a typed entry. | Retain legacy destinations in their owning view. | Observe every Full destination and remaining interruption and scope cases. |
+| L07 | No | Expected identical edited message content and a canceled preview without effects. The composer Copy control was outside the locator's region. The browser stopped at that checkpoint. | Scope the action next to the initial editor and compare the required draft banner separately. | Rerun exact body, blank and wrong-sender setup, draft replacement, schedule, Resume and linked reply coverage. |
+| L08 | UNVERIFIED | Expected standing and assisted variants. The 21 variant checks passed for pricing scope, typed override, program choices, voucher-only classification and their actual stage readbacks. | Preserve the same fixture and separate monthly and move-out handoffs. | Work the monthly and notice transitions on the final candidate. |
+| L09 | UNVERIFIED | Expected pending and ambiguous refusal and exact restoration. Each refusal named its communication and left the lease active. | A separate second-tab case checks exact retirement history and stale reason retention. | Observe successful retirement and restoration in every required entry and later-cycle independence. |
+| L10 | UNVERIFIED | Expected standard completion and its variants. The Editor reached Complete, opened it from the counted Completed group and observed the stored stage. Schedule, due send and failed delivery paths reached their readbacks. | Added the exact Completed reopen to the driver. | Finish the remaining draft and S253 form and document scenarios. |
+| L11 | UNVERIFIED | Expected named Operations, procedure and task returns. This run did not exercise those entries. | The narrow case opens Menu before Operations. | Observe a scoped lease return and private-task refusal. |
+| L12 | UNVERIFIED | Expected exact Admin and Connections controls and recoverable reads. This run did not exercise those entries. | The focused case observes the failed POST and its retry. | Observe the exact health result, denied role and index return. |
+| L13 | UNVERIFIED | Expected a real guide with current pictures. The Editor worked the served guide through exact confirmation and completion. | Match exact anchors, dynamic identifier bounds and current V2.2 captures. | Observe green rendered Help, injected drift and the print return. |
+| L14 | UNVERIFIED | Expected one accepted candidate and canonical verification. S252 counted 91 passed and 1 failed, with all five action budgets met. | Preserve the failed comparator and recheck the exact scope. | Complete the matrix and green local and CI gates. |

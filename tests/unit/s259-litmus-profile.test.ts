@@ -41,5 +41,27 @@ describe("S259 engineering evidence", () => {
     expect(validateLitmusRun(report, rules)).toContain(
       "The engineering run cannot be accepted while L14 is UNVERIFIED.",
     );
+    const summary = "L01 needs an exact-candidate browser case and its observed outcome.";
+    const row = (evidence: string) =>
+      report.replace(
+        /^\| L01 \| Yes \|.*$/m,
+        "| L01 | Yes | " + evidence + " | none | none |",
+      );
+    expect(validateLitmusRun(row("The source contains the table."), rules)).toContain(
+      summary,
+    );
+    const observed = "Editor reopened the exact counted group in the same tab.";
+    expect(
+      validateLitmusRun(
+        row("Browser outcome `20261107T130000Z-11111112/L01-desk`. " + observed),
+        rules,
+      ),
+    ).toContain(summary);
+    expect(
+      validateLitmusRun(
+        row("Browser outcome `20261107T130000Z-11111111/L01-desk`. " + observed),
+        rules,
+      ),
+    ).not.toContain(summary);
   });
 });
