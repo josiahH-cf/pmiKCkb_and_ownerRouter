@@ -165,6 +165,9 @@ Typecheck and all six focused desk tests passed before restarting the gate.
 Lease details now uses the same integer-pixel placement as the settled Tenant offer.
 Compare market rent waits for the actual Pricing basis fieldset before framing. The
 material-difference thresholds and required control checks are unchanged.
+Exact capture review `20261107T195124Z-1c6b274f` produced 27 images. Market rent and
+Tenant offer matched the committed bytes. The visually reviewed one-pixel Lease details
+reframe was adopted from that run after its digest matched the capture report.
 
 ## Final observations
 
