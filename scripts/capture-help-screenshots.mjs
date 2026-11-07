@@ -242,8 +242,8 @@ try {
       fixedFixture && !overlay && !only,
       "Rendered Help verification needs the full, exact guarded fixture.",
     );
-    const controlStatus = await controls();
     const sceneStatus = await scenes(true);
+    const controlStatus = await controls();
     exitCode = controlStatus || sceneStatus;
   } else if (mode === "serve") {
     process.stdout.write(

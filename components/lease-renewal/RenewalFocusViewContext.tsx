@@ -391,7 +391,10 @@ export function RenewalFocusViewProvider({
     // same kept place instead of finding it already taken.
     if (kept.current === undefined) kept.current = readKeptPlace(here());
     const saved = kept.current;
-    if (saved) {
+    if (
+      saved &&
+      (allowLegacyFocus || (continuityScope && saved.scope === continuityScope))
+    ) {
       if (!explicitView && isRenewalWorkspaceView(saved.view))
         move(saved.view === "focus" && !allowLegacyFocus ? "guided" : saved.view);
       if (typeof saved.step === "string") {
@@ -428,11 +431,7 @@ export function RenewalFocusViewProvider({
         release = stop;
         hold();
       }
-      if (
-        isTypedField(saved.typed) &&
-        (allowLegacyFocus || (continuityScope && saved.scope === continuityScope))
-      )
-        releaseTyped = restoreTypedField(saved.typed);
+      if (isTypedField(saved.typed)) releaseTyped = restoreTypedField(saved.typed);
     }
     window.addEventListener("pagehide", save);
     return () => {
