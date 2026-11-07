@@ -93,6 +93,15 @@ Staff session: none
   Send. Run 5 has the earlier completed exact outgoing reply. The current conflict and
   correction separately agreed on stage and next action across lease, desk and Dashboard.
 
+- L13 and L14 on `254b485c` in `canonical-254b485c-20261107T183640Z`.
+  All 27 scenes rendered. The Tenant offer scene had a one-pixel vertical shift across
+  the section. The rendered inventory later lost its local server at sign-in after
+  Next dev recorded a memory-threshold restart. The monitor recorded a peak group RSS
+  of 6,212,251,648 bytes against the 6,442,450,944-byte bound. The lane and canonical
+  verification exited 1. The exact `a54eaf18` capture review generated all 27 scenes.
+  Only the visually reviewed Tenant offer picture was adopted, with SHA-256
+  `62de3125ae6530aeab4cf90253dbf500e58cf8186a6e554237fc7ee39532b00b`.
+
 ## Repairs
 
 - L03 now waits for the initial collection list before enabling New collection. The focused

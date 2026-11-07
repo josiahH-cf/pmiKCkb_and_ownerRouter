@@ -266,6 +266,16 @@ try {
       "Rendered Help verification needs the full, exact guarded fixture.",
     );
     const sceneStatus = await scenes(true);
+    // A long Next dev session accumulates compiled routes across both passes. Start the control
+    // inventory with a fresh server over the same source, isolated emulator and fixed fixture.
+    await shutdown();
+    server = startServer(new URL(origin).port, "server-controls.log");
+    await waitForServer(origin);
+    const version = await fetch(origin + "/api/version");
+    assert.ok(version.ok());
+    const controlSource = (await version.json()).commit;
+    assert.equal(controlSource, sourceSha);
+    record({ event: "control-server-ready", servedCommit: controlSource });
     const controlStatus = await controls();
     exitCode = controlStatus || sceneStatus;
   } else if (mode === "serve") {
@@ -820,7 +830,7 @@ async function outline() {
   return 0;
 }
 
-function startServer(port) {
+function startServer(port, logName = "server.log") {
   const preload = join(process.cwd(), "tests/browser/renewal-novdec-journey-network.mjs");
   const serverHome = join(output, "server-home");
   mkdirSync(serverHome, { recursive: true });
@@ -833,7 +843,7 @@ function startServer(port) {
       refresh_token: "synthetic-help",
     }),
   );
-  const serverLog = createWriteStream(join(output, "server.log"));
+  const serverLog = createWriteStream(join(output, logName));
   const child = spawn(
     process.execPath,
     ["node_modules/next/dist/bin/next", "dev", "-p", String(port)],
@@ -892,6 +902,7 @@ function startServer(port) {
   );
   child.stdout.pipe(serverLog, { end: false });
   child.stderr.pipe(serverLog, { end: false });
+  child.once("close", () => serverLog.end());
   return child;
 }
 
@@ -917,6 +928,10 @@ async function shutdown() {
   if (!server) return;
   const child = server;
   server = null;
+  const exited =
+    child.exitCode !== null || child.signalCode
+      ? Promise.resolve()
+      : new Promise((resolve) => child.once("exit", resolve));
   try {
     process.kill(-child.pid, "SIGTERM");
   } catch {
@@ -928,6 +943,7 @@ async function shutdown() {
   } catch {
     // already gone
   }
+  await exited;
 }
 
 function freePort() {
