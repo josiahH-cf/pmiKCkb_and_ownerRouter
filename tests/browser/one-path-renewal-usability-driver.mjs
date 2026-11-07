@@ -117,7 +117,7 @@ try {
     wide,
     "light",
     "pointer",
-    "The bare desk opens the current working month as a table, each loaded record is counted once, and the month survives switching to the full table and back.",
+    "The bare desk opens the current working month as a table and counts each loaded record once. The month survives switching tables. A personal filter opens only from its saved link, and an empty filter keeps a way back to all leases.",
     async (page) => {
       await open(page, desk);
       const batch = page.getByRole("region", { name: "Working batch", exact: true });
@@ -177,7 +177,39 @@ try {
         .click();
       await batch.waitFor();
       assert.equal(await batch.getAttribute("data-batch-month"), shifted);
-      return { total, counted, groupCounts, shiftedMonthRestored: true };
+      const rows = page.locator("table.renewal-table tr[data-lease-id]");
+      await open(page, desk + "?v=2&scope=all&lease=" + prepared);
+      await rows.first().waitFor();
+      assert.equal(await rows.count(), 1);
+      assert.equal(await rows.first().getAttribute("data-lease-id"), prepared);
+      const write = page.waitForResponse(
+        (response) =>
+          new URL(response.url()).pathname === "/api/personal-view" &&
+          response.request().method() === "POST",
+      );
+      await page.getByRole("button", { name: "Remember this view", exact: true }).click();
+      assert.ok((await write).ok());
+      await open(page, desk);
+      await batch.waitFor();
+      await batch.getByRole("link", { name: "Open my saved view", exact: true }).click();
+      await rows.first().waitFor();
+      assert.equal(await rows.count(), 1);
+      assert.equal(await rows.first().getAttribute("data-lease-id"), prepared);
+
+      await open(page, desk + "?v=2&scope=all&lease=synthetic-no-such-lease");
+      await page.getByText("No renewals match these filters.", { exact: true }).waitFor();
+      assert.equal(await rows.count(), 0);
+      await page.getByRole("link", { name: "Remove these filters", exact: true }).click();
+      await rows.first().waitFor();
+      assert.equal(await rows.count(), total);
+      return {
+        total,
+        counted,
+        groupCounts,
+        shiftedMonthRestored: true,
+        savedViewReopened: true,
+        emptyFilterRecovered: true,
+      };
     },
   );
   await check(
