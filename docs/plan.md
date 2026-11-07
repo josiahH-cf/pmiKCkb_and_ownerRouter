@@ -1,22 +1,19 @@
 # Current plan
 
-Updated: 2026-11-07 (UTC), one-path UX review qualification.
+Updated: 2026-11-07 (UTC), one-path production delivery.
 
 ## Authorized outcome
 
-The November 6 owner-directed review of S246–S254 started from `2187cf09` and
-carries the six prior commits and both typing-recovery file changes. The candidate and Help
-assets were walked in the guarded synthetic environment at `eb7f4d69`. The pull request
-includes the independent litmus, UX report and walkthrough. The engineering evidence leaves
-the literal L55 count discrepancy visible under the settled assistance rule. Human verdict
-NOT RUN. The owner merges, releases and deploys; the earlier deliveries below are background.
+S246–S254 and the reviewed repairs in PR #191 shipped at `ef81b8917209f4eec3f22097142b559f3cce875b` / `pmi-kc-app-rmw65wgt2-8c8249a0547c`.
+The [delivery evidence](evidence/renewal-one-path-delivery-2026-11-07.md) records the full release and readbacks. The literal L55
+count difference remains visible under the settled assistance rule. Human verdict NOT RUN.
 
 Implement and qualify the finalized work for the three active application lanes, the seven
 assessment gaps, newly diagnosed A-08 PDF publication dependency, and the configuration/approval/
 communication work needed to unblock real renewals.
 The owner finalized this scope, then launched implementation and backend-question maintenance.
 It was delivered at `b5ba7802` / `pmi-kc-app-rmw123csb-dc0ce89a8583`; the current serving source
-`5b5c65c6` / `pmi-kc-app-rmw3h1wp5-706485135a02` includes it.
+`ef81b891` / `pmi-kc-app-rmw65wgt2-8c8249a0547c` includes it.
 The four independent source findings are repaired and reviewed; full07 passed 10,162 unit tests
 with four parity skips and all 497 backend tests, core passed 46 with 23 explicit configuration
 skips, and exact-main CI passed all five jobs. Run `ff1f44bf` passed candidate/promotion, two

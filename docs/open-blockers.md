@@ -22,7 +22,12 @@ meeting plans are not scheduled jobs or promises.
 
 ## Settled direction and current state
 
-Production now serves 5b5c65c6b7be2b504b38e8c8fdea3d81367e5202 /
+Production serves `ef81b8917209f4eec3f22097142b559f3cce875b` / `pmi-kc-app-rmw65wgt2-8c8249a0547c`, 100%. The
+[one-path delivery](evidence/renewal-one-path-delivery-2026-11-07.md) carries the renewal desk, Guided path, prepared
+message, portfolio/assistance and synthetic form behavior. The holds below still govern the
+actual affected operations. Staff verdict NOT RUN.
+
+The November 5 run served 5b5c65c6b7be2b504b38e8c8fdea3d81367e5202 /
 pmi-kc-app-rmw3h1wp5-706485135a02, 100%: run 8bf183d8 delivered the S245 litmus fixes for S87,
 S126, S147, S242 and S86 (PR #182, with PR #180's S113 test fix) with full observation and eleven
 independent readbacks ([litmus fixes delivery](evidence/s245-litmus-fixes-delivery-2026-11-05.md)).

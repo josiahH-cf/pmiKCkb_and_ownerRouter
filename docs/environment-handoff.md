@@ -10,7 +10,23 @@ keys versus that run's captured predecessor. Runtime identity, eleven Space maps
 Demo=false, Sheet=true, RentCast allowance 50 and other controls match. CLI/ADC and guarded
 Admin assurance retain the separately approved `josiah@pmikcmetro.com` identity/store/profile.
 
-## Current verified delivery — November 5 S245 litmus fixes
+## Current verified delivery — November 7 renewal one-path
+
+Production serves `ef81b8917209f4eec3f22097142b559f3cce875b` / `pmi-kc-app-rmw65wgt2-8c8249a0547c` at 100% canonical traffic.
+PR #191 and source PRs #184–#190 shipped together in run `72c6456a-3f3f-4ec2-8282-03542cfb7772` after all seven
+exact-main CI jobs passed in `42356598810`. The controller exited zero and its permit is consumed.
+Observation passed 2 checkpoints in 410,069 ms with 375 matched
+source, projected and rendered lease records, zero discrepancies, candidate 5xx, unresolved effects
+or guarded mutation attempts. The eleven independent final readbacks passed at
+`2026-11-07T09:12:03Z`. See the [delivery evidence](evidence/renewal-one-path-delivery-2026-11-07.md).
+
+The running image `sha256:7c63410b2f4c18976af66584f084b9f3e350d928015e3cf6aa7019ded31eeb7c` matches the one successful regional build.
+The verified runtime fingerprint is `sha256:582cb5fb2eaaf084ab61f0568c7518162333fd6bb0daf821b19981919d189b90`.
+Production + Live, the existing managed runtime identity, eleven paired Space maps, five
+secret bindings, Demo=false and Sheet=true passed their readbacks. The release Admin browser
+ran read-only and Editor browser retains the approved not_run policy.
+
+## Previous verified delivery — November 5 S245 litmus fixes (historical)
 
 Canonical production serves `5b5c65c6b7be2b504b38e8c8fdea3d81367e5202` /
 `pmi-kc-app-rmw3h1wp5-706485135a02` at 100% traffic. Run
@@ -169,28 +185,28 @@ Five confirmed adversarial findings are repaired and verified deployed: lifecycl
 
 ## Production
 
-| Item                                    | Value                                                                                        |
-| --------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Project                                 | `pmi-kc-kb-prod`                                                                             |
-| Region                                  | `us-central1`                                                                                |
-| Cloud Run service                       | `pmi-kc-app`                                                                                 |
-| URL                                     | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`                                                 |
-| Serving revision                        | `pmi-kc-app-rmw3h1wp5-706485135a02`                                                          |
-| Serving commit                          | `5b5c65c6b7be2b504b38e8c8fdea3d81367e5202`                                                   |
-| Traffic                                 | 100%                                                                                         |
-| Captured predecessor                    | `3f2e3f5dc20a6b010afacac472419d81429a79a7` / `pmi-kc-app-rmw3661as-aecc6937ff3f`; Sheet=true |
-| Run-bound recovery                      | `pmi-kc-app-recovery-8bf183d852e34244`; receipt `599103fb-eab9-447a-851f-a5ab764bbf27`       |
-| Recovery reference                      | `sha256:fb169176c29d9a0e2db7da9494831a40f93782923f7c1b07a1c8a895a308760e`                    |
-| Equal predecessor/recovery fingerprints | `sha256:e5e35e04f4df400919a8ce6c9e1f21b51afac60858e0f6285da0ed1e683cf814`                    |
-| Descriptor                              | Production + Live                                                                            |
-| Runtime identity                        | project-managed PMI KC runtime service account                                               |
-| Spaces                                  | 11                                                                                           |
-| Sheet write-back                        | true on the serving revision (reviewed S159 value); the recovery target keeps true           |
-| Legacy copy-only Sheet id               | not configured                                                                               |
-| RentCast                                | selected; allowance 50                                                                       |
-| Action Registry                         | 48 exact keys;18 open and 30 closed                                                          |
-| Retired broad action ids                | non-executable; only exact proven keys are open                                              |
-| Demo flags                              | false                                                                                        |
+| Item                                    | Value                                                                                            |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Project                                 | `pmi-kc-kb-prod`                                                                                 |
+| Region                                  | `us-central1`                                                                                    |
+| Cloud Run service                       | `pmi-kc-app`                                                                                     |
+| URL                                     | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`                                                     |
+| Serving revision                        | `pmi-kc-app-rmw65wgt2-8c8249a0547c`                                                              |
+| Serving commit                          | `ef81b8917209f4eec3f22097142b559f3cce875b`                                                       |
+| Traffic                                 | 100%                                                                                             |
+| Captured predecessor                    | `5b5c65c6b7be2b504b38e8c8fdea3d81367e5202` / `pmi-kc-app-rmw3h1wp5-706485135a02` with Sheet=true |
+| Run-bound recovery                      | `pmi-kc-app-recovery-72c6456a3f3f4ec2` with receipt `a3aa0ec3-ea00-4e22-b6d0-94dc33d84f00`       |
+| Recovery reference                      | `sha256:08d45e18e085da2d2e116b5587c0be14f1c9ef8923fc7fd4f632eed5423f76c3`                        |
+| Equal predecessor/recovery fingerprints | `sha256:ce13be98ce4c6b9cb59a82b17399f8f93a4b489bce95de91dd90b8412eeb5c8b`                        |
+| Descriptor                              | Production + Live                                                                                |
+| Runtime identity                        | project-managed PMI KC runtime service account                                                   |
+| Spaces                                  | 11                                                                                               |
+| Sheet write-back                        | true on the serving revision (reviewed S159 value); the recovery target keeps true               |
+| Legacy copy-only Sheet id               | not configured                                                                                   |
+| RentCast                                | selected; allowance 50                                                                           |
+| Action Registry                         | 48 exact keys;18 open and 30 closed                                                              |
+| Retired broad action ids                | non-executable; only exact proven keys are open                                                  |
+| Demo flags                              | false                                                                                            |
 
 Secret names are bound through Secret Manager. Values never belong in this file.
 
@@ -565,16 +581,13 @@ activations; generic send, resident draft and Dotloop write keys remain closed.
 
 ## Current rollback
 
-For completed run `8bf183d8-52e3-4244-b2ed-8894df854de8`, the captured predecessor is
-`pmi-kc-app-rmw3661as-aecc6937ff3f` / `3f2e3f5dc20a6b010afacac472419d81429a79a7`,
-Sheet=true. Run-bound recovery `pmi-kc-app-recovery-8bf183d852e34244` (tag
-`cand-rmw3661as-aecc6937ff3f`), receipt `599103fb-eab9-447a-851f-a5ab764bbf27`, reference
-`sha256:fb169176c29d9a0e2db7da9494831a40f93782923f7c1b07a1c8a895a308760e`, preserves the actual
-predecessor image/configuration. Original and target runtime fingerprints both equal
-`sha256:e5e35e04f4df400919a8ce6c9e1f21b51afac60858e0f6285da0ed1e683cf814`.
-The actual prior candidate-tag binding was captured separately. No traffic rollback occurred in
-this run; run `6960e4e1`'s verified rollback and the older 695/74d/ff1/d4 recovery coordinates
-belong only to their own runs.
+The captured predecessor `pmi-kc-app-rmw3h1wp5-706485135a02` came from commit
+`5b5c65c6b7be2b504b38e8c8fdea3d81367e5202` for completed run `72c6456a-3f3f-4ec2-8282-03542cfb7772`. Its reviewed switch is Sheet=true. Run-bound recovery
+`pmi-kc-app-recovery-72c6456a3f3f4ec2` uses tag `cand-rmw3h1wp5-706485135a02`, receipt
+`a3aa0ec3-ea00-4e22-b6d0-94dc33d84f00` and reference `sha256:08d45e18e085da2d2e116b5587c0be14f1c9ef8923fc7fd4f632eed5423f76c3`. The original and
+recovery runtime fingerprints both equal `sha256:ce13be98ce4c6b9cb59a82b17399f8f93a4b489bce95de91dd90b8412eeb5c8b`.
+The watcher captured the actual prior tag binding separately. This run completed without a
+traffic rollback. Earlier recovery coordinates retain their original run scope.
 
 Forward restoration and rollback require fresh actual state and exact receipt-bound reconciliation. Earlier failed attempts and recovery receipts retain their original scope outside Git.
 

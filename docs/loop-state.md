@@ -4,59 +4,22 @@ Last updated: 2026-11-07 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current execution
 
-The S245 litmus fixes (PR #182: S87, S126, S147, S242 and S86, with PR #180's S113 test fix)
-are DELIVERED. Canonical source is 5b5c65c6b7be2b504b38e8c8fdea3d81367e5202 / pmi-kc-app-rmw3h1wp5-706485135a02, 100%.
-Run 8bf183d8-52e3-4244-b2ed-8894df854de8 completed; its permit is consumed and controller exited
-zero. Every phase passed on its first pass, with no stop, resume or rollback. Before admission the
-first prepare at 952b33e7 stopped on a 17.6 h old CLI/ADC enrollment and the owner re-enrolled; a
-second refused remote_main_moved after PR #183 (test and CI tooling) merged, so the release
-followed main. Exact-main CI42018344883 passed all seven jobs;
-observation passed two checkpoints/414,492 ms
-with 375 matched records and zero discrepancies/5xx/unresolved effects/mutation attempts; all
-eleven final readbacks matched at 12:02:19Z. Q-ENG-ADV-CI is closed. Help stays V1.1; the S245
-litmus's L10 is UNVERIFIED for 25 provider-bound steps and the human verdict is NOT RUN. See
-docs/evidence/s245-litmus-fixes-delivery-2026-11-05.md. The November 5 litmus repairs delivery
-(run 6951545a, 3f2e3f5d) is in docs/evidence/help-hub-litmus-repairs-delivery-2026-11-05.md and
-the November 4 help hub delivery (run 74d79a9d, 323e8be3) in
-docs/evidence/help-hub-delivery-2026-11-04.md. The earlier P1–P9
-delivery (run ff1f44bf, b5ba7802) is in
-docs/evidence/application-gap-delivery-2026-11-03.md; its details follow.
+Production serves `ef81b8917209f4eec3f22097142b559f3cce875b` / `pmi-kc-app-rmw65wgt2-8c8249a0547c` at 100% canonical traffic.
+PR #191 and source PRs #184–#190 shipped together in run `72c6456a-3f3f-4ec2-8282-03542cfb7772` after all seven
+exact-main CI jobs passed in `42356598810`. The controller exited zero and its permit is consumed.
+Observation passed 2 checkpoints in 410,069 ms with 375 matched
+source, projected and rendered lease records, zero discrepancies, candidate 5xx, unresolved effects
+or guarded mutation attempts. The eleven independent final readbacks passed at
+`2026-11-07T09:12:03Z`. See the [delivery evidence](evidence/renewal-one-path-delivery-2026-11-07.md).
 
-Full07 passed 10,162 unit tests/four existing parity skips, all 497 backend tests/no skips and
-all sixteen commands/build. Core passed 46/23 explicit no-emulator skips on the same aceee3fe
-manifest. Independent source/CI/delivery/configuration reviews passed their stated scopes.
-Exact-main CI41696162202 passed all five jobs. Observation passed two checkpoints/417,609 ms,
-375 source/projected/rendered matches, zero discrepancies/5xx/unresolved effects/mutation attempts;
-all eleven final readbacks matched at 19:27:02Z. Editor-browser/human verdicts remain separate.
+The [independent litmus](evidence/renewal-one-path-litmus-2026-11-06.md) retains 62 Yes, two No and seven
+UNVERIFIED on its complete `edba7cbb` run, with separately dated repair rechecks. L55 remains No
+because the settled assistance rule classifies the voucher-only lease as Ready. Batch acceptance
+remains No. Human verdict NOT RUN.
 
-Normal configuration readbacks: eight unchanged source destinations v8→v16; Dotloop refreshed
-19:36:04Z with two profiles/zero-nine templates and entire selection v1 preserved; settled notice
-basis v1/own intent; same existing process seven-field Save, exact-process Low policy and Active
-version1 Publish, six steps/three links/4,637 verified immutable bytes/zero runs. Each operation
-had one consumed dispatch, no retry and clean profile release. No legal/map approval, original
-publication, customer/provider business effect, signature or Dotloop activation was inferred.
-
-The guarded post-configuration five-route UI read had all 200 responses, no errors/mutation
-attempts and free profile before/after. It also exposed the remaining source-access seam below.
-
-## One-path batch S246–S254: reviewed in isolation
-
-Current main `2187cf09fa0d5860919940448ae1ef55cd298f05` contains PRs #184–#190,
-including every source suite and the S254 harness. Branch `codex/renewal-one-path-ux`
-includes all six Claude commits and both remaining typing-recovery changes. The original
-worktree and its untracked owner files remain untouched.
-
-- The independent report at `edba7cbb` names all 71 checks: 62 Yes, 2 No and 7 UNVERIFIED.
-  The repaired source `eb7f4d69` has targeted rechecks, including the L18 retained text.
-  L55 keeps the literal count discrepancy, so batch acceptance remains No.
-  See the [litmus report](evidence/renewal-one-path-litmus-2026-11-06.md).
-- The older November/December journey passed on that source. The first canonical verify
-  stopped on an obsolete test count; the exact Help map assertion was updated in
-  `0e9c6a27`. The final-tree qualification and CI are recorded with the
-  PR. See the [UX review](evidence/renewal-one-path-ux-review-2026-11-06.md).
-- Human verdict NOT RUN. Real-provider, mailbox, physical-device, legal and client-input
-  limits remain. Automatic comparisons were held off throughout guarded browser verification.
-- The owner merges, releases and deploys. Earlier handoff release instructions do not apply.
+The earlier [S245 delivery](evidence/s245-litmus-fixes-delivery-2026-11-05.md) and
+[November 3 configuration outcomes](evidence/application-gap-delivery-2026-11-03.md) retain
+their own evidence. The current release changes no workflow authority or held client input.
 
 ## Exact remaining boundaries
 
@@ -79,21 +42,8 @@ worktree and its untracked owner files remain untouched.
 
 ## Awaiting release
 
-The owner decides whether to release after reviewing the PR and its verification.
-These are merged source commits, not delivery claims; no release action is authorized in this review.
-
-1. S246 working batch and accurate targets: `64a12692`.
-2. S247 guided lease path: `20d55104`.
-3. S248 evidence-driven stage: `20d55104`.
-4. S249 prepared kickoff and one message route: `aec5a309`.
-5. S250 standing owner agreements: `daf8ee05`.
-6. S251 housing assistance path: `daf8ee05`.
-7. S252 engineering walkthrough and help: `2187cf09`.
-8. S253 confirmed form answers: `95858eef`.
-9. S254 harness and validator: `6b0a71a5`; see the branch report for the unaccepted litmus.
-
-The S245 fix batch at `5b5c65c6` remains the last recorded production delivery. Never reuse a
-consumed permit or receipt. The stopped original native owner and archived runs remain untouched.
+The queue is empty. Run `72c6456a` delivered S246–S254 in one candidate.
+Documentation closure does not require an application revision.
 
 ## Continuation contract
 

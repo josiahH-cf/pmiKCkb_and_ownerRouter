@@ -3,7 +3,7 @@
 
 # S252 — One-path renewal walkthrough, action budgets, defect ledger and help update
 
-> Status: AUTHORING READY: intake 118; the engineering slice merged in PR #190 at `2187cf09`, including help V2.0 and the walkthrough matrix. Resumed UX repairs update help to V2.1, with scoped qualification on `codex/renewal-one-path-ux`; release pending. The staff walkthrough and its human verdict remain NOT RUN. This specification grants no provider effect.
+> Status: AUTHORING READY: intake 118; the engineering slice merged in PR #190 at `2187cf09`, including help V2.0 and the walkthrough matrix. Resumed UX repairs update help to V2.1, with scoped qualification on `codex/renewal-one-path-ux`; production delivered at `ef81b891`. The staff walkthrough and its human verdict remain NOT RUN. This specification grants no provider effect.
 
 **Goal.**
 

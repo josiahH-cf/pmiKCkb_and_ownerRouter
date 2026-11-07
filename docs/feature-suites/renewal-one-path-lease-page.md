@@ -3,7 +3,7 @@
 
 # S247 — One renewal path per lease: one page, one current step
 
-> Status: AUTHORING READY: intake 113; implementation merged in PR #187 at `20d55104`. Resumed UX repairs and scoped qualification are recorded on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. D-OP-6 remains settled: Guided is the default, and Focus and Full views, handlers and projections are kept. This specification grants no provider effect.
+> Status: AUTHORING READY: intake 113; implementation merged in PR #187 at `20d55104`. Resumed UX repairs and scoped qualification are recorded on `codex/renewal-one-path-ux`; production delivered at `ef81b891`, human verdict NOT RUN. D-OP-6 remains settled: Guided is the default, and Focus and Full views, handlers and projections are kept. This specification grants no provider effect.
 
 **Goal.**
 

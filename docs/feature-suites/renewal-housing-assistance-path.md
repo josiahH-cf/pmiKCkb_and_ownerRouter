@@ -3,7 +3,7 @@
 
 # S251 — Housing assistance recorded once on the lease, with its own renewal order
 
-> Status: AUTHORING READY: intake 117; implementation merged in PR #189 at `daf8ee05`. Resumed UX repairs and scoped qualification are recorded on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. D-OP-9 remains settled: program, owner renewing answer, then rent when a change is proposed. This specification grants no provider effect.
+> Status: AUTHORING READY: intake 117; implementation merged in PR #189 at `daf8ee05`. Resumed UX repairs and scoped qualification are recorded on `codex/renewal-one-path-ux`; production delivered at `ef81b891`, human verdict NOT RUN. D-OP-9 remains settled: program, owner renewing answer, then rent when a change is proposed. This specification grants no provider effect.
 
 **Goal.**
 

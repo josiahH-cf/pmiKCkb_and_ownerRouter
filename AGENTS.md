@@ -19,7 +19,22 @@ When two sources disagree, use this order:
 Never revive a historical blocker, Demo/Test policy, action grant, or provider claim without checking
 the current code and live service. Date-stamped history is not authority.
 
-## Present production truth — November 5 S245 litmus fixes delivery
+## Present production truth — November 7 renewal one-path delivery
+
+Production serves `ef81b8917209f4eec3f22097142b559f3cce875b` / `pmi-kc-app-rmw65wgt2-8c8249a0547c` at 100% canonical traffic.
+PR #191 and source PRs #184–#190 shipped together in run `72c6456a-3f3f-4ec2-8282-03542cfb7772` after all seven
+exact-main CI jobs passed in `42356598810`. The controller exited zero and its permit is consumed.
+Observation passed 2 checkpoints in 410,069 ms with 375 matched
+source, projected and rendered lease records, zero discrepancies, candidate 5xx, unresolved effects
+or guarded mutation attempts. The eleven independent final readbacks passed at
+`2026-11-07T09:12:03Z`. See the [delivery evidence](docs/evidence/renewal-one-path-delivery-2026-11-07.md).
+
+The [independent litmus](docs/evidence/renewal-one-path-litmus-2026-11-06.md) retains 62 Yes, two No and seven
+UNVERIFIED on its complete `edba7cbb` run, with separately dated repair rechecks. L55 remains No
+because the settled assistance rule classifies the voucher-only lease as Ready. Batch acceptance
+remains No. Human verdict NOT RUN.
+
+## Previous production truth — November 5 S245 litmus fixes delivery (historical)
 
 Production serves `5b5c65c6b7be2b504b38e8c8fdea3d81367e5202` /
 `pmi-kc-app-rmw3h1wp5-706485135a02` at 100% canonical traffic. Run

@@ -2,21 +2,22 @@
 
 Updated: 2026-11-07 (UTC).
 
-The one-path source S246–S253 and S254 harness are merged through #184–#190 at
-`2187cf09`. The resumed UX review on `codex/renewal-one-path-ux` carries the prior
-runner's six commits and both typing-recovery file changes.
+Production serves `ef81b8917209f4eec3f22097142b559f3cce875b` / `pmi-kc-app-rmw65wgt2-8c8249a0547c` at 100% canonical traffic.
+PR #191 and source PRs #184–#190 shipped together in run `72c6456a-3f3f-4ec2-8282-03542cfb7772` after all seven
+exact-main CI jobs passed in `42356598810`. The controller exited zero and its permit is consumed.
+Observation passed 2 checkpoints in 410,069 ms with 375 matched
+source, projected and rendered lease records, zero discrepancies, candidate 5xx, unresolved effects
+or guarded mutation attempts. The eleven independent final readbacks passed at
+`2026-11-07T09:12:03Z`. See the [delivery evidence](evidence/renewal-one-path-delivery-2026-11-07.md).
 
-The full [independent litmus](evidence/renewal-one-path-litmus-2026-11-06.md)
-at `edba7cbb` reports 62 Yes, 2 No and 7 UNVERIFIED. Targeted rechecks at `eb7f4d69` verified
-the later repairs, including the retained-text defect (L18). Batch acceptance remains No:
-the original table controls and URLs remain, while the voucher-only lease moves from Program
-lease to Ready under the settled assistance rule, producing the literal L55 count mismatch.
-The [UX review](evidence/renewal-one-path-ux-review-2026-11-06.md) keeps both source scopes
-and the precise evidence gaps.
+The [independent litmus](evidence/renewal-one-path-litmus-2026-11-06.md) retains 62 Yes, two No and seven
+UNVERIFIED on its complete `edba7cbb` run, with separately dated repair rechecks. L55 remains No
+because the settled assistance rule classifies the voucher-only lease as Ready. Batch acceptance
+remains No. Human verdict NOT RUN.
 
-Human verdict NOT RUN. Automatic preparation was held off in the isolated verification.
-The owner owns merge, release and deployment. The production section below records the last
-known delivery and was not refreshed for this review.
+Current external and human holds are in [the unblock packet](open-blockers.md).
+
+## November 5 S245 litmus fixes delivery (historical)
 
 The S245 litmus fixes for S87, S126, S147, S242 and S86 (PR #182) are DELIVERED at `5b5c65c6` /
 `pmi-kc-app-rmw3h1wp5-706485135a02`, 100% canonical traffic. Run `8bf183d8` completed on its first

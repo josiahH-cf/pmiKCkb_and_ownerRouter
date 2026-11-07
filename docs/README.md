@@ -34,6 +34,10 @@ release acceptance passed; no live customer completion or human usability verdic
 
 ## Current core
 
+S246–S254 and PR #191 shipped together at `ef81b891` / `pmi-kc-app-rmw65wgt2-8c8249a0547c`. The
+[one-path delivery evidence](evidence/renewal-one-path-delivery-2026-11-07.md) records the release, readbacks and
+the separation from the independent litmus and staff verdict.
+
 The S245 litmus fixes for S87, S126, S147, S242 and S86 are delivered at 5b5c65c6 /
 pmi-kc-app-rmw3h1wp5-706485135a02; see the
 [litmus fixes delivery evidence](evidence/s245-litmus-fixes-delivery-2026-11-05.md).

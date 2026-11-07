@@ -3,7 +3,7 @@
 
 # S246 — Working batch and accurate renewal targets on the desk
 
-> Status: AUTHORING READY: intake 112; implementation merged in PR #186 at `64a12692`. Resumed UX repairs and scoped qualification are recorded on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. Owner decisions D-OP-4 and D-OP-5 remain settled. This specification grants no provider effect.
+> Status: AUTHORING READY: intake 112; implementation merged in PR #186 at `64a12692`. Resumed UX repairs and scoped qualification are recorded on `codex/renewal-one-path-ux`; production delivered at `ef81b891`, human verdict NOT RUN. Owner decisions D-OP-4 and D-OP-5 remain settled. This specification grants no provider effect.
 
 **Goal.**
 

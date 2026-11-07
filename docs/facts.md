@@ -1,42 +1,33 @@
 # PMI KC facts
 
-Last reconciled: 2026-11-07 (one-path source review; no new production readback).
+Last reconciled: 2026-11-07 (one-path release and independent readback).
 
 This ledger contains present truth. Historical detail is recoverable in Git and immutable run
 evidence; an earlier receipt never authorizes a new attempt.
 
-## November 6 one-path source and resumed review
+## November 7 renewal one-path delivery
 
-Main `2187cf09fa0d5860919940448ae1ef55cd298f05` contains S246–S253 and the S254
-harness through PRs #184–#190. The review branch `codex/renewal-one-path-ux` includes
-all six prior unmerged Claude commits plus both remaining typing-recovery file changes,
-with complete-text and newer-input handling. The shared Windows checkout and unrelated owner
-files were left alone.
+Production serves `ef81b8917209f4eec3f22097142b559f3cce875b` / `pmi-kc-app-rmw65wgt2-8c8249a0547c` at 100% canonical traffic.
+PR #191 and source PRs #184–#190 shipped together in run `72c6456a-3f3f-4ec2-8282-03542cfb7772` after all seven
+exact-main CI jobs passed in `42356598810`. The controller exited zero and its permit is consumed.
+Observation passed 2 checkpoints in 410,069 ms with 375 matched
+source, projected and rendered lease records, zero discrepancies, candidate 5xx, unresolved effects
+or guarded mutation attempts. The eleven independent final readbacks passed at
+`2026-11-07T09:12:03Z`. See the [delivery evidence](evidence/renewal-one-path-delivery-2026-11-07.md).
 
-The full [independent litmus](evidence/renewal-one-path-litmus-2026-11-06.md)
-at `edba7cbb` reports 62 Yes, 2 No and 7 UNVERIFIED. Targeted rechecks at `eb7f4d69` verified
-the later repairs, including the retained-text defect (L18). Batch acceptance remains No:
-the original table controls and URLs remain, while the voucher-only lease moves from Program
-lease to Ready under the settled assistance rule, producing the literal L55 count mismatch.
-The [UX review](evidence/renewal-one-path-ux-review-2026-11-06.md) keeps both source scopes
-and the precise evidence gaps.
+The [independent litmus](evidence/renewal-one-path-litmus-2026-11-06.md) retains 62 Yes, two No and seven
+UNVERIFIED on its complete `edba7cbb` run, with separately dated repair rechecks. L55 remains No
+because the settled assistance rule classifies the voucher-only lease as Ready. Batch acceptance
+remains No. Human verdict NOT RUN.
 
-The older November/December isolated journey reported 36 PASS and
-0 FAIL at `eb7f4d69`. The canonical run on that source stopped on a stale Help map
-test count. The exact assertion was updated in `0e9c6a27` with the same
-preservation tests. The pull request records the final-tree qualification. Release remains
-for the owner.
-The review never opens production. Human verdict NOT RUN. Real providers, real mailbox,
-signatures, physical-device behavior and unanswered client questions remain unverified.
-
-Initial harness gaps and failures are preserved in the review. Final rehearsal entry points
-and Node children require the guard. Automatic preparation stays off at startup and through
-resets. All observed comparison operations used stored data or explicit staff preparation with
-the stand-in. The existing runtime setting and effect rules stay in place.
+The released source includes all six prior unmerged repairs and both remaining typing changes.
+The guarded release checks were read-only. Real sends, signatures, paid or automatic comparisons
+and unsettled client inputs supply no release proof. Runtime configuration and recovery evidence
+are recorded in the delivery evidence and environment handoff.
 
 ## November 5 S245 litmus fixes — delivered S87, S126, S147, S242 and S86 repairs
 
-Canonical production now serves `5b5c65c6b7be2b504b38e8c8fdea3d81367e5202` /
+That run served `5b5c65c6b7be2b504b38e8c8fdea3d81367e5202` /
 `pmi-kc-app-rmw3h1wp5-706485135a02`, 100%. Run `8bf183d8-52e3-4244-b2ed-8894df854de8`
 completed with controller exit zero and consumed permit. Build `3b45e869-c0ec-4be8-9b64-276b61faf7ff` succeeded and its
 digest matches the running revision. Candidate receipt `9fb1b2e5-5d18-433b-8365-fd4e6e85c516` and promotion bind

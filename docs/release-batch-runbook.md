@@ -1,6 +1,6 @@
 # Batched release runbook
 
-Updated 2026-11-05 (UTC). One candidate must ship every queued feature.
+Updated 2026-11-07 (UTC). One candidate must ship every queued feature.
 
 The owner has launched the finalized November 3 P1–P9 gap plan to completion. That named scope
 and AGENTS.md feature-run continuity authorize its delivery and diagnosed/verified repairs without
@@ -9,7 +9,21 @@ Keep all pending outcomes in the overall program. Exact-main CI, fresh prerequis
 one watcher/application build, receipts, full observation and recovery remain mandatory. Failed
 attempts and consumed permits are immutable and never reusable.
 
-## Current verified delivery — November 5 S245 litmus fixes
+## Current verified delivery — November 7 renewal one-path
+
+Production serves `ef81b8917209f4eec3f22097142b559f3cce875b` / `pmi-kc-app-rmw65wgt2-8c8249a0547c` at 100% canonical traffic.
+PR #191 and source PRs #184–#190 shipped together in run `72c6456a-3f3f-4ec2-8282-03542cfb7772` after all seven
+exact-main CI jobs passed in `42356598810`. The controller exited zero and its permit is consumed.
+Observation passed 2 checkpoints in 410,069 ms with 375 matched
+source, projected and rendered lease records, zero discrepancies, candidate 5xx, unresolved effects
+or guarded mutation attempts. The eleven independent final readbacks passed at
+`2026-11-07T09:12:03Z`. See the [delivery evidence](evidence/renewal-one-path-delivery-2026-11-07.md).
+
+This release carried the nine queued suites and the reviewed repair PR in one application
+build. The verified delivery cleared the queue. Batch litmus and staff verdicts retain the
+separate scope in the evidence.
+
+## Previous verified delivery — November 5 S245 litmus fixes (historical)
 
 Canonical production serves `5b5c65c6b7be2b504b38e8c8fdea3d81367e5202` /
 `pmi-kc-app-rmw3h1wp5-706485135a02` at 100% traffic. Run
