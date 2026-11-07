@@ -642,5 +642,26 @@
     "text": "Updating this workflow run requires Editor access.",
     "describes": "Workflow run outcome panel note on the edit capability",
     "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "app/spaces/[spaceId]/page.tsx",
+    "text": "Use this page for the process and checklist. Open renewal work",
+    "describes": "The renewal procedure directs staff to its separately named working lease",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "app/spaces/page.tsx",
+    "text": "Open the tenant offer and documents checklist",
+    "describes": "Internal Processes link to the named tenant offer and document procedure",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/connections/ConnectionCenter.tsx",
+    "text": "Open the service to retry the read.",
+    "describes": "Connections index direction when an individual service read is incomplete",
+    "disposition": "keep"
   }
 ]

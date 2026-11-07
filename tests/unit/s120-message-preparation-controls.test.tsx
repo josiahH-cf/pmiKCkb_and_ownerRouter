@@ -229,7 +229,7 @@ describe("S120 mounted message preparation", () => {
     expect(callout).toHaveAttribute("open");
     expect(callout).toHaveAttribute("id", "renewal-message-tenant-readiness");
     expect(callout).toHaveTextContent(
-      "3 values are marked in this message. You can edit, copy and draft it as it is.",
+      "3 values are marked in this message. You can edit and copy it now. Complete required values before releasing it.",
     );
     expect(readiness).toHaveTextContent("Your sender signature is not entered yet.");
     expect(readiness).toHaveTextContent(

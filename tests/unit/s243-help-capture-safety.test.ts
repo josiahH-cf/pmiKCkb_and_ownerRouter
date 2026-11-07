@@ -68,7 +68,7 @@ describe("S243 AC-S243-8: the managed rehearsal cannot reach a provider or produ
       'ENVIRONMENT_KIND: "demo"',
       'DATA_CONTEXT: "demo"',
       'LOCAL_DEMO_AUTH: "true"',
-      "NODE_OPTIONS: `--import ${preload}`",
+      "`--import=${preload}`",
       'FIREBASE_PROJECT_ID: "pmi-kc-kb-help-rehearsal-test"',
       'GOOGLE_CLOUD_PROJECT: "pmi-kc-kb-help-rehearsal-test"',
       'RENTVINE_API_KEY: "synthetic-help-key"',

@@ -44,7 +44,7 @@
   {
     "kind": "inline",
     "location": "app/admin/page.tsx",
-    "text": "Source target: … - Data store: …- Source records: ……",
+    "text": "Source target: …- Data store: …- Source records: ……",
     "describes": "Space setup health line for source target, data store and records",
     "disposition": "keep"
   },
@@ -128,8 +128,8 @@
   {
     "kind": "inline",
     "location": "components/admin/AdminTaskIndex.tsx",
-    "text": "These links organize existing controls. They do not change roles, connection truth, or action authority.",
-    "describes": "Admin task index links that only navigate to existing controls",
+    "text": "Choose the setting or check you need.",
+    "describes": "Admin task index introduction to its focused links",
     "disposition": "keep"
   },
   {

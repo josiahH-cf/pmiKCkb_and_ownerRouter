@@ -250,7 +250,7 @@ export function renewalTargetLine(projection: RenewalTargetProjection): string {
       projection.keptWorking ? "staff kept working this cycle" : null,
       unavailable,
     ]
-      .filter((part): part is string => part !== null)
+      .filter(Boolean)
       .join(" · ");
   const line =
     projection.reason === "renewed_in_rentvine"

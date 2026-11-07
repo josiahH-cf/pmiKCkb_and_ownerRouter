@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { AdminTaskIndex } from "@/components/admin/AdminTaskIndex";
 import { ADMIN_TASK_GROUPS } from "@/lib/navigation/admin-connections";
+import { adminTaskHref } from "@/lib/navigation/admin-task-path";
 
 afterEach(cleanup);
 
@@ -19,7 +20,7 @@ describe("AdminTaskIndex", () => {
       for (const link of group.links) {
         expect(screen.getByRole("link", { name: link.label })).toHaveAttribute(
           "href",
-          link.href,
+          adminTaskHref(link.href),
         );
       }
     }
@@ -28,11 +29,12 @@ describe("AdminTaskIndex", () => {
     }
   });
 
-  it("states that the index grants no role, connection, or action authority", () => {
-    render(<AdminTaskIndex />);
-
-    expect(document.body.textContent).toContain(
-      "They do not change roles, connection truth, or action authority.",
+  it("offers focused navigation without rendering a role or action mutation control", () => {
+    const { container } = render(<AdminTaskIndex />);
+    expect(container.querySelector("button, form, input, select")).toBeNull();
+    expect(screen.getByRole("link", { name: /approval notifications/i })).toHaveAttribute(
+      "href",
+      "/admin?task=safety#admin-approval-notifications",
     );
     expect(document.body.textContent).not.toMatch(
       /API_KEY|CLIENT_SECRET|PASSWORD|TOKEN|@[a-z0-9.-]+\.[a-z]{2,}/i,

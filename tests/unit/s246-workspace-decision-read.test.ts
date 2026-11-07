@@ -136,11 +136,10 @@ function setup() {
 }
 
 /**
- * The keep-working choice the page handed to the lease projection. S248 appends one argument
- * after it (the lease's renewal message evidence) and S249 one more (the preparation read), so
- * the choice is the third from the end.
+ * The keep-working choice precedes the linked message evidence, the preparation read and the
+ * exact cycle disposition. Keep its assertion independent of these later reads.
  */
-const decisionPassed = () => fixture.project.mock.calls[0]?.at(-3);
+const decisionPassed = () => fixture.project.mock.calls[0]?.at(-4);
 
 describe("S246 the lease page's keep-working choice read", () => {
   it("starts with the page's other independent reads, while they are still pending", async () => {

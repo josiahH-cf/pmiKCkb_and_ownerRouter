@@ -8,12 +8,16 @@ import {
   saveSenderSignatureChoice,
 } from "@/lib/firestore/renewal-sender-signature-choice";
 import { SaveSenderSignatureChoiceSchema } from "@/lib/lease-renewal/sender-signature-choice";
+import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
 
 const options = { headers: { "Cache-Control": "private, no-store" } };
 
 export async function GET() {
   try {
-    const actor = await requireCapabilityInSpace("read", "renewals");
+    const actor = await requireCapabilityInSpace(
+      renewalRoleCapability("read_workspace"),
+      "renewals",
+    );
     const [choice, retained, profile] = await Promise.all([
       readSenderSignatureChoice(actor),
       getRetainedSenderSignature(actor),
@@ -34,7 +38,10 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const actor = await requireCapabilityInSpace("edit", "renewals");
+    const actor = await requireCapabilityInSpace(
+      renewalRoleCapability("save_sender_signature"),
+      "renewals",
+    );
     const input = await parseJsonBody(request, SaveSenderSignatureChoiceSchema);
     return NextResponse.json(
       { choice: await saveSenderSignatureChoice(actor, input) },

@@ -151,11 +151,11 @@ describe("AppShell role-based navigation", () => {
       expect(screen.getByRole("link", { name: link })).toBeInTheDocument();
     }
     fireEvent.click(screen.getByRole("button", { name: "Operations" }));
-    for (const link of ["Lease Renewal", "Internal Processes"]) {
+    for (const link of ["Lease Renewal", "Internal Processes", "Communications"]) {
       expect(screen.getByRole("link", { name: link })).toBeInTheDocument();
     }
     fireEvent.click(screen.getByRole("button", { name: "Admin" }));
-    for (const link of ["Admin", "Connections", "Communications"]) {
+    for (const link of ["Admin", "Connections"]) {
       expect(screen.getByRole("link", { name: link })).toBeInTheDocument();
     }
   });

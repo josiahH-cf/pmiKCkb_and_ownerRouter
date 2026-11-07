@@ -147,7 +147,7 @@ describe("S120 message readiness", () => {
     expect(missing.complete).toBe(false);
     expect(missing.items.map((item) => item.field)).toEqual(["ownerTerms", "charge.pet"]);
     expect(missing.summary).toBe(
-      "2 values are marked in this message. You can edit, copy and draft it as it is.",
+      "2 values are marked in this message. You can edit and copy it now. Complete required values before releasing it.",
     );
     expect(JSON.stringify(missing)).not.toMatch(/review|approv|signature_actor/i);
   });

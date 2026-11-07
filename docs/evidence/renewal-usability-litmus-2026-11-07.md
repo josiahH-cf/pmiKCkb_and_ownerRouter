@@ -107,6 +107,13 @@ Staff session: none
   served sign-in and the version route, then the verifier called the Fetch response's
   boolean status property as a function. No control inventory result was issued.
 
+- L14 on `7f660154` in `canonical-7f660154-20261107T185639Z`. All 27 scenes
+  matched and the rendered inventory accounted for 838 controls with zero missing. Formatting,
+  lint and TypeScript passed. Unit verification exited 1 with 11,507 passed, 70 failed and four
+  skipped across 1,172 files. The failures exposed outdated test fixtures and evidence inventory
+  references, two unregistered route entries and an empty trailing separator in the lease target
+  display. Firestore, build and served E2E did not start in that run.
+
 ## Repairs
 
 - L03 now waits for the initial collection list before enabling New collection. The focused

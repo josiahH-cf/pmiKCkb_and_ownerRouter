@@ -150,7 +150,7 @@ describe("S85 semantic token graph", () => {
     expect(componentCss).toMatch(/var\(--renewal-sticky-offset,\s*\d+px\)/);
     expect(
       readFileSync(
-        join(root, "components/lease-renewal/RenewalWorkspaceSidebars.tsx"),
+        join(root, "components/lease-renewal/RenewalDashboardNavigation.tsx"),
         "utf8",
       ),
     ).toContain('"--renewal-sticky-offset"');

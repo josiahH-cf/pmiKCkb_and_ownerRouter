@@ -426,6 +426,17 @@ export const RENEWAL_GOVERNANCE_MATRIX = {
     roleDeniedReason: "Editor access is required to save working information.",
     safeNextAction: "Continue read-only or ask an Admin to review your role.",
   },
+  save_sender_signature: {
+    label: "Save the signed-in staff member's renewal signature choice",
+    roleCapability: "edit",
+    effect: "app_owned_write",
+    externalRequirement: "none",
+    actionKeys: [],
+    exactConfirmation: false,
+    audit: "app_activity",
+    roleDeniedReason: "Editor access is required to save a sender signature.",
+    safeNextAction: "Continue read-only or ask an Admin to review your role.",
+  },
   save_pricing_policy: {
     label: "Save reusable renewal pricing and standing owner agreement terms",
     roleCapability: "edit",
@@ -1340,5 +1351,29 @@ export const RENEWAL_ROUTE_INVENTORY = [
     source: "app/api/lease-renewal/collections/route.ts",
     method: "POST",
     capability: "save_shared_collection",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/cycle-disposition/route.ts",
+    method: "GET",
+    capability: "read_workspace",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/cycle-disposition/route.ts",
+    method: "POST",
+    capability: "save_renewal_progress",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/sender-signature/route.ts",
+    method: "GET",
+    capability: "read_workspace",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/sender-signature/route.ts",
+    method: "POST",
+    capability: "save_sender_signature",
   },
 ] as const satisfies readonly RenewalRouteInventoryEntry[];

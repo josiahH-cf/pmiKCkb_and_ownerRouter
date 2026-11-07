@@ -39,7 +39,11 @@ describe("S248 L39 renewal notice material identity", () => {
   it("is the identity the renewal target's material source hash reads", () => {
     const source = readFileSync("lib/gmail-hub/sequence-dependencies.ts", "utf8");
     expect(source).toContain(
-      "notice: renewalNoticeMaterialIdentity(current.basis.noticeSafety)",
+      "const notice = renewalNoticeMaterialIdentity(current.basis.noticeSafety);",
+    );
+    expect(source).toMatch(/const leaseBasis = \{[\s\S]*?\bnotice,/);
+    expect(source).toContain(
+      "materialSourceHash: sequenceHash({ ...leaseBasis, contentBasis, blockers })",
     );
     expect(source).not.toMatch(/notice: current\.basis\.noticeSafety\s*,/);
   });
