@@ -84,6 +84,16 @@
 #                           report itself is the only file that goes to Git.
 set -euo pipefail
 repo=$(git rev-parse --show-toplevel)
+# The required Help gate uses its existing broader synthetic inventory on a separate server.
+# Both entry points share the same exact-checkout and network-preload contract.
+if [[ "${1:-}" == --hold-automatic-comparison && "${2:-}" == --no-mail-adapter && "${3:-}" == --help-rendered ]]; then
+  cd "$repo"
+  if [[ "${4:-}" == --review-captures && $# == 4 ]]; then
+    exec bash scripts/run-help-rehearsal.sh --review-captures
+  fi
+  [[ $# == 3 ]]
+  exec bash scripts/run-help-rehearsal.sh --verify
+fi
 if [[ "$repo" == /app ]]; then
   echo "The one-path rehearsal runs from a host checkout; the kernel-isolated lane has no entry for it." >&2
   exit 2

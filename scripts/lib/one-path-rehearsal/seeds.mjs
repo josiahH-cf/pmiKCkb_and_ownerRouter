@@ -219,6 +219,8 @@ async function noticeAdmission({ page, origin }) {
  * lease is then simply a lease with no message sent.
  */
 async function repliedOwnerMessage({ page, mix, rehearsal }) {
+  if (rehearsal.mailAdapter === false)
+    return { state: "skipped", detail: "The mail adapter is held for this session." };
   const role = mix.roles.replied;
   const leaseId = role.leaseId;
   const owner = mix.leases.find((row) => row.lease.leaseID === leaseId)?.portfolio
@@ -345,7 +347,7 @@ async function preparedKickoff({ page, mix }) {
  * Admin turns the reviewed setting off in the app for the seeds and back on to its shipped default
  * after them; nothing else about the setting changes. A commit without the setting answers 404.
  */
-async function automaticStartSetting(page, enabled, why) {
+export async function automaticStartSetting(page, enabled, why) {
   await switchDemoRole(page, "Admin");
   try {
     const current = await route(page, "/api/lease-renewal/kickoff-settings");

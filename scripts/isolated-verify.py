@@ -474,7 +474,7 @@ def stage(args):
               'nodeRoot': str(Path(args.node_root).resolve(strict=True)), 'javaRoot': 'none',
               'emulatorJar': args.emulator_jar, 'needsEmulator': args.task in ['verify', 'firestore', 'e2e', 'renewal-journey'],
               'needsFonts': args.task in ['verify', 'policy-build', 'e2e', 'e2e-core', 'renewal-journey'],
-              'needsBrowser': args.task == 'renewal-journey',
+              'needsBrowser': args.task in ['verify', 'e2e', 'renewal-journey'],
               'timeout': args.timeout_seconds, 'memoryMiB': args.memory_mib,
               'typecheckHeapMiB': args.typecheck_heap_mib,
               'buildHeapMiB': getattr(args, 'build_heap_mib', 1536),

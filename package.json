@@ -45,6 +45,7 @@
     "verify:help-coverage": "tsx scripts/check-help-coverage.mjs",
     "verify:help-controls": "tsx scripts/check-help-controls.mjs",
     "verify:help-screenshots": "tsx scripts/check-help-screenshots.mjs",
+    "verify:help-rendered": "bash scripts/run-renewal-one-path-rehearsal.sh --hold-automatic-comparison --no-mail-adapter --help-rendered",
     "verify:help-content": "tsx scripts/check-help-content.mjs",
     "help:capture": "bash scripts/run-help-rehearsal.sh",
     "help:capture:check": "bash scripts/run-help-rehearsal.sh --check",

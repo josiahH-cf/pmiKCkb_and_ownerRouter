@@ -106,7 +106,7 @@ export const HOME_AND_ASK_GUIDES: readonly HelpGuide[] = [
         route: "/",
         where: "Top bar, the navigation menus",
         result:
-          "The Operations menu opens with Lease Renewal and Internal Processes, each with a short description. Choose a destination to open it; Escape closes the menu.",
+          "The Operations menu opens with Lease Renewal, Communications and Internal Processes, each with a short description. Choose a destination to open it; Escape closes the menu.",
         effect: "reads",
         note: "The My Work menu holds My Work, Dashboard, Approval Queue and Help. The Admin menu holds Admin, Connections and Communications; for staff who are not Admins, Admin opens your access page, where you request the permissions you need. On a phone the three menus sit under Menu, and a menu that holds the page you are on tells screen readers Contains current page.",
       },

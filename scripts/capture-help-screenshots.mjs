@@ -27,10 +27,12 @@ import {
   readFileSync,
   writeFileSync,
 } from "node:fs";
-import { createServer } from "node:net";
+import { createServer, Socket } from "node:net";
 import { join } from "node:path";
 import { chromium } from "playwright-core";
 
+import { compareHelpScene } from "./lib/help-scene-drift.mjs";
+import { HELP_FIXTURE_INSTANT } from "./lib/help-rehearsal-clock.mjs";
 import { resolveBrowserExecutable } from "./lib/browser-executable.mjs";
 import { requireLoopbackRehearsalOrigin } from "./lib/help-rehearsal-origin.mjs";
 
@@ -86,6 +88,9 @@ const option = (name) => {
 };
 
 const managed = flag("--managed");
+const verify = flag("--verify");
+const proposals = flag("--review-captures");
+const fixedFixture = managed && Boolean(process.env.HELP_REHEARSAL_CLOCK_ORIGIN);
 const mode = flag("--serve")
   ? "serve"
   : flag("--outline")
@@ -122,7 +127,18 @@ let server = null;
 let origin;
 let sourceSha;
 if (managed) {
-  assert.match(process.cwd(), /^\/tmp\/pmi-kc-help-rehearsal-[^/]+\/worktree$/);
+  if (process.cwd() === "/app") {
+    assert.equal(process.env.HELP_REHEARSAL_ISOLATED, "kernel-v1");
+    assert.match(process.env.PMI_SOURCE_MANIFEST_SHA256 ?? "", /^[a-f0-9]{64}$/);
+  } else {
+    assert.match(process.cwd(), /^\/tmp\/pmi-kc-help-rehearsal-[^/]+\/worktree$/);
+  }
+  assert.equal(
+    globalThis.fetch.name,
+    "guardedFetch",
+    "The Help rehearsal preload is required.",
+  );
+  assert.equal(Socket.prototype.connect.name, "guardedConnect");
   assert.match(process.env.FIRESTORE_EMULATOR_HOST ?? "", /^127\.0\.0\.1:\d+$/);
   sourceSha = process.env.HELP_REHEARSAL_SOURCE_SHA;
   assert.match(sourceSha ?? "", /^[a-f0-9]{40}$/);
@@ -162,16 +178,22 @@ record({
   overlay,
   allowOverlay,
   helpVersion,
+  fixtureClock: fixedFixture ? HELP_FIXTURE_INSTANT : null,
 });
 
 const browser = await chromium.launch({
-  executablePath: resolveBrowserExecutable(),
+  executablePath: fixedFixture
+    ? process.env.PLAYWRIGHT_CHROME_PATH || chromium.executablePath()
+    : resolveBrowserExecutable(),
   headless: true,
 });
 if (managed) {
   // S252: the prepared lease (its templates, signature and stored comparison) before any scene.
   const { seedHelpPreparedLease } = await import("./lib/help-rehearsal-fixtures.mjs");
-  const context = await browser.newContext({ timezoneId: "America/Chicago" });
+  const context = await browser.newContext({
+    timezoneId: "America/Chicago",
+    serviceWorkers: "block",
+  });
   await context.route("**/*", (route) =>
     new URL(route.request().url()).origin === origin
       ? route.continue()
@@ -181,6 +203,24 @@ if (managed) {
   page.setDefaultTimeout(ROUTE_BUDGET_MS);
   page.setDefaultNavigationTimeout(ROUTE_BUDGET_MS);
   try {
+    const { automaticStartSetting, routeFromPage } =
+      await import("./lib/one-path-rehearsal/seeds.mjs");
+    await signIn(page, "Editor");
+    const setting = await automaticStartSetting(
+      page,
+      false,
+      "Rendered Help rehearsal holds automatic preparation.",
+    );
+    assert.equal(setting.state, "seeded", setting.detail);
+    const currentSetting = await routeFromPage(
+      page,
+      "/api/lease-renewal/kickoff-settings",
+    );
+    assert.equal(
+      currentSetting.body?.enabled,
+      false,
+      "Automatic preparation must stay off.",
+    );
     const prepared = await seedHelpPreparedLease({
       page,
       signIn: (role) => signIn(page, role),
@@ -197,7 +237,15 @@ if (managed) {
 }
 let exitCode = 0;
 try {
-  if (mode === "serve") {
+  if (verify) {
+    assert.ok(
+      fixedFixture && !overlay && !only,
+      "Rendered Help verification needs the full, exact guarded fixture.",
+    );
+    const controlStatus = await controls();
+    const sceneStatus = await scenes(true);
+    exitCode = controlStatus || sceneStatus;
+  } else if (mode === "serve") {
     process.stdout.write(
       `Help rehearsal serving ${origin} (commit ${served.commit}). Sign in at ${origin}/sign-in with the local demo roles. Stop with Ctrl+C.\n`,
     );
@@ -222,7 +270,7 @@ process.exit(exitCode);
 // Captures (or, with check, resolves) every scene in manifest order.
 async function scenes(checkOnly) {
   const target = join(
-    process.env.HELP_REHEARSAL_TARGET_ROOT ?? process.cwd(),
+    proposals ? output : (process.env.HELP_REHEARSAL_TARGET_ROOT ?? process.cwd()),
     "public/help",
     helpVersion,
   );
@@ -231,15 +279,37 @@ async function scenes(checkOnly) {
   for (const scene of manifest.scenes) {
     if (only && scene.id !== only) continue;
     if (scene.source !== "rehearsal") {
-      results.push({ id: scene.id, state: "not-rehearsal", source: scene.source });
+      results.push({
+        id: scene.id,
+        fixture: scene.fixture,
+        state: "provider-only",
+        source: scene.source,
+      });
       continue;
     }
     try {
       const png = await captureScene(scene);
       const sha256 = createHash("sha256").update(png).digest("hex");
-      if (!checkOnly) writeFileSync(join(target, `${scene.id}.png`), png);
-      results.push({ id: scene.id, state: checkOnly ? "resolved" : "captured", sha256 });
-      process.stdout.write(`${checkOnly ? "resolved" : "captured"} ${scene.id}\n`);
+      const filename = `${scene.id}.png`;
+      let state = checkOnly ? "resolved" : "captured";
+      let difference;
+      if (!checkOnly) writeFileSync(join(target, filename), png);
+      if (verify) {
+        const baseline = join(target, filename);
+        difference = existsSync(baseline)
+          ? await compareHelpScene(readFileSync(baseline), png)
+          : { material: true, reason: "The committed synthetic picture is missing." };
+        if (difference.material) {
+          const replacement = join(output, "scene-drift", scene.id);
+          mkdirSync(replacement, { recursive: true });
+          if (existsSync(baseline))
+            writeFileSync(join(replacement, "expected.png"), readFileSync(baseline));
+          writeFileSync(join(replacement, "observed.png"), png);
+          state = "drift";
+        } else state = "matched";
+      }
+      results.push({ id: scene.id, fixture: scene.fixture, state, sha256, difference });
+      process.stdout.write(`${state} ${scene.id}\n`);
     } catch (error) {
       results.push({
         id: scene.id,
@@ -252,6 +322,7 @@ async function scenes(checkOnly) {
     }
   }
   const uncaptured = results.filter((entry) => entry.state === "uncaptured");
+  const drift = results.filter((entry) => entry.state === "drift");
   const summary = {
     event: checkOnly ? "check" : "capture",
     sourceSha,
@@ -260,13 +331,14 @@ async function scenes(checkOnly) {
     helpVersion,
     scenes: results,
     uncaptured: uncaptured.map((entry) => entry.id),
+    drift: drift.map((entry) => entry.id),
   };
   record(summary);
   writeFileSync(join(output, "scenes.json"), `${JSON.stringify(summary, null, 2)}\n`);
   process.stdout.write(
-    `${results.filter((entry) => entry.state === "captured" || entry.state === "resolved").length} scene(s) ${checkOnly ? "resolved" : "captured"}, ${uncaptured.length} uncaptured. Log: ${output}\n`,
+    `Help scenes: ${results.length}, ${uncaptured.length} uncaptured, ${drift.length} materially changed. Log: ${output}\n`,
   );
-  return uncaptured.length ? 1 : 0;
+  return uncaptured.length || drift.length ? 1 : 0;
 }
 
 async function captureScene(scene) {
@@ -277,6 +349,7 @@ async function captureScene(scene) {
     locale: "en-US",
     colorScheme: "light",
     reducedMotion: "reduce",
+    serviceWorkers: "block",
   });
   await context.route("**/*", (route) =>
     new URL(route.request().url()).origin === origin
@@ -287,6 +360,7 @@ async function captureScene(scene) {
   page.setDefaultTimeout(ROUTE_BUDGET_MS);
   page.setDefaultNavigationTimeout(ROUTE_BUDGET_MS);
   try {
+    if (fixedFixture) await page.clock.setFixedTime(new Date(HELP_FIXTURE_INSTANT));
     await signIn(page, scene.role);
     await page.goto(`${origin}${await resolveRoute(page, scene.route)}`, {
       waitUntil: "domcontentloaded",
@@ -339,6 +413,7 @@ async function controls(file) {
   const context = await browser.newContext({
     viewport: { width: 1360, height: 1000 },
     timezoneId: "America/Chicago",
+    serviceWorkers: "block",
   });
   await context.route("**/*", (route) =>
     new URL(route.request().url()).origin === origin
@@ -368,6 +443,15 @@ async function controls(file) {
         waitUntil: "domcontentloaded",
       });
       status = response?.status() ?? null;
+      const destination = new URL(page.url());
+      if (
+        !response?.ok() ||
+        destination.origin !== origin ||
+        destination.pathname === "/sign-in"
+      )
+        throw new Error(
+          `Expected the signed-in route for ${role}. HTTP ${status} at ${destination.pathname}.`,
+        );
       // Act only after hydration; a click on a server-rendered button before it is lost.
       await quiet(page);
       for (const action of entries[0].actions ?? []) await perform(page, action);
@@ -614,7 +698,17 @@ function startServer(port) {
         TMPDIR: process.env.TMPDIR ?? "/tmp",
         LANG: "en_US.UTF-8",
         TZ: "America/Chicago",
-        NODE_OPTIONS: `--import ${preload}`,
+        NODE_OPTIONS: [
+          process.env.NODE_OPTIONS,
+          `--import=${preload}`,
+          fixedFixture &&
+            `--import=${join(process.cwd(), "scripts/lib/help-rehearsal-clock.mjs")}`,
+        ]
+          .filter(Boolean)
+          .join(" "),
+        ...(fixedFixture
+          ? { HELP_REHEARSAL_CLOCK_ORIGIN: process.env.HELP_REHEARSAL_CLOCK_ORIGIN }
+          : {}),
         NOVDEC_JOURNEY_NETWORK_LOG: join(output, "network.jsonl"),
         NOVDEC_JOURNEY_OUTAGE_FLAG: join(output, "synthetic-rentvine-outage"),
         HELP_REHEARSAL_SHEET_FIXTURE: join(

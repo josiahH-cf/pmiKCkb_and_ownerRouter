@@ -67,7 +67,7 @@
       "frame": "viewport",
       "actions": ["click-button:Operations"],
       "source": "rehearsal",
-      "alt": "The Operations menu open in the top bar, listing Lease Renewal and Internal Processes with their descriptions.",
+      "alt": "The Operations menu open in the top bar, listing Lease Renewal, Communications and Internal Processes with their descriptions.",
       "caption": "Each top bar menu lists its destinations with a short description."
     },
     {
@@ -366,6 +366,7 @@
       },
       "region": "region:Renewal resource links",
       "frame": "viewport",
+      "actions": ["open-summary:Renewal resource links"],
       "source": "rehearsal",
       "alt": "The Renewal resource links section in Connections with the labeled link boxes.",
       "caption": "Renewal resource links hold the shared links the renewal documents use."

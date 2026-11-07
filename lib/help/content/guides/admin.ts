@@ -10,7 +10,7 @@ export const ADMIN_GUIDES: readonly HelpGuide[] = [
     audience: "Admin",
     adminOnly: true,
     purpose:
-      "Complete the Admin tasks from one page: people and access, the shared notice timing basis, form family use and the renewal charge policy, operational pages, the re-index handoff, presentation, team work, migration readiness, Gmail settings and Space requests.",
+      "Open the Admin task that matches your work: people and access, the shared notice timing basis, form family use and the renewal charge policy, operational pages, the re-index handoff, presentation, team work, migration readiness, Gmail settings and Space requests.",
     prerequisites: [
       "You are signed in with the Admin role. Every other role opens My access and requests from the Admin item instead of this page.",
       "Find an Admin task, at the top of Admin, groups the links into People and access, Operational safety, Renewal policy, Connected services and migration, and Content and publishing. The links only open pages; they change no role, connection or action authority.",
@@ -62,8 +62,8 @@ export const ADMIN_GUIDES: readonly HelpGuide[] = [
           availability: "required",
           source: ["components/lease-renewal/NoticeTimingBasisSelection.tsx"],
         },
-        route: "/admin",
-        where: "Admin, App Info and Readiness, Notice Timing Basis",
+        route: "/admin?task=renewal",
+        where: "Admin, Renewal policy, Notice Timing Basis",
         result:
           "The choice saves at once as the shared basis for every renewal notice comparison, and the panel shows the saved version, who recorded it and when. A lease with missing or stale dates can still read Cannot determine.",
         effect: "saves-in-app",
@@ -80,7 +80,7 @@ export const ADMIN_GUIDES: readonly HelpGuide[] = [
           availability: "required",
           source: ["lib/lease-documents/artifact-catalog.ts"],
         },
-        route: "/admin",
+        route: "/admin?task=renewal",
         where: "Admin, Renewal packet configuration, Form families",
         result:
           "Each change saves at once as a new configuration version, and a status line names the family and its new use. Renewal packets read the family use when staff prepare documents.",
@@ -98,7 +98,7 @@ export const ADMIN_GUIDES: readonly HelpGuide[] = [
           availability: "required",
           source: ["components/admin/RenewalPacketPolicyAdminPanel.tsx"],
         },
-        route: "/admin",
+        route: "/admin?task=renewal",
         where: "Admin, Renewal packet configuration, Renewal charge policy",
         result:
           "The status line reads Published charge policy version with its number, and renewal packets calculate their charges from that version. Earlier versions stay as they were.",
@@ -116,7 +116,7 @@ export const ADMIN_GUIDES: readonly HelpGuide[] = [
           availability: "required",
           source: ["components/admin/OperationalPageBuilderPanel.tsx"],
         },
-        route: "/admin",
+        route: "/admin?task=content",
         where: "Admin, Read-only Operational Page Builder",
         result:
           "The draft is saved as an unchangeable version and its exact preview appears, with Approve exact version below it.",
@@ -134,7 +134,7 @@ export const ADMIN_GUIDES: readonly HelpGuide[] = [
           availability: "conditional",
           source: ["components/admin/OperationalPageBuilderPanel.tsx"],
         },
-        route: "/admin",
+        route: "/admin?task=content",
         where: "Read-only Operational Page Builder, below the exact preview",
         result:
           "Open published page appears with the publication receipt, and the page reads in its Space for every staff member.",
@@ -151,8 +151,8 @@ export const ADMIN_GUIDES: readonly HelpGuide[] = [
           availability: "required",
           source: ["components/admin/ReindexPanel.tsx"],
         },
-        route: "/admin",
-        where: "Admin, App Info and Readiness, Re-index Sources",
+        route: "/admin?task=readiness",
+        where: "Admin, Application readiness, Re-index Sources",
         result:
           "The request is saved and no import runs. For an existing Space the plan reads Re-index not ready and shows no command, because the app cannot list that Space's source bucket; its notes say what is missing and that you run the re-index yourself.",
         effect: "saves-in-app",

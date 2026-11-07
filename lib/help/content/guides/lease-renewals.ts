@@ -459,13 +459,13 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         id: "all-leases-and-filters",
         scene: "renewal-desk",
         action:
-          "To work from the full lease table with its views, filters and sorting, choose All leases and filters under the batch.",
+          "To work from the full lease table with its views, filters and sorting, choose All leases and filters above the batch.",
         control: {
           label: "All leases and filters",
           role: "link",
-          region: "navigation:Other views of these leases",
+          region: "navigation:Renewal desk view",
           availability: "required",
-          source: BATCH,
+          source: ["components/lease-renewal/RenewalDeskSurfaceSwitch.tsx"],
         },
         route: DESK,
         where: "Renewals desk, under Everything else",
