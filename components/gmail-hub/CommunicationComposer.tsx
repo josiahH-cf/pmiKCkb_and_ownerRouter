@@ -13,7 +13,7 @@ import {
 } from "@/lib/gmail-hub/communication-evidence";
 import { classifyIncomingMessage } from "@/lib/gmail-hub/inbound-classification";
 import type { GmailThreadView } from "@/lib/gmail-runtime/types";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import { RichMessageEditor } from "./RichMessageEditor";
 import { RefineWithAi } from "@/components/email/RefineWithAi";
@@ -352,7 +352,7 @@ export function CommunicationComposer({
     // The entry is stable for this mounted editor; parent keys it by the route.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entryKey, accept, readComposition, loadAttempt]);
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!draft || !returnToComposer.current) return;
     returnToComposer.current = false;
     headingRef.current?.focus();

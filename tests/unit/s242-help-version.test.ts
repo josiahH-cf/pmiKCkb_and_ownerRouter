@@ -1,14 +1,26 @@
 import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, describe, expect, it } from "vitest";
-import { getPathMatch } from "next/dist/shared/lib/router/utils/path-match";
-import nextConfig from "../../next.config";
+import { afterAll, describe, expect, it, vi } from "vitest";
+import { NextRequest } from "next/server";
+import { proxy } from "../../proxy";
 
 import { helpContentDigest, helpContentFiles } from "@/lib/help/content-digest.mjs";
 import { HELP_CHANGELOG } from "@/lib/help/content/changelog";
 import { HELP_VERSION, HELP_VERSION_PATTERN } from "@/lib/help/version";
 import { HELP_SCENE_MANIFEST } from "@/lib/help/scenes";
+
+vi.mock("@/lib/environment/descriptor", () => ({
+  resolveEnvironmentDescriptor: () => ({
+    ok: true,
+    descriptor: { environmentKind: "production", dataContext: "live" },
+  }),
+}));
+vi.mock("@/lib/auth/session", () => ({
+  authenticateSessionCookie: vi.fn(),
+  getSessionCookieName: () => "pmi-session",
+  readLocalDemoSessionRole: () => null,
+}));
 
 // S242 R-S242-4 / ARCH-S242-6 / AC-S242-5: help content cannot change without a new help version and
 // a changelog entry. The newest entry records the digest of the content it describes; editing any
@@ -39,22 +51,36 @@ function versionProblems(
 
 describe("S242 help version and changelog", () => {
   it("keeps every previous V2.0 picture link on its current same-named picture", async () => {
-    const rules = await nextConfig.redirects!();
     for (const scene of HELP_SCENE_MANIFEST.scenes) {
       const oldPath = `/help/V2.0/${scene.id}.png`;
-      const matches = rules.flatMap((rule) => {
-        const params = getPathMatch(rule.source)(oldPath);
-        return params ? [{ rule, params }] : [];
-      });
-      expect(matches, oldPath).toHaveLength(1);
-      const { rule, params } = matches[0];
-      expect(rule.destination.replace(":image", String(params.image))).toBe(
-        `/help/${HELP_VERSION}/${scene.id}.png`,
+      const response = await proxy(new NextRequest(`https://app.invalid${oldPath}`));
+      expect(response.status, oldPath).toBe(307);
+      expect(response.headers.get("location")).toBe(
+        `https://app.invalid/help/${HELP_VERSION}/${scene.id}.png`,
       );
-      expect(rule.permanent).toBe(false);
     }
-    for (const path of ["/help/renewals/work-a-renewal", "/__/auth/handler"])
-      expect(rules.some((rule) => getPathMatch(rule.source)(path))).toBe(false);
+    for (const [path, method] of [
+      ["/help/renewals/work-a-renewal", "GET"],
+      ["/__/auth/handler", "GET"],
+      [`/help/${HELP_VERSION}/renewal-desk.png`, "GET"],
+      ["/help/V99.0/renewal-desk.png", "GET"],
+      ["/help/V2.0/unknown.png", "GET"],
+      ["/help/V2.0/renewal-desk.png", "POST"],
+    ]) {
+      const response = await proxy(
+        new NextRequest(`https://app.invalid${path}`, { method }),
+      );
+      expect(response.headers.get("location"), `${method} ${path}`).toBeNull();
+    }
+    const head = await proxy(
+      new NextRequest("https://app.invalid/help/V2.0/renewal-desk.png?rev=2", {
+        method: "HEAD",
+      }),
+    );
+    expect(head.status).toBe(307);
+    expect(head.headers.get("location")).toBe(
+      `https://app.invalid/help/${HELP_VERSION}/renewal-desk.png?rev=2`,
+    );
   });
 
   it("HELP_VERSION is V<major>.<minor> and matches the newest What changed entry", () => {

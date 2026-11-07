@@ -401,10 +401,13 @@ it("recovers a new composer from an unreadable response by keyboard, with one dr
   expect(retry).toHaveFocus();
   expect(retry).toHaveAttribute("aria-disabled", "true");
   await user.keyboard("{Enter}");
+  expect(retry).toHaveFocus();
   expect(loads).toBe(2);
   expect(actions).toEqual([]);
   act(() => finish(reply(composition)));
-  expect(await screen.findByRole("heading", { name: "Synthetic lease" })).toHaveFocus();
+  await waitFor(() =>
+    expect(screen.getByRole("heading", { name: "Synthetic lease" })).toHaveFocus(),
+  );
   await waitFor(() => expect(actions).toEqual(["save"]));
 });
 

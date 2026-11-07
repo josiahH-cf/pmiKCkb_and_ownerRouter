@@ -7,6 +7,9 @@ import {
   PendingRequestDrainError,
 } from "../helpers/pending-requests";
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: vi.fn() }),
+}));
 vi.mock("@/components/lease-renewal/RenewalManualWorkspace", () => ({
   useRenewalManualWorkspace: () => ({
     leaseId: "701",

@@ -1888,11 +1888,16 @@ try {
   await restartServer("notice-resolver");
 
   // S232 R-S232-5: each issue names what it needs and who resolves it, and its link reaches what
-  // resolves it. An Admin in a second browser follows the move-out lease's issues in turn.
+  // resolves it. An Editor in a second browser follows the move-out lease's issues in turn.
   const office = await browser.newContext({
     viewport: { width: 1360, height: 900 },
     timezoneId: "America/Chicago",
   });
+  await office.route("**/*", (route) =>
+    new URL(route.request().url()).origin === origin
+      ? route.continue()
+      : route.abort("blockedbyclient"),
+  );
   const admin = await office.newPage();
   const NOTICE_LEASE = "6001";
   const leaseView = (target, name) =>
@@ -2159,10 +2164,13 @@ try {
           );
       const issue = () =>
         admin.locator(`${ISSUE_LISTS.full} [data-renewal-issue-id="${ISSUE}"]`).first();
+      const desk = await office.newPage();
+      desk.setDefaultTimeout(60_000);
+      desk.setDefaultNavigationTimeout(180_000);
       const decemberTarget = () =>
-        page.locator('[data-batch-list="this_batch"] li[data-batch-lease="5001"]');
+        desk.locator('[data-batch-list="this_batch"] li[data-batch-lease="5001"]');
       const openDecember = () =>
-        page.goto(`${origin}/lease-renewal/live/desk?batch=2026-12`, {
+        desk.goto(`${origin}/lease-renewal/live/desk?batch=2026-12`, {
           waitUntil: "domcontentloaded",
         });
       await openLease(admin, NOTICE_LEASE);
@@ -2174,11 +2182,16 @@ try {
         await issue().waitFor({ state: "attached", timeout: 90_000 });
         await expandIssues(admin);
         row = (await issue().innerText()).replace(/\s+/g, " ");
-        activePage = page;
+        activePage = desk;
         await openDecember();
         deskDuringOutage = (await decemberTarget().innerText()).replace(/\s+/g, " ");
         assert.match(deskDuringOutage, /RentVine status unavailable/);
-        assert.equal(await batchMonth("2026-12").getAttribute("data-batch-total"), "3");
+        assert.equal(
+          await desk
+            .locator('section[aria-label="Working batch"][data-batch-month="2026-12"]')
+            .getAttribute("data-batch-total"),
+          "3",
+        );
       } finally {
         rmSync(outageFlag, { force: true });
       }
@@ -2219,13 +2232,14 @@ try {
         .waitFor();
       const after = statusReads().filter((entry) => !entry.outage).length;
       assert.ok(after > answered, "the refresh read nothing");
-      activePage = page;
+      activePage = desk;
       await openDecember();
       assert.doesNotMatch(
         await decemberTarget().innerText(),
         /RentVine status unavailable/,
       );
       activePage = admin;
+      await desk.close();
       return {
         row,
         deskDuringOutage,
