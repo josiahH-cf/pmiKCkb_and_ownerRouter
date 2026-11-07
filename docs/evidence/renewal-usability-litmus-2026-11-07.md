@@ -102,6 +102,11 @@ Staff session: none
   Only the visually reviewed Tenant offer picture was adopted, with SHA-256
   `62de3125ae6530aeab4cf90253dbf500e58cf8186a6e554237fc7ee39532b00b`.
 
+- L13 and L14 on `347bf8e5` in `canonical-347bf8e5-20261107T185054Z`.
+  All 27 scenes matched, including the stabilized Tenant offer. The fresh control server
+  served sign-in and the version route, then the verifier called the Fetch response's
+  boolean status property as a function. No control inventory result was issued.
+
 ## Repairs
 
 - L03 now waits for the initial collection list before enabling New collection. The focused

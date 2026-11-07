@@ -272,7 +272,7 @@ try {
     server = startServer(new URL(origin).port, "server-controls.log");
     await waitForServer(origin);
     const version = await fetch(origin + "/api/version");
-    assert.ok(version.ok());
+    assert.ok(version.ok, "The fresh control server version read must succeed.");
     const controlSource = (await version.json()).commit;
     assert.equal(controlSource, sourceSha);
     record({ event: "control-server-ready", servedCommit: controlSource });
