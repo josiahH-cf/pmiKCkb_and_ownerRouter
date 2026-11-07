@@ -4,15 +4,15 @@ Updated: 2026-11-07 (UTC), one-path production delivery.
 
 ## Active November 7 follow-up
 
-The owner launched intakes 121–129 for unattended execution on November 7. The published specification is `4caad68df6885d3eed4cb2b3fff7c70e5c96ae15`. Remote main at start was `bf9753d6af9c7cb90c7a17d3dee0965ae9656095`. The isolated WSL branch is `codex/renewal-usability-20261107`. The comparison baseline is the earlier deployed `ef81b891`.
+Published specification `4caad68df6885d3eed4cb2b3fff7c70e5c96ae15`. Remote main at the start was `bf9753d6af9c7cb90c7a17d3dee0965ae9656095`. The deployed comparison baseline is `ef81b8917209f4eec3f22097142b559f3cce875b`.
 
-Complete the guarded same-candidate S252 and S259 matrix after the linked-reply
-verifier correction. Preserve the earlier exact 17-case and 106-check results on their
-own source. Run canonical verification, separate core E2E and deliberate rendered Help
-drift. Qualify the PR head on the current base, merge after green CI and verify push CI
-on the resulting exact main source.
+The implementation is on `codex/renewal-usability-20261107` in `/home/josiah/pmi-kc-work/renewal-usability-20261107`. The exact locally qualified candidate is `202ad55bc3e45e47c75141b77c8b4dd9bdf390d2`.
 
-The release runbook requires a guarded Communications browser check that reads the real managed Gmail profile through `/api/gmail-hub/connection`. The November 7 execution instruction excludes mailbox access as verification. This holds release assurance and any release admission that depends on it. Engineering qualification uses only synthetic and loopback evidence. The release queue remains empty during engineering qualification.
+Qualify the pull request on its exact head and current base. After verified merge, record green push CI on the exact main commit. Leave the eight application intakes queued for one release while the recorded prerequisites are held.
+
+Once the holds are resolved, qualify the registered checkout pair, exact queue and release prerequisites under the existing runbook. Prepare one fresh exact-SHA permit and require locked GO before starting one watcher. Verify the captured predecessor, zero-traffic candidate, receipt-bound promotion, observation and independent readbacks.
+
+Release admission is held by the required managed Gmail profile read and the separate Google CLI/ADC reauthentication challenge. See the [release holds](open-blockers.md#november-7-release-assurance). Staff verdict NOT RUN.
 
 ## Authorized outcome
 
