@@ -26,6 +26,7 @@ import { requireLoopbackRehearsalOrigin } from "../../scripts/lib/help-rehearsal
 import {
   readRehearsal,
   setNextSend,
+  standInState,
 } from "../../scripts/lib/one-path-rehearsal/control.mjs";
 import {
   routeFromPage,
@@ -129,6 +130,75 @@ export async function runGuidedPath() {
     const stageLine = async () =>
       (await page.locator('[data-renewal-field="stage-line"]').textContent())?.trim() ??
       "";
+
+    async function refusedRetirement(sequenceId, expected) {
+      process.stdout.write(
+        `expect L09: retirement refuses ${expected} and links the exact communication.\n`,
+      );
+      const stage = page.getByRole("region", {
+        name: "Current renewal stage",
+        exact: true,
+      });
+      const countMail = async () =>
+        (await standInState(rehearsal)).mail.mailboxes.reduce(
+          (count, box) => count + (box.messages ?? []).length + (box.drafts ?? []).length,
+          0,
+        );
+      const before = await countMail();
+      try {
+        await stage.getByRole("button", { name: "Record work", exact: true }).click();
+        await stage
+          .getByRole("button", { name: "Retire from renewals", exact: true })
+          .click();
+        const dialog = page.getByRole("dialog", {
+          name: "Retire from renewals",
+          exact: true,
+        });
+        const reason = "Synthetic retirement held for pending outreach";
+        await dialog.getByLabel("Reason", { exact: true }).fill(reason);
+        const [response] = await Promise.all([
+          page.waitForResponse(
+            (result) =>
+              new URL(result.url()).pathname === "/api/lease-renewal/cycle-disposition" &&
+              result.request().method() === "POST",
+            { timeout: 30_000 },
+          ),
+          dialog
+            .getByRole("button", { name: "Retire from renewals", exact: true })
+            .click(),
+        ]);
+        const recovery = dialog.getByRole("link", {
+          name: "Open the pending communication",
+          exact: true,
+        });
+        const href = await recovery.getAttribute("href", { timeout: 15_000 });
+        const displayed = (await dialog.innerText()).includes(expected);
+        const reasonKept =
+          (await dialog.getByLabel("Reason", { exact: true }).inputValue()) === reason;
+        const active = !/Retired from renewals/.test(await stageLine());
+        const effectsKept = (await countMail()) === before;
+        await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+        check(
+          `L09 retirement refusal: ${expected}`,
+          response.status() === 409 &&
+            href === `/gmail-hub?communication=${encodeURIComponent(sequenceId)}` &&
+            displayed &&
+            reasonKept &&
+            active &&
+            effectsKept,
+          {
+            status: response.status(),
+            exactRecovery: href?.includes(sequenceId),
+            displayed,
+            reasonKept,
+            active,
+            effectsKept,
+          },
+        );
+      } catch (error) {
+        check(`L09 retirement refusal: ${expected}`, false, String(error).slice(0, 800));
+      }
+    }
 
     // 1. Guided view is the default on each working-month lease (BEH-S247-1, L12 to L14).
     for (const leaseId of WORKING) {
@@ -489,6 +559,11 @@ export async function runGuidedPath() {
       },
     );
 
+    await refusedRetirement(
+      unconfirmed.sequenceId,
+      "Reconcile the exact pending send in Communications before retiring this cycle.",
+    );
+
     // 9. A failed delivery (L38).
     await setNextSend(rehearsal, "bounce");
     const bounced = await sendOwnerMessage(page, assisted);
@@ -545,6 +620,10 @@ export async function runGuidedPath() {
       });
       await open(prepared, "?step=ask-owner");
       scheduledLine = ((await now().textContent()) ?? "").replace(/\s+/g, " ");
+      await refusedRetirement(
+        scheduled.body?.sequence?.id,
+        "Pause or cancel the scheduled communication before retiring this cycle.",
+      );
       // The server's own reading of the same source just before the tick (a read), so a held send
       // shows whether the source moved or the tick read it differently.
       const recomposed = await route(

@@ -224,7 +224,7 @@ try {
     async (page) => {
       await open(page, desk);
       const row = page.locator(`tr[data-batch-lease="${prepared}"]`);
-      const link = row.getByRole("link", { name: "Open the lease", exact: true });
+      const link = row.getByRole("rowheader").getByRole("link");
       await link.focus();
       await page.keyboard.press("Enter");
       await page.waitForURL((url) => url.pathname === path(prepared));
@@ -385,8 +385,13 @@ try {
       await detail
         .getByRole("link", { name: "Open this collection on the Renewals desk" })
         .click();
-      const members = await page
-        .locator("table.renewal-table tr[data-lease-id]")
+      await page.waitForURL(
+        (url) => url.pathname === desk && url.searchParams.has("collection"),
+      );
+      const table = page.locator("table.renewal-table");
+      await table.waitFor();
+      const members = await table
+        .locator("tr[data-lease-id]")
         .evaluateAll((rows) =>
           rows.map((row) => Number(row.getAttribute("data-lease-id"))),
         );
@@ -482,7 +487,11 @@ try {
       await page.route(notesRoute, refuse);
       await note.focus();
       await note.fill(noteText);
-      await page.getByText("Synthetic note save unavailable.", { exact: true }).waitFor();
+      await page
+        .getByTestId("renewal-status-note-autosave")
+        .getByRole("status")
+        .filter({ hasText: /Synthetic note save unavailable.*Your entry is kept/ })
+        .waitFor();
       assert.equal(await note.inputValue(), noteText);
       await page.reload({ waitUntil: "domcontentloaded" });
       await page.waitForFunction(
