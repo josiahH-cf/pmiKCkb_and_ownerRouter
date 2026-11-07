@@ -6,11 +6,11 @@ Updated: 2026-11-07 (UTC), one-path production delivery.
 
 The owner launched intakes 121–129 for unattended execution on November 7. The published specification is `4caad68df6885d3eed4cb2b3fff7c70e5c96ae15`. Remote main at start was `bf9753d6af9c7cb90c7a17d3dee0965ae9656095`. The isolated WSL branch is `codex/renewal-usability-20261107`. The comparison baseline is the earlier deployed `ef81b891`.
 
-Finish the guarded same-candidate S252 and S259 matrix, including legacy fragment navigation,
-the full packet readback, current-cycle and collection scope, and the linked synthetic reply.
-Retain the serial baseline comparisons. Run canonical verification, the separate core E2E gate
-and the deliberate rendered Help drift check. Then qualify the exact-head PR and push CI under
-the existing release procedure.
+Complete the guarded same-candidate S252 and S259 matrix after the linked-reply
+verifier correction. Preserve the earlier exact 17-case and 106-check results on their
+own source. Run canonical verification, separate core E2E and deliberate rendered Help
+drift. Qualify the PR head on the current base, merge after green CI and verify push CI
+on the resulting exact main source.
 
 The release runbook requires a guarded Communications browser check that reads the real managed Gmail profile through `/api/gmail-hub/connection`. The November 7 execution instruction excludes mailbox access as verification. This holds release assurance and any release admission that depends on it. Engineering qualification uses only synthetic and loopback evidence. The release queue remains empty during engineering qualification.
 

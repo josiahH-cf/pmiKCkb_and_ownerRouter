@@ -87,6 +87,12 @@ Staff session: none
   document. The retirement and restoration passed across lease, desk, Dashboard and
   saved collection, with both history events and the later source cycle verified.
 
+- L07 on `fb203f52` in `20261107T182159Z-fb203f52`. The Editor opened the exact
+  synthetic reply, confirmed the original subject and scope, and typed the intended body.
+  The verifier attempted inputValue on a rich-text editing surface and stopped before
+  Send. Run 5 has the earlier completed exact outgoing reply. The current conflict and
+  correction separately agreed on stage and next action across lease, desk and Dashboard.
+
 ## Repairs
 
 - L03 now waits for the initial collection list before enabling New collection. The focused
@@ -203,6 +209,15 @@ registered pair was clean at the serving source and the prior checkpoint was com
 its permit consumed. A separate open found the release lock free at 16:26 UTC. Print-only
 preflight was NOT READY with zero queued items. Fresh guarded admission is held by the
 required real Gmail profile read. No production application route supplied this evidence.
+
+The complete mailbox-disabled rehearsal on `fb203f525f09422f7451da328ee34e8f93fe521d`
+passed all 17 cases in `20261107T181636Z-fb203f52`. It observed the exact desk group scroll
+and focus return, the Dashboard task link and private or missing entries, the independent
+later document record, all ten current and legacy Full detail destinations, and newer
+working text winning delayed readback. It worked retirement through lease, desk, Dashboard
+and the preserved collection. The actual downloaded synthetic documents showed the fee,
+kept the owner execution-date area blank and kept the approved brochure bytes. The
+oversized owner explanation was refused and the assistance-animal amounts stayed absent.
 
 ## Remaining blockers
 

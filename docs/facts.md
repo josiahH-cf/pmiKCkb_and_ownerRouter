@@ -10,12 +10,16 @@ evidence; an earlier receipt never authorizes a new attempt.
 The owner launched intakes 121–129 for unattended execution on November 7. The published specification is `4caad68df6885d3eed4cb2b3fff7c70e5c96ae15`. Remote main at start was `bf9753d6af9c7cb90c7a17d3dee0965ae9656095`. The isolated WSL branch is `codex/renewal-usability-20261107`. The comparison baseline is the earlier deployed `ef81b891`.
 
 The working-batch table and shared lease stage, reviewed collections, scoped cycle retirement,
-action-specific message readiness, named staff destinations, and Help V2.2 are implemented on
-the isolated branch. S259 acceptance remains open. The `cec7c4f0` core gate passed 46 cases with
-23 skips. Its S252 run passed 103 checks and all five numerical budgets. Its one failure reread
-working fields before their successful saves completed. The required rendered Help run on
-`8c216ee6` matched all 27 scenes and recorded 630 visible controls and 208 conditional cases,
-with zero missing. Its later lint failure led to the attachment readiness repair.
+action-specific message readiness, named staff destinations and Help V2.2 are implemented on
+the isolated branch. S259 qualification remains open. All 17 mailbox-disabled cases passed on
+`fb203f52`, including exact detail focus and the protected synthetic document fields. Its
+effect walk passed 106 checks and all five numerical budgets. One verifier error stopped the
+linked reply before Send. The same commit's staff-evidence conflict and correction agreed across
+lease, desk and Dashboard. The earlier `ccb8fae8` effect run passed all 106 checks and five
+numerical budgets, including one exact linked synthetic reply. The separate core gate passed 46
+cases with 23 explicit skips on `cec7c4f0`. Required Help matched all 27 scenes and reported 838
+controls on `8c216ee6` before a later lint stop. Final canonical, core, drift and CI results
+are pending.
 
 The serial comparison opened nine rows on both `ef81b891` and `e1cf8905`. The old default was
 a list with three lease views. The candidate has a table, Guided and Full, and a shared stage.

@@ -922,7 +922,7 @@ export async function runGuidedPath() {
       assert.ok(thread);
       const wording = "Thank you for reviewing the synthetic renewal example.";
       await replyBody.fill(wording);
-      assert.equal(await replyBody.inputValue(), wording);
+      assert.equal(await replyBody.innerText(), wording);
       await replyComposer
         .getByRole("note")
         .filter({ hasText: /Review the recipients/ })

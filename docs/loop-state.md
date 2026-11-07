@@ -25,13 +25,15 @@ their own evidence. The current release changes no workflow authority or held cl
 
 The owner launched intakes 121–129 for unattended execution on November 7. The published specification is `4caad68df6885d3eed4cb2b3fff7c70e5c96ae15`. Remote main at start was `bf9753d6af9c7cb90c7a17d3dee0965ae9656095`. The isolated WSL branch is `codex/renewal-usability-20261107`. The comparison baseline is the earlier deployed `ef81b891`.
 
-The isolated WSL worktree is `/home/josiah/pmi-kc-work/renewal-usability-20261107`. The
-[litmus report](evidence/renewal-usability-litmus-2026-11-07.md) carries the failed and partial
-runs. The clean `e1cf8905` rehearsal passed the desk, Dashboard and My Work link parity, shared
-collection recovery, annual and move-out records, cycle restoration, named Admin and Connections
-checks, and print return. Complete the fragment and packet readbacks and rerun on one candidate
-with the [versioned S254 profile](renewal-usability-litmus-profile-2026-11-07.md) and S252 budgets.
-Staff verdict NOT RUN. Keep one guarded rehearsal or full gate running at a time.
+The isolated WSL worktree is `/home/josiah/pmi-kc-work/renewal-usability-20261107`. All
+17 mailbox-disabled cases passed on `fb203f52`. Its effect walk passed 106 checks and all
+five numerical budgets, including staff-evidence conflict and correction across lease, desk and
+Dashboard. The linked-reply verifier stopped before Send. The earlier `ccb8fae8` effect run
+passed all 106 checks and all five numerical budgets, including the exact linked reply. The
+[litmus report](evidence/renewal-usability-litmus-2026-11-07.md) preserves both attempts. Repeat
+the exact-candidate matrix with the [versioned S254 profile](renewal-usability-litmus-profile-2026-11-07.md),
+S252 budgets, canonical verification, separate core E2E and deliberate Help drift. Staff verdict
+NOT RUN. Keep one guarded rehearsal or full gate running at a time.
 
 The release runbook requires a guarded Communications browser check that reads the real managed Gmail profile through `/api/gmail-hub/connection`. The November 7 execution instruction excludes mailbox access as verification. This holds release assurance and any release admission that depends on it. Engineering qualification uses only synthetic and loopback evidence. The release queue remains empty during engineering qualification.
 
@@ -58,7 +60,7 @@ The release runbook requires a guarded Communications browser check that reads t
 
 The queue is empty. Run `72c6456a` delivered S246–S254 in one candidate.
 Documentation closure does not require an application revision. The [November 7 follow-up](feature-suites/README.md#november-7-renewal-usability--finalized-specifications)
-is authoring ready, with [S259](feature-suites/renewal-usability-final-journey-litmus.md) last.
+is in engineering qualification, with [S259](feature-suites/renewal-usability-final-journey-litmus.md) last.
 Its [execution handoff](renewal-ux-followup-handoff.md) is active under the November 7 launch.
 
 ## Continuation contract
