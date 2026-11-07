@@ -143,6 +143,13 @@ Staff session: none
   index. The repairs check the current accessible names and exact hrefs and exercise the
   legacy migration link on its focused page. The core gate requires a fresh pass.
 
+The 19 affected unit files reran with 197 passed. The route inventory covers the
+cycle disposition and sender signature through their existing read and Editor authority.
+The lease target no longer emits a separator without a following reason. The exact
+`6c7bc686` capture review `20261107T191941Z-6c7bc686` generated all 27 scenes.
+Nine visually reviewed images show the corrected target line. Five exceeded the
+material tile threshold and four differed only at the separator glyph.
+
 ## Final observations
 
 The mailbox-disabled checkpoints on `c7ed2b3d` verified every lease ID and count in the November 5
