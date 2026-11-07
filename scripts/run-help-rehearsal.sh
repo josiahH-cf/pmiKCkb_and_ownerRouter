@@ -44,7 +44,7 @@ if [[ "$repo" != /app && ( "${1:-}" == --verify || "${1:-}" == --review-captures
   [[ "$1" != --review-captures ]] || task=help-captures
   java_root=$(java -XshowSettings:properties -version 2>&1 | sed -n 's/^ *java\.home = //p')
   if [[ "$java_root" != /* || "$java_root" == / || ! -r "$java_root/release" || ! -x "$java_root/bin/java" ]] ||
-    find "$java_root" -type l -xtype d -print -quit | rg -q .; then
+    find "$java_root" -path "$java_root/docs" -prune -o -type l -xtype d -print -quit | rg -q .; then
     echo "A native Java21 installation with a verified Java home is required." >&2
     exit 2
   fi
