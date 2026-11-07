@@ -641,6 +641,13 @@ function MessagePreparationEditor({
       if (!touchedRef.current) adopt(result);
     });
   }, [adopt, channel, leaseId]);
+  useEffect(() => {
+    const attempt = current?.draftAttempt?.executionId;
+    if (!attempt || window.location.hash !== `#renewal-draft-attempt-${attempt}`) return;
+    focusRenewalDashboardControl(`renewal-draft-attempt-${attempt}`, {
+      focusContainer: true,
+    });
+  }, [current?.draftAttempt?.executionId]);
   async function signatureSetupSaved(choice: SenderSignatureChoice) {
     setInputs((currentInputs) => ({ ...currentInputs, signature: choice.signature }));
     await load();
@@ -1682,6 +1689,12 @@ function MessagePreparationEditor({
           <section
             aria-label="Unsent Gmail draft"
             className="ui-stack-tight renewal-message-group"
+            id={
+              current.draftAttempt
+                ? `renewal-draft-attempt-${current.draftAttempt.executionId}`
+                : undefined
+            }
+            tabIndex={-1}
           >
             <h3 className="renewal-message-group-title">Unsent Gmail draft</h3>
             {current.publication.status !== "approved" ? (

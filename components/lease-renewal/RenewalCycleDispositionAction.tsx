@@ -25,6 +25,7 @@ export function RenewalCycleDispositionAction({
   const [reason, setReason] = useState("");
   const [message, setMessage] = useState("");
   const [sequenceId, setSequenceId] = useState<string | null>(null);
+  const [draftAttemptId, setDraftAttemptId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [unconfirmed, setUnconfirmed] = useState<ChangeRenewalCycleDisposition | null>(
     null,
@@ -77,6 +78,7 @@ export function RenewalCycleDispositionAction({
     setBusy(true);
     setMessage("");
     setSequenceId(null);
+    setDraftAttemptId(null);
     const input = unconfirmed ?? {
       ...review,
       reason,
@@ -96,6 +98,7 @@ export function RenewalCycleDispositionAction({
       const result = (await response.json()) as {
         error?: string;
         sequenceId?: string;
+        executionId?: string;
         event?: CycleDispositionRecord;
       };
       if (
@@ -109,6 +112,7 @@ export function RenewalCycleDispositionAction({
       } else {
         setMessage(result.error ?? "The decision was refused. Your reason is kept.");
         setSequenceId(result.sequenceId ?? null);
+        setDraftAttemptId(result.executionId ?? null);
         setUnconfirmed(null);
         setRetrySame(false);
         router.refresh();
@@ -135,6 +139,7 @@ export function RenewalCycleDispositionAction({
           if (!unconfirmed) {
             setMessage("");
             setSequenceId(null);
+            setDraftAttemptId(null);
           }
           setReview(
             unconfirmed ?? {
@@ -197,6 +202,13 @@ export function RenewalCycleDispositionAction({
         {sequenceId ? (
           <a href={`/gmail-hub?communication=${encodeURIComponent(sequenceId)}`}>
             Open the pending communication
+          </a>
+        ) : null}
+        {draftAttemptId ? (
+          <a
+            href={`?view=full#renewal-draft-attempt-${encodeURIComponent(draftAttemptId)}`}
+          >
+            Open the pending Gmail draft attempt
           </a>
         ) : null}
       </ConfirmationDialog>
