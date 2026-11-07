@@ -862,3 +862,218 @@ goals while retaining their original authority and meaning.
   kept the December target visible and counted at three through two failed status reads;
   one fresh read cleared the unavailable wording. The log shows 281 synthetic RentVine
   reads and the only refused destination was public npm tooling.
+
+## Journey observations and usability recheck
+
+The expectations above were recorded before the observations. PASS means the named outcome was
+observed in the rehearsal. Device, human and provider outcomes keep their named scope limits. The
+[independent litmus](renewal-one-path-litmus-2026-11-06.md) gives the individual L01 through L71
+evidence, including the starting-commit comparison. The
+[walkthrough](renewal-one-path-walkthrough-2026-11-06.md) holds the phase and budget record.
+
+| Journey                               | Result and observed evidence                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| J01 Desk                              | PASS: bare Renewals showed five in This batch, four older carried leases, and separately openable 12 later, ten Closed, three renewed in source, three month-to-month, and one non-renewal. All 38 identities counted once. A source status outage kept the row in place and named the unavailable fact. A renewed-in-source hand record required its own confirmation.                                                                                            |
+| J02 Table, saved and shared views     | PASS for views, columns, filters, sort, date window, old links, saved-view offer and collection navigation; FAIL for the literal L55 per-reason parity. Both full tables have 38 leases. The voucher-only row moved from Program lease to Ready under the settled assistance rule; upcoming changed 37 to 38, Ready 25 to 26, Program 1 to 0. The other compared reasons stayed equal.                                                                             |
+| J03 Assistant                         | PASS: working month and batch matched the visible eligible set and reason counts. Exact numeric and address requests matched the corresponding lease state; an unknown reference gave no invented match.                                                                                                                                                                                                                                                           |
+| J04 Guided, Focus and Full            | PASS for same-tab opening and return, default Guided, one next step, the three view choices and legacy step/section links. Some original conditional provider and source controls could not be reached on this fixture; L54 records their exact gap.                                                                                                                                                                                                               |
+| J05 Variants and order                | PASS: standard and assisted steps could be inspected and worked out of order. The authoritative next step remained visible during inspection; Show current step returned to it. Covered owner review offered the applicable tenant continuation and kept optional message tools.                                                                                                                                                                                   |
+| J06 Reload                            | PASS for observed same-view, same-step, scroll and typed-value recovery. Focused regression tests cover delayed/generated IDs, complete long text, legacy snapshots and newer typing taking precedence.                                                                                                                                                                                                                                                            |
+| J07 Kickoff                           | PASS: the prepared owner route used three deliberate actions in one tab with its exact review and separate confirmation; missing recipient, template, signature or rent showed its own remedy. UNVERIFIED: completion and exact confirmation on the starting commit; its own Demo gate refused the send after nine required actions and one optional action, across three tabs.                                                                                    |
+| J08 Same message in delivery routes   | PASS for the visible draft/revision in synthetic previews, copy and composer; edited wording remained until deliberate reset/Undo; a simulated lost create showed exact recovery without a duplicate. Real mailbox and delivery are UNVERIFIED.                                                                                                                                                                                                                    |
+| J09 Comparison and allowance          | PASS for deliberate local preparation, stored reuse and allowance state with own figures. UNVERIFIED for L33 automatic start and the enable-to-off half of L35; automatic preparation stayed off.                                                                                                                                                                                                                                                                  |
+| J10 Outreach, schedule and correction | PASS in the stand-in for accepted send, scheduled waiting without outreach, unsent Gmail draft, staff-recorded outreach, and reasoned correction. Neither a provider identity nor real mail delivery was established.                                                                                                                                                                                                                                              |
+| J11 Reply and delivery recovery       | PASS for a linked exact reply, an unselected approval decision in three actions, controlled uncertainty, failed delivery and contradictory staff status. The decision was recorded by the actor, never inferred from reading a reply.                                                                                                                                                                                                                              |
+| J12 Later steps and outcome           | PASS: the independent walk moved from saved owner decision to Offer the tenant, from saved form return to Documents, from signed-status records to Finish up, and from the last applicable follow-up to Complete, all in the same lease tab. It read back explicit staff completion, the completed desk row, and the exact source previews. Task and follow-up inventories stayed unchanged. Real verified form URLs, source writes and signatures are UNVERIFIED. |
+| J13 Standing agreement                | PASS for a covered lease, applicable agreement/rule, one Pricing basis chooser, scoped policy and rent override returning to owner review. Blank Admin inputs remained unsaved with specific errors, and the Editor could not use the Admin page.                                                                                                                                                                                                                  |
+| J14 Housing assistance                | PASS for optional fact, program requirement, program then owner decision then explicit rent choice, non-renewal handoff, voucher suggestion without an inferred fact, and the observed per-lease save recovery. The unchanged comparison hold establishes no automatic provider behavior.                                                                                                                                                                          |
+| J15 Help and walkthrough              | PASS for the scoped five-phase synthetic walkthrough and measured action budgets. The final controls/captures and individual guide-to-screen observations are recorded below and in L61. Staff verdict stays NOT RUN.                                                                                                                                                                                                                                              |
+| J16 Fee and deposit                   | PASS in the synthetic PDF and visible fields: fee 50 plus deposit 200 totaled 250, differing printed 150 was refused, and missing deposit, multiple pets and assistance-animal cases produced no unsupported total.                                                                                                                                                                                                                                                |
+| J17 Per-lease forms                   | PASS in the synthetic cases: two paragraphs stayed inside the intended owner box, overflow was refused with the amount over, and execution date, initial boxes and signatures stayed blank. Distinct printed organization text remained intact; another lease received none of the entered values.                                                                                                                                                                 |
+| J18 Real forms and decisions          | UNVERIFIED: exact originals, mappings, legal approvals and the eight remaining client answers are outside the synthetic path. The specs and code keep the separate holds; no client answer was invented.                                                                                                                                                                                                                                                           |
+| J19 Reporting and preservation        | All 71 litmus checks are reported individually. L55's observed discrepancy remains No; the litmus is unaccepted. The verification record distinguishes local executable checks, GitHub CI, and the evidence they do not supply.                                                                                                                                                                                                                                    |
+
+The baseline lenses were applied to each mounted surface. The checks below describe the evidence
+rather than awarding a general usability or accessibility verdict. First-time unaided use
+(SC-01), comprehension on sight (SC-02/03/08), and device or assistive-technology use by a person
+(SC-09) retain their human evidence gaps everywhere. Visible primary-action placement supports
+SC-03 and SC-06 inferences; it does not substitute for a staff walkthrough.
+
+| Surface                                          | Baseline recheck                                                                                                                                                                                                                                                                                |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Desk, table and saved/shared navigation          | P01–P11/P13/P14/P16; PASS on the observed bare target, named counts, empty month and group, table disclosure, same-tab return and measured width (SC-03/04/06/07/09/10). Source-unavailable copy named the missing evidence. The original controls remain; L55's reason counts differ as noted. |
+| Guided path, Focus and Full                      | P01/P02/P04/P06–P11/P13/P14/P17; PASS on first-viewport actions at the unchanged bounds, one visible next step, labels, tab access, no page overflow and view/step return (SC-03/04/06/07/09/10). The exact conditional control inventory remains separately scoped.                            |
+| Kickoff, exact review, drafts, composer and copy | P02–P09/P11–P15/P17; PASS on the observed progress/refusal/retry, required rent/signature, retained entry, containment and exit (SC-04/05/07/09/10). Each effect kept its own confirmation. Real mailbox and provider behavior remain UNVERIFIED.                                               |
+| Waiting, reply, delivery and later evidence      | P02–P05/P08/P09/P11–P14; PASS on named evidence, no preselection, loaded/retry states and correction (SC-04/05/06/09/10). Verified evidence and a staff record remain distinct; outside handoffs stay intentional.                                                                              |
+| Pricing and assistance, including Admin          | P02–P09/P11/P12/P14/P17; PASS on one visible chooser, required inputs, save recovery, scope and role separation (SC-03/04/05/06/07/09). The complete rule and program names remain visible rather than truncated.                                                                               |
+| Forms and documents                              | P02/P04–P09/P11/P12/P14/P17; PASS on the observed fee total, missing values, exact-text overflow and per-lease ownership (SC-04/05/06/07); synthetic PDF inspection does not establish a signed or legally approved form.                                                                       |
+| Help and manual                                  | P03/P04/P06/P09/P10/P13–P16; PASS on the observed route, landmark, keyboard traversal and retained links (SC-07/08/09/10). Guide-to-screen and control coverage are reported by check; no human understanding or acceptance is inferred.                                                        |
+
+## Finding disposition
+
+The numbered findings above retain their original observed and repair scopes. The following
+index states the strongest recheck for each group. An exact provider or human gap stays open
+even when the synthetic outcome is verified.
+
+| Findings                                                                                                               | Disposition and evidence                                                                                                                                                                                                                                                         |
+| ---------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| UX-001, UX-002, UX-004, UX-008, UX-015, UX-024, UX-029                                                                 | Implemented and verified in the measured browser layout, same-tab paths, ordinary and assisted steps, and one stage/next-action observations. Full program wording and the older controls stay visible.                                                                          |
+| UX-003, UX-021, UX-033, UX-034, UX-036, UX-037, UX-039, UX-041, UX-052, UX-061                                         | Implemented and verified in the named working-field races, focused suites, selected browser retries and final long focused reloads. Each exact scenario is scoped to its recorded source; an unsettled field never counts as a confirmed saved value.                            |
+| UX-005, UX-026, UX-030, UX-050, UX-051, UX-053, UX-060                                                                 | Implemented and verified in the corresponding synthetic required-field, role, blocked-input and recovered-review walks. The real missing form, recipient roster and legal approvals remain separate evidence gaps.                                                               |
+| UX-006, UX-017, UX-027, UX-035                                                                                         | Implemented and verified in the actual desk/assistant parity, fresh source recovery, and Central comparison display; the prior incorrect counts and dates remain in the checkpoint record.                                                                                       |
+| UX-007, UX-010, UX-011, UX-012, UX-018, UX-019, UX-023, UX-038, UX-040, UX-047, UX-048, UX-055, UX-057, UX-058, UX-062 | Implemented and verified in the named controlled mail and working-state cases: exact linked reply, loading/refusal, same attempt, stale/replacement, wording Undo, visible exact details and keyboard exit. Provider and mailbox results outside the stand-in remain unverified. |
+| UX-009, UX-016, UX-022, UX-025, UX-032, UX-046                                                                         | Implemented and verified in synthetic form/control evidence, exact name migrations, route boundary checks and curated capture. L54 retains its separately listed conditional controls; the Help comparison's exact frame scope is stated in L61 and its targeted follow-up.      |
+| UX-013, UX-014, UX-042                                                                                                 | Implemented and verified with offline sentinel/focused checks and later guarded run readbacks. Initial audit isolation stays unverified and the forbidden automatic phase stays unrun.                                                                                           |
+| UX-020, UX-031, UX-049, UX-054, UX-056, UX-059                                                                         | Implemented and verified by the browser's console, pricing/rule readback, saved-step progression, main-landmark checks and actual exported tsx canary. The independent oracle and runtime canary are reported separately.                                                        |
+| UX-028                                                                                                                 | Implemented and verified in the focused collection-field tests. The saved/shared view path was rewalked. Exact final browser coverage of its invalid-period refusal is limited to the named checkpoints.                                                                         |
+| UX-043, UX-044, UX-045                                                                                                 | Implemented in the existing journey: actual source outage and recovery, pending linked composition, and Full-view legacy document prerequisite. The final older-journey receipt supplies its exact verdict below.                                                                |
+| L55                                                                                                                    | Preserved the settled voucher classification and the literal litmus. The full table still loads 38, and the original controls remain. The deliberate per-reason count difference leaves the check No and acceptance ungranted.                                                   |
+
+## Final review checkpoints
+
+The complete independent replay at `edba7cbb29dfc7942257e91e91932516a449fbf2` kept its own
+observations, including the failed retained-text case (L18) and the contradictory count case
+(L55). The subsequent code repair was checked on its own commit. A result on one commit is
+not relabeled as a result on another.
+
+- `30fa69ea`: 387 focused tests across 21 files plus lint, types and Help content/control
+  gates passed. This covered the singleton pricing and Gmail recovery choices, keyboard reply
+  retry, Admin requirements, in-place tenant form handoff, housing retry, signature and the
+  one current Now action. The independent browser replay then rechecked these journeys.
+- `30013219` added the main landmarks. In `20261107T055346Z-30013219` the mounted samples
+  had one main and zero document overflow, but exact-review Escape lost its trigger on
+  desktop Light and phone Dark. That failure is UX-057 and was kept.
+- `20261107T060223Z-01fb4905`: 44 sampled rules checks and 14 interactions passed. The four
+  exact-review text groups that axe could not sample while scrolled were checked with computed
+  foreground and background; ratios were 17.93:1 in Light and 16.93:1 in Dark. Empty month,
+  disclosure/return, Editor refusal and Admin required/error states were reached. The 23
+  guarded Node processes recorded two public npm refusals. A long exact review still began
+  at its bottom on that source, recorded separately as UX-058.
+- `20261107T060904Z-3602f69a`: all 12 combinations of Send, Schedule and Gmail preview at
+  both widths and themes showed sender/recipients/subject on open, scrolled by keyboard,
+  contained Tab, and returned focus through Escape or Cancel. All were cancelled. No
+  confirmation request was issued, 15 Node processes reported the guard, and the only two
+  refused requests were public npm. One explicit staff seed prepared the stored comparison.
+- Help capture `20261107T061029Z-3602f69a`: 27 of 27 synthetic scenes, all hashes verified,
+  nine updated images, eighteen byte-identical. Each changed picture and the exact review
+  image were visually inspected. The capture recorded 22 guarded Node processes, two refused
+  public npm requests and zero kickoff requests. Asset commit `edba7cbb`. No subsequent
+  screenshot scene opens the schedule fields that changed after this capture.
+- Independent `20261107T061515Z-edba7cbb`: 263 guarded Node processes and 34 in its separate
+  preflight, only two public npm refusals, one deliberate staff preparation, zero automatic
+  or enable requests, and a final Off readback. The controlled five-lease DOM oracle passed
+  separately from the actual tsx canary failure. The 56 presentation samples across 14
+  surfaces had zero document overflow and no sampled enabled solid-color failure. The driver
+  closed the browser; controller/wrapper exited zero and its PIDs, ports and worktree were gone.
+- Independent Help `20261107T070106Z-edba7cbb`: 15 referenced scenes captured for comparison
+  and exact served asset hashes checked. Twenty guarded Node processes, only two refused
+  public npm requests, webdriver on, zero automatic requests and zero server kickoff POSTs.
+  The driver, controller and wrapper exited zero and their owned processes and worktree were gone.
+- The `eb7f4d69` repair cohort passed 100 focused tests across ten files, targeted lint and
+  typecheck, Help's 840 control names and 3,167 strings, copy voice and all specification
+  references. The Full preservation comparison remained green. This is separate from actual
+  browser checks of the repaired surfaces.
+- The first `eb7f4d69` exact recheck, `20261107T070713Z-eb7f4d69`, stopped before browser
+  launch when the private canary child found no preload and refused. The retry explicitly
+  loads the network guard before tsx. The application's source and release-check bounds did
+  not change between these two attempts.
+- Exact `eb7f4d69` browser run `20261107T070901Z-eb7f4d69`: actual exported tsx
+  canary passed the table-selected lease plus five representative Guided reads with no
+  mutation attempt and no bare-batch visit. Twelve exact preview cases passed in both themes
+  and widths, including required schedule values and restoring them. Both linked composer
+  timing cases, both 6,264-character unblurred reloads (full value, focus, no message save),
+  the desktop correction Cancel route, and the React key-warning sample passed. No preview
+  was confirmed. The mobile correction kept focus through refusal and returned it to Now
+  after the exact save; the helper's current-card history locator timed out. This run's
+  overall result was 18 PASS and one FAIL, preserved.
+- The first owning-card retry `20261107T071337Z-eb7f4d69` confirmed receipt and focus but
+  located history before the refreshed step settled. A separate attempt
+  `20261107T071605Z-eb7f4d69` was stopped at the private Playwright streamed-response wait.
+  Each shut down its own emulator processes. Neither is counted as a completed check.
+- Bounded phone Dark recheck `20261107T072006Z-eb7f4d69` passed: the required reason got
+  focus, the blank action was unavailable, Keep it returned focus, an injected refusal kept
+  the reason and submit focus, and the successful same-occurrence correction saved its
+  exact reason and focused Now. The stage moved from the reply to the next applicable
+  Compare market rent card. The owner step's Removed outreach records showed the saved reason;
+  one authoritative next step remained. The browser fence refused no operation and the
+  network log recorded two refused public npm requests only.
+
+## Backend of the final repairs
+
+The final repair of the exact schedule surface is client-side in RenewalPreparedMessage and
+CommunicationComposer. The required values control the available confirmation. The existing
+`/api/gmail-hub/sequences` command still checks edit authority, saved draft and recipient review
+hashes, and exact local calendar timing. Its CommunicationSequence service owns authorization and
+the Firestore occurrence. The delivery adapter owns provider acceptance. The schedule-preview
+recheck issued no confirmation.
+
+The reasoned outreach correction uses the existing `/api/lease-renewal/workspace` edit route.
+The handler binds the actor, current cycle, sequence and occurrence before the Firestore
+outreach-record transaction stores the reason and one activity entry. The accepted communication
+is retained. The refreshed stage projection disregards that occurrence as outreach and restores
+the applicable work step; the owning card can show the correction's history. Focus and required
+feedback are presentation changes. No provider operation is added.
+
+The retained text is lease-tab session storage under RenewalFocusViewProvider. The same
+native-or-ARIA main landmark defines capture and restoration. Reload applies the value as the
+person's own entry after the intended field is stable. It does not acknowledge a server save;
+the normal working/message store handles a later deliberate save.
+
+The canary serialization repair runs the same predicate over visible Chromium DOM, through the
+same tsx entry point used operationally. Its independent mismatch count, request fence and existing
+geometry bounds are unchanged. The audit ran that predicate only in the rehearsal.
+
+## Candidate browser and canonical receipts
+
+- Exact older November/December journey `qualification-journey-20261107T072103Z-eb7f4d69`:
+  **36 PASS, 0 FAIL**. The compiled app and the actual Chromium browser journey were exercised. All 17 kernel isolation controls passed.
+  The exact completion receipt has exit zero, unchanged tracked source and no remaining
+  owned processes.
+- Exact Help control walk `20261107T072612Z-eb7f4d69`: **840** entries, **629 visible**,
+  **211 conditional-unavailable**, **0 missing**. The browser, wrapper and emulator finished.
+  The 36 distinct guarded Node PIDs recorded two public npm requests and ten hosted
+  identity requests refused before dispatch. The server received zero kickoff POSTs.
+  A conditional-unavailable entry supplies no proof that its gated state was reached.
+
+- Canonical `qualification-verify-20261107T074414Z-eb7f4d69`: actual `bash scripts/verify.sh`
+  passed install, dependencies, policy and documentation checks, format, lint and typecheck,
+  then stopped with one stale Help map test count (94 expected, 97 present). Unit results
+  were 11,534 passed, one failed, four skipped. Firestore, build and served E2E did not run
+  in that invocation. It changed no tracked source. The exact count correction
+  `0e9c6a27` preserves the existing required and original-control assertions, with no
+  app or Help change. All 68 focused tests in four Help, control continuity, ledger and
+  litmus files passed after that correction. Final-tree verification is recorded with the PR.
+- Correctly framed Help recheck `20261107T075249Z-eb7f4d69`: nine of nine prior partial
+  scenes matched layout, labels and placement. The 15 image blobs and scene manifest
+  were byte-identical between the two source commits. Served hashes matched, and clock
+  text and a development indicator accounted for the incidental differences. The driver
+  and wrapper exited zero, with zero surviving owned processes, zero kickoff requests,
+  18 guarded Node PIDs and only two refused public npm requests. The only local changes
+  were an Editor session and the ordinary app draft, whose readback had no dispatch
+  authorization, due time, send or attempt.
+
+## Later specification and presentation decisions
+
+- S247 R9 now covers the complete focused field in the main region of each of Guided,
+  Focus and Full. The reviewer chose the native or ARIA main landmark as the same boundary
+  for capture and restore; using native main alone lost text on the real Full surface.
+- S248 R10 now records the required reason, Keep it focus return, refused save and
+  successful focus handoff. These use the existing occurrence and correction path. A save
+  only returns focus if the person is still working in the correction.
+- S249 R8 and S187/S233 record which schedule fields are required and how missing values
+  hold the existing confirmation. The long exact review opens on sender, recipients and
+  subject. This keeps the reviewed facts visible without adding a confirmation.
+- S187 records the linked composer read and its retry. S194 records the actual policy
+  fields and fresh portfolio read; S201 records collection requirements; S155 records
+  confirmation and newer-entry handling. Each uses the existing field or recovery surface.
+- The existing Refresh source facts to Refresh data name migration remains in the Help
+  control map. The animal activity and charge heading use Animal follow-up and Animal
+  charges and agreement in the implementation, S253, Help, control mapping and tests.
+  They use the same saved activity and predicates. The 71 litmus checks and their pinned
+  labels remain as authored.
+- The default desk and workspace assurance uses the same anonymous browser predicates
+  through tsx and the independent DOM reconciliation. Its source/row/stage identities,
+  mutation fence and unchanged bounds give separate evidence for the visible claim.
+- Preserve the existing full table and its source reasons. D-OP-9 leaves the voucher-only
+  assistance fact unset until staff confirm it; keep L55's count mismatch visible instead
+  of changing a settled decision or the litmus.

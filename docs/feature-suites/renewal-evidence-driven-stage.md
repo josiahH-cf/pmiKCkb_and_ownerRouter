@@ -149,7 +149,7 @@ help guides that today instruct the manual steps (S252).
 The lease already says it is waiting on the owner and since when. When the owner answers, the lease
 says so and asks for the decision. Nobody had to pick a status from a list.
 
-- Model verdict: NOT RUN — to be completed by the implementation runner with evidence.
+- Model verdict: RUN for stand-in and staff-recorded evidence (J10–J12). Real delivery and source changes are unverified. See the [review](../evidence/renewal-one-path-ux-review-2026-11-06.md) and [individual litmus results](../evidence/renewal-one-path-litmus-2026-11-06.md).
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**

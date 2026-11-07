@@ -1,16 +1,22 @@
 # Current status
 
-Updated: 2026-11-06 (UTC).
+Updated: 2026-11-07 (UTC).
 
-The one-path source batch S246–S253 and S254 harness are merged through PRs #184–#190 at
-`2187cf09`. The resumed UX review on `codex/renewal-one-path-ux` includes the prior runner's
-six unmerged commits and its remaining typing-recovery change, and continues the isolated review
-and repair loop. Release remains
-pending. The owner receives a pull request with full-gate and exact-head CI evidence and handles
-merge/release/deploy. Human verdict NOT RUN; verification targets isolated synthetic services and
-keeps automatic comparisons off. Initial isolation gaps and the failed shared-cache qualification
-remain recorded in the UX review evidence; final rehearsals require the strengthened guard. The
-production record below is the last recorded delivery, not a new readback.
+The one-path source S246–S253 and S254 harness are merged through #184–#190 at
+`2187cf09`. The resumed UX review on `codex/renewal-one-path-ux` carries the prior
+runner's six commits and both typing-recovery file changes.
+
+The full [independent litmus](evidence/renewal-one-path-litmus-2026-11-06.md)
+at `edba7cbb` reports 62 Yes, 2 No and 7 UNVERIFIED. Targeted rechecks at `eb7f4d69` verified
+the later repairs, including the retained-text defect (L18). Batch acceptance remains No:
+the original table controls and URLs remain, while the voucher-only lease moves from Program
+lease to Ready under the settled assistance rule, producing the literal L55 count mismatch.
+The [UX review](evidence/renewal-one-path-ux-review-2026-11-06.md) keeps both source scopes
+and the precise evidence gaps.
+
+Human verdict NOT RUN. Automatic preparation was held off in the isolated verification.
+The owner owns merge, release and deployment. The production section below records the last
+known delivery and was not refreshed for this review.
 
 The S245 litmus fixes for S87, S126, S147, S242 and S86 (PR #182) are DELIVERED at `5b5c65c6` /
 `pmi-kc-app-rmw3h1wp5-706485135a02`, 100% canonical traffic. Run `8bf183d8` completed on its first

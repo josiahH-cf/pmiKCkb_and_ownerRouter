@@ -1,16 +1,15 @@
 # Current plan
 
-Updated: 2026-11-06 (UTC), resumed one-path UX review.
+Updated: 2026-11-07 (UTC), one-path UX review qualification.
 
 ## Authorized outcome
 
-Current work is the November 6 owner-directed review of the merged S246–S253 source and S254
-harness at `2187cf09`, including the prior runner's unmerged litmus repairs. Record expectations,
-walk the isolated rehearsal, repair evidenced UX problems with specifications and preservation
-checks, then deliver a pull request with `bash scripts/verify.sh` and exact-head CI green. Keep
-automatic comparisons held off in verification. The owner merges, releases and deploys. The
-engineering review establishes no staff acceptance or real-provider outcome; human verdict NOT RUN.
-The earlier delivered program below remains background, not an instruction to restart its release.
+The November 6 owner-directed review of S246–S254 started from `2187cf09` and
+carries the six prior commits and both typing-recovery file changes. The candidate and Help
+assets were walked in the guarded synthetic environment at `eb7f4d69`. The pull request
+includes the independent litmus, UX report and walkthrough. The engineering evidence leaves
+the literal L55 count discrepancy visible under the settled assistance rule. Human verdict
+NOT RUN. The owner merges, releases and deploys; the earlier deliveries below are background.
 
 Implement and qualify the finalized work for the three active application lanes, the seven
 assessment gaps, newly diagnosed A-08 PDF publication dependency, and the configuration/approval/

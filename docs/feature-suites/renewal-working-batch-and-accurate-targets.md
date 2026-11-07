@@ -3,7 +3,7 @@
 
 # S246 — Working batch and accurate renewal targets on the desk
 
-> Status: AUTHORING READY: intake 112; implementation merged in PR #186 at `64a12692`. November 6 UX repairs and qualification continue on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. Owner decisions D-OP-4 and D-OP-5 remain settled. This specification grants no provider effect.
+> Status: AUTHORING READY: intake 112; implementation merged in PR #186 at `64a12692`. Resumed UX repairs and scoped qualification are recorded on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. Owner decisions D-OP-4 and D-OP-5 remain settled. This specification grants no provider effect.
 
 **Goal.**
 
@@ -175,7 +175,7 @@ handful of leases ending in December that still need work, anything left over fr
 above them, and a short line of counts for everything else. No moved-out or closed lease is in the
 list. They choose a lease and it opens in the same tab at the step that needs them.
 
-- Model verdict: NOT RUN — to be completed by the implementation runner with evidence.
+- Model verdict: RUN in the synthetic desk and assistant (J01–J03). L55 retains its literal per-reason count discrepancy under the settled assistance rule. See the [review](../evidence/renewal-one-path-ux-review-2026-11-06.md) and [individual litmus results](../evidence/renewal-one-path-litmus-2026-11-06.md).
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**

@@ -3,7 +3,7 @@
 
 # S251 — Housing assistance recorded once on the lease, with its own renewal order
 
-> Status: AUTHORING READY: intake 117; implementation merged in PR #189 at `daf8ee05`. November 6 UX repairs and qualification continue on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. D-OP-9 remains settled: program, owner renewing answer, then rent when a change is proposed. This specification grants no provider effect.
+> Status: AUTHORING READY: intake 117; implementation merged in PR #189 at `daf8ee05`. Resumed UX repairs and scoped qualification are recorded on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. D-OP-9 remains settled: program, owner renewing answer, then rent when a change is proposed. This specification grants no provider effect.
 
 **Goal.**
 
@@ -171,7 +171,7 @@ the program. The lease now says to contact the program first. After that it asks
 wants to renew the tenant, and only brings up rent if the staff member says a change is proposed.
 Next year the lease still knows, and leases without assistance never ask.
 
-- Model verdict: NOT RUN — to be completed by the implementation runner with evidence.
+- Model verdict: RUN for the optional synthetic fact, assisted order and non-renewal (J14). L55's distinct table-count discrepancy remains explicit. See the [review](../evidence/renewal-one-path-ux-review-2026-11-06.md) and [individual litmus results](../evidence/renewal-one-path-litmus-2026-11-06.md).
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**

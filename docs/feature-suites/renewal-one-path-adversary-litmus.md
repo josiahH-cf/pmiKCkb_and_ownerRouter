@@ -3,7 +3,7 @@
 
 # S254 — One-path renewal adversary litmus (machine-run proof of the owner's goals)
 
-> Status: AUTHORING READY: intake 120; the harness and validator merged in PR #184 at `6b0a71a5`. The fresh-session November 6 litmus and repair loop are resumed on `codex/renewal-one-path-ux` against the combined S246–S253 source. Results retain their actual PASS, FAIL or UNVERIFIED scope, with human verdict NOT RUN and release pending. This specification grants no provider effect.
+> Status: AUTHORING READY: intake 120; the harness and validator merged in PR #184 at `6b0a71a5`. The fresh-session November 6 litmus and repair loop are recorded on `codex/renewal-one-path-ux` against the combined S246–S253 source. Results retain their actual PASS, FAIL or UNVERIFIED scope, with human verdict NOT RUN and release pending. This specification grants no provider effect.
 
 **Goal.**
 
@@ -181,7 +181,7 @@ rehearsal, works the renewals, and says for each of the owner's goals whether it
 counts for before and after. The owner reads that report and knows what is proven and what still
 needs a person.
 
-- Model verdict: NOT RUN — to be completed by the implementation runner with evidence.
+- Model verdict: RUN for all 71 at edba7cbb: 62 Yes, 2 No and 7 UNVERIFIED. Later repairs rechecked at eb7f4d69; acceptance No (J19). See the [review](../evidence/renewal-one-path-ux-review-2026-11-06.md) and [individual litmus results](../evidence/renewal-one-path-litmus-2026-11-06.md).
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**

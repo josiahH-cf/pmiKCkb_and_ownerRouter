@@ -3,7 +3,7 @@
 
 # S250 — Standing owner agreements set once per owner portfolio and chosen on the lease
 
-> Status: AUTHORING READY: intake 116; implementation merged in PR #189 at `daf8ee05`. November 6 UX repairs and qualification continue on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. D-OP-3 remains settled and S194 policies, prefill and history are kept. This specification grants no provider effect.
+> Status: AUTHORING READY: intake 116; implementation merged in PR #189 at `daf8ee05`. Resumed UX repairs and scoped qualification are recorded on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. D-OP-3 remains settled and S194 policies, prefill and history are kept. This specification grants no provider effect.
 
 **Goal.**
 
@@ -167,7 +167,7 @@ agreement. The page names the agreement, shows the new rent already worked out, 
 message is needed and offers the tenant offer as the next step. If the owner is not set up yet,
 the staff member picks the agreement from a list on the same page.
 
-- Model verdict: NOT RUN — to be completed by the implementation runner with evidence.
+- Model verdict: RUN for the synthetic agreement, scoped choice, override and Admin role checks (J13). See the [review](../evidence/renewal-one-path-ux-review-2026-11-06.md) and [individual litmus results](../evidence/renewal-one-path-litmus-2026-11-06.md).
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**

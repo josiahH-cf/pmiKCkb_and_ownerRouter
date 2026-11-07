@@ -3,7 +3,7 @@
 
 # S253 — Confirmed form answers: pet fee and total, owner explanation, tenant initial boxes
 
-> Status: AUTHORING READY: intake 119; implementation merged in PR #185 at `95858eef`. November 6 synthetic UX qualification continues on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. Real original/map approval and every client answer still open remain in U1, U2 and U4. This specification grants no publication or provider effect.
+> Status: AUTHORING READY: intake 119; implementation merged in PR #185 at `95858eef`. Resumed synthetic UX qualification is recorded on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. Real original/map approval and every client answer still open remain in U1, U2 and U4. This specification grants no publication or provider effect.
 
 **Goal.**
 
@@ -228,7 +228,7 @@ prepared. They write two short paragraphs for the owner and see them in the box 
 The forms say plainly that the execution date and the tenant initials are left blank. Nothing asks
 them a question Dan already answered.
 
-- Model verdict: NOT RUN — to be completed by the implementation runner with evidence.
+- Model verdict: RUN for synthetic forms and per-lease isolation (J16–J18). Real originals, legal and mapping approvals, and open client answers stay unverified. See the [review](../evidence/renewal-one-path-ux-review-2026-11-06.md) and [individual litmus results](../evidence/renewal-one-path-litmus-2026-11-06.md).
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**

@@ -1,35 +1,38 @@
 # PMI KC facts
 
-Last reconciled: 2026-11-06 (one-path source and resumed UX review; no new production readback).
+Last reconciled: 2026-11-07 (one-path source review; no new production readback).
 
 This ledger contains present truth. Historical detail is recoverable in Git and immutable run
 evidence; an earlier receipt never authorizes a new attempt.
 
 ## November 6 one-path source and resumed review
 
-Main `2187cf09fa0d5860919940448ae1ef55cd298f05` contains the S246–S253 source and S254 harness,
-merged through PRs #184–#190. GitHub showed no open pull requests at the review's start. The
-shared checkout remained at `a7356547` with its untracked owner files untouched. The new branch
-`codex/renewal-one-path-ux` includes the three unmerged repairs found at intake and the later
-`c107a075` path continuation, `120b4966` settled-help capture and `d76dc72e` picture updates,
-plus the remaining generated-ID recovery and its regression, with the resumed UX loop. Verification uses the
-isolated November 5 mix, local roles, emulator and stand-ins;
-`--hold-automatic-comparison` keeps automatic comparisons off after seeds and resets.
+Main `2187cf09fa0d5860919940448ae1ef55cd298f05` contains S246–S253 and the S254
+harness through PRs #184–#190. The review branch `codex/renewal-one-path-ux` includes
+all six prior unmerged Claude commits plus both remaining typing-recovery file changes,
+with complete-text and newer-input handling. The shared Windows checkout and unrelated owner
+files were left alone.
 
-This source state is separate from production. The review's delivery is a pull request with full
-gate and exact-head CI evidence; the owner merges, releases and deploys. The staff walkthrough
-verdict remains NOT RUN. Real providers, mailbox outcomes, signatures, physical-phone behavior
-and the open client answers are unverified in this review. The earlier build handoff's reported
-unguarded child-process attempts remain historical claims; this review makes no production read
-to investigate them and infers no provider outcome.
+The full [independent litmus](evidence/renewal-one-path-litmus-2026-11-06.md)
+at `edba7cbb` reports 62 Yes, 2 No and 7 UNVERIFIED. Targeted rechecks at `eb7f4d69` verified
+the later repairs, including the retained-text defect (L18). Batch acceptance remains No:
+the original table controls and URLs remain, while the voucher-only lease moves from Program
+lease to Ready under the settled assistance rule, producing the literal L55 count mismatch.
+The [UX review](evidence/renewal-one-path-ux-review-2026-11-06.md) keeps both source scopes
+and the precise evidence gaps.
 
-The resumed audit found two more harness limits: outer Node helpers/CLI did not inherit the
-preload, and Node's normalized socket arguments bypassed its destination check. An offline
-sentinel reproduced the latter without a connection. The strengthened wrapper/preload passed
-32 focused checks, including inherited child refusal, and is required for final rehearsals.
-Initial isolation is unverified; no real-provider outcome is inferred from its logs. The initial
-long rehearsal also failed cleanup because a concurrent focused test wrote a shared Vitest cache.
-Its failure is preserved; remaining dependency-using checks run serially with rehearsals.
+The older November/December isolated journey reported 36 PASS and
+0 FAIL at `eb7f4d69`. The canonical run on that source stopped on a stale Help map
+test count. The exact assertion was updated in `0e9c6a27` with the same
+preservation tests. The pull request records the final-tree qualification. Release remains
+for the owner.
+The review never opens production. Human verdict NOT RUN. Real providers, real mailbox,
+signatures, physical-device behavior and unanswered client questions remain unverified.
+
+Initial harness gaps and failures are preserved in the review. Final rehearsal entry points
+and Node children require the guard. Automatic preparation stays off at startup and through
+resets. All observed comparison operations used stored data or explicit staff preparation with
+the stand-in. The existing runtime setting and effect rules stay in place.
 
 ## November 5 S245 litmus fixes — delivered S87, S126, S147, S242 and S86 repairs
 

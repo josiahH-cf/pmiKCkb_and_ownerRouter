@@ -3,7 +3,7 @@
 
 # S247 — One renewal path per lease: one page, one current step
 
-> Status: AUTHORING READY: intake 113; implementation merged in PR #187 at `20d55104`. November 6 UX repairs and qualification continue on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. D-OP-6 remains settled: Guided is the default, and Focus and Full views, handlers and projections are kept. This specification grants no provider effect.
+> Status: AUTHORING READY: intake 113; implementation merged in PR #187 at `20d55104`. Resumed UX repairs and scoped qualification are recorded on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. D-OP-6 remains settled: Guided is the default, and Focus and Full views, handlers and projections are kept. This specification grants no provider effect.
 
 **Goal.**
 
@@ -188,7 +188,7 @@ the Focus and guide-control smokes, the release canary landmarks and the help co
 stands and what to do next. The thing to do is on the screen with its button. They can jump to any
 other step or tool without being stopped, and after a refresh they are where they left off.
 
-- Model verdict: NOT RUN — to be completed by the implementation runner with evidence.
+- Model verdict: RUN in Guided, Focus and Full (J04–J06). The L54 conditional-control evidence limits remain explicit. See the [review](../evidence/renewal-one-path-ux-review-2026-11-06.md) and [individual litmus results](../evidence/renewal-one-path-litmus-2026-11-06.md).
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**

@@ -3,7 +3,7 @@
 
 # S249 — Renewal kickoff prepared ahead, with one message and one route to send it
 
-> Status: AUTHORING READY: intake 115; implementation merged in PR #188 at `aec5a309`, including the D-OP-1 router amendment. November 6 UX repairs and qualification continue on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. D-OP-1, D-OP-2 and D-OP-7 remain settled. This specification grants no provider effect.
+> Status: AUTHORING READY: intake 115; implementation merged in PR #188 at `aec5a309`, including the D-OP-1 router amendment. Resumed UX repairs and scoped qualification are recorded on `codex/renewal-one-path-ux`; release pending, human verdict NOT RUN. D-OP-1, D-OP-2 and D-OP-7 remain settled. This specification grants no provider effect.
 
 **Goal.**
 
@@ -267,7 +267,7 @@ there, a suggested rent is filled in with its reason, and the owner message is w
 the rent, add a sentence about the market, watch the message change, and send it. They did not
 scroll through sections, open another tab or run anything.
 
-- Model verdict: NOT RUN — to be completed by the implementation runner with evidence.
+- Model verdict: RUN for the prepared message, review and guarded delivery routes (J07–J09). The starting Demo send, automatic start and enable-to-off comparison remain unverified. See the [review](../evidence/renewal-one-path-ux-review-2026-11-06.md) and [individual litmus results](../evidence/renewal-one-path-litmus-2026-11-06.md).
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**

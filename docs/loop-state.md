@@ -1,6 +1,6 @@
 # Loop state
 
-Last updated: 2026-11-06 (UTC). Read AGENTS.md and docs/facts.md first.
+Last updated: 2026-11-07 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current execution
 
@@ -39,28 +39,24 @@ publication, customer/provider business effect, signature or Dotloop activation 
 The guarded post-configuration five-route UI read had all 200 responses, no errors/mutation
 attempts and free profile before/after. It also exposed the remaining source-access seam below.
 
-## One-path batch S246–S254: source built, UX review resumed
+## One-path batch S246–S254: reviewed in isolation
 
-Main at `2187cf09fa0d5860919940448ae1ef55cd298f05` contains PRs #184–#190: every source suite
-and the S254 rehearsal harness. The November 6 owner instruction resumes its unfinished litmus
-and performs an evidence-led UX review on `codex/renewal-one-path-ux`, cut from that main.
-The shared Windows main remains at `a7356547` with its untracked owner files untouched.
+Current main `2187cf09fa0d5860919940448ae1ef55cd298f05` contains PRs #184–#190,
+including every source suite and the S254 harness. Branch `codex/renewal-one-path-ux`
+includes all six Claude commits and both remaining typing-recovery changes. The original
+worktree and its untracked owner files remain untouched.
 
-- Included the prior runner's three unmerged repairs `147c9d8a`, `d42d7a15`, `f18a5bc0`: stage
-  party wording, compact path layout and retained typing, plus the later `c107a075` applicable-path
-  continuation, `120b4966` settled help picture and `d76dc72e` picture updates. The remaining
-  generated-ID recovery and its regression were integrated with complete-text/newer-input safety.
-- Isolated rehearsal only; automatic comparisons are held off with
-  `--hold-automatic-comparison`, including resets. Fresh-session L01–L71 observations retain
-  their exact scopes. No human verdict, provider effect or release acceptance is inferred.
-- Deliver the review as a pull request after `bash scripts/verify.sh` and exact-head CI pass.
-  The owner merges, releases and deploys; older handoff merge/release instructions do not apply.
-- The prior build handoff reports unguarded child-process connection attempts on November 5,
-  fixed in the merged harness. Initial audit isolation also had outer-CLI/normalized-socket
-  gaps, reproduced offline and repaired; final rehearsals require the strengthened guard.
-- Initial cleanup failed on a concurrent shared Vitest cache write. Preserve that failed run;
-  all remaining dependency-using checks run serially with rehearsals. See the UX review evidence.
-- Human verdict NOT RUN. Real-provider, mailbox, physical-device and client-answer limits remain.
+- The independent report at `edba7cbb` names all 71 checks: 62 Yes, 2 No and 7 UNVERIFIED.
+  The repaired source `eb7f4d69` has targeted rechecks, including the L18 retained text.
+  L55 keeps the literal count discrepancy, so batch acceptance remains No.
+  See the [litmus report](evidence/renewal-one-path-litmus-2026-11-06.md).
+- The older November/December journey passed on that source. The first canonical verify
+  stopped on an obsolete test count; the exact Help map assertion was updated in
+  `0e9c6a27`. The final-tree qualification and CI are recorded with the
+  PR. See the [UX review](evidence/renewal-one-path-ux-review-2026-11-06.md).
+- Human verdict NOT RUN. Real-provider, mailbox, physical-device, legal and client-input
+  limits remain. Automatic comparisons were held off throughout guarded browser verification.
+- The owner merges, releases and deploys. Earlier handoff release instructions do not apply.
 
 ## Exact remaining boundaries
 
@@ -83,7 +79,7 @@ The shared Windows main remains at `a7356547` with its untracked owner files unt
 
 ## Awaiting release
 
-Release is held for the owner after this review's PR, final litmus evidence and qualification.
+The owner decides whether to release after reviewing the PR and its verification.
 These are merged source commits, not delivery claims; no release action is authorized in this review.
 
 1. S246 working batch and accurate targets: `64a12692`.
@@ -94,7 +90,7 @@ These are merged source commits, not delivery claims; no release action is autho
 6. S251 housing assistance path: `daf8ee05`.
 7. S252 engineering walkthrough and help: `2187cf09`.
 8. S253 confirmed form answers: `95858eef`.
-9. S254 harness and validator; final litmus evidence pending review: `6b0a71a5`.
+9. S254 harness and validator: `6b0a71a5`; see the branch report for the unaccepted litmus.
 
 The S245 fix batch at `5b5c65c6` remains the last recorded production delivery. Never reuse a
 consumed permit or receipt. The stopped original native owner and archived runs remain untouched.

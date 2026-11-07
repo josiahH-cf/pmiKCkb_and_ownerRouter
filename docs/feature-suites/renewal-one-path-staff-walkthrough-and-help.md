@@ -3,7 +3,7 @@
 
 # S252 — One-path renewal walkthrough, action budgets, defect ledger and help update
 
-> Status: AUTHORING READY: intake 118; the engineering slice merged in PR #190 at `2187cf09`, including help V2.0 and the walkthrough matrix. November 6 UX repairs update help to V2.1 and qualification continues on `codex/renewal-one-path-ux`; release pending. The staff walkthrough and its human verdict remain NOT RUN. This specification grants no provider effect.
+> Status: AUTHORING READY: intake 118; the engineering slice merged in PR #190 at `2187cf09`, including help V2.0 and the walkthrough matrix. Resumed UX repairs update help to V2.1, with scoped qualification on `codex/renewal-one-path-ux`; release pending. The staff walkthrough and its human verdict remain NOT RUN. This specification grants no provider effect.
 
 **Goal.**
 
@@ -206,7 +206,7 @@ real leases to their next step, and at no point asks where to click. The printed
 shows the same screens. Everything that went wrong on November 4 either no longer happens or is on
 a short list with a reason.
 
-- Model verdict: NOT RUN — to be completed by the implementation runner with evidence.
+- Model verdict: RUN for the permitted synthetic phases, Help and evidence matrix (J15). Staff verdict NOT RUN. See the [review](../evidence/renewal-one-path-ux-review-2026-11-06.md) and [individual litmus results](../evidence/renewal-one-path-litmus-2026-11-06.md).
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**
