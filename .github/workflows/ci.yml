@@ -204,6 +204,10 @@ jobs:
           path: ${{ runner.temp }}/pmi-npm-cache
           key: pmi-npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
           restore-keys: pmi-npm-${{ runner.os }}-
+      - name: Install the reviewed fallback fonts for Help screenshots
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends fonts-dejavu-core=2.37-8 fonts-dejavu-mono=2.37-8 fonts-liberation=1:2.1.5-3
       - name: Required rendered Help and complete served E2E with the public browser and emulator
         run: |
           mkdir -p "$RUNNER_TEMP/pmi-npm-cache"

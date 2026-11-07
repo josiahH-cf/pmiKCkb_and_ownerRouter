@@ -31,6 +31,7 @@ import { createServer, Socket } from "node:net";
 import { join } from "node:path";
 import { chromium } from "playwright-core";
 
+import { prepareHelpBrowserFonts } from "./lib/help-browser-fonts.mjs";
 import { compareHelpScene } from "./lib/help-scene-drift.mjs";
 import { HELP_FIXTURE_INSTANT } from "./lib/help-rehearsal-clock.mjs";
 import { resolveBrowserExecutable } from "./lib/browser-executable.mjs";
@@ -203,7 +204,10 @@ record({
   fixtureClock: fixedFixture ? HELP_FIXTURE_INSTANT : null,
 });
 
+const browserFonts =
+  managed && (verify || proposals) ? prepareHelpBrowserFonts(output) : null;
 const browser = await chromium.launch({
+  ...(browserFonts ? { env: { ...process.env, FONTCONFIG_FILE: browserFonts } } : {}),
   executablePath: fixedFixture
     ? process.env.PLAYWRIGHT_CHROME_PATH || chromium.executablePath()
     : resolveBrowserExecutable(),

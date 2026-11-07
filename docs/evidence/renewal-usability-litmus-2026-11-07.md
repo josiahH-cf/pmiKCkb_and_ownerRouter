@@ -155,6 +155,13 @@ Staff session: none
   OS. The other five parallel jobs passed. The aggregate job failed.
   [Failed browser job](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/42423821889/job/128557717666)
 
+- L13 and L14 in PR CI run 42424365594 on Ubuntu 24.04. Chromium setup
+  passed. The exact test merge rendered all 27 scenes and accounted for all
+  838 controls. Ten scenes exceeded the material tile bound. The retained
+  images showed a two-pixel shift after the Appearance glyph and different
+  system font metrics on the native file picker. The local WSL render used a
+  different host font inventory.
+
 ## Repairs
 
 - L03 now waits for the initial collection list before enabling New collection. The focused
