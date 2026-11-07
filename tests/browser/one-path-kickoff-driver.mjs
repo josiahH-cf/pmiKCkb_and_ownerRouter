@@ -914,24 +914,56 @@ export async function runKickoff() {
       exact: true,
     });
     const coveredDraftEnabled = await coveredDraft.isEnabled();
-    let draftNotice = null;
+    const draftNotices = [];
     if (coveredDraftEnabled) {
-      await coveredDraft.click();
-      const create = page.getByRole("dialog", { name: "Create Gmail draft instead" });
-      const previewed = await create
-        .locator('[data-renewal-field="draft-review"]')
-        .waitFor({ timeout: 120_000 })
-        .then(() => true)
-        .catch(() => false);
-      if (previewed) {
-        await create
-          .getByRole("button", { name: "Create this unsent draft", exact: true })
-          .click();
-        await create.waitFor({ state: "hidden", timeout: 120_000 });
-      } else {
-        draftNotice =
-          (await create.textContent().catch(() => null))?.slice(0, 600) ?? null;
+      for (let attempt = 1; attempt <= 2; attempt += 1) {
+        const previewResponse = page.waitForResponse(
+          (response) => {
+            if (
+              new URL(response.url()).pathname !==
+                "/api/lease-renewal/message-preparation" ||
+              response.request().method() !== "POST"
+            )
+              return false;
+            const request = response.request().postDataJSON();
+            return request.kind === "draft" && !request.confirm && !request.reconcile;
+          },
+          { timeout: 30_000 },
+        );
+        await coveredDraft.click();
+        const response = await previewResponse;
+        const create = page.getByRole("dialog", { name: "Create Gmail draft instead" });
+        const preview = create.locator('[data-renewal-field="draft-review"]');
+        const previewed = response.ok() && (await shownWithin(preview, 10_000));
+        if (previewed) {
+          await create
+            .getByRole("button", { name: "Create this unsent draft", exact: true })
+            .click();
+          await create.waitFor({ state: "hidden", timeout: 120_000 });
+          break;
+        }
+        const notice = (await create.textContent())?.slice(0, 700) ?? "";
+        draftNotices.push(notice);
         await create.getByRole("button", { name: "Cancel" }).click();
+        if (
+          attempt !== 1 ||
+          !/Notice approval safety|source generations|Current notice evidence/i.test(
+            notice,
+          )
+        )
+          break;
+        // The first save can establish the cycle after the prior source generation. Use the
+        // existing explicit refresh before requesting a fresh exact review of that cycle.
+        const refreshed = page.waitForResponse(
+          (result) =>
+            new URL(result.url()).pathname === "/api/lease-renewal/refresh" &&
+            result.request().method() === "POST",
+          { timeout: 30_000 },
+        );
+        await page.getByRole("button", { name: "Refresh data", exact: true }).click();
+        if (!(await refreshed).ok()) break;
+        await openLease(covered);
+        await chooseStep("Ask the owner");
       }
       await page.waitForTimeout(1500);
     }
@@ -953,7 +985,7 @@ export async function runKickoff() {
         (await now()
           .getByRole("button", { name: "Replace the Gmail draft", exact: true })
           .count()) === 1,
-      { coveredDraftEnabled, draftNotice, draftsBefore, draftsAfter, older },
+      { coveredDraftEnabled, draftNotices, draftsBefore, draftsAfter, older },
     );
     phase = "L44";
     await openLease(covered);
@@ -1040,6 +1072,7 @@ export async function runKickoff() {
         .filter({ hasText: "Your signature" });
       const hadNoSignature = (await signatureItem.count()) === 1;
       await now()
+        .getByRole("list", { name: "What sending needs", exact: true })
         .getByRole("button", { name: "Set up your signature", exact: true })
         .click();
       const form = now().getByRole("form", { name: "Your signature" });

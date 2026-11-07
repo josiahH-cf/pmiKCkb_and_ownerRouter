@@ -17,12 +17,9 @@ export const UNSAVED_MESSAGE_DRAFT_REASON =
  * Same recipient resolver, exact action and executor as the legacy composer; only the supplied copy
  * version differs.
  *
- * S162: the preview is built from the saved message exactly as it is displayed, markers included.
- * Business completeness, a recorded owner or tenant response, a review record, the signature's
- * saving sender and a policy note are not prerequisites. What still refuses the draft, here on the
- * server so a stale or direct request cannot pass it: notice safety, the staff non-renewal
- * decision, a confirmed move-out, unresolved recipients, the approved publication, an unread
- * attempt history, and a message that is not saved or whose saved wording cannot be read.
+ * The preview uses the exact saved subject and body. S224 requires the signature choice and
+ * the facts used in those bytes. The draft also needs current notice safety, verified recipients,
+ * approved publication and a readable attempt history. The in-app Copy path keeps working text.
  */
 export function buildSuppliedRenewalDraftPreview(
   actor: AuthenticatedUser,
