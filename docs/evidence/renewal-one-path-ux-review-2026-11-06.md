@@ -519,6 +519,14 @@ the original button synchronously, just as Schedule and Gmail already do. Cancel
 Escape return to that button when it remains available. The exact review and confirmation
 are unchanged (P12, P13, P14; SC09, SC10).
 
+UX-058, observed on `01fb4905`: Cancel received focus at the bottom of a long exact owner
+review. The visible region omitted the sender, recipients, and subject while the send button
+was reachable. The scrollable content measured 1,401 px against a 766 px desktop viewport in
+the dialog, and 1,794 px against an 810 px phone dialog. The three Now message reviews share
+the dialog; they now open overflowing content at the start. Short dialogs keep Cancel first.
+This makes the decision details visible with the same exact confirmation (P02, P04, P12, P14;
+SC03, SC07, SC09).
+
 Preserved by decision: exact review/confirmation, the required Gmail banner, stale authored wording,
 who-approved validation, role/Space and Action Registry checks, blank unsettled legal fields,
 assistance-animal holds, existing controls/views/filters/collections/old links, historical failed

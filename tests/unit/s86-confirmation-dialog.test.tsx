@@ -141,6 +141,25 @@ describe("S86 ConfirmationDialog", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
+  it("starts a long exact review at its content with Cancel next in keyboard order", async () => {
+    vi.spyOn(HTMLElement.prototype, "scrollHeight", "get").mockReturnValue(1400);
+    vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(766);
+    const user = userEvent.setup();
+    const confirm = vi.fn();
+    const view = render(<DialogHarness busy onConfirm={confirm} startWithReview />);
+    const trigger = screen.getByRole("button", { name: "Open exact confirmation" });
+    await user.click(trigger);
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveFocus();
+    view.rerender(<DialogHarness onConfirm={confirm} startWithReview />);
+    expect(dialog).toHaveFocus();
+    await user.tab();
+    expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus();
+    await user.keyboard("{Escape}");
+    expect(trigger).toHaveFocus();
+    expect(confirm).not.toHaveBeenCalled();
+  });
+
   it("keeps a dispatched confirmation open and prevents false cancellation while busy", async () => {
     const user = userEvent.setup();
     const confirm = vi.fn();
@@ -159,7 +178,8 @@ describe("S86 ConfirmationDialog", () => {
 function DialogHarness({
   busy = false,
   onConfirm,
-}: Readonly<{ busy?: boolean; onConfirm: () => void }>) {
+  startWithReview = false,
+}: Readonly<{ busy?: boolean; onConfirm: () => void; startWithReview?: boolean }>) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   return (
@@ -175,6 +195,7 @@ function DialogHarness({
         onCancel={() => setOpen(false)}
         onConfirm={onConfirm}
         open={open}
+        startWithReview={startWithReview}
         title="Confirm exact change"
         triggerRef={triggerRef}
       >

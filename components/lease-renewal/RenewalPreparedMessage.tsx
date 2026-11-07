@@ -1005,7 +1005,8 @@ function PreparedMessageBlock({
           {messageRevisionLabel(api.revision)}).{" "}
           <Button
             disabled={!api.draft.available || api.draft.pending}
-            onClick={() => {
+            onClick={(event) => {
+              trigger.current = event.currentTarget;
               void showDraftPreview();
             }}
             size="compact"
@@ -1114,6 +1115,7 @@ function PreparedMessageBlock({
         onCancel={() => setReview(null)}
         onConfirm={() => void confirm()}
         open={review !== null}
+        startWithReview
         title={review?.mode === "schedule" ? "Review and schedule" : "Review and send"}
         triggerRef={trigger}
       >
@@ -1166,6 +1168,7 @@ function PreparedMessageBlock({
           void api.draft.create().then(closeDraft);
         }}
         open={draftOpen}
+        startWithReview
         title={staleDraft ? KICKOFF_WORDS.replaceDraft : KICKOFF_WORDS.createGmailDraft}
         triggerRef={trigger}
       >

@@ -33,6 +33,7 @@ export function ConfirmationDialog({
   confirmVariant = "primary",
   busy = false,
   confirmDisabled = false,
+  startWithReview = false,
   error,
   onCancel,
   onConfirm,
@@ -50,6 +51,8 @@ export function ConfirmationDialog({
   confirmVariant?: "primary" | "destructive";
   busy?: boolean;
   confirmDisabled?: boolean;
+  /** Keep the top of a long exact review in view when it opens. */
+  startWithReview?: boolean;
   error?: ReactNode;
   onCancel: () => void;
   onConfirm: () => void;
@@ -69,14 +72,28 @@ export function ConfirmationDialog({
     () => fallbackFocusRef?.current,
     [fallbackFocusRef],
   );
+  const focusDialog = useCallback(
+    (opening: boolean) => {
+      const dialog = dialogRef.current;
+      if (!dialog) return;
+      if (startWithReview && dialog.scrollHeight > dialog.clientHeight) {
+        if (opening) dialog.scrollTop = 0;
+        dialog.focus({ preventScroll: true });
+      } else if (cancelRef.current && !cancelRef.current.disabled) {
+        cancelRef.current.focus();
+      } else {
+        dialog.focus();
+      }
+    },
+    [startWithReview],
+  );
 
   useEffect(() => {
     if (!open) return;
     previousFocusRef.current =
       triggerRef?.current ?? (document.activeElement as HTMLElement);
     dismissNonModalTransientLayers();
-    if (cancelRef.current && !cancelRef.current.disabled) cancelRef.current.focus();
-    else dialogRef.current?.focus();
+    focusDialog(true);
     return () => {
       queueMicrotask(() => {
         const usable = (element: HTMLElement | null | undefined) =>
@@ -92,7 +109,7 @@ export function ConfirmationDialog({
         onAfterClose?.();
       });
     };
-  }, [open, triggerRef, currentFallback, onAfterClose]);
+  }, [open, triggerRef, currentFallback, focusDialog, onAfterClose]);
 
   useEffect(() => {
     if (!open || !dialogRef.current) return;
@@ -102,10 +119,9 @@ export function ConfirmationDialog({
       !dialogRef.current.contains(active) ||
       active?.matches(":disabled")
     ) {
-      if (cancelRef.current && !cancelRef.current.disabled) cancelRef.current.focus();
-      else dialogRef.current.focus();
+      focusDialog(false);
     }
-  }, [open, busy]);
+  }, [open, busy, focusDialog]);
 
   if (!open) return null;
 

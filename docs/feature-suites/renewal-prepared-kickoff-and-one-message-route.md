@@ -106,10 +106,11 @@ choose to work. RentVine readable; RentCast allowance available for a new lookup
   receives recovery focus. The dialog completes its ordinary focus return first; keyboard
   work continues at the failed input. Successful exact previews retain their review and
   separate confirmation. An earlier deliberate cancel or step change keeps its newer focus.
-  A preview opened during loading holds keyboard focus within its dialog. Once ready, Cancel
-  receives focus and Tab remains within the review. Cancel and Escape close a ready review and
-  return keyboard focus to the available action that opened it. A dispatched operation keeps
-  its existing busy cancellation boundary.
+  A preview opened during loading holds keyboard focus within its dialog. Once ready, a short
+  review focuses Cancel. A long review starts at the sender, recipients and wording so staff
+  see them before the confirmation. Tab remains within the review. Cancel and Escape close a
+  ready review and return keyboard focus to the available action that opened it. A dispatched
+  operation keeps its existing busy cancellation boundary.
   The relevant confirmed field versions are checked again after composition and communication
   draft saving. If a newer value arrived during either wait, an older exact review stays closed
   and the Now action asks for the current message to be reviewed again. The saved application
