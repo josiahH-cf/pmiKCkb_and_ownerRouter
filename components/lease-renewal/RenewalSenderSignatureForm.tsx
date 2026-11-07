@@ -62,7 +62,6 @@ export function RenewalSenderSignatureForm({
   const pending = useRef<{ key: string; id: string } | null>(null);
 
   async function read(signal?: AbortSignal) {
-    setError("");
     try {
       const response = await fetchWithDeadline(endpoint, { cache: "no-store", signal });
       if (!response.ok)
@@ -83,7 +82,9 @@ export function RenewalSenderSignatureForm({
 
   useEffect(() => {
     const abort = new AbortController();
-    void read(abort.signal);
+    void Promise.resolve().then(() => {
+      if (!abort.signal.aborted) return read(abort.signal);
+    });
     return () => abort.abort();
   }, []);
 
@@ -194,7 +195,14 @@ export function RenewalSenderSignatureForm({
           </div>
         </>
       ) : error ? (
-        <Button type="button" variant="secondary" onClick={() => void read()}>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => {
+            setError("");
+            void read();
+          }}
+        >
           Try again
         </Button>
       ) : null}

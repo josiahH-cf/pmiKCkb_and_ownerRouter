@@ -253,7 +253,6 @@ export function SharedLeaseCollections({
     live.current = true;
     return () => {
       live.current = false;
-      readGeneration.current++;
     };
   }, []);
   function address(

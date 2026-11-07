@@ -85,7 +85,6 @@ import { LeaseDataExpiredError } from "@/lib/lease-renewal/live-lease-cache";
 import {
   leaseCurrentRent,
   leaseEndDateIso,
-  leasePortfolioId,
   leaseViewId,
 } from "@/lib/integrations/rentvine/lease-mapper";
 import { projectMessageMarketEvidence } from "@/lib/lease-renewal/message-market-evidence";
