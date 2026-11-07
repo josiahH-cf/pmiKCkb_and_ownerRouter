@@ -208,6 +208,7 @@ try {
       const answer = page.getByRole("region", { name: "Assistant answer", exact: true });
       await answer.waitFor();
       const leaseLinks = answer.locator(`a[href^="${desk}/lease/"]`);
+      await leaseLinks.first().waitFor();
       const ids = await leaseLinks.evaluateAll((links) => [
         ...new Set(
           links.map((link) => Number(new URL(link.href).pathname.split("/").at(-1))),
@@ -230,7 +231,7 @@ try {
       await open(page, "/work");
       await page.getByText("Create my task", { exact: true }).click();
       const taskTitle = "Example renewal readback task";
-      await page.getByLabel("Space", { exact: true }).selectOption("renewals");
+      await page.getByLabel("Space", { exact: true }).selectOption("lease-renewals");
       await page.getByLabel("Task type", { exact: true }).fill("Renewal");
       await page.getByLabel("Title", { exact: true }).fill(taskTitle);
       await page

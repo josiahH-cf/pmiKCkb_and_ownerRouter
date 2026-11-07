@@ -43,11 +43,13 @@ it("compares nearby controls while tolerating the independently verified cover S
     .png()
     .toBuffer();
   const bounds = { x: 32, y: 32, width: 24, height: 16 };
-  expect((await compareHelpScene(expected, changedSha, bounds)).material).toBe(false);
+  expect((await compareHelpScene(expected, changedSha, [bounds])).material).toBe(false);
 
   const changedControl = await sharp(changedSha)
     .composite([{ input: text, top: 52, left: 32 }])
     .png()
     .toBuffer();
-  expect((await compareHelpScene(expected, changedControl, bounds)).material).toBe(true);
+  expect((await compareHelpScene(expected, changedControl, [bounds])).material).toBe(
+    true,
+  );
 });

@@ -126,6 +126,7 @@ const record = (entry) =>
 let server = null;
 let origin;
 let sourceSha;
+let processVersionId;
 if (managed) {
   if (process.cwd() === "/app") {
     assert.equal(process.env.HELP_REHEARSAL_ISOLATED, "kernel-v1");
@@ -148,7 +149,9 @@ if (managed) {
   await waitForServer(origin);
   const { seedHelpRehearsal } = await import("./lib/help-rehearsal-fixtures.mjs");
   const seeded = await seedHelpRehearsal();
-  record({ event: "seeded", collections: seeded });
+  processVersionId = seeded.processVersionId;
+  assert.match(processVersionId, /^[a-f0-9-]{36}$/);
+  record({ event: "seeded", ...seeded });
 } else {
   const base = option("--base-url");
   if (!base)
@@ -289,7 +292,7 @@ async function scenes(checkOnly) {
       continue;
     }
     try {
-      const { png, releaseText } = await captureScene(scene);
+      const { png, verifiedText, verifiedIdentifier } = await captureScene(scene);
       const sha256 = createHash("sha256").update(png).digest("hex");
       const filename = `${scene.id}.png`;
       let state = checkOnly ? "resolved" : "captured";
@@ -298,7 +301,7 @@ async function scenes(checkOnly) {
       if (verify) {
         const baseline = join(target, filename);
         difference = existsSync(baseline)
-          ? await compareHelpScene(readFileSync(baseline), png, releaseText)
+          ? await compareHelpScene(readFileSync(baseline), png, verifiedText)
           : { material: true, reason: "The committed synthetic picture is missing." };
         if (difference.material) {
           const replacement = join(output, "scene-drift", scene.id);
@@ -315,7 +318,7 @@ async function scenes(checkOnly) {
         state,
         sha256,
         difference,
-        ...(releaseText ? { verifiedReleaseText: served.commit } : {}),
+        ...(verifiedIdentifier ? { verifiedIdentifier } : {}),
       });
       process.stdout.write(`${state} ${scene.id}\n`);
     } catch (error) {
@@ -414,10 +417,40 @@ async function captureScene(scene) {
       scene.frame === "region"
         ? await region.first().screenshot({ animations: "disabled", caret: "hide" })
         : await page.screenshot({ animations: "disabled", caret: "hide" });
-    return { png, releaseText };
+    return { png, verifiedText, verifiedIdentifier };
   } finally {
     await context.close();
   }
+}
+
+// Check each generated identifier against the exact seed or serving SHA before excluding its
+// glyphs. Keep the label and all surrounding controls in the picture comparison.
+async function identifierBounds(locator, label, value) {
+  assert.equal((await locator.textContent())?.trim(), label + value);
+  const bounds = await locator.evaluate(
+    new Function(
+      "element",
+      "identifier",
+      `const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        const start = node.data.indexOf(identifier);
+        if (start < 0) continue;
+        const range = document.createRange();
+        range.setStart(node, start);
+        range.setEnd(node, start + identifier.length);
+        const right = element.getBoundingClientRect().right;
+        return Array.from(range.getClientRects(), ({ x, y, height }) => ({
+          x, y, height, width: right - x,
+        }));
+      }
+      return [];`,
+    ),
+    value,
+  );
+  assert.ok(
+    bounds.length && bounds.every(({ width, height }) => width > 0 && height > 0),
+  );
+  return bounds;
 }
 
 // The control-name browser check (R-S242-8): every listed control by role and exact accessible

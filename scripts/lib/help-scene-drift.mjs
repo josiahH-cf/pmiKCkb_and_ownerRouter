@@ -2,7 +2,7 @@
 // antialiasing variation. The tile bound catches a local change even on a mostly empty viewport.
 import sharp from "sharp";
 
-export async function compareHelpScene(expected, observed, releaseText = null) {
+export async function compareHelpScene(expected, observed, verifiedText = []) {
   const pixels = async (image) =>
     sharp(image)
       .removeAlpha()
@@ -23,6 +23,12 @@ export async function compareHelpScene(expected, observed, releaseText = null) {
       observedDimensions: [after.info.width, after.info.height],
     };
 
+  const verifiedPixels = verifiedText.map(({ x, y, width, height }) => ({
+    left: Math.floor(x),
+    right: Math.ceil(x + width),
+    top: Math.floor(y),
+    bottom: Math.ceil(y + height),
+  }));
   const tileSize = 32;
   const columns = Math.ceil(width / tileSize);
   const rows = Math.ceil(height / tileSize);
@@ -30,13 +36,12 @@ export async function compareHelpScene(expected, observed, releaseText = null) {
   let changed = 0;
   for (let y = 0; y < height; y += 1)
     for (let x = 0; x < width; x += 1) {
-      // The cover prints the current serving SHA. The browser verifies its exact text separately.
+      // These changing identifiers were read exactly from the rendered app before capture.
       if (
-        releaseText &&
-        x >= Math.floor(releaseText.x) &&
-        x < Math.ceil(releaseText.x + releaseText.width) &&
-        y >= Math.floor(releaseText.y) &&
-        y < Math.ceil(releaseText.y + releaseText.height)
+        verifiedPixels.some(
+          ({ left, right, top, bottom }) =>
+            x >= left && x < right && y >= top && y < bottom,
+        )
       )
         continue;
       const index = (y * width + x) * channels;
