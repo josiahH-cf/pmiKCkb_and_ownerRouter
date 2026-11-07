@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { renewalWorkspaceHashTarget } from "@/lib/lease-renewal/workspace-view";
 
 import { focusRenewalDashboardControl } from "./RenewalDashboardNavigation";
+import { useRenewalFocusView } from "./RenewalFocusViewContext";
 
 /**
  * S127 (R-F07-03): when a workspace URL carries a section or control id in its hash (the desk's
@@ -13,11 +14,24 @@ import { focusRenewalDashboardControl } from "./RenewalDashboardNavigation";
  * S152: a lease opens in Focus view, so a linked control that the current task does not show is
  * offered to the Focus view first, which chooses the task that owns it or shows it in Full view.
  */
-export function RenewalFocusHashTarget() {
+export function RenewalFocusHashTarget({
+  openSectionsInFull = false,
+}: { openSectionsInFull?: boolean } = {}) {
+  const showInFull = useRenewalFocusView()?.showInFull;
   useEffect(() => {
     const focusTarget = () => {
       const id = renewalWorkspaceHashTarget(window.location.hash);
-      if (id) focusRenewalDashboardControl(id, { focusContainer: true });
+      if (!id) return;
+      const element = document.getElementById(id);
+      if (
+        openSectionsInFull &&
+        showInFull &&
+        element?.closest("section[id^='renewal-section-']")
+      ) {
+        showInFull(id);
+      } else {
+        focusRenewalDashboardControl(id, { focusContainer: true });
+      }
     };
     // After the Focus view has revealed its task and attached its request listener.
     const frame = window.requestAnimationFrame(focusTarget);
@@ -26,6 +40,6 @@ export function RenewalFocusHashTarget() {
       window.cancelAnimationFrame(frame);
       window.removeEventListener("hashchange", focusTarget);
     };
-  }, []);
+  }, [openSectionsInFull, showInFull]);
   return null;
 }

@@ -7,7 +7,11 @@ import { join } from "node:path";
 import { chromium } from "playwright-core";
 import { requireLoopbackRehearsalOrigin } from "../../scripts/lib/help-rehearsal-origin.mjs";
 import { resolveBrowserExecutable } from "../../scripts/lib/browser-executable.mjs";
-import { readRehearsal } from "../../scripts/lib/one-path-rehearsal/control.mjs";
+import {
+  readRehearsal,
+  setSourceCycleDate,
+  setUnavailableSourceLease,
+} from "../../scripts/lib/one-path-rehearsal/control.mjs";
 
 assert.equal(globalThis.fetch.name, "guardedFetch", "The rehearsal preload is required.");
 assert.equal(Socket.prototype.connect.name, "guardedConnect");
@@ -107,6 +111,22 @@ async function check(id, role, viewport, theme, input, expected, work) {
 const wide = { width: 1280, height: 800 };
 const narrow = { width: 390, height: 800 };
 const open = (page, href) => page.goto(origin + href, { waitUntil: "domcontentloaded" });
+async function refreshDesk(page) {
+  await open(page, desk);
+  await page.getByRole("region", { name: "Working batch", exact: true }).waitFor();
+  await page.waitForLoadState("networkidle", { timeout: 15_000 });
+  const [response] = await Promise.all([
+    page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === "/api/lease-renewal/refresh" &&
+        response.request().method() === "POST" &&
+        response.request().postDataJSON()?.mode === "force",
+    ),
+    page.getByRole("button", { name: "Refresh data", exact: true }).click(),
+  ]);
+  const result = await response.json();
+  assert.ok(response.ok() && result.refreshed === true && result.state === "fresh");
+}
 const leaseViews = (page) => page.getByRole("group", { name: "Lease view", exact: true });
 const stage = (page) => page.getByRole("region", { name: "Current renewal stage" });
 
@@ -324,7 +344,7 @@ try {
     wide,
     "dark",
     "pointer",
-    "A clean collection can choose an in-period and out-of-period lease. The exact reviewed membership is saved, recovered after a lost response, reopened and shown on the desk. A concurrent rename makes an older removal review stale. Refresh and cancel retain the two saved members.",
+    "A clean collection can choose an in-period and out-of-period lease. The exact reviewed membership is saved, recovered after a lost response, reopened and shown on the desk. A concurrent rename makes an older removal review stale. Refresh and cancel retain the two saved members. A temporarily unavailable member keeps its saved row without a link.",
     async (page) => {
       const route = "/lease-renewal/collections";
       const name = "Example December working group";
@@ -457,6 +477,30 @@ try {
       } finally {
         await stale.close();
       }
+      const collectionPath = reopened.pathname + reopened.search;
+      try {
+        setUnavailableSourceLease(rehearsal, outside);
+        await refreshDesk(page);
+        await open(page, collectionPath);
+        await detail.getByRole("heading", { name: renamed, exact: true }).waitFor();
+        await detail
+          .getByRole("button", { name: "Refresh statuses", exact: true })
+          .click();
+        const revoked = detail
+          .getByRole("row")
+          .filter({ hasText: new RegExp("Lease " + outside + "\\b") });
+        await revoked
+          .getByText("Unavailable; saved membership is kept", { exact: true })
+          .waitFor();
+        assert.equal(await revoked.getByRole("link").count(), 0);
+        assert.match(await detail.innerText(), /2 saved members/);
+        assert.match(await detail.innerText(), /membership version 2/);
+      } finally {
+        setUnavailableSourceLease(rehearsal, null);
+        await refreshDesk(page);
+      }
+      await open(page, collectionPath);
+      await detail.getByRole("heading", { name: renamed, exact: true }).waitFor();
       await detail
         .getByRole("link", { name: "Open this collection on the Renewals desk" })
         .click();
@@ -483,6 +527,7 @@ try {
         lostSaveRecovered: dropped,
         approverReadback: true,
         staleRemovalRefused: true,
+        revokedMemberKeptWithoutLink: true,
         returnedToCollection: true,
       };
     },
@@ -702,6 +747,11 @@ try {
       const current = await nowHeading.innerText();
       for (const [key, label] of destinations) {
         const id = "renewal-section-" + key;
+        log({
+          id: "L06-full-destinations",
+          state: "checkpoint",
+          expected: label + " in Full below the toolbar",
+        });
         await detailNav.getByRole("link", { name: label, exact: true }).press("Enter");
         await landed(id);
         await guided.press("Enter");
@@ -827,7 +877,7 @@ try {
     wide,
     "light",
     "pointer",
-    "The exact cycle moves to Retired after confirmation. A stale review in another tab keeps its reason and creates no second record. Restoration persists, and the Status log lists both recorded decisions.",
+    "The exact cycle moves to Retired after confirmation. A stale review in another tab keeps its reason and creates no second record. A later verified source cycle keeps its own eligibility. Restoration persists, and the Status log lists both recorded decisions.",
     async (page) => {
       await open(page, path(separate));
       const header = stage(page);
@@ -872,6 +922,31 @@ try {
       }
       await page.reload({ waitUntil: "domcontentloaded" });
       await header.getByText("Retired from renewals", { exact: true }).waitFor();
+      const [year, month] = rehearsal.workingMonth.split("-").map(Number);
+      const futureDate = year + 1 + "-" + String(month).padStart(2, "0") + "-15";
+      try {
+        setSourceCycleDate(rehearsal, separate, futureDate);
+        await refreshDesk(page);
+        await open(page, desk + "?group=coming_up_later");
+        await page
+          .locator(
+            '[data-batch-open-group="coming_up_later"] tr[data-batch-lease="' +
+              separate +
+              '"]',
+          )
+          .waitFor();
+        await open(page, path(separate));
+        await header
+          .locator(
+            '[data-renewal-field="stage-line"]:not([data-renewal-stage="retired"])',
+          )
+          .waitFor();
+      } finally {
+        setSourceCycleDate(rehearsal, separate, null);
+        await refreshDesk(page);
+      }
+      await open(page, path(separate));
+      await header.getByText("Retired from renewals", { exact: true }).waitFor();
       await open(page, desk + "?group=retired");
       const retired = page.getByRole("region", { name: "Retired", exact: true });
       const row = retired.locator(`tr[data-batch-lease="${separate}"]`);
@@ -911,6 +986,7 @@ try {
         retiredCountedAndOpened: true,
         bothDecisionsSurvivedReload: true,
         staleReasonKept: true,
+        laterSourceCycleStayedActive: true,
         recordedEvents: 2,
       };
     },
@@ -1013,7 +1089,9 @@ try {
       });
       const inputs = packet.getByRole("region", { name: "Packet inputs", exact: true });
       const openInputs = async (id) => {
-        await open(page, documentPath(id));
+        if (page.url() === origin + documentPath(id))
+          await page.reload({ waitUntil: "domcontentloaded" });
+        else await open(page, documentPath(id));
         await page.waitForLoadState("networkidle", { timeout: 15_000 });
         const [current] = await Promise.all([
           page.waitForResponse(

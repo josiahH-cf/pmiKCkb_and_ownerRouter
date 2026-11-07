@@ -543,7 +543,7 @@ export function RenewalWorkspace({
               >
                 <RenewalFocusViewSlot enabled={focusAvailable}>
                   <RenewalAuxiliaryNotice failures={auxiliaryFailures} />
-                  <RenewalFocusHashTarget />
+                  <RenewalFocusHashTarget openSectionsInFull={!legacyFocus} />
                   <MoveOutDispositionNotice disposition={summary.moveOut} />
                   {workspace.live ? (
                     <RenewalNoticeReview

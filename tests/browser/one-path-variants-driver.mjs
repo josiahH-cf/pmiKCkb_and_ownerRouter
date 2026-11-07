@@ -513,10 +513,61 @@ export async function runVariants() {
       { preparedSteps },
     );
 
-    // 9. L51, last: Do not renew moves the assisted lease to the existing non-renewal handoff.
+    process.stdout.write(
+      "expect L08 assisted answers: record the program contact, observe No answer yet waiting, then Renew retaining the separate rent choice before Do not renew opens the handoff.\n",
+    );
+    await open(assisted);
+    await chooseStep("Contact " + PROGRAM + " about the renewal process");
+    const contact = page.locator("#renewal-manual-program_contact");
+    const contactOutcome = contact.locator("select").first();
+    if (!(await contactOutcome.isVisible())) await contact.locator("summary").click();
+    const workspaceSave = () =>
+      page.waitForResponse(
+        (response) =>
+          new URL(response.url()).pathname === "/api/lease-renewal/workspace" &&
+          response.request().method() === "POST",
+        { timeout: 30_000 },
+      );
+    const [contactResponse] = await Promise.all([
+      workspaceSave(),
+      contactOutcome.selectOption("done"),
+    ]);
+    const contactSaved = (await contactResponse.json()).state;
+    assert.ok(
+      contactResponse.ok() &&
+        contactSaved?.activities?.program_contact?.outcome === "done",
+    );
     await open(assisted);
     await chooseStep("Ask the owner whether to renew this tenant");
     const region = page.locator("#renewal-assisted-renewal-answer");
+    const recordAnswer = async (choice, expectedOutcome) => {
+      await region.getByLabel(choice, { exact: true }).check();
+      const [response] = await Promise.all([
+        workspaceSave(),
+        region
+          .getByRole("button", { name: "Record the owner’s answer", exact: true })
+          .click(),
+      ]);
+      const state = (await response.json()).state;
+      assert.ok(response.ok() && state?.ownerResponse?.outcome === expectedOutcome);
+      await open(assisted);
+      const stage = await stageLine();
+      await chooseStep("Ask the owner whether to renew this tenant");
+      return stage;
+    };
+    const waiting = await recordAnswer("No answer yet", "no_response");
+    const renewed = await recordAnswer("Renew", "renew_tenant");
+    check(
+      "L08: recorded program contact and No answer yet hold on the owner, while Renew retains the separate rent path",
+      /waiting on (the )?owner/i.test(waiting) &&
+        !/non.renewal|waiting on (the )?owner/i.test(renewed) &&
+        (await strip()
+          .getByRole("button", { name: "Rent for this renewal", exact: true })
+          .isVisible()),
+      { contactRecorded: true, waiting, renewed },
+    );
+
+    // Do not renew moves the assisted lease to the existing non-renewal handoff.
     await region.getByLabel("Do not renew", { exact: true }).check();
     await region
       .getByRole("button", { name: "Record the owner’s answer", exact: true })

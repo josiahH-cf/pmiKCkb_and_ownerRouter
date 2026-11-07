@@ -19,8 +19,11 @@ remains No. Human verdict NOT RUN.
 
 The owner launched intakes 121–129 for unattended execution on November 7. The published specification is `4caad68df6885d3eed4cb2b3fff7c70e5c96ae15`. Remote main at start was `bf9753d6af9c7cb90c7a17d3dee0965ae9656095`. The isolated WSL branch is `codex/renewal-usability-20261107`. The comparison baseline is the earlier deployed `ef81b891`.
 
-Engineering qualification is in progress. The first focused rehearsal passed five checkpoints.
-S259 acceptance requires the full candidate matrix and canonical verification. Staff verdict NOT RUN.
+Engineering qualification is in progress. The guarded `e1cf8905` focused run passed 13 of 15
+cases. Its two failures concerned a legacy fragment-only view transition and the form test's
+reload. Full S259 and exact-head canonical and CI acceptance are open. Staff verdict NOT RUN.
+The [litmus report](evidence/renewal-usability-litmus-2026-11-07.md) records exact source and
+the separate browser, core, Help and release checks.
 
 The release runbook requires a guarded Communications browser check that reads the real managed Gmail profile through `/api/gmail-hub/connection`. The November 7 execution instruction excludes mailbox access as verification. This holds release assurance and any release admission that depends on it. Engineering qualification uses only synthetic and loopback evidence. The release queue remains empty during engineering qualification.
 

@@ -9,11 +9,19 @@ evidence; an earlier receipt never authorizes a new attempt.
 
 The owner launched intakes 121–129 for unattended execution on November 7. The published specification is `4caad68df6885d3eed4cb2b3fff7c70e5c96ae15`. Remote main at start was `bf9753d6af9c7cb90c7a17d3dee0965ae9656095`. The isolated WSL branch is `codex/renewal-usability-20261107`. The comparison baseline is the earlier deployed `ef81b891`.
 
-An isolated mailbox-disabled rehearsal on `ffa5985606f80dc00bdc9d9f6b86d859b991f307` passed
-five focused browser checkpoints. It counted 38 synthetic leases, exercised keyboard return and
-a legacy Focus link, read back retirement and restoration, read back a saved blank signature,
-and returned from a legacy Admin link. This is scoped checkpoint evidence. The S259 candidate
-and S252 staff verdicts have separate requirements.
+The working-batch table and shared lease stage, reviewed collections, scoped cycle retirement,
+action-specific message readiness, named staff destinations, and Help V2.2 are implemented on
+the isolated branch. S259 acceptance remains open. The `cec7c4f0` core gate passed 46 cases with
+23 skips. Its S252 run passed 103 checks and all five numerical budgets. Its one failure reread
+working fields before their successful saves completed. The required rendered Help run on
+`8c216ee6` matched all 27 scenes and recorded 630 visible controls and 208 conditional cases,
+with zero missing. Its later lint failure led to the attachment readiness repair.
+
+The serial comparison opened nine rows on both `ef81b891` and `e1cf8905`. The old default was
+a list with three lease views. The candidate has a table, Guided and Full, and a shared stage.
+The historical `6491c06f` default displayed 37 rows including ten closed. Production metadata
+at 16:31 UTC showed 100 percent on `ef81b891`. Billing and exact cost controls passed readback.
+Details and earlier failed runs are in the [litmus report](evidence/renewal-usability-litmus-2026-11-07.md).
 
 The release runbook requires a guarded Communications browser check that reads the real managed Gmail profile through `/api/gmail-hub/connection`. The November 7 execution instruction excludes mailbox access as verification. This holds release assurance and any release admission that depends on it. Engineering qualification uses only synthetic and loopback evidence. The release queue remains empty during engineering qualification.
 

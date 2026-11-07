@@ -317,14 +317,9 @@ export function RenewalDashboardNavigation({
   const viewName = useRenewalFocusView()?.view;
   const [openedGuided] = useState(viewName === "guided");
   useEffect(() => {
-    const focusTarget = () => {
-      const id =
-        window.location.hash.slice(1) ||
-        (selectedStepId ? renewalDashboardTarget(selectedStepId) : "");
-      if (!id.startsWith("renewal-")) return;
-      focusRenewalDashboardControl(id);
-    };
-    if (!openedGuided) focusTarget();
+    // RenewalFocusHashTarget owns URL fragments, including fragment-only changes.
+    if (!openedGuided && !window.location.hash && selectedStepId)
+      focusRenewalDashboardControl(renewalDashboardTarget(selectedStepId));
     const onClick = (event: MouseEvent) => {
       const anchor =
         event.target instanceof Element ? event.target.closest("a[href]") : null;
@@ -338,10 +333,8 @@ export function RenewalDashboardNavigation({
         return;
       queueMicrotask(() => focusRenewalDashboardControl(url.hash.slice(1)));
     };
-    window.addEventListener("hashchange", focusTarget);
     document.addEventListener("click", onClick);
     return () => {
-      window.removeEventListener("hashchange", focusTarget);
       document.removeEventListener("click", onClick);
     };
   }, [selectedStepId, openedGuided]);

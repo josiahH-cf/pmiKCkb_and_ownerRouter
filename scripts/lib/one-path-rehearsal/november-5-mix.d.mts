@@ -109,6 +109,8 @@ export interface RentvineStandInFlags {
   /** Serve each renewed lease's recorded end date in place of its current one. */
   recordingCycles?: boolean;
   /** Lease id to "missing" (no status on the lease) or "unresolved" (an id the table lacks). */
+  unavailableLeaseId?: number | string | null;
+  sourceCycleDate?: { leaseId: string; endDate: string } | null;
   statusUnreadable?: Record<string, string>;
 }
 
