@@ -154,7 +154,7 @@ export async function runGuidedPath() {
         `lease ${leaseId} opens in Guided view with the path strip and one Now card`,
         observed.pressed === "true" &&
           JSON.stringify(observed.views) ===
-            JSON.stringify(["Guided view", "Focus view", "Full view"]) &&
+            JSON.stringify(["Guided view", "Full view"]) &&
           STEPS.every((step) => observed.steps.includes(step)) &&
           observed.current === 1 &&
           observed.nowCards === 1 &&

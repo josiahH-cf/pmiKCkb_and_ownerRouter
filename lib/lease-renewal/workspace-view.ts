@@ -1,6 +1,5 @@
-// S247 R-S247-7 / R-S247-9 (D-OP-6): the lease page's three views and the address key a view chosen
-// by hand is kept in for that visit. Presentation state only: reading or writing it saves nothing.
-// Server-safe, so the page and the workspace read the key the same way the browser writes it.
+// S247 and S258: live leases offer Guided and Full. The same parser recognizes older Focus
+// links and the legacy sample presentation. View selection changes presentation only.
 
 export const RENEWAL_WORKSPACE_VIEWS = ["guided", "focus", "full"] as const;
 export type RenewalWorkspaceView = (typeof RENEWAL_WORKSPACE_VIEWS)[number];
