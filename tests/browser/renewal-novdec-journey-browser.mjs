@@ -452,7 +452,7 @@ try {
     page.locator(`section[aria-label="Working batch"][data-batch-month="${month}"]`);
   const batchListed = (group) =>
     page
-      .locator(`[data-batch-list="${group}"] li[data-batch-lease]`)
+      .locator(`[data-batch-list="${group}"] tr[data-batch-lease]`)
       .evaluateAll((rows) => rows.map((row) => row.getAttribute("data-batch-lease")));
   await step(
     "S246-working-batch",
@@ -538,7 +538,7 @@ try {
 
         // R-S246-7: one short row. Names are text, and nothing opens a second tab.
         const row = page.locator(
-          '[data-batch-list="this_batch"] li[data-batch-lease="5001"]',
+          '[data-batch-list="this_batch"] tr[data-batch-lease="5001"]',
         );
         const rowText = (await row.innerText()).replace(/\s+/g, " ");
         assert.match(rowText, /Sample Pl/);
@@ -562,7 +562,7 @@ try {
         await opened.waitFor();
         assert.deepEqual(
           await opened
-            .locator("li[data-batch-lease]")
+            .locator("tr[data-batch-lease]")
             .evaluateAll((rows) =>
               rows.map((entry) => entry.getAttribute("data-batch-lease")),
             ),
@@ -588,7 +588,7 @@ try {
         // scroll position. A short viewport makes the page scroll.
         await page.setViewportSize({ width: 1360, height: 420 });
         const nextStep = opened.locator(
-          'li[data-batch-lease="6001"] [data-batch-next-step]',
+          'tr[data-batch-lease="6001"] [data-batch-next-step]',
         );
         await page.evaluate(() =>
           window.scrollTo(0, document.documentElement.scrollHeight),
@@ -848,7 +848,7 @@ try {
 
   const documentsUrl = `${origin}/lease-renewal/live/desk/lease/${LEASE}?step=document-packet`;
   const panel = () => page.locator('[data-renewal-field="returned-documents"]');
-  // Full view keeps every section; Focus view shows one task at a time.
+  // Full view keeps every section; Guided shows the current work.
   const openDocuments = async () => {
     await page.goto(documentsUrl, { waitUntil: "domcontentloaded" });
     await chooseFullView(page);
@@ -1922,14 +1922,10 @@ try {
       `${view} did not open`,
     );
   };
-  // Full view lists the issues under "Other current issues"; Focus lists them as lease notes.
-  const ISSUE_LISTS = {
-    full: "details.renewal-issues",
-    focus: 'ul.renewal-focus-advisories[aria-label="Lease notes"]',
-  };
-  const issueAt = (target, kind, linkName, list = "full") =>
+  const ISSUE_LISTS = { full: "details.renewal-issues" };
+  const issueAt = (target, kind, linkName) =>
     target
-      .locator(`${ISSUE_LISTS[list]} [data-renewal-issue-resolve-at="${kind}"]`)
+      .locator(`${ISSUE_LISTS.full} [data-renewal-issue-resolve-at="${kind}"]`)
       .filter({ hasText: linkName })
       .first();
   const expandIssues = async (target) => {
@@ -2107,39 +2103,42 @@ try {
 
   await step(
     "S232-resolver-focus",
-    "R-S232-5 (Focus states the same input, resolver and link)",
-    "Focus view states the same need, resolver and link for the notice timing as the issue list",
+    "R-S232-5 and R-S258-3 (the old detail link retains its exact resolver)",
+    "An old Focus detail link opens the same non-renewal handoff and retains the notice issue and resolver",
     async () => {
       activePage = admin;
       await openLease(admin, NOTICE_LEASE);
       const refreshedForNotice = await admittedNotice(admin);
       await expandIssues(admin);
-      const full = await issueRow(
-        issueAt(admin, "control", "Open the non-renewal handoff"),
+      const resolver = () => issueAt(admin, "control", "Open the non-renewal handoff");
+      const full = await issueRow(resolver());
+      const href = await resolver()
+        .getByRole("link", { name: "Open the non-renewal handoff", exact: true })
+        .getAttribute("href");
+      assert.equal(href, "#renewal-manual-non_renewal_handoff");
+      await admin.goto(
+        `${origin}/lease-renewal/live/desk/lease/${NOTICE_LEASE}?view=focus${href}`,
+        {
+          waitUntil: "domcontentloaded",
+        },
       );
-      // The same page load, switched to Focus view, so both views read one render.
-      const focusView = leaseView(admin, "Focus view");
-      for (let attempt = 0; attempt < 30; attempt += 1) {
-        await focusView.click();
-        if ((await focusView.getAttribute("aria-pressed")) === "true") break;
-        await admin.waitForTimeout(1000);
-      }
-      assert.equal(
-        await focusView.getAttribute("aria-pressed"),
-        "true",
-        "Focus view did not open",
+      await admin.waitForFunction(() =>
+        [
+          ...document.querySelectorAll(
+            '[data-renewal-view-switch] button[aria-pressed="true"]',
+          ),
+        ].some((button) => button.textContent === "Full view"),
       );
-      const issue = issueAt(admin, "control", "Open the non-renewal handoff", "focus");
-      await issue.waitFor();
-      const focus = (await issue.innerText()).replace(/\s+/g, " ");
-      assert.ok(full.includes(focus), `Focus differs from the issue list: ${focus}`);
+      await inView(admin, "renewal-manual-non_renewal_handoff");
+      await expandIssues(admin);
+      assert.equal(await issueRow(resolver()), full);
       assert.equal(
-        await issue
-          .getByRole("link", { name: "Open the non-renewal handoff" })
+        await resolver()
+          .getByRole("link", { name: "Open the non-renewal handoff", exact: true })
           .getAttribute("href"),
-        "#renewal-manual-non_renewal_handoff",
+        href,
       );
-      return { focus, refreshedForNotice };
+      return { exactResolver: href, refreshedForNotice };
     },
   );
 
@@ -2168,7 +2167,7 @@ try {
       desk.setDefaultTimeout(60_000);
       desk.setDefaultNavigationTimeout(180_000);
       const decemberTarget = () =>
-        desk.locator('[data-batch-list="this_batch"] li[data-batch-lease="5001"]');
+        desk.locator('[data-batch-list="this_batch"] tr[data-batch-lease="5001"]');
       const openDecember = () =>
         desk.goto(`${origin}/lease-renewal/live/desk?batch=2026-12`, {
           waitUntil: "domcontentloaded",

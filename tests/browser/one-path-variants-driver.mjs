@@ -227,7 +227,7 @@ export async function runVariants() {
     // R-S251-11: the additive tag key narrows the batch; the plain batch still reads as before.
     await desk("?tag=housing_assistance");
     const narrowed = await page
-      .locator("li[data-batch-lease]")
+      .locator("tr[data-batch-lease]")
       .evaluateAll((items) => items.map((item) => item.getAttribute("data-batch-lease")));
     check(
       "the batch narrows to the Housing assistance tag with ?tag=housing_assistance",

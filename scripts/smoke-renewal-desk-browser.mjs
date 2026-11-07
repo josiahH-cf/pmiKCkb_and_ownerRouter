@@ -596,7 +596,7 @@ async function verifyWorkingBatch() {
       "The opened count is not marked expanded.",
     );
     assert(
-      (await panel.locator("li[data-batch-lease]").count()) === openable.count,
+      (await panel.locator("tr[data-batch-lease]").count()) === openable.count,
       `The ${openable.group} count does not match the rows it opens.`,
     );
     if (openable.group === "not_targets") {
@@ -684,14 +684,14 @@ async function readWorkingBatch(page) {
         root.querySelector(".renewal-batch-summary")?.getAttribute("data-batch-count") ??
           "-1",
       ),
-      carried: leases('[data-batch-list="carried_over"] li[data-batch-lease]'),
-      current: leases('[data-batch-list="this_batch"] li[data-batch-lease]'),
+      carried: leases('[data-batch-list="carried_over"] tr[data-batch-lease]'),
+      current: leases('[data-batch-list="this_batch"] tr[data-batch-lease]'),
       counts: [...root.querySelectorAll("button[data-batch-group]")].map((button) => ({
         group: button.getAttribute("data-batch-group") ?? "",
         count: Number(button.getAttribute("data-batch-count") ?? "-1"),
       })),
       workRows: [
-        ...root.querySelectorAll('li[data-batch-lease][data-batch-row-kind="work"]'),
+        ...root.querySelectorAll('tr[data-batch-lease][data-batch-row-kind="work"]'),
       ].map((row) => ({
         id: row.getAttribute("data-batch-lease") ?? "",
         stageLines: row.querySelectorAll(".renewal-batch-stage").length,
@@ -803,7 +803,7 @@ async function verifyNarrowAndZoom() {
   await zoomContext.close();
 }
 
-// S247: a lease opens in Guided view, with Focus view and Full view beside it; the five-section
+// S247/S258: a lease opens in Guided view, with Full view beside it; the five-section
 // dashboard this smoke walks is the Full view, one choice away, and the chosen view is kept in the
 // address for the visit, so Back returns to it.
 async function waitForGuidedDefault(page) {
