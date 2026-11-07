@@ -61,7 +61,7 @@ const SCROLL_TO_TOP = new Function(
 // Anchor the settled Full section to an integer position below its own toolbar. In this long
 // workspace, chaining native alignment and scrollBy can leave otherwise identical captures one
 // pixel apart. This changes the framing only. The comparator still checks every scene pixel.
-const FRAME_TENANT_SECTION = new Function(
+const FRAME_WORKSPACE_SECTION = new Function(
   "heading",
   `const toolbar = heading.closest(".renewal-workspace-shell")
     ?.querySelector(".renewal-workspace-toolbar");
@@ -449,6 +449,14 @@ async function captureScene(scene) {
     await quiet(page);
     const region = locate(page, scene.region);
     await region.first().waitFor({ state: "visible" });
+    if (scene.id === "market-rent-comparison") {
+      // The comparison renders before the independent pricing read. Wait for the chooser
+      // rather than taking a picture while its loading status is still at the viewport edge.
+      await region
+        .first()
+        .getByRole("group", { name: "Pricing basis", exact: true })
+        .waitFor({ state: "visible" });
+    }
     const framed = scene.region && scene.region !== "page";
     if (framed && scene.frame === "viewport") {
       // Frame the region, let the page settle and confirm it is still where it was put; a late
@@ -468,10 +476,10 @@ async function captureScene(scene) {
       );
     } else if (framed) await region.first().scrollIntoViewIfNeeded();
     await quiet(page);
-    if (scene.id === "tenant-offer")
+    if (scene.id === "lease-details" || scene.id === "tenant-offer")
       assert.ok(
-        await region.first().evaluate(FRAME_TENANT_SECTION),
-        "The Tenant offer heading must frame below the settled toolbar.",
+        await region.first().evaluate(FRAME_WORKSPACE_SECTION),
+        `The ${scene.id} heading must frame below the settled toolbar.`,
       );
     verifySearchTime?.();
     let verifiedText = [];

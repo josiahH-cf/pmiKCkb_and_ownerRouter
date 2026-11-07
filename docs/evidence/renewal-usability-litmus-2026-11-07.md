@@ -114,6 +114,17 @@ Staff session: none
   references, two unregistered route entries and an empty trailing separator in the lease target
   display. Firestore, build and served E2E did not start in that run.
 
+- L14 on `dbb7778f` in `canonical-dbb7778f-20261107T192420Z`. The rendered
+  Help check passed with all 27 scenes matched. TypeScript rejected a Playwright-only
+  option on a Testing Library role query and stopped before units.
+
+- L13 and L14 on `8a2e231c` in `canonical-8a2e231c-20261107T193901Z`. The
+  rendered Help gate refused two scenes. Comparing the retained images showed a one-pixel
+  displacement below the sticky Lease details toolbar and a missing Pricing basis legend
+  at the bottom of Compare market rent. The unchanged source and first six hundred pixels
+  of comparison content separated the second difference from a layout shift. The gate
+  exited 1 before formatting, lint, typecheck or tests.
+
 ## Repairs
 
 - L03 now waits for the initial collection list before enabling New collection. The focused
@@ -149,6 +160,11 @@ The lease target no longer emits a separator without a following reason. The exa
 `6c7bc686` capture review `20261107T191941Z-6c7bc686` generated all 27 scenes.
 Nine visually reviewed images show the corrected target line. Five exceeded the
 material tile threshold and four differed only at the separator glyph.
+The default accessible-name matcher replaced the incompatible assertion option.
+Typecheck and all six focused desk tests passed before restarting the gate.
+Lease details now uses the same integer-pixel placement as the settled Tenant offer.
+Compare market rent waits for the actual Pricing basis fieldset before framing. The
+material-difference thresholds and required control checks are unchanged.
 
 ## Final observations
 
