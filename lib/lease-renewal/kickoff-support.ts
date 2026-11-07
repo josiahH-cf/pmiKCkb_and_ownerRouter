@@ -1,3 +1,4 @@
+import { readSenderSignatureChoice } from "@/lib/firestore/renewal-sender-signature-choice";
 // S249 ARCH-S249-1: the one bulk read the preparation projection needs beyond the desk's own
 // sources: the stored comps lookups of the loaded leases, whether the signed-in sender has a
 // signature, whether the owner template is approved, this month's comparison allowance and the
@@ -8,7 +9,6 @@ import type { Firestore } from "firebase-admin/firestore";
 
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { getAdminFirestore } from "@/lib/firestore/admin";
-import { readBusinessProfile } from "@/lib/firestore/presentation-settings";
 import { getSuppliedRenewalPublication } from "@/lib/firestore/renewal-message-publication";
 import { getRetainedSenderSignature } from "@/lib/firestore/renewal-sender-signatures";
 import { RENEWAL_WORKSPACE_COLLECTIONS } from "@/lib/firestore/renewal-workspace";
@@ -61,23 +61,12 @@ export async function listCompObservationsForLeases(
 }
 
 /** The signed-in sender has a business profile or a retained sender signature. */
-export async function readSenderSignatureReady(
-  actor: AuthenticatedUser,
-  db: Firestore = getAdminFirestore(),
-): Promise<boolean | null> {
-  const [profile, retained] = await Promise.all([
-    readBusinessProfile(actor, actor.uid, db).then(
-      (value) => value,
-      () => undefined,
-    ),
-    getRetainedSenderSignature(actor, db).then(
-      (value) => value,
-      () => undefined,
-    ),
+export async function readSenderSignatureReady(actor: AuthenticatedUser, db: Firestore) {
+  const [choice, retained] = await Promise.all([
+    readSenderSignatureChoice(actor, db),
+    getRetainedSenderSignature(actor, db),
   ]);
-  if (profile || retained) return true;
-  if (profile === undefined || retained === undefined) return null;
-  return false;
+  return Boolean(choice || retained);
 }
 
 export async function readKickoffSupport(

@@ -169,7 +169,7 @@ export type MessageCharge = z.infer<typeof MessageChargeSchema>;
 
 export const ManagedMessageSignatureSchema = z
   .object({
-    name: shortText,
+    name: z.string().trim().max(240),
     email: z
       .string()
       .email()
@@ -206,6 +206,9 @@ export const RenewalMessageEditsSchema = z
 export type RenewalMessageEdits = z.infer<typeof RenewalMessageEditsSchema>;
 
 export interface RenewalMessageFacts {
+  readonly outgoingContract?: boolean;
+  readonly ownerIntent?: "recommend_rent" | "renew_or_not";
+  readonly signatureConfigured?: boolean;
   channel: "owner" | "tenant";
   names: string[];
   /**
@@ -397,7 +400,18 @@ export function composeRenewalMessage(
     property_address: address ?? missingValueMarker("property address"),
   });
 
-  if (facts.channel === "owner") {
+  if (facts.channel === "owner" && facts.ownerIntent === "renew_or_not") {
+    add(
+      fillSuppliedCopy(SUPPLIED_RENEWAL_COPY.owner.introduction, {
+        property_address: address ?? missingValueMarker("property address"),
+      }),
+    );
+    add(
+      edits.responseRequest ||
+        "Would you like to renew the lease with the current tenant?",
+    );
+    add(SUPPLIED_RENEWAL_COPY.owner.closing);
+  } else if (facts.channel === "owner") {
     add(
       fillSuppliedCopy(SUPPLIED_RENEWAL_COPY.owner.introduction, {
         property_address: address ?? missingValueMarker("property address"),
@@ -415,13 +429,15 @@ export function composeRenewalMessage(
     const high = money(facts.range?.high);
     const rangeKnown = Boolean(low && high && facts.range!.low <= facts.range!.high);
     if (rangeKnown) sourced(facts.range!.source);
-    else note("range", "The comparable rent range is not available yet.");
-    add(
-      fillSuppliedCopy(SUPPLIED_RENEWAL_COPY.owner.market, {
-        market_low: rangeKnown ? low! : missingValueMarker("low comparable rent"),
-        market_high: rangeKnown ? high! : missingValueMarker("high comparable rent"),
-      }),
-    );
+    else if (!facts.outgoingContract)
+      note("range", "The comparable rent range is not available yet.");
+    if (rangeKnown || !facts.outgoingContract)
+      add(
+        fillSuppliedCopy(SUPPLIED_RENEWAL_COPY.owner.market, {
+          market_low: rangeKnown ? low! : missingValueMarker("low comparable rent"),
+          market_high: rangeKnown ? high! : missingValueMarker("high comparable rent"),
+        }),
+      );
     add(edits.responseRequest || SUPPLIED_RENEWAL_COPY.owner.request);
     let listed = 0;
     for (const { value: comp } of firstUsableComparables(facts.comps).entries) {
@@ -440,7 +456,7 @@ export function composeRenewalMessage(
       ]);
       listed += 1;
     }
-    if (!listed && !facts.attachments.length) {
+    if (!listed && !facts.attachments.length && !facts.outgoingContract) {
       add(missingValueMarker("comparable listings"));
       note("comps", "Comparable listings are not saved yet.");
     }
@@ -471,6 +487,12 @@ export function composeRenewalMessage(
         `${fillSuppliedCopy(SUPPLIED_RENEWAL_COPY.owner.suggestion, {
           suggested_rent: suggested,
         })}${reason ? ` ${reason}` : ""}`,
+      );
+    } else if (facts.ownerIntent === "recommend_rent") {
+      add(missingValueMarker("rent to recommend"));
+      note(
+        "recommendedRent",
+        "Enter the rent to recommend before releasing the owner message.",
       );
     }
     add(SUPPLIED_RENEWAL_COPY.owner.consideration);
@@ -597,14 +619,15 @@ export function composeRenewalMessage(
       }
     }
     add(edits.responseRequest || SUPPLIED_RENEWAL_COPY.tenant.response);
-    add(SUPPLIED_RENEWAL_COPY.tenant.informationForm);
     const form = link(facts.informationForm);
+    if (form || !facts.outgoingContract)
+      add(SUPPLIED_RENEWAL_COPY.tenant.informationForm);
     if (form) {
       sourced(form.source);
       paragraphs.push([
         { text: SUPPLIED_RENEWAL_COPY.tenant.informationLinkLabel, href: form.url },
       ]);
-    } else {
+    } else if (!facts.outgoingContract) {
       add(missingValueMarker("renewal information form link"));
       note("informationForm", "The renewal information form link is not saved yet.");
     }
@@ -616,7 +639,9 @@ export function composeRenewalMessage(
   if (signature.success) {
     const value = signature.data;
     sourced(value.source);
-    const lines: MessageRun[] = [{ text: value.name, emphasis: "name" }];
+    const lines: MessageRun[] = value.name
+      ? [{ text: value.name, emphasis: "name" }]
+      : [];
     if (value.role) lines.push({ text: value.role, emphasis: "role" });
     for (const line of [value.phone, value.hours]) if (line) lines.push({ text: line });
     lines.push({ text: value.email, href: `mailto:${value.email}` });
@@ -627,7 +652,7 @@ export function composeRenewalMessage(
     paragraphs.push(
       lines.map((r, index) => ({ ...r, ...(index ? { breakBefore: true } : {}) })),
     );
-  } else {
+  } else if (!facts.signatureConfigured) {
     add(missingValueMarker("sender signature"));
     note("signature", "Your sender signature is not entered yet.");
   }

@@ -26,9 +26,10 @@ import {
   type ReactNode,
 } from "react";
 
+import { formatMoneyReference } from "@/lib/lease-renewal/current-rent-display";
+import { RenewalDeskSurfaceSwitch } from "./RenewalDeskSurfaceSwitch";
 import { Button, ConfirmationDialog, Notice } from "@/components/ui";
 import {
-  RENEWAL_DESK_ALL_LEASES_HREF,
   RENEWAL_WORKSPACE_ROUTE_PREFIX,
   buildWorkspaceHref,
   renewalBatchHref,
@@ -376,9 +377,21 @@ export function RenewalWorkingBatch({
       data-batch-total={partition.total}
       onClickCapture={noteLeaseOpen}
     >
+      <RenewalDeskSurfaceSwitch active="batch" />
+      {savedViewHref ? (
+        <Link className="text-link" href={savedViewHref} prefetch={false}>
+          Open my saved view
+        </Link>
+      ) : null}
       <div className="renewal-batch-lead">
         <p className="renewal-batch-summary" data-batch-count={count} role="status">
           {renewalBatchSummary(month, count)}
+        </p>
+        <p className="muted renewal-batch-note">
+          {partition.counts.carried_over} carried over ·{" "}
+          <a className="text-link" href="#renewal-this-batch">
+            Go to this batch
+          </a>
         </p>
         <nav aria-label="Working month" className="renewal-batch-months">
           {monthLink(previousMonth, "Previous month")}
@@ -543,7 +556,7 @@ export function RenewalWorkingBatch({
             {openRows.length === 0 ? (
               <p className="muted renewal-batch-note">No leases are in this group.</p>
             ) : (
-              <ul className="renewal-batch-rows">
+              <BatchTable label={RENEWAL_BATCH_GROUP_LABELS[openGroup]}>
                 {openRows.map((row) => (
                   <BatchRow
                     actions={
@@ -589,22 +602,11 @@ export function RenewalWorkingBatch({
                     row={row}
                   />
                 ))}
-              </ul>
+              </BatchTable>
             )}
           </div>
         ) : null}
       </section>
-
-      <nav aria-label="Other views of these leases" className="renewal-batch-views">
-        <Link className="text-link" href={RENEWAL_DESK_ALL_LEASES_HREF} prefetch={false}>
-          All leases and filters
-        </Link>
-        {savedViewHref ? (
-          <Link className="text-link" href={savedViewHref} prefetch={false}>
-            Open my saved view
-          </Link>
-        ) : null}
-      </nav>
 
       <ConfirmationDialog
         busy={busy?.choice === "confirm_source_renewal"}
@@ -668,16 +670,17 @@ function BatchList({
     rows.some((row) => row.kickoffGroup === "ready" || row.kickoffGroup === "missing")
       ? thisBatchParts(rows)
       : null;
-  const list = (items: readonly RenewalBatchRowView[]) => (
-    <ul className="renewal-batch-rows">
+  const list = (items: readonly RenewalBatchRowView[], tableLabel: string) => (
+    <BatchTable label={tableLabel}>
       {items.map((row) => (
         <BatchRow continuation={continuation} group={group} key={row.key} row={row} />
       ))}
-    </ul>
+    </BatchTable>
   );
   return (
     <section
       aria-label={label}
+      id={group === "this_batch" ? "renewal-this-batch" : undefined}
       className="ui-stack renewal-batch-group"
       data-batch-count={rows.length}
       data-batch-list={group}
@@ -706,14 +709,38 @@ function BatchList({
               <h3 className="renewal-batch-subheading">
                 {heading} ({items.length})
               </h3>
-              {list(items)}
+              {list(items, heading)}
             </section>
           ),
         )
       ) : (
-        list(rows)
+        list(rows, label)
       )}
     </section>
+  );
+}
+
+function BatchTable({
+  children,
+  label,
+}: Readonly<{ children: ReactNode; label: string }>) {
+  return (
+    <div className="renewal-batch-table-scroll">
+      <table className="renewal-batch-table">
+        <caption className="sr-only">{label}</caption>
+        <thead>
+          <tr>
+            <th scope="col">Lease and tenants</th>
+            <th scope="col">Next action</th>
+            <th scope="col">Cycle or review date</th>
+            <th scope="col">Stage and context</th>
+            <th scope="col">Current base rent</th>
+            <th scope="col">Rent to recommend</th>
+          </tr>
+        </thead>
+        <tbody>{children}</tbody>
+      </table>
+    </div>
   );
 }
 
@@ -752,84 +779,109 @@ function BatchRow({
         })
       : null;
   return (
-    <li
+    <tr
       className="renewal-batch-row"
       data-batch-group={group}
       data-batch-lease={row.leaseId}
       data-batch-row-kind={workRow ? "work" : "context"}
     >
-      <span className="renewal-batch-row-identity">
+      <th scope="row">
+        <div className="renewal-batch-row-identity">
+          {leaseHref ? (
+            // The row's own link covers the row, so choosing anywhere on it opens the lease in
+            // this tab; the names beside it are text.
+            <Link className="renewal-batch-lease" href={leaseHref} prefetch={false}>
+              {title}
+            </Link>
+          ) : (
+            <span className="renewal-batch-lease">{title}</span>
+          )}
+          <span className="renewal-batch-tenants">
+            {row.tenants.length > 0
+              ? row.tenants.join(", ")
+              : "Tenant names need a check"}
+          </span>
+        </div>
+      </th>
+      <td>
         {leaseHref ? (
-          // The row's own link covers the row, so choosing anywhere on it opens the lease in
-          // this tab; the names beside it are text.
-          <Link className="renewal-batch-lease" href={leaseHref} prefetch={false}>
-            {title}
+          <Link
+            className="text-link renewal-batch-next"
+            data-batch-next-step="true"
+            href={leaseHref}
+            prefetch={false}
+          >
+            {workRow ? row.nextStep.label : "Open the lease"}
           </Link>
         ) : (
-          <span className="renewal-batch-lease">{title}</span>
+          <span className="muted renewal-batch-next">
+            Lease record needs a check before it can open
+          </span>
         )}
-        <span className="renewal-batch-tenants">
-          {row.tenants.length > 0 ? row.tenants.join(", ") : "Tenant names need a check"}
-        </span>
-      </span>
-      <span className="renewal-batch-date">{row.dateLabel}</span>
-      {row.dateNote ? (
-        <span className="renewal-batch-date-note">{row.dateNote}</span>
-      ) : null}
-      {workRow ? (
-        <span className="renewal-batch-stage">{row.stageLine}</span>
-      ) : row.reason ? (
-        <span className="renewal-batch-reason">{row.reason}</span>
-      ) : null}
-      {row.statusNote ? (
-        <span className="renewal-batch-status-note">{row.statusNote}</span>
-      ) : null}
-      {row.suggestion ? (
-        // S251 R-S251-10: RentVine wording that mentions housing assistance is a suggestion only.
-        <span
-          className="muted renewal-batch-suggestion"
-          data-batch-suggestion="housing_assistance"
-        >
-          {row.suggestion}
-        </span>
-      ) : null}
-      {workRow && row.kickoff && row.kickoffGroup === "missing" && kickoffFixHref ? (
-        // S249 R-S249-11: the missing input, named, opening the lease where its fix is.
-        <Link
-          className="text-link renewal-batch-kickoff"
-          data-batch-kickoff="missing"
-          href={kickoffFixHref}
-          prefetch={false}
-        >
-          {row.kickoff.allowanceReached
-            ? `${row.kickoff.line}. ${KICKOFF_WORDS.ownFigures}`
-            : row.kickoff.line}
-        </Link>
-      ) : null}
-      {workRow && row.tags.length > 0 ? (
-        <ul aria-label="Tags" className="renewal-batch-tags">
-          {row.tags.map((tag) => (
-            <li className="queue-pill" data-batch-tag={tag.key} key={tag.key}>
-              {tag.label}
-            </li>
-          ))}
-        </ul>
-      ) : null}
-      {leaseHref ? (
-        <Link
-          className="text-link renewal-batch-next"
-          data-batch-next-step="true"
-          href={leaseHref}
-          prefetch={false}
-        >
-          {workRow ? row.nextStep.label : "Open the lease"}
-        </Link>
-      ) : (
-        <span className="muted renewal-batch-next">
-          Lease record needs a check before it can open
-        </span>
-      )}
-      {actions}
-    </li>
+        {actions}
+      </td>
+      <td>
+        <span className="renewal-batch-date">{row.dateLabel}</span>
+        {row.dateNote ? (
+          <span className="renewal-batch-date-note">{row.dateNote}</span>
+        ) : null}
+      </td>
+      <td>
+        {workRow ? (
+          <span className="renewal-batch-stage">{row.stageLine}</span>
+        ) : row.reason ? (
+          <span className="renewal-batch-reason">{row.reason}</span>
+        ) : null}
+        {row.statusNote ? (
+          <span className="renewal-batch-status-note">{row.statusNote}</span>
+        ) : null}
+        {row.suggestion ? (
+          // S251 R-S251-10: RentVine wording that mentions housing assistance is a suggestion only.
+          <span
+            className="muted renewal-batch-suggestion"
+            data-batch-suggestion="housing_assistance"
+          >
+            {row.suggestion}
+          </span>
+        ) : null}
+        {workRow && row.kickoff && row.kickoffGroup === "missing" && kickoffFixHref ? (
+          // S249 R-S249-11: the missing input, named, opening the lease where its fix is.
+          <Link
+            className="text-link renewal-batch-kickoff"
+            data-batch-kickoff="missing"
+            href={kickoffFixHref}
+            prefetch={false}
+          >
+            {row.kickoff.allowanceReached
+              ? `${row.kickoff.line}. ${KICKOFF_WORDS.ownFigures}`
+              : row.kickoff.line}
+          </Link>
+        ) : null}
+        {workRow && row.tags.length > 0 ? (
+          <ul aria-label="Tags" className="renewal-batch-tags">
+            {row.tags.map((tag) => (
+              <li className="queue-pill" data-batch-tag={tag.key} key={tag.key}>
+                {tag.label}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </td>
+      <td>
+        {row.currentBaseRent == null
+          ? "Needs a check"
+          : formatMoneyReference(row.currentBaseRent)}
+      </td>
+      <td>
+        {row.recommendedRent ? (
+          <>
+            {formatMoneyReference(row.recommendedRent.value)}
+            <span className="renewal-batch-date-note">{row.recommendedRent.basis}</span>
+          </>
+        ) : (
+          "—"
+        )}
+      </td>
+    </tr>
   );
 }

@@ -49,7 +49,7 @@ export const HELP_GLOSSARY: readonly HelpGlossaryTerm[] = [
     id: "guided-view",
     term: "Guided view",
     definition:
-      "The view a lease opens in: the stage line, the Renewal path with every step of this lease and one Now card with the next action. Focus view and Full view show the same lease; choosing a view or a step saves nothing.",
+      "The view a lease opens in: the stage line, the Renewal path with every step of this lease and one Now card with the next action. Guided and Full show the same lease; choosing a view or a step saves nothing.",
     relatedGuides: ["work-a-renewal"],
   },
   {

@@ -1,5 +1,7 @@
 "use client";
 
+import { RenewalSenderSignatureForm } from "./RenewalSenderSignatureForm";
+
 // S249 ARCH-S249-2 / R-S249-7 to R-S249-12: the lease's ONE message record on the Now card. The
 // message editor (RenewalMessagePreparation) holds the record and gives this block its live
 // content, so the preview, "Review and send", "Schedule", "Create Gmail draft instead", "Copy" and
@@ -66,6 +68,7 @@ export interface PreparedSignatureFields {
 export type PreparedMessageData = Omit<
   PreparedMessageApi,
   | "saveSignature"
+  | "onSignatureSetupSaved"
   | "setReason"
   | "commitReason"
   | "flush"
@@ -85,6 +88,7 @@ export type PreparedMessageData = Omit<
 /** The editor's own actions, each its own prop (they read the editor's save state when run). */
 export interface PreparedMessageHandlers {
   readonly onSaveSignature: PreparedMessageApi["saveSignature"];
+  readonly onSignatureSetupSaved?: () => Promise<void>;
   readonly onReasonChange: PreparedMessageApi["setReason"];
   readonly onReasonCommit: PreparedMessageApi["commitReason"];
   readonly onFlush: PreparedMessageApi["flush"];
@@ -134,6 +138,8 @@ export interface PreparedMessageApi {
   /** The marked values the message still carries, in its own words. */
   readonly marked: readonly string[];
   readonly signaturePresent: boolean;
+  readonly outgoingReasons?: readonly string[];
+  readonly onSignatureSetupSaved?: () => Promise<void>;
   /** Fill and save the sender's own signature on this message (it is kept for the sender). */
   readonly saveSignature: (fields: PreparedSignatureFields) => string | null;
   readonly reason: string;
@@ -292,6 +298,7 @@ function tomorrowIso(): string {
 export function PreparedMessageSlot({
   data,
   onSaveSignature,
+  onSignatureSetupSaved,
   onReasonChange,
   onReasonCommit,
   onFlush,
@@ -312,6 +319,7 @@ export function PreparedMessageSlot({
     returnToStandardWording: onReturnToStandardWording,
     undoWording: onUndoWording,
     saveSignature: onSaveSignature,
+    onSignatureSetupSaved,
     setReason: onReasonChange,
     commitReason: onReasonCommit,
     flush: onFlush,
@@ -645,7 +653,10 @@ function PreparedMessageBlock({
         setChangedReview(changedMessage);
         return;
       }
-      const rendered = renderEditableCommunicationBody(saved.sequence.initial.paragraphs);
+      const rendered = renderEditableCommunicationBody(
+        saved.sequence.initial.paragraphs,
+        saved.sequence.initial.layout,
+      );
       setReview({
         mode,
         sequence: saved.sequence,
@@ -875,7 +886,30 @@ function PreparedMessageBlock({
           </li>
         ))}
       </ul>
-      {signatureOpen ? (
+      {api.onSignatureSetupSaved && api.signaturePresent && !signatureOpen ? (
+        <Button size="compact" variant="tertiary" onClick={() => setSignatureOpen(true)}>
+          Edit signature
+        </Button>
+      ) : null}
+      {api.outgoingReasons?.length ? (
+        <ul aria-label="Requirements before outgoing work">
+          {api.outgoingReasons.map((reason) => (
+            <li key={reason}>{reason}</li>
+          ))}
+        </ul>
+      ) : null}
+      {signatureOpen && api.onSignatureSetupSaved ? (
+        <RenewalSenderSignatureForm
+          onCancel={() => setSignatureOpen(false)}
+          onSaved={async (choice) => {
+            await api.onSignatureSetupSaved?.();
+            setSignatureOpen(false);
+            setSignatureNotice(
+              choice.signature ? "Signature saved." : "Blank signature saved.",
+            );
+          }}
+        />
+      ) : signatureOpen ? (
         // R-S249-11 / L45: a staff member with no signature sets one up here, on the lease.
         <form
           aria-label="Your signature"

@@ -228,11 +228,6 @@ export default async function LiveRenewalDeskPage({
   return (
     <AppShell user={user}>
       <section className="content content--workspace" role="main">
-        {entry.surface === "table" ? (
-          <Link className="back-link" href="/lease-renewal">
-            ← Renewals
-          </Link>
-        ) : null}
         {outcome.status === "ok" ? (
           <RenewalDesk
             batch={batch}

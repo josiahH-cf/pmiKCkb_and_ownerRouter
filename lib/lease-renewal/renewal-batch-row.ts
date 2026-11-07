@@ -18,6 +18,7 @@ import {
   renewalBatchPlacement,
   type RenewalBatchItem,
 } from "@/lib/lease-renewal/renewal-batch";
+import { cycleDispositionHold } from "./cycle-disposition";
 import { RENTVINE_STATUS_UNAVAILABLE_LABEL } from "@/lib/lease-renewal/renewal-target";
 import { HOUSING_ASSISTANCE_SUGGESTION } from "@/lib/lease-renewal/cohort";
 import { RENEWAL_PATH_DEFINITION } from "@/lib/lease-renewal/renewal-path";
@@ -214,6 +215,8 @@ export interface RenewalBatchRowView extends RenewalBatchItem {
   /** A second date fact when the cycle date and the RentVine lease end differ. */
   readonly dateNote: string | null;
   readonly stageLine: string;
+  readonly currentBaseRent?: number | null;
+  readonly recommendedRent?: { value: number; basis: string } | null;
   readonly nextStep: RenewalBatchNextStep;
   readonly tags: readonly RenewalBatchTag[];
   /** R-S246-12: "RentVine status unavailable" when the lease status could not be read. */
@@ -269,6 +272,8 @@ function kickoffFor(row: DeskLeaseRow): {
   group: KickoffOrderGroup;
   view: RenewalBatchRowView["kickoff"];
 } {
+  if (cycleDispositionHold(row.renewalTarget?.cycleDisposition))
+    return { group: "other", view: null };
   const preparation = row.kickoff;
   const stage = row.renewalStage;
   const group = kickoffOrderGroup({
@@ -353,9 +358,26 @@ export function projectRenewalBatchRow(
     dateIso,
     dateNote,
     stageLine: stage.stageLine,
+    currentBaseRent: row.currentRent,
+    recommendedRent:
+      row.kickoff?.rent.value != null && !cycleDispositionHold(target?.cycleDisposition)
+        ? { value: row.kickoff.rent.value, basis: row.kickoff.rent.basis }
+        : null,
     nextStep: stage.nextStep,
     tags: renewalBatchRowTags(row, stage),
-    statusNote: target?.statusUnavailable ? RENTVINE_STATUS_UNAVAILABLE_LABEL : null,
+    statusNote:
+      [
+        target?.statusUnavailable
+          ? RENTVINE_STATUS_UNAVAILABLE_LABEL
+          : target?.cycleDisposition?.state === "retired" && target.statusName
+            ? `RentVine: ${target.statusName}`
+            : null,
+        target?.cycleDisposition?.state === "unavailable"
+          ? "Retirement status unavailable"
+          : null,
+      ]
+        .filter(Boolean)
+        .join(" · ") || null,
     suggestion:
       row.housingAssistanceMention && !row.housingAssistance
         ? HOUSING_ASSISTANCE_SUGGESTION

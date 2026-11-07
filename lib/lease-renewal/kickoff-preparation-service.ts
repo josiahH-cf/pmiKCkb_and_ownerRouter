@@ -64,6 +64,8 @@ export interface KickoffLeaseRead {
   readonly cycleDateIso: string | null;
   /** True when the lease is a renewal target in the default working month. */
   readonly inWorkingBatch: boolean;
+  readonly dispositionHold?: string | null;
+  readonly dispositionRevision?: number;
   /** The work record's cycle the lookup is stored under; null before one exists. */
   readonly workRecordCycleId: string | null;
   /** S251: the lease's Housing assistance Yes fact; null when not set or No. */
@@ -114,6 +116,7 @@ export interface KickoffPreparationDeps {
     trigger: KickoffTrigger;
     actorUid: string;
     operationId: string;
+    dispositionRevision?: number;
   }) => Promise<
     | { claimed: true; record: KickoffPreparationRecord }
     | { claimed: false; record: KickoffPreparationRecord; sameOperation: boolean }
@@ -184,6 +187,8 @@ export async function runKickoffPreparation(
       "source_unavailable",
       "The lease could not be read just now, so no comparison was started.",
     );
+  if (lease.dispositionHold)
+    return refuse("outside_working_batch", lease.dispositionHold, lease.cycleDateIso);
   if (input.trigger === "automatic" && !lease.inWorkingBatch)
     return refuse(
       "outside_working_batch",
@@ -238,6 +243,9 @@ export async function runKickoffPreparation(
       message: KICKOFF_WORDS.allowanceReached,
     };
   const claim = await deps.claim({
+    ...(lease.dispositionRevision !== undefined
+      ? { dispositionRevision: lease.dispositionRevision }
+      : {}),
     leaseId: input.leaseId,
     cycleKey,
     trigger: input.trigger,

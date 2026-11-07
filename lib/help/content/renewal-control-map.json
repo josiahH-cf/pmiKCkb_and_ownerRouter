@@ -844,11 +844,11 @@
   {
     "step": "79",
     "page": "workspace:verify-renewal",
-    "control": "Focus view",
+    "control": "Full view",
     "role": "button",
     "scope": "group:Lease view",
     "availability": "required",
-    "expectation": "One task at a time; switching views saves nothing.",
+    "expectation": "Shows all lease sections while retaining the same lease context.",
     "source": ["lib/lease-renewal/workspace-view.ts"],
     "actions": []
   },
@@ -888,12 +888,12 @@
   {
     "step": "83",
     "page": "workspace:verify-renewal",
-    "control": "Set status by hand",
+    "control": "Record work",
     "role": "button",
-    "scope": "region:Now",
+    "scope": "region:Current renewal stage",
     "availability": "required",
-    "expectation": "Opens Work status (recorded by staff); a hand-set status that differs from the stage shows both.",
-    "source": ["components/lease-renewal/RenewalGuidedView.tsx"],
+    "expectation": "Opens the applicable staff work records. Choosing an event opens its form without recording work.",
+    "source": ["components/lease-renewal/RenewalStageHeader.tsx"],
     "actions": []
   },
   {

@@ -411,7 +411,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
     routes: [LEASE],
     who: "Renewal staff",
     summary:
-      "The lease page holds one renewal from its facts to completion. A lease opens in Guided view: the stage line, the Renewal path from Check the numbers to Complete, and one Now card with the step's one primary action, such as Review and send, and the step's own controls shown in place. Focus view shows one task at a time, and Full view shows every section: Lease details, Market rent comparison, Owner approval, Tenant offer and response, and Documents and completion. Recorded work saves in the app, a message goes out only after your Send this message, and RentVine and the operating Sheet change only through an exact preview you confirm yourself.",
+      "The lease page holds one renewal from its facts to completion. A lease opens in Guided view: the stage line, the Renewal path from Check the numbers to Complete, and one Now card with the step's one primary action, such as Review and send, and the step's own controls shown in place. Full view shows every section: Lease details, Market rent comparison, Owner approval, Tenant offer and response, and Documents and completion. Recorded work saves in the app, a message goes out only after your Send this message, and RentVine and the operating Sheet change only through an exact preview you confirm yourself.",
     controls: [
       ...WORKSPACE_MAP_CONTROLS,
       ...WORKSPACE_ABOUT_CONTROLS,
@@ -478,12 +478,12 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         route: LEASE,
       },
       {
-        label: "Show this task in Full view",
+        label: "Record work",
         role: "button",
-        region: "region:Focus view",
-        availability: "conditional",
-        source: ["components/lease-renewal/RenewalFocusViewPane.tsx"],
-        does: "Opens Full view at the controls for the task Focus view shows.",
+        region: "region:Current renewal stage",
+        availability: "required",
+        source: ["components/lease-renewal/RenewalStageHeader.tsx"],
+        does: "Opens the applicable existing work forms. Choosing an event opens the form.",
         who: "Renewal staff",
         route: LEASE,
       },
@@ -1107,6 +1107,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
       {
         label: "Selected lease IDs",
         role: "label",
+        actions: ["click-button:New collection"],
         region: "region:Collection membership editor",
         availability: "required",
         source: COLLECTIONS,
@@ -1114,7 +1115,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         who: "Renewal staff",
       },
       {
-        label: "Review monthly leases",
+        label: "Review membership",
         role: "button",
         region: "region:Collection membership editor",
         availability: "conditional",
@@ -1148,7 +1149,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         who: "Renewal staff",
       },
       {
-        label: "Refresh current status",
+        label: "Refresh statuses",
         role: "button",
         region: "region:Current collection status",
         availability: "conditional",

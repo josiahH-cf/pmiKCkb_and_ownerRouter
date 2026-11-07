@@ -30,7 +30,7 @@ export function buildSuppliedRenewalDraftPreview(
 ): RenewalDraftPreview {
   const { content, saved, workspace, publication } = current;
   const channel = content.channel;
-  const reasons: string[] = [];
+  const reasons: string[] = [...(current.outgoingReasons ?? [])];
   const noticeBlock = manualNonRenewalReason(workspace) ?? current.noticeBlock;
   if (noticeBlock) reasons.push(noticeBlock);
   if (!current.basis.noticeSafety)

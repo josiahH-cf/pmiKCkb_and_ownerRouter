@@ -107,6 +107,14 @@ export const ADMIN_TASK_GROUPS: readonly AdminTaskGroup[] = [
     description: "Manage who can use the app and which existing role they hold.",
     links: [
       {
+        id: "admin-business-profiles",
+        label: "Business profiles and application name",
+        description: "Review approved staff presentation and the application name.",
+        href: "/admin/presentation",
+        requiredCapability: "manageAdmin",
+        surface: "admin",
+      },
+      {
         id: "admin-my-access",
         label: "My access and requests",
         description:
@@ -147,6 +155,14 @@ export const ADMIN_TASK_GROUPS: readonly AdminTaskGroup[] = [
     description: "Find stops, notification health, support reports, and audit evidence.",
     links: [
       {
+        id: "admin-approval-notifications",
+        label: "Approval notifications",
+        description: "Review the queue email controls and last recorded health.",
+        href: "/admin#admin-approval-notifications",
+        requiredCapability: "manageAdmin",
+        surface: "admin",
+      },
+      {
         id: "admin-runtime-suspensions",
         label: "Production action stops",
         description: "Review or change the existing runtime suspension controls.",
@@ -177,6 +193,38 @@ export const ADMIN_TASK_GROUPS: readonly AdminTaskGroup[] = [
     label: "Renewal policy",
     description: "Find the existing notice and pricing policy controls.",
     links: [
+      {
+        id: "admin-move-out-timing-basis",
+        label: "Move-out timing basis",
+        description: "Review the recorded notice timing decision.",
+        href: "/admin#admin-move-out-timing-basis",
+        requiredCapability: "manageAdmin",
+        surface: "admin",
+      },
+      {
+        id: "admin-policy-material",
+        label: "Renewal policy material",
+        description: "Review the versions that supply policy guidance.",
+        href: "/admin#admin-policy-material",
+        requiredCapability: "manageAdmin",
+        surface: "admin",
+      },
+      {
+        id: "admin-renewal-packet-policy",
+        label: "Renewal packet policy",
+        description: "Review family use and the applicable charge policy.",
+        href: "/admin#admin-renewal-packet-policy",
+        requiredCapability: "manageAdmin",
+        surface: "admin",
+      },
+      {
+        id: "admin-lease-artifact-intake",
+        label: "Lease document intake",
+        description: "Check originals, approval and returned document readiness.",
+        href: "/admin#admin-lease-artifact-intake",
+        requiredCapability: "manageAdmin",
+        surface: "admin",
+      },
       {
         id: "admin-renewal-notice-rules",
         label: "Renewal notice rules",
@@ -210,6 +258,23 @@ export const ADMIN_TASK_GROUPS: readonly AdminTaskGroup[] = [
     description:
       "Read connection health first, then open only the existing Admin setup tools.",
     links: [
+      {
+        id: "admin-app-readiness",
+        label: "Application readiness",
+        description:
+          "Check indexing, notification destinations, and communication retention.",
+        href: "/admin#admin-app-readiness",
+        requiredCapability: "manageAdmin",
+        surface: "admin",
+      },
+      {
+        id: "admin-model-config",
+        label: "Model settings",
+        description: "Read the current model settings.",
+        href: "/admin#admin-model-config",
+        requiredCapability: "manageAdmin",
+        surface: "admin",
+      },
       {
         id: "admin-renewal-connection-status",
         label: "Renewal connection status",

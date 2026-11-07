@@ -10,6 +10,7 @@
 
 import { formatCalendarDate, formatCalendarMonth } from "@/lib/date-display";
 import type { CycleSourceDateChange } from "@/lib/lease-renewal/cycle-source-date";
+import type { CycleDisposition } from "./cycle-disposition";
 import type { LeaseTerm } from "@/lib/lease-renewal/lease-term-types";
 
 /** R-S246-12: the exact label a lease carries when its RentVine status could not be read. */
@@ -41,7 +42,8 @@ export type RenewalNotTargetReason =
   | "month_to_month"
   | "completed"
   | "renewed_in_rentvine"
-  | "no_end_date";
+  | "no_end_date"
+  | "retired";
 
 export interface RenewalTargetInput {
   readonly status: RentvineLeaseStatusFact;
@@ -69,6 +71,7 @@ export interface RenewalTargetInput {
    * lease end, for exactly this recorded date and this RentVine date.
    */
   readonly keepWorking: boolean;
+  readonly cycleDisposition?: CycleDisposition;
   /**
    * R-S246-5: the cycle and revision of the work record this projection read, so a confirmation
    * can name the exact version staff reviewed. Null or absent when no work record exists.
@@ -76,7 +79,7 @@ export interface RenewalTargetInput {
   readonly workRecord?: { readonly cycleId: string; readonly revision: number } | null;
 }
 
-export type RenewalTargetProjection =
+export type RenewalTargetProjection = { readonly cycleDisposition?: CycleDisposition } & (
   | {
       readonly kind: "target";
       /** The date of the cycle being worked: the RentVine lease end, or the kept recorded date. */
@@ -101,7 +104,8 @@ export type RenewalTargetProjection =
       /** R-S246-5: the work record version behind those dates, which a confirmation names. */
       readonly cycleId?: string;
       readonly revision?: number;
-    };
+    }
+);
 
 const SKIP_LABEL = {
   owner_authorized: "Owner-authorized hold",
@@ -152,8 +156,14 @@ export function projectRenewalTarget(input: RenewalTargetInput): RenewalTargetPr
     statusUnavailable,
     statusName,
     ...extra,
+    ...(input.cycleDisposition ? { cycleDisposition: input.cycleDisposition } : {}),
   });
 
+  if (input.cycleDisposition?.state === "retired")
+    return not(
+      "retired",
+      `Retired: ${input.cycleDisposition.record?.reason ?? "Recorded by staff"}`,
+    );
   if (status.state === "closed" || status.state === "pending")
     return not(
       status.state === "closed" ? "rentvine_closed" : "rentvine_pending",
@@ -217,6 +227,7 @@ export function projectRenewalTarget(input: RenewalTargetInput): RenewalTargetPr
     statusUnavailable,
     keptWorking,
     statusName,
+    ...(input.cycleDisposition ? { cycleDisposition: input.cycleDisposition } : {}),
   };
 }
 
@@ -225,9 +236,14 @@ export function projectRenewalTarget(input: RenewalTargetInput): RenewalTargetPr
  * same thing as the group the desk placed it in.
  */
 export function renewalTargetLine(projection: RenewalTargetProjection): string {
-  const unavailable = projection.statusUnavailable
-    ? RENTVINE_STATUS_UNAVAILABLE_LABEL
-    : null;
+  const unavailable = [
+    projection.statusUnavailable ? RENTVINE_STATUS_UNAVAILABLE_LABEL : null,
+    projection.cycleDisposition?.state === "unavailable"
+      ? "Retirement status unavailable"
+      : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
   if (projection.kind === "target")
     return [
       `Renewal target for ${formatCalendarMonth(projection.cycleMonth)}`,

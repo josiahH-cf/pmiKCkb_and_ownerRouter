@@ -17,6 +17,7 @@ const run = z
     text: z.string().max(20_000),
     bold: z.boolean().optional(),
     italic: z.boolean().optional(),
+    color: z.literal("#c2410c").optional(),
     href: z
       .string()
       .url()
@@ -34,6 +35,7 @@ const run = z
 export const RichCommunicationMessageSchema = z
   .object({
     subject: header,
+    layout: z.literal("renewal").optional(),
     paragraphs: z.array(z.array(run).min(1).max(100)).min(1).max(200),
     attachmentIds: z.array(z.string().uuid()).max(10).default([]),
   })
@@ -107,6 +109,7 @@ export interface CommunicationThreading {
   references: string[];
 }
 export interface CommunicationAuthorization {
+  signatureSetup?: import("@/lib/lease-renewal/sender-signature-choice").SenderSignatureEvidence;
   /** Absent on legacy records, which remain readable but cannot dispatch. */
   deliveryPolicyVersion?: string;
   reply?: CommunicationReplyBinding;
@@ -251,6 +254,12 @@ export interface VerifiedCommunicationTarget {
   context: WorkflowCommunicationContext;
   /** S233 R-S233-1: the renewal cycle of the notice scope; informational, never part of the binding. */
   noticeCycleId?: string | null;
+  dispositionRevision?: number;
+  outgoingContract?: boolean;
+  signatureSetup?:
+    | import("@/lib/lease-renewal/sender-signature-choice").SenderSignatureEvidence
+    | null;
+  legacyMaterialSourceHash?: string;
   to: string[];
   cc: string[];
   sourceRefs: string[];
@@ -292,13 +301,19 @@ export function communicationSendKey(
 /** Preview, copy and MIME use the same escaped structured content. */
 export function renderEditableCommunicationBody(
   paragraphs: RichCommunicationMessage["paragraphs"],
+  layout?: RichCommunicationMessage["layout"],
 ): { plainText: string; htmlBody: string } {
   const rendered = paragraphs.map((p) => renderInlineMessageParagraph(p));
+  const renewal = layout === "renewal";
   return {
     plainText: rendered.map((p) => p.plainText).join("\n\n"),
     htmlBody:
-      '<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5">' +
-      rendered.map((p) => "<p>" + p.html + "</p>").join("") +
+      (renewal
+        ? '<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#000000">'
+        : '<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5">') +
+      rendered
+        .map((p) => (renewal ? '<p style="margin:0 0 16px">' : "<p>") + p.html + "</p>")
+        .join("") +
       "</div>",
   };
 }
@@ -308,6 +323,7 @@ export function renderCommunicationMessage(input: RichCommunicationMessage): {
 } {
   return renderEditableCommunicationBody(
     RichCommunicationMessageSchema.parse(input).paragraphs,
+    input.layout,
   );
 }
 export function plainCommunicationMessage(

@@ -1,5 +1,5 @@
+import { outgoingRenewalReasons } from "@/lib/lease-renewal/outgoing-message-readiness";
 import { readBusinessProfile } from "@/lib/firestore/presentation-settings";
-import { applyBusinessSignature } from "./business-signature";
 import { communicationMessageFromRenewalContent } from "@/lib/gmail-hub/renewal-composition";
 import { randomUUID } from "node:crypto";
 import { bindWorkflowReply } from "./workflow-reply-binding";
@@ -111,6 +111,86 @@ async function renewalTarget(actor: AuthenticatedUser, c: WorkflowCommunicationC
     current.recipients.status === "ready" ? [] : [...current.recipients.reasons];
   if (current.noticeBlock) blockers.push(current.noticeBlock);
   const f = current.facts;
+  const notice = renewalNoticeMaterialIdentity(current.basis.noticeSafety);
+  const leaseBasis = {
+    leaseId: c.entityId,
+    channel,
+    to,
+    cc,
+    notice,
+    ...(current.dispositionRevision
+      ? { dispositionRevision: current.dispositionRevision }
+      : {}),
+  };
+  const terms = f.ownerTerms
+    ? {
+        rent: f.ownerTerms.rent,
+        effectiveDate: f.ownerTerms.effectiveDate,
+        endDate: f.ownerTerms.endDate,
+      }
+    : null;
+  const charges = f.charges.map(({ id, applicable, amount, cadence, effectiveDate }) => ({
+    id,
+    applicable,
+    amount,
+    cadence,
+    effectiveDate,
+  }));
+  const legacyMaterialSourceHash = sequenceHash({
+    ...leaseBasis,
+    address: f.address,
+    currentRent: f.currentBaseRent?.value ?? null,
+    leaseEnd: f.leaseEndDate,
+    terms,
+    charges,
+    insuranceTransition: f.insuranceTransition?.applicable ?? null,
+    informationForm: f.informationForm?.url ?? null,
+    insuranceFlyer: f.insuranceFlyer?.url ?? null,
+    blockers,
+  });
+  const required = c.replyTo
+    ? outgoingRenewalReasons({
+        content: current.content,
+        signatureConfigured: current.signatureSetup !== null,
+        reply: true,
+      })
+    : current.outgoingReasons;
+  const contentBasis = c.replyTo
+    ? null
+    : {
+        address: f.address,
+        publication:
+          current.publication.status === "approved"
+            ? current.publication.contentHash
+            : null,
+        ...(channel === "tenant"
+          ? {
+              leaseEnd: f.leaseEndDate,
+              terms,
+              charges: charges.filter((charge) => charge.applicable === true),
+              insuranceTransition: f.insuranceTransition?.applicable ?? null,
+              informationForm: f.informationForm?.url ?? null,
+              insuranceFlyer: f.insuranceTransition?.applicable
+                ? (f.insuranceFlyer?.url ?? null)
+                : null,
+              rbpFlyer: f.charges.some(
+                (charge) =>
+                  charge.id === "rbp" &&
+                  charge.applicable === true &&
+                  (charge.comparison === "changed" || charge.comparison === "new"),
+              )
+                ? (f.rbpFlyer?.url ?? null)
+                : null,
+            }
+          : f.ownerIntent === "renew_or_not"
+            ? { ownerIntent: f.ownerIntent }
+            : {
+                ownerIntent: f.ownerIntent,
+                currentRent: f.currentBaseRent?.value ?? null,
+                rent: f.suggestedRent?.value ?? null,
+                range: f.range ? { low: f.range.low, high: f.range.high } : null,
+              }),
+      };
   const target: VerifiedCommunicationTarget = {
     context: c,
     to,
@@ -118,49 +198,22 @@ async function renewalTarget(actor: AuthenticatedUser, c: WorkflowCommunicationC
     label: f.address ?? `Lease ${c.entityId}`,
     sourceRefs: [`rentvine:lease:${c.entityId}`],
     noticeCycleId: current.noticeCycleId ?? null,
-    blockers,
-    // Material values, not an admission generation, read timestamp, signature or unrelated field.
-    // S248 L39: the notice's scope and semantic identity, never the marker's admission version.
-    materialSourceHash: sequenceHash({
-      leaseId: c.entityId,
-      channel,
-      to,
-      cc,
-      notice: renewalNoticeMaterialIdentity(current.basis.noticeSafety),
-      address: f.address,
-      currentRent: f.currentBaseRent?.value ?? null,
-      leaseEnd: f.leaseEndDate,
-      terms: f.ownerTerms
-        ? {
-            rent: f.ownerTerms.rent,
-            effectiveDate: f.ownerTerms.effectiveDate,
-            endDate: f.ownerTerms.endDate,
-          }
-        : null,
-      charges: f.charges.map(({ id, applicable, amount, cadence, effectiveDate }) => ({
-        id,
-        applicable,
-        amount,
-        cadence,
-        effectiveDate,
-      })),
-      insuranceTransition: f.insuranceTransition?.applicable ?? null,
-      informationForm: f.informationForm?.url ?? null,
-      insuranceFlyer: f.insuranceFlyer?.url ?? null,
-      blockers,
-    }),
+    dispositionRevision: current.dispositionRevision,
+    outgoingContract: true,
+    signatureSetup: current.signatureSetup,
+    blockers: [
+      ...new Set([
+        ...blockers,
+        ...required,
+        ...(!c.replyTo && current.publication.status !== "approved"
+          ? [current.publication.reason]
+          : []),
+      ]),
+    ],
+    materialSourceHash: sequenceHash({ ...leaseBasis, contentBasis, blockers }),
+    legacyMaterialSourceHash,
   };
-  let initial = communicationMessageFromRenewalContent(current.content);
-  const profile = await readBusinessProfile(actor).catch(() => null);
-  if (profile) {
-    const old = current.facts.signature;
-    const known = old
-      ? [old.name, old.role, old.phone, old.hours, old.email, old.website?.url]
-          .filter(Boolean)
-          .join("\n")
-      : null;
-    initial = applyBusinessSignature(initial, profile, actor.email, known);
-  }
+  const initial = communicationMessageFromRenewalContent(current.content);
   return {
     target,
     initial,
@@ -203,6 +256,10 @@ export async function prepareWorkflowComposition(
       sourceRefs: [...result.target.sourceRefs, `gmail-message:${c.replyTo.parentId}`],
       materialSourceHash: sequenceHash({
         source: result.target.materialSourceHash,
+        reply: binding,
+      }),
+      legacyMaterialSourceHash: sequenceHash({
+        source: result.target.legacyMaterialSourceHash,
         reply: binding,
       }),
     },

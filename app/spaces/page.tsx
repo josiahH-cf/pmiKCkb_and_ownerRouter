@@ -63,18 +63,33 @@ export default async function SpacesPage() {
               definitionsUnavailable,
             );
             const waiting = waitingBySpace[space.id] ?? 0;
+            const desk = space.id === "lease-renewals";
+            const process = ["owner-renewal-outreach", "tenant-renewal-notice"].includes(
+              space.id,
+            );
+            const href = process ? `/spaces/${space.id}?tab=process` : spaceHref(space);
             return (
               // The whole card is clickable (A-IA-V2), so the card has no nested interactive elements.
-              <Link className="panel space-card" href={spaceHref(space)} key={space.id}>
+              <Link className="panel space-card" href={href} key={space.id}>
                 <h2>{space.name}</h2>
-                <p className="muted">{space.processCategory}</p>
+                <p className="muted">
+                  {desk
+                    ? "Work leases on the Renewals desk"
+                    : space.id === "owner-renewal-outreach"
+                      ? "Open the owner outreach checklist"
+                      : space.id === "tenant-renewal-notice"
+                        ? "Open the tenant offer and documents checklist"
+                        : space.processCategory}
+                </p>
                 <span
                   className="space-card-state-pill"
                   data-tone={SPACE_CARD_STATE_TONE[state]}
                 >
                   {isRetiredMaintenanceWorkflow(space.id, space.processDefinitionId)
                     ? "Read-only history"
-                    : SPACE_CARD_STATE_LABEL[state]}
+                    : desk
+                      ? "Lease work and review"
+                      : SPACE_CARD_STATE_LABEL[state]}
                 </span>
                 {waiting > 0 ? (
                   <span className="review-pill space-card-waiting">

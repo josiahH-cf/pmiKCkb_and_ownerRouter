@@ -123,6 +123,9 @@ interface GuidedOptions {
   badSectionHref?: boolean;
   hiddenSectionLink?: boolean;
   stageLines?: number;
+  stageHeaders?: number;
+  recordWorkButtons?: number;
+  duplicateStage?: boolean;
   stageText?: string;
   stageCurrentStep?: string | null;
   pathCurrentStep?: string | null;
@@ -233,7 +236,11 @@ function guidedFixture(options: GuidedOptions = {}): Page {
     }),
     locator: () => ({
       ...locator(
-        options.stageLines ?? 1,
+        options.stageHeaders
+          ? options.duplicateStage
+            ? 1
+            : 0
+          : (options.stageLines ?? 1),
         true,
         options.stageCurrentStep === undefined
           ? "check-numbers"
@@ -266,6 +273,15 @@ function guidedFixture(options: GuidedOptions = {}): Page {
                 )
               : locator(options.switchButtons ?? 3),
         };
+      if (role === "region" && args.name === "Current renewal stage")
+        return {
+          ...locator(options.stageHeaders ?? 0),
+          locator: () => ({
+            ...locator(options.stageLines ?? 1, true, "check-numbers"),
+            textContent: async () => "Checking the numbers",
+          }),
+          getByRole: () => locator(options.recordWorkButtons ?? 1),
+        };
       if (role === "region" && args.name === "Guided view") return region;
       if (role === "region" && args.name === "Focus view")
         return locator(options.focusRegions ?? 0);
@@ -275,6 +291,20 @@ function guidedFixture(options: GuidedOptions = {}): Page {
   } as unknown as Page;
 }
 describe("S113 candidate and captured predecessor workspace landmarks", () => {
+  it("S248: requires one stage and one Record work control in the shared header", async () => {
+    expect(await hasRenewalWorkspaceLandmarks(guidedFixture({ stageHeaders: 1 }))).toBe(
+      true,
+    );
+    for (const defect of [
+      { stageHeaders: 2 },
+      { recordWorkButtons: 0 },
+      { duplicateStage: true },
+    ])
+      expect(
+        await hasRenewalWorkspaceLandmarks(guidedFixture({ stageHeaders: 1, ...defect })),
+      ).toBe(false);
+  });
+
   it("S247: accepts a lease that opened in Guided view only with its exact contract", async () => {
     expect(await hasRenewalWorkspaceLandmarks(guidedFixture())).toBe(true);
     // A month-to-month lease's path starts with its review step.

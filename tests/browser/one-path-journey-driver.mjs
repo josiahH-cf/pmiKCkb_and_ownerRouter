@@ -469,7 +469,7 @@ async function journey(browser) {
           return {
             scrollY: Math.round(window.scrollY),
             height: window.innerHeight,
-            stage: box('[aria-label="Guided view"] [data-renewal-field="stage-line"]'),
+            stage: box('[data-renewal-field="stage-line"]'),
             strip: box('[aria-label="Guided view"] nav[aria-label="Renewal path"]'),
             primary: box('[aria-label="Guided view"] [data-renewal-now-primary]'),
           };
@@ -1304,7 +1304,7 @@ async function journey(browser) {
         return {
           scrollY: Math.round(window.scrollY),
           overflow: document.documentElement.scrollWidth > window.innerWidth + 1,
-          stage: box('[aria-label="Guided view"] [data-renewal-field="stage-line"]'),
+          stage: box('[data-renewal-field="stage-line"]'),
           strip: box('[aria-label="Guided view"] nav[aria-label="Renewal path"]'),
           primary: box('[aria-label="Guided view"] [data-renewal-now-primary]'),
         };

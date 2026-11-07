@@ -1,3 +1,5 @@
+import { TaskAnchorContinuation } from "@/components/layout/TaskAnchorContinuation";
+import { connectionNextStep } from "@/lib/connections/connection-status";
 // The Connection Center — the app-managed place to connect the systems that power every process
 // (RentVine, Sheets, RentCast, Drive, Dotloop, LeadSimple, Gmail, QuickBooks). Shared infrastructure,
 // not tied to one process. Server component; live checks are read-only and cached (S13 D1), and no
@@ -53,6 +55,7 @@ export function ConnectionCenter({
 
   return (
     <div className="ui-stack">
+      <TaskAnchorContinuation />
       <RetiredGmailSetup />
       <PageHeader
         actions={
@@ -74,16 +77,6 @@ export function ConnectionCenter({
         Connection status does not grant action authority. Closed actions, runtime
         suspensions, exact confirmation, and provider readiness remain separate checks.
       </p>
-
-      {dotloopReadiness ? (
-        <DotloopConnectionPanel
-          callbackResult={dotloopCallbackResult}
-          canManage={canManage}
-          picker={canManage ? dotloopPicker : null}
-          readiness={dotloopReadiness}
-          selection={dotloopSelection}
-        />
-      ) : null}
 
       <div className="ui-metric-grid">
         <Metric label="Connected" value={view.summary.connected} />
@@ -125,16 +118,46 @@ export function ConnectionCenter({
             </div>
             <div className="grid two">
               {group.items.map((item) => (
-                <ConnectorCard
-                  canManage={canManage}
-                  item={item}
+                <details
+                  className="panel connection-service"
                   key={item.def.id}
-                  verifiable={verifiableIds.includes(item.def.id)}
-                />
+                  open={
+                    item.def.id === "dotloop" && dotloopCallbackResult ? true : undefined
+                  }
+                >
+                  <summary>
+                    <strong>{item.def.name}</strong>
+                    {" · "}
+                    {item.status.label}
+                    <span className="muted">
+                      {" · "}
+                      {connectionNextStep(item.status, canManage)}
+                    </span>
+                  </summary>
+                  <ConnectorCard
+                    canManage={canManage}
+                    item={item}
+                    verifiable={verifiableIds.includes(item.def.id)}
+                  />
+                  {item.def.id === "dotloop" && dotloopReadiness ? (
+                    <DotloopConnectionPanel
+                      callbackResult={dotloopCallbackResult}
+                      canManage={canManage}
+                      picker={canManage ? dotloopPicker : null}
+                      readiness={dotloopReadiness}
+                      selection={dotloopSelection}
+                    />
+                  ) : null}
+                </details>
               ))}
             </div>
           </section>
-          {group.id === "documents-storage" ? resourcePanel : null}
+          {group.id === "documents-storage" && resourcePanel ? (
+            <details className="panel">
+              <summary>Renewal resource links</summary>
+              {resourcePanel}
+            </details>
+          ) : null}
         </div>
       ))}
     </div>

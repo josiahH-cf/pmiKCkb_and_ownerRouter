@@ -15,6 +15,7 @@ import {
 import {
   RENEWAL_VIEW_LABELS,
   isRenewalWorkspaceView,
+  renewalWorkspaceHashTarget,
   type RenewalWorkspaceView,
 } from "@/lib/lease-renewal/workspace-view";
 import {
@@ -46,6 +47,8 @@ interface FocusViewValue {
   readonly showInFull: (targetId: string | null) => void;
   readonly selectedActionId: string | null;
   readonly setSelectedActionId: (id: string | null) => void;
+  readonly stageSlot: HTMLElement | null;
+  readonly setStageSlot: (element: HTMLElement | null) => void;
   readonly slot: HTMLElement | null;
   readonly setSlot: (element: HTMLElement | null) => void;
   readonly nowSlot: HTMLElement | null;
@@ -84,6 +87,7 @@ interface KeptPlace {
   readonly view?: unknown;
   readonly step?: unknown;
   readonly typed?: unknown;
+  readonly scope?: unknown;
 }
 
 /** Field types whose typing a reload keeps; a password or a choice control is never kept. */
@@ -108,7 +112,7 @@ function usableField(field: TextField): boolean {
   return (
     !field.disabled &&
     !field.readOnly &&
-    !field.closest("[hidden], [inert], [data-renewal-focus-hidden]")
+    !field.closest("[hidden], [inert], [data-renewal-focus-hidden], details:not([open])")
   );
 }
 
@@ -122,7 +126,7 @@ function findTypedField(typed: TypedField): TextField | null {
   if (!typed.name) return fields.find((field) => field.id === typed.id) ?? null;
   const named = fields.filter((field) => fieldName(field) === typed.name);
   if (named.length === 1) return named[0];
-  return named.find((field) => field.id === typed.id) ?? null;
+  return null;
 }
 
 /**
@@ -194,7 +198,12 @@ function restoreTypedField(typed: TypedField): () => void {
           typed.value,
         );
         stop();
-        field.dispatchEvent(new Event("input", { bubbles: true }));
+        field.setAttribute("data-renewal-restoring-text", "");
+        try {
+          field.dispatchEvent(new Event("input", { bubbles: true }));
+        } finally {
+          field.removeAttribute("data-renewal-restoring-text");
+        }
         focusProgrammatically(field);
         return;
       }
@@ -231,16 +240,21 @@ function readKeptPlace(path: string): KeptPlace | null {
 
 export function RenewalFocusViewProvider({
   children,
+  allowLegacyFocus = true,
+  continuityScope = null,
   initialView = "guided",
   explicitView = false,
 }: {
   children: ReactNode;
+  allowLegacyFocus?: boolean;
+  continuityScope?: string | null;
   /** S247: Guided view unless the address named a view or the surface has no guided view. */
   initialView?: RenewalWorkspaceView;
   explicitView?: boolean;
 }) {
   const [view, setViewState] = useState<RenewalWorkspaceView>(initialView);
   const [selectedActionId, setSelectedActionId] = useState<string | null>(null);
+  const [stageSlot, setStageSlot] = useState<HTMLElement | null>(null);
   const [slot, setSlot] = useState<HTMLElement | null>(null);
   const [nowSlot, setNowSlot] = useState<HTMLElement | null>(null);
   const [afterSlot, setAfterSlot] = useState<HTMLElement | null>(null);
@@ -258,6 +272,10 @@ export function RenewalFocusViewProvider({
     },
     [],
   );
+  const scope = useRef(continuityScope);
+  useLayoutEffect(() => {
+    scope.current = continuityScope;
+  }, [continuityScope]);
   const current = useRef<RenewalWorkspaceView>(initialView);
   const scrollY = useRef<number | null>(null);
   const fullTarget = useRef<string | null>(null);
@@ -289,6 +307,10 @@ export function RenewalFocusViewProvider({
   );
   const showInFull = useCallback(
     (targetId: string | null) => {
+      if (current.current === "full") {
+        if (targetId) focusRenewalDashboardControl(targetId, { viewRequest: false });
+        return;
+      }
       fullTarget.current = targetId;
       setView("full");
     },
@@ -309,9 +331,9 @@ export function RenewalFocusViewProvider({
   // R-S247-11: an older link that names a section or a control in its hash opens Full view there,
   // unless the address names the view. Presentation only.
   useLayoutEffect(() => {
-    if (explicitView || current.current === "full") return;
-    const id = decodeURIComponent(window.location.hash.slice(1));
-    if (!id.startsWith("renewal-") || !document.getElementById(id)) return;
+    if ((allowLegacyFocus && explicitView) || current.current === "full") return;
+    const id = renewalWorkspaceHashTarget(window.location.hash);
+    if (!id || !document.getElementById(id)) return;
     fullTarget.current = id;
     move("full");
     // Mount only: a later hash comes from the page's own links and is handled in the view.
@@ -354,7 +376,8 @@ export function RenewalFocusViewProvider({
             y: window.scrollY,
             view: current.current,
             step: stepRef.current,
-            typed: typedField(),
+            scope: scope.current,
+            typed: allowLegacyFocus || scope.current ? typedField() : null,
           }),
         );
       } catch {
@@ -369,7 +392,8 @@ export function RenewalFocusViewProvider({
     if (kept.current === undefined) kept.current = readKeptPlace(here());
     const saved = kept.current;
     if (saved) {
-      if (!explicitView && isRenewalWorkspaceView(saved.view)) move(saved.view);
+      if (!explicitView && isRenewalWorkspaceView(saved.view))
+        move(saved.view === "focus" && !allowLegacyFocus ? "guided" : saved.view);
       if (typeof saved.step === "string") {
         stepRef.current = saved.step;
         restoreStep(saved.step);
@@ -404,7 +428,11 @@ export function RenewalFocusViewProvider({
         release = stop;
         hold();
       }
-      if (isTypedField(saved.typed)) releaseTyped = restoreTypedField(saved.typed);
+      if (
+        isTypedField(saved.typed) &&
+        (allowLegacyFocus || (continuityScope && saved.scope === continuityScope))
+      )
+        releaseTyped = restoreTypedField(saved.typed);
     }
     window.addEventListener("pagehide", save);
     return () => {
@@ -421,6 +449,8 @@ export function RenewalFocusViewProvider({
       showInFull,
       selectedActionId,
       setSelectedActionId,
+      stageSlot,
+      setStageSlot,
       slot,
       setSlot,
       nowSlot,
@@ -439,6 +469,7 @@ export function RenewalFocusViewProvider({
       setView,
       showInFull,
       selectedActionId,
+      stageSlot,
       slot,
       nowSlot,
       afterSlot,

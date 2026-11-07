@@ -1,4 +1,6 @@
 "use client";
+
+import { RenewalSenderSignatureForm } from "@/components/lease-renewal/RenewalSenderSignatureForm";
 import { hasCurrentRenewalAuthorization } from "@/lib/gmail-hub/delivery-policy";
 import { buildManagedGmailThreadDestination } from "@/lib/lease-renewal/desk-destinations";
 import { applyBusinessSignature } from "@/lib/gmail-hub/business-signature";
@@ -148,6 +150,7 @@ export function CommunicationComposer({
   } | null>(null);
   const [draft, setDraft] = useState<SequenceDraft | null>(null),
     [sequence, setSequence] = useState<CommunicationSequence | null>(null);
+  const [signatureOpen, setSignatureOpen] = useState(false);
   const [reviewedTargetHash, setReviewedTargetHash] = useState("");
   const [target, setTarget] = useState<Composition["target"] | null>(null),
     [error, setError] = useState(""),
@@ -594,7 +597,7 @@ export function CommunicationComposer({
   };
   const copy = async (message: RichCommunicationMessage) => {
     try {
-      const r = renderEditableCommunicationBody(message.paragraphs);
+      const r = renderEditableCommunicationBody(message.paragraphs, message.layout);
       if (typeof ClipboardItem !== "undefined" && navigator.clipboard.write)
         await navigator.clipboard.write([
           new ClipboardItem({
@@ -697,6 +700,42 @@ export function CommunicationComposer({
         To: {recipientTo.join(", ") || "Current verified recipient waits for source read"}
         {recipientCc.length ? ` · Cc: ${recipientCc.join(", ")}` : ""}
       </p>
+      {draft.context.entityType === "renewal_lease" && !terminal && canAuthorize ? (
+        <>
+          <Button
+            size="compact"
+            variant="secondary"
+            onClick={() => setSignatureOpen(!signatureOpen)}
+          >
+            Set up or edit your signature
+          </Button>
+          {signatureOpen ? (
+            <RenewalSenderSignatureForm
+              onCancel={() => setSignatureOpen(false)}
+              onSaved={async () => {
+                const reply = draft.context.replyTo;
+                const params = new URLSearchParams(
+                  reply
+                    ? {
+                        reply_from: reply.sequenceId,
+                        reply_thread: reply.threadId,
+                        reply_sender: reply.senderEmail,
+                        reply_parent: reply.parentId,
+                      }
+                    : { lease: draft.context.entityId, purpose: draft.context.purpose },
+                );
+                const next = await readComposition(params);
+                setTarget(next.target);
+                setReviewedTargetHash(next.reviewedTargetHash);
+                setSignatureOpen(false);
+                setStatus(
+                  "Signature saved. Review the current wording before authorizing the message.",
+                );
+              }}
+            />
+          ) : null}
+        </>
+      ) : null}
       {blocks.map((b) => (
         <p key={b} role="status">
           {b}

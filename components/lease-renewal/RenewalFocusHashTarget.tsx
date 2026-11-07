@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { renewalWorkspaceHashTarget } from "@/lib/lease-renewal/workspace-view";
 
 import { focusRenewalDashboardControl } from "./RenewalDashboardNavigation";
 
@@ -17,7 +18,7 @@ const NATIVELY_FOCUSABLE = new Set(["INPUT", "SELECT", "TEXTAREA", "BUTTON", "A"
 export function RenewalFocusHashTarget() {
   useEffect(() => {
     const focusTarget = () => {
-      const id = decodeURIComponent(window.location.hash.slice(1));
+      const id = renewalWorkspaceHashTarget(window.location.hash);
       if (!id) return;
       const element = document.getElementById(id);
       if (!(element instanceof HTMLElement)) return;

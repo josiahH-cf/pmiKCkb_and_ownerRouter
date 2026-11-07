@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({
@@ -14,6 +14,17 @@ import { buildConnectionView } from "@/lib/connections/connection-status";
 afterEach(() => {
   cleanup();
 });
+
+function service(id: string) {
+  return document.getElementById(`connector-${id}`)!.closest("details")!;
+}
+
+function openService(id: string) {
+  const details = service(id);
+  fireEvent.click(details.querySelector("summary")!);
+  expect(details).toHaveAttribute("open");
+  return within(details);
+}
 
 const configuredPresence = {
   RENTVINE_API_BASE_URL: true,
@@ -43,7 +54,7 @@ describe("ConnectionCenter", () => {
     ]) {
       expect(screen.getByRole("region", { name: group })).toBeInTheDocument();
     }
-    expect(screen.getByText("RentCast")).toBeInTheDocument();
+    expect(service("rentcast").querySelector("summary")).toHaveTextContent("RentCast");
     expect(screen.getAllByText("Closed by governance")).toHaveLength(1);
     expect(document.body.textContent).toContain(
       "Connection status does not grant action authority.",
@@ -71,15 +82,17 @@ describe("ConnectionCenter", () => {
       />,
     );
 
-    const rentcast = screen.getByText("RentCast").closest("section");
-    expect(rentcast).not.toBeNull();
-    expect(within(rentcast as HTMLElement).getByText("Ready to verify")).toBeVisible();
+    expect(service("rentcast").querySelector("summary")).toHaveTextContent(
+      "Ready to verify",
+    );
+    expect(service("rentcast")).not.toHaveAttribute("open");
+    const rentcast = openService("rentcast");
     expect(
-      within(rentcast as HTMLElement).getByRole("button", {
+      rentcast.getByRole("button", {
         name: "Check RentCast connection",
       }),
     ).toBeVisible();
-    expect(within(rentcast as HTMLElement).queryByText("Set up RentCast")).toBeNull();
+    expect(rentcast.queryByText("Set up RentCast")).toBeNull();
   });
 
   it("renders connector cards with status and never leaks an env var name or secret", () => {
@@ -89,17 +102,21 @@ describe("ConnectionCenter", () => {
     expect(
       screen.getByRole("heading", { name: "Connections", level: 1 }),
     ).toBeInTheDocument();
-    expect(screen.getByText("RentVine")).toBeInTheDocument();
-    expect(screen.getByText("Dotloop")).toBeInTheDocument();
+    expect(service("rentvine").querySelector("summary")).toHaveTextContent("RentVine");
+    expect(service("dotloop").querySelector("summary")).toHaveTextContent("Dotloop");
     expect(screen.queryByText("Gmail (legacy notification sender)")).toBeNull();
     expect(document.body.textContent).not.toContain("KB_APPROVAL_SENDER");
-    expect(screen.getByText("Gmail (workflow communications)")).toBeInTheDocument();
+    expect(service("gmail_inbox").querySelector("summary")).toHaveTextContent(
+      "Gmail (workflow communications)",
+    );
     expect(document.body.textContent).toContain(
       "Gmail stays the message system of record.",
     );
 
     // RentVine fully configured → ready to verify; the OAuth connectors read Not connected.
-    expect(screen.getByText("Ready to verify")).toBeInTheDocument();
+    expect(service("rentvine").querySelector("summary")).toHaveTextContent(
+      "Ready to verify",
+    );
     expect(screen.getAllByText("Not connected").length).toBeGreaterThan(0);
 
     // The guided "Set up" wizard still renders; the dead future-promise control is gone.
@@ -141,6 +158,10 @@ describe("ConnectionCenter", () => {
       />,
     );
 
+    expect(service("rentvine")).not.toHaveAttribute("open");
+    expect(service("google_sheets")).not.toHaveAttribute("open");
+    openService("rentvine");
+    openService("google_sheets");
     expect(screen.getAllByRole("button", { name: /^Check .* connection$/ })).toHaveLength(
       2,
     );
@@ -156,8 +177,10 @@ describe("ConnectionCenter", () => {
       />,
     );
 
-    expect(screen.getByText("RentVine")).toBeInTheDocument();
-    expect(screen.getByText("Ready to verify")).toBeInTheDocument();
+    expect(service("rentvine").querySelector("summary")).toHaveTextContent("RentVine");
+    expect(service("rentvine").querySelector("summary")).toHaveTextContent(
+      "Ready to verify",
+    );
     expect(screen.queryByText(/^Set up /)).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /^Check .* connection$/ }),

@@ -9,11 +9,13 @@ export function communicationMessageFromRenewalContent(
 ): RichCommunicationMessage {
   return RichCommunicationMessageSchema.parse({
     subject: content.subject,
+    layout: "renewal",
     attachmentIds: [],
     paragraphs: content.paragraphs.map((p) =>
       p.map((r) => ({
         text: (r.breakBefore ? "\n" : "") + r.text,
         ...(r.emphasis === "name" || r.emphasis === "strong" ? { bold: true } : {}),
+        ...(r.emphasis === "role" ? { color: "#c2410c" } : {}),
         ...(r.href ? { href: r.href } : {}),
       })),
     ),

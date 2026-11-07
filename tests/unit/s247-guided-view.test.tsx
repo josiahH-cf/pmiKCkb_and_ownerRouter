@@ -197,9 +197,7 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
     const card = nowCard();
     expect(card.querySelectorAll("[data-renewal-now-primary]")).toHaveLength(1);
     expect(within(card).getByRole("button", { name: "Add a note" })).toBeVisible();
-    expect(
-      within(card).getByRole("button", { name: "Set status by hand" }),
-    ).toBeVisible();
+    expect(screen.getByRole("button", { name: "Record work" })).toBeVisible();
     // The staff status and its Status log stay reachable from Guided view.
     expect(
       screen.getByRole("region", { name: "Staff status and Status log" }),
@@ -432,21 +430,44 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
     expect(document.activeElement?.closest("#renewal-section-tenant")).not.toBeNull();
   });
 
-  it("R-S247-8: Set status by hand and Add a note reach the staff status controls", async () => {
-    stubRenewalRoutes(manualState());
+  it("R-S248-13: the header opens the actual record without advancing the stage", async () => {
+    const routes = stubRenewalRoutes(manualState());
     await renderWorkspace({
       manual: manualState(),
       view: "default",
       extra: { workStatus: WORK_STATUS },
     });
     const user = userEvent.setup();
+    const header = screen.getByRole("region", { name: "Current renewal stage" });
+    const stage = header.querySelector('[data-renewal-field="stage-line"]');
+    expect(stage).toBeVisible();
+    const before = stage?.textContent;
+    const record = within(header).getByRole("button", { name: "Record work" });
+    await user.click(record);
+    await user.click(within(header).getByRole("button", { name: "Cancel" }));
+    expect(record).toHaveFocus();
+    await user.click(record);
+    await user.click(within(header).getByRole("button", { name: "Owner outreach" }));
+    expect(screen.getByLabelText("Owner outreach outcome")).toHaveFocus();
+    expect(stage?.textContent).toBe(before);
+    expect(routes.writes()).toEqual([]);
+
+    await user.click(viewButton("Full view"));
+    expect(stage).toBeVisible();
+    expect(within(header).getByRole("button", { name: "Record work" })).toBeVisible();
+  });
+
+  it("R-S247-8: Add a note reaches the separate staff annotation", async () => {
+    stubRenewalRoutes(manualState());
+    await renderWorkspace({
+      manual: manualState(),
+      view: "default",
+      extra: { workStatus: WORK_STATUS },
+    });
     const status = screen.getByRole("region", { name: "Staff status and Status log" });
-    await user.click(
-      within(nowCard()).getByRole("button", { name: "Set status by hand" }),
-    );
-    expect(status.contains(document.activeElement)).toBe(true);
-    expect(document.activeElement?.tagName).toBe("SELECT");
-    await user.click(within(nowCard()).getByRole("button", { name: "Add a note" }));
+    await userEvent
+      .setup()
+      .click(within(nowCard()).getByRole("button", { name: "Add a note" }));
     expect(status.contains(document.activeElement)).toBe(true);
     expect(document.activeElement?.tagName).toBe("TEXTAREA");
   });

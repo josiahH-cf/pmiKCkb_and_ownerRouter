@@ -582,7 +582,7 @@
     {
       "role": "Editor",
       "route": "/lease-renewal/live/desk/lease/5001",
-      "actions": ["click-button:Focus view"]
+      "actions": ["click-button:Full view"]
     },
     {
       "role": "Editor",

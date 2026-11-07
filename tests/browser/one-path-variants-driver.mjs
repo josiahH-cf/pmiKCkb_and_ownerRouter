@@ -127,7 +127,7 @@ export async function runVariants() {
     const current = async () =>
       squash(await strip().locator('[aria-current="step"]').textContent());
     const stageLine = async () =>
-      squash(await guided().locator('[data-renewal-field="stage-line"]').textContent());
+      squash(await page.locator('[data-renewal-field="stage-line"]').textContent());
     const nextLine = async () =>
       squash(
         await guided().locator('[data-renewal-field="next-step"]').first().textContent(),

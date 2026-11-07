@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { adminTaskHref } from "@/lib/navigation/admin-task-path";
 import { ADMIN_TASK_GROUPS } from "@/lib/navigation/admin-connections";
 
 /** Pure navigation over existing Admin and Connections destinations. It grants no capability. */
@@ -13,10 +14,7 @@ export function AdminTaskIndex() {
     >
       <div>
         <h2 id="admin-task-index-title">Find an Admin task</h2>
-        <p className="muted">
-          These links organize existing controls. They do not change roles, connection
-          truth, or action authority.
-        </p>
+        <p className="muted">Choose the setting or check you need.</p>
       </div>
       <div className="task-navigation-grid">
         {ADMIN_TASK_GROUPS.map((group) => (
@@ -30,7 +28,7 @@ export function AdminTaskIndex() {
             <ul className="compact-list">
               {group.links.map((link) => (
                 <li key={link.id}>
-                  <Link href={link.href}>{link.label}</Link>
+                  <Link href={adminTaskHref(link.href)}>{link.label}</Link>
                   <span className="muted">{link.description}</span>
                 </li>
               ))}

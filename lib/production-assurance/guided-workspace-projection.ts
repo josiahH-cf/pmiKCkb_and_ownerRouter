@@ -5,6 +5,8 @@
  */
 export interface IndependentGuidedWorkspaceSnapshot {
   readonly mainLandmarkPresent: boolean;
+  /** Present for the header contract; absent on the captured one-path predecessor. */
+  readonly stageHeaderValid?: boolean;
   readonly stageLines: number;
   readonly stageText: string;
   readonly stageCurrentStep: string | null;
@@ -54,6 +56,7 @@ export function countIndependentGuidedWorkspaceMismatches(
       snapshot.viewportHeight * (snapshot.viewportWidth <= 640 ? 2 : 1);
   return (
     (snapshot.mainLandmarkPresent ? 0 : 1) +
+    (snapshot.stageHeaderValid === false ? 1 : 0) +
     (snapshot.stageLines === 1 && snapshot.stageText.trim() ? 0 : 1) +
     (snapshot.stageCurrentStep &&
     snapshot.stageCurrentStep === snapshot.pathCurrentStep &&

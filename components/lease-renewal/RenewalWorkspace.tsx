@@ -43,6 +43,7 @@ import {
   RenewalFocusViewPane,
   type RenewalFocusFacts,
 } from "@/components/lease-renewal/RenewalFocusViewPane";
+import { RenewalCycleDispositionHistory } from "@/components/lease-renewal/RenewalCycleDispositionAction";
 import { RenewalGuidedView } from "@/components/lease-renewal/RenewalGuidedView";
 import { RenewalNowCardProvider } from "@/components/lease-renewal/RenewalNowCardContext";
 import type { FinishUpPreparation } from "@/lib/lease-renewal/finish-up-preparation";
@@ -169,6 +170,7 @@ export function RenewalWorkspace({
   workspace,
   selectedStepId,
   viewParam,
+  actorUid,
   deskView = null,
   attemptSummary = null,
   discrepancyPanel = null,
@@ -209,6 +211,8 @@ export function RenewalWorkspace({
   selectedStepId?: string;
   /** S247: the raw `view` URL value; a link may name the view the lease opens in. */
   viewParam?: string;
+  /** Signed-in actor for this lease visit’s local continuity. */
+  actorUid?: string;
   /** Canonical desk continuation; phase links preserve it so Back to renewals restores the view. */
   deskView?: string | null;
   resourceLocationsPanel?: ReactNode;
@@ -297,19 +301,21 @@ export function RenewalWorkspace({
   // page) and on an inspection-only lease; it reads the same projections as the Full view.
   const consolidated = manualState !== undefined || manualReadUnavailable;
   const focusAvailable = consolidated;
-  const actionSnapshot = focusAvailable
-    ? buildRenewalActionSnapshot({
-        workspace,
-        role,
-        issues: issueProjection,
-        manualLaneMounted: consolidated,
-        manualState,
-        manualReadUnavailable,
-        unavailableSources: unavailableKeys,
-        rentChargeStatus,
-        correctionPanel: Boolean(correctionPanel),
-      })
-    : null;
+  const legacyFocus = !workspace.live;
+  const actionSnapshot =
+    focusAvailable && legacyFocus
+      ? buildRenewalActionSnapshot({
+          workspace,
+          role,
+          issues: issueProjection,
+          manualLaneMounted: consolidated,
+          manualState,
+          manualReadUnavailable,
+          unavailableSources: unavailableKeys,
+          rentChargeStatus,
+          correctionPanel: Boolean(correctionPanel),
+        })
+      : null;
   const focusFacts: RenewalFocusFacts = {
     currentRent: workspace.guidance.currentBaseRent,
     chargeInventory,
@@ -361,7 +367,15 @@ export function RenewalWorkspace({
   ) : null;
   // S247: the Guided view opens by default wherever Focus view is offered, from the same stage
   // context the desk row's stage came from (the live page passes it; a sample lease builds it).
-  const openView = initialRenewalWorkspaceView(viewParam, focusAvailable);
+  const openView = initialRenewalWorkspaceView(viewParam, focusAvailable, legacyFocus);
+  const continuityScope =
+    actorUid && !manualReadUnavailable
+      ? JSON.stringify([
+          actorUid,
+          summary.id,
+          manualState?.cycleId ?? manualCycleBasis?.dateIso ?? null,
+        ])
+      : null;
   const baseStageContext =
     workspace.renewalStageContext ??
     renewalStageContextFor(
@@ -472,6 +486,8 @@ export function RenewalWorkspace({
 
   const workspaceTree = (
     <RenewalFocusViewProvider
+      allowLegacyFocus={legacyFocus}
+      continuityScope={continuityScope}
       explicitView={openView.explicit}
       initialView={openView.view}
       key={summary.id}
@@ -517,7 +533,13 @@ export function RenewalWorkspace({
                 leaseInformation={leaseInformation}
                 processGuide={<RenewalProcessGuide />}
                 sectionNavigation={<RenewalSectionNavigation />}
-                viewSwitch={focusAvailable ? <RenewalFocusViewSwitch /> : null}
+                viewSwitch={
+                  focusAvailable ? (
+                    <RenewalFocusViewSwitch
+                      views={legacyFocus ? undefined : ["guided", "full"]}
+                    />
+                  ) : null
+                }
               >
                 <RenewalFocusViewSlot enabled={focusAvailable}>
                   <RenewalAuxiliaryNotice failures={auxiliaryFailures} />
@@ -596,6 +618,8 @@ export function RenewalWorkspace({
                             className="panel ui-stack"
                             aria-label="Staff status and Status log"
                             data-renewal-focus-context
+                            id="renewal-staff-status-log"
+                            tabIndex={-1}
                           >
                             <h2>Staff status and Status log</h2>
                             <RenewalWorkStatusControl
@@ -603,6 +627,11 @@ export function RenewalWorkspace({
                               leaseId={summary.id}
                               read={workStatus}
                             />
+                            {stageContext.cycleDisposition &&
+                            stageContext.cycleDisposition.state !== "unavailable" &&
+                            stageContext.cycleDisposition.revision > 0 ? (
+                              <RenewalCycleDispositionHistory leaseId={summary.id} />
+                            ) : null}
                             <p className="muted">
                               Staff records. Source updates, messages and signatures
                               retain their own evidence.

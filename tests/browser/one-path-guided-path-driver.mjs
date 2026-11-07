@@ -127,9 +127,8 @@ export async function runGuidedPath() {
       await page.waitForTimeout(1500);
     };
     const stageLine = async () =>
-      (
-        await guided().locator('[data-renewal-field="stage-line"]').textContent()
-      )?.trim() ?? "";
+      (await page.locator('[data-renewal-field="stage-line"]').textContent())?.trim() ??
+      "";
 
     // 1. Guided view is the default on each working-month lease (BEH-S247-1, L12 to L14).
     for (const leaseId of WORKING) {

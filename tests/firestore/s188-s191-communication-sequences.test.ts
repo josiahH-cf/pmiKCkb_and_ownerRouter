@@ -1,4 +1,9 @@
 import {
+  changeRenewalCycleDisposition,
+  listRenewalDispositionEvents,
+} from "@/lib/firestore/renewal-cycle-dispositions";
+import { getRenewalCycleDisposition } from "@/lib/firestore/renewal-cycle-disposition-read";
+import {
   readBusinessProfile,
   savePresentationSetting,
 } from "@/lib/firestore/presentation-settings";
@@ -76,10 +81,10 @@ const other = {
 const context = {
   lane: "renewals" as const,
   entityType: "renewal_lease" as const,
-  entityId: "fixture-115",
+  entityId: "115",
   purpose: "renewal_owner" as const,
   actionKey: "gmail.renewal_notice.send",
-  sourceRefs: ["rentvine:lease:fixture-115"],
+  sourceRefs: ["rentvine:lease:115"],
 };
 function preparedFor(s: CommunicationSequence) {
   return {
@@ -166,6 +171,83 @@ function fixture(now?: () => number) {
   return { store, service, send, draft, approve };
 }
 describe("S188–S191 real Firestore transaction ordering with isolated Gmail", () => {
+  it("S255 serializes retirement against activation and preserves exact review and history", async () => {
+    const f = fixture();
+    const source = { kind: "lease_end", dateIso: "2026-12-31" } as const;
+    const retire = {
+      action: "retire" as const,
+      leaseId: context.entityId,
+      reason: "Inactive cycle",
+      expected: {
+        cycle: { ...source, cycleId: null },
+        workspaceRevision: 0,
+        revision: 0,
+      },
+      operationId: randomUUID(),
+    };
+    await expect(
+      changeRenewalCycleDisposition({ ...actor, uid: "" }, retire, source, db),
+    ).rejects.toMatchObject({ status: 403 });
+    const race = await Promise.allSettled([
+      f.approve(),
+      changeRenewalCycleDisposition(actor, retire, source, db),
+    ]);
+    expect(race.filter((entry) => entry.status === "fulfilled")).toHaveLength(1);
+    if (race[0].status === "fulfilled") {
+      const s = race[0].value;
+      await expect(
+        changeRenewalCycleDisposition(actor, retire, source, db),
+      ).rejects.toMatchObject({
+        sequenceId: s.id,
+      });
+      const claim = await f.store.claim(s.id, Date.now() + 1000, preparedFor(s));
+      expect(claim?.occurrence.state).toBe("claimed");
+      const paused = await f.service.control(actor, {
+        id: s.id,
+        action: "pause",
+        operationId: randomUUID(),
+        expectedVersion: s.version,
+      });
+      await expect(
+        changeRenewalCycleDisposition(actor, retire, source, db),
+      ).rejects.toMatchObject({
+        sequenceId: paused.id,
+      });
+      await f.store.settle(claim!.occurrence, { nowMs: Date.now(), outcome: "refused" });
+      await changeRenewalCycleDisposition(actor, retire, source, db);
+    }
+    const current = await getRenewalCycleDisposition(context.entityId, db);
+    expect(current).toMatchObject({
+      action: "retire",
+      revision: 1,
+      operationId: retire.operationId,
+    });
+    expect(await changeRenewalCycleDisposition(actor, retire, source, db)).toEqual(
+      current,
+    );
+    const restore = {
+      ...retire,
+      action: "restore" as const,
+      reason: "Staff restored the exact cycle",
+      operationId: randomUUID(),
+      expected: { ...retire.expected, revision: 1 },
+    };
+    await expect(
+      changeRenewalCycleDisposition(
+        actor,
+        restore,
+        { ...source, dateIso: "2027-12-31" },
+        db,
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+    await changeRenewalCycleDisposition(actor, restore, source, db);
+    expect(
+      (await listRenewalDispositionEvents(context.entityId, db)).events.map(
+        (event) => event.action,
+      ),
+    ).toEqual(["restore", "retire"]);
+    expect(f.send).not.toHaveBeenCalled();
+  });
   it("converges concurrent retries of one save and rejects a different stale edit", async () => {
     const f = fixture(),
       operationId = randomUUID();

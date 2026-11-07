@@ -59,6 +59,7 @@ export interface CollectionSource {
   records: Array<{
     member: CollectionMember;
     label: string;
+    searchNames?: readonly string[];
     href: string;
     lifecycle: string;
     workStatus: string;
@@ -164,4 +165,41 @@ export function sharedCollectionEntryHref(
   criteria = "",
 ) {
   return `/lease-renewal/collections?${new URLSearchParams({ members: [...new Set(ids)].join(","), origin, ...(criteria ? { criteria } : {}) })}`;
+}
+
+/** Names for the current actor's already scoped records. Reviews persist only the identity. */
+export function collectionSelectionLabels(
+  source: Pick<CollectionSource, "records">,
+  leaseIds: ReadonlySet<string>,
+) {
+  return Object.fromEntries(
+    source.records
+      .filter((row) => leaseIds.has(row.member.leaseId))
+      .map((row) => [row.member.leaseId, row.label]),
+  );
+}
+
+export function lookupCollectionLeases(
+  source: Pick<CollectionSource, "records">,
+  search: string,
+  leaseIds: readonly string[],
+) {
+  const ids = new Set(leaseIds);
+  const term = search.trim().toLocaleLowerCase("en-US");
+  return source.records
+    .filter((row) =>
+      ids.size > 0
+        ? ids.has(row.member.leaseId)
+        : row.member.leaseId === term ||
+          (term.length >= 2 &&
+            [row.label, ...(row.searchNames ?? [])].some((value) =>
+              value.toLocaleLowerCase("en-US").includes(term),
+            )),
+    )
+    .slice(0, ids.size > 0 ? 2000 : 25)
+    .map(({ member, label }) => ({
+      leaseId: member.leaseId,
+      cycleDate: member.cycleDate,
+      label,
+    }));
 }

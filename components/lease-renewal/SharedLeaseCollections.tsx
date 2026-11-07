@@ -3,9 +3,10 @@ import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { Field } from "@/components/ui";
 import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
-import { formatBusinessTimestamp } from "@/lib/date-display";
+import { formatBusinessTimestamp, formatCalendarDate } from "@/lib/date-display";
 import {
   CollectionBasisSchema,
+  CollectionLeaseIdSchema,
   CollectionRenameSchema,
   sharedCollectionDeskHref,
   type CollectionBasis,
@@ -20,6 +21,27 @@ interface Detail {
   complete: boolean;
   issues: string[];
 }
+type LeaseChoice = { leaseId: string; label: string; cycleDate: string | null };
+type NamedReview = { review: CollectionReview; labels?: Record<string, string> };
+type Draft = {
+  name: string;
+  basis: CollectionBasis;
+  memberText: string;
+  savedAt: number;
+};
+
+function emptyBasis(): CollectionBasis {
+  return {
+    mode: "explicit",
+    origin: "explicit",
+    dateField: "lease_end",
+    from: "",
+    through: "",
+    criteria: "",
+    selectedLeaseIds: [],
+  };
+}
+
 interface PendingChange {
   reviewId?: string;
   operationId: string;
@@ -89,7 +111,7 @@ export function SharedLeaseCollections({
     [detail, setDetail] = useState<Detail | null>(null);
   const [name, setName] = useState(""),
     [basis, setBasis] = useState<CollectionBasis>({
-      mode: origin === "worklist" ? "period" : "explicit",
+      mode: "explicit",
       origin,
       dateField: "lease_end",
       from: "",
@@ -108,6 +130,17 @@ export function SharedLeaseCollections({
           }
         : null,
     );
+  const [editing, setEditing] = useState(
+    initialMembers.length > 0 || Boolean(initialReview),
+  );
+  const [renaming, setRenaming] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [lookingUp, setLookingUp] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [searchText, setSearchText] = useState("");
+  const [choices, setChoices] = useState<LeaseChoice[]>([]);
+  const [labels, setLabels] = useState<Record<string, string>>({});
+  const [lookupStatus, setLookupStatus] = useState("");
   const [busy, setBusy] = useState(false),
     [notice, setNotice] = useState(""),
     [error, setError] = useState("");
@@ -116,6 +149,100 @@ export function SharedLeaseCollections({
   const nameInput = useRef<HTMLInputElement>(null);
   const fromInput = useRef<HTMLInputElement>(null);
   const throughInput = useRef<HTMLInputElement>(null);
+  const reviewHeading = useRef<HTMLHeadingElement>(null);
+  const collectionHeading = useRef<HTMLHeadingElement>(null);
+  const selectedIds = [...new Set(memberText.split(/[,\s]+/).filter(Boolean))];
+  const draftKey = (collectionId: string | null) =>
+    `renewal-collection-draft:${ownerUid}:${collectionId ?? "new"}`;
+
+  function keepDraft() {
+    try {
+      sessionStorage.setItem(
+        draftKey(detail?.collection.id ?? null),
+        JSON.stringify({
+          name,
+          basis,
+          memberText,
+          savedAt: Date.now(),
+        }),
+      );
+    } catch {
+      /* The tab can continue with the visible form. */
+    }
+  }
+
+  function clearDraft(collectionId: string | null) {
+    try {
+      sessionStorage.removeItem(draftKey(collectionId));
+    } catch {}
+  }
+
+  function restoreDraft(collectionId: string | null) {
+    try {
+      const draft = JSON.parse(
+        sessionStorage.getItem(draftKey(collectionId)) ?? "null",
+      ) as Draft | null;
+      if (
+        !draft ||
+        Date.now() - draft.savedAt > 30 * 60_000 ||
+        typeof draft.name !== "string" ||
+        typeof draft.memberText !== "string"
+      )
+        return false;
+      const valid = CollectionBasisSchema.safeParse({
+        ...draft.basis,
+        from: draft.basis.from || "2000-01-01",
+        through: draft.basis.through || draft.basis.from || "2000-01-01",
+      });
+      if (!valid.success) return false;
+      setName(draft.name);
+      setBasis(draft.basis);
+      setMemberText(draft.memberText);
+      setEditing(true);
+      setNotice(
+        "Local collection inputs restored. Review the current membership before saving.",
+      );
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  useEffect(() => {
+    if (!editing) return;
+    const saveDraft = () => keepDraft();
+    window.addEventListener("pagehide", saveDraft);
+    return () => window.removeEventListener("pagehide", saveDraft);
+  });
+
+  useEffect(() => {
+    if (review) reviewHeading.current?.focus();
+  }, [review]);
+
+  async function lookup(query: string, imported = false) {
+    setLookingUp(true);
+    setLookupStatus("Reading accessible leases…");
+    try {
+      const result = await read<{ leases: LeaseChoice[]; complete: boolean }>(query);
+      if (!live.current) return;
+      setLabels((old) => ({
+        ...old,
+        ...Object.fromEntries(result.leases.map((row) => [row.leaseId, row.label])),
+      }));
+      if (!imported) setChoices(result.leases);
+      setLookupStatus(
+        !result.complete
+          ? "The current source read is incomplete. Review waits for a complete read."
+          : result.leases.length === 0
+            ? "No accessible leases matched."
+            : `${result.leases.length} leases found.`,
+      );
+    } catch {
+      if (live.current) setLookupStatus("Lease lookup failed. Search again to retry.");
+    } finally {
+      if (live.current) setLookingUp(false);
+    }
+  }
   const lock = useRef(false),
     live = useRef(true),
     readGeneration = useRef(0),
@@ -141,6 +268,7 @@ export function SharedLeaseCollections({
     history.replaceState(null, "", url);
   }
   async function loadList(older = false) {
+    setLoading(true);
     try {
       const result = await read<{
         collections: SharedLeaseCollection[];
@@ -163,22 +291,38 @@ export function SharedLeaseCollections({
         setListError(
           "Shared collections could not be loaded. The saved collections are kept.",
         );
+    } finally {
+      if (live.current) setLoading(false);
     }
   }
   async function open(collectionId: string, edit = true) {
     const generation = ++readGeneration.current;
+    setNotice("Reading saved members and current statuses…");
     try {
       const result = await read<Detail>(`id=${collectionId}`);
       if (!live.current || generation !== readGeneration.current) return;
       setDetail(result);
       setId(collectionId);
+      setLabels((old) => ({
+        ...old,
+        ...Object.fromEntries(
+          result.statuses
+            .filter((status) => status.href)
+            .map((status) => [status.member.leaseId, status.label]),
+        ),
+      }));
+      setNotice("Current statuses read. Saved membership is kept.");
       if (edit) {
         setName(result.collection.name);
         setBasis(result.collection.basis);
         setMemberText(result.collection.basis.selectedLeaseIds.join(", "));
         setReview(null);
         setPending(null);
+        setEditing(false);
+        setRenaming(false);
+        setChoices([]);
         address(collectionId);
+        restoreDraft(collectionId);
       }
       setError("");
     } catch (e) {
@@ -234,7 +378,35 @@ export function SharedLeaseCollections({
     void Promise.resolve().then(() => {
       if (!live.current) return;
       void loadList();
-      if (initialId) void open(initialId, !initialOperation);
+      if (initialMembers.length > 0)
+        void lookup(
+          new URLSearchParams({ ids: initialMembers.join(",") }).toString(),
+          true,
+        );
+      if (!initialId) restoreDraft(null);
+      if (initialId) void open(initialId, !initialOperation && !initialReview);
+      if (initialReview) {
+        void read<NamedReview>(`review=${initialReview}`).then(
+          (result) => {
+            if (!live.current || restoring !== restoreGeneration.current) return;
+            setReview(result.review);
+            setId(result.review.collectionId);
+            setEditing(true);
+            setName(result.review.name);
+            setBasis(result.review.basis);
+            setMemberText(result.review.basis.selectedLeaseIds.join(", "));
+            setLabels((old) => ({ ...old, ...result.labels }));
+          },
+          () => {
+            if (!live.current || restoring !== restoreGeneration.current) return;
+            restoreDraft(initialId);
+            setError(
+              "The prior review is unavailable or out of date. Review the current membership again.",
+            );
+            if (!initialOperation) address(initialId);
+          },
+        );
+      }
       if (initialOperation) {
         let restored: PendingChange = {
           ...(initialReview ? { reviewId: initialReview } : {}),
@@ -264,23 +436,6 @@ export function SharedLeaseCollections({
           }
         } catch {}
         setPending(restored);
-        if (initialReview)
-          void read<{ review: CollectionReview }>(`review=${initialReview}`).then(
-            (result) => {
-              if (live.current && restoring === restoreGeneration.current) {
-                setReview(result.review);
-                setName(result.review.name);
-                setBasis(result.review.basis);
-                setMemberText(result.review.basis.selectedLeaseIds.join(", "));
-              }
-            },
-            () => {
-              if (live.current && restoring === restoreGeneration.current)
-                setError(
-                  "The original reviewed selection could not be reopened. Check its recorded save before starting another.",
-                );
-            },
-          );
         void checkReceipt(restored);
       }
     });
@@ -288,6 +443,7 @@ export function SharedLeaseCollections({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   function changed() {
+    if (review) address(detail?.collection.id ?? null);
     setReview(null);
     setNotice("");
     setError("");
@@ -320,7 +476,7 @@ export function SharedLeaseCollections({
           "Complete the required collection fields before reviewing membership.",
         );
       }
-      const selectedLeaseIds = [...new Set(memberText.split(/[,\s]+/).filter(Boolean))];
+      const selectedLeaseIds = selectedIds;
       const parsed = CollectionBasisSchema.safeParse({ ...basis, selectedLeaseIds });
       if (!parsed.success)
         throw new Error(
@@ -328,7 +484,7 @@ export function SharedLeaseCollections({
             "Choose a date field, period and actual lease selection.",
         );
       const collectionId = id ?? crypto.randomUUID();
-      const result = await post<{ review: CollectionReview }>({
+      const result = await post<NamedReview>({
         action: "review",
         collectionId,
         expectedVersion: detail?.collection.version ?? 0,
@@ -339,6 +495,9 @@ export function SharedLeaseCollections({
       if (!live.current) return;
       setId(collectionId);
       setReview(result.review);
+      setLabels((old) => ({ ...old, ...result.labels }));
+      keepDraft();
+      address(detail?.collection.id ?? null, result.review.id);
       setNotice(
         "Review the actual lease and cycle changes below. Status refresh never changes membership.",
       );
@@ -376,6 +535,7 @@ export function SharedLeaseCollections({
             "The saved collection was not returned. Check its recorded result.",
           );
         clearIntent(intent.operationId);
+        clearDraft(detail?.collection.id ?? null);
         setPending(null);
         setReview(null);
         address(result.collection.id);
@@ -402,13 +562,13 @@ export function SharedLeaseCollections({
     });
   }
   function rename() {
-    if (!detail || !name.trim()) return;
+    if (!detail || !newName.trim()) return;
     void save({
       operationId: crypto.randomUUID(),
       rename: {
         collectionId: detail.collection.id,
         expectedVersion: detail.collection.version,
-        name: name.trim(),
+        name: newName.trim(),
       },
     });
   }
@@ -416,7 +576,14 @@ export function SharedLeaseCollections({
     readGeneration.current++;
     setId(null);
     setDetail(null);
+    clearDraft(null);
     setName("");
+    setBasis(emptyBasis());
+    setMemberText("");
+    setChoices([]);
+    setSearchText("");
+    setEditing(true);
+    setRenaming(false);
     setReview(null);
     setPending(null);
     changed();
@@ -431,6 +598,10 @@ export function SharedLeaseCollections({
       </p>
       <nav aria-label="Shared collections" className="panel">
         <h2>Team collections</h2>
+        {loading ? <p role="status">Loading collections…</p> : null}
+        {!loading && !listError && entries.length === 0 ? (
+          <p>Choose New collection to review your first group.</p>
+        ) : null}
         {listError ? (
           <p role="alert">
             {listError}{" "}
@@ -445,7 +616,10 @@ export function SharedLeaseCollections({
               <button
                 type="button"
                 disabled={busy || !!pending}
-                onClick={() => void open(entry.id)}
+                onClick={() => {
+                  if (editing) keepDraft();
+                  void open(entry.id);
+                }}
               >
                 {entry.name}
               </button>{" "}
@@ -485,7 +659,15 @@ export function SharedLeaseCollections({
       ) : null}
       {detail ? (
         <section className="panel" aria-label="Current collection status">
-          <h2>{detail.collection.name}</h2>
+          <h2 ref={collectionHeading} tabIndex={-1}>
+            {detail.collection.name}
+          </h2>
+          <p>
+            {formatCalendarDate(detail.collection.basis.from)} through{" "}
+            {formatCalendarDate(detail.collection.basis.through)}
+            {" · "}
+            {detail.collection.members.length} saved members.
+          </p>
           <p>
             Reviewed membership version {detail.collection.version} · changed by{" "}
             {detail.collection.updatedByUid} at{" "}
@@ -506,207 +688,374 @@ export function SharedLeaseCollections({
             disabled={busy}
             onClick={() => void open(detail.collection.id, false)}
           >
-            Refresh current status
+            Refresh statuses
+          </button>{" "}
+          <button
+            type="button"
+            disabled={busy || !!pending}
+            onClick={() => setEditing(true)}
+          >
+            Edit membership
+          </button>{" "}
+          <button
+            type="button"
+            disabled={busy || !!pending}
+            onClick={() => {
+              setNewName(detail.collection.name);
+              setRenaming(true);
+            }}
+          >
+            Rename collection
           </button>
+          {renaming ? (
+            <div className="ui-stack-tight">
+              <label className="field">
+                New collection name
+                <input
+                  maxLength={160}
+                  value={newName}
+                  onChange={(event) => setNewName(event.target.value)}
+                />
+              </label>
+              <button
+                type="button"
+                disabled={
+                  !newName.trim() || newName.trim() === detail.collection.name || busy
+                }
+                onClick={rename}
+              >
+                Save collection name
+              </button>
+              <button type="button" onClick={() => setRenaming(false)}>
+                Cancel rename
+              </button>
+            </div>
+          ) : null}
           {/* S246 R-S246-9: the shared collection link opens the table on exactly these leases. */}
           <p>
             <Link href={sharedCollectionDeskHref(detail.collection.id)}>
               Open this collection on the Renewals desk
             </Link>
           </p>
-          <ul>
-            {detail.statuses.map((status) => (
-              <li key={`${status.member.leaseId}:${status.member.cycleKey}`}>
-                {status.href ? (
-                  <Link href={status.href}>{status.label}</Link>
-                ) : (
-                  status.label
-                )}{" "}
-                · lease {status.member.leaseId} · saved cycle{" "}
-                {status.member.cycleDate ?? "no dated basis"} ·{" "}
-                {status.state === "cycle_changed"
-                  ? "Cycle changed; saved membership is kept"
-                  : status.state === "unavailable"
-                    ? "Unavailable; saved membership is kept"
-                    : `${status.lifecycle}; ${status.workStatus}`}
-              </li>
-            ))}
-          </ul>
+          <div className="renewal-batch-table-scroll">
+            <table className="renewal-batch-table">
+              <caption className="sr-only">Saved members</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Lease</th>
+                  <th scope="col">Saved cycle</th>
+                  <th scope="col">Current status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {detail.statuses.map((status) => (
+                  <tr key={`${status.member.leaseId}:${status.member.cycleKey}`}>
+                    <th scope="row">
+                      {status.href ? (
+                        <Link href={status.href}>{status.label}</Link>
+                      ) : (
+                        status.label
+                      )}{" "}
+                      · Lease {status.member.leaseId}
+                    </th>
+                    <td>
+                      {formatCalendarDate(status.member.cycleDate, "No dated basis")}
+                    </td>
+                    <td>
+                      {status.state === "cycle_changed"
+                        ? "Cycle changed; saved membership is kept"
+                        : status.state === "unavailable"
+                          ? "Unavailable; saved membership is kept"
+                          : `${status.lifecycle} · ${status.workStatus}`}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
       ) : null}
-      <section className="panel" aria-label="Collection membership editor">
-        <h2>
-          {detail
-            ? "Review membership or name changes"
-            : "Name and review a monthly lease group"}
-        </h2>
-        <fieldset disabled={busy || !!pending} className="ui-stack">
-          <Field
-            htmlFor={`${fieldId}-name`}
-            label="Collection name"
-            required
-            error={
-              validationAttempted && !name.trim() ? "Enter a collection name." : undefined
-            }
-          >
-            <input
-              ref={nameInput}
+      {editing ? (
+        <section className="panel" aria-label="Collection membership editor">
+          <h2>{detail ? "Edit membership" : "Name and review a monthly lease group"}</h2>
+          <fieldset disabled={busy || !!pending} className="ui-stack">
+            <Field
+              htmlFor={`${fieldId}-name`}
+              label="Collection name"
               required
-              value={name}
-              maxLength={160}
-              onChange={(e) => {
-                setName(e.target.value);
-                changed();
-              }}
-            />
-          </Field>
-          {detail ? (
-            <button
-              type="button"
-              disabled={!name.trim() || name.trim() === detail.collection.name}
-              onClick={rename}
+              error={
+                validationAttempted && !name.trim()
+                  ? "Enter a collection name."
+                  : undefined
+              }
             >
-              Save collection name
-            </button>
-          ) : null}
-          <label className="field">
-            Membership selection
-            <select
-              value={basis.mode}
-              onChange={(e) => {
-                setBasis({ ...basis, mode: e.target.value as CollectionBasis["mode"] });
-                changed();
-              }}
-            >
-              <option value="period">Matching period and recorded filters</option>
-              <option value="explicit">These explicitly selected lease IDs</option>
-            </select>
-          </label>
-          <label className="field">
-            Date field
-            <select
-              value={basis.dateField}
-              onChange={(e) => {
-                setBasis({
-                  ...basis,
-                  dateField: e.target.value as CollectionBasis["dateField"],
-                });
-                changed();
-              }}
-            >
-              <option value="lease_end">RentVine lease end</option>
-              <option value="annual_review">Month-to-month annual review</option>
-            </select>
-          </label>
-          <Field
-            htmlFor={`${fieldId}-from`}
-            label="Period from"
-            required
-            error={validationAttempted && !basis.from ? "Choose Period from." : undefined}
-          >
-            <input
-              ref={fromInput}
+              <input
+                id={`${fieldId}-name`}
+                ref={nameInput}
+                required
+                value={name}
+                maxLength={160}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  changed();
+                }}
+              />
+            </Field>
+            <label className="field">
+              Membership selection
+              <select
+                value={basis.mode}
+                onChange={(e) => {
+                  setBasis({ ...basis, mode: e.target.value as CollectionBasis["mode"] });
+                  changed();
+                }}
+              >
+                <option value="explicit">Choose leases</option>
+                <option value="period">Match a period</option>
+              </select>
+            </label>
+            <label className="field">
+              Date field
+              <select
+                value={basis.dateField}
+                onChange={(e) => {
+                  setBasis({
+                    ...basis,
+                    dateField: e.target.value as CollectionBasis["dateField"],
+                  });
+                  changed();
+                }}
+              >
+                <option value="lease_end">RentVine lease end</option>
+                <option value="annual_review">Month-to-month annual review</option>
+              </select>
+            </label>
+            <Field
+              htmlFor={`${fieldId}-from`}
+              label="Period from"
               required
-              type="date"
-              value={basis.from}
-              onChange={(e) => {
-                setBasis({ ...basis, from: e.target.value });
-                changed();
-              }}
-            />
-          </Field>
-          <Field
-            htmlFor={`${fieldId}-through`}
-            label="Period through"
-            required
-            error={
-              validationAttempted && !basis.through ? "Choose Period through." : undefined
-            }
-          >
-            <input
-              ref={throughInput}
+              error={
+                validationAttempted && !basis.from ? "Choose Period from." : undefined
+              }
+            >
+              <input
+                id={`${fieldId}-from`}
+                ref={fromInput}
+                required
+                type="date"
+                value={basis.from}
+                onChange={(e) => {
+                  setBasis({ ...basis, from: e.target.value });
+                  changed();
+                }}
+              />
+            </Field>
+            <Field
+              htmlFor={`${fieldId}-through`}
+              label="Period through"
               required
-              type="date"
-              value={basis.through}
-              onChange={(e) => {
-                setBasis({ ...basis, through: e.target.value });
-                changed();
-              }}
-            />
-          </Field>
-          <label className="field">
-            Selected lease IDs
-            <textarea
-              value={memberText}
-              onChange={(e) => {
-                setMemberText(e.target.value);
-                changed();
-              }}
-            />
-          </label>
-          <p>
-            Selection basis: {basis.origin}.{" "}
-            {basis.mode === "period"
-              ? "Refresh membership recomputes this period and the recorded worklist filters."
-              : "Refresh membership checks these identified leases and their current cycles."}
-          </p>
-          {basis.criteria ? (
-            <details>
-              <summary>Recorded worklist filters</summary>
-              <p>{new URLSearchParams(basis.criteria).toString()}</p>
-            </details>
-          ) : null}
-          <button type="button" onClick={() => void prepare()}>
-            {detail ? "Refresh membership for review" : "Review monthly leases"}
-          </button>
-        </fieldset>
-        {review ? (
-          <section aria-label="Reviewed membership">
-            <h3>Reviewed membership</h3>
+              error={
+                validationAttempted && !basis.through
+                  ? "Choose Period through."
+                  : undefined
+              }
+            >
+              <input
+                id={`${fieldId}-through`}
+                ref={throughInput}
+                required
+                type="date"
+                value={basis.through}
+                onChange={(e) => {
+                  setBasis({ ...basis, through: e.target.value });
+                  changed();
+                }}
+              />
+            </Field>
+            {basis.mode === "explicit" ? (
+              <div className="ui-stack-tight">
+                <label className="field">
+                  Find leases by address, name or lease ID
+                  <input
+                    value={searchText}
+                    maxLength={160}
+                    onChange={(event) => setSearchText(event.target.value)}
+                  />
+                </label>
+                <button
+                  type="button"
+                  disabled={!searchText.trim() || lookingUp}
+                  onClick={() =>
+                    void lookup(new URLSearchParams({ search: searchText }).toString())
+                  }
+                >
+                  Search leases
+                </button>
+                {lookupStatus ? <p role="status">{lookupStatus}</p> : null}
+                <ul>
+                  {choices.map((row) => (
+                    <li key={row.leaseId}>
+                      {row.label} · Lease {row.leaseId} ·{" "}
+                      {formatCalendarDate(row.cycleDate)}{" "}
+                      <button
+                        type="button"
+                        disabled={selectedIds.includes(row.leaseId)}
+                        onClick={() => {
+                          setMemberText([...selectedIds, row.leaseId].join(", "));
+                          changed();
+                        }}
+                      >
+                        Add {row.label}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                {initialMembers.length > 0 && !detail ? (
+                  <p>
+                    {initialMembers.length} leases were offered by the source selection.
+                  </p>
+                ) : null}
+                <ul aria-label="Selected leases">
+                  {selectedIds
+                    .filter((id) => CollectionLeaseIdSchema.safeParse(id).success)
+                    .map((id) => (
+                      <li key={id}>
+                        {labels[id] ?? `Lease ${id}`}{" "}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMemberText(
+                              selectedIds.filter((member) => member !== id).join(", "),
+                            );
+                            changed();
+                          }}
+                        >
+                          Remove {labels[id] ?? `lease ${id}`}
+                        </button>
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            ) : null}
+            <label className="field">
+              Selected lease IDs
+              <textarea
+                value={memberText}
+                onChange={(e) => {
+                  setMemberText(e.target.value);
+                  changed();
+                }}
+              />
+            </label>
             <p>
-              {review.name} ·{" "}
-              {review.basis.dateField === "lease_end"
-                ? "RentVine lease end"
-                : "Annual review"}{" "}
-              · {review.basis.from} through {review.basis.through} ·{" "}
-              {review.members.length} members.
+              Selection basis: {basis.origin}.{" "}
+              {basis.mode === "period"
+                ? "Refresh membership recomputes this period and the recorded worklist filters."
+                : "Refresh membership checks these identified leases and their current cycles."}
             </p>
-            <h4>Additions ({review.added.length})</h4>
-            <ul>
-              {review.added.map((m) => (
-                <li key={`${m.leaseId}:${m.cycleKey}`}>
-                  Lease {m.leaseId} · cycle {m.cycleDate ?? m.cycleKey}
-                </li>
-              ))}
-            </ul>
-            <h4>Removals ({review.removed.length})</h4>
-            <ul>
-              {review.removed.map((m) => (
-                <li key={`${m.leaseId}:${m.cycleKey}`}>
-                  Lease {m.leaseId} · cycle {m.cycleDate ?? m.cycleKey}
-                </li>
-              ))}
-            </ul>
-            <details>
-              <summary>All reviewed members</summary>
+            {basis.mode === "period" && basis.criteria ? (
+              <details>
+                <summary>Recorded worklist filters</summary>
+                <ul>
+                  {[...new URLSearchParams(basis.criteria)]
+                    .filter(([key]) => key !== "v")
+                    .map(([key, value]) => (
+                      <li key={key}>
+                        {key === "ownerKey"
+                          ? "Selected owner"
+                          : key === "tenantKey"
+                            ? "Selected tenant"
+                            : `${key.replace(/([a-z])([A-Z])/g, "$1 $2")}: ${value.replaceAll("_", " ")}`}
+                      </li>
+                    ))}
+                </ul>
+              </details>
+            ) : null}
+            <button type="button" onClick={() => void prepare()}>
+              Review membership
+            </button>
+            <div className="ui-row">
+              <button
+                type="button"
+                onClick={() => {
+                  keepDraft();
+                  setEditing(false);
+                }}
+              >
+                Keep local changes and close
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  clearDraft(detail?.collection.id ?? null);
+                  if (detail) void open(detail.collection.id);
+                  else {
+                    newCollection();
+                    setEditing(false);
+                  }
+                }}
+              >
+                Discard changes
+              </button>
+            </div>
+          </fieldset>
+          {review ? (
+            <section aria-label="Reviewed membership">
+              <h3 ref={reviewHeading} tabIndex={-1}>
+                Reviewed membership
+              </h3>
+              <p>
+                {review.name} ·{" "}
+                {review.expectedVersion
+                  ? `From version ${review.expectedVersion}`
+                  : "New collection"}{" "}
+                ·{" "}
+                {review.basis.dateField === "lease_end"
+                  ? "RentVine lease end"
+                  : "Annual review"}{" "}
+                · {review.basis.from} through {review.basis.through} ·{" "}
+                {review.members.length} members.
+              </p>
+              <h4>Additions ({review.added.length})</h4>
               <ul>
-                {review.members.map((m) => (
+                {review.added.map((m) => (
                   <li key={`${m.leaseId}:${m.cycleKey}`}>
-                    Lease {m.leaseId} · cycle {m.cycleDate ?? m.cycleKey}
+                    {labels[m.leaseId] ?? "Lease"} · {m.leaseId} · cycle{" "}
+                    {formatCalendarDate(m.cycleDate, "No dated basis")}
                   </li>
                 ))}
               </ul>
-            </details>
-            <button
-              type="button"
-              disabled={busy || !!pending}
-              onClick={() => void save()}
-            >
-              Save reviewed collection
-            </button>
-          </section>
-        ) : null}
-      </section>
+              <h4>Removals ({review.removed.length})</h4>
+              <ul>
+                {review.removed.map((m) => (
+                  <li key={`${m.leaseId}:${m.cycleKey}`}>
+                    {labels[m.leaseId] ?? "Lease"} · {m.leaseId} · cycle{" "}
+                    {formatCalendarDate(m.cycleDate, "No dated basis")}
+                  </li>
+                ))}
+              </ul>
+              <details>
+                <summary>All reviewed members</summary>
+                <ul>
+                  {review.members.map((m) => (
+                    <li key={`${m.leaseId}:${m.cycleKey}`}>
+                      {labels[m.leaseId] ?? "Lease"} · {m.leaseId} · cycle{" "}
+                      {formatCalendarDate(m.cycleDate, "No dated basis")}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+              <button
+                type="button"
+                disabled={busy || !!pending}
+                onClick={() => void save()}
+              >
+                Save reviewed collection
+              </button>
+            </section>
+          ) : null}
+        </section>
+      ) : null}
     </div>
   );
 }

@@ -1,6 +1,8 @@
+import { assertSenderSignatureChoice } from "@/lib/firestore/renewal-sender-signature-choice";
 import { createHash } from "node:crypto";
 import { FieldPath, type Firestore } from "firebase-admin/firestore";
 import { getAdminFirestore } from "@/lib/firestore/admin";
+import { assertRenewalDispositionVersion } from "@/lib/firestore/renewal-cycle-disposition-read";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
   communicationsRetentionFields,
@@ -19,6 +21,7 @@ import type {
   CommunicationSequence,
   SequenceObservationFailure,
   SequenceState,
+  VerifiedCommunicationTarget,
 } from "./sequence-model";
 import type { GmailSendResult } from "@/lib/gmail-runtime/types";
 
@@ -52,6 +55,15 @@ export function sequenceHash(value: unknown): string {
     .update(JSON.stringify(canonical(value)))
     .digest("hex");
 }
+export function reviewedCommunicationTargetHash(target: VerifiedCommunicationTarget) {
+  return sequenceHash({
+    to: target.to,
+    cc: target.cc,
+    materialSourceHash: target.materialSourceHash,
+    ...(target.outgoingContract ? { signatureSetup: target.signatureSetup ?? null } : {}),
+  });
+}
+
 /** Exact basis already checked and serialized by this dispatcher; a newer occurrence needs fresh preparation. */
 export interface PreparedCommunicationDispatch {
   materialSourceHash: string;
@@ -59,6 +71,7 @@ export interface PreparedCommunicationDispatch {
   payloadHash: string;
   senderEmail: string;
   confirmedCount: number;
+  dispositionRevision?: number;
 }
 export interface SequenceStore {
   get(id: string): Promise<CommunicationSequence | null>;
@@ -76,6 +89,7 @@ export interface SequenceStore {
     expectedVersion: number;
     nowMs: number;
     action: string;
+    dispositionRevision?: number;
     apply(current: CommunicationSequence | null): CommunicationSequence;
   }): Promise<CommunicationSequence>;
   claim(
@@ -259,6 +273,30 @@ export class FirestoreCommunicationSequenceStore implements SequenceStore {
       };
       if (next.id !== i.id || next.version !== i.expectedVersion + 1)
         throw new Error("Invalid communication transition.");
+      if (
+        next.context.entityType === "renewal_lease" &&
+        (i.action === "send_authorized" || i.action === "schedule_authorized")
+      )
+        await assertRenewalDispositionVersion(
+          tx,
+          this.db,
+          next.context.entityId,
+          i.dispositionRevision ?? 0,
+        );
+      if (
+        (i.action === "send_authorized" || i.action === "schedule_authorized") &&
+        next.authorization?.signatureSetup
+      ) {
+        await assertSenderSignatureChoice(
+          tx,
+          this.db,
+          {
+            uid: next.authorization.approvedByUid,
+            email: next.authorization.senderEmail,
+          },
+          next.authorization.signatureSetup,
+        );
+      }
       if (Buffer.byteLength(JSON.stringify(next), "utf8") > 750_000)
         throw new EditableLayerError(
           "This communication exceeds its supported size.",
@@ -372,6 +410,13 @@ export class FirestoreCommunicationSequenceStore implements SequenceStore {
         .doc(occurrenceId);
       const previous = await tx.get(ref);
       if (previous.exists) return null; // any admitted attempt excludes a second call, including after a crash
+      if (s.context.entityType === "renewal_lease")
+        await assertRenewalDispositionVersion(
+          tx,
+          this.db,
+          s.context.entityId,
+          prepared.dispositionRevision ?? 0,
+        );
       const occurrence: CommunicationOccurrence = {
         id: occurrenceId,
         sequenceId: id,

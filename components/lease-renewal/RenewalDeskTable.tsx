@@ -1,3 +1,4 @@
+import { RenewalDeskSurfaceSwitch } from "./RenewalDeskSurfaceSwitch";
 // S82: the canonical table-first Renewal Desk worklist. One semantic <table>, one row per loaded
 // lease, with column-owned sort and filter controls, exact-value shortcuts, active-filter chips, a
 // Clear filters control, and truthful zero states. Server component: every control is a GET link or
@@ -1045,6 +1046,7 @@ export function RenewalDeskTable({
       savedView={viewMemory.savedView}
       viewSource={viewMemory.source}
     >
+      <RenewalDeskSurfaceSwitch active="table" />
       <div className="renewal-table-toolbar">
         <Link
           prefetch={false}

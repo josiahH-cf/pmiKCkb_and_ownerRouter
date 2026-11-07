@@ -99,6 +99,8 @@ function publicPreparation(current: Current) {
     subjectOverride: current.subjectOverride,
     sourceFingerprint: current.basis.sourceFingerprint,
     signatureMatchesActor: current.signatureMatchesActor,
+    signatureSetup: current.signatureSetup,
+    outgoingReasons: current.outgoingReasons,
     publication: {
       status: current.publication.status,
       ref: current.publication.ref,
@@ -113,6 +115,12 @@ function publicPreparation(current: Current) {
 function claimBasisOf(current: Current) {
   return {
     noticeSafety: current.basis.noticeSafety ?? undefined,
+    ...(current.dispositionRevision
+      ? { dispositionRevision: current.dispositionRevision }
+      : {}),
+    ...(current.signatureSetup?.revision
+      ? { signatureSetup: current.signatureSetup }
+      : {}),
     workspaceFingerprint: current.basis.workspaceFingerprint!,
     sourceFingerprint: current.basis.sourceFingerprint,
     resourceFingerprint: current.basis.resourceFingerprint,

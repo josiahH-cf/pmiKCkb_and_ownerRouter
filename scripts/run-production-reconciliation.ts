@@ -1978,11 +1978,15 @@ const RENEWAL_ROW_PLAN: AssuranceDomPlan = {
 // The empty-worklist cell is identified by its class. Its column span follows the table's
 // header count, which differs between a predecessor and a candidate when a column changes.
 const RENEWAL_EMPTY_CELL = "td.renewal-table-empty";
+const RENEWAL_DESK_SWITCH = "nav[data-renewal-desk-view]";
 const RENEWAL_DOM_PLAN: AssuranceDomPlan = {
+  [RENEWAL_DESK_SWITCH]: { a: {} },
   [RENEWAL_BODY_ROWS]: { [RENEWAL_EMPTY_CELL]: {} },
   [RENEWAL_DATA_ROWS]: RENEWAL_ROW_PLAN,
 };
 const RENEWAL_DOM_ATTRIBUTES = [
+  "data-renewal-desk-view",
+  "aria-current",
   "datetime",
   "href",
   "target",
@@ -2048,6 +2052,24 @@ export async function readRowsFromPage(
     RENEWAL_DOM_ATTRIBUTES,
   );
   abortSignal.throwIfAborted();
+  const viewSwitch = snapshot.locator(RENEWAL_DESK_SWITCH);
+  const switchCount = await viewSwitch.count();
+  if (switchCount > 0) {
+    const links = viewSwitch.locator("a");
+    const working = links.nth(0);
+    const all = links.nth(1);
+    if (
+      switchCount !== 1 ||
+      (await viewSwitch.getAttribute("data-renewal-desk-view")) !== "table" ||
+      (await links.count()) !== 2 ||
+      (await working.textContent())?.trim() !== "Working batch" ||
+      (await all.textContent())?.trim() !== "All leases and filters" ||
+      (await all.getAttribute("aria-current")) !== "page" ||
+      (await working.getAttribute("href")) !== "/lease-renewal/live/desk" ||
+      (await all.getAttribute("href")) !== "/lease-renewal/live/desk?v=2&scope=all"
+    )
+      fieldMismatches += 1;
+  }
   const allBodyRows = snapshot.locator(RENEWAL_BODY_ROWS);
   const rowLocators = snapshot.locator(RENEWAL_DATA_ROWS);
   const allCount = await allBodyRows.count();

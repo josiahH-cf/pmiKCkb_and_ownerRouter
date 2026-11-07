@@ -2934,10 +2934,8 @@ label.secondary-button:focus-within {
   }
 }
 
-/* S246: the working batch, the Renewals desk's default view. One short row per lease. The row's
-   own link covers the whole row, so choosing anywhere on it opens the lease; the next step and
-   the two recording actions sit above that cover. Every control is a 44px target, and rows wrap
-   on a narrow screen instead of dropping a fact. */
+/* S246: the monthly working tables keep next action beside the lease on narrow
+   screens, with overflow confined to the table. */
 .renewal-batch-lead {
   display: grid;
   gap: var(--space-2);
@@ -2989,7 +2987,6 @@ label.secondary-button:focus-within {
   margin: 0;
 }
 
-.renewal-batch-rows,
 .renewal-batch-counts,
 .renewal-batch-reasons,
 .renewal-batch-tags {
@@ -2998,30 +2995,64 @@ label.secondary-button:focus-within {
   padding: 0;
 }
 
-.renewal-batch-rows {
-  display: grid;
-  gap: var(--space-2);
+.renewal-batch-table-scroll {
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.renewal-batch-table {
+  border-collapse: collapse;
+  min-width: 54rem;
+  table-layout: fixed;
+  width: 100%;
+}
+
+.renewal-batch-table th,
+.renewal-batch-table td {
+  border-bottom: 1px solid var(--ui-border);
+  overflow-wrap: anywhere;
+  padding: var(--space-2);
+  text-align: start;
+  vertical-align: top;
+}
+
+.renewal-batch-table thead th {
+  background: var(--ui-selected-surface);
+}
+
+.renewal-batch-table th:nth-child(1),
+.renewal-batch-table th:nth-child(2) {
+  width: 10.5rem;
+}
+
+.renewal-batch-table th:nth-child(3),
+.renewal-batch-table th:nth-child(5),
+.renewal-batch-table th:nth-child(6) {
+  width: 7.5rem;
 }
 
 .renewal-batch-row {
-  align-items: center;
-  border: 1px solid var(--ui-border);
-  border-radius: var(--radius-md);
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1) var(--space-3);
-  padding: var(--space-2) var(--space-3);
   position: relative;
 }
 
 .renewal-batch-row:hover,
 .renewal-batch-row:focus-within {
-  border-color: var(--ui-border-interactive);
+  background: var(--ui-selected-surface);
+}
+
+.renewal-batch-table td > span,
+.renewal-batch-table td > ul {
+  margin-block: 0.25rem;
+}
+
+.renewal-batch-date-note,
+.renewal-batch-status-note {
+  display: block;
 }
 
 .renewal-batch-row-identity {
   display: grid;
-  flex: 2 1 16rem;
   gap: 2px;
   min-width: 0;
 }
@@ -3053,7 +3084,6 @@ a.renewal-batch-lease::after {
 
 .renewal-batch-stage,
 .renewal-batch-reason {
-  flex: 3 1 16rem;
   min-width: 0;
   overflow-wrap: anywhere;
 }
@@ -3082,7 +3112,6 @@ a.renewal-batch-lease::after {
   align-items: center;
   display: inline-flex;
   margin-bottom: 0;
-  margin-left: auto;
   min-height: 44px;
   min-width: 44px;
 }
