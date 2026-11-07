@@ -53,6 +53,8 @@ operating Sheet.
   name saves the fact through the existing autosave in either location. Saving is visible; a
   failed save keeps the entry and offers Try again through the same lease-bound save, with
   permission and completeness checks retained.
+  The shared S155 retry keeps keyboard focus through confirmed success in both locations.
+  The existing saved notice appears and the next Tab continues to the next control.
   An earlier autosave response keeps newer typing in Program name, contact and notes; those
   entries show "Unsaved housing assistance edits" until their own save completes, in both placements.
 - **R-S251-3 — Stays with the lease.** The fact carries across renewal cycles until staff change it,

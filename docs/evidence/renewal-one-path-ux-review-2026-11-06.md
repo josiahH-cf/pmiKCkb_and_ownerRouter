@@ -359,6 +359,16 @@ loading and moves to Cancel when ready, with both Tab directions contained. Disp
 operations retain their existing cancellation boundary. No provider or saved-state contract
 changes. Verification is pending.
 
+UX-041, isolated by source inspection on `835ba306` and reproduced in both mounted housing
+placements: after a successful retry, the form unmounted its shared status even while Retry
+held focus. Both tests received BODY after the stored record and its saved notice appeared.
+This breaks the keyboard continuation after recovery (P05, P09, P13, P14; SC04, SC08, SC09,
+SC10). The same status instance now stays mounted across acknowledgment, with its existing
+saved/edited wording and the focused, unavailable retry until Tab leaves. Idle status adds no
+markup or layout. The store, permissions and default lease rendering stay unchanged. Before
+the fix, two keyboard checks failed and eight other housing checks passed. A final rehearsal
+is needed to verify the person's outcome.
+
 Preserved by decision: exact review/confirmation, the required Gmail banner, stale authored wording,
 who-approved validation, role/Space and Action Registry checks, blank unsettled legal fields,
 assistance-animal holds, existing controls/views/filters/collections/old links, historical failed

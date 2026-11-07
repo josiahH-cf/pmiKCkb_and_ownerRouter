@@ -91,19 +91,21 @@ export function HousingAssistanceField({
   const [notes, setNotes] = useState(saved?.status === "yes" ? (saved.notes ?? "") : "");
   const [notice, setNotice] = useState("");
   const [programTouched, setProgramTouched] = useState(false);
+  const [hasLocalEdit, setHasLocalEdit] = useState(false);
   const editGeneration = useRef(0);
   const savedGeneration = useRef(0);
   const inFlight = useRef(0);
   const saveTurn = useRef(0);
   function edited() {
     editGeneration.current++;
+    setHasLocalEdit(true);
     setNotice("");
   }
   // Adopt a newer saved value (the other placement, a reload) while nothing here is being typed.
   const [seen, setSeen] = useState(entry?.revision ?? 0);
   if ((entry?.revision ?? 0) !== seen) {
     setSeen(entry?.revision ?? 0);
-    if (editGeneration.current === savedGeneration.current) {
+    if (!hasLocalEdit) {
       setStatus(saved?.status ?? null);
       setProgram(saved?.status === "yes" ? saved.program : "");
       setContact(saved?.status === "yes" ? (saved.contact ?? "") : "");
@@ -117,6 +119,7 @@ export function HousingAssistanceField({
     if (!working) return;
     if (JSON.stringify(value) === JSON.stringify(saved) && inFlight.current === 0) {
       savedGeneration.current = editGeneration.current;
+      setHasLocalEdit(false);
       return;
     }
     const generation = editGeneration.current;
@@ -124,7 +127,10 @@ export function HousingAssistanceField({
     inFlight.current++;
     const ok = await working.save(FIELD, value);
     inFlight.current--;
-    if (ok) savedGeneration.current = Math.max(savedGeneration.current, generation);
+    if (ok) {
+      savedGeneration.current = Math.max(savedGeneration.current, generation);
+      setHasLocalEdit(editGeneration.current !== savedGeneration.current);
+    }
     if (turn !== saveTurn.current) return;
     setNotice(
       ok
@@ -285,25 +291,29 @@ export function HousingAssistanceField({
       ) : null}
       {autosave.phase === "edited" ? (
         <p role="status">Unsaved housing assistance edits</p>
-      ) : autosave.phase === "failed" || autosave.phase === "saving" ? (
-        <AutosaveStatus
-          onRetry={
-            working.canEdit && (status !== "yes" || program.trim())
-              ? () => {
-                  const value =
-                    status === "yes"
-                      ? yesValue()
-                      : status === "no"
-                        ? { status: "no" as const }
-                        : null;
-                  void save(value);
-                }
-              : undefined
-          }
-          state={autosave}
-          subject="Housing assistance"
-        />
       ) : null}
+      <AutosaveStatus
+        hideWhenIdle
+        onRetry={
+          working.canEdit && (status !== "yes" || program.trim())
+            ? () => {
+                const value =
+                  status === "yes"
+                    ? yesValue()
+                    : status === "no"
+                      ? { status: "no" as const }
+                      : null;
+                void save(value);
+              }
+            : undefined
+        }
+        state={
+          autosave.phase === "failed" || autosave.phase === "saving"
+            ? autosave
+            : AUTOSAVE_IDLE
+        }
+        subject="Housing assistance"
+      />
       {notice ? <p role="status">{notice}</p> : null}
     </div>
   );

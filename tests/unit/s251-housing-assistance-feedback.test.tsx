@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -28,11 +28,36 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
+function savedProgram(revision: number) {
+  return {
+    schemaVersion: "renewal-working-record/v1" as const,
+    leaseId: "9101",
+    revision,
+    fields: {
+      housing_assistance: {
+        value: { status: "yes" as const, program: "Example Housing Office" },
+        revision,
+        eventId: "synthetic-event",
+        recordedAt: "2026-11-06T18:00:00.000Z",
+        recordedByUid: "synthetic-editor",
+        recordedByLabel: "Example Staff",
+        origin: "staff_entry" as const,
+      },
+    },
+  };
+}
+
 describe("Housing assistance missing-program recovery", () => {
   for (const placement of ["now", "lease-information"] as const) {
     it(`offers a keyboard retry for a failed complete save in ${placement}`, async () => {
       working.save.mockResolvedValue(false);
-      const view = render(<HousingAssistanceField placement={placement} />);
+      const fields = () => (
+        <>
+          <HousingAssistanceField placement={placement} />
+          <button>Continue</button>
+        </>
+      );
+      const view = render(fields());
       const user = userEvent.setup();
       await user.click(screen.getByRole("radio", { name: "Yes" }));
       const name = screen.getByRole("textbox", { name: "Program name" });
@@ -45,12 +70,15 @@ describe("Housing assistance missing-program recovery", () => {
         phase: "failed",
         message: "The save did not finish.",
       };
-      view.rerender(<HousingAssistanceField placement={placement} />);
+      view.rerender(fields());
       await user.tab();
       await user.tab();
       expect(screen.getByRole("button", { name: "Try again" })).toHaveFocus();
       const attemptsBeforeRetry = working.save.mock.calls.length;
-      working.save.mockResolvedValue(true);
+      let acknowledge!: (ok: boolean) => void;
+      working.save.mockImplementationOnce(
+        () => new Promise<boolean>((resolve) => (acknowledge = resolve)),
+      );
       await user.keyboard("{Enter}");
       await waitFor(() =>
         expect(working.save).toHaveBeenCalledTimes(attemptsBeforeRetry + 1),
@@ -60,15 +88,8 @@ describe("Housing assistance missing-program recovery", () => {
         program: "Example Housing Office",
       });
       expect(name).toHaveValue("Example Housing Office");
-      expect(
-        screen
-          .getAllByRole("status")
-          .some((element) =>
-            element.textContent?.includes("Housing assistance saved for this lease."),
-          ),
-      ).toBe(true);
       working.states.housing_assistance = { phase: "saving" };
-      view.rerender(<HousingAssistanceField placement={placement} />);
+      view.rerender(fields());
       const pendingRetry = screen.getByRole("button", { name: "Try again" });
       expect(pendingRetry).toHaveFocus();
       expect(pendingRetry).toHaveAttribute("aria-disabled", "true");
@@ -79,12 +100,24 @@ describe("Housing assistance missing-program recovery", () => {
           .getAllByRole("status")
           .some((element) => element.textContent?.includes("Saving housing assistance")),
       ).toBe(true);
+      await act(async () => {
+        working.states.housing_assistance = { phase: "saved" };
+        working.record = savedProgram(1);
+        acknowledge(true);
+        view.rerender(fields());
+      });
+      expect(screen.getByText("Housing assistance saved for this lease.")).toBeVisible();
+      expect(pendingRetry).toHaveFocus();
+      expect(pendingRetry).toHaveAttribute("aria-disabled", "true");
+      await user.tab();
+      expect(screen.getByRole("button", { name: "Continue" })).toHaveFocus();
+      expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
       working.canEdit = false;
       working.states.housing_assistance = {
         phase: "failed",
         message: "The save did not finish.",
       };
-      view.rerender(<HousingAssistanceField placement={placement} />);
+      view.rerender(fields());
       expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
     });
 
@@ -122,29 +155,13 @@ describe("Housing assistance missing-program recovery", () => {
       "Notes (optional)",
     ]) {
       it(`keeps newer ${field} typing when an earlier saved record arrives in ${placement}`, async () => {
-        const record = (revision: number) => ({
-          schemaVersion: "renewal-working-record/v1" as const,
-          leaseId: "9101",
-          revision,
-          fields: {
-            housing_assistance: {
-              value: { status: "yes" as const, program: "Example Housing Office" },
-              revision,
-              eventId: "synthetic-event",
-              recordedAt: "2026-11-06T18:00:00.000Z",
-              recordedByUid: "synthetic-editor",
-              recordedByLabel: "Example Staff",
-              origin: "staff_entry" as const,
-            },
-          },
-        });
-        working.record = record(1);
+        working.record = savedProgram(1);
         const view = render(<HousingAssistanceField placement={placement} />);
         const user = userEvent.setup();
         const input = screen.getByRole("textbox", { name: field });
         const prior = (input as HTMLInputElement | HTMLTextAreaElement).value;
         await user.type(input, " newer entry");
-        working.record = record(2);
+        working.record = savedProgram(2);
         working.states.housing_assistance = { phase: "saved" };
         view.rerender(<HousingAssistanceField placement={placement} />);
         expect(input).toHaveValue(`${prior} newer entry`);

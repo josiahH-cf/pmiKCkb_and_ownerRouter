@@ -38,12 +38,15 @@ export function AutosaveStatus({
   state,
   onRetry,
   subject,
+  hideWhenIdle = false,
 }: Readonly<{
   state: AutosaveState;
   /** Saves the same entered value again. Omitted when the control retries on its own. */
   onRetry?: () => void;
   /** What was saved, for the accessible label (for example "Working current rent"). */
   subject: string;
+  /** Omit empty status markup while keeping an in-use retry mounted. */
+  hideWhenIdle?: boolean;
 }>) {
   // A blur save can start while Tab is moving from the input to its retry. Keep that
   // same button through the request, and until focus leaves it after success.
@@ -64,6 +67,7 @@ export function AutosaveStatus({
   ) {
     setRetryShown(false);
   }
+  if (hideWhenIdle && state.phase === "idle" && !(onRetry && retryShown)) return null;
   return (
     <span
       aria-live="polite"
