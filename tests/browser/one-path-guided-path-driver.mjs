@@ -748,6 +748,121 @@ export async function runGuidedPath() {
         { tick, afterTick, standing: sequenceStanding(standing.body?.sequence) },
       );
     }
+    // A new reply is a separate scoped action from reading the incoming evidence.
+    process.stdout.write(
+      "expect L07 linked reply: opening the received message prepares no effect. Reviewing and selecting Send accepts one exact reply on that same synthetic thread. Reload keeps the receipt and the original incoming message.\n",
+    );
+    await page.goto(origin + "/gmail-hub", { waitUntil: "domcontentloaded" });
+    await page
+      .getByRole("tab", { name: "Outgoing", exact: true })
+      .click({ timeout: 30_000 });
+    const previous = page
+      .getByRole("tabpanel", { name: "Outgoing", exact: true })
+      .getByRole("article")
+      .filter({
+        has: page.getByRole("heading", { name: new RegExp("Lease " + replied + "$") }),
+      });
+    await previous
+      .getByRole("button", { name: "Open communication", exact: true })
+      .click({ timeout: 30_000 });
+    const incoming = composer().getByRole("region", {
+      name: "Linked incoming history",
+      exact: true,
+    });
+    const parentSequence = new URL(page.url()).searchParams.get("communication");
+    assert.ok(parentSequence);
+    await composer()
+      .getByRole("button", { name: "Read linked thread", exact: true })
+      .click({ timeout: 30_000 });
+    const humanReply = incoming
+      .getByRole("article")
+      .filter({ hasText: "Human response" });
+    const openReply = humanReply.getByRole("link", {
+      name: "Reply in Communications",
+      exact: true,
+    });
+    const [replyPage] = await Promise.all([
+      context.waitForEvent("page", { timeout: 30_000 }),
+      openReply.click({ timeout: 30_000 }),
+    ]);
+    try {
+      const replyComposer = replyPage.getByRole("region", {
+        name: "Workflow communication composer",
+        exact: true,
+      });
+      const replySubject = replyComposer.getByRole("textbox", {
+        name: "Initial message subject",
+        exact: true,
+      });
+      const replyBody = replyComposer.getByRole("textbox", {
+        name: "Initial message body",
+        exact: true,
+      });
+      await replyBody.waitFor({ timeout: 30_000 });
+      const subject = await replySubject.inputValue();
+      assert.ok(subject.trim());
+      assert.match(
+        await replyComposer.getByText(/^To:/).first().innerText(),
+        /@example\.invalid\b/,
+      );
+      const wording = "Thank you for reviewing the synthetic renewal example.";
+      await replyBody.fill(wording);
+      assert.equal(await replyBody.innerText(), wording);
+      const replyEntry = new URL(replyPage.url());
+      assert.equal(replyEntry.searchParams.get("reply_from"), parentSequence);
+      const thread = replyEntry.searchParams.get("reply_thread");
+      assert.ok(thread);
+      const prior = new Set((await sentMessages()).map((entry) => entry.id));
+      const confirm = replyComposer.getByRole("button", { name: "Send", exact: true });
+      const [response] = await Promise.all([
+        replyPage.waitForResponse(
+          (result) => {
+            const request = result.request();
+            return (
+              request.method() === "POST" &&
+              new URL(result.url()).pathname === "/api/gmail-hub/sequences" &&
+              request.postDataJSON()?.action === "send"
+            );
+          },
+          { timeout: 45_000 },
+        ),
+        confirm.click({ timeout: 30_000 }),
+      ]);
+      const accepted = (await response.json()).sequence;
+      assert.ok(response.ok() && accepted?.id);
+      const sent = (await sentMessages()).filter((entry) => !prior.has(entry.id));
+      await replyPage.reload({ waitUntil: "domcontentloaded" });
+      const evidence = replyComposer.getByRole("region", {
+        name: "Message evidence",
+        exact: true,
+      });
+      await evidence.waitFor({ timeout: 30_000 });
+      const replayRefused = await confirm.isDisabled();
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await composer()
+        .getByRole("button", { name: "Read linked thread", exact: true })
+        .click({ timeout: 30_000 });
+      await incoming.getByText(wording, { exact: true }).waitFor({ timeout: 30_000 });
+      assert.equal(await humanReply.count(), 1);
+      check(
+        "L07 linked reply: the deliberate send keeps the exact subject, body, linked thread and one durable receipt",
+        sent.length === 1 &&
+          sent[0].subject === subject &&
+          sent[0].text === wording &&
+          sent[0].threadId === thread &&
+          accepted.confirmedCount === 1 &&
+          replayRefused,
+        {
+          exactThread: sent[0]?.threadId === thread,
+          exactBody: sent[0]?.text === wording,
+          accepted: sequenceStanding(accepted),
+          newSends: sent.length,
+          replayRefused,
+        },
+      );
+    } finally {
+      await replyPage.close();
+    }
   } catch (error) {
     check(
       "the guided path ran to its end",

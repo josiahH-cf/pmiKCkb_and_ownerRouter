@@ -371,8 +371,11 @@ try {
         .filter({ hasText: /Check the recorded change/ })
         .waitFor();
       await page.unroute(apiPath, loseSave);
-      await page.reload({ waitUntil: "domcontentloaded" });
       const detail = page.getByRole("region", { name: "Current collection status" });
+      await recover.click();
+      await detail.getByRole("heading", { name, exact: true }).waitFor();
+      assert.match(await detail.innerText(), /membership version 1/);
+      await page.reload({ waitUntil: "domcontentloaded" });
       await detail.getByRole("heading", { name, exact: true }).waitFor();
       assert.match(await detail.innerText(), /2 saved members/);
       assert.match(await detail.innerText(), /membership version 1/);

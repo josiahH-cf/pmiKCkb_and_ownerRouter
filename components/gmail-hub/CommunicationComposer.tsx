@@ -144,7 +144,7 @@ export function CommunicationComposer({
   const threadGeneration = useRef(0);
   const [saveTick, setSaveTick] = useState(0),
     [conflict, setConflict] = useState(false),
-    [pendingFile, setPendingFile] = useState(false);
+    [pendingFile, setPendingFile] = useState<"initial" | "followUp" | null>(null);
   const uploadIntent = useRef<{
     id: string;
     file: File;
@@ -564,7 +564,7 @@ export function CommunicationComposer({
         throw new Error("Check the original file upload before selecting another file.");
       if (!uploadIntent.current)
         uploadIntent.current = { id: crypto.randomUUID(), file, which };
-      setPendingFile(true);
+      setPendingFile(which);
       const { id } = uploadIntent.current,
         form = new FormData();
       form.set("file", file);
@@ -578,7 +578,7 @@ export function CommunicationComposer({
           p.error ?? "The file needs reconciliation before it can be attached.",
         );
       uploadIntent.current = null;
-      setPendingFile(false);
+      setPendingFile(null);
       const a = p.attachment as CommunicationAttachment;
       setAttachments((old) => ({ ...old, [a.id]: a }));
       const d = currentDraft.current,
@@ -666,7 +666,7 @@ export function CommunicationComposer({
     busy ||
     terminal ||
     conflict ||
-    (pendingFile && uploadIntent.current?.which !== "followUp") ||
+    pendingFile === "initial" ||
     !canAuthorize ||
     !draftCanSave ||
     initialFilesUnverified ||

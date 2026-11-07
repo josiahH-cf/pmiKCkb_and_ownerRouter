@@ -195,11 +195,23 @@ fi
 # boundary. The preload asserts its own installation before each process reaches its entrypoint.
 source "$root/worktree/scripts/lib/one-path-rehearsal/network-guard.sh"
 enable_rehearsal_network_guard "$root/worktree" "$output"
-free_port() {
-  node -e 'const s=require("net").createServer();s.listen(0,"127.0.0.1",()=>{console.log(s.address().port);s.close()})'
-}
-firestore_port=$(free_port)
-auth_port=$(free_port)
+# Hold both listeners until the kernel assigns two different ephemeral ports.
+ports=$(node -e '
+  const net = require("node:net");
+  const listeners = [net.createServer(), net.createServer()];
+  Promise.all(listeners.map(server => new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", () => resolve(server.address().port));
+  }))).then(ports => {
+    console.log(ports.join(" "));
+    for (const server of listeners) server.close();
+  }).catch(error => {
+    console.error(error);
+    process.exit(1);
+  });
+')
+read -r firestore_port auth_port <<<"$ports"
+[[ -n "$firestore_port" && -n "$auth_port" && "$firestore_port" != "$auth_port" ]]
 config="$root/firebase.json"
 node -e 'const fs=require("fs");const [cfg,fsPort,authPort,cwd]=process.argv.slice(1);fs.writeFileSync(cfg,JSON.stringify({firestore:{rules:cwd+"/firestore.rules",indexes:cwd+"/firestore.indexes.json"},emulators:{singleProjectMode:true,firestore:{host:"127.0.0.1",port:Number(fsPort)},auth:{host:"127.0.0.1",port:Number(authPort)},ui:{enabled:false}}}))' "$config" "$firestore_port" "$auth_port" "$root/worktree"
 printf '{"run_id":"%s","served_sha":"%s","harness_sha":"%s","overlay":%s,"named_commit":%s,"harness_uncommitted":%s,"firestore_port":%s,"auth_port":%s,"args":"%s"}\n' \

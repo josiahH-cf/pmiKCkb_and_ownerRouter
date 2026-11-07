@@ -38,6 +38,15 @@ Staff session: none
   The control sits alongside that region, so the checkpoint timed out. The independent
   unfinished follow-up regression then failed at the app-draft schema.
 
+- L02 and L10 on `cec7c4f0` in `20261107T161743Z-cec7c4f0`. The Dashboard check
+  counted the separate RentVine source links and stopped before My Work. The synthetic Admin
+  setup timed out before the browser observed a form-policy request.
+- L14 on `cec7c4f0` in `20261107T160403Z-cec7c4f0`. The rent and date comparison
+  reread both fields before their successful saves had completed. The 103 other S252
+  checkpoints passed. Canonical verification on `8c216ee6` passed all rendered Help checks,
+  then stopped on a render-time ref access in Communications. The queued browser rerun
+  stopped before startup because the emulator launcher selected the same port twice.
+
 ## Repairs
 
 - L03 now waits for the initial collection list before enabling New collection. The focused
@@ -184,3 +193,29 @@ Accepted: No
 | L12 | UNVERIFIED | Expected exact Admin and Connections controls and recoverable reads. This run did not exercise those entries. | The focused case observes the failed POST and its retry. | Observe the exact health result, denied role and index return. |
 | L13 | UNVERIFIED | Expected a real guide with current pictures. The Editor worked the served guide through exact confirmation and completion. | Match exact anchors, dynamic identifier bounds and current V2.2 captures. | Observe green rendered Help, injected drift and the print return. |
 | L14 | UNVERIFIED | Expected one accepted candidate and canonical verification. S252 counted 91 passed and 1 failed, with all five action budgets met. | Preserve the failed comparator and recheck the exact scope. | Complete the matrix and green local and CI gates. |
+
+## Run 3
+
+Commit: cec7c4f0f6fcfb04457d2f38a47abe908ae73641
+Starting commit: ef81b8917209f4eec3f22097142b559f3cce875b
+Run: 3
+Goal groups: all
+Accepted: No
+
+<!-- prettier-ignore -->
+| Check | Verdict | Evidence | Repair | Blocker |
+| ----- | ------- | -------- | ------ | ------- |
+| L01 | UNVERIFIED | Expected the loaded leases to count exactly once. The Editor read all 38 IDs in their expected groups, shifted the month, switched tables, reopened a saved view and recovered from an empty filter in `20261107T161743Z-cec7c4f0/L01-desk`. The effect rehearsal separately observed unreadable source status and recovery. | The table and saved route were exercised with the production-shaped fixture. | Observe exact scroll and focus return through the saved and shared routes. |
+| L02 | No | Expected the same lease and stage through the desk, Dashboard and My Work. The keyboard row opened in the same tab and returned. Dashboard displayed all five lease rows, but the checkpoint also counted their separate RentVine links as workspace entries and stopped before My Work. The screenshot is `20261107T161743Z-cec7c4f0/L02-linked-entries`. | Count only exact lease workspace routes and assert the same destination after navigation. | Rerun the task and restricted or missing entry with the corrected matcher. |
+| L03 | UNVERIFIED | Expected an exact reviewed membership and recovery. In `20261107T161743Z-cec7c4f0/L03-collection`, the Editor's lost save returned version 1 with two members. An Approver opened the same set, Refresh and Cancel kept it, a rename refused a stale removal, and the exact desk table returned to version 2. The imported and matched-period case kept one exact member. | The versioned review and focus were worked with a concurrent tab. | Recheck a revoked member and repeat confirmation through the visible recovery entry. |
+| L04 | UNVERIFIED | Expected the stored comparison and current action on the first screen. The prepared lease opened with no write, all five S252 action budgets passed, and the later step opened and survived reload in `20261107T160403Z-cec7c4f0`. | Same-page guidance and deliberate confirmation remain. | Verify an independent later action with its own inputs and keyboard return. |
+| L05 | UNVERIFIED | Expected a staff decision and its exact record. The guide path recorded the linked decision in three actions. Another Editor case kept all 1,362 characters after a refused note, kept the text private to the tab and saved exactly one note. The correction removed the unrelated derived outreach and kept its reason. | Scope working text to the active record and actor. | Confirm conflict handling and the resulting staff stage across all read surfaces together. |
+| L06 | UNVERIFIED | Expected the former Focus links and Full sections to keep the same lease and selected step. The narrow dark keyboard case focused Record work, canceled and opened the old Documents anchor. Reload kept a chosen step and text. | Separate exact focus and address behavior for each destination. | Reopen every Full destination and verify new edits win delayed readback across lease, cycle and tab. |
+| L07 | UNVERIFIED | Expected one reviewed message across the action routes. `20261107T160403Z-cec7c4f0` matched exact subject and body across Copy, Send, Schedule, composer and the draft with its required banner. The first draft and separate replacement had exact receipts and both remained unsent after reload. The visible Schedule, Pause and Resume controls retained exact bytes and date. One due tick accepted the message. Blank setup and unfinished optional follow-up were reread. | Kept action-specific validation and existing exact receipts. | Work an outgoing linked reply from the received conversation and complete the assisted and stale-preview cases. |
+| L08 | UNVERIFIED | Expected distinct coverage and assistance decisions. All 21 standing and assisted variant checks passed. The candidate observed source-only voucher scope, agreement override and an assisted non-renewal result. | Add browser readback for the annual review and source move-out handoff. | Observe those two exact local records and return on the final candidate. |
+| L09 | UNVERIFIED | Expected retirement to affect only the exact cycle. The Editor saw the reason in the Retired count, refused a stale review and restored the cycle. Both history entries reread. Pending and ambiguous effects each refused retirement and linked to the exact communication. | Kept each effect's original recovery route. | Observe retirement from a saved collection and Dashboard, plus a verified later cycle's independence. |
+| L10 | No | Expected the ordinary journey and S253 form variants. The Editor completed and reopened the standard lease from Completed. The Admin setup case timed out before observing a form policy request. The financial readback sampled the prior fields before both exact save responses completed. | Wait for Admin hydration and the specific financial save responses before rereading. | Finish the exact form preparation and readback paths after the repairs. |
+| L11 | UNVERIFIED | Expected the named adjacent entries and scoped return. At narrow width the Editor reached Communications, opened Internal Processes, found the renewal procedure, followed the old path and returned to the same lease. | Scope the navigation to the current Operations group. | Observe the Dashboard task answer and private or missing result alongside those handoffs. |
+| L12 | Yes | Browser outcome `20261107T161743Z-cec7c4f0/L12-connection-retry`. The Admin reopened the named RentVine task, saw the injected 503, retried the actual check and read a verified synthetic result, then returned to the task index. The Editor saw the role refusal and no write control. The separate legacy safety anchor reached the exact focused section and returned to the index. | No additional change was needed for these checkpoints. | None on this run. |
+| L13 | UNVERIFIED | Expected a matching guide, scene and print return. The Editor worked the guide through exact confirmation and completion in the effect run. The narrow keyboard case invoked Print this guide and verified 32 heading rules, then returned to the old lease section. | Use the same isolated renderer for V2.2 verification and captures. | Verify the required isolated recapture and deliberate missing-control and stale-scene rejection. |
+| L14 | No | Expected an accepted same-SHA matrix and canonical verification. Core E2E passed 46 with 23 explicit skips. The S252 rehearsal passed 103 checks and all five numerical action budgets, with one failed readback. The mailbox-disabled rehearsal passed 11 of 13 cases. | Preserve both logs and use exact source and confirmation boundaries in the rerun. | Complete the full matrix, required canonical verification and exact CI. |
