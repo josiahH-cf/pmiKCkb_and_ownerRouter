@@ -444,6 +444,27 @@ secret bindings, the managed runtime, Production/Live, Demo=false, Sheet=true an
 RentCast allowance 50. Billing and exact cost-control predicates passed. These
 standalone reads remain separate from fresh exact-run prerequisites.
 
+Governance [PR #196](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/pull/196) merged at
+`48b5540fcf9e79edc83994936734d76e6a9fb63f` before admission. All seven jobs passed on that
+[exact main](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/42468821789).
+Run `bbc5d5cf-0baa-4dc9-bd34-3b20d8b726e7` stopped during prepare and resumed on the same
+permit after the locked checkout and CI readbacks passed. Recovery preparation then refused
+`recovery_unmapped_configuration_field` before a dispatch claim or application build.
+The [Cloud Run schema](https://run.googleapis.com/$discovery/rest?version=v2) marks
+`containerStatuses` and container `buildInfo` output-only. The new regression reproduced
+the refusal before the mapper repair, then passed with 287 focused checks. At 10:26:42 UTC a
+GET-only read of the actual predecessor reproduced the old refusal and verified the new template,
+immutable image digest, Sheet=true, runtime fingerprint and refusal of unknown configuration.
+Both proposed revisions returned 404 and canonical traffic stayed at 100% on the predecessor.
+
+The full gate on the first recovery repair, `dac15025e9bb79be53d2fa3d9fb95bfe38df5b02`, failed
+rendered Help on Lease details. All 838 controls were accounted for and the other 26 scenes
+matched. The changed pixels were confined to the heading. The guarded synthetic diagnostic
+`083b639af80d6606e9c4f903db4de4490c6d51ca` reproduced the drift at offsets below half a CSS
+pixel and matched the pinned scene pixel for pixel at offsets from 0.5 to 0.875. Lease details
+now uses the same fixed-position capture as Tenant offer and Update status, with the exact
+heading position checked after paint. The pinned images and material thresholds are unchanged.
+
 ## Remaining blockers
 
 The separate staff session, physical device and assistive technology observations remain open. The run supplies synthetic role, responsive browser and provider-adapter evidence. The historical S254 L55 No retains its original source and verdict.

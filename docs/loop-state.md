@@ -31,7 +31,11 @@ The two Help verification repairs merged through [PR #194](https://github.com/jo
 
 The S259 browser matrix passed all 14 journeys on that candidate. S252 passed 107 checks and all five numerical budgets. The mailbox-disabled rehearsal passed 17 cases. The full gate passed 11,577 unit cases with 4 existing skips, all 555 Firestore tests, the production build and 65 served E2E cases with 4 skips. The separate core gate passed 46 with 23 explicit no-emulator skips. Required Help matched 27 scenes and accounted for 838 controls with zero missing. The deliberate injection detected the hidden Record work control and 9 material scene changes.
 
-The eight application intakes remain queued for one release. The earlier print-only preflight on `e012bddc42a5370686e114a9bb5f848dbb1b748a` recorded NOT READY. After the governance merge, qualify the exact new main and registered pair, then collect fresh run-bound prerequisites.
+The eight application intakes remain queued. Governance PR #196 merged first at `48b5540f`.
+Run `bbc5d5cf-0baa-4dc9-bd34-3b20d8b726e7` stopped in recovery preparation before dispatch.
+The Cloud Run response carried output-only metadata that the recovery mapper had never seen.
+Qualify the scoped mapper repair and exact main, then archive the stopped run and prepare a
+fresh release under the [runbook](release-batch-runbook.md#authorized-replacement-preparation).
 
 The owner resolved the Gmail profile scope on November 8 for the existing guarded release check and directed governance to merge first. Standalone WSL CLI/ADC, existing Admin session, billing and cost-control checks passed on November 8 UTC. Staff verdict NOT RUN. See [guarded release assurance](../AGENTS.md#guarded-release-assurance). The [litmus report](evidence/renewal-usability-litmus-2026-11-07.md) preserves the exact runs, earlier failures and evidence gaps.
 

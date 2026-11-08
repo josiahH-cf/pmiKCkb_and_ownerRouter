@@ -348,6 +348,27 @@ describe("shared receipt-bound predecessor recovery", () => {
     );
     expect(h.state.patches).toHaveLength(1);
   });
+  it("preserves predecessor configuration when Cloud Run returns output-only container metadata", async () => {
+    const h = fixture({ predecessorSheetWriteback: "true" });
+    const expectedContainer = structuredClone(h.source.containers[0]);
+    h.source.containerStatuses = [{ name: "app", imageDigest: expectedContainer.image }];
+    h.source.containers[0].buildInfo = { sourceLocation: "gs://fixture/source.zip" };
+
+    const { template } = predecessorActualTemplate(
+      h.source,
+      h.target,
+      h.receipt.imageDigests,
+    );
+    expect(template).not.toHaveProperty("containerStatuses");
+    expect(template.containers).toEqual([expectedContainer]);
+
+    const result = await prepareRecoveryBaseline(h.input, h.deps);
+    expect(h.state.patches).toHaveLength(1);
+    expect(h.state.patches[0].data.template).toEqual(template);
+    expect(result.receipt.originalFingerprint).toBe(h.receipt.originalFingerprint);
+    expect(result.receipt.targetFingerprint).toBe(h.receipt.targetFingerprint);
+    expect(result.receipt.predecessorSheetWriteback).toBe("true");
+  });
   it("refuses unknown configuration, mutable images and duplicate Sheet flags", () => {
     const h = fixture();
     expect(() =>
