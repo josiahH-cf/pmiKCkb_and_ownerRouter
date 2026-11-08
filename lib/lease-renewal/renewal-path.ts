@@ -414,7 +414,7 @@ export const RENEWAL_PATH_DEFINITION: Readonly<
     next: "assisted-rent",
     processStepId: "owner-decision",
     sectionId: "owner",
-    slots: [],
+    slots: ["message-preview", "review-and-send"],
   },
   "assisted-rent": {
     id: "assisted-rent",

@@ -439,7 +439,7 @@ export function RenewalWorkStatusControl({
     return run;
   }
 
-  function typeNote(value: string) {
+  function typeNote(value: string, scheduleSave = true) {
     noteTextRef.current = value;
     setNoteText(value);
     setNoteError(null);
@@ -456,7 +456,7 @@ export function RenewalWorkStatusControl({
             : state,
     );
     if (idleTimer.current) clearTimeout(idleTimer.current);
-    idleTimer.current = setTimeout(() => void commitNote(), noteIdleMs);
+    if (scheduleSave) idleTimer.current = setTimeout(() => void commitNote(), noteIdleMs);
   }
 
   async function startAnotherNote() {
@@ -580,7 +580,12 @@ export function RenewalWorkStatusControl({
           onBlur={(event) => {
             if (!isRenewalPresentationMove(event.relatedTarget)) void commitNote();
           }}
-          onChange={(event) => typeNote(event.target.value)}
+          onChange={(event) =>
+            typeNote(
+              event.target.value,
+              !event.target.hasAttribute("data-renewal-restoring-text"),
+            )
+          }
           ref={noteInput}
           rows={3}
           value={noteText}

@@ -27,10 +27,13 @@ import {
   readFileSync,
   writeFileSync,
 } from "node:fs";
-import { createServer } from "node:net";
+import { createServer, Socket } from "node:net";
 import { join } from "node:path";
 import { chromium } from "playwright-core";
 
+import { prepareHelpBrowserFonts } from "./lib/help-browser-fonts.mjs";
+import { compareHelpScene } from "./lib/help-scene-drift.mjs";
+import { HELP_FIXTURE_INSTANT } from "./lib/help-rehearsal-clock.mjs";
 import { resolveBrowserExecutable } from "./lib/browser-executable.mjs";
 import { requireLoopbackRehearsalOrigin } from "./lib/help-rehearsal-origin.mjs";
 
@@ -54,6 +57,21 @@ const SCROLL_TO_TOP = new Function(
       cover = Math.max(cover, rect.bottom);
   }
   window.scrollBy(0, -(cover + 12));`,
+);
+
+// Anchor the settled Full section to an integer position below its own toolbar. In this long
+// workspace, chaining native alignment and scrollBy can leave otherwise identical captures one
+// pixel apart. This changes the framing only. The comparator still checks every scene pixel.
+const FRAME_WORKSPACE_SECTION = new Function(
+  "heading",
+  `const toolbar = heading.closest(".renewal-workspace-shell")
+    ?.querySelector(".renewal-workspace-toolbar");
+  if (!toolbar) return false;
+  const top = Math.ceil(toolbar.getBoundingClientRect().bottom) + 12;
+  const destination = Math.floor(window.scrollY + heading.getBoundingClientRect().top - top);
+  window.scrollTo({ top: destination, behavior: "instant" });
+  const landed = heading.getBoundingClientRect().top;
+  return landed >= top && landed < top + 1;`,
 );
 
 // A scene with `align: "center"` centers its region in the viewport instead.
@@ -86,6 +104,9 @@ const option = (name) => {
 };
 
 const managed = flag("--managed");
+const verify = flag("--verify");
+const proposals = flag("--review-captures");
+const fixedFixture = managed && Boolean(process.env.HELP_REHEARSAL_CLOCK_ORIGIN);
 const mode = flag("--serve")
   ? "serve"
   : flag("--outline")
@@ -121,8 +142,24 @@ const record = (entry) =>
 let server = null;
 let origin;
 let sourceSha;
+let processVersionId;
 if (managed) {
-  assert.match(process.cwd(), /^\/tmp\/pmi-kc-help-rehearsal-[^/]+\/worktree$/);
+  if (process.cwd() === "/app") {
+    assert.equal(process.env.HELP_REHEARSAL_ISOLATED, "kernel-v1");
+    assert.match(process.env.PMI_SOURCE_MANIFEST_SHA256 ?? "", /^[a-f0-9]{64}$/);
+    assert.equal(
+      process.env.NEXT_FONT_GOOGLE_MOCKED_RESPONSES,
+      "/opt/public-font-runtime/responses.cjs",
+    );
+  } else {
+    assert.match(process.cwd(), /^\/tmp\/pmi-kc-help-rehearsal-[^/]+\/worktree$/);
+  }
+  assert.equal(
+    globalThis.fetch.name,
+    "guardedFetch",
+    "The Help rehearsal preload is required.",
+  );
+  assert.equal(Socket.prototype.connect.name, "guardedConnect");
   assert.match(process.env.FIRESTORE_EMULATOR_HOST ?? "", /^127\.0\.0\.1:\d+$/);
   sourceSha = process.env.HELP_REHEARSAL_SOURCE_SHA;
   assert.match(sourceSha ?? "", /^[a-f0-9]{40}$/);
@@ -132,7 +169,9 @@ if (managed) {
   await waitForServer(origin);
   const { seedHelpRehearsal } = await import("./lib/help-rehearsal-fixtures.mjs");
   const seeded = await seedHelpRehearsal();
-  record({ event: "seeded", collections: seeded });
+  processVersionId = seeded.processVersionId;
+  assert.match(processVersionId, /^[a-f0-9-]{36}$/);
+  record({ event: "seeded", ...seeded });
 } else {
   const base = option("--base-url");
   if (!base)
@@ -162,16 +201,35 @@ record({
   overlay,
   allowOverlay,
   helpVersion,
+  fixtureClock: fixedFixture ? HELP_FIXTURE_INSTANT : null,
 });
 
+const browserFonts =
+  managed && (verify || proposals) ? prepareHelpBrowserFonts(output) : null;
 const browser = await chromium.launch({
-  executablePath: resolveBrowserExecutable(),
+  ...(browserFonts
+    ? {
+        env: {
+          PATH: process.env.PATH,
+          HOME: output,
+          TMPDIR: process.env.TMPDIR ?? "/tmp",
+          LC_ALL: "C.UTF-8",
+          FONTCONFIG_FILE: browserFonts,
+        },
+      }
+    : {}),
+  executablePath: fixedFixture
+    ? process.env.PLAYWRIGHT_CHROME_PATH || chromium.executablePath()
+    : resolveBrowserExecutable(),
   headless: true,
 });
 if (managed) {
   // S252: the prepared lease (its templates, signature and stored comparison) before any scene.
   const { seedHelpPreparedLease } = await import("./lib/help-rehearsal-fixtures.mjs");
-  const context = await browser.newContext({ timezoneId: "America/Chicago" });
+  const context = await browser.newContext({
+    timezoneId: "America/Chicago",
+    serviceWorkers: "block",
+  });
   await context.route("**/*", (route) =>
     new URL(route.request().url()).origin === origin
       ? route.continue()
@@ -181,6 +239,25 @@ if (managed) {
   page.setDefaultTimeout(ROUTE_BUDGET_MS);
   page.setDefaultNavigationTimeout(ROUTE_BUDGET_MS);
   try {
+    const { automaticStartSetting, routeFromPage } =
+      await import("./lib/one-path-rehearsal/seeds.mjs");
+    await signIn(page, "Editor");
+    const setting = await automaticStartSetting(
+      page,
+      false,
+      "Rendered Help rehearsal holds automatic preparation.",
+    );
+    assert.equal(setting.state, "seeded", setting.detail);
+    const currentSetting = await routeFromPage(
+      page,
+      "/api/lease-renewal/kickoff-settings",
+    );
+    assert.equal(
+      currentSetting.body?.enabled,
+      false,
+      "Automatic preparation must stay off.",
+    );
+    record({ event: "automation-held", automaticComparison: false, mailAdapter: false });
     const prepared = await seedHelpPreparedLease({
       page,
       signIn: (role) => signIn(page, role),
@@ -197,7 +274,25 @@ if (managed) {
 }
 let exitCode = 0;
 try {
-  if (mode === "serve") {
+  if (verify) {
+    assert.ok(
+      fixedFixture && !overlay && !only,
+      "Rendered Help verification needs the full, exact guarded fixture.",
+    );
+    const sceneStatus = await scenes(true);
+    // A long Next dev session accumulates compiled routes across both passes. Start the control
+    // inventory with a fresh server over the same source, isolated emulator and fixed fixture.
+    await shutdown();
+    server = startServer(new URL(origin).port, "server-controls.log");
+    await waitForServer(origin);
+    const version = await fetch(origin + "/api/version");
+    assert.ok(version.ok, "The fresh control server version read must succeed.");
+    const controlSource = (await version.json()).commit;
+    assert.equal(controlSource, sourceSha);
+    record({ event: "control-server-ready", servedCommit: controlSource });
+    const controlStatus = await controls();
+    exitCode = controlStatus || sceneStatus;
+  } else if (mode === "serve") {
     process.stdout.write(
       `Help rehearsal serving ${origin} (commit ${served.commit}). Sign in at ${origin}/sign-in with the local demo roles. Stop with Ctrl+C.\n`,
     );
@@ -222,7 +317,7 @@ process.exit(exitCode);
 // Captures (or, with check, resolves) every scene in manifest order.
 async function scenes(checkOnly) {
   const target = join(
-    process.env.HELP_REHEARSAL_TARGET_ROOT ?? process.cwd(),
+    proposals ? output : (process.env.HELP_REHEARSAL_TARGET_ROOT ?? process.cwd()),
     "public/help",
     helpVersion,
   );
@@ -231,15 +326,44 @@ async function scenes(checkOnly) {
   for (const scene of manifest.scenes) {
     if (only && scene.id !== only) continue;
     if (scene.source !== "rehearsal") {
-      results.push({ id: scene.id, state: "not-rehearsal", source: scene.source });
+      results.push({
+        id: scene.id,
+        fixture: scene.fixture,
+        state: "provider-only",
+        source: scene.source,
+      });
       continue;
     }
     try {
-      const png = await captureScene(scene);
+      const { png, verifiedText, verifiedIdentifier } = await captureScene(scene);
       const sha256 = createHash("sha256").update(png).digest("hex");
-      if (!checkOnly) writeFileSync(join(target, `${scene.id}.png`), png);
-      results.push({ id: scene.id, state: checkOnly ? "resolved" : "captured", sha256 });
-      process.stdout.write(`${checkOnly ? "resolved" : "captured"} ${scene.id}\n`);
+      const filename = `${scene.id}.png`;
+      let state = checkOnly ? "resolved" : "captured";
+      let difference;
+      if (!checkOnly) writeFileSync(join(target, filename), png);
+      if (verify) {
+        const baseline = join(target, filename);
+        difference = existsSync(baseline)
+          ? await compareHelpScene(readFileSync(baseline), png, verifiedText)
+          : { material: true, reason: "The committed synthetic picture is missing." };
+        if (difference.material) {
+          const replacement = join(output, "scene-drift", scene.id);
+          mkdirSync(replacement, { recursive: true });
+          if (existsSync(baseline))
+            writeFileSync(join(replacement, "expected.png"), readFileSync(baseline));
+          writeFileSync(join(replacement, "observed.png"), png);
+          state = "drift";
+        } else state = "matched";
+      }
+      results.push({
+        id: scene.id,
+        fixture: scene.fixture,
+        state,
+        sha256,
+        difference,
+        ...(verifiedIdentifier ? { verifiedIdentifier } : {}),
+      });
+      process.stdout.write(`${state} ${scene.id}\n`);
     } catch (error) {
       results.push({
         id: scene.id,
@@ -252,6 +376,7 @@ async function scenes(checkOnly) {
     }
   }
   const uncaptured = results.filter((entry) => entry.state === "uncaptured");
+  const drift = results.filter((entry) => entry.state === "drift");
   const summary = {
     event: checkOnly ? "check" : "capture",
     sourceSha,
@@ -260,13 +385,45 @@ async function scenes(checkOnly) {
     helpVersion,
     scenes: results,
     uncaptured: uncaptured.map((entry) => entry.id),
+    drift: drift.map((entry) => entry.id),
   };
   record(summary);
   writeFileSync(join(output, "scenes.json"), `${JSON.stringify(summary, null, 2)}\n`);
   process.stdout.write(
-    `${results.filter((entry) => entry.state === "captured" || entry.state === "resolved").length} scene(s) ${checkOnly ? "resolved" : "captured"}, ${uncaptured.length} uncaptured. Log: ${output}\n`,
+    `Help scenes: ${results.length}, ${uncaptured.length} uncaptured, ${drift.length} materially changed. Log: ${output}\n`,
   );
-  return uncaptured.length ? 1 : 0;
+  return uncaptured.length || drift.length ? 1 : 0;
+}
+
+// Preserve the real search results and format their generated timestamps from one fixed
+// fixture instant. Keep any older source metadata and absent timestamps as served.
+async function pinSearchCaptureTime(page) {
+  const start = Date.parse(HELP_FIXTURE_INSTANT);
+  const duringFixtureRun = (value) => {
+    const ms = typeof value === "string" ? Date.parse(value) : Number.NaN;
+    return ms >= start && ms <= start + 30 * 60_000;
+  };
+  let pinned = false;
+  await page.route(
+    (url) => url.origin === origin && url.pathname === "/api/search/entities",
+    async (route) => {
+      const response = await route.fetch({ maxRedirects: 0 });
+      const result = await response.json();
+      assert.ok(response.ok() && duringFixtureRun(result.readAt));
+      assert.ok(Array.isArray(result.results) && result.results.length > 0);
+      const results = result.results.map((row) =>
+        duringFixtureRun(row.entity.asOf)
+          ? { ...row, entity: { ...row.entity, asOf: HELP_FIXTURE_INSTANT } }
+          : row,
+      );
+      await route.fulfill({
+        status: response.status(),
+        json: { ...result, readAt: HELP_FIXTURE_INSTANT, results },
+      });
+      pinned = true;
+    },
+  );
+  return () => assert.ok(pinned, "The synthetic search read must reach its scene.");
 }
 
 async function captureScene(scene) {
@@ -277,6 +434,7 @@ async function captureScene(scene) {
     locale: "en-US",
     colorScheme: "light",
     reducedMotion: "reduce",
+    serviceWorkers: "block",
   });
   await context.route("**/*", (route) =>
     new URL(route.request().url()).origin === origin
@@ -287,7 +445,12 @@ async function captureScene(scene) {
   page.setDefaultTimeout(ROUTE_BUDGET_MS);
   page.setDefaultNavigationTimeout(ROUTE_BUDGET_MS);
   try {
+    if (fixedFixture) await page.clock.setFixedTime(new Date(HELP_FIXTURE_INSTANT));
     await signIn(page, scene.role);
+    const verifySearchTime =
+      fixedFixture && scene.id === "search-results"
+        ? await pinSearchCaptureTime(page)
+        : null;
     await page.goto(`${origin}${await resolveRoute(page, scene.route)}`, {
       waitUntil: "domcontentloaded",
     });
@@ -300,6 +463,14 @@ async function captureScene(scene) {
     await quiet(page);
     const region = locate(page, scene.region);
     await region.first().waitFor({ state: "visible" });
+    if (scene.id === "market-rent-comparison") {
+      // The comparison renders before the independent pricing read. Wait for the chooser
+      // rather than taking a picture while its loading status is still at the viewport edge.
+      await region
+        .first()
+        .getByRole("group", { name: "Pricing basis", exact: true })
+        .waitFor({ state: "visible" });
+    }
     const framed = scene.region && scene.region !== "page";
     if (framed && scene.frame === "viewport") {
       // Frame the region, let the page settle and confirm it is still where it was put; a late
@@ -319,12 +490,78 @@ async function captureScene(scene) {
       );
     } else if (framed) await region.first().scrollIntoViewIfNeeded();
     await quiet(page);
-    return scene.frame === "region"
-      ? await region.first().screenshot({ animations: "disabled", caret: "hide" })
-      : await page.screenshot({ animations: "disabled", caret: "hide" });
+    if (scene.id === "lease-details" || scene.id === "tenant-offer")
+      assert.ok(
+        await region.first().evaluate(FRAME_WORKSPACE_SECTION),
+        `The ${scene.id} heading must frame below the settled toolbar.`,
+      );
+    verifySearchTime?.();
+    let verifiedText = [];
+    let verifiedIdentifier;
+    if (scene.id === "help-contents-narrow") {
+      verifiedIdentifier = served.commit;
+      verifiedText = await identifierBounds(
+        page.locator("main .help-guide-header .help-meta code"),
+        "",
+        verifiedIdentifier,
+      );
+    } else if (processVersionId && scene.id === "process-publication") {
+      verifiedIdentifier = processVersionId;
+      verifiedText = await identifierBounds(
+        page
+          .locator("p")
+          .filter({ hasText: /^Active immutable version:/ })
+          .locator("code"),
+        "",
+        verifiedIdentifier,
+      );
+    } else if (processVersionId && scene.id === "process-start-run") {
+      verifiedIdentifier = processVersionId;
+      verifiedText = await identifierBounds(
+        page.getByText(/^Definition version:/),
+        "Definition version: ",
+        verifiedIdentifier,
+      );
+    }
+    assert.ok(verifiedText.every((box) => box.y >= 0 && box.y < scene.viewport.height));
+    const png =
+      scene.frame === "region"
+        ? await region.first().screenshot({ animations: "disabled", caret: "hide" })
+        : await page.screenshot({ animations: "disabled", caret: "hide" });
+    return { png, verifiedText, verifiedIdentifier };
   } finally {
     await context.close();
   }
+}
+
+// Check each generated identifier against the exact seed or serving SHA before excluding its
+// glyphs. Keep the label and all surrounding controls in the picture comparison.
+async function identifierBounds(locator, label, value) {
+  assert.equal((await locator.textContent())?.trim(), label + value);
+  const bounds = await locator.evaluate(
+    new Function(
+      "element",
+      "identifier",
+      `const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        const start = node.data.indexOf(identifier);
+        if (start < 0) continue;
+        const range = document.createRange();
+        range.setStart(node, start);
+        range.setEnd(node, start + identifier.length);
+        const right = element.getBoundingClientRect().right;
+        return Array.from(range.getClientRects(), ({ x, y, height }) => ({
+          x, y, height, width: right - x,
+        }));
+      }
+      return [];`,
+    ),
+    value,
+  );
+  assert.ok(
+    bounds.length && bounds.every(({ width, height }) => width > 0 && height > 0),
+  );
+  return bounds;
 }
 
 // The control-name browser check (R-S242-8): every listed control by role and exact accessible
@@ -339,6 +576,7 @@ async function controls(file) {
   const context = await browser.newContext({
     viewport: { width: 1360, height: 1000 },
     timezoneId: "America/Chicago",
+    serviceWorkers: "block",
   });
   await context.route("**/*", (route) =>
     new URL(route.request().url()).origin === origin
@@ -349,7 +587,12 @@ async function controls(file) {
   page.setDefaultTimeout(30_000);
   page.setDefaultNavigationTimeout(ROUTE_BUDGET_MS);
   const byPage = new Map();
-  for (const control of list.controls) {
+  for (const described of list.controls) {
+    const fixture =
+      manifest.controlFixtures?.[`${described.owner}#${described.step ?? ""}`];
+    const control = fixture
+      ? { ...described, ...fixture, documentedRoute: described.route }
+      : described;
     const key = `${control.role ?? "Admin"}|${control.route}|${(control.actions ?? []).join(",")}`;
     if (!byPage.has(key)) byPage.set(key, []);
     byPage.get(key).push(control);
@@ -364,10 +607,22 @@ async function controls(file) {
     }
     let status = null;
     try {
-      const response = await page.goto(`${origin}${await resolveRoute(page, route)}`, {
-        waitUntil: "domcontentloaded",
-      });
+      const requested = new URL(await resolveRoute(page, route), origin);
+      let response = await page.goto(requested.href, { waitUntil: "domcontentloaded" });
+      // A different fragment on the same document has no HTTP response. Reload that exact
+      // destination to require a fresh successful signed-in read before checking its controls.
+      if (!response && page.url() === requested.href)
+        response = await page.reload({ waitUntil: "domcontentloaded" });
       status = response?.status() ?? null;
+      const destination = new URL(page.url());
+      if (
+        !response?.ok() ||
+        destination.origin !== origin ||
+        destination.pathname === "/sign-in"
+      )
+        throw new Error(
+          `Expected the signed-in route for ${role}. HTTP ${status} at ${destination.pathname}.`,
+        );
       // Act only after hydration; a click on a server-rendered button before it is lost.
       await quiet(page);
       for (const action of entries[0].actions ?? []) await perform(page, action);
@@ -380,9 +635,20 @@ async function controls(file) {
         });
       continue;
     }
-    for (const entry of entries) {
-      const state = await controlState(page, entry);
-      report.push({ ...entry, state, status });
+    const states = await Promise.all(entries.map((entry) => controlState(page, entry)));
+    for (const [index, entry] of entries.entries()) {
+      const state = states[index];
+      report.push({
+        ...entry,
+        state,
+        status,
+        ...(state === "unavailable"
+          ? {
+              reason:
+                "The documented conditional state did not occur for this role and synthetic fixture.",
+            }
+          : {}),
+      });
       process.stdout.write(
         `${state.padEnd(11)} ${entry.owner} ${entry.step ?? ""} ${entry.role ? `[${entry.role}]` : ""} ${entry.controlRole} "${entry.label}"\n`,
       );
@@ -586,7 +852,7 @@ async function outline() {
   return 0;
 }
 
-function startServer(port) {
+function startServer(port, logName = "server.log") {
   const preload = join(process.cwd(), "tests/browser/renewal-novdec-journey-network.mjs");
   const serverHome = join(output, "server-home");
   mkdirSync(serverHome, { recursive: true });
@@ -599,7 +865,7 @@ function startServer(port) {
       refresh_token: "synthetic-help",
     }),
   );
-  const serverLog = createWriteStream(join(output, "server.log"));
+  const serverLog = createWriteStream(join(output, logName));
   const child = spawn(
     process.execPath,
     ["node_modules/next/dist/bin/next", "dev", "-p", String(port)],
@@ -614,13 +880,28 @@ function startServer(port) {
         TMPDIR: process.env.TMPDIR ?? "/tmp",
         LANG: "en_US.UTF-8",
         TZ: "America/Chicago",
-        NODE_OPTIONS: `--import ${preload}`,
+        NODE_OPTIONS: [
+          process.env.NODE_OPTIONS,
+          `--import=${preload}`,
+          fixedFixture &&
+            `--import=${join(process.cwd(), "scripts/lib/help-rehearsal-clock.mjs")}`,
+        ]
+          .filter(Boolean)
+          .join(" "),
+        ...(fixedFixture
+          ? { HELP_REHEARSAL_CLOCK_ORIGIN: process.env.HELP_REHEARSAL_CLOCK_ORIGIN }
+          : {}),
         NOVDEC_JOURNEY_NETWORK_LOG: join(output, "network.jsonl"),
         NOVDEC_JOURNEY_OUTAGE_FLAG: join(output, "synthetic-rentvine-outage"),
         HELP_REHEARSAL_SHEET_FIXTURE: join(
           process.cwd(),
           "scripts/lib/help-rehearsal-sheet.json",
         ),
+        ...(process.env.HELP_REHEARSAL_ISOLATED === "kernel-v1"
+          ? {
+              NEXT_FONT_GOOGLE_MOCKED_RESPONSES: "/opt/public-font-runtime/responses.cjs",
+            }
+          : {}),
         NEXT_E2E_ISOLATED_BUILD: "true",
         NEXT_TELEMETRY_DISABLED: "1",
         ENVIRONMENT_KIND: "demo",
@@ -643,6 +924,7 @@ function startServer(port) {
   );
   child.stdout.pipe(serverLog, { end: false });
   child.stderr.pipe(serverLog, { end: false });
+  child.once("close", () => serverLog.end());
   return child;
 }
 
@@ -668,6 +950,10 @@ async function shutdown() {
   if (!server) return;
   const child = server;
   server = null;
+  const exited =
+    child.exitCode !== null || child.signalCode
+      ? Promise.resolve()
+      : new Promise((resolve) => child.once("exit", resolve));
   try {
     process.kill(-child.pid, "SIGTERM");
   } catch {
@@ -679,6 +965,7 @@ async function shutdown() {
   } catch {
     // already gone
   }
+  await exited;
 }
 
 function freePort() {

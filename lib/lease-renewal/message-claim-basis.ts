@@ -50,4 +50,7 @@ export interface RenewalMessageClaimBasis {
   noticeSafety?: { scopeHash: string; version: number; semanticHash: string };
   /** S234: absent only on snapshots prepared before it; never sufficient for a new claim. */
   workingTermsFingerprint?: string;
+  /** Zero or absent means that this lease had no retirement record at review. */
+  dispositionRevision?: number;
+  signatureSetup?: import("./sender-signature-choice").SenderSignatureEvidence;
 }

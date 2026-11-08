@@ -49,7 +49,7 @@ const BASELINE_PATH = join(
   __dirname,
   "..",
   "fixtures",
-  "s253-animal-wording-full-view-presentation.json",
+  "s224-outgoing-readiness-full-view-presentation.json",
 );
 // November3 S238 A-01 updates reviewed draft/Communications guidance; S235 A-03 names the
 // existing connection/selection review accurately. Only owner/tenant/documents copy and the
@@ -58,7 +58,10 @@ const BASELINE_PATH = join(
 // Record the new presentation only in the isolated fixture lane; every earlier fixture is immutable.
 const CONNECTION_LINK_BEFORE = "Open Connections for Dotloop setup -> /connections";
 const CONNECTION_LINK_AFTER = "Review Dotloop connection and selection -> /connections";
-const CURRENT_COPY_SECTIONS = ["renewal-section-documents"];
+// S224 changes the marked-value explanation in both message sections. Preserve the
+// S253 recording and every unaffected control; the copy change has its own fixture.
+const S253_COPY = ["renewal-section-documents"];
+const S224_COPY = ["renewal-section-owner", "renewal-section-tenant", ...S253_COPY];
 // UX review: the old registration wording implied an unsupported assistance-animal requirement.
 // The new recorded presentation changes only this documented name and the documents copy.
 // Every prior fixture stays immutable; the same controls, counts, sections and links are required.
@@ -368,7 +371,7 @@ describe("S145 preservation with authorized current renewal guidance", () => {
       expect(
         changedCopy,
         `${testCase.name}: exact authorized section-copy changes`,
-      ).toEqual(CURRENT_COPY_SECTIONS);
+      ).toEqual(testCase.manual ? S224_COPY : S253_COPY);
       expect(signature.copy).toHaveLength(previous.copy.length);
     }
     const prior = JSON.parse(readFileSync(PRIOR_PATH, "utf8")) as typeof signatures;

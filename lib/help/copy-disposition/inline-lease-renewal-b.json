@@ -642,5 +642,19 @@
     "text": "Prefilled from …, rule v…. …This amount is saved when you leave or submit the field.",
     "describes": "Working renewal rent prefilled from a standing agreement's rule, saved on leave (S250)",
     "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalCycleDispositionAction.tsx",
+    "text": "Refresh data to verify the current cycle.",
+    "describes": "Current-cycle verification needed before recording a disposition",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalSenderSignatureForm.tsx",
+    "text": "Each field is optional. A saved blank adds no signature to your message.",
+    "describes": "Sender setup permits an explicit blank signature",
+    "disposition": "keep"
   }
 ]

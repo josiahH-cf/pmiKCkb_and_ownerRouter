@@ -1,3 +1,9 @@
+import {
+  readSenderSignatureChoice,
+  senderSignatureEvidence,
+} from "@/lib/firestore/renewal-sender-signature-choice";
+import { outgoingRenewalReasons } from "./outgoing-message-readiness";
+import type { SenderSignatureEvidence } from "./sender-signature-choice";
 import { formatBusinessTimestamp, formatCalendarMonth } from "@/lib/date-display";
 import {
   buildManagedGmailDraftsDestination,
@@ -45,6 +51,7 @@ import {
 } from "@/lib/firestore/renewal-message-body-overrides";
 import { getRenewalWorkingRecord } from "@/lib/firestore/renewal-working-record";
 import { operationalCurrentRent } from "@/lib/lease-renewal/current-rent";
+import { housingAssistanceVariant } from "./working-record";
 import { effectiveRenewalTerms } from "@/lib/lease-renewal/effective-terms";
 import { RenewalPricingPolicyStore } from "@/lib/firestore/renewal-pricing-policies";
 import { readRenewalPricingForViews } from "@/lib/lease-renewal/pricing-policy-read";
@@ -78,7 +85,6 @@ import { LeaseDataExpiredError } from "@/lib/lease-renewal/live-lease-cache";
 import {
   leaseCurrentRent,
   leaseEndDateIso,
-  leasePortfolioId,
   leaseViewId,
 } from "@/lib/integrations/rentvine/lease-mapper";
 import { projectMessageMarketEvidence } from "@/lib/lease-renewal/message-market-evidence";
@@ -102,6 +108,17 @@ import {
 } from "@/lib/lease-renewal/policy-content";
 import { usableRenewalResourceUrl } from "@/lib/lease-renewal/resource-locations";
 import { ownerDraftMarketFromBasis } from "@/lib/lease-renewal/owner-draft";
+import { getRenewalCycleDisposition } from "@/lib/firestore/renewal-cycle-disposition-read";
+import { getRenewalCycleDateDecision } from "@/lib/firestore/renewal-cycle-date-decisions";
+import { getLeaseTermReview } from "@/lib/firestore/lease-renewal-term-reviews";
+import { cycleDateDecisionIsCurrent } from "./cycle-date-decision";
+import {
+  cycleDispositionHold,
+  dispositionCycleFor,
+  dispositionSourceBasis,
+  projectCycleDisposition,
+} from "./cycle-disposition";
+import { projectLeaseTerm } from "./lease-term";
 import { businessDateIso } from "@/lib/lease-renewal/business-calendar";
 import { resolveSeparatedRenewalDraftRecipient } from "@/lib/lease-renewal/execution/renewal-draft-preview";
 import { listMarketObservations } from "@/lib/firestore/renewal-market-observations";
@@ -119,7 +136,10 @@ import {
   renewalRentToRecommend,
   type RenewalStoredComparison,
 } from "@/lib/lease-renewal/renewal-preparation";
-import type { RenewalWorkspaceState } from "@/lib/lease-renewal/workspace-state";
+import {
+  currentRentChoice,
+  type RenewalWorkspaceState,
+} from "@/lib/lease-renewal/workspace-state";
 
 /**
  * S116 (R116.4): the complete same-audience recipient set the message will carry, from the same
@@ -419,6 +439,8 @@ export async function currentRenewalMessage(
     retainedSignature,
     businessProfile,
     policyMaterial,
+    savedDisposition,
+    senderChoice,
   ] = await Promise.all([
     // Editing/copy use the available lease view. An unavailable admitted notice pair is
     // projected as unknown below, and remains a server-side draft/approval hold.
@@ -445,6 +467,8 @@ export async function currentRenewalMessage(
     readBusinessProfile(actor, actor.uid, db).catch(() => null),
     // S129/S131: the policy material snapshot never throws.
     readPolicyMaterialSnapshot("rhino", db),
+    getRenewalCycleDisposition(leaseId, db).catch(() => undefined),
+    readSenderSignatureChoice(actor, db).catch(() => undefined),
   ]);
   if (leaseRead.currency.state === "expired")
     throw new LeaseDataExpiredError(leaseRead.currency.ageMs);
@@ -473,11 +497,52 @@ export async function currentRenewalMessage(
     db,
   );
   const moveOut = noticeSafety.disposition;
+  // A disposition is local. Reading it for an existing draft never creates a new
+  // draft or changes the notice marker's admission contract.
+  let dispositionCycle = null;
+  if (
+    savedDisposition &&
+    leaseRead.snapshot.complete &&
+    leaseRead.currency.state === "fresh"
+  ) {
+    const [termReview, keepDecision] = await Promise.all([
+      getLeaseTermReview(actor, leaseId, db).catch(() => undefined),
+      getRenewalCycleDateDecision(actor, leaseId, db).catch(() => undefined),
+    ]);
+    if (termReview !== undefined) {
+      const term = projectLeaseTerm(lease, termReview, {
+        referenceDateIso: businessDateIso(nowMs),
+      });
+      const source = dispositionSourceBasis({
+        term: term.term,
+        endDateIso: leaseEndDateIso(lease) ?? null,
+        nextReviewIso: term.nextReviewIso,
+      });
+      const keepWorking =
+        source?.kind === "lease_end" &&
+        workspace?.basis.kind === "lease_end" &&
+        cycleDateDecisionIsCurrent(keepDecision, {
+          cycleId: workspace.cycleId,
+          recordedDateIso: workspace.basis.dateIso,
+          sourceDateIso: source.dateIso,
+        });
+      dispositionCycle = dispositionCycleFor(source, workspace, keepWorking);
+    }
+  }
+  const disposition = projectCycleDisposition(
+    savedDisposition,
+    dispositionCycle,
+    workspace?.revision ?? 0,
+  );
+  const dispositionBlock = cycleDispositionHold(disposition);
+  const dispositionRevision =
+    disposition.state === "unavailable" ? undefined : disposition.revision;
   // The notice marker is scoped to the dated work record. A work record saved without a date
   // (S154) lives beside the dated heads, so its notice scope carries no record id.
   const noticeScopeCycleId =
     workspace && workspace.basis.kind !== "lease_bound" ? workspace.cycleId : null;
   const noticeBlock =
+    dispositionBlock ??
     manualNonRenewalReason(workspace) ??
     noticeSafety.reason ??
     (noticeSafety.cycleId !== noticeScopeCycleId
@@ -489,25 +554,43 @@ export async function currentRenewalMessage(
     ? await getMessagePreparation(actor, leaseId, workspace.cycleId, channel, db)
     : null;
   const savedInputs = saved?.inputs ?? emptyMessagePreparationInputs();
-  // S120 (R120.2): the same sender's retained signature fills an empty signature once; a saved
-  // signature (this actor's or another's) is shown as saved and is never silently replaced.
-  const signatureOrigin: MessageSignatureOrigin = savedInputs.signature
-    ? { kind: "saved" }
-    : businessProfile
+  const savedOwn =
+    saved?.signatureActorUid === actor.uid &&
+    saved.signatureEmail?.toLowerCase() === actor.email.toLowerCase();
+  const legacySignature =
+    (savedOwn ? savedInputs.signature : null) ?? retainedSignature?.signature ?? null;
+  const signatureSetup: SenderSignatureEvidence | null = senderChoice
+    ? senderSignatureEvidence(senderChoice)
+    : senderChoice === null && legacySignature
       ? {
-          kind: "business_profile",
-          recordedAt: businessProfile.updatedAt,
-          version: businessProfile.version,
+          uid: actor.uid,
+          email: actor.email.toLowerCase(),
+          revision: 0,
+          choice: "filled",
+          contentHash: hashExecutionPreview(legacySignature),
         }
+      : null;
+  const signatureOrigin: MessageSignatureOrigin = senderChoice
+    ? { kind: "retained_sender", recordedAt: senderChoice.updatedAt }
+    : savedInputs.signature
+      ? { kind: "saved" }
       : retainedSignature
         ? { kind: "retained_sender", recordedAt: retainedSignature.updatedAt }
-        : { kind: "none" };
-  const inputs =
-    signatureOrigin.kind === "business_profile"
-      ? { ...savedInputs, signature: profileSignature(businessProfile!.profile) }
-      : signatureOrigin.kind === "retained_sender"
-        ? { ...savedInputs, signature: retainedSignature!.signature }
-        : savedInputs;
+        : businessProfile
+          ? {
+              kind: "business_profile",
+              recordedAt: businessProfile.updatedAt,
+              version: businessProfile.version,
+            }
+          : { kind: "none" };
+  const inputs = {
+    ...savedInputs,
+    signature: senderChoice
+      ? senderChoice.signature
+      : (savedInputs.signature ??
+        retainedSignature?.signature ??
+        (businessProfile ? profileSignature(businessProfile.profile) : null)),
+  };
   // S129/S161: the same policy applicability the workspace shows. It is listed with the message
   // as information; it withholds neither the message nor its draft, and an unrelated lease has none.
   const policyGates = policyMessageGates(
@@ -726,19 +809,29 @@ export async function currentRenewalMessage(
     return url ? { url, source: `renewal-resource:${id}:${entry!.recordedAt}` } : null;
   };
   const provider = market?.provider;
-  const signature =
-    saved?.signatureEmail && savedInputs.signature
-      ? { ...savedInputs.signature, email: saved.signatureEmail }
-      : (signatureOrigin.kind === "retained_sender" ||
-            signatureOrigin.kind === "business_profile") &&
-          inputs.signature
-        ? { ...inputs.signature, email: actor.email }
-        : null;
+  const signature = inputs.signature
+    ? {
+        ...inputs.signature,
+        email:
+          senderChoice || !savedInputs.signature
+            ? actor.email
+            : (saved?.signatureEmail ?? actor.email),
+      }
+    : null;
   // S163: greeting first names come from the provider's own first-name field for each person.
   const greeting = greetingPartyNames(
     channel === "owner" ? identity.owners : identity.tenants,
   );
   const facts: RenewalMessageFacts = {
+    outgoingContract: true,
+    ownerIntent:
+      channel === "owner"
+        ? housingAssistanceVariant(workingRecord) &&
+          currentRentChoice(workspace) !== "propose_change"
+          ? "renew_or_not"
+          : "recommend_rent"
+        : undefined,
+    signatureConfigured: signatureSetup !== null,
     channel,
     names: greeting.names,
     firstNames: greeting.firstNames,
@@ -857,9 +950,13 @@ export async function currentRenewalMessage(
     savedSubject,
   );
   const content = authoredSubject.content;
-  const signatureMatchesActor =
-    saved?.signatureActorUid === actor.uid &&
-    saved.signatureEmail?.toLowerCase() === actor.email.toLowerCase();
+  const signatureMatchesActor = Boolean(senderChoice || savedOwn);
+  const outgoingReasons = outgoingRenewalReasons({
+    content,
+    signatureConfigured:
+      signatureSetup !== null && (signatureMatchesActor || !savedInputs.signature),
+    reply: false,
+  });
   return {
     /** S249 R-S249-5: the rent to recommend and its basis, as the Now card reads it. */
     rentToRecommend,
@@ -884,6 +981,7 @@ export async function currentRenewalMessage(
       body: content.plainText,
     }),
     noticeBlock,
+    dispositionRevision,
     /** S233 R-S233-1: the renewal cycle the notice scope names, so each message can say it. */
     noticeCycleId: noticeSafety.cycleId,
     attachment,
@@ -946,6 +1044,8 @@ export async function currentRenewalMessage(
     subjectOverride: authoredSubject.subject,
     basis,
     signatureMatchesActor,
+    signatureSetup,
+    outgoingReasons,
     publication,
     notices,
     policyGates,

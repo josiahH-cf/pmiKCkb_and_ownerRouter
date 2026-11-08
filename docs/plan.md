@@ -2,6 +2,18 @@
 
 Updated: 2026-11-07 (UTC), one-path production delivery.
 
+## Active November 7 follow-up
+
+Published specification `4caad68df6885d3eed4cb2b3fff7c70e5c96ae15`. Remote main at the start was `bf9753d6af9c7cb90c7a17d3dee0965ae9656095`. The deployed comparison baseline is `ef81b8917209f4eec3f22097142b559f3cce875b`.
+
+The implementation is on `codex/renewal-usability-20261107` in `/home/josiah/pmi-kc-work/renewal-usability-20261107`. The exact locally qualified candidate is `4b31d89b0a903ee3cc315b38c263755db29c910a`.
+
+Qualify the pull request on its exact head and current base. After verified merge, record green push CI on the exact main commit. Leave the eight application intakes queued for one release while the recorded prerequisites are held.
+
+Once the holds are resolved, qualify the registered checkout pair, exact queue and release prerequisites under the existing runbook. Prepare one fresh exact-SHA permit and require locked GO before starting one watcher. Verify the captured predecessor, zero-traffic candidate, receipt-bound promotion, observation and independent readbacks.
+
+Release admission is held by the required managed Gmail profile read and the separate Google CLI/ADC reauthentication challenge. See the [release holds](open-blockers.md#november-7-release-assurance). Staff verdict NOT RUN.
+
 ## Authorized outcome
 
 S246–S254 and the reviewed repairs in PR #191 shipped at `ef81b8917209f4eec3f22097142b559f3cce875b` / `pmi-kc-app-rmw65wgt2-8c8249a0547c`.

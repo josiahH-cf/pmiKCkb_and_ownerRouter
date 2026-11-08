@@ -99,13 +99,13 @@ const title = (leaseId: string) => {
   return row.unit ? `${row.address}, ${row.unit}` : row.address;
 };
 const leaseIds = (scope: Element) =>
-  [...scope.querySelectorAll("li[data-batch-lease]")].map((row) =>
+  [...scope.querySelectorAll("tr[data-batch-lease]")].map((row) =>
     row.getAttribute("data-batch-lease"),
   );
 const list = (group: "carried_over" | "this_batch") =>
   document.querySelector<HTMLElement>(`[data-batch-list="${group}"]`);
 const batchRow = (scope: ParentNode, leaseId: string) =>
-  scope.querySelector<HTMLElement>(`li[data-batch-lease="${leaseId}"]`)!;
+  scope.querySelector<HTMLElement>(`tr[data-batch-lease="${leaseId}"]`)!;
 const countButton = (group: RenewalBatchCountGroup) =>
   document.querySelector<HTMLButtonElement>(`button[data-batch-group="${group}"]`)!;
 const summary = () => document.querySelector(".renewal-batch-summary")!;
@@ -132,7 +132,7 @@ afterEach(() => {
 });
 
 describe("S246 the working batch is the default view (R-S246-2, R-S246-3, R-S246-6, R-S246-11)", () => {
-  it("BEH-S246-1: states the working month and its count in words above the list, with Carried over first and every other lease as a count", () => {
+  it("BEH-S246-1: states the working month and its count in words above the table, with Carried over first and every other lease as a count", () => {
     open();
     expect(summary()).toHaveTextContent(
       "Three leases ending in December 2026 need renewal work.",
@@ -140,7 +140,7 @@ describe("S246 the working batch is the default view (R-S246-2, R-S246-3, R-S246
     expect(screen.getByText("Working month: December 2026")).toBeInTheDocument();
     const carried = screen.getByRole("region", { name: "Carried over" });
     const batch = screen.getByRole("region", { name: "This batch" });
-    // The words come before both lists, and Carried over shows first.
+    // The words come before both tables, and Carried over shows first.
     expect(
       summary().compareDocumentPosition(carried) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
@@ -175,6 +175,7 @@ describe("S246 the working batch is the default view (R-S246-2, R-S246-3, R-S246
       coming_up_later: 2,
       not_targets: 5,
       completed: 1,
+      retired: 0,
     });
     for (const group of RENEWAL_BATCH_COUNT_GROUPS) {
       expect(countButton(group)).toHaveAccessibleName(
@@ -182,7 +183,7 @@ describe("S246 the working batch is the default view (R-S246-2, R-S246-3, R-S246
       );
       expect(countButton(group)).toHaveAttribute("aria-expanded", "false");
     }
-    // R-S246-11: the two lists and the counts add up to every loaded lease.
+    // R-S246-11: the two tables and the counts add up to every loaded lease.
     const listed = leaseIds(carried).length + leaseIds(batch).length;
     const counted = Object.values(counts).reduce((sum, count) => sum + count, 0);
     const root = screen.getByRole("region", { name: "Working batch" });
@@ -193,7 +194,7 @@ describe("S246 the working batch is the default view (R-S246-2, R-S246-3, R-S246
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("R-S246-2: Previous month and Next month change the month, its words and its lists, and the address follows", () => {
+  it("R-S246-2: Previous month and Next month change the month, its words and its tables, and the address follows", () => {
     open();
     // The month links change the batch in place (the view itself stops the page navigation).
     const choose = (name: string) =>

@@ -59,7 +59,7 @@ export const MessagePreparationInputsSchema = z
     recommendationReason: RecommendationReasonSchema.nullable().optional(),
     signature: z
       .object({
-        name: source,
+        name: z.string().trim().max(240),
         role: source.nullable(),
         phone: source.nullable(),
         hours: source.nullable(),

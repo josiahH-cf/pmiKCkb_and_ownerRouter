@@ -2,6 +2,10 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+}));
 import { RenewalDeskTable } from "@/components/lease-renewal/RenewalDeskTable";
 import { DEFAULT_RENEWAL_DESK_QUERY_V2 } from "@/lib/lease-renewal/desk-query-v2";
 import { getRenewalDeskView } from "@/tests/helpers/sample-desk";

@@ -84,6 +84,16 @@
 #                           report itself is the only file that goes to Git.
 set -euo pipefail
 repo=$(git rev-parse --show-toplevel)
+# The required Help gate uses its existing broader synthetic inventory on a separate server.
+# Both entry points share the same exact-checkout and network-preload contract.
+if [[ "${1:-}" == --hold-automatic-comparison && "${2:-}" == --no-mail-adapter && "${3:-}" == --help-rendered ]]; then
+  cd "$repo"
+  if [[ "${4:-}" == --review-captures && $# == 4 ]]; then
+    exec bash scripts/run-help-rehearsal.sh --review-captures
+  fi
+  [[ $# == 3 ]]
+  exec bash scripts/run-help-rehearsal.sh --verify
+fi
 if [[ "$repo" == /app ]]; then
   echo "The one-path rehearsal runs from a host checkout; the kernel-isolated lane has no entry for it." >&2
   exit 2
@@ -185,11 +195,23 @@ fi
 # boundary. The preload asserts its own installation before each process reaches its entrypoint.
 source "$root/worktree/scripts/lib/one-path-rehearsal/network-guard.sh"
 enable_rehearsal_network_guard "$root/worktree" "$output"
-free_port() {
-  node -e 'const s=require("net").createServer();s.listen(0,"127.0.0.1",()=>{console.log(s.address().port);s.close()})'
-}
-firestore_port=$(free_port)
-auth_port=$(free_port)
+# Hold both listeners until the kernel assigns two different ephemeral ports.
+ports=$(node -e '
+  const net = require("node:net");
+  const listeners = [net.createServer(), net.createServer()];
+  Promise.all(listeners.map(server => new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", () => resolve(server.address().port));
+  }))).then(ports => {
+    console.log(ports.join(" "));
+    for (const server of listeners) server.close();
+  }).catch(error => {
+    console.error(error);
+    process.exit(1);
+  });
+')
+read -r firestore_port auth_port <<<"$ports"
+[[ -n "$firestore_port" && -n "$auth_port" && "$firestore_port" != "$auth_port" ]]
 config="$root/firebase.json"
 node -e 'const fs=require("fs");const [cfg,fsPort,authPort,cwd]=process.argv.slice(1);fs.writeFileSync(cfg,JSON.stringify({firestore:{rules:cwd+"/firestore.rules",indexes:cwd+"/firestore.indexes.json"},emulators:{singleProjectMode:true,firestore:{host:"127.0.0.1",port:Number(fsPort)},auth:{host:"127.0.0.1",port:Number(authPort)},ui:{enabled:false}}}))' "$config" "$firestore_port" "$auth_port" "$root/worktree"
 printf '{"run_id":"%s","served_sha":"%s","harness_sha":"%s","overlay":%s,"named_commit":%s,"harness_uncommitted":%s,"firestore_port":%s,"auth_port":%s,"args":"%s"}\n' \

@@ -1,4 +1,6 @@
 "use client";
+
+import { RenewalSenderSignatureForm } from "@/components/lease-renewal/RenewalSenderSignatureForm";
 import { hasCurrentRenewalAuthorization } from "@/lib/gmail-hub/delivery-policy";
 import { buildManagedGmailThreadDestination } from "@/lib/lease-renewal/desk-destinations";
 import { applyBusinessSignature } from "@/lib/gmail-hub/business-signature";
@@ -20,6 +22,7 @@ import { RefineWithAi } from "@/components/email/RefineWithAi";
 import { Button, Field } from "@/components/ui";
 import {
   RichCommunicationMessageSchema,
+  SequenceDraftSchema,
   renderEditableCommunicationBody,
   type CommunicationAttachment,
   type CommunicationOccurrence,
@@ -65,6 +68,7 @@ interface Composition {
   initial: RichCommunicationMessage;
   target: { label: string; to: string[]; cc: string[]; blockers?: string[] };
   attachmentNotice: string | null;
+  signatureParagraph?: RichCommunicationMessage["paragraphs"][number] | null;
   reviewedTargetHash: string;
   /** S249: the lease message record revision a renewal composition was made from. */
   messageRevision?: string;
@@ -140,7 +144,7 @@ export function CommunicationComposer({
   const threadGeneration = useRef(0);
   const [saveTick, setSaveTick] = useState(0),
     [conflict, setConflict] = useState(false),
-    [pendingFile, setPendingFile] = useState(false);
+    [pendingFile, setPendingFile] = useState<"initial" | "followUp" | null>(null);
   const uploadIntent = useRef<{
     id: string;
     file: File;
@@ -148,6 +152,7 @@ export function CommunicationComposer({
   } | null>(null);
   const [draft, setDraft] = useState<SequenceDraft | null>(null),
     [sequence, setSequence] = useState<CommunicationSequence | null>(null);
+  const [signatureOpen, setSignatureOpen] = useState(false);
   const [reviewedTargetHash, setReviewedTargetHash] = useState("");
   const [target, setTarget] = useState<Composition["target"] | null>(null),
     [error, setError] = useState(""),
@@ -197,6 +202,8 @@ export function CommunicationComposer({
   const headingRef = useRef<HTMLHeadingElement>(null);
   const returnToComposer = useRef(false);
   const compositionFlight = useRef<{ key: string; promise: Promise<Composition> }>(null);
+  const loadedSignatureParagraph = useRef<Composition["signatureParagraph"]>(undefined);
+
   const readComposition = useCallback(
     (query: URLSearchParams) => {
       const key = JSON.stringify([authenticatedEmail, query.toString()]);
@@ -242,6 +249,7 @@ export function CommunicationComposer({
     // A repeated effect joins the exact pending composition. Only the current entry/run may
     // apply the response or install a new app draft.
     const run = ++loadRun.current;
+    loadedSignatureParagraph.current = undefined;
     const current = () => active.current && loadRun.current === run;
     void (async () => {
       try {
@@ -306,6 +314,7 @@ export function CommunicationComposer({
           void readComposition(q)
             .then((r) => {
               if (current()) {
+                loadedSignatureParagraph.current = r.signatureParagraph;
                 setTarget(r.target);
                 setReviewedTargetHash(r.reviewedTargetHash);
                 setAttachmentNotice(r.attachmentNotice);
@@ -327,6 +336,7 @@ export function CommunicationComposer({
             initial: p.initial,
             followUp: null,
           };
+          loadedSignatureParagraph.current = p.signatureParagraph;
           setTarget(p.target);
           setReviewedTargetHash(p.reviewedTargetHash);
           setAttachmentNotice(p.attachmentNotice);
@@ -436,14 +446,7 @@ export function CommunicationComposer({
       saveIntent.current
     )
       return;
-    const parsed = RichCommunicationMessageSchema.safeParse(draft.initial);
-    if (
-      !parsed.success ||
-      (draft.followUp &&
-        !RichCommunicationMessageSchema.safeParse(draft.followUp).success)
-    ) {
-      return;
-    }
+    if (!SequenceDraftSchema.safeParse(draft).success) return;
     const timer = setTimeout(() => {
       void save().catch((e) => {
         setError(e.message);
@@ -561,7 +564,7 @@ export function CommunicationComposer({
         throw new Error("Check the original file upload before selecting another file.");
       if (!uploadIntent.current)
         uploadIntent.current = { id: crypto.randomUUID(), file, which };
-      setPendingFile(true);
+      setPendingFile(which);
       const { id } = uploadIntent.current,
         form = new FormData();
       form.set("file", file);
@@ -575,7 +578,7 @@ export function CommunicationComposer({
           p.error ?? "The file needs reconciliation before it can be attached.",
         );
       uploadIntent.current = null;
-      setPendingFile(false);
+      setPendingFile(null);
       const a = p.attachment as CommunicationAttachment;
       setAttachments((old) => ({ ...old, [a.id]: a }));
       const d = currentDraft.current,
@@ -594,7 +597,7 @@ export function CommunicationComposer({
   };
   const copy = async (message: RichCommunicationMessage) => {
     try {
-      const r = renderEditableCommunicationBody(message.paragraphs);
+      const r = renderEditableCommunicationBody(message.paragraphs, message.layout);
       if (typeof ClipboardItem !== "undefined" && navigator.clipboard.write)
         await navigator.clipboard.write([
           new ClipboardItem({
@@ -651,15 +654,27 @@ export function CommunicationComposer({
   const recipientTo = target?.to ?? sequence?.authorization?.to ?? [],
     recipientCc = target?.cc ?? sequence?.authorization?.cc ?? [];
   const blocks = target?.blockers ?? [];
-  const draftIncomplete =
-    !RichCommunicationMessageSchema.safeParse(draft.initial).success ||
-    !!(
-      draft.followUp && !RichCommunicationMessageSchema.safeParse(draft.followUp).success
-    );
-  const filesUnverified = [
-    ...draft.initial.attachmentIds,
-    ...(draft.followUp?.attachmentIds ?? []),
-  ].some((id) => !attachments[id]);
+  const draftCanSave = SequenceDraftSchema.safeParse(draft).success;
+  const initialFilesUnverified = draft.initial.attachmentIds.some(
+    (id) => !attachments[id],
+  );
+  const followUpReady =
+    RichCommunicationMessageSchema.safeParse(draft.followUp).success &&
+    !draft.followUp?.attachmentIds.some((id) => !attachments[id]) &&
+    !pendingFile;
+  const initialBlocked =
+    busy ||
+    terminal ||
+    conflict ||
+    pendingFile === "initial" ||
+    !canAuthorize ||
+    !draftCanSave ||
+    initialFilesUnverified ||
+    !reviewedTargetHash ||
+    !recipientTo.length ||
+    blocks.length > 0 ||
+    !!sequence?.unresolvedOccurrenceId;
+  const resumeRepeats = sequence?.authorization?.schedule?.everyDays != null;
   return (
     <section
       className="ui-card ui-stack communication-composer"
@@ -697,6 +712,62 @@ export function CommunicationComposer({
         To: {recipientTo.join(", ") || "Current verified recipient waits for source read"}
         {recipientCc.length ? ` · Cc: ${recipientCc.join(", ")}` : ""}
       </p>
+      {draft.context.entityType === "renewal_lease" && !terminal && canAuthorize ? (
+        <>
+          <Button
+            size="compact"
+            variant="secondary"
+            onClick={() => setSignatureOpen(!signatureOpen)}
+          >
+            Set up or edit your signature
+          </Button>
+          {signatureOpen ? (
+            <RenewalSenderSignatureForm
+              onCancel={() => setSignatureOpen(false)}
+              onSaved={async () => {
+                const reply = draft.context.replyTo;
+                const params = new URLSearchParams(
+                  reply
+                    ? {
+                        reply_from: reply.sequenceId,
+                        reply_thread: reply.threadId,
+                        reply_sender: reply.senderEmail,
+                        reply_parent: reply.parentId,
+                      }
+                    : { lease: draft.context.entityId, purpose: draft.context.purpose },
+                );
+                const entryRun = loadRun.current;
+                const next = await readComposition(params);
+                if (!active.current || loadRun.current !== entryRun) return;
+                const current = currentDraft.current;
+                if (current && !sequence?.authorization) {
+                  const prior = loadedSignatureParagraph.current;
+                  const paragraphs = [...current.initial.paragraphs];
+                  const tail = JSON.stringify(paragraphs.at(-1));
+                  // Replace only a known generated footer. The rest of the draft stays as typed.
+                  if (tail !== JSON.stringify(next.signatureParagraph)) {
+                    if (prior && tail === JSON.stringify(prior)) paragraphs.pop();
+                    if (next.signatureParagraph) paragraphs.push(next.signatureParagraph);
+                  }
+                  if (!paragraphs.length) paragraphs.push([{ text: "" }]);
+                  if (
+                    JSON.stringify(paragraphs) !==
+                    JSON.stringify(current.initial.paragraphs)
+                  )
+                    change({ ...current, initial: { ...current.initial, paragraphs } });
+                }
+                loadedSignatureParagraph.current = next.signatureParagraph;
+                setTarget(next.target);
+                setReviewedTargetHash(next.reviewedTargetHash);
+                setSignatureOpen(false);
+                setStatus(
+                  "Signature saved. Review the current wording before authorizing the message.",
+                );
+              }}
+            />
+          ) : null}
+        </>
+      ) : null}
       {blocks.map((b) => (
         <p key={b} role="status">
           {b}
@@ -720,7 +791,7 @@ export function CommunicationComposer({
         </p>
       ) : null}
       <p role="status">
-        {draftIncomplete ? "Finish the subject and message to save" : status}
+        {draftCanSave ? status : "Check the draft subject and message to save"}
         {sequence
           ? ` · ${sequence.confirmedCount} confirmed message${sequence.confirmedCount === 1 ? "" : "s"}`
           : ""}
@@ -949,45 +1020,15 @@ export function CommunicationComposer({
       </p>
       <div className="ui-row">
         <button
-          disabled={busy || terminal}
+          disabled={busy || terminal || !draftCanSave}
           onClick={() => void save().catch((e) => setError(e.message))}
         >
           {saveNeedsRetry ? "Retry same save" : "Save draft"}
         </button>
-        <button
-          disabled={
-            busy ||
-            terminal ||
-            conflict ||
-            pendingFile ||
-            !canAuthorize ||
-            draftIncomplete ||
-            filesUnverified ||
-            !reviewedTargetHash ||
-            !recipientTo.length ||
-            !!blocks.length ||
-            !!sequence?.unresolvedOccurrenceId
-          }
-          onClick={() => void run("send")}
-        >
+        <button disabled={initialBlocked} onClick={() => void run("send")}>
           Send
         </button>
-        <button
-          disabled={
-            busy ||
-            terminal ||
-            conflict ||
-            pendingFile ||
-            !canAuthorize ||
-            draftIncomplete ||
-            filesUnverified ||
-            !reviewedTargetHash ||
-            !recipientTo.length ||
-            !!blocks.length ||
-            !!sequence?.unresolvedOccurrenceId
-          }
-          onClick={() => setScheduleOpen((v) => !v)}
-        >
+        <button disabled={initialBlocked} onClick={() => setScheduleOpen((v) => !v)}>
           Schedule
         </button>
       </div>
@@ -1067,22 +1108,15 @@ export function CommunicationComposer({
               return null;
             }
           })()}
+          {every && !followUpReady ? (
+            <p role="status">
+              A repeating schedule needs a complete follow-up message and verified
+              attachments.
+            </p>
+          ) : null}
           <button
             type="button"
-            disabled={
-              !scheduleReady ||
-              busy ||
-              terminal ||
-              conflict ||
-              pendingFile ||
-              !canAuthorize ||
-              draftIncomplete ||
-              filesUnverified ||
-              !reviewedTargetHash ||
-              !recipientTo.length ||
-              !!blocks.length ||
-              !!sequence?.unresolvedOccurrenceId
-            }
+            disabled={!scheduleReady || initialBlocked || (!!every && !followUpReady)}
             onClick={() => void run("schedule")}
           >
             Schedule messages
@@ -1118,19 +1152,7 @@ export function CommunicationComposer({
           </button>
           {sequence.state === "paused" ? (
             <button
-              disabled={
-                busy ||
-                terminal ||
-                conflict ||
-                pendingFile ||
-                !canAuthorize ||
-                draftIncomplete ||
-                filesUnverified ||
-                !reviewedTargetHash ||
-                !recipientTo.length ||
-                !!blocks.length ||
-                !!sequence?.unresolvedOccurrenceId
-              }
+              disabled={initialBlocked || (resumeRepeats && !followUpReady)}
               onClick={() => void run("resume")}
             >
               Resume reviewed sequence

@@ -219,10 +219,39 @@ async function noticeAdmission({ page, origin }) {
  * lease is then simply a lease with no message sent.
  */
 async function repliedOwnerMessage({ page, mix, rehearsal }) {
+  if (rehearsal.mailAdapter === false)
+    return { state: "skipped", detail: "The mail adapter is held for this session." };
   const role = mix.roles.replied;
   const leaseId = role.leaseId;
   const owner = mix.leases.find((row) => row.lease.leaseID === leaseId)?.portfolio
     .owners[0]?.email;
+  const signature = await route(page, "/api/lease-renewal/sender-signature");
+  // The current contract needs a recommendation and setup before an ordinary synthetic send.
+  // Older served commits still use their own original seed sequence.
+  if (signature.status === 200) {
+    const preparation = await route(
+      page,
+      `/api/lease-renewal/message-preparation?leaseId=${leaseId}&channel=owner`,
+    );
+    const rent = preparation.body?.facts?.currentBaseRent?.value;
+    if (preparation.status !== 200 || !Number.isFinite(rent))
+      return {
+        state: "skipped",
+        detail: "The replied lease's verified synthetic current rent is unavailable.",
+      };
+    const working = await route(
+      page,
+      `/api/lease-renewal/working-record?leaseId=${leaseId}`,
+    );
+    const entered = await route(page, "/api/lease-renewal/working-record", {
+      leaseId: String(leaseId),
+      field: "terms_rent",
+      value: rent,
+      expectedRevision: working.body?.record?.fields?.terms_rent?.revision ?? 0,
+      operationId: await newId(page),
+    });
+    if (entered.status !== 200) return { state: "skipped", detail: refusal(entered) };
+  }
   const message = await sendOwnerMessage(page, leaseId);
   if (message.refusal)
     return {
@@ -345,7 +374,7 @@ async function preparedKickoff({ page, mix }) {
  * Admin turns the reviewed setting off in the app for the seeds and back on to its shipped default
  * after them; nothing else about the setting changes. A commit without the setting answers 404.
  */
-async function automaticStartSetting(page, enabled, why) {
+export async function automaticStartSetting(page, enabled, why) {
   await switchDemoRole(page, "Admin");
   try {
     const current = await route(page, "/api/lease-renewal/kickoff-settings");
@@ -579,12 +608,12 @@ export const SEED_STEPS = [
   },
   { name: "recorded-cycles", suite: "S246", run: recordedCycles },
   { name: "notice-admission", suite: "S254", run: noticeAdmission },
-  { name: "replied-owner-message", suite: "S249", run: repliedOwnerMessage },
   // S250 and S251 run inside the held automatic start (before automatic-start-restored), so
   // opening the batch never requests a comparison for the assisted lease before its fact exists.
   { name: "standing-agreement", suite: "S250", run: standingAgreementSeed },
   { name: "housing-assistance", suite: "S251", run: housingAssistanceSeed },
   { name: "prepared-kickoff", suite: "S249", run: preparedKickoff },
+  { name: "replied-owner-message", suite: "S249", run: repliedOwnerMessage },
   { name: "forms", suite: "S253", run: (context) => seedForms(context) },
   {
     name: "automatic-start-restored",

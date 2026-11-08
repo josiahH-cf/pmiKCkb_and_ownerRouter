@@ -3,7 +3,9 @@
 
 # S259 - Walk the November 7 renewal journeys on the final candidate
 
-> Status: AUTHORING READY, intake 129. Run this engineering litmus last, after intakes 121–128 are implemented. Candidate verdict NOT RUN. Staff verdict NOT RUN.
+> Status: execution launched, intake 129. Run this engineering litmus last, after intakes
+> 121–128 are implemented. The [current evidence](../evidence/renewal-usability-litmus-2026-11-07.md)
+> records the engineering verdicts. Staff verdict NOT RUN.
 
 **Goal.**
 
@@ -77,7 +79,9 @@ S252 owns the separate staff observation and verdict.
   report format and validator with a separate S259 suite profile and the crosswalk to S254.
   Map PASS to Yes and FAIL to No in the validator's native rows. Each row and its material
   checkpoints record expected and observed results, role, entry, fixture, exact candidate,
-  evidence reference, initial failure, repair and remaining gap when applicable. Use
+  evidence reference, initial failure, repair and remaining gap when applicable. A Yes evidence
+  cell starts with Browser outcome and the exact private run and case reference in backticks,
+  followed by the observed result. Use
   UNVERIFIED only for a named missing observation and state what would resolve it. Mark
   synthetic provider, responsive, physical-device, assistive-technology and human evidence
   separately. Commit a sanitized evidence report. Keep raw traces, screenshots, logs and
@@ -148,7 +152,7 @@ A staff member can explain where they are, what needs attention, what the action
 and how they know it worked. They can recover after an interruption and find related
 information without losing the lease or list context. S252 supplies the staff session.
 
-- Model verdict: NOT RUN. This is the pre-implementation contract.
+- Model verdict: PASS on `4b31d89b` in the synthetic engineering scope. See the current evidence.
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**
@@ -245,6 +249,9 @@ validated result and the separately scoped S252 and S254 records in Git history.
 | Handle variants and finish               | L08 to L10 | S250, S251, S255, S253, S248       |
 | Reach adjacent tasks and trust the guide | L11 to L13 | S256, S257, S242, S243, S252       |
 | Preserve and qualify the whole batch     | L14        | S252, S254                         |
+
+The [versioned November 7 profile](../renewal-usability-litmus-profile-2026-11-07.md) maps all 71
+S254 checks to the final journeys and records the authorized expectation changes.
 
 ## Litmus handoff (paste-ready)
 

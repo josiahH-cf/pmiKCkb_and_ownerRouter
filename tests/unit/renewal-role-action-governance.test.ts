@@ -144,6 +144,10 @@ const API_EXPECTATIONS = [
   ["app/api/lease-renewal/pricing-policy/route.ts", "POST", "save_pricing_policy"],
   ["app/api/lease-renewal/collections/route.ts", "GET", "read_workspace"],
   ["app/api/lease-renewal/collections/route.ts", "POST", "save_shared_collection"],
+  ["app/api/lease-renewal/cycle-disposition/route.ts", "GET", "read_workspace"],
+  ["app/api/lease-renewal/cycle-disposition/route.ts", "POST", "save_renewal_progress"],
+  ["app/api/lease-renewal/sender-signature/route.ts", "GET", "read_workspace"],
+  ["app/api/lease-renewal/sender-signature/route.ts", "POST", "save_sender_signature"],
 ] as const satisfies readonly (readonly [
   string,
   "GET" | "POST" | "PATCH",

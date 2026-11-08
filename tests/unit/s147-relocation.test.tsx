@@ -5,6 +5,10 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+}));
+
 // S147 ARCH-S147-1: each moved Dashboard function is owned by its destination. Anticipated work now
 // sits in Internal Processes beside Start run with its default-notice-rule caption (owner decision
 // 2026-10-01), computed only when asked; the connection setup summary sits in Connections.

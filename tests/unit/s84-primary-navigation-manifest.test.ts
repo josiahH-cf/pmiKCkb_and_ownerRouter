@@ -33,7 +33,7 @@ const admin = (scopes?: readonly string[]): AuthenticatedUser =>
     ...(scopes ? { scopes } : {}),
   });
 
-const ALL_OPERATIONS = ["Lease Renewal", "Internal Processes"];
+const ALL_OPERATIONS = ["Lease Renewal", "Communications", "Internal Processes"];
 const originalAllowedHd = process.env.ALLOWED_HD;
 
 beforeEach(() => {
@@ -56,8 +56,8 @@ describe("S84 primary-navigation manifest", () => {
       PRIMARY_NAVIGATION_MANIFEST.map((group) => group.items.map((item) => item.label)),
     ).toEqual([
       ["My Work", "Dashboard", "Approval Queue", "Help"],
-      ["Lease Renewal", "Internal Processes"],
-      ["Admin", "Connections", "Communications"],
+      ["Lease Renewal", "Communications", "Internal Processes"],
+      ["Admin", "Connections"],
     ]);
     expect(PRIMARY_NAVIGATION_MANIFEST.flatMap((group) => group.items)).toHaveLength(9);
     expect(
@@ -106,7 +106,7 @@ describe("S84 primary-navigation manifest", () => {
         "Help",
       ]);
       expect(labels(groups, "operations")).toEqual(ALL_OPERATIONS);
-      expect(labels(groups, "admin")).toEqual(["Admin", "Connections", "Communications"]);
+      expect(labels(groups, "admin")).toEqual(["Admin", "Connections"]);
       // The role still decides the Admin destination: a non-Admin gets self-service access only.
       expect(findItem(groups, "admin")).toMatchObject({
         href: "/admin/access",

@@ -486,11 +486,11 @@ describe("S254: seeds and drivers", () => {
       ["automatic-start-held", "S249"],
       ["recorded-cycles", "S246"],
       ["notice-admission", "S254"],
-      ["replied-owner-message", "S249"],
       ["standing-agreement", "S250"],
       ["housing-assistance", "S251"],
       // S249 built this step; it was waiting on "S248".
       ["prepared-kickoff", "S249"],
+      ["replied-owner-message", "S249"],
       ["forms", "S253"],
       ["automatic-start-restored", "S249"],
     ]);

@@ -40,14 +40,19 @@ import { getRenewalLeaseWorkspace } from "@/tests/helpers/sample-desk";
 import { manualFixture } from "@/tests/helpers/renewal-action-fixtures";
 
 // S247 R-S247-4 to R-S247-11, BEH-S247-1 to BEH-S247-5, AC-S247-2 to AC-S247-4: the Guided view is
-// the lease page's default, beside Focus view and Full view. It names every step of the path and
+// the lease page's default beside Full view. It names every step of the path and
 // holds one Now card with one primary action over the step's existing controls. Opening,
 // choosing a step, switching views and following an older link change presentation only: no
 // request, save, navigation or refresh. Full view keeps its recorded presentation.
 
 const BASELINE = JSON.parse(
   readFileSync(
-    join(__dirname, "..", "fixtures", "s253-animal-wording-full-view-presentation.json"),
+    join(
+      __dirname,
+      "..",
+      "fixtures",
+      "s224-outgoing-readiness-full-view-presentation.json",
+    ),
     "utf8",
   ),
 ) as Record<string, ReturnType<typeof fullViewSignature>>;
@@ -197,9 +202,7 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
     const card = nowCard();
     expect(card.querySelectorAll("[data-renewal-now-primary]")).toHaveLength(1);
     expect(within(card).getByRole("button", { name: "Add a note" })).toBeVisible();
-    expect(
-      within(card).getByRole("button", { name: "Set status by hand" }),
-    ).toBeVisible();
+    expect(screen.getByRole("button", { name: "Record work" })).toBeVisible();
     // The staff status and its Status log stay reachable from Guided view.
     expect(
       screen.getByRole("region", { name: "Staff status and Status log" }),
@@ -424,29 +427,91 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
     const sections = within(guidedPane()).getByRole("navigation", {
       name: "Every section in Full view",
     });
+    window.history.replaceState(null, "", "#renewal-section-comps");
     await user.click(
       within(sections).getByRole("link", { name: "Tenant offer and response" }),
     );
     await settle();
     expect(viewButton("Full view")).toHaveAttribute("aria-pressed", "true");
+    expect(window.location.hash).toBe("#renewal-section-tenant");
     expect(document.activeElement?.closest("#renewal-section-tenant")).not.toBeNull();
   });
 
-  it("R-S247-8: Set status by hand and Add a note reach the staff status controls", async () => {
-    stubRenewalRoutes(manualState());
+  it("R-S248-13: the header opens the actual record without advancing the stage", async () => {
+    const routes = stubRenewalRoutes(manualState());
     await renderWorkspace({
       manual: manualState(),
       view: "default",
       extra: { workStatus: WORK_STATUS },
     });
     const user = userEvent.setup();
-    const status = screen.getByRole("region", { name: "Staff status and Status log" });
-    await user.click(
-      within(nowCard()).getByRole("button", { name: "Set status by hand" }),
+    const header = screen.getByRole("region", { name: "Current renewal stage" });
+    const stage = header.querySelector('[data-renewal-field="stage-line"]');
+    expect(stage).toBeVisible();
+    const before = stage?.textContent;
+    const record = within(header).getByRole("button", { name: "Record work" });
+    await user.click(record);
+    await user.click(within(header).getByRole("button", { name: "Cancel" }));
+    expect(record).toHaveFocus();
+    await user.click(record);
+    await user.click(within(header).getByRole("button", { name: "Owner outreach" }));
+    expect(screen.getByLabelText("Owner outreach outcome")).toHaveFocus();
+    expect(stage?.textContent).toBe(before);
+    expect(routes.writes()).toEqual([]);
+
+    await user.click(viewButton("Full view"));
+    expect(stage).toBeVisible();
+    expect(within(header).getByRole("button", { name: "Record work" })).toBeVisible();
+  });
+
+  it("keeps a disagreeing hand-set status and the recorded stage available together", async () => {
+    const state = manualState();
+    stubRenewalRoutes(state);
+    const workspace = getRenewalLeaseWorkspace("lease-318-cedar-7")!;
+    const context = renewalStageContextFor(
+      { ...workspace.summary, guidance: workspace.guidance },
+      null,
+      null,
     );
-    expect(status.contains(document.activeElement)).toBe(true);
-    expect(document.activeElement?.tagName).toBe("SELECT");
-    await user.click(within(nowCard()).getByRole("button", { name: "Add a note" }));
+    await renderWorkspace({
+      workspace: {
+        ...workspace,
+        renewalStageContext: {
+          ...context,
+          handStatus: { key: "waiting_on_signatures", label: "Waiting on signatures" },
+        },
+      },
+      manual: state,
+      view: "default",
+    });
+    const header = screen.getByRole("region", { name: "Current renewal stage" });
+    const stage = header.querySelector('[data-renewal-field="stage-line"]');
+    const stageLine = stage?.textContent;
+    expect(stageLine).not.toContain("Waiting on signatures");
+    const discrepancy = within(header).getByText("Needs a check", { exact: true });
+    const user = userEvent.setup();
+    await user.click(discrepancy);
+    expect(
+      within(header).getByText(
+        /^Set by hand: Waiting on signatures\. From the recorded work:/,
+      ),
+    ).toBeVisible();
+    await user.click(viewButton("Full view"));
+    expect(stage?.textContent).toBe(stageLine);
+    expect(discrepancy).toBeVisible();
+  });
+
+  it("R-S247-8: Add a note reaches the separate staff annotation", async () => {
+    stubRenewalRoutes(manualState());
+    await renderWorkspace({
+      manual: manualState(),
+      view: "default",
+      extra: { workStatus: WORK_STATUS },
+    });
+    const status = screen.getByRole("region", { name: "Staff status and Status log" });
+    await userEvent
+      .setup()
+      .click(within(nowCard()).getByRole("button", { name: "Add a note" }));
     expect(status.contains(document.activeElement)).toBe(true);
     expect(document.activeElement?.tagName).toBe("TEXTAREA");
   });

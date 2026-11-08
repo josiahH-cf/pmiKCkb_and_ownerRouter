@@ -1,5 +1,5 @@
 {
-  "version": "V2.1",
+  "version": "V2.2",
   "routeParameters": {
     "leaseId": "4821",
     "propertyKey": "4821",
@@ -8,6 +8,20 @@
     "slug": "overview",
     "runId": "help-rehearsal-run",
     "fieldKey": "current_rent"
+  },
+  "controlFixtures": {
+    "guide work-a-renewal#read-the-prepared-message": {
+      "route": "/lease-renewal/live/desk/lease/5001",
+      "actions": []
+    },
+    "guide work-a-renewal#review-and-send": {
+      "route": "/lease-renewal/live/desk/lease/5001",
+      "actions": []
+    },
+    "guide work-a-renewal#send-the-message": {
+      "route": "/lease-renewal/live/desk/lease/5001",
+      "actions": ["click-button:Review and send"]
+    }
   },
   "outlineRoutes": [
     "/search",
@@ -67,7 +81,7 @@
       "frame": "viewport",
       "actions": ["click-button:Operations"],
       "source": "rehearsal",
-      "alt": "The Operations menu open in the top bar, listing Lease Renewal and Internal Processes with their descriptions.",
+      "alt": "The Operations menu open in the top bar, listing Lease Renewal, Communications and Internal Processes with their descriptions.",
       "caption": "Each top bar menu lists its destinations with a short description."
     },
     {
@@ -310,11 +324,12 @@
         "width": 1280,
         "height": 800
       },
-      "region": "region:Owner message preparation",
+      "region": "heading:Copy the message",
       "frame": "viewport",
+      "align": "center",
       "actions": ["click-button:Full view", "wait-text:Copy the message"],
       "source": "rehearsal",
-      "alt": "Owner message preparation in Owner approval: Compose owner message in Communications, the lease's notes, then Copy the message with the Subject and To lines.",
+      "alt": "The Copy the message area in Full view with the Subject, To and Email body fields.",
       "caption": "The owner message is prepared from the lease facts and the saved comparison."
     },
     {
@@ -366,6 +381,7 @@
       },
       "region": "region:Renewal resource links",
       "frame": "viewport",
+      "actions": ["open-summary:Renewal resource links"],
       "source": "rehearsal",
       "alt": "The Renewal resource links section in Connections with the labeled link boxes.",
       "caption": "Renewal resource links hold the shared links the renewal documents use."
@@ -582,7 +598,7 @@
     {
       "role": "Editor",
       "route": "/lease-renewal/live/desk/lease/5001",
-      "actions": ["click-button:Focus view"]
+      "actions": ["click-button:Full view"]
     },
     {
       "role": "Editor",

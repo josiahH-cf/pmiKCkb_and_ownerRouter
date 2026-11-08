@@ -153,7 +153,10 @@
         "state": "verified",
         "evidence": [
           { "phase": "s249-kickoff", "check": "L27: changing" },
-          { "phase": "s249-kickoff", "check": "L28: after a Gmail draft is created" }
+          {
+            "phase": "s249-kickoff",
+            "check": "L28: after a wording change the older draft is named"
+          }
         ]
       }
     },
@@ -222,7 +225,10 @@
       "result": {
         "state": "verified",
         "evidence": [
-          { "phase": "s249-kickoff", "check": "L40 (rehearsal means)" },
+          {
+            "phase": "s249-kickoff",
+            "check": "L40: the exact receipt identifies one unsent synthetic Gmail draft"
+          },
           { "test": "tests/unit/s249-now-card-message.test.tsx" }
         ]
       }
@@ -397,7 +403,10 @@
         "state": "verified",
         "evidence": [
           { "phase": "s249-kickoff", "check": "L27: changing" },
-          { "phase": "s249-kickoff", "check": "L28: after a Gmail draft is created" }
+          {
+            "phase": "s249-kickoff",
+            "check": "L28: after a wording change the older draft is named"
+          }
         ]
       }
     },

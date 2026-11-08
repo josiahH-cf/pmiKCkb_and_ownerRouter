@@ -121,6 +121,20 @@ export class RenewalSharedCollectionStore {
       throw new EditableLayerError("Reviewed selection unavailable.", 404);
     return { review: d.get("review") as CollectionReview };
   }
+  async reopenReview(a: AuthenticatedUser, id: string, source: CollectionSource) {
+    const { review } = await this.readReview(a, id);
+    const head = await this.get(a, review.collectionId);
+    if (
+      Date.parse(review.expiresAt) < this.now().getTime() ||
+      (head?.version ?? 0) !== review.expectedVersion ||
+      hash(resolveMembers(source, review.basis)) !== hash(review.members)
+    )
+      throw new EditableLayerError(
+        "This review is out of date. Review the current membership again.",
+        409,
+      );
+    return review;
+  }
   async statuses(a: AuthenticatedUser, id: string, source: CollectionSource) {
     const collection = await this.get(a, id);
     if (!collection) throw new EditableLayerError("Collection not found.", 404);

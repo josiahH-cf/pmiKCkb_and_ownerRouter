@@ -18,10 +18,11 @@ export interface CanaryRouteDefinition {
  * at this path.
  */
 export const ASSURANCE_RENEWAL_DESK_PATH = "/lease-renewal/live/desk?v=2&scope=all";
+export const RENEWAL_USABILITY_PREDECESSOR = "ef81b8917209f4eec3f22097142b559f3cce875b";
 
 /**
  * S247: a lease opened from the desk opens in Guided view. The canary asserts this exact contract
- * as rendered, selecting and clicking nothing: one view switch offering exactly these three views
+ * as rendered, selecting and clicking nothing: one view switch offering exactly these two views
  * with Guided view pressed; one visible main landmark with the Guided region; inside it one visible path navigation
  * whose steps begin with "Check the numbers" (or the month-to-month review) and end with
  * "Complete", with exactly one current step; one visible Now region with exactly one primary
@@ -30,7 +31,8 @@ export const ASSURANCE_RENEWAL_DESK_PATH = "/lease-renewal/live/desk?v=2&scope=a
  */
 export const ASSURANCE_GUIDED_WORKSPACE = {
   switchName: "Lease view",
-  views: ["Guided view", "Focus view", "Full view"],
+  views: ["Guided view", "Full view"],
+  predecessorViews: ["Guided view", "Focus view", "Full view"],
   region: "Guided view",
   path: "Renewal path",
   firstSteps: ["Check the numbers", "Month-to-month review"],
@@ -38,6 +40,8 @@ export const ASSURANCE_GUIDED_WORKSPACE = {
   minimumSteps: 7,
   now: "Now",
   primarySelector: "[data-renewal-now-primary]",
+  stageHeader: "Current renewal stage",
+  recordWork: "Record work",
   stageLineSelector: '[data-renewal-field="stage-line"]',
   nextStepSelector: '[data-renewal-field="next-step"]',
   sections: "Every section in Full view",

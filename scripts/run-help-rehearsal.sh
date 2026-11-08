@@ -33,42 +33,93 @@ if $dirty && ! $overlay; then
   exit 2
 fi
 run_id="$(date -u +%Y%m%dT%H%M%SZ)-${sha:0:8}$($overlay && echo -overlay || true)"
+isolated=""
 state="$HOME/.local/state/pmi-kc-help-rehearsal"
 output="$state/$run_id"
-mkdir -p "$output"
-chmod 700 "$state" "$output"
-root=$(mktemp -d /tmp/pmi-kc-help-rehearsal-XXXXXX)
-cleanup() {
-  git -C "$repo" worktree remove --force "$root/worktree" >/dev/null 2>&1 || true
-  rm -rf "$root"
-}
-trap cleanup EXIT
-git -C "$repo" worktree add --detach "$root/worktree" "$sha" >/dev/null
-# Turbopack compiles only inside the workspace root, so node_modules is a hard-linked copy.
-cp -al "$(readlink -f "$repo/node_modules")" "$root/worktree/node_modules"
+# Required verification and review captures use the same public Chromium and font bytes.
+# Inside the existing canonical lane this script already has the private namespace.
+if [[ "$repo" != /app && ( "${1:-}" == --verify || "${1:-}" == --review-captures ) ]]; then
+  [[ $# == 1 ]]
+  task=help-rendered
+  [[ "$1" != --review-captures ]] || task=help-captures
+  java_root=$(java -XshowSettings:properties -version 2>&1 | sed -n 's/^ *java\.home = //p')
+  if [[ "$java_root" != /* || "$java_root" == / || ! -r "$java_root/release" || ! -x "$java_root/bin/java" ]] ||
+    find "$java_root" -path "$java_root/docs" -prune -o -type l -xtype d -print -quit | rg -q .; then
+    echo "A native Java21 installation with a verified Java home is required." >&2
+    exit 2
+  fi
+  options=()
+  jar="$HOME/.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar"
+  if [[ -r "$jar" ]]; then options+=(--emulator-jar "$jar"); fi
+  if [[ -d "$HOME/.npm" ]]; then options+=(--npm-cache "$HOME/.npm"); fi
+  cd "$repo"
+  printf 'Isolated Help evidence: %s\n' "$output"
+  exec python3 -B scripts/isolated-verify.py --task "$task" --output "$output" \
+    --java-root "$java_root" --memory-mib 6144 "${options[@]}"
+fi
+if [[ "$repo" == /app ]]; then
+  [[ -r /evidence/controls.json && -r /evidence/monitor-ready.json && -n "${PMI_SOURCE_MANIFEST_SHA256:-}" ]]
+  isolated=kernel-v1
+  output=/evidence/help-rendered
+  workspace="$repo"
+  config="$output/firebase.json"
+else
+  root=$(mktemp -d /tmp/pmi-kc-help-rehearsal-XXXXXX)
+  workspace="$root/worktree"
+  config="$root/firebase.json"
+  cleanup() {
+    git -C "$repo" worktree remove --force "$workspace" >/dev/null 2>&1 || true
+    rm -rf "$root"
+  }
+  trap cleanup EXIT
+  git -C "$repo" worktree add --detach "$workspace" "$sha" >/dev/null
+  # Turbopack compiles only inside the workspace root.
+  cp -al "$(readlink -f "$repo/node_modules")" "$workspace/node_modules"
+fi
+mkdir -m 700 -p "$output"
 if $overlay; then
   (cd "$repo" && { git diff --name-only HEAD; git ls-files --others --exclude-standard; } | sort -u) |
     while read -r file; do
-      [[ -f "$repo/$file" ]] && mkdir -p "$root/worktree/$(dirname "$file")" && cp "$repo/$file" "$root/worktree/$file"
+      [[ -f "$repo/$file" ]] && mkdir -p "$workspace/$(dirname "$file")" && cp "$repo/$file" "$workspace/$file"
     done
   (cd "$repo" && git diff --name-only --diff-filter=D HEAD) | while read -r file; do
-    rm -f "$root/worktree/$file"
+    rm -f "$workspace/$file"
   done
 fi
-source "$root/worktree/scripts/lib/one-path-rehearsal/network-guard.sh"
-enable_rehearsal_network_guard "$root/worktree" "$output"
+source "$workspace/scripts/lib/one-path-rehearsal/network-guard.sh"
+enable_rehearsal_network_guard "$workspace" "$output"
 port=$(node -e 'const s=require("net").createServer();s.listen(0,"127.0.0.1",()=>{console.log(s.address().port);s.close()})')
-config="$root/firebase.json"
-node -e 'const fs=require("fs");const [cfg,port,cwd]=process.argv.slice(1);fs.writeFileSync(cfg,JSON.stringify({firestore:{rules:cwd+"/firestore.rules",indexes:cwd+"/firestore.indexes.json"},emulators:{singleProjectMode:true,firestore:{host:"127.0.0.1",port:Number(port)},ui:{enabled:false}}}))' "$config" "$port" "$root/worktree"
+node -e 'const fs=require("fs");const [cfg,port,cwd]=process.argv.slice(1);fs.writeFileSync(cfg,JSON.stringify({firestore:{rules:cwd+"/firestore.rules",indexes:cwd+"/firestore.indexes.json"},emulators:{singleProjectMode:true,firestore:{host:"127.0.0.1",port:Number(port)},ui:{enabled:false}}}))' "$config" "$port" "$workspace"
+if [[ "$isolated" == kernel-v1 ]]; then
+  node --input-type=module - <<'JS'
+import assert from "node:assert/strict";
+import { readFileSync, readlinkSync } from "node:fs";
+const controls = JSON.parse(readFileSync("/evidence/controls.json", "utf8"));
+const monitor = JSON.parse(readFileSync("/evidence/monitor-ready.json", "utf8"));
+assert.ok(controls.allPassed && Object.values(controls.checks).every(Boolean));
+assert.equal(controls.pidNamespace, readlinkSync("/proc/self/ns/pid"));
+assert.equal(monitor.pidNamespace, controls.pidNamespace);
+assert.equal(monitor.ancestryAndRssObserved, true);
+JS
+fi
 printf '{"run_id":"%s","source_sha":"%s","overlay":%s,"emulator_port":%s,"args":"%s"}\n' "$run_id" "$sha" "$overlay" "$port" "${args[*]:-}" >"$output/run.json"
-cd "$root/worktree"
-quoted=$(printf ' %q' "${args[@]}")
+cd "$workspace"
+quoted=""
+if [[ ${#args[@]} -gt 0 ]]; then quoted=$(printf ' %q' "${args[@]}"); fi
+fixture_clock=""
+for arg in "${args[@]}"; do
+  case "$arg" in
+    --verify | --review-captures) fixture_clock="$(date +%s%3N)" ;;
+  esac
+done
 # The capture process (fixture seeding, readbacks, the browser driver) loads the same refusal
 # preload as the server: loopback only, every other connection refused and logged.
+set +e
 CI=true HELP_REHEARSAL_OUTPUT="$output" HELP_REHEARSAL_SOURCE_SHA="$sha" HELP_REHEARSAL_OVERLAY="$overlay" \
+  HELP_REHEARSAL_ISOLATED="$isolated" HELP_REHEARSAL_CLOCK_ORIGIN="$fixture_clock" \
   HELP_REHEARSAL_TARGET_ROOT="$repo" FIRESTORE_EMULATOR_HOST="127.0.0.1:$port" \
   NOVDEC_JOURNEY_NETWORK_LOG="$output/capture-network.jsonl" \
-  npx firebase emulators:exec --only firestore --project pmi-kc-kb-help-rehearsal-test --config "$config" \
+  node node_modules/firebase-tools/lib/bin/firebase.js emulators:exec --only firestore --project pmi-kc-kb-help-rehearsal-test --config "$config" \
   "node --import tsx --import ./tests/browser/renewal-novdec-journey-network.mjs scripts/capture-help-screenshots.mjs --managed$quoted" 2>&1 | tee "$output/rehearsal.log"
 status=${PIPESTATUS[0]}
 echo "evidence: $output"

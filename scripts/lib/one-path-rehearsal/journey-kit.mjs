@@ -184,6 +184,9 @@ export async function followGuide({
   for (const step of steps) {
     const page = state.page;
     const result = { ref: step.ref, role: step.control.role, label: step.control.label };
+    process.stdout.write(
+      `expect ${phase}: ${step.ref} shows ${step.control.role} "${step.control.label}"\n`,
+    );
     try {
       for (const preparation of step.control.actions ?? []) {
         const [verb, ...rest] = preparation.split(":");

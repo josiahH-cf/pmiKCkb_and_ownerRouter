@@ -1,3 +1,5 @@
+import { TaskAnchorContinuation } from "@/components/layout/TaskAnchorContinuation";
+import { adminTask, adminTaskHref } from "@/lib/navigation/admin-task-path";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { AdminActivityLogPanel } from "@/components/admin/AdminActivityLogPanel";
@@ -91,8 +93,38 @@ import { readPrimaryNavigationProjection } from "@/lib/navigation/primary-naviga
 // Admin is re-sectioned (console overhaul Slice D) into three clearly-labeled areas so the operator
 // knows what the tab is for: People & Access (who can use the app), Activity & Logs (usage +
 // notification health), and App Info & Readiness (config + migration + connected-service consoles).
-export default async function AdminPage() {
+export default async function AdminPage({
+  searchParams,
+}: Readonly<{
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}> = {}) {
   const user = await requirePageCapability("manageAdmin");
+  const task = adminTask((await searchParams)?.task);
+  if (!task) {
+    const safety = await listRuntimeActionSuspensions(user).catch(() => null);
+    return (
+      <AppShell user={user}>
+        <main className="content content--workspace ui-stack">
+          <h1 className="section-title">Admin</h1>
+          <TaskAnchorContinuation adminIndex />
+          <section className="panel" aria-label="Production action stops">
+            <h2>Production action stops</h2>
+            <p>
+              {!safety ||
+              safety.hasUnknownRecords ||
+              safety.unreadableActionKeys.length > 0
+                ? "Current action stop status is unavailable."
+                : `${safety.suspensions.length} action stop records.`}
+            </p>
+            <Link href={adminTaskHref("/admin#admin-runtime-suspensions")}>
+              Review current action stops
+            </Link>
+          </section>
+          <AdminTaskIndex />
+        </main>
+      </AppShell>
+    );
+  }
   const config = readServerConfig();
   // S32: Proposed answer corrections awaiting Admin review (harden-the-app loop). Nothing self-modifies.
   // Guarded like every other read below: an unreachable Firestore degrades this one panel instead of
@@ -143,152 +175,169 @@ export default async function AdminPage() {
   // These panels are independent. Resolve them concurrently so an unavailable Firestore session
   // costs one bounded dependency wait instead of serially multiplying that wait across Admin.
   await Promise.all([
-    listAskCorrections(user, { status: "Proposed" })
-      .then((records) => {
-        proposedCorrections = records;
-      })
-      .catch(() => {
-        proposedCorrectionsNote =
-          "Proposed answer corrections are unavailable right now. Try again in a minute; new corrections may not be saving either.";
-      }),
-    readAdminObservability({ config })
-      .then((result) => {
-        observability = result;
-      })
-      .catch(() => {
-        observabilityNote = adminObservabilityUnavailableMessage(config);
-        observability = config.askDemoMode
-          ? readDemoAdminObservability({ config })
-          : undefined;
-      }),
-    listPublicationPolicies(user)
-      .then((records) => {
-        publicationPolicies = records;
-      })
-      .catch(() => {
-        publicationPolicyNote =
-          "Publication policies are unavailable. No source can publish until Firestore and a required scanner are configured.";
-      }),
-    Promise.all([
-      listApprovalQueueEmailSettings(user),
-      readApprovalQueueNotificationHealth({ actor: user }),
-    ])
-      .then(([settings, health]) => {
-        queueEmailSettings = settings;
-        queueHealth = health;
-      })
-      .catch(() => {
-        queueAdminNote = config.askDemoMode
-          ? "Using default queue email settings because Firestore notification health is not available in this session."
-          : "Notification health isn't available right now. Try again in a minute before relying on notification status.";
-      }),
-    readOwnerTransactionalDestination(user)
-      .then((destination) => {
-        transactionalDestination = destination;
-      })
-      .catch(() => {
-        transactionalDestinationNote =
-          "Showing the seeded default; the saved destination is unavailable until Firestore is reachable in this session.";
-      }),
-    listAppUsers()
-      .then((users) => {
-        supportReporterDirectory = Object.fromEntries(
-          users.map((managedUser) => [managedUser.uid, managedUser.email]),
-        );
-      })
-      .catch(() => {
-        supportReporterDirectory = {};
-      }),
-    listSupportReports(user)
-      .then((reports) => {
-        supportReports = reports;
-      })
-      .catch(() => {
-        supportReportsNote =
-          "Feedback is unavailable right now. Try again in a minute; if this list is not loading, new feedback may not be saving either.";
-      }),
+    task === "content" &&
+      listAskCorrections(user, { status: "Proposed" })
+        .then((records) => {
+          proposedCorrections = records;
+        })
+        .catch(() => {
+          proposedCorrectionsNote =
+            "Proposed answer corrections are unavailable right now. Try again in a minute; new corrections may not be saving either.";
+        }),
+    task === "safety" &&
+      readAdminObservability({ config })
+        .then((result) => {
+          observability = result;
+        })
+        .catch(() => {
+          observabilityNote = adminObservabilityUnavailableMessage(config);
+          observability = config.askDemoMode
+            ? readDemoAdminObservability({ config })
+            : undefined;
+        }),
+    task === "content" &&
+      listPublicationPolicies(user)
+        .then((records) => {
+          publicationPolicies = records;
+        })
+        .catch(() => {
+          publicationPolicyNote =
+            "Publication policies are unavailable. No source can publish until Firestore and a required scanner are configured.";
+        }),
+    task === "safety" &&
+      Promise.all([
+        listApprovalQueueEmailSettings(user),
+        readApprovalQueueNotificationHealth({ actor: user }),
+      ])
+        .then(([settings, health]) => {
+          queueEmailSettings = settings;
+          queueHealth = health;
+        })
+        .catch(() => {
+          queueAdminNote = config.askDemoMode
+            ? "Using default queue email settings because Firestore notification health is not available in this session."
+            : "Notification health isn't available right now. Try again in a minute before relying on notification status.";
+        }),
+    task === "readiness" &&
+      readOwnerTransactionalDestination(user)
+        .then((destination) => {
+          transactionalDestination = destination;
+        })
+        .catch(() => {
+          transactionalDestinationNote =
+            "Showing the seeded default; the saved destination is unavailable until Firestore is reachable in this session.";
+        }),
+    task === "safety" &&
+      listAppUsers()
+        .then((users) => {
+          supportReporterDirectory = Object.fromEntries(
+            users.map((managedUser) => [managedUser.uid, managedUser.email]),
+          );
+        })
+        .catch(() => {
+          supportReporterDirectory = {};
+        }),
+    task === "safety" &&
+      listSupportReports(user)
+        .then((reports) => {
+          supportReports = reports;
+        })
+        .catch(() => {
+          supportReportsNote =
+            "Feedback is unavailable right now. Try again in a minute; if this list is not loading, new feedback may not be saving either.";
+        }),
     // This reader degrades to empty and never throws.
-    gatherSupportAttention(user).then((attention) => {
-      supportAttention = attention;
-    }),
-    readNoticeRuleConfigRecord(user)
-      .then((record) => {
-        noticeRules = record;
-      })
-      .catch(() => {
-        noticeRulesNote =
-          "Renewal notice rules are unavailable right now. Try again in a minute before changing them.";
+    task === "safety" &&
+      gatherSupportAttention(user).then((attention) => {
+        supportAttention = attention;
       }),
-    readMoveOutTimingBasisRecord(user)
-      .then((read) => {
-        timingBasis = read;
-      })
-      .catch(() => {
-        timingBasisNote =
-          "The notice timing basis is unavailable right now. Try again in a minute before recording it.";
-      }),
+    task === "renewal" &&
+      readNoticeRuleConfigRecord(user)
+        .then((record) => {
+          noticeRules = record;
+        })
+        .catch(() => {
+          noticeRulesNote =
+            "Renewal notice rules are unavailable right now. Try again in a minute before changing them.";
+        }),
+    task === "renewal" &&
+      readMoveOutTimingBasisRecord(user)
+        .then((read) => {
+          timingBasis = read;
+        })
+        .catch(() => {
+          timingBasisNote =
+            "The notice timing basis is unavailable right now. Try again in a minute before recording it.";
+        }),
     // S131: policy material versions. Degrades to an empty list with a note; nothing is assumed.
-    listPolicyMaterial(user, "rhino")
-      .then((records) => {
-        policyMaterial = records;
-      })
-      .catch(() => {
-        policyMaterialNote =
-          "Policy material versions are unavailable right now. Reload before submitting or deciding.";
-      }),
+    task === "renewal" &&
+      listPolicyMaterial(user, "rhino")
+        .then((records) => {
+          policyMaterial = records;
+        })
+        .catch(() => {
+          policyMaterialNote =
+            "Policy material versions are unavailable right now. Reload before submitting or deciding.";
+        }),
     // S130: the intake manifest for every form family (this read never throws). S236 R-S236-7:
     // the returned-state checkpoint follows recorded returns for an approved family.
-    readIntakeManifestWithReturnedState().then((intake) => {
-      artifactIntake = intake.manifest;
-      returnedStateInspected = intake.returnedStateInspected;
-    }),
-    Promise.all([readFamilyUseRecord(), readChargePolicy()]).then(
-      ([familyUse, policy]) => {
-        renewalPacketPolicy = {
-          familyUse: {
-            readable: familyUse.readable,
-            version: familyUse.record?.version ?? 0,
-            families: resolveFamilyUse(familyUse.record, new Date().toISOString()),
-          },
-          chargePolicy: policy,
-        };
-      },
-    ),
+    task === "renewal" &&
+      readIntakeManifestWithReturnedState().then((intake) => {
+        artifactIntake = intake.manifest;
+        returnedStateInspected = intake.returnedStateInspected;
+      }),
+    task === "renewal" &&
+      Promise.all([readFamilyUseRecord(), readChargePolicy()]).then(
+        ([familyUse, policy]) => {
+          renewalPacketPolicy = {
+            familyUse: {
+              readable: familyUse.readable,
+              version: familyUse.record?.version ?? 0,
+              families: resolveFamilyUse(familyUse.record, new Date().toISOString()),
+            },
+            chargePolicy: policy,
+          };
+        },
+      ),
     // S62: owner-policy pricing rules. Degrades to an empty list; the panel still renders.
-    listOwnerPolicyRules(user)
-      .then((rules) => {
-        ownerPolicyRules = rules;
-      })
-      .catch(() => {
-        ownerPolicyRules = [];
-      }),
-    readAdminActivityLog()
-      .then((entries) => {
-        activityEntries = entries;
-      })
-      .catch(() => {
-        activityNote =
-          "Admin activity is unavailable right now. Try again in a minute; recent access or Production action-stop changes may not be listed here yet.";
-      }),
-    listRuntimeActionSuspensions(user)
-      .then((snapshot) => {
-        runtimeSuspensionSnapshot = snapshot;
-        runtimeSuspensionActions = listRuntimeSuspensionActionOptions([
-          ...snapshot.suspensions.map((record) => record.action_key),
-          ...snapshot.unreadableActionKeys,
-        ]);
-      })
-      .catch(() => {
-        runtimeSuspensionNote =
-          "Runtime suspension state is unavailable. The list is not treated as empty, and executable actions fail closed while this state cannot be read.";
-      }),
-    listReindexRequests(user)
-      .then((requests) => {
-        reindexRequests = requests;
-      })
-      .catch(() => {
-        // The re-index control still stages new requests; the recent list is just empty this session.
-      }),
+    task === "renewal" &&
+      listOwnerPolicyRules(user)
+        .then((rules) => {
+          ownerPolicyRules = rules;
+        })
+        .catch(() => {
+          ownerPolicyRules = [];
+        }),
+    task === "safety" &&
+      readAdminActivityLog()
+        .then((entries) => {
+          activityEntries = entries;
+        })
+        .catch(() => {
+          activityNote =
+            "Admin activity is unavailable right now. Try again in a minute; recent access or Production action-stop changes may not be listed here yet.";
+        }),
+    task === "safety" &&
+      listRuntimeActionSuspensions(user)
+        .then((snapshot) => {
+          runtimeSuspensionSnapshot = snapshot;
+          runtimeSuspensionActions = listRuntimeSuspensionActionOptions([
+            ...snapshot.suspensions.map((record) => record.action_key),
+            ...snapshot.unreadableActionKeys,
+          ]);
+        })
+        .catch(() => {
+          runtimeSuspensionNote =
+            "Runtime suspension state is unavailable. The list is not treated as empty, and executable actions fail closed while this state cannot be read.";
+        }),
+    task === "readiness" &&
+      listReindexRequests(user)
+        .then((requests) => {
+          reindexRequests = requests;
+        })
+        .catch(() => {
+          // The re-index control still stages new requests; the recent list is just empty this session.
+        }),
     readPrimaryNavigationProjection(user)
       .then((projection) => {
         accessRequestPendingCount = projection.pendingAccessRequestCount ?? null;
@@ -308,300 +357,366 @@ export default async function AdminPage() {
     >
       <section className="content content--workspace" role="main">
         <h1 className="section-title">Admin</h1>
-        <Link href="/admin/presentation">Business profiles and application name</Link>
-        <AdminTaskIndex />
+        <Link className="back-link" href="/admin">
+          Back to Admin tasks
+        </Link>
+        <TaskAnchorContinuation />
 
-        <section
-          aria-label="People and access"
-          className="admin-section task-anchor"
-          id="admin-people-access"
-          tabIndex={-1}
-        >
-          <h2 className="section-subtitle">People and Access</h2>
-          <div className="grid two">
-            <article className="panel">
-              <h2>Access</h2>
-              <p className="muted">
-                {config.allowedHostedDomain} staff start as Editors. Approver and Admin
-                roles can approve work.
-              </p>
-              <p>
-                <Link href="/admin/access">Open My access and request access</Link>
-              </p>
-              <p>
-                <Link href="/approval-queue?view=access">
-                  {accessRequestPendingCount === null
-                    ? "Review access requests (count unavailable)"
-                    : `Review access requests (${accessRequestPendingCount} pending)`}
-                </Link>
-              </p>
-              <p>
-                <Link href="/admin/users">Manage users and roles</Link>
-              </p>
-              <p>
-                <Link href="/admin/team-work">Assign and review team work</Link>
-              </p>
-            </article>
-            <article className="panel">
-              <h2>Sign-in domain</h2>
-              <p>{config.allowedHostedDomain}</p>
-            </article>
-          </div>
-        </section>
-
-        <section
-          aria-label="Activity and logs"
-          className="admin-section task-anchor"
-          id="admin-activity-logs"
-          tabIndex={-1}
-        >
-          <h2 className="section-subtitle">Activity and Logs</h2>
-          <div className="task-anchor" id="admin-runtime-suspensions" tabIndex={-1}>
-            <RuntimeSuspensionAdminPanel
-              initialActions={runtimeSuspensionActions}
-              initialSnapshot={runtimeSuspensionSnapshot}
-              unavailableNote={runtimeSuspensionNote}
-            />
-          </div>
-          {hasMetrics ? (
-            <>
-              {observabilityNote ? (
-                <article className="panel">
-                  <h2>Observability</h2>
-                  <p className="muted">{observabilityNote}</p>
-                </article>
-              ) : null}
-              <div className="grid three">
-                <article className="panel">
-                  <h2>Ask Volume</h2>
-                  <p>{observability?.askLast7Days} in 7 days</p>
-                  <p className="muted">{observability?.askLast30Days} in 30 days</p>
-                </article>
-                <article className="panel">
-                  <h2>Approval Queue</h2>
-                  <p>{observability?.queueDepthByType.SOP} SOPs</p>
-                  <p className="muted">
-                    {observability?.queueDepthByType.Template} templates,{" "}
-                    {observability?.queueDepthByType.Placeholder} placeholders
-                  </p>
-                </article>
-                <article className="panel">
-                  <h2>Notification Failures</h2>
-                  <p>{observability?.notificationFailures}</p>
-                </article>
-              </div>
-              <div className="grid two">
-                <article className="panel">
-                  <h2>Top Spaces</h2>
-                  {observability?.topSpaces.length === 0 ? (
-                    <p className="muted">No Ask logs in the last 30 days.</p>
-                  ) : (
-                    <ul className="compact-list">
-                      {observability?.topSpaces.map((space) => (
-                        <li key={space.spaceId}>
-                          {space.spaceName}: {space.count}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </article>
-                <article className="panel">
-                  <h2>Source States</h2>
-                  <ul className="compact-list">
-                    {Object.entries(observability?.sourceStateCounts ?? {}).map(
-                      ([state, count]) => (
-                        <li key={state}>
-                          {state}: {count}
-                        </li>
-                      ),
-                    )}
-                  </ul>
-                </article>
-              </div>
-              <article className="panel">
-                <h2>Space Setup Health</h2>
-                <div className="queue-list">
-                  {observability?.setupHealth.map((space) => (
-                    <div className="compact-record" key={space.spaceId}>
-                      <strong>{space.spaceName}</strong>
-                      <p className="muted">
-                        Source target: {space.sourceTargetConfigured ? "set" : "missing"}{" "}
-                        - Data store: {space.dataStoreConfigured ? "set" : "missing"} -
-                        Source records: {space.sourceMetaCount}
-                        {space.readOnly ? " - read-only" : ""}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </article>
-            </>
-          ) : (
-            <article className="panel">
-              <h2>Observability</h2>
-              <p className="muted">{observabilityNote}</p>
-            </article>
-          )}
-          <div className="task-anchor" id="admin-approval-notifications" tabIndex={-1}>
-            <ApprovalQueueAdminPanel
-              initialHealth={queueHealth}
-              initialSettings={queueEmailSettings}
-              unavailableNote={queueAdminNote}
-            />
-          </div>
-          <div className="task-anchor" id="admin-support-reports" tabIndex={-1}>
-            <SupportReportsPanel
-              reports={supportReports}
-              unavailableNote={supportReportsNote}
-              newCount={supportAttention.newCount}
-              followUpDueCount={supportAttention.followUpDueCount}
-              reporterDirectory={supportReporterDirectory}
-            />
-          </div>
-          <div className="task-anchor" id="admin-activity-log" tabIndex={-1}>
-            <AdminActivityLogPanel
-              entries={activityEntries}
-              unavailableNote={activityNote}
-            />
-          </div>
-        </section>
-
-        <section
-          aria-label="App info and readiness"
-          className="admin-section task-anchor"
-          id="admin-app-readiness"
-          tabIndex={-1}
-        >
-          <h2 className="section-subtitle">App Info and Readiness</h2>
-          <div className="task-anchor" id="admin-kb-corrections" tabIndex={-1}>
-            <KbCorrectionsPanel
-              proposed={proposedCorrections}
-              unavailableNote={proposedCorrectionsNote}
-            />
-          </div>
-          <div className="task-anchor" id="admin-model-config" tabIndex={-1}>
-            <ModelConfigPanel
-              answerModel={config.geminiAnswerModel}
-              classifyModel={config.geminiClassifyModel}
-              location={config.geminiModelLocation}
-              provider={config.modelProvider}
-            />
-          </div>
-          <div className="grid three">
-            <article className="panel">
-              <h2>Approval Label</h2>
-              <p>{config.kbApprovalLabel}</p>
-              <p className="muted">
-                Approval attention stays in the app. Email delivery is off.
-              </p>
-            </article>
-            <article className="panel">
-              <h2>Indexing</h2>
-              <p className="muted">
-                {config.askDemoMode
-                  ? "Demo retrieval mode is active."
-                  : "Live retrieval mode expects configured Vertex data stores."}
-              </p>
-            </article>
-            <article className="panel">
-              <h2>Migration Readiness</h2>
-              <p className="muted">
-                Read-only cutover, environment, source-corpus, Action Registry, and
-                notification posture.
-              </p>
-              <Link href="/admin/migration">Open migration console</Link>
-            </article>
-            <article className="panel">
-              <h2>Spaces</h2>
-              <p className="muted">Requests await review of an exact resource plan.</p>
-              <Link href="/admin/spaces/request">Request a new Space</Link>
-            </article>
-          </div>
-          <article className="panel">
-            <h2>Re-index Sources</h2>
-            <ReindexPanel
-              initialRequests={reindexRequests}
-              spaces={launchSpaces
-                .filter((space) => space.showInDirectory !== false)
-                .map((space) => ({ id: space.id, name: space.name }))}
-            />
-          </article>
-          <TransactionalDestinationPanel
-            initialEmail={transactionalDestination.destination_email}
-            note={transactionalDestinationNote}
-          />
-          <div className="task-anchor" id="admin-renewal-notice-rules" tabIndex={-1}>
-            {noticeRules ? (
-              <NoticeRulesAdminPanel initialRecord={noticeRules} note={noticeRulesNote} />
-            ) : (
-              <article className="panel">
-                <h2>Renewal Notice Rules</h2>
-                <p className="muted">{noticeRulesNote}</p>
-              </article>
-            )}
-          </div>
-          <div className="task-anchor" id="admin-move-out-timing-basis" tabIndex={-1}>
-            <MoveOutTimingBasisAdminPanel
-              initial={timingBasis}
-              note={timingBasisNote}
-              canEdit={!isVerificationAccount(user)}
-            />
-          </div>
-          <div className="task-anchor" id="admin-policy-material" tabIndex={-1}>
-            <PolicyMaterialAdminPanel
-              initial={policyMaterial}
-              note={policyMaterialNote}
-            />
-          </div>
-          <div className="task-anchor" id="admin-renewal-packet-policy" tabIndex={-1}>
-            <RenewalPacketPolicyAdminPanel initial={renewalPacketPolicy} />
-          </div>
-          <div className="task-anchor" id="admin-lease-artifact-intake" tabIndex={-1}>
-            <LeaseArtifactIntakePanel
-              initial={{
-                manifest: artifactIntake,
-                checkpoints: projectIntakeCheckpoints({
-                  manifest: artifactIntake,
-                  filledValuesVerified: false,
-                  packetState: null,
-                  providerReceiptId: null,
-                  returnedStateInspected,
-                }),
-              }}
-            />
-          </div>
-          <div className="task-anchor" id="admin-content-builder" tabIndex={-1}>
-            <OperationalPageBuilderPanel
-              spaces={launchSpaces
-                .filter((space) => space.showInDirectory !== false && !space.readOnly)
-                .map((space) => ({ id: space.id, name: space.name }))}
-            />
-          </div>
-          <article
-            className="panel task-anchor"
-            id="admin-owner-pricing-rules"
+        {task === "people" ? (
+          <section
+            aria-label="People and access"
+            className="admin-section task-anchor"
+            id="admin-people-access"
             tabIndex={-1}
           >
-            <h2>Owner Pricing Rules</h2>
-            <OwnerPolicyRulesAdminPanel initialRules={ownerPolicyRules} />
-          </article>
-          <article className="panel">
-            <h2>Workflow Communications</h2>
-            <p className="muted">
-              Workflow Gmail is action-gated; review its approved artifacts.
-            </p>
-            <Link href="/admin/gmail-inbox-zero">Open communication governance</Link>
-          </article>
-          <CommunicationsRetentionAdminPanel />
-          <div className="task-anchor" id="admin-publication-policies" tabIndex={-1}>
-            <PublicationPolicyAdminPanel
-              initialPolicies={publicationPolicies}
-              spaces={launchSpaces.filter(
-                (space) => space.showInDirectory !== false && !space.readOnly,
-              )}
-              unavailableNote={publicationPolicyNote}
-            />
-          </div>
-        </section>
+            <h2 className="section-subtitle">People and Access</h2>
+            <div className="grid two">
+              <article className="panel">
+                <h2>Access</h2>
+                <p className="muted">
+                  {config.allowedHostedDomain} staff start as Editors. Approver and Admin
+                  roles can approve work.
+                </p>
+                <p>
+                  <Link href="/admin/access">Open My access and request access</Link>
+                </p>
+                <p>
+                  <Link href="/approval-queue?view=access">
+                    {accessRequestPendingCount === null
+                      ? "Review access requests (count unavailable)"
+                      : `Review access requests (${accessRequestPendingCount} pending)`}
+                  </Link>
+                </p>
+                <p>
+                  <Link href="/admin/users">Manage users and roles</Link>
+                </p>
+                <p>
+                  <Link href="/admin/team-work">Assign and review team work</Link>
+                </p>
+              </article>
+              <article className="panel">
+                <h2>Sign-in domain</h2>
+                <p>{config.allowedHostedDomain}</p>
+              </article>
+            </div>
+          </section>
+        ) : null}
+
+        {task === "safety" ? (
+          <section
+            aria-label="Activity and logs"
+            className="admin-section task-anchor"
+            id="admin-activity-logs"
+            tabIndex={-1}
+          >
+            <h2 className="section-subtitle">Activity and Logs</h2>
+            <div className="task-anchor" id="admin-runtime-suspensions" tabIndex={-1}>
+              <RuntimeSuspensionAdminPanel
+                initialActions={runtimeSuspensionActions}
+                initialSnapshot={runtimeSuspensionSnapshot}
+                unavailableNote={runtimeSuspensionNote}
+              />
+            </div>
+            {hasMetrics ? (
+              <>
+                {observabilityNote ? (
+                  <article className="panel">
+                    <h2>Observability</h2>
+                    <p className="muted">{observabilityNote}</p>
+                  </article>
+                ) : null}
+                <div className="grid three">
+                  <article className="panel">
+                    <h2>Ask Volume</h2>
+                    <p>{observability?.askLast7Days} in 7 days</p>
+                    <p className="muted">{observability?.askLast30Days} in 30 days</p>
+                  </article>
+                  <article className="panel">
+                    <h2>Approval Queue</h2>
+                    <p>{observability?.queueDepthByType.SOP} SOPs</p>
+                    <p className="muted">
+                      {observability?.queueDepthByType.Template} templates,{" "}
+                      {observability?.queueDepthByType.Placeholder} placeholders
+                    </p>
+                  </article>
+                  <article className="panel">
+                    <h2>Notification Failures</h2>
+                    <p>{observability?.notificationFailures}</p>
+                  </article>
+                </div>
+                <div className="grid two">
+                  <article className="panel">
+                    <h2>Top Spaces</h2>
+                    {observability?.topSpaces.length === 0 ? (
+                      <p className="muted">No Ask logs in the last 30 days.</p>
+                    ) : (
+                      <ul className="compact-list">
+                        {observability?.topSpaces.map((space) => (
+                          <li key={space.spaceId}>
+                            {space.spaceName}: {space.count}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </article>
+                  <article className="panel">
+                    <h2>Source States</h2>
+                    <ul className="compact-list">
+                      {Object.entries(observability?.sourceStateCounts ?? {}).map(
+                        ([state, count]) => (
+                          <li key={state}>
+                            {state}: {count}
+                          </li>
+                        ),
+                      )}
+                    </ul>
+                  </article>
+                </div>
+                <article className="panel">
+                  <h2>Space Setup Health</h2>
+                  <div className="queue-list">
+                    {observability?.setupHealth.map((space) => (
+                      <div className="compact-record" key={space.spaceId}>
+                        <strong>{space.spaceName}</strong>
+                        <p className="muted">
+                          Source target:{" "}
+                          {space.sourceTargetConfigured ? "set" : "missing"} - Data store:{" "}
+                          {space.dataStoreConfigured ? "set" : "missing"} - Source
+                          records: {space.sourceMetaCount}
+                          {space.readOnly ? " - read-only" : ""}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+              </>
+            ) : (
+              <article className="panel">
+                <h2>Observability</h2>
+                <p className="muted">{observabilityNote}</p>
+              </article>
+            )}
+            <div className="task-anchor" id="admin-approval-notifications" tabIndex={-1}>
+              <ApprovalQueueAdminPanel
+                initialHealth={queueHealth}
+                initialSettings={queueEmailSettings}
+                unavailableNote={queueAdminNote}
+              />
+            </div>
+            <div className="task-anchor" id="admin-support-reports" tabIndex={-1}>
+              <SupportReportsPanel
+                reports={supportReports}
+                unavailableNote={supportReportsNote}
+                newCount={supportAttention.newCount}
+                followUpDueCount={supportAttention.followUpDueCount}
+                reporterDirectory={supportReporterDirectory}
+              />
+            </div>
+            <div className="task-anchor" id="admin-activity-log" tabIndex={-1}>
+              <AdminActivityLogPanel
+                entries={activityEntries}
+                unavailableNote={activityNote}
+              />
+            </div>
+          </section>
+        ) : null}
+
+        {task !== "people" && task !== "safety" ? (
+          <section
+            aria-label="App info and readiness"
+            className="admin-section task-anchor"
+            id="admin-app-readiness"
+            tabIndex={-1}
+          >
+            <h2 className="section-subtitle">
+              {task === "renewal"
+                ? "Renewal policy"
+                : task === "content"
+                  ? "Content and publishing"
+                  : "App Info and Readiness"}
+            </h2>
+            {task === "content" ? (
+              <>
+                <div className="task-anchor" id="admin-kb-corrections" tabIndex={-1}>
+                  <KbCorrectionsPanel
+                    proposed={proposedCorrections}
+                    unavailableNote={proposedCorrectionsNote}
+                  />
+                </div>
+              </>
+            ) : null}
+            {task === "readiness" ? (
+              <>
+                <div className="task-anchor" id="admin-model-config" tabIndex={-1}>
+                  <ModelConfigPanel
+                    answerModel={config.geminiAnswerModel}
+                    classifyModel={config.geminiClassifyModel}
+                    location={config.geminiModelLocation}
+                    provider={config.modelProvider}
+                  />
+                </div>
+                <div className="grid three">
+                  <article className="panel">
+                    <h2>Approval Label</h2>
+                    <p>{config.kbApprovalLabel}</p>
+                    <p className="muted">
+                      Approval attention stays in the app. Email delivery is off.
+                    </p>
+                  </article>
+                  <article className="panel">
+                    <h2>Indexing</h2>
+                    <p className="muted">
+                      {config.askDemoMode
+                        ? "Demo retrieval mode is active."
+                        : "Live retrieval mode expects configured Vertex data stores."}
+                    </p>
+                  </article>
+                  <article className="panel">
+                    <h2>Migration Readiness</h2>
+                    <p className="muted">
+                      Read-only cutover, environment, source-corpus, Action Registry, and
+                      notification posture.
+                    </p>
+                    <Link href="/admin/migration">Open migration console</Link>
+                  </article>
+                  <article className="panel">
+                    <h2>Spaces</h2>
+                    <p className="muted">
+                      Requests await review of an exact resource plan.
+                    </p>
+                    <Link href="/admin/spaces/request">Request a new Space</Link>
+                  </article>
+                </div>
+                <article className="panel">
+                  <h2>Re-index Sources</h2>
+                  <ReindexPanel
+                    initialRequests={reindexRequests}
+                    spaces={launchSpaces
+                      .filter((space) => space.showInDirectory !== false)
+                      .map((space) => ({ id: space.id, name: space.name }))}
+                  />
+                </article>
+                <TransactionalDestinationPanel
+                  initialEmail={transactionalDestination.destination_email}
+                  note={transactionalDestinationNote}
+                />
+              </>
+            ) : null}
+            {task === "renewal" ? (
+              <>
+                <div
+                  className="task-anchor"
+                  id="admin-renewal-notice-rules"
+                  tabIndex={-1}
+                >
+                  {noticeRules ? (
+                    <NoticeRulesAdminPanel
+                      initialRecord={noticeRules}
+                      note={noticeRulesNote}
+                    />
+                  ) : (
+                    <article className="panel">
+                      <h2>Renewal Notice Rules</h2>
+                      <p className="muted">{noticeRulesNote}</p>
+                    </article>
+                  )}
+                </div>
+                <div
+                  className="task-anchor"
+                  id="admin-move-out-timing-basis"
+                  tabIndex={-1}
+                >
+                  <MoveOutTimingBasisAdminPanel
+                    initial={timingBasis}
+                    note={timingBasisNote}
+                    canEdit={!isVerificationAccount(user)}
+                  />
+                </div>
+                <div className="task-anchor" id="admin-policy-material" tabIndex={-1}>
+                  <PolicyMaterialAdminPanel
+                    initial={policyMaterial}
+                    note={policyMaterialNote}
+                  />
+                </div>
+                <div
+                  className="task-anchor"
+                  id="admin-renewal-packet-policy"
+                  tabIndex={-1}
+                >
+                  <RenewalPacketPolicyAdminPanel initial={renewalPacketPolicy} />
+                </div>
+                <div
+                  className="task-anchor"
+                  id="admin-lease-artifact-intake"
+                  tabIndex={-1}
+                >
+                  <LeaseArtifactIntakePanel
+                    initial={{
+                      manifest: artifactIntake,
+                      checkpoints: projectIntakeCheckpoints({
+                        manifest: artifactIntake,
+                        filledValuesVerified: false,
+                        packetState: null,
+                        providerReceiptId: null,
+                        returnedStateInspected,
+                      }),
+                    }}
+                  />
+                </div>
+              </>
+            ) : null}
+            {task === "content" ? (
+              <>
+                <div className="task-anchor" id="admin-content-builder" tabIndex={-1}>
+                  <OperationalPageBuilderPanel
+                    spaces={launchSpaces
+                      .filter(
+                        (space) => space.showInDirectory !== false && !space.readOnly,
+                      )
+                      .map((space) => ({ id: space.id, name: space.name }))}
+                  />
+                </div>
+              </>
+            ) : null}
+            {task === "renewal" ? (
+              <>
+                <article
+                  className="panel task-anchor"
+                  id="admin-owner-pricing-rules"
+                  tabIndex={-1}
+                >
+                  <h2>Owner Pricing Rules</h2>
+                  <OwnerPolicyRulesAdminPanel initialRules={ownerPolicyRules} />
+                </article>
+              </>
+            ) : null}
+            {task === "readiness" ? (
+              <>
+                <article className="panel">
+                  <h2>Workflow Communications</h2>
+                  <p className="muted">
+                    Workflow Gmail is action-gated; review its approved artifacts.
+                  </p>
+                  <Link href="/admin/gmail-inbox-zero">
+                    Open communication governance
+                  </Link>
+                </article>
+                <CommunicationsRetentionAdminPanel />
+              </>
+            ) : null}
+            {task === "content" ? (
+              <div className="task-anchor" id="admin-publication-policies" tabIndex={-1}>
+                <PublicationPolicyAdminPanel
+                  initialPolicies={publicationPolicies}
+                  spaces={launchSpaces.filter(
+                    (space) => space.showInDirectory !== false && !space.readOnly,
+                  )}
+                  unavailableNote={publicationPolicyNote}
+                />
+              </div>
+            ) : null}
+          </section>
+        ) : null}
       </section>
     </AppShell>
   );

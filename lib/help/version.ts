@@ -5,7 +5,7 @@
  * with a new major version. `tests/unit/s242-help-version.test.ts` fails when the help content
  * modules change without both.
  */
-export const HELP_VERSION = "V2.1";
+export const HELP_VERSION = "V2.2";
 
 /** Screenshots for this version live under `public/help/<HELP_VERSION>/<scene>.png`. */
 export const HELP_ASSET_ROOT = `/help/${HELP_VERSION}`;

@@ -9,6 +9,7 @@
 
 import type { Firestore } from "firebase-admin/firestore";
 
+import { assertRenewalDispositionVersion } from "./renewal-cycle-disposition-read";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import type { KickoffPreparationOutcome } from "@/lib/lease-renewal/kickoff-facts";
 
@@ -81,6 +82,7 @@ export async function claimKickoffPreparation(
     readonly actorUid: string;
     readonly operationId: string;
     readonly nowIso?: string;
+    readonly dispositionRevision?: number;
   },
   db: Firestore = getAdminFirestore(),
 ): Promise<
@@ -104,6 +106,12 @@ export async function claimKickoffPreparation(
         sameOperation: record.operationId === input.operationId,
       };
     }
+    await assertRenewalDispositionVersion(
+      tx,
+      db,
+      input.leaseId,
+      input.dispositionRevision ?? 0,
+    );
     const data = {
       lease_id: input.leaseId,
       cycle_key: input.cycleKey,

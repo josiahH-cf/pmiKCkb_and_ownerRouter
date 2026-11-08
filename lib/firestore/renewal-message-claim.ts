@@ -21,6 +21,8 @@ import {
   noticeSafetyBasis,
   manualNonRenewalReason,
 } from "@/lib/lease-renewal/notice-safety";
+import { assertSenderSignatureChoice } from "./renewal-sender-signature-choice";
+import { assertRenewalDispositionVersion } from "./renewal-cycle-disposition-read";
 import { LEASE_EXPORT_MAX_AGE_MS } from "@/lib/lease-renewal/live-lease-cache";
 /**
  * A companion guard at the existing S20 claim. Legacy attempts recover without a new claim.
@@ -74,6 +76,8 @@ export async function assertCurrentRenewalMessageClaim(
     !["owner", "tenant"].includes(snapshot.channel)
   )
     fail();
+  await assertRenewalDispositionVersion(tx, db, leaseId, basis.dispositionRevision ?? 0);
+  await assertSenderSignatureChoice(tx, db, actor, basis.signatureSetup);
   const channel = snapshot!.channel as "owner" | "tenant",
     identity = hashExecutionPreview({ leaseId, cycleId, channel });
   const workspaceId = createHash("sha256").update(leaseId).digest("hex");

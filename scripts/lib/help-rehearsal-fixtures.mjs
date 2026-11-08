@@ -312,7 +312,7 @@ export async function seedHelpRehearsal() {
   const seeded = {};
   for (const collection of await db.listCollections())
     seeded[collection.id] = (await collection.get()).size;
-  return seeded;
+  return { collections: seeded, processVersionId: publication.versionId };
 }
 
 // S252 R-S252-6 / L61: the help pictures of the kickoff show a prepared lease, as staff meet one on

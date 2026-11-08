@@ -1,3 +1,4 @@
+import { RenewalSenderSignatureForm } from "@/components/lease-renewal/RenewalSenderSignatureForm";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { requirePageCapability } from "@/lib/auth/page-guards";
@@ -15,6 +16,10 @@ export default async function Page() {
       <main className="content stack">
         <h1>My business profile</h1>
         <p>{user.email}</p>
+        <section className="card">
+          <h2>Renewal message signature</h2>
+          <RenewalSenderSignatureForm />
+        </section>
         {record ? (
           <>
             <section className="card">

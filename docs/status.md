@@ -15,7 +15,17 @@ UNVERIFIED on its complete `edba7cbb` run, with separately dated repair rechecks
 because the settled assistance rule classifies the voucher-only lease as Ready. Batch acceptance
 remains No. Human verdict NOT RUN.
 
-Current external and human holds are in [the unblock packet](open-blockers.md).
+## November 7 renewal usability follow-up
+
+Published specification `4caad68df6885d3eed4cb2b3fff7c70e5c96ae15`. Remote main at the start was `bf9753d6af9c7cb90c7a17d3dee0965ae9656095`. The deployed comparison baseline is `ef81b8917209f4eec3f22097142b559f3cce875b`.
+
+The implementation is on `codex/renewal-usability-20261107` in `/home/josiah/pmi-kc-work/renewal-usability-20261107`. The exact locally qualified candidate is `4b31d89b0a903ee3cc315b38c263755db29c910a`.
+
+The S259 browser matrix passed all 14 journeys on that candidate. S252 passed 107 checks and all five numerical budgets. The mailbox-disabled rehearsal passed 17 cases. The full gate passed 11,577 unit cases with 4 existing skips, all 555 Firestore tests, the production build and 65 served E2E cases with 4 skips. The separate core gate passed 46 with 23 explicit no-emulator skips. Required Help matched 27 scenes and accounted for 838 controls with zero missing. The deliberate injection detected the hidden Record work control and 9 material scene changes.
+
+Qualify the pull request on its exact head and current base. After verified merge, record green push CI on the exact main commit. Leave the eight application intakes queued for one release while the recorded prerequisites are held.
+
+Release admission is held by the required managed Gmail profile read and the separate Google CLI/ADC reauthentication challenge. See the [release holds](open-blockers.md#november-7-release-assurance). Staff verdict NOT RUN. The [litmus report](evidence/renewal-usability-litmus-2026-11-07.md) preserves the exact runs, earlier failures and evidence gaps.
 
 ## November 5 S245 litmus fixes delivery (historical)
 

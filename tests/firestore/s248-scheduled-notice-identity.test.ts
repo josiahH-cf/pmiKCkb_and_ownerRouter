@@ -8,6 +8,9 @@ import {
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { FIRESTORE_EMULATOR_TARGET } from "./emulator-target";
+import { publishSuppliedRenewalTemplate } from "@/lib/firestore/renewal-message-publication";
+import { saveSenderSignatureChoice } from "@/lib/firestore/renewal-sender-signature-choice";
+import { saveRenewalWorkingField } from "@/lib/firestore/renewal-working-record";
 
 // S248 L39 root cause, against the real Firestore emulator, the real notice safety marker and the
 // real renewal target (`resolveCommunicationTarget`, which reads the lease through the admitted
@@ -159,6 +162,7 @@ import {
 import { WorkflowCommunicationSequenceService } from "@/lib/gmail-hub/sequence-service";
 import {
   FirestoreCommunicationSequenceStore,
+  reviewedCommunicationTargetHash,
   sequenceHash,
 } from "@/lib/gmail-hub/sequence-store";
 import type { CommunicationSequence } from "@/lib/gmail-hub/sequence-model";
@@ -171,6 +175,12 @@ import { projectOutreachEvidence } from "@/lib/lease-renewal/outreach-evidence";
 
 const projectId = "demo-pmi-s248-scheduled-notice-identity";
 const LEASE = "9701";
+const publisher: AuthenticatedUser = {
+  ...state.actor,
+  uid: "synthetic-notice-publisher",
+  email: "synthetic-notice-publisher@pmikcmetro.com",
+  role: "Admin",
+};
 let app: App, db: Firestore, testEnv: RulesTestEnvironment;
 
 function clearSources() {
@@ -240,6 +250,24 @@ function fixture() {
 
   /** Review the composition and schedule it for tomorrow morning, as staff do. */
   async function schedule(): Promise<CommunicationSequence> {
+    // Give the Editor a reviewed owner message before testing source changes during dispatch.
+    await publishSuppliedRenewalTemplate(publisher, "owner", db);
+    await saveSenderSignatureChoice(
+      state.actor,
+      { expectedRevision: 0, operationId: randomUUID(), signature: null },
+      db,
+    );
+    await saveRenewalWorkingField(
+      state.actor,
+      {
+        leaseId: LEASE,
+        field: "terms_rent",
+        value: 1150,
+        expectedRevision: 0,
+        operationId: randomUUID(),
+      },
+      db,
+    );
     const composition = await prepareWorkflowComposition(state.actor, context);
     expect(composition.target.blockers).toEqual([]);
     const saved = await service.save(
@@ -268,11 +296,7 @@ function fixture() {
         initial: saved.initial,
         followUp: saved.followUp,
       }),
-      reviewedTargetHash: sequenceHash({
-        to: composition.target.to,
-        cc: composition.target.cc,
-        materialSourceHash: composition.target.materialSourceHash,
-      }),
+      reviewedTargetHash: reviewedCommunicationTargetHash(composition.target),
     });
     expect(scheduled.state).toBe("active");
     expect(scheduled.nextDueAtMs).toBeGreaterThan(clock.ms);

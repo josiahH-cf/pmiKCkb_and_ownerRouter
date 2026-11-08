@@ -171,7 +171,10 @@ try {
   });
   let seeds = [];
   if (seeding) {
-    const context = await browser.newContext({ timezoneId: "America/Chicago" });
+    const context = await browser.newContext({
+      timezoneId: "America/Chicago",
+      serviceWorkers: "block",
+    });
     await context.route("**/*", (request) =>
       new URL(request.request().url()).origin === origin
         ? request.continue()

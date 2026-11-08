@@ -72,6 +72,7 @@ export function renewalStageContextFor(
   const workStatus = row.workStatus;
   return {
     leaseId: row.id,
+    cycleDisposition: target?.cycleDisposition,
     staffRecordUnavailable: row.staffRecordUnavailable === true,
     // S250: a standing agreement names itself ("Covered by {agreement}"); the S194 exact kind
     // keeps its own reason.

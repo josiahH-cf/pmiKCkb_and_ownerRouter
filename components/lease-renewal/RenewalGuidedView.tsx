@@ -65,6 +65,7 @@ import {
   RenewalOwnerDecisionFromReply,
 } from "./RenewalOwnerDecisionFromReply";
 import { OWNER_DECISION_AFTER_REPLY_LABEL } from "@/lib/lease-renewal/workspace-state";
+import { RenewalStageHeader } from "./RenewalStageHeader";
 
 /**
  * S247 R-S247-4 to R-S247-10: the Guided view. A path strip names every step of this lease's
@@ -255,7 +256,11 @@ export function RenewalGuidedView({
       (element) =>
         readUnavailable || !element.classList.contains("renewal-primary-progress"),
     );
-    const targets = shown.controls
+    const inactive =
+      shown.id === stage.currentStepId &&
+      (stage.stage.key === "retired" ||
+        context.cycleDisposition?.state === "unavailable");
+    const targets = (inactive ? [] : shown.controls)
       .map((id) => document.getElementById(id))
       .filter(
         (element): element is HTMLElement => element !== null && body.contains(element),
@@ -309,8 +314,20 @@ export function RenewalGuidedView({
     return () => document.removeEventListener(RENEWAL_FOCUS_REQUEST_EVENT, onRequest);
   }, [view, stage]);
 
-  if (!view || !guided || !view.slot) return null;
-  return createPortal(
+  if (!view) return null;
+  const header = view.stageSlot
+    ? createPortal(
+        <RenewalStageHeader
+          canEdit={canEdit && !readUnavailable}
+          disposition={context.cycleDisposition}
+          leaseId={context.leaseId}
+          stage={stage}
+        />,
+        view.stageSlot,
+      )
+    : null;
+  if (!guided || !view.slot) return header;
+  const pane = createPortal(
     <GuidedPane
       announcement={announcement}
       canEdit={canEdit}
@@ -324,6 +341,12 @@ export function RenewalGuidedView({
       stage={stage}
     />,
     view.slot,
+  );
+  return (
+    <>
+      {header}
+      {pane}
+    </>
   );
 }
 
@@ -367,19 +390,6 @@ function GuidedPane({
   );
   return (
     <>
-      <p
-        className="renewal-guided-stage"
-        data-renewal-field="stage-line"
-        data-renewal-stage={stage.stage.key}
-        data-renewal-current-step={stage.currentStepId}
-      >
-        {stage.stageLine}
-      </p>
-      {stage.handStatusLine ? (
-        <p className="muted" data-renewal-field="hand-status">
-          {stage.handStatusLine}
-        </p>
-      ) : null}
       {facts.moveOutNotice ? (
         <p className="renewal-notice" role="note">
           {facts.moveOutNotice}
@@ -478,10 +488,14 @@ function GuidedPane({
                     <li key={section.id}>
                       <a
                         className="text-link renewal-workspace-link"
+                        data-renewal-presentation-control
                         href={`#renewal-section-${section.id}`}
                         onClick={(event) => {
                           event.preventDefault();
-                          showInFull(`renewal-section-${section.id}`);
+                          const hash = event.currentTarget.hash;
+                          if (window.location.hash !== hash)
+                            window.history.replaceState(window.history.state, "", hash);
+                          showInFull(hash.slice(1));
                         }}
                       >
                         {section.label}
@@ -632,9 +646,10 @@ function NowCard({
     shown.state === "waiting" && audience && !shown.scheduled
       ? { label: "Record what happened", target: `renewal-manual-${audience}_response` }
       : null;
-  const primary = coveredOwnerStep
-    ? { label: "Continue to Offer the tenant", target: "renewal-step-tenant-decision" }
-    : (blocker ?? shown.primary ?? recordWhatHappened ?? definition.primary);
+  const primary =
+    coveredOwnerStep && !blocker
+      ? { label: "Continue to Offer the tenant", target: "renewal-step-tenant-decision" }
+      : (blocker ?? shown.primary ?? recordWhatHappened ?? definition.primary);
   // S252 (L36): an observed owner reply makes "Record the owner's decision" the step's action;
   // the decision is recorded here on the Now card, with nothing preselected.
   const replyDecision =
@@ -656,7 +671,7 @@ function NowCard({
     (shown.state === "current" || shown.state === "open") &&
     shown.primary?.label === definition.primary.label;
   const runPrimary = (event: MouseEvent<HTMLButtonElement>) => {
-    if (coveredOwnerStep) {
+    if (coveredOwnerStep && !blocker) {
       choose("offer-tenant");
       return;
     }
@@ -718,14 +733,20 @@ function NowCard({
         ref={heading}
         tabIndex={-1}
       >
-        {isCurrent ? `Now: ${shown.label}` : shown.label}
+        {isCurrent && stage.stage.key === "retired"
+          ? "Retired renewal cycle"
+          : isCurrent
+            ? `Now: ${shown.label}`
+            : shown.label}
       </h2>
       {shown.state === "waiting" && isCurrent && stage.waiting ? (
         <p data-renewal-field="waiting">{renewalStageWaitingLine(stage.waiting)}</p>
       ) : null}
       {blocker ? (
         <p className="renewal-notice" role="alert">
-          {context.staffRecordUnavailable || !blocker.target
+          {stage.stage.key === "retired" ||
+          context.staffRecordUnavailable ||
+          !blocker.target
             ? blocker.label
             : `Needs verification: ${blocker.label}`}
         </p>
@@ -1019,18 +1040,6 @@ function NowCard({
           variant="tertiary"
         >
           Add a note
-        </Button>
-        <Button
-          onClick={() => {
-            const select = document.querySelector<HTMLSelectElement>(
-              `${STATUS_REGION} select`,
-            );
-            if (select) focusProgrammatically(select);
-          }}
-          size="compact"
-          variant="tertiary"
-        >
-          Set status by hand
         </Button>
       </div>
       {message || manual?.message ? (

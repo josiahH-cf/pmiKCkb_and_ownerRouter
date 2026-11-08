@@ -1,4 +1,10 @@
 "use client";
+
+import { RenewalSenderSignatureForm } from "./RenewalSenderSignatureForm";
+import type {
+  SenderSignatureChoice,
+  SenderSignatureEvidence,
+} from "@/lib/lease-renewal/sender-signature-choice";
 import { Icon as MessageCopyIcon } from "@/components/ui";
 import { workflowComposerHref } from "@/lib/gmail-hub/composer-navigation";
 import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
@@ -172,6 +178,8 @@ interface Preparation {
   content?: { missing?: Array<{ field: string; message: string }> };
   sourceFingerprint: string;
   signatureMatchesActor: boolean;
+  signatureSetup?: SenderSignatureEvidence | null;
+  outgoingReasons?: readonly string[];
   /** S120: where the current signature came from. */
   signatureOrigin?:
     | { kind: "none" }
@@ -487,8 +495,12 @@ function MessagePreparationEditor({
   const router = useRouter();
   const working = useRenewalWorkingRecord();
   const nowCard = useRenewalNowCard();
-  const messageWorkingFields = messageWorkingFieldsFor(channel);
+  const [signatureSettingsOpen, setSignatureSettingsOpen] = useState(false);
   const [current, setCurrent] = useState<Preparation | null>(null);
+  const messageWorkingFields = messageWorkingFieldsFor(
+    channel,
+    current?.facts.ownerIntent === "renew_or_not",
+  );
   const [inputs, setInputs] = useState(emptyMessagePreparationInputs);
   // S161: the authored body (typed here or accepted from a refinement) and the authored subject.
   // Null means the text follows the standard wording composed from the current information.
@@ -629,6 +641,17 @@ function MessagePreparationEditor({
       if (!touchedRef.current) adopt(result);
     });
   }, [adopt, channel, leaseId]);
+  useEffect(() => {
+    const attempt = current?.draftAttempt?.executionId;
+    if (!attempt || window.location.hash !== `#renewal-draft-attempt-${attempt}`) return;
+    focusRenewalDashboardControl(`renewal-draft-attempt-${attempt}`, {
+      focusContainer: true,
+    });
+  }, [current?.draftAttempt?.executionId]);
+  async function signatureSetupSaved(choice: SenderSignatureChoice) {
+    setInputs((currentInputs) => ({ ...currentInputs, signature: choice.signature }));
+    await load();
+  }
   /** A transport reads the confirmed entered figures. Blank and unrelated fields stay usable. */
   async function settleWorkingFields(restoreFocus = true): Promise<boolean> {
     if (!working?.settle) return true;
@@ -1317,7 +1340,12 @@ function MessagePreparationEditor({
           canUndoWording: previousOverride !== undefined,
           earlierRule: current.earlierRule ?? null,
           marked,
-          signaturePresent: Boolean(payload?.effective.signature),
+          signaturePresent:
+            current.signatureSetup === undefined
+              ? Boolean(payload?.effective.signature)
+              : current.signatureSetup !== null,
+          outgoingReasons: current.outgoingReasons,
+          renewOrNot: current.facts.ownerIntent === "renew_or_not",
           reason: inputs.recommendationReason ?? "",
           composerHref: workflowComposerHref({
             leaseId,
@@ -1378,6 +1406,9 @@ function MessagePreparationEditor({
           onReturnToStandardWording={returnToStandardWording}
           onUndoWording={undoWording}
           onSaveSignature={saveSignature}
+          onSignatureSetupSaved={
+            current?.signatureSetup !== undefined ? signatureSetupSaved : undefined
+          }
         />
       ) : null}
       <a
@@ -1658,6 +1689,12 @@ function MessagePreparationEditor({
           <section
             aria-label="Unsent Gmail draft"
             className="ui-stack-tight renewal-message-group"
+            id={
+              current.draftAttempt
+                ? `renewal-draft-attempt-${current.draftAttempt.executionId}`
+                : undefined
+            }
+            tabIndex={-1}
           >
             <h3 className="renewal-message-group-title">Unsent Gmail draft</h3>
             {current.publication.status !== "approved" ? (
@@ -2150,6 +2187,29 @@ function MessagePreparationEditor({
               open={current.signatureMatchesActor === false}
             >
               <summary>Managed sender signature · {current.senderEmail}</summary>
+              {current.signatureSetup !== undefined ? (
+                <>
+                  <Button
+                    size="compact"
+                    variant="secondary"
+                    type="button"
+                    onClick={() => setSignatureSettingsOpen(!signatureSettingsOpen)}
+                  >
+                    {current.signatureSetup
+                      ? "Edit saved signature"
+                      : "Set up your signature"}
+                  </Button>
+                  {signatureSettingsOpen ? (
+                    <RenewalSenderSignatureForm
+                      onCancel={() => setSignatureSettingsOpen(false)}
+                      onSaved={async (choice) => {
+                        await signatureSetupSaved(choice);
+                        setSignatureSettingsOpen(false);
+                      }}
+                    />
+                  ) : null}
+                </>
+              ) : null}
               <p className="muted" data-testid="renewal-message-signature-origin">
                 {signatureEdited
                   ? "Edited here. It saves with this message and is kept for your managed sender."

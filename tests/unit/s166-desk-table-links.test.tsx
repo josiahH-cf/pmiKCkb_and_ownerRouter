@@ -4,6 +4,10 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+}));
+
 import {
   RenewalDeskTable,
   type DeskPartyShortcuts,
@@ -245,10 +249,13 @@ describe("S166 worklist controls name their view (ARCH-S166-3)", () => {
     );
     const hrefs = deskHrefs();
     expect(hrefs.length).toBeGreaterThan(3);
-    for (const href of hrefs) {
-      expect(renewalDeskUrlNamesView(new URLSearchParams(href.split("?")[1] ?? ""))).toBe(
-        true,
-      );
+    const batch = screen.getByRole("link", { name: "Working batch" });
+    expect(batch).toHaveAttribute("href", "/lease-renewal/live/desk");
+    expect(hrefs.filter((href) => !href.includes("?"))).toEqual([
+      "/lease-renewal/live/desk",
+    ]);
+    for (const href of hrefs.filter((href) => href.includes("?"))) {
+      expect(renewalDeskUrlNamesView(new URLSearchParams(href.split("?")[1]))).toBe(true);
     }
     // Removing the last filter, or choosing the default worklist, is an explicit default link.
     expect(screen.getByRole("link", { name: "Clear filters" })).toHaveAttribute(

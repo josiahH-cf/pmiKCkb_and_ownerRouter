@@ -13,7 +13,8 @@ it("marks required collection fields and retains the selection through missing-d
   const posts: Array<Record<string, unknown>> = [];
   vi.stubGlobal(
     "fetch",
-    vi.fn(async (_url: string, init?: RequestInit) => {
+    vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.includes("?ids=")) return Response.json({ leases: [], complete: true });
       if (init?.method !== "POST")
         return Response.json({ collections: [], nextCursor: null });
       const body = JSON.parse(String(init.body));
@@ -49,7 +50,7 @@ it("marks required collection fields and retains the selection through missing-d
     expect(field).toHaveAttribute("aria-required", "true");
   }
   fireEvent.change(name, { target: { value: "Synthetic reviewed group" } });
-  fireEvent.click(screen.getByRole("button", { name: "Review monthly leases" }));
+  fireEvent.click(screen.getByRole("button", { name: "Review membership" }));
   expect(await screen.findByText("Choose Period from.")).toBeVisible();
   expect(screen.getByText("Choose Period through.")).toBeVisible();
   expect(from).toHaveFocus();
@@ -59,7 +60,7 @@ it("marks required collection fields and retains the selection through missing-d
   expect(screen.getByLabelText("Selected lease IDs")).toHaveValue("9101, 9102");
   fireEvent.change(from, { target: { value: "2026-12-01" } });
   fireEvent.change(through, { target: { value: "2026-12-31" } });
-  fireEvent.click(screen.getByRole("button", { name: "Review monthly leases" }));
+  fireEvent.click(screen.getByRole("button", { name: "Review membership" }));
   await waitFor(() => expect(posts).toHaveLength(1));
   expect(posts[0]).toMatchObject({
     action: "review",

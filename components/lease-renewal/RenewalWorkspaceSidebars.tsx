@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/WorkspaceResizer";
 import { PersonalViewStatus } from "@/components/layout/PersonalViewProvider";
 import { useRenewalFocusView } from "./RenewalFocusViewContext";
+import { setRenewalStickyOffset } from "./RenewalDashboardNavigation";
 
 // S114: two separate, independent slide-out surfaces over the same projections the workspace
 // renders. The lease-information panel holds the consolidated header facts; the process-guide panel
@@ -134,7 +135,8 @@ export function RenewalWorkspaceSidebars({
   // S143: Focus view shows one task, so the section navigation and the process guide step aside
   // until Full view returns, with their own state intact. S247: Guided view lists the five
   // sections itself, as links that open Full view at each one.
-  const viewName = useRenewalFocusView()?.view;
+  const view = useRenewalFocusView();
+  const viewName = view?.view;
   const focusView = viewName === "focus" || viewName === "guided";
   // S152: links and the section navigation land their target below this sticky toolbar. Its
   // height varies with wrapping, so the measured height feeds the scroll margin.
@@ -144,11 +146,7 @@ export function RenewalWorkspaceSidebars({
     const shell = shellRef.current;
     const toolbar = toolbarRef.current;
     if (!shell || !toolbar) return;
-    const apply = () =>
-      shell.style.setProperty(
-        "--renewal-sticky-offset",
-        `${Math.ceil(toolbar.getBoundingClientRect().height) + 12}px`,
-      );
+    const apply = () => setRenewalStickyOffset(shell, toolbar);
     apply();
     if (typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(apply);
@@ -224,6 +222,7 @@ export function RenewalWorkspaceSidebars({
             ) : null}
           </div>
         </div>
+        <div data-renewal-view-switch ref={view?.setStageSlot} />
         {focusView ? null : sectionNavigation}
       </div>
       <div className="renewal-workspace-body ui-stack">{children}</div>

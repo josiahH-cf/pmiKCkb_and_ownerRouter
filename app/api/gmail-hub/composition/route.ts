@@ -3,7 +3,7 @@ import {
   operationStage,
 } from "@/lib/observability/staff-operation";
 import { EditableLayerError } from "@/lib/firestore/errors";
-import { sequenceHash } from "@/lib/gmail-hub/sequence-store";
+import { reviewedCommunicationTargetHash } from "@/lib/gmail-hub/sequence-store";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireCapability } from "@/lib/auth/session";
@@ -41,11 +41,7 @@ async function handleGet(request: Request) {
       return NextResponse.json(
         {
           ...result,
-          reviewedTargetHash: sequenceHash({
-            to: result.target.to,
-            cc: result.target.cc,
-            materialSourceHash: result.target.materialSourceHash,
-          }),
+          reviewedTargetHash: reviewedCommunicationTargetHash(result.target),
         },
         { headers: { "Cache-Control": "private, no-store" } },
       );
@@ -76,11 +72,7 @@ async function handleGet(request: Request) {
       {
         ...result,
         context,
-        reviewedTargetHash: sequenceHash({
-          to: result.target.to,
-          cc: result.target.cc,
-          materialSourceHash: result.target.materialSourceHash,
-        }),
+        reviewedTargetHash: reviewedCommunicationTargetHash(result.target),
       },
       { headers: { "Cache-Control": "private, no-store" } },
     );

@@ -1,8 +1,8 @@
 // S249: the prepared kickoff and the one message route, through the one-path rehearsal. Run it with
 //
-//   bash scripts/run-renewal-one-path-rehearsal.sh --overlay --driver tests/browser/one-path-kickoff-driver.mjs
+//   bash scripts/run-renewal-one-path-rehearsal.sh --hold-automatic-comparison --driver tests/browser/one-path-kickoff-driver.mjs
 //
-// (drop --overlay to run a committed tree). As the local demo roles it works the November 5 mix
+// As the local demo roles it works the November 5 mix
 // in a browser and checks, each by name: the allowance stop (L34) and a lease asked for its rent
 // to recommend before Send (L29); the reviewed setting turned off by an Admin in the app, nothing
 // starting by itself while it is off, and "Prepare this batch" still running when chosen (L35);
@@ -62,6 +62,7 @@ assert.notEqual(
 );
 const { prepared, covered, assisted, missingRecipient } = rehearsal.roles;
 const INTERNAL_SENTENCE = "The working offer remains a staff decision";
+const DRAFT_BANNER = "Draft — Review before sending";
 
 const checks = [];
 const steps = [];
@@ -397,7 +398,7 @@ export async function runKickoff() {
 
     // L35 (first half): an Admin turns the reviewed setting off in the app (no release), and then
     // opening the batch starts nothing.
-    await toggleSetting(false);
+    if (!rehearsal.automaticComparisonHeld) await toggleSetting(false);
     await setComparisonAllowance(rehearsal, false);
     writes.length = 0;
     await desk();
@@ -442,130 +443,149 @@ export async function runKickoff() {
       { staffPosts, staffComparisons },
     );
 
-    // L33: with the setting on, opening the batch starts the preparation by itself for the leases
-    // whose kickoff needs a comparison, at most one per lease per cycle, and opening it again
-    // requests none. S250: the covered lease's rent comes from its standing agreement's rule, so it
-    // is not looked up by itself while the agreement covers it; S251 holds the assisted lease back.
-    // After Prepare this batch above, every other working-month lease is prepared, covered or held,
-    // so the first open asks for nothing. The covered lease then leaves its rule (a typed different
-    // rent, L47), which makes it an ordinary lease that needs a comparison, and the next open
-    // prepares it by itself. Typing the rule's result back covers it again for the checks below.
-    await setComparisonAllowance(rehearsal, true);
-    await toggleSetting(true);
-    await setComparisonAllowance(rehearsal, false);
-    phase = "L33 covered";
-    writes.length = 0;
-    await desk();
-    const coveredOpen = await batchState();
-    await preparationSettled(15_000);
-    const coveredPosts = kickoffPosts().map((entry) => entry.body?.leaseId);
-    const whileCovered = await comparisons();
-    check(
-      `L33 (covered lease ${covered}): while its standing agreement covers it, opening the batch looks up no comparison for it`,
-      !coveredPosts.includes(String(covered)) &&
-        (whileCovered[String(covered)] ?? 0) === 0 &&
-        coveredOpen.rows
-          ?.find((row) => row.lease === String(covered))
-          ?.tags.includes("standing_agreement") === true,
-      { coveredPosts, whileCovered, coveredOpen },
-    );
-    /** Type a rent to recommend on the lease's Now card and wait for its save to answer. */
-    const typeRent = async (leaseId, value) => {
-      await page.goto(
-        `${origin}/lease-renewal/live/desk/lease/${leaseId}?step=compare-market`,
-        { waitUntil: "domcontentloaded" },
+    if (rehearsal.automaticComparisonHeld) {
+      phase = "L33 held candidate profile";
+      writes.length = 0;
+      const beforeHeld = await comparisons();
+      await desk();
+      await page.waitForTimeout(6000);
+      const held = await batchState();
+      const afterHeld = await comparisons();
+      check(
+        "L33 November 7: the held automatic setting survives opening and rereading the working batch",
+        held.automatic === "off" &&
+          kickoffPosts().length === 0 &&
+          JSON.stringify(beforeHeld) === JSON.stringify(afterHeld) &&
+          (afterHeld[String(prepared)] ?? 0) === 0 &&
+          (afterHeld[String(assisted)] ?? 0) === 0,
+        { held, beforeHeld, afterHeld, preparationRequests: kickoffPosts().length },
       );
-      const field = page.locator("#renewal-now-rent-to-recommend");
-      await field.waitFor({ timeout: 120_000 });
-      const saved = page
-        .waitForResponse(
-          (response) =>
-            response.request().method() === "POST" &&
-            new URL(response.url()).pathname === "/api/lease-renewal/working-record",
-          { timeout: 60_000 },
-        )
-        .then((response) => response.ok())
-        .catch(() => false);
-      await field.fill(String(value));
-      await field.blur();
-      return saved;
-    };
-    phase = "L33 setup";
-    const leftRule = await typeRent(covered, 1800);
-    phase = "L33 open";
-    writes.length = 0;
-    await desk();
-    const firstOpen = await batchState();
-    await preparationSettled();
-    const automaticPosts = kickoffPosts().map((entry) => entry.body?.trigger);
-    const automaticLeases = kickoffPosts().map((entry) => entry.body?.leaseId);
-    const afterAutomatic = await comparisons();
-    phase = "L33 reopen";
-    writes.length = 0;
-    await desk();
-    const reopened = await batchState();
-    // A batch drawn from an aging read reads the desk again before anything starts; wait it out.
-    await page.waitForTimeout(9000);
-    const afterReopen = await comparisons();
-    const reopenPosts = kickoffPosts().map((entry) => entry.body?.leaseId);
-    const leasesInBatch = await page
-      .getByRole("region", { name: "This batch", exact: true })
-      .locator("[data-batch-lease]")
-      .evaluateAll((rows) => [
-        ...new Set(rows.map((row) => row.getAttribute("data-batch-lease"))),
-      ]);
-    const answers = kickoffAnswers.filter((entry) => entry.phase.startsWith("L33"));
-    check(
-      "L33: opening the batch starts preparation by itself for a lease that needs a comparison, at most one comparison per lease per cycle, and none again on reopening",
-      leftRule &&
-        automaticPosts.length >= 1 &&
-        automaticPosts.every((trigger) => trigger === "automatic") &&
-        automaticLeases.includes(String(covered)) &&
-        (afterAutomatic[String(covered)] ?? 0) === 1 &&
-        Object.values(afterAutomatic).every((n) => n <= 1) &&
-        JSON.stringify(afterReopen) === JSON.stringify(afterAutomatic) &&
-        reopenPosts.length === 0 &&
-        answers.every((entry) => entry.http === 200),
-      {
-        leftRule,
-        automaticPosts,
-        automaticLeases,
-        afterAutomatic,
-        afterReopen,
-        reopenPosts,
-        leasesInBatch,
-        answers,
-        firstOpen,
-        reopened,
-      },
-    );
-    // S251 seeds Housing assistance Yes on the assisted lease, so the hold keeps it unprepared:
-    // the batch never even asks the server for it.
-    check(
-      `L33 (assisted lease ${assisted}): no comparison is requested for it`,
-      (afterAutomatic[String(assisted)] ?? 0) === 0 &&
-        (afterReopen[String(assisted)] ?? 0) === 0 &&
-        !kickoffAnswers.some((entry) => entry.leaseId === String(assisted)),
-      {
-        requested: afterAutomatic[String(assisted)] ?? 0,
-        afterReopen: afterReopen[String(assisted)] ?? 0,
-        asked: kickoffAnswers.filter((entry) => entry.leaseId === String(assisted)),
-      },
-    );
-    // The covered state comes back with the rule's result typed (clearing a typed rent would be a
-    // staff choice of its own).
-    phase = "L33 restore";
-    const restored = await typeRent(covered, 1751);
-    assert.ok(
-      restored,
-      "Typing the rule's result back on the covered lease was refused.",
-    );
-    await desk();
-    check(
-      `L32: the prepared lease ${prepared} reuses its stored comparison (no request for it)`,
-      !(String(prepared) in afterAutomatic),
-      { afterAutomatic },
-    );
+    } else {
+      // L33: with the setting on, opening the batch starts the preparation by itself for the leases
+      // whose kickoff needs a comparison, at most one per lease per cycle, and opening it again
+      // requests none. S250: the covered lease's rent comes from its standing agreement's rule, so it
+      // is not looked up by itself while the agreement covers it; S251 holds the assisted lease back.
+      // After Prepare this batch above, every other working-month lease is prepared, covered or held,
+      // so the first open asks for nothing. The covered lease then leaves its rule (a typed different
+      // rent, L47), which makes it an ordinary lease that needs a comparison, and the next open
+      // prepares it by itself. Typing the rule's result back covers it again for the checks below.
+      await setComparisonAllowance(rehearsal, true);
+      await toggleSetting(true);
+      await setComparisonAllowance(rehearsal, false);
+      phase = "L33 covered";
+      writes.length = 0;
+      await desk();
+      const coveredOpen = await batchState();
+      await preparationSettled(15_000);
+      const coveredPosts = kickoffPosts().map((entry) => entry.body?.leaseId);
+      const whileCovered = await comparisons();
+      check(
+        `L33 (covered lease ${covered}): while its standing agreement covers it, opening the batch looks up no comparison for it`,
+        !coveredPosts.includes(String(covered)) &&
+          (whileCovered[String(covered)] ?? 0) === 0 &&
+          coveredOpen.rows
+            ?.find((row) => row.lease === String(covered))
+            ?.tags.includes("standing_agreement") === true,
+        { coveredPosts, whileCovered, coveredOpen },
+      );
+      /** Type a rent to recommend on the lease's Now card and wait for its save to answer. */
+      const typeRent = async (leaseId, value) => {
+        await page.goto(
+          `${origin}/lease-renewal/live/desk/lease/${leaseId}?step=compare-market`,
+          { waitUntil: "domcontentloaded" },
+        );
+        const field = page.locator("#renewal-now-rent-to-recommend");
+        await field.waitFor({ timeout: 120_000 });
+        const saved = page
+          .waitForResponse(
+            (response) =>
+              response.request().method() === "POST" &&
+              new URL(response.url()).pathname === "/api/lease-renewal/working-record",
+            { timeout: 60_000 },
+          )
+          .then((response) => response.ok())
+          .catch(() => false);
+        await field.fill(String(value));
+        await field.blur();
+        return saved;
+      };
+      phase = "L33 setup";
+      const leftRule = await typeRent(covered, 1800);
+      phase = "L33 open";
+      writes.length = 0;
+      await desk();
+      const firstOpen = await batchState();
+      await preparationSettled();
+      const automaticPosts = kickoffPosts().map((entry) => entry.body?.trigger);
+      const automaticLeases = kickoffPosts().map((entry) => entry.body?.leaseId);
+      const afterAutomatic = await comparisons();
+      phase = "L33 reopen";
+      writes.length = 0;
+      await desk();
+      const reopened = await batchState();
+      // A batch drawn from an aging read reads the desk again before anything starts; wait it out.
+      await page.waitForTimeout(9000);
+      const afterReopen = await comparisons();
+      const reopenPosts = kickoffPosts().map((entry) => entry.body?.leaseId);
+      const leasesInBatch = await page
+        .getByRole("region", { name: "This batch", exact: true })
+        .locator("[data-batch-lease]")
+        .evaluateAll((rows) => [
+          ...new Set(rows.map((row) => row.getAttribute("data-batch-lease"))),
+        ]);
+      const answers = kickoffAnswers.filter((entry) => entry.phase.startsWith("L33"));
+      check(
+        "L33: opening the batch starts preparation by itself for a lease that needs a comparison, at most one comparison per lease per cycle, and none again on reopening",
+        leftRule &&
+          automaticPosts.length >= 1 &&
+          automaticPosts.every((trigger) => trigger === "automatic") &&
+          automaticLeases.includes(String(covered)) &&
+          (afterAutomatic[String(covered)] ?? 0) === 1 &&
+          Object.values(afterAutomatic).every((n) => n <= 1) &&
+          JSON.stringify(afterReopen) === JSON.stringify(afterAutomatic) &&
+          reopenPosts.length === 0 &&
+          answers.every((entry) => entry.http === 200),
+        {
+          leftRule,
+          automaticPosts,
+          automaticLeases,
+          afterAutomatic,
+          afterReopen,
+          reopenPosts,
+          leasesInBatch,
+          answers,
+          firstOpen,
+          reopened,
+        },
+      );
+      // S251 seeds Housing assistance Yes on the assisted lease, so the hold keeps it unprepared:
+      // the batch never even asks the server for it.
+      check(
+        `L33 (assisted lease ${assisted}): no comparison is requested for it`,
+        (afterAutomatic[String(assisted)] ?? 0) === 0 &&
+          (afterReopen[String(assisted)] ?? 0) === 0 &&
+          !kickoffAnswers.some((entry) => entry.leaseId === String(assisted)),
+        {
+          requested: afterAutomatic[String(assisted)] ?? 0,
+          afterReopen: afterReopen[String(assisted)] ?? 0,
+          asked: kickoffAnswers.filter((entry) => entry.leaseId === String(assisted)),
+        },
+      );
+      // The covered state comes back with the rule's result typed (clearing a typed rent would be a
+      // staff choice of its own).
+      phase = "L33 restore";
+      const restored = await typeRent(covered, 1751);
+      assert.ok(
+        restored,
+        "Typing the rule's result back on the covered lease was refused.",
+      );
+      await desk();
+      check(
+        `L32: the prepared lease ${prepared} reuses its stored comparison (no request for it)`,
+        !(String(prepared) in afterAutomatic),
+        { afterAutomatic },
+      );
+    }
 
     // L31 and L30: the batch order and the missing recipient on the desk.
     const parts = await page
@@ -652,16 +672,13 @@ export async function runKickoff() {
     // the page: read them once they are shown (L22 counts what is there with no action).
     await shownWithin(now().locator('[data-renewal-comparison="stored"]'), 120_000);
     await shownWithin(now().locator('[data-renewal-field="rent-basis"]'), 60_000);
+    const sendNeeds = now().locator('[data-renewal-field="send-needs"]');
     const opened = {
       heading: (await now().locator("h2#renewal-now-heading").textContent())?.trim(),
       comparison: await now().locator('[data-renewal-comparison="stored"]').count(),
       comparisonAge: await now().locator('[data-renewal-field="comparison-age"]').count(),
       comps: await now().locator('[aria-label="Comparables"] li').count(),
-      needs:
-        (await now()
-          .locator('[data-renewal-field="send-needs"]')
-          .textContent()
-          .catch(() => null)) ?? null,
+      needs: (await sendNeeds.count()) ? await sendNeeds.textContent() : null,
       readiness: await now()
         .locator("[data-renewal-ready]")
         .evaluateAll((items) =>
@@ -702,6 +719,9 @@ export async function runKickoff() {
 
     // L27: changing the rent and the reason updates the one preview, and every delivery form shows
     // that same message.
+    process.stdout.write(
+      "expect L27: the lease, Schedule, Send and Communications use the exact edited body. Gmail draft review adds only the required banner. Cancel leaves no synthetic effect.\n",
+    );
     const reason = "Current market conditions in the area support this figure.";
     act("type the rent to recommend");
     await now().getByLabel("Rent to recommend").fill("1410");
@@ -719,12 +739,30 @@ export async function runKickoff() {
         (await now().locator('[data-renewal-field="message-revision"]').textContent()) ??
           "",
       )?.[1] ?? null;
-    const edited = { preview: await previewText(), revision: await revisionLabel() };
+    const edited = {
+      preview: await previewText(),
+      revision: await revisionLabel(),
+      fingerprint: await now()
+        .locator("[data-renewal-message-revision]")
+        .getAttribute("data-renewal-message-revision"),
+    };
+    const copiedNotice = now().getByText(/^Body copied as shown\./);
     await now().getByRole("button", { name: "Copy", exact: true }).click();
-    await page.waitForTimeout(800);
-    const copied = await page
-      .evaluate(() => navigator.clipboard.readText())
-      .catch(() => "");
+    const copied = (await shownWithin(copiedNotice, 5_000))
+      ? await page.evaluate(() => navigator.clipboard.readText()).catch(() => "")
+      : "";
+    const mailEntries = async (label) =>
+      (await standInState(rehearsal)).mail.mailboxes
+        .flatMap((box) => box.messages)
+        .filter((message) => message.labelIds.includes(label));
+    const sentBeforeReview = new Set(
+      (await mailEntries("SENT")).map((entry) => entry.id),
+    );
+    const draftsBeforeReview = (await mailEntries("DRAFT")).length;
+    const readReview = async (review) => ({
+      subject: await review.locator("strong").textContent(),
+      body: await review.locator(".draft-box").textContent(),
+    });
     // A disabled delivery action is recorded with what the card says it needs; it is never waited on.
     // Read at once: a card with nothing missing has no such line, and that is never waited on.
     const needsNow = async () => {
@@ -737,38 +775,30 @@ export async function runKickoff() {
         : null;
     };
     const scheduleButton = now().getByRole("button", { name: "Schedule", exact: true });
-    let scheduled = "";
+    let scheduled = null;
     const scheduleEnabled = await scheduleButton.isEnabled();
     if (scheduleEnabled) {
       await scheduleButton.click();
       const scheduleDialog = page.getByRole("dialog", { name: "Review and schedule" });
-      await scheduleDialog
-        .locator('[data-renewal-field="exact-review"]')
-        .waitFor({ timeout: 120_000 });
-      scheduled =
-        (await scheduleDialog
-          .locator('[data-renewal-field="exact-review"]')
-          .textContent()) ?? "";
+      scheduled = await readReview(
+        scheduleDialog.locator('[data-renewal-field="exact-review"]'),
+      );
       await scheduleDialog.getByRole("button", { name: "Cancel" }).click();
     }
     const draftButton = now().getByRole("button", {
       name: "Create Gmail draft instead",
       exact: true,
     });
-    let drafted = "";
+    let drafted = null;
     const draftEnabled = await draftButton.isEnabled();
     if (draftEnabled) {
       await draftButton.click();
       const draftDialog = page.getByRole("dialog", {
         name: "Create Gmail draft instead",
       });
-      await draftDialog
-        .locator('[data-renewal-field="draft-review"]')
-        .waitFor({ timeout: 120_000 });
-      drafted =
-        (await draftDialog
-          .locator('[data-renewal-field="draft-review"]')
-          .textContent()) ?? "";
+      drafted = await readReview(
+        draftDialog.locator('[data-renewal-field="draft-review"]'),
+      );
       await draftDialog.getByRole("button", { name: "Cancel" }).click();
     }
     const composer = await context.newPage();
@@ -778,20 +808,89 @@ export async function runKickoff() {
     await composer
       .locator("[data-communication-message-revision]")
       .waitFor({ timeout: 120_000 });
-    const composerRevision = /revision ([0-9A-F]{6})/.exec(
-      (await composer.locator("[data-communication-message-revision]").textContent()) ??
-        "",
-    )?.[1];
-    // The composer's editable body is a field; its value is the message text.
-    const composerBody = await composer.evaluate(() =>
-      [
-        document.body.innerText,
-        ...[...document.querySelectorAll("textarea, input, [contenteditable]")].map(
-          (field) => ("value" in field ? field.value : field.textContent) ?? "",
-        ),
-      ].join("\n"),
+    const composerRevision = await composer
+      .locator("[data-communication-message-revision]")
+      .getAttribute("data-communication-message-revision");
+    const initial = composer.getByRole("region", {
+      name: "Initial message",
+      exact: true,
+    });
+    const composerSubject = await initial
+      .getByRole("textbox", { name: "Initial message subject", exact: true })
+      .inputValue();
+    // Clear the prior copy so only this action can yield the comparison body.
+    await composer.bringToFront();
+    await composer.evaluate(() => navigator.clipboard.writeText(""));
+    await initial
+      .locator("xpath=..")
+      .getByRole("button", { name: "Copy message", exact: true })
+      .click({ timeout: 30_000 });
+    await composer.getByText("Message copied; files remain attached here").waitFor();
+    const composerBody = await composer.evaluate(() => navigator.clipboard.readText());
+    process.stdout.write(
+      "expect L07: an unfinished follow-up stays in the app draft on reload, while the complete initial message remains ready for a one-off send.\n",
+    );
+    const followUpSave = composer.waitForResponse(
+      (response) => {
+        const request = response.request();
+        if (
+          new URL(response.url()).pathname !== "/api/gmail-hub/sequences" ||
+          request.method() !== "POST"
+        )
+          return false;
+        const body = request.postDataJSON();
+        return (
+          body.action === "save" &&
+          body.draft.followUp?.paragraphs[0][0].text ===
+            "Synthetic wording for a later follow-up."
+        );
+      },
+      { timeout: 20_000 },
+    );
+    await composer
+      .getByRole("button", { name: "Add follow-up message", exact: true })
+      .click();
+    await composer
+      .getByRole("textbox", { name: "Follow-up message body", exact: true })
+      .fill("Synthetic wording for a later follow-up.");
+    const followUpSaved = await followUpSave;
+    assert.ok(followUpSaved.ok());
+    const restoredUrl = new URL(composer.url());
+    assert.ok(restoredUrl.searchParams.has("communication"));
+    await composer.reload({ waitUntil: "domcontentloaded" });
+    const savedFollowUp = composer.getByRole("textbox", {
+      name: "Follow-up message body",
+      exact: true,
+    });
+    await savedFollowUp
+      .getByText("Synthetic wording for a later follow-up.", {
+        exact: true,
+      })
+      .waitFor();
+    const oneOff = composer.getByRole("button", { name: "Send", exact: true });
+    const oneOffReady = await oneOff
+      .click({ trial: true, timeout: 15_000 })
+      .then(() => true)
+      .catch(() => false);
+    check(
+      "L07: unfinished optional follow-up wording survives reload and leaves the complete initial message ready for a one-off send",
+      oneOffReady &&
+        (await composer
+          .getByRole("textbox", { name: "Follow-up message subject", exact: true })
+          .inputValue()) === "",
+      { followUpSaved: followUpSaved.ok(), oneOffReady },
     );
     await composer.close();
+    const exactMessages = {
+      schedule: scheduled?.body === copied && scheduled.subject === composerSubject,
+      draft:
+        drafted?.body === DRAFT_BANNER + "\n\n" + copied &&
+        drafted.subject === composerSubject,
+      composer: composerRevision === edited.fingerprint && composerBody === copied,
+    };
+    const canceledWithoutEffect =
+      (await mailEntries("SENT")).length === sentBeforeReview.size &&
+      (await mailEntries("DRAFT")).length === draftsBeforeReview;
     markers.push(await noticeMarker(prepared, "after L27"));
     check(
       'L27: changing "Rent to recommend" and "Reason to include" updates the one preview, and Review and send, Schedule, Create Gmail draft instead, Copy and the composer show that same message',
@@ -799,19 +898,15 @@ export async function runKickoff() {
         edited.preview.includes(reason) &&
         copied.includes(reason) &&
         copied.includes("$1,410.00") &&
-        scheduled.includes(reason) &&
-        drafted.includes(reason) &&
-        composerRevision === edited.revision &&
-        (composerBody ?? "").includes(reason),
+        Object.values(exactMessages).every(Boolean) &&
+        canceledWithoutEffect,
       {
         revision: edited.revision,
-        composerRevision,
-        preview: edited.preview.slice(0, 1500),
-        copied: copied.includes(reason),
+        comparedBodySha256: createHash("sha256").update(copied).digest("hex"),
+        exactMessages,
         scheduleEnabled,
-        scheduled: scheduled.includes(reason),
         draftEnabled,
-        drafted: drafted.includes(reason),
+        canceledWithoutEffect,
         needs: await needsNow(),
       },
     );
@@ -833,7 +928,7 @@ export async function runKickoff() {
     act("choose Review and send");
     await now().locator("[data-renewal-now-primary]").click();
     const review = page.getByRole("dialog", { name: "Review and send" });
-    let exact = "";
+    let exact = null;
     const reviewShown = await review
       .locator('[data-renewal-field="exact-review"]')
       .waitFor({ timeout: 120_000 })
@@ -841,8 +936,7 @@ export async function runKickoff() {
       .catch(() => false);
     markers.push(await noticeMarker(prepared, "after Review and send"));
     if (reviewShown) {
-      exact =
-        (await review.locator('[data-renewal-field="exact-review"]').textContent()) ?? "";
+      exact = await readReview(review.locator('[data-renewal-field="exact-review"]'));
       act("confirm Send this message");
       await review
         .getByRole("button", { name: "Send this message", exact: true })
@@ -852,23 +946,30 @@ export async function runKickoff() {
     const sendSteps = steps.slice(before).map((entry) => entry.action);
     const mail = (await standInState(rehearsal)).mail;
     const sent = mail.mailboxes.flatMap((box) => box.messages ?? []);
-    const ownerMessages = sent.filter((message) =>
-      /Our reviewed rental analysis suggests/.test(message.text ?? message.body ?? ""),
+    const newlySent = (await mailEntries("SENT")).filter(
+      (entry) => !sentBeforeReview.has(entry.id),
     );
+    const exactSend =
+      exact?.subject === composerSubject &&
+      exact?.body === copied &&
+      newlySent.length === 1 &&
+      newlySent[0].subject === exact.subject &&
+      newlySent[0].text === exact.body;
     check(
       "L23: the owner message is sent in three deliberate actions on one page, with the exact review and the confirmation shown",
       sendSteps.length === 3 &&
         context.pages().length === 1 &&
-        exact.includes(reason) &&
-        exact.includes("$1,410.00") &&
-        ownerMessages.some((message) => (message.text ?? "").includes("$1,410.00")),
+        copied.includes(reason) &&
+        copied.includes("$1,410.00") &&
+        exactSend,
       {
         sendSteps,
         reviewShown,
         needsBeforeSend,
         markers,
         pages: context.pages().length,
-        sent: sent.length,
+        exactSend,
+        newlySent: newlySent.length,
         statuses: reviewShown
           ? null
           : await now()
@@ -886,69 +987,187 @@ export async function runKickoff() {
       { messages: sent.length },
     );
 
-    // L28 (and the L40 line where the served commit shows it): a Gmail draft, then an edit.
+    // L28: retain the exact unsent receipt, then replace it through a new review.
+    process.stdout.write(
+      "expect L28: an explicit review and confirmation create one exact unsent draft. A changed message requires a separate replacement review and keeps the earlier draft.\n",
+    );
     await openLease(covered);
     await chooseStep("Ask the owner");
-    const draftsBefore = mail.mailboxes.reduce(
-      (n, box) => n + (box.drafts ?? []).length,
-      0,
-    );
+    const draftCount = async () => (await mailEntries("DRAFT")).length;
+    const draftsBefore = await draftCount();
     const coveredDraft = now().getByRole("button", {
       name: "Create Gmail draft instead",
       exact: true,
     });
     const coveredDraftEnabled = await coveredDraft.isEnabled();
-    let draftNotice = null;
+    const draftNotices = [];
+    const draftResponse = (confirmed) =>
+      page.waitForResponse(
+        (response) => {
+          const request = response.request();
+          if (
+            new URL(response.url()).pathname !==
+              "/api/lease-renewal/message-preparation" ||
+            request.method() !== "POST"
+          )
+            return false;
+          const payload = request.postDataJSON();
+          return (
+            payload.leaseId === String(covered) &&
+            payload.kind === "draft" &&
+            !payload.reconcile &&
+            Boolean(payload.confirm) === confirmed
+          );
+        },
+        { timeout: 30_000 },
+      );
+    const settledReview = async (dialog) => {
+      await dialog.waitFor();
+      await dialog
+        .and(page.locator('[aria-busy="true"]'))
+        .waitFor({ state: "hidden", timeout: 45_000 });
+      return dialog.locator('[data-renewal-field="draft-review"]');
+    };
+    const confirmDraft = async (dialog, preview) => {
+      const exactDraft = await readReview(preview);
+      const confirmed = draftResponse(true);
+      await dialog
+        .getByRole("button", { name: "Create this unsent draft", exact: true })
+        .click();
+      const response = await confirmed;
+      const outcome = await response.json();
+      await dialog.waitFor({ state: "hidden", timeout: 120_000 });
+      const mailboxes = (await standInState(rehearsal)).mail.mailboxes;
+      const holder = mailboxes.find((box) =>
+        box.drafts.some((draft) => draft.id === outcome.draftId && draft.unsent),
+      );
+      const draft = holder?.drafts.find((entry) => entry.id === outcome.draftId);
+      const readback = holder?.messages.find((entry) => entry.id === draft?.messageId);
+      return {
+        status: outcome.status,
+        executionId: outcome.executionId ?? null,
+        draftId: outcome.draftId ?? null,
+        exactReadback:
+          outcome.status === "created" &&
+          readback?.text === exactDraft.body &&
+          readback.subject === exactDraft.subject,
+      };
+    };
+    let firstDraft = null;
+    let freshRead = false;
     if (coveredDraftEnabled) {
-      await coveredDraft.click();
-      const create = page.getByRole("dialog", { name: "Create Gmail draft instead" });
-      const previewed = await create
-        .locator('[data-renewal-field="draft-review"]')
-        .waitFor({ timeout: 120_000 })
-        .then(() => true)
-        .catch(() => false);
-      if (previewed) {
-        await create
-          .getByRole("button", { name: "Create this unsent draft", exact: true })
-          .click();
-        await create.waitFor({ state: "hidden", timeout: 120_000 });
-      } else {
-        draftNotice =
-          (await create.textContent().catch(() => null))?.slice(0, 600) ?? null;
-        await create.getByRole("button", { name: "Cancel" }).click();
+      for (let attempt = 1; attempt <= 2; attempt += 1) {
+        const requested = draftResponse(false);
+        await coveredDraft.click();
+        await requested;
+        const dialog = page.getByRole("dialog", { name: "Create Gmail draft instead" });
+        const preview = await settledReview(dialog);
+        if (await preview.isVisible()) {
+          firstDraft = await confirmDraft(dialog, preview);
+          break;
+        }
+        const notice = (await dialog.getByRole("status").textContent()) ?? "";
+        draftNotices.push(notice.slice(0, 500));
+        await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+        if (
+          attempt !== 1 ||
+          (await draftCount()) !== draftsBefore ||
+          !/Notice approval safety|source generations|Current notice evidence/i.test(
+            notice,
+          )
+        )
+          break;
+        // Saving the first message can establish the cycle after the prior source generation.
+        const refreshed = page.waitForResponse(
+          (result) =>
+            new URL(result.url()).pathname === "/api/lease-renewal/refresh" &&
+            result.request().method() === "POST" &&
+            result.request().postDataJSON()?.mode === "force",
+          { timeout: 30_000 },
+        );
+        await page.locator("#renewal-refresh").click();
+        const response = await refreshed;
+        const result = await response.json();
+        freshRead =
+          response.ok() && result.refreshed === true && result.state === "fresh";
+        if (!freshRead) break;
+        await openLease(covered);
+        await chooseStep("Ask the owner");
       }
-      await page.waitForTimeout(1500);
     }
-    const draftsAfter = (await standInState(rehearsal)).mail.mailboxes.reduce(
-      (n, box) => n + (box.drafts ?? []).length,
-      0,
+    const draftsAfter = await draftCount();
+    const currentDraft = now().locator('[data-renewal-field="draft-current"]');
+    let readbackOnReload = false;
+    if (firstDraft?.exactReadback) {
+      await openLease(covered);
+      await chooseStep("Ask the owner");
+      readbackOnReload = await shownWithin(currentDraft, 15_000);
+    }
+    check(
+      "L40: the exact receipt identifies one unsent synthetic Gmail draft and the same message revision is current after reload",
+      firstDraft?.exactReadback && draftsAfter === draftsBefore + 1 && readbackOnReload,
+      {
+        coveredDraftEnabled,
+        draftNotices,
+        freshRead,
+        draftsBefore,
+        draftsAfter,
+        receipt: firstDraft,
+        readbackOnReload,
+      },
     );
     await now().getByLabel("Reason to include").fill("Recent leases nearby support it.");
     await now().getByLabel("Reason to include").blur();
-    await page.waitForTimeout(3000);
-    const older = await now()
-      .locator('[data-renewal-field="draft-older"]')
-      .textContent()
-      .catch(() => null);
+    const olderDraftLine = now().locator('[data-renewal-field="draft-older"]');
+    const older = (await shownWithin(olderDraftLine, 15_000))
+      ? await olderDraftLine.textContent()
+      : null;
+    let replacement = null;
+    if (firstDraft?.exactReadback && older) {
+      const requested = draftResponse(false);
+      await olderDraftLine
+        .getByRole("button", { name: "Replace the Gmail draft", exact: true })
+        .click();
+      await requested;
+      const dialog = page.getByRole("dialog", {
+        name: "Replace the Gmail draft",
+        exact: true,
+      });
+      const preview = await settledReview(dialog);
+      if (
+        (await preview.isVisible()) &&
+        (await draftCount()) === draftsAfter &&
+        (await preview.getByRole("note").innerText()).includes(
+          "The earlier draft stays in Gmail",
+        )
+      )
+        replacement = await confirmDraft(dialog, preview);
+      else await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+    }
+    let earlierKept = false;
+    if (replacement?.exactReadback) {
+      await openLease(covered);
+      await chooseStep("Ask the owner");
+      const earlier = now().locator('[data-renewal-field="draft-earlier"]');
+      const kept = (await standInState(rehearsal)).mail.mailboxes.flatMap((box) =>
+        box.drafts.filter((draft) => draft.unsent),
+      );
+      earlierKept =
+        (await shownWithin(earlier, 15_000)) &&
+        kept.some((draft) => draft.id === firstDraft.draftId) &&
+        kept.some((draft) => draft.id === replacement.draftId);
+    }
     check(
-      'L28: after a Gmail draft is created and the message changes, the card reads "The Gmail draft is older than this message" and offers "Replace the Gmail draft"',
-      draftsAfter === draftsBefore + 1 &&
-        (older ?? "").includes("The Gmail draft is older than this message") &&
-        (await now()
-          .getByRole("button", { name: "Replace the Gmail draft", exact: true })
-          .count()) === 1,
-      { coveredDraftEnabled, draftNotice, draftsBefore, draftsAfter, older },
+      "L28: after a wording change the older draft is named, one separately confirmed replacement has the reviewed bytes, and both unsent drafts remain after reload",
+      Boolean(older?.includes("The Gmail draft is older than this message")) &&
+        replacement?.exactReadback &&
+        replacement.executionId !== firstDraft?.executionId &&
+        earlierKept &&
+        (await draftCount()) === draftsAfter + 1,
+      { older, receipt: replacement, earlierKept, draftCount: await draftCount() },
     );
     phase = "L44";
     await openLease(covered);
-    const waitingLine = await page.getByText(/Draft waiting in Gmail since/).count();
-    check(
-      'L40 (rehearsal means): the unsent Gmail draft reached the mail stand-in, and the lease reads "Draft waiting in Gmail since" with "I sent it from Gmail" where the served commit shows it',
-      draftsAfter === draftsBefore + 1 &&
-        (waitingLine === 0 ||
-          (await page.getByRole("button", { name: "I sent it from Gmail" }).count()) > 0),
-      { waitingLine },
-    );
 
     // Each later section records its own failure and the run carries on to the next.
     const attempt = async (name, run) => {
@@ -1024,27 +1243,48 @@ export async function runKickoff() {
         .filter({ hasText: "Your signature" });
       const hadNoSignature = (await signatureItem.count()) === 1;
       await now()
+        .getByRole("list", { name: "What sending needs", exact: true })
         .getByRole("button", { name: "Set up your signature", exact: true })
         .click();
       const form = now().getByRole("form", { name: "Your signature" });
-      await form.getByRole("button", { name: "Save my signature", exact: true }).click();
-      const refused = (
-        await now().locator('[data-renewal-field="signature-notice"]').textContent()
-      )?.trim();
-      await form.getByLabel("Sender name").fill("Example Approver");
-      await form.getByRole("button", { name: "Save my signature", exact: true }).click();
-      await page.waitForTimeout(3000);
-      const signatureReady = await now()
+      const saved = page.waitForResponse(
+        (response) =>
+          new URL(response.url()).pathname === "/api/lease-renewal/sender-signature" &&
+          response.request().method() === "POST",
+      );
+      await form
+        .getByRole("button", { name: "Save blank signature", exact: true })
+        .click();
+      const reply = await saved;
+      const choice = reply.ok() ? (await reply.json()).choice : null;
+      const ready = now()
         .locator('[data-renewal-ready="ready"]')
-        .filter({ hasText: "Your signature" })
+        .filter({ hasText: "Your signature" });
+      await ready.waitFor();
+      const returnedToSameLease = page.url() === leaseUrl && (await form.count()) === 0;
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await ready.waitFor();
+      const signatureReady = await ready.count();
+      const recipientStillMissing = await now()
+        .locator('[data-renewal-ready="missing"]')
+        .filter({ hasText: "Owner recipient" })
         .count();
       check(
-        "L45: a staff member with no signature sets one up on the Now card without leaving the lease, and a refused save names the missing fields",
+        "L45 November 7: a different sender can deliberately save a blank signature on the lease, reload its readiness, and still needs the verified recipient",
         hadNoSignature &&
-          (refused ?? "").includes("Sender name") &&
+          Number.isInteger(choice?.revision) &&
+          choice.revision > 0 &&
+          choice.signature === null &&
+          returnedToSameLease &&
           signatureReady === 1 &&
-          page.url() === leaseUrl,
-        { hadNoSignature, refused, signatureReady },
+          recipientStillMissing === 1,
+        {
+          hadNoSignature,
+          choiceRevision: choice?.revision,
+          returnedToSameLease,
+          signatureReady,
+          recipientStillMissing,
+        },
       );
       await signIn("Editor");
     });

@@ -125,6 +125,28 @@ export function setStatusUnreadable(rehearsal, leaseId, mode) {
   return writeFlags(rehearsal, { ...flags, statusUnreadable });
 }
 
+/** Hide one fixture lease from the current inventory and detail response. */
+export function setUnavailableSourceLease(rehearsal, leaseId) {
+  if (
+    leaseId !== null &&
+    !Object.values(rehearsal.groups).flat().includes(Number(leaseId))
+  )
+    throw new Error("Choose an existing fixture lease.");
+  return writeFlags(rehearsal, { ...readFlags(rehearsal), unavailableLeaseId: leaseId });
+}
+
+/** Serve a different verified source end date for one existing fixture lease. */
+export function setSourceCycleDate(rehearsal, leaseId, endDate) {
+  if (!Object.values(rehearsal.groups).flat().includes(Number(leaseId)))
+    throw new Error("Choose an existing fixture lease.");
+  if (endDate !== null && !/^\d{4}-\d{2}-\d{2}$/.test(endDate))
+    throw new Error("Choose a synthetic lease end date.");
+  return writeFlags(rehearsal, {
+    ...readFlags(rehearsal),
+    sourceCycleDate: endDate ? { leaseId: String(leaseId), endDate } : null,
+  });
+}
+
 /** S252: every RentVine control flag off, as the rehearsal starts (reset.mjs). */
 export function clearRentvineFlags(rehearsal) {
   return writeFlags(rehearsal, {});

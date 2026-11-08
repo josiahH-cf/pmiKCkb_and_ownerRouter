@@ -537,7 +537,12 @@ function leaseDetail(row) {
 /** One row as the stand-in serves it under the rehearsal's control flags. */
 function servedRow(mix, row, flags) {
   const id = String(row.lease.leaseID);
-  const recorded = flags.recordingCycles ? mix.recordedCycles[id] : undefined;
+  const recorded =
+    flags.sourceCycleDate?.leaseId === id
+      ? flags.sourceCycleDate.endDate
+      : flags.recordingCycles
+        ? mix.recordedCycles[id]
+        : undefined;
   const unreadable = flags.statusUnreadable?.[id];
   if (recorded === undefined && !unreadable) return row;
   const lease = {
@@ -558,18 +563,30 @@ function servedRow(mix, row, flags) {
  */
 export function rentvineStandInResponse(mix, url, flags = {}) {
   const path = url.pathname.replace(/^\/api\/manager\//, "").replace(/\/$/, "");
+  const leases =
+    flags.unavailableLeaseId == null
+      ? mix.leases
+      : mix.leases.filter(
+          (row) => String(row.lease.leaseID) !== String(flags.unavailableLeaseId),
+        );
   if (path === "leases/export") {
     const page = Number(url.searchParams.get("page") ?? 1);
     return {
-      body: page === 1 ? mix.leases.map((row) => servedRow(mix, row, flags)) : [],
+      body: page === 1 ? leases.map((row) => servedRow(mix, row, flags)) : [],
+    };
+  }
+  // The Connections health check reads one record from the same synthetic inventory.
+  if (path === "leases" && url.searchParams.get("limit") === "1") {
+    return {
+      body: leases.slice(0, 1).map((row) => ({
+        lease: leaseDetail(servedRow(mix, row, flags)),
+      })),
     };
   }
   if (path === "leases/statuses") return { body: mix.statuses };
   if (/^leases\/\d+\/recurring-charges$/.test(path)) return { body: [] };
   const one = path.match(/^leases\/(\d+)$/);
-  const row = one
-    ? mix.leases.find((entry) => String(entry.lease.leaseID) === one[1])
-    : null;
+  const row = one ? leases.find((entry) => String(entry.lease.leaseID) === one[1]) : null;
   if (!row) return { body: undefined };
   const detail = leaseDetail(servedRow(mix, row, flags));
   return {

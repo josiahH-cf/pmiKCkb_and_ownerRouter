@@ -48,6 +48,7 @@ fi
 "$NPM_CMD" run verify:help-controls
 "$NPM_CMD" run verify:help-screenshots
 "$NPM_CMD" run verify:help-content
+"$NPM_CMD" run verify:help-rendered
 # S54 parity: ci.yml runs this too. Locally the dev .env.local declares all eleven KB Spaces, so
 # the documented multi-Space override is required; CI has no such file and runs the stricter bare
 # form. Both must run it, or a budget regression reaches main through whichever lane omits it.

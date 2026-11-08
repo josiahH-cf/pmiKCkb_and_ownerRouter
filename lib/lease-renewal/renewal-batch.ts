@@ -18,6 +18,7 @@ export const RENEWAL_BATCH_GROUPS = [
   "coming_up_later",
   "not_targets",
   "completed",
+  "retired",
 ] as const;
 export type RenewalBatchGroup = (typeof RENEWAL_BATCH_GROUPS)[number];
 
@@ -31,6 +32,7 @@ export const RENEWAL_BATCH_GROUP_LABELS: Record<RenewalBatchGroup, string> = {
   coming_up_later: "Coming up later",
   not_targets: "Not renewal targets",
   completed: "Completed",
+  retired: "Retired",
 };
 
 /** The groups always listed in full; every other group is a count that opens its rows. */
@@ -42,6 +44,7 @@ export const RENEWAL_BATCH_COUNT_GROUPS = [
   "coming_up_later",
   "not_targets",
   "completed",
+  "retired",
 ] as const satisfies readonly RenewalBatchGroup[];
 export type RenewalBatchCountGroup = (typeof RENEWAL_BATCH_COUNT_GROUPS)[number];
 
@@ -58,6 +61,8 @@ export const RENEWAL_BATCH_GROUP_HELP: Record<RenewalBatchCountGroup, string> = 
   not_targets:
     "Leases outside renewal work, each with its reason. Every lease here still opens and saves work.",
   completed: "Leases whose current cycle staff or the app recorded as complete.",
+  retired:
+    "Leases staff retired for the current cycle. Open the lease to see the reason or restore it.",
 };
 
 /**
@@ -109,6 +114,8 @@ export function renewalBatchPlacement(row: RenewalBatchSourceRow): RenewalBatchP
       return { kind: "fixed", group: "non_renewals", reason: target.label };
     case "completed":
       return { kind: "fixed", group: "completed", reason: target.label };
+    case "retired":
+      return { kind: "fixed", group: "retired", reason: target.label };
     case "renewed_in_rentvine":
       return { kind: "fixed", group: "renewed_in_rentvine", reason: target.label };
     case "month_to_month":

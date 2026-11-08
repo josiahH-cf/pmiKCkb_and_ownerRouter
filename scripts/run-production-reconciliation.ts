@@ -3,7 +3,10 @@ import {
   type AssuranceDomPlan,
 } from "./production-assurance-dom-snapshot";
 import { mapAssuranceReads } from "../lib/production-assurance/bounded-reads";
-import { ASSURANCE_RENEWAL_DESK_PATH } from "../lib/production-assurance/manifest";
+import {
+  ASSURANCE_RENEWAL_DESK_PATH,
+  RENEWAL_USABILITY_PREDECESSOR,
+} from "../lib/production-assurance/manifest";
 // The independent workspace oracle is also used by the canary's default-lease read. The table
 // reconciliation below retains all source/projected/rendered rows and its existing bounds.
 // The oracle also requires the Now action before its supporting next-step/detail context.
@@ -46,6 +49,12 @@ import {
   type IndependentManualRenewal,
 } from "../lib/production-assurance/manual-renewal-projection";
 import { execFileSync } from "node:child_process";
+import {
+  CycleDispositionRecordSchema,
+  type CycleDispositionRecord,
+} from "@/lib/lease-renewal/cycle-disposition";
+import { RenewalCycleDateDecisionSchema } from "@/lib/firestore/renewal-cycle-date-decisions";
+import type { RenewalCycleDateDecision } from "@/lib/lease-renewal/cycle-date-decision";
 import { createHash, randomUUID } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { isCancelledRoutePrefetch } from "./run-production-canary";
@@ -184,6 +193,7 @@ export interface IndependentExpectedGuidanceState {
 }
 
 export interface ExpectedProjectionRow extends IndependentRenewalSourceRow {
+  readonly cycleRetirement?: IndependentCycleRetirement;
   readonly manual: IndependentManualRenewal | null;
   /**
    * Predecessor rules: the lease is in no definitive source exclusion and has an id. S154
@@ -404,7 +414,17 @@ async function readIndependentLiveReviewResolutions(
   });
 }
 
+type IndependentCycleRetirement = {
+  state: "active" | "retired" | "unavailable";
+  label: string | null;
+};
+
 export interface IndependentDecisionFacts {
+  readonly cycleRetirement?: {
+    readonly records: ReadonlyMap<string, CycleDispositionRecord>;
+    readonly keepWorking: ReadonlyMap<string, RenewalCycleDateDecision>;
+    readonly work: ReadonlyMap<string, RenewalWorkspaceState>;
+  } | null;
   /** Dated work records under the predecessor rules; exactly what the predecessor reads. */
   readonly manualByLease?: ReadonlyMap<string, IndependentManualRenewal>;
   /**
@@ -455,16 +475,21 @@ function parseIndependentWorkRecord(raw: unknown) {
 export async function readIndependentDecisionFacts(
   firestore: Firestore,
 ): Promise<IndependentDecisionFacts> {
-  const [resolutions, progress, manual, leaseBound] = await Promise.all([
-    readIndependentLiveReviewResolutions(firestore),
-    firestore.collection(LEASE_RENEWAL_PROGRESS_COLLECTIONS.progress).get(),
-    firestore.collection(RENEWAL_WORKSPACE_COLLECTIONS.head).get(),
-    // Read-only and bounded like the heads above; a failure here is a staff-lane fact only.
-    firestore
-      .collection(RENEWAL_WORKSPACE_COLLECTIONS.leaseBoundHead)
-      .get()
-      .catch(() => null),
-  ]);
+  const [resolutions, progress, manual, leaseBound, retirementDocuments] =
+    await Promise.all([
+      readIndependentLiveReviewResolutions(firestore),
+      firestore.collection(LEASE_RENEWAL_PROGRESS_COLLECTIONS.progress).get(),
+      firestore.collection(RENEWAL_WORKSPACE_COLLECTIONS.head).get(),
+      // Read-only and bounded like the heads above; a failure here is a staff-lane fact only.
+      firestore
+        .collection(RENEWAL_WORKSPACE_COLLECTIONS.leaseBoundHead)
+        .get()
+        .catch(() => null),
+      Promise.all([
+        firestore.collection("renewal_cycle_dispositions").get(),
+        firestore.collection("lease_renewal_cycle_date_decisions").get(),
+      ]).catch(() => null),
+    ]);
   const trackedIncompleteLeaseIds = new Set<string>();
   const seenLeaseIds = new Set<string>();
   for (const document of progress.docs) {
@@ -548,7 +573,33 @@ export async function readIndependentDecisionFacts(
   const variantDocuments = workStates
     ? await readIndependentVariantDocuments(firestore).catch(() => null)
     : null;
+  let cycleRetirement: IndependentDecisionFacts["cycleRetirement"] = null;
+  if (retirementDocuments && workStates) {
+    try {
+      const [heads, decisions] = retirementDocuments;
+      const records = new Map(
+        heads.docs.map((doc) => {
+          const record = CycleDispositionRecordSchema.parse(doc.data());
+          if (record.leaseId !== doc.id)
+            throw new Error("independent_retirement_identity_mismatch");
+          return [doc.id, record] as const;
+        }),
+      );
+      const keepWorking = new Map(
+        decisions.docs.map((doc) => {
+          const record = RenewalCycleDateDecisionSchema.parse(doc.data());
+          if (createHash("sha256").update(record.leaseId).digest("hex") !== doc.id)
+            throw new Error("independent_cycle_date_identity_mismatch");
+          return [record.leaseId, record] as const;
+        }),
+      );
+      cycleRetirement = { records, keepWorking, work: workStates };
+    } catch {
+      cycleRetirement = null;
+    }
+  }
   return {
+    cycleRetirement,
     resolutions,
     trackedIncompleteLeaseIds,
     progressLeaseIds: seenLeaseIds,
@@ -738,6 +789,7 @@ function directProjectionDigest(
       leaseId: row.leaseId,
       workspaceExpected: row.workspaceExpected,
       dispositionExpected: row.dispositionExpected,
+      cycleRetirement: row.cycleRetirement,
       retentionExpected: row.retentionExpected,
       processExpected: row.processExpected,
       rentReconciliationExpected: row.rentReconciliationExpected,
@@ -1301,6 +1353,11 @@ export function buildExpectedProjectionRows(
       ...row,
       workspaceExpected,
       dispositionExpected,
+      cycleRetirement: independentCycleRetirement(
+        row,
+        referenceDateIso,
+        decisions.cycleRetirement,
+      ),
       retentionExpected,
       endedWithoutOutcomeEligible,
       processExpected,
@@ -1309,6 +1366,45 @@ export function buildExpectedProjectionRows(
       manual,
     };
   });
+}
+
+/** Read the persisted decision against independent source dates and the exact work record. */
+function independentCycleRetirement(
+  row: IndependentRenewalSourceRow,
+  referenceDate: string,
+  facts: IndependentDecisionFacts["cycleRetirement"],
+): IndependentCycleRetirement | undefined {
+  if (!facts || !row.leaseId) return undefined;
+  const record = facts.records.get(row.leaseId);
+  if (!record) return { state: "active", label: null };
+  const review = row.monthToMonth?.signal === true;
+  const kind = review ? "review_date" : "lease_end";
+  const sourceDate = review
+    ? independentNextReviewIso(row.monthToMonth?.startDateIso ?? null, referenceDate)
+    : row.endDate;
+  if (!sourceDate || !/^\d{4}-\d{2}-\d{2}$/.test(sourceDate))
+    return { state: "unavailable", label: "Retirement status unavailable" };
+
+  const work = facts.work.get(row.leaseId);
+  const keep = facts.keepWorking.get(row.leaseId);
+  const workBasis = work?.basis;
+  const continues =
+    work &&
+    workBasis?.kind === kind &&
+    (sourceDate <= workBasis.dateIso ||
+      (keep?.cycleId === work.cycleId &&
+        keep.recordedDateIso === workBasis.dateIso &&
+        keep.sourceDateIso === sourceDate));
+  const recordedCycle = continues ? work.cycleId : null;
+  const date = continues ? workBasis.dateIso : sourceDate;
+  const matches =
+    record.cycle.kind === kind &&
+    (record.cycle.cycleId && recordedCycle
+      ? record.cycle.cycleId === recordedCycle
+      : date <= record.cycle.dateIso);
+  return matches && record.action === "retire"
+    ? { state: "retired", label: `Retired: ${record.reason}` }
+    : { state: "active", label: null };
 }
 
 /**
@@ -1787,6 +1883,8 @@ async function readRenderedProjection(
       abortSignal,
       {
         staffLaneRows: direct.staffLane.rows,
+        requiresRenewalUsability:
+          options.expectedCommit !== RENEWAL_USABILITY_PREDECESSOR,
         ...(options.expectedGuidanceContract
           ? { expectedContract: options.expectedGuidanceContract }
           : {}),
@@ -1972,17 +2070,22 @@ const RENEWAL_ROW_PLAN: AssuranceDomPlan = {
   td: RENEWAL_CELL_PLAN,
   ":scope > th": {
     ".renewal-lease-link": {},
+    '[data-renewal-field="cycle-disposition"]': {},
     ":scope > span:not(.renewal-td-secondary)": {},
   },
 };
 // The empty-worklist cell is identified by its class. Its column span follows the table's
 // header count, which differs between a predecessor and a candidate when a column changes.
 const RENEWAL_EMPTY_CELL = "td.renewal-table-empty";
+const RENEWAL_DESK_SWITCH = "nav[data-renewal-desk-view]";
 const RENEWAL_DOM_PLAN: AssuranceDomPlan = {
+  [RENEWAL_DESK_SWITCH]: { a: {} },
   [RENEWAL_BODY_ROWS]: { [RENEWAL_EMPTY_CELL]: {} },
   [RENEWAL_DATA_ROWS]: RENEWAL_ROW_PLAN,
 };
 const RENEWAL_DOM_ATTRIBUTES = [
+  "data-renewal-desk-view",
+  "aria-current",
   "datetime",
   "href",
   "target",
@@ -1993,6 +2096,7 @@ const RENEWAL_DOM_ATTRIBUTES = [
   "data-manual-pending-source-updates",
   "data-workspace-available",
   "data-disposition",
+  "data-cycle-disposition",
   "data-retention-state",
   "data-process-status",
   "data-process-current-step",
@@ -2024,6 +2128,7 @@ const RENEWAL_DOM_ATTRIBUTES = [
  */
 export interface RenderedRowGuidanceSelection {
   readonly staffLaneRows?: readonly ExpectedProjectionRow[];
+  readonly requiresRenewalUsability?: boolean;
   readonly expectedContract?: IndependentExpectedContractMarker;
 }
 
@@ -2048,6 +2153,24 @@ export async function readRowsFromPage(
     RENEWAL_DOM_ATTRIBUTES,
   );
   abortSignal.throwIfAborted();
+  const viewSwitch = snapshot.locator(RENEWAL_DESK_SWITCH);
+  const switchCount = await viewSwitch.count();
+  if (switchCount > 0 || guidance.requiresRenewalUsability) {
+    const links = viewSwitch.locator("a");
+    const working = links.nth(0);
+    const all = links.nth(1);
+    if (
+      switchCount !== 1 ||
+      (await viewSwitch.getAttribute("data-renewal-desk-view")) !== "table" ||
+      (await links.count()) !== 2 ||
+      (await working.textContent())?.trim() !== "Working batch" ||
+      (await all.textContent())?.trim() !== "All leases and filters" ||
+      (await all.getAttribute("aria-current")) !== "page" ||
+      (await working.getAttribute("href")) !== "/lease-renewal/live/desk" ||
+      (await all.getAttribute("href")) !== "/lease-renewal/live/desk?v=2&scope=all"
+    )
+      fieldMismatches += 1;
+  }
   const allBodyRows = snapshot.locator(RENEWAL_BODY_ROWS);
   const rowLocators = snapshot.locator(RENEWAL_DATA_ROWS);
   const allCount = await allBodyRows.count();
@@ -2105,6 +2228,21 @@ export async function readRowsFromPage(
           ? staffLaneByLease
           : expectedByLease
       ).get(leaseId);
+      if (guidance.requiresRenewalUsability && leaseId) {
+        const state = await row.getAttribute("data-cycle-disposition");
+        const label =
+          (
+            await leaseCell
+              .locator('[data-renewal-field="cycle-disposition"]')
+              .textContent()
+          )?.trim() ?? null;
+        if (
+          !expected?.cycleRetirement ||
+          state !== expected.cycleRetirement.state ||
+          label !== expected.cycleRetirement.label
+        )
+          rowFieldMismatches += 1;
+      }
       const primaryWorkspace = leaseCell.locator(".renewal-lease-link");
       const workspaceAvailable = await row.getAttribute("data-workspace-available");
       const address = await readRenderedLeaseAddress(leaseCell);

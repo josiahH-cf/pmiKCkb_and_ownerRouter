@@ -5,6 +5,10 @@ import {
 } from "./delivery-policy";
 import { MAINTENANCE_RETIREMENT_MESSAGE } from "@/lib/maintenance/retirement";
 import type { StaffBusinessProfile } from "@/lib/staff/business-profile";
+import {
+  outgoingPayloadReasons,
+  SIGNATURE_SETUP_REQUIRED,
+} from "@/lib/lease-renewal/outgoing-message-readiness";
 import { matchesBusinessSignature } from "./business-signature";
 import {
   compositionRecordRead,
@@ -38,6 +42,7 @@ import {
   type CommunicationSchedule,
 } from "./schedule-calendar";
 import {
+  RichCommunicationMessageSchema,
   SequenceDraftSchema,
   communicationSendKey,
   renderCommunicationMessage,
@@ -53,7 +58,11 @@ import {
 } from "./sequence-model";
 import { gmailMailboxKey } from "./state-store";
 import { correlateBounceAttempt } from "./communication-evidence";
-import { sequenceHash, type SequenceStore } from "./sequence-store";
+import {
+  reviewedCommunicationTargetHash,
+  sequenceHash,
+  type SequenceStore,
+} from "./sequence-store";
 import type { WorkflowCommunicationContext } from "./workflow-context";
 
 export interface SequenceMailClient {
@@ -425,22 +434,42 @@ export class WorkflowCommunicationSequenceService {
         403,
       );
     const target = await this.deps.resolveTarget(actor, s.context);
-    if (
-      sequenceHash({
-        to: target.to,
-        cc: target.cc,
-        materialSourceHash: target.materialSourceHash,
-      }) !== input.reviewedTargetHash
-    )
+    if (reviewedCommunicationTargetHash(target) !== input.reviewedTargetHash)
       throw new EditableLayerError(
         "The recipients or source facts changed after the preview. Refresh and review them before Send/Schedule.",
         409,
+      );
+    if (input.action === "resume" && (!s.authorization || s.state !== "paused"))
+      throw new EditableLayerError(
+        "Only a paused approved communication can resume.",
+        409,
+      );
+    let schedule = input.schedule
+      ? CommunicationScheduleSchema.parse(input.schedule)
+      : null;
+    if (input.action === "schedule" && !schedule)
+      throw new EditableLayerError(
+        "Choose the first local date, time and timezone.",
+        400,
+      );
+    if (input.action === "send" && schedule)
+      throw new EditableLayerError("Send now and Schedule are separate actions.", 400);
+    if (input.action === "resume") schedule = s.authorization!.schedule;
+    const authorizesFollowUp =
+      schedule?.everyDays !== null && schedule?.everyDays !== undefined;
+    if (
+      authorizesFollowUp &&
+      !RichCommunicationMessageSchema.safeParse(s.followUp).success
+    )
+      throw new EditableLayerError(
+        "A repeating schedule needs a complete follow-up message.",
+        400,
       );
     if (
       s.context.replyTo &&
       (!target.reply ||
         s.initial.subject !== target.reply.subject ||
-        (s.followUp && s.followUp.subject !== target.reply.subject))
+        (authorizesFollowUp && s.followUp?.subject !== target.reply.subject))
     )
       throw new EditableLayerError(
         "A linked reply keeps the original subject. Review the exact thread or start a new communication for a different subject.",
@@ -454,11 +483,6 @@ export class WorkflowCommunicationSequenceService {
         409,
       );
     if (input.action === "resume") {
-      if (!s.authorization || s.state !== "paused")
-        throw new EditableLayerError(
-          "Only a paused approved communication can resume.",
-          409,
-        );
       s = await this.observe(s);
       if (s.observation?.state !== "current")
         throw new EditableLayerError(
@@ -472,7 +496,7 @@ export class WorkflowCommunicationSequenceService {
       : s.linkedThreads;
     const [initial, followUp] = await Promise.all([
       this.snapshot(s.initial, s.context, s.signatureSnapshots?.initial, actor.email),
-      s.followUp
+      authorizesFollowUp && s.followUp
         ? this.snapshot(
             s.followUp,
             s.context,
@@ -481,23 +505,14 @@ export class WorkflowCommunicationSequenceService {
           )
         : null,
     ]);
+    if (target.outgoingContract) {
+      const gaps = [initial, ...(followUp ? [followUp] : [])].flatMap((message) =>
+        outgoingPayloadReasons(message.subject, message.plainText),
+      );
+      if (!target.signatureSetup) gaps.unshift(SIGNATURE_SETUP_REQUIRED);
+      if (gaps.length) throw new EditableLayerError([...new Set(gaps)].join(" "), 409);
+    }
     const nowMs = this.now();
-    let schedule = input.schedule
-      ? CommunicationScheduleSchema.parse(input.schedule)
-      : null;
-    if (input.action === "schedule" && !schedule)
-      throw new EditableLayerError(
-        "Choose the first local date, time and timezone.",
-        400,
-      );
-    if (input.action === "send" && schedule)
-      throw new EditableLayerError("Send now and Schedule are separate actions.", 400);
-    if (input.action === "resume") schedule = s.authorization!.schedule;
-    if (schedule?.everyDays !== null && schedule?.everyDays !== undefined && !followUp)
-      throw new EditableLayerError(
-        "A repeating schedule needs reviewed follow-up content.",
-        400,
-      );
     if (
       schedule?.sendLimit !== null &&
       schedule?.sendLimit !== undefined &&
@@ -514,6 +529,7 @@ export class WorkflowCommunicationSequenceService {
           : nowMs;
     const a = {
       deliveryPolicyVersion: RENEWAL_DELIVERY_POLICY_VERSION,
+      ...(target.signatureSetup ? { signatureSetup: target.signatureSetup } : {}),
       revision: (s.authorization?.revision ?? 0) + 1,
       approvedByUid: actor.uid,
       senderEmail: actor.email.toLowerCase(),
@@ -540,6 +556,7 @@ export class WorkflowCommunicationSequenceService {
       expectedVersion: input.expectedVersion,
       nowMs,
       action: input.action === "send" ? "send_authorized" : "schedule_authorized",
+      dispositionRevision: target.dispositionRevision,
       apply: (current) => {
         const c = requireSequence(current);
         if (
@@ -863,7 +880,36 @@ export class WorkflowCommunicationSequenceService {
         sequence: requireSequence(await this.deps.store.get(id)),
       };
     }
-    if (target.materialSourceHash !== s.authorization.materialSourceHash) {
+    const authorization = s.authorization;
+    const materialSourceHash =
+      target.outgoingContract && !authorization.signatureSetup
+        ? target.legacyMaterialSourceHash
+        : target.materialSourceHash;
+    const hasRepeat =
+      authorization.schedule?.everyDays !== undefined &&
+      authorization.schedule.everyDays !== null;
+    const messages = [
+      authorization.initial,
+      ...(hasRepeat && authorization.followUp ? [authorization.followUp] : []),
+    ];
+    const signatureBound = authorization.signatureSetup
+      ? authorization.signatureSetup.uid === authorization.approvedByUid &&
+        authorization.signatureSetup.email === authorization.senderEmail
+      : messages.every(
+          (message) =>
+            message.signature?.uid === authorization.approvedByUid &&
+            message.signature.email === authorization.senderEmail &&
+            message.signature.version > 0,
+        );
+    const readinessHeld =
+      target.outgoingContract &&
+      (!signatureBound ||
+        target.blockers?.some((reason) => reason !== SIGNATURE_SETUP_REQUIRED) ||
+        messages.some(
+          (message) =>
+            outgoingPayloadReasons(message.subject, message.plainText).length > 0,
+        ));
+    if (materialSourceHash !== authorization.materialSourceHash || readinessHeld) {
       s = await this.deps.store.write({
         id: s.id,
         actorUid: actor.uid,
@@ -955,7 +1001,11 @@ export class WorkflowCommunicationSequenceService {
     const claim = await this.deps.store.claim(
       id,
       this.now(),
-      { ...prepared, materialSourceHash: target.materialSourceHash },
+      {
+        ...prepared,
+        materialSourceHash: authorization.materialSourceHash,
+        dispositionRevision: target.dispositionRevision,
+      },
       threading,
     );
     if (!claim)

@@ -39,7 +39,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
     title: "Work a renewal from the desk to a recorded outcome",
     audience: "Renewal staff",
     purpose:
-      "Open the working batch, take a lease along its guided path from Check the numbers to Complete on the Now card, and record what happened as it happens. A prepared lease starts in three actions: open it, Review and send, and confirm. Focus view and Full view show the same lease when you want one task or every section.",
+      "Open the working batch, take a lease along its guided path from Check the numbers to Complete on the Now card, and record what happened as it happens. A prepared lease starts in three actions: open it, Review and send, and confirm. Use Full view for the lease's detailed sections and return to Guided for the current step.",
     prerequisites: [
       "You are signed in with access to the Renewals Space.",
       "Anyone with Renewals access can read the desk and a lease. Recording work and sending a message need Editor access or higher.",
@@ -116,7 +116,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "The preview is the message exactly as the owner receives it, and What sending needs lists each input as Ready or names what is missing with its fix. A stored comparison is reused, so reaching the message needs no second comparison.",
         effect: "reads",
-        note: "Changing Rent to recommend or Reason to include is optional and updates the same preview. Rent to recommend shows its save state and offers Try again after a failed save. Retry keeps keyboard focus while saving and becomes available again if saving fails. Review, Schedule, Create Gmail draft instead and Open in Communications wait for their entered working figures to save. A failure keeps the entry and brings its field and nearby retry into view; its refusal clears when that field is confirmed. A Gmail preview that needs an entered figure closes its empty dialog before returning focus to that field. A loading preview keeps focus inside its dialog. A long review opens at its message details. Cancel or Escape closes a ready review and returns focus to its action. If figures change while Review loads, choose Review and send again to review the current message. Copy keeps the displayed bytes and says when working figures were unconfirmed. A lease with no rent to recommend asks for one here before Send. A missing owner recipient's fix shows its reasons and source record links; when only the lease record is available, open its owner record there and refresh this lease after saving. A missing template's fix shows its publication status for the Approver handoff. Set up your signature opens one form with Sender name required. Full view keeps the full managed signature editor.",
+        note: "Changing Rent to recommend or Reason to include is optional and updates the same preview. Rent to recommend shows its save state and offers Try again after a failed save. Retry keeps keyboard focus while saving and becomes available again if saving fails. Review, Schedule, Create Gmail draft instead and Open in Communications wait for their entered working figures to save. A failure keeps the entry and brings its field and nearby retry into view; its refusal clears when that field is confirmed. A Gmail preview that needs an entered figure closes its empty dialog before returning focus to that field. A loading preview keeps focus inside its dialog. A long review opens at its message details. Cancel or Escape closes a ready review and returns focus to its action. If figures change while Review loads, choose Review and send again to review the current message. Copy keeps the displayed bytes and says when working figures were unconfirmed. A lease with no rent to recommend asks for one here before Send. A missing owner recipient's fix shows its reasons and source record links; when only the lease record is available, open its owner record there and refresh this lease after saving. A missing template's fix shows its publication status for the Approver handoff. Set up your signature opens your own signature form. Its fields are optional. Save blank signature completes setup without adding signature text. Full view keeps the same setup and message editor.",
       },
       {
         id: "review-and-send",
@@ -314,7 +314,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         id: "choose-full-view",
         scene: "lease-full-view",
         action:
-          "Choose Focus view to work one task at a time, or Full view to see every section of the lease. Guided view returns to the path.",
+          "Choose Full view to see every section of the lease. Guided view returns to the current step.",
         control: {
           label: "Full view",
           role: "button",
@@ -325,9 +325,9 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         route: LEASE,
         where: "Lease page, the Lease view switch under the address",
         result:
-          "Full view shows every section, with section links for Lease details, Market rent comparison, Owner approval, Tenant offer and response, and Documents and completion. Focus view shows the one task that needs you now. Switching views saves nothing, and the next lease you open starts in Guided view.",
+          "Full view shows every section, with section links for Lease details, Market rent comparison, Owner approval, Tenant offer and response, and Documents and completion. Switching views saves nothing, and the next lease you open starts in Guided view.",
         effect: "reads",
-        note: "Every section in Full view, under the Now card, opens Full view at one section. In Focus view, Show this task in Full view jumps to the controls for the current task.",
+        note: "Every section in Full view, under the Now card, opens Full view at one section.",
       },
       {
         id: "read-lease-details",
@@ -407,7 +407,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
       {
         id: "record-work-status",
         action:
-          "Choose Set status by hand on the Now card, or open Staff status and Status log, and choose where the work stands in Work status (recorded by staff). Add a note on the Now card opens the note box.",
+          "Open Staff status and Status log to add a staff status annotation. Add a note on the Now card opens the note box.",
         control: {
           label: "Work status (recorded by staff)",
           role: "label",
@@ -418,13 +418,13 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         route: LEASE,
         where: "Lease page, Staff status and Status log",
         result:
-          "Each choice and each note saves by itself with your name and time and appears in the Status log, newest first. A status you set by hand that differs from the stage shows both in one line, and the desk shows the same staff status.",
+          "Your annotation or note saves with your name and time in the Status log. The stage beside the lease identity follows the actual work and evidence.",
         effect: "saves-in-app",
       },
       {
         id: "record-renewal-work",
         action:
-          "Record each piece of work you did outside the app as it happens: under Work recorded by staff in the section where it belongs, choose its outcome, for example Owner outreach outcome.",
+          "Choose Record work beside the current stage and open the actual event, such as Owner outreach. Record its outcome in the existing staff form.",
         control: {
           label: "Owner outreach outcome",
           role: "label",
@@ -459,13 +459,13 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         id: "all-leases-and-filters",
         scene: "renewal-desk",
         action:
-          "To work from the full lease table with its views, filters and sorting, choose All leases and filters under the batch.",
+          "To work from the full lease table with its views, filters and sorting, choose All leases and filters above the batch.",
         control: {
           label: "All leases and filters",
           role: "link",
-          region: "navigation:Other views of these leases",
+          region: "navigation:Renewal desk view",
           availability: "required",
-          source: BATCH,
+          source: ["components/lease-renewal/RenewalDeskSurfaceSwitch.tsx"],
         },
         route: DESK,
         where: "Renewals desk, under Everything else",

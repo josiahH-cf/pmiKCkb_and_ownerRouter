@@ -74,7 +74,7 @@ function buildDomainSlot(spaceId: string, welcomeEmailBodyTemplate?: string): Re
 
 interface SpaceDetailPageProps {
   params: Promise<{ spaceId: string }>;
-  searchParams?: Promise<{ tab?: string }>;
+  searchParams?: Promise<{ tab?: string; lease?: string }>;
 }
 
 export default async function SpaceDetailPage({
@@ -190,6 +190,11 @@ export default async function SpaceDetailPage({
     }
   }
 
+  const linkedLease = (await searchParams)?.lease;
+  const renewalWorkHref =
+    typeof linkedLease === "string" && /^[1-9]\d*$/.test(linkedLease)
+      ? `/lease-renewal/live/desk/lease/${encodeURIComponent(linkedLease)}`
+      : "/lease-renewal/live/desk";
   return (
     <AppShell user={user}>
       <section className="content">
@@ -210,6 +215,15 @@ export default async function SpaceDetailPage({
           </div>
           {config.askDemoMode ? <span className="review-pill">Local demo</span> : null}
         </div>
+
+        {["owner-renewal-outreach", "tenant-renewal-notice", "lease-renewals"].includes(
+          spaceId,
+        ) ? (
+          <p className="muted">
+            Use this page for the process and checklist.{" "}
+            <Link href={renewalWorkHref}>Open renewal work</Link>
+          </p>
+        ) : null}
 
         {hasProcess ? (
           <nav className="subtabs" aria-label="Space views">

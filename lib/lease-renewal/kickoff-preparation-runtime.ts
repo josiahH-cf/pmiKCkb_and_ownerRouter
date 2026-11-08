@@ -2,6 +2,9 @@
 // session. Reads only; the lookup itself is supplied by the route (the existing market-comps route).
 
 import type { AuthenticatedUser } from "@/lib/auth/session";
+import { cycleDispositionHold } from "./cycle-disposition";
+import { getRenewalCycleDisposition } from "@/lib/firestore/renewal-cycle-disposition-read";
+import { getLeaseTermReview } from "@/lib/firestore/lease-renewal-term-reviews";
 import { getRenewalCycleDateDecision } from "@/lib/firestore/renewal-cycle-date-decisions";
 import {
   claimKickoffPreparation,
@@ -65,9 +68,11 @@ export function kickoffPreparationDeps(
       const views = read.snapshot.views.filter((view) => leaseViewId(view) === leaseId);
       if (views.length !== 1) return null;
       const view = views[0]!;
-      const [manual, decision, working] = await Promise.all([
+      const [manual, decision, disposition, termReview, working] = await Promise.all([
         getRenewalWorkspace(actor, leaseId),
         getRenewalCycleDateDecision(actor, leaseId).catch(() => null),
+        getRenewalCycleDisposition(leaseId).catch(() => undefined),
+        getLeaseTermReview(actor, leaseId).catch(() => undefined),
         // S251: the Housing assistance fact. An unreadable record is not read as "not set":
         // nothing is prepared for the lease until it reads back.
         getRenewalWorkingRecord(actor, leaseId).then(
@@ -80,6 +85,7 @@ export function kickoffPreparationDeps(
       const classification = classifyRenewalCohort([view], {
         windows: [buildRenewalDeskWindow(today, RENEWAL_DESK_WINDOW_DAYS)],
         referenceDateIso: today,
+        termReviews: termReview ? new Map([[leaseId, termReview]]) : undefined,
       }).classifications[0];
       if (!classification) return null;
       const target = renewalTargetFor({
@@ -95,6 +101,13 @@ export function kickoffPreparationDeps(
         statusTable: read.statusTable,
         appCompletionCurrent: false,
         decision,
+        disposition: {
+          saved: disposition,
+          verifiedCycle:
+            termReview !== undefined &&
+            read.snapshot.complete &&
+            read.currency.state === "fresh",
+        },
       });
       // S250: whether a standing agreement covers the owner step on this read, from the one
       // coverage function over the same lease read and working record. A pricing read that fails
@@ -134,6 +147,11 @@ export function kickoffPreparationDeps(
         cycleDateIso:
           target.kind === "target" ? target.cycleDateIso : classification.endDateIso,
         inWorkingBatch: isRenewalTargetForMonth(target, defaultRenewalBatchMonth(today)),
+        dispositionHold: cycleDispositionHold(target.cycleDisposition),
+        dispositionRevision:
+          target.cycleDisposition?.state === "unavailable"
+            ? undefined
+            : target.cycleDisposition?.revision,
         workRecordCycleId: manual?.cycleId ?? null,
         // S251 ARCH-S251-4: the fact and the rent choice, asked before any billed lookup.
         housingAssistance: housingAssistanceVariant(working.record),

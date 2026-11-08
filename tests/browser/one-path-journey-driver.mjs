@@ -165,6 +165,7 @@ async function newPage(browser, viewport = { width: 1280, height: 800 }) {
     timezoneId: "America/Chicago",
     locale: "en-US",
     permissions: ["clipboard-read", "clipboard-write"],
+    serviceWorkers: "block",
   });
   await context.route("**/*", (route) =>
     new URL(route.request().url()).origin === origin
@@ -193,6 +194,7 @@ async function signIn(page, role) {
 
 const lease = (page) => {
   const guided = () => page.getByRole("region", { name: "Guided view", exact: true });
+  const stageLine = () => page.locator('[data-renewal-field="stage-line"]');
   const now = () => guided().getByRole("region", { name: "Now", exact: true });
   const strip = () =>
     guided().getByRole("navigation", { name: "Renewal path", exact: true });
@@ -217,17 +219,15 @@ const lease = (page) => {
     },
     async stageLine() {
       return squash(
-        await guided()
-          .locator('[data-renewal-field="stage-line"]')
-          .textContent()
+        await stageLine()
+          .textContent({ timeout: 15_000 })
           .catch(() => ""),
       );
     },
     async currentStep() {
       return (
-        (await guided()
-          .locator('[data-renewal-field="stage-line"]')
-          .getAttribute("data-renewal-current-step")
+        (await stageLine()
+          .getAttribute("data-renewal-current-step", { timeout: 15_000 })
           .catch(() => null)) ?? null
       );
     },
@@ -469,7 +469,7 @@ async function journey(browser) {
           return {
             scrollY: Math.round(window.scrollY),
             height: window.innerHeight,
-            stage: box('[aria-label="Guided view"] [data-renewal-field="stage-line"]'),
+            stage: box('[data-renewal-field="stage-line"]'),
             strip: box('[aria-label="Guided view"] nav[aria-label="Renewal path"]'),
             primary: box('[aria-label="Guided view"] [data-renewal-now-primary]'),
           };
@@ -797,6 +797,9 @@ async function journey(browser) {
 
   // J09 to J13: the rest of the path to Complete on the guided path (L53, L17), with hand records
   // where a provider step is closed, and exactly one next step at every point.
+  process.stdout.write(
+    "expect completion: the Editor reviews the offer, records the response and applicable follow-ups, confirms staff completion, then reopens the same lease from Completed.\n",
+  );
   const points = [];
   const otherPages = [];
   // Every staff record on the path, by route and status, so a record that did not hold is named.
@@ -989,17 +992,29 @@ async function journey(browser) {
   const pathCount = countActions(log.since(mark));
   await page.goto(`${origin}/lease-renewal/live/desk`, { waitUntil: "domcontentloaded" });
   await page.getByRole("region", { name: "Working batch", exact: true }).waitFor();
-  const completedRow = squash(
-    await page
-      .locator(`[data-batch-lease="${prepared}"]`)
-      .first()
-      .textContent()
-      .catch(() => ""),
-  ).slice(0, 300);
+  let completedRow = "";
+  let completedOnReopen = false;
+  if (completed) {
+    await page.locator('button[data-batch-group="completed"]').click();
+    const row = page
+      .locator('[data-batch-open-group="completed"]')
+      .locator(`[data-batch-lease="${prepared}"]`);
+    completedRow = squash(
+      await row.textContent({ timeout: 15_000 }).catch(() => ""),
+    ).slice(0, 300);
+    if (completedRow) {
+      await row.getByRole("link", { name: "Open the lease", exact: true }).click();
+      completedOnReopen =
+        (await view.currentStep()) === "complete" &&
+        /complete/i.test(await view.stageLine());
+      await page.goBack({ waitUntil: "domcontentloaded" });
+      await row.waitFor({ timeout: 15_000 });
+    }
+  }
   check(
     "journey.complete",
-    "the prepared lease is taken from the desk to Complete on the guided path with hand records where a provider step is closed (L53)",
-    completed,
+    "the prepared lease reaches explicit completion, appears in Completed, and still reads complete when reopened (L53, S259 L10)",
+    completed && completedRow.length > 0 && completedOnReopen,
     {
       points,
       tenantOffer,
@@ -1007,6 +1022,7 @@ async function journey(browser) {
       pathActions: pathCount,
       pathWrites,
       completedRow,
+      completedOnReopen,
     },
   );
   check(
@@ -1112,15 +1128,41 @@ async function journey(browser) {
   await view.open(replied, "?step=ask-owner");
   const rentField = page.getByLabel("Working monthly rent", { exact: true });
   const dateField = page.getByLabel("Working effective date", { exact: true });
+  const saveWorkingValue = async (field, value, edit) => {
+    const [response] = await Promise.all([
+      page.waitForResponse(
+        (response) => {
+          const request = response.request();
+          if (
+            request.method() !== "POST" ||
+            new URL(response.url()).pathname !== "/api/lease-renewal/working-record"
+          )
+            return false;
+          const payload = request.postDataJSON();
+          return (
+            payload.leaseId === String(replied) &&
+            payload.field === field &&
+            payload.value === value
+          );
+        },
+        { timeout: 30_000 },
+      ),
+      edit(),
+    ]);
+    assert.ok(response.ok(), field + " was refused");
+  };
   let typed = false;
   if ((await shownWithin(rentField, 20_000)) && (await shownWithin(dateField, 5_000))) {
-    await rentField.fill(String(RENT));
-    await rentField.blur();
+    await saveWorkingValue("terms_rent", RENT, async () => {
+      await rentField.fill(String(RENT));
+      await rentField.blur();
+    });
     log.optional("values", "Working monthly rent (typed for AC-S252-5)");
-    await dateField.fill(DATE);
-    await dateField.blur();
+    await saveWorkingValue("terms_effective_date", DATE, async () => {
+      await dateField.fill(DATE);
+      await dateField.blur();
+    });
     log.optional("values", "Working effective date (typed for AC-S252-5)");
-    await page.waitForTimeout(3000);
     typed = true;
   }
   const own = await route(`/api/lease-renewal/working-record?leaseId=${replied}`);
@@ -1137,12 +1179,15 @@ async function journey(browser) {
   );
   const policies = await route("/api/lease-renewal/pricing-policy");
   const agreements = await route("/api/lease-renewal/pricing-policy?standing=all");
+  const containsValue = (data, value) =>
+    data && typeof data === "object"
+      ? Object.values(data).some((part) => containsValue(part, value))
+      : data === value;
   const carried = (value) =>
     others
       .filter(
         ({ record, pricing }) =>
-          JSON.stringify(record ?? {}).includes(String(value)) ||
-          JSON.stringify(pricing ?? {}).includes(String(value)),
+          containsValue(record, value) || containsValue(pricing, value),
       )
       .map(({ leaseId }) => leaseId);
   check(
@@ -1150,11 +1195,13 @@ async function journey(browser) {
     "a rent and a date typed on one lease are kept on that lease and suggested on no other lease, portfolio or policy (AC-S252-5, L70)",
     typed &&
       own.body?.record?.fields?.terms_rent?.value === RENT &&
+      own.body?.record?.fields?.terms_effective_date?.value === DATE &&
       carried(RENT).length === 0 &&
       carried(DATE).length === 0 &&
-      !JSON.stringify(policies.body ?? {}).includes(String(RENT)) &&
-      !JSON.stringify(agreements.body ?? {}).includes(String(RENT)) &&
-      !JSON.stringify(policies.body ?? {}).includes(DATE),
+      !containsValue(policies.body, RENT) &&
+      !containsValue(agreements.body, RENT) &&
+      !containsValue(policies.body, DATE) &&
+      !containsValue(agreements.body, DATE),
     {
       typed,
       ownRent: own.body?.record?.fields?.terms_rent?.value ?? null,
@@ -1304,7 +1351,7 @@ async function journey(browser) {
         return {
           scrollY: Math.round(window.scrollY),
           overflow: document.documentElement.scrollWidth > window.innerWidth + 1,
-          stage: box('[aria-label="Guided view"] [data-renewal-field="stage-line"]'),
+          stage: box('[data-renewal-field="stage-line"]'),
           strip: box('[aria-label="Guided view"] nav[aria-label="Renewal path"]'),
           primary: box('[aria-label="Guided view"] [data-renewal-now-primary]'),
         };

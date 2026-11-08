@@ -15,11 +15,13 @@ import {
 import {
   RENEWAL_VIEW_LABELS,
   isRenewalWorkspaceView,
+  renewalWorkspaceHashTarget,
   type RenewalWorkspaceView,
 } from "@/lib/lease-renewal/workspace-view";
 import {
   focusProgrammatically,
   focusRenewalDashboardControl,
+  setRenewalStickyOffset,
 } from "./RenewalDashboardNavigation";
 import { createFocusReveal, type FocusReveal } from "./renewal-focus-reveal";
 
@@ -46,6 +48,8 @@ interface FocusViewValue {
   readonly showInFull: (targetId: string | null) => void;
   readonly selectedActionId: string | null;
   readonly setSelectedActionId: (id: string | null) => void;
+  readonly stageSlot: HTMLElement | null;
+  readonly setStageSlot: (element: HTMLElement | null) => void;
   readonly slot: HTMLElement | null;
   readonly setSlot: (element: HTMLElement | null) => void;
   readonly nowSlot: HTMLElement | null;
@@ -78,12 +82,56 @@ export function useRenewalFocusView() {
 const CONTINUITY_KEY = "renewal-lease-continuity";
 const MAIN_LANDMARK = 'main, [role="main"]';
 const interactions = ["wheel", "touchstart", "keydown", "mousedown"] as const;
+const SCROLL_SETTLE_LIMIT_MS = 15_000;
+
+/** Keep an exact Full destination visible as earlier panels finish rendering. */
+function keepFullDestinationVisible(target: HTMLElement) {
+  const body = target.closest<HTMLElement>(".renewal-workspace-body");
+  const shell = body?.closest<HTMLElement>(".renewal-workspace-shell");
+  const toolbar = shell?.querySelector<HTMLElement>(".renewal-workspace-toolbar");
+  if (!body || !shell || !toolbar || typeof ResizeObserver === "undefined") return;
+
+  let frame: number | null = null;
+  const stop = () => {
+    observer.disconnect();
+    window.clearTimeout(timeout);
+    if (frame !== null) window.cancelAnimationFrame(frame);
+    for (const event of [...interactions, "focusin"])
+      window.removeEventListener(event, stop, true);
+  };
+  const observer = new ResizeObserver(() => {
+    if (frame !== null) return;
+    frame = window.requestAnimationFrame(() => {
+      frame = null;
+      if (!target.isConnected || document.activeElement !== target) {
+        stop();
+        return;
+      }
+      const bounds = target.getBoundingClientRect();
+      if (
+        bounds.height > 0 &&
+        (bounds.top < toolbar.getBoundingClientRect().bottom ||
+          bounds.bottom > window.innerHeight)
+      ) {
+        setRenewalStickyOffset(shell, toolbar);
+        target.scrollIntoView?.({ block: "start", behavior: "instant" });
+      }
+    });
+  });
+  const timeout = window.setTimeout(stop, SCROLL_SETTLE_LIMIT_MS);
+  for (const event of [...interactions, "focusin"])
+    window.addEventListener(event, stop, { capture: true, passive: true });
+  observer.observe(body);
+  observer.observe(toolbar);
+  return stop;
+}
 
 interface KeptPlace {
   readonly y?: unknown;
   readonly view?: unknown;
   readonly step?: unknown;
   readonly typed?: unknown;
+  readonly scope?: unknown;
 }
 
 /** Field types whose typing a reload keeps; a password or a choice control is never kept. */
@@ -108,7 +156,7 @@ function usableField(field: TextField): boolean {
   return (
     !field.disabled &&
     !field.readOnly &&
-    !field.closest("[hidden], [inert], [data-renewal-focus-hidden]")
+    !field.closest("[hidden], [inert], [data-renewal-focus-hidden], details:not([open])")
   );
 }
 
@@ -122,7 +170,7 @@ function findTypedField(typed: TypedField): TextField | null {
   if (!typed.name) return fields.find((field) => field.id === typed.id) ?? null;
   const named = fields.filter((field) => fieldName(field) === typed.name);
   if (named.length === 1) return named[0];
-  return named.find((field) => field.id === typed.id) ?? null;
+  return null;
 }
 
 /**
@@ -194,7 +242,12 @@ function restoreTypedField(typed: TypedField): () => void {
           typed.value,
         );
         stop();
-        field.dispatchEvent(new Event("input", { bubbles: true }));
+        field.setAttribute("data-renewal-restoring-text", "");
+        try {
+          field.dispatchEvent(new Event("input", { bubbles: true }));
+        } finally {
+          field.removeAttribute("data-renewal-restoring-text");
+        }
         focusProgrammatically(field);
         return;
       }
@@ -231,16 +284,21 @@ function readKeptPlace(path: string): KeptPlace | null {
 
 export function RenewalFocusViewProvider({
   children,
+  allowLegacyFocus = true,
+  continuityScope = null,
   initialView = "guided",
   explicitView = false,
 }: {
   children: ReactNode;
+  allowLegacyFocus?: boolean;
+  continuityScope?: string | null;
   /** S247: Guided view unless the address named a view or the surface has no guided view. */
   initialView?: RenewalWorkspaceView;
   explicitView?: boolean;
 }) {
   const [view, setViewState] = useState<RenewalWorkspaceView>(initialView);
   const [selectedActionId, setSelectedActionId] = useState<string | null>(null);
+  const [stageSlot, setStageSlot] = useState<HTMLElement | null>(null);
   const [slot, setSlot] = useState<HTMLElement | null>(null);
   const [nowSlot, setNowSlot] = useState<HTMLElement | null>(null);
   const [afterSlot, setAfterSlot] = useState<HTMLElement | null>(null);
@@ -258,9 +316,15 @@ export function RenewalFocusViewProvider({
     },
     [],
   );
+  const scope = useRef(continuityScope);
+  useLayoutEffect(() => {
+    scope.current = continuityScope;
+  }, [continuityScope]);
   const current = useRef<RenewalWorkspaceView>(initialView);
   const scrollY = useRef<number | null>(null);
   const fullTarget = useRef<string | null>(null);
+  const stopFullAlignment = useRef<(() => void) | undefined>(undefined);
+  const restoringScroll = useRef(false);
   const reveal = useRef<{ body: HTMLElement; reveal: FocusReveal } | null>(null);
   const stepRef = useRef<string | null>(null);
   const kept = useRef<KeptPlace | null | undefined>(undefined);
@@ -275,6 +339,8 @@ export function RenewalFocusViewProvider({
   }, []);
   const move = useCallback((next: RenewalWorkspaceView) => {
     if (next === current.current) return false;
+    stopFullAlignment.current?.();
+    stopFullAlignment.current = undefined;
     if (current.current === "full") scrollY.current = window.scrollY;
     current.current = next;
     setViewState(next);
@@ -287,12 +353,28 @@ export function RenewalFocusViewProvider({
     },
     [move],
   );
+  const focusFullTarget = useCallback(
+    (id: string) => {
+      stopFullAlignment.current?.();
+      stopFullAlignment.current = undefined;
+      if (!focusRenewalDashboardControl(id, { viewRequest: false })) return false;
+      const target = document.activeElement;
+      if (!allowLegacyFocus && !restoringScroll.current && target instanceof HTMLElement)
+        stopFullAlignment.current = keepFullDestinationVisible(target);
+      return true;
+    },
+    [allowLegacyFocus],
+  );
   const showInFull = useCallback(
     (targetId: string | null) => {
+      if (current.current === "full") {
+        if (targetId) focusFullTarget(targetId);
+        return;
+      }
       fullTarget.current = targetId;
       setView("full");
     },
-    [setView],
+    [focusFullTarget, setView],
   );
   const applyReveal = useCallback(
     (keep: readonly Element[]) => {
@@ -309,9 +391,9 @@ export function RenewalFocusViewProvider({
   // R-S247-11: an older link that names a section or a control in its hash opens Full view there,
   // unless the address names the view. Presentation only.
   useLayoutEffect(() => {
-    if (explicitView || current.current === "full") return;
-    const id = decodeURIComponent(window.location.hash.slice(1));
-    if (!id.startsWith("renewal-") || !document.getElementById(id)) return;
+    if ((allowLegacyFocus && explicitView) || current.current === "full") return;
+    const id = renewalWorkspaceHashTarget(window.location.hash);
+    if (!id || !document.getElementById(id)) return;
     fullTarget.current = id;
     move("full");
     // Mount only: a later hash comes from the page's own links and is handled in the view.
@@ -325,11 +407,12 @@ export function RenewalFocusViewProvider({
     const y = scrollY.current;
     fullTarget.current = null;
     scrollY.current = null;
-    if (target && focusRenewalDashboardControl(target, { viewRequest: false })) return;
+    if (target && focusFullTarget(target)) return;
     if (y !== null) window.scrollTo?.({ top: y });
-  }, [view]);
+  }, [focusFullTarget, view]);
   useEffect(
     () => () => {
+      stopFullAlignment.current?.();
       reveal.current?.reveal.clear();
       reveal.current = null;
     },
@@ -354,7 +437,8 @@ export function RenewalFocusViewProvider({
             y: window.scrollY,
             view: current.current,
             step: stepRef.current,
-            typed: typedField(),
+            scope: scope.current,
+            typed: allowLegacyFocus || scope.current ? typedField() : null,
           }),
         );
       } catch {
@@ -368,13 +452,20 @@ export function RenewalFocusViewProvider({
     // same kept place instead of finding it already taken.
     if (kept.current === undefined) kept.current = readKeptPlace(here());
     const saved = kept.current;
-    if (saved) {
-      if (!explicitView && isRenewalWorkspaceView(saved.view)) move(saved.view);
+    if (
+      saved &&
+      (allowLegacyFocus || (continuityScope && saved.scope === continuityScope))
+    ) {
+      if (!explicitView && isRenewalWorkspaceView(saved.view))
+        move(saved.view === "focus" && !allowLegacyFocus ? "guided" : saved.view);
       if (typeof saved.step === "string") {
         stepRef.current = saved.step;
         restoreStep(saved.step);
       }
       if (typeof saved.y === "number") {
+        stopFullAlignment.current?.();
+        stopFullAlignment.current = undefined;
+        restoringScroll.current = true;
         const y = saved.y;
         // While the page's reads settle and its height shifts, it is held at the kept place: for
         // at least four seconds and until its height has held still for one, at most fifteen,
@@ -385,6 +476,7 @@ export function RenewalFocusViewProvider({
         const stop = () => {
           if (timer !== null) window.clearTimeout(timer);
           timer = null;
+          restoringScroll.current = false;
           for (const name of interactions) window.removeEventListener(name, stop);
         };
         const hold = () => {
@@ -396,8 +488,8 @@ export function RenewalFocusViewProvider({
           }
           if (Math.abs(window.scrollY - y) > 2) window.scrollTo?.({ top: y });
           const settled = now - startedAt >= 4000 && now - stillSince >= 1000;
-          timer =
-            settled || now - startedAt >= 15_000 ? null : window.setTimeout(hold, 100);
+          if (settled || now - startedAt >= SCROLL_SETTLE_LIMIT_MS) stop();
+          else timer = window.setTimeout(hold, 100);
         };
         for (const name of interactions)
           window.addEventListener(name, stop, { once: true, passive: true });
@@ -421,6 +513,8 @@ export function RenewalFocusViewProvider({
       showInFull,
       selectedActionId,
       setSelectedActionId,
+      stageSlot,
+      setStageSlot,
       slot,
       setSlot,
       nowSlot,
@@ -439,6 +533,7 @@ export function RenewalFocusViewProvider({
       setView,
       showInFull,
       selectedActionId,
+      stageSlot,
       slot,
       nowSlot,
       afterSlot,
@@ -480,6 +575,15 @@ export function RenewalFocusViewSwitch({
   const [announcement, setAnnouncement] = useState("");
   if (!context) return null;
   const choose = (next: RenewalWorkspaceView) => {
+    if (
+      next === "guided" &&
+      context.view === "full" &&
+      !views.includes("focus") &&
+      renewalWorkspaceHashTarget(window.location.hash)
+    ) {
+      const { pathname, search } = window.location;
+      window.history.replaceState(window.history.state, "", pathname + search);
+    }
     context.setView(next);
     setAnnouncement(ANNOUNCEMENTS[next]);
   };

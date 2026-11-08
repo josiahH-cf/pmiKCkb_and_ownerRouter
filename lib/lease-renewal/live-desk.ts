@@ -71,6 +71,12 @@ import {
   cycleDateDecisionIsCurrent,
   type RenewalCycleDateDecision,
 } from "@/lib/lease-renewal/cycle-date-decision";
+import {
+  dispositionCycleFor,
+  dispositionSourceBasis,
+  projectCycleDisposition,
+  type CycleDispositionRecord,
+} from "@/lib/lease-renewal/cycle-disposition";
 import { projectCycleSourceDateChange } from "@/lib/lease-renewal/cycle-source-date";
 import {
   projectRenewalTarget,
@@ -1048,6 +1054,10 @@ export function renewalTargetFor(input: {
   /** True only when the app-recorded completion is verified against the current evidence. */
   readonly appCompletionCurrent: boolean;
   readonly decision: RenewalCycleDateDecision | null | undefined;
+  readonly disposition?: {
+    readonly saved: CycleDispositionRecord | null | undefined;
+    readonly verifiedCycle: boolean;
+  };
 }): RenewalTargetProjection {
   const { classification, manual } = input;
   const staff = manual ? manualRenewalSummary(manual) : null;
@@ -1056,7 +1066,32 @@ export function renewalTargetFor(input: {
   const cycleSourceDate = manual
     ? projectCycleSourceDateChange(manual.basis, classification.endDateIso)
     : null;
+  const keepWorking =
+    cycleSourceDate?.state === "changed" &&
+    cycleDateDecisionIsCurrent(input.decision, {
+      cycleId: manual?.cycleId,
+      recordedDateIso: cycleSourceDate.recordedIso,
+      sourceDateIso: cycleSourceDate.currentIso,
+    });
+  const disposition = input.disposition
+    ? projectCycleDisposition(
+        input.disposition.saved,
+        input.disposition.verifiedCycle
+          ? dispositionCycleFor(
+              dispositionSourceBasis({
+                term: classification.termProjection.term,
+                endDateIso: classification.endDateIso,
+                nextReviewIso: classification.termProjection.nextReviewIso,
+              }),
+              manual,
+              keepWorking,
+            )
+          : null,
+        manual?.revision ?? 0,
+      )
+    : undefined;
   return projectRenewalTarget({
+    cycleDisposition: disposition,
     status: projectRentvineLeaseStatus(input.view, input.statusTable),
     term: classification.termProjection.term,
     endDateIso: classification.endDateIso,
@@ -1074,13 +1109,7 @@ export function renewalTargetFor(input: {
     cycleSourceDate,
     workRecord: manual ? { cycleId: manual.cycleId, revision: manual.revision } : null,
     reviewDateIso: classification.termProjection.nextReviewIso,
-    keepWorking:
-      cycleSourceDate?.state === "changed" &&
-      cycleDateDecisionIsCurrent(input.decision, {
-        cycleId: manual?.cycleId,
-        recordedDateIso: cycleSourceDate.recordedIso,
-        sourceDateIso: cycleSourceDate.currentIso,
-      }),
+    keepWorking,
   });
 }
 
@@ -1869,6 +1898,7 @@ export async function loadLiveRenewalDesk(
    * template, allowance, batch outcomes). Absent means not attempted: no row carries a projection.
    */
   kickoffSupport?: KickoffSupportRead,
+  cycleDispositions?: ReadonlyMap<string, CycleDispositionRecord> | null,
 ): Promise<LiveRenewalDeskResult> {
   if (!config.ok) return { status: config.reason };
   try {
@@ -1972,6 +2002,18 @@ export async function loadLiveRenewalDesk(
             manual,
             statusTable: moveOutInputs.statusTable,
             appCompletionCurrent,
+            disposition:
+              cycleDispositions !== undefined && classification.leaseId
+                ? {
+                    saved:
+                      cycleDispositions?.get(classification.leaseId) ??
+                      (cycleDispositions === null ? undefined : null),
+                    verifiedCycle:
+                      complete &&
+                      currency.state === "fresh" &&
+                      manualByLease !== undefined,
+                  }
+                : undefined,
             decision: classification.leaseId
               ? cycleDateDecisions?.get(classification.leaseId)
               : undefined,
@@ -2303,6 +2345,10 @@ export async function loadLiveRenewalLeaseWorkspace(
     readonly support: KickoffSupportRead;
     readonly rentCharges?: readonly number[] | null;
   },
+  cycleDisposition?: {
+    readonly saved: CycleDispositionRecord | null | undefined;
+    readonly workspaceAvailable: boolean;
+  },
 ): Promise<LiveRenewalLeaseWorkspaceResult> {
   if (!config.ok) return { status: config.reason };
   try {
@@ -2468,6 +2514,15 @@ export async function loadLiveRenewalLeaseWorkspace(
           process: () => process,
         }),
         decision: cycleDateDecision,
+        disposition: cycleDisposition
+          ? {
+              saved: cycleDisposition.saved,
+              verifiedCycle:
+                complete &&
+                currency.state === "fresh" &&
+                cycleDisposition.workspaceAvailable,
+            }
+          : undefined,
       }),
     };
     const deskSummary = withRenewalDeskQueryKeys(summary);

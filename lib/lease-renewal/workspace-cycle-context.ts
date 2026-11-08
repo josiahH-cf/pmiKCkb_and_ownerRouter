@@ -1,3 +1,4 @@
+import { dispositionSourceBasis } from "@/lib/lease-renewal/cycle-disposition";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { withRenewalNoticeAdmission } from "@/lib/firestore/renewal-notice-safety";
@@ -114,4 +115,28 @@ export async function resolveLeaseOwnerRoster(
     label: owner.label,
     sourceRef: owner.sourceRef,
   }));
+}
+
+/** The same verified lease end or annual review used by the desk's cycle projection. */
+export async function resolveDispositionSourceBasis(
+  actor: AuthenticatedUser,
+  leaseId: string,
+) {
+  const config = buildLiveRentVineConfig();
+  if (!config.ok) return null;
+  const now = Date.now();
+  const views = await requireCurrentLeaseViews(
+    withRenewalNoticeAdmission(actor, config.rentvineClient),
+    now,
+  );
+  const leases = views.filter((lease) => leaseViewId(lease) === leaseId);
+  if (leases.length !== 1) return null;
+  const term = projectLeaseTerm(leases[0], await getLeaseTermReview(actor, leaseId), {
+    referenceDateIso: businessDateIso(now),
+  });
+  return dispositionSourceBasis({
+    term: term.term,
+    endDateIso: leaseEndDateIso(leases[0]) ?? null,
+    nextReviewIso: term.nextReviewIso,
+  });
 }

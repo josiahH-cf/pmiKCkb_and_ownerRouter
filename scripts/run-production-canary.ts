@@ -2,7 +2,10 @@ import { mapAssuranceReads } from "../lib/production-assurance/bounded-reads";
 import { pathToFileURL } from "node:url";
 import type { PredecessorExceptionObserver } from "../lib/production-assurance/predecessor-exception-observer";
 import { RENEWAL_DASHBOARD_SECTIONS } from "../lib/lease-renewal/dashboard-sections";
-import { ASSURANCE_GUIDED_WORKSPACE } from "../lib/production-assurance/manifest";
+import {
+  ASSURANCE_GUIDED_WORKSPACE,
+  RENEWAL_USABILITY_PREDECESSOR,
+} from "../lib/production-assurance/manifest";
 import { countIndependentGuidedWorkspaceMismatches } from "../lib/production-assurance/guided-workspace-projection";
 
 import { chromium, type Page, type Response } from "playwright-core";
@@ -680,6 +683,29 @@ async function assertRouteOutcome(
       .getByRole("heading", { name: definition.heading, exact: true })
       .count()) === 1;
   if (!headingPresent) return { passed: false, diagnostic: "landmark_missing" };
+  if (definition.key === "renewal_desk") {
+    const switches = page.getByRole("navigation", {
+      name: "Renewal desk view",
+      exact: true,
+    });
+    // The captured predecessor used a separate link at the bottom of the batch.
+    if (expectedCommit !== RENEWAL_USABILITY_PREDECESSOR) {
+      const working = switches.getByRole("link", { name: "Working batch", exact: true });
+      const all = switches.getByRole("link", {
+        name: "All leases and filters",
+        exact: true,
+      });
+      if (
+        (await switches.count()) !== 1 ||
+        !(await switches.isVisible()) ||
+        (await working.count()) !== 1 ||
+        (await all.count()) !== 1 ||
+        !(await all.isVisible()) ||
+        (await all.getAttribute("aria-current")) !== "page"
+      )
+        return { passed: false, diagnostic: "landmark_missing" };
+    }
+  }
   if (definition.key === "maintenance" && definition.path === "/maintenance/history") {
     const operationalControls = await page
       .getByRole("button", {
@@ -784,7 +810,12 @@ export async function hasRenewalWorkspaceLandmarks(
     name: ASSURANCE_GUIDED_WORKSPACE.views[0],
     exact: true,
   });
-  if (await guided.count()) return hasGuidedWorkspaceLandmarks(page, viewSwitch);
+  if (await guided.count())
+    return hasGuidedWorkspaceLandmarks(
+      page,
+      viewSwitch,
+      !expectedCommit || expectedCommit === RENEWAL_USABILITY_PREDECESSOR,
+    );
   // S152: the lease opens in Focus view. Exactly one view switch whose Focus view is the selected
   // one and whose Full view is offered, and exactly one visible Focus view region.
   const focus = viewSwitch.getByRole("button", { name: "Focus view", exact: true });
@@ -809,11 +840,15 @@ export async function hasRenewalWorkspaceLandmarks(
 async function hasGuidedWorkspaceLandmarks(
   page: Page,
   viewSwitch: ReturnType<Page["getByRole"]>,
+  allowPredecessor: boolean,
 ): Promise<boolean> {
   const contract = ASSURANCE_GUIDED_WORKSPACE;
-  if ((await viewSwitch.getByRole("button").count()) !== contract.views.length)
-    return false;
-  for (const [index, name] of contract.views.entries()) {
+  const buttonCount = await viewSwitch.getByRole("button").count();
+  const predecessor =
+    allowPredecessor && buttonCount === contract.predecessorViews.length;
+  const views = predecessor ? contract.predecessorViews : contract.views;
+  if (buttonCount !== views.length) return false;
+  for (const [index, name] of views.entries()) {
     const button = viewSwitch.getByRole("button", { name, exact: true });
     if (
       (await button.count()) !== 1 ||
@@ -843,7 +878,32 @@ async function hasGuidedWorkspaceLandmarks(
   if ((await now.count()) !== 1 || !(await now.isVisible())) return false;
   const primary = now.locator(contract.primarySelector);
   if ((await primary.count()) !== 1 || !(await primary.isVisible())) return false;
-  const stageLine = region.locator(contract.stageLineSelector);
+  const stageHeader = page.getByRole("region", {
+    name: contract.stageHeader,
+    exact: true,
+  });
+  const headerCount = await stageHeader.count();
+  if (
+    (!predecessor && headerCount !== 1) ||
+    headerCount > 1 ||
+    (headerCount === 1 && !(await stageHeader.isVisible()))
+  )
+    return false;
+  // The captured one-path predecessor renders its stage inside Guided. The follow-up
+  // must show the stage by the lease identity, with no second stage in the path.
+  const stageLine = (headerCount ? stageHeader : region).locator(
+    contract.stageLineSelector,
+  );
+  const recordWork = stageHeader.getByRole("button", {
+    name: contract.recordWork,
+    exact: true,
+  });
+  const stageHeaderValid =
+    headerCount === 0
+      ? undefined
+      : (await recordWork.count()) === 1 &&
+        (await recordWork.isVisible()) &&
+        (await region.locator(contract.stageLineSelector).count()) === 0;
   const nextStep = now.locator(contract.nextStepSelector);
   if (
     (await stageLine.count()) !== 1 ||
@@ -921,6 +981,7 @@ async function hasGuidedWorkspaceLandmarks(
   });
   if (
     countIndependentGuidedWorkspaceMismatches({
+      stageHeaderValid,
       stageLines: await stageLine.count(),
       stageText: (await stageLine.textContent()) ?? "",
       stageCurrentStep: await stageLine.getAttribute("data-renewal-current-step"),

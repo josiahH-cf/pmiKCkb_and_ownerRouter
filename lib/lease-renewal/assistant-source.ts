@@ -1,5 +1,6 @@
 import { readRenewalPricingForViews } from "@/lib/lease-renewal/pricing-policy-read";
 import { readRenewalSheetGridsWithLinks } from "@/lib/lease-renewal/sheet-links";
+import { listRenewalCycleDispositions } from "@/lib/firestore/renewal-cycle-disposition-read";
 import { withRenewalNoticeAdmission } from "@/lib/firestore/renewal-notice-safety";
 import { renewalNoticeObserver } from "./notice-read";
 import { listRenewalWorkspaces } from "@/lib/firestore/renewal-workspace";
@@ -146,6 +147,7 @@ export async function runRenewalAssistantSource(
     workStatusRead,
     timingBasis,
     cycleDateDecisions,
+    cycleDispositions,
     outreachEvidence,
     kickoffSupport,
   ] = await measureRead("renewal.supporting", () =>
@@ -202,6 +204,7 @@ export async function runRenewalAssistantSource(
       // feeds only the working batch: when it is unavailable no choice is assumed, so a lease
       // RentVine has moved past asks again. The table and its counts never depend on it.
       withReadDeadline(() => listRenewalCycleDateDecisions(user)).catch(() => null),
+      withReadDeadline(() => listRenewalCycleDispositions()).catch(() => null),
       // S248: one bulk read of the loaded leases' linked renewal messages, outreach records and
       // Gmail drafts. Read-only; when it is unavailable nothing is derived, and every stage reads
       // from the staff record alone.
@@ -284,7 +287,7 @@ export async function runRenewalAssistantSource(
           progressRead.status === "available",
           leaseSnapshotResult,
           renewalAuxiliaryValue(termReviewsRead, new Map()),
-          renewalAuxiliaryValue(manualRead, new Map()),
+          manualRead.status === "available" ? manualRead.value : undefined,
           {
             available: workStatusRead.status === "available",
             byLease: renewalAuxiliaryValue(workStatusRead, new Map()),
@@ -303,6 +306,7 @@ export async function runRenewalAssistantSource(
             ? { available: true, byLease: outreachEvidence }
             : { available: false, byLease: new Map() },
           kickoffSupport ?? UNREAD_KICKOFF_SUPPORT,
+          cycleDispositions,
         );
 
   return {

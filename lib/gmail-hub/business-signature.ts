@@ -3,7 +3,7 @@ import {
   type StaffBusinessProfile,
 } from "@/lib/staff/business-profile";
 import {
-  RichCommunicationMessageSchema,
+  WorkingCommunicationMessageSchema,
   type RichCommunicationMessage,
 } from "./sequence-model";
 export function businessSignatureParagraph(profile: StaffBusinessProfile, email: string) {
@@ -35,7 +35,7 @@ export function applyBusinessSignature(
     paragraphs.pop();
   const next = businessSignatureParagraph(profile, email);
   if (JSON.stringify(paragraphs.at(-1)) !== JSON.stringify(next)) paragraphs.push(next);
-  return RichCommunicationMessageSchema.parse({ ...message, paragraphs });
+  return WorkingCommunicationMessageSchema.parse({ ...message, paragraphs });
 }
 
 /** Match only the complete terminal signature paragraph; an inline mention never establishes provenance. */

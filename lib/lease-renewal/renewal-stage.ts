@@ -1,3 +1,4 @@
+import type { CycleDisposition } from "./cycle-disposition";
 // S247 R-S247-3 (ARCH-S247-1): the ONE stage projection. The desk row, the lease page's guided
 // view, assistant answers about a lease and My Work lease links read the stage and the one next
 // step from here, so they cannot name different next steps. It walks the path definition in
@@ -75,6 +76,7 @@ export const RENEWAL_STAGE_NEXT_STEP = {
  * record after each save, so both read the same facts. Serializable.
  */
 export interface RenewalStageContext {
+  readonly cycleDisposition?: CycleDisposition;
   readonly leaseId: string;
   /** The staff-record read failed for this render; nothing about it is known. */
   readonly staffRecordUnavailable: boolean;
@@ -227,7 +229,7 @@ export interface RenewalDerivedFact {
 
 export interface RenewalStage {
   readonly version: typeof RENEWAL_STAGE_VERSION;
-  readonly stage: { readonly key: RenewalWorkStatus; readonly label: string };
+  readonly stage: { readonly key: RenewalWorkStatus | "retired"; readonly label: string };
   /** One line: the stage, who the lease waits on and since when, or the fact to settle. */
   readonly stageLine: string;
   readonly currentStepId: RenewalPathStepId;
@@ -1098,8 +1100,12 @@ export function projectRenewalStage(
       ? { kind: "linked_thread", sentence: scopedContext.threadCheck }
       : null;
   const recordedAtIso = latestRecordIso(state, fill);
-  const label = stageLabel(stageKey);
+  const retired = scopedContext.cycleDisposition?.state === "retired";
+  const dispositionUnavailable = scopedContext.cycleDisposition?.state === "unavailable";
+  const label = retired ? "Retired" : stageLabel(stageKey);
   const stageLine = (() => {
+    if (retired) return "Retired from renewals";
+    if (dispositionUnavailable) return "Retirement status unavailable";
     // A failed read is the thing to resolve; it never reads as nothing recorded (S232).
     if (scopedContext.staffRecordUnavailable)
       return "Needs verification: the staff record could not be read";
@@ -1139,15 +1145,19 @@ export function projectRenewalStage(
       : null;
   return {
     version: RENEWAL_STAGE_VERSION,
-    stage: { key: stageKey, label },
+    stage: { key: retired ? "retired" : stageKey, label },
     stageLine,
     currentStepId,
     nextStep: {
-      label: nextStepLabel,
+      label: retired
+        ? "Review retirement"
+        : dispositionUnavailable
+          ? "Refresh data"
+          : nextStepLabel,
       stepId: currentStepId,
       processStepId: currentDefinition.processStepId,
     },
-    waiting,
+    waiting: retired || dispositionUnavailable ? null : waiting,
     evidenceLine,
     steps: views.map((step) =>
       step.id === currentStepId && step.state === "open"
@@ -1158,7 +1168,11 @@ export function projectRenewalStage(
     evidenceCheck: fill.checks[0] ?? null,
     derived,
     handStatusLine,
-    blocker,
+    blocker: retired
+      ? { label: "Review retirement", target: "renewal-current-stage" }
+      : dispositionUnavailable
+        ? { label: "Refresh data", target: null }
+        : blocker,
     evidence,
     finishUp,
   };

@@ -317,18 +317,17 @@ export function RenewalDashboardNavigation({
   const viewName = useRenewalFocusView()?.view;
   const [openedGuided] = useState(viewName === "guided");
   useEffect(() => {
-    const focusTarget = () => {
-      const id =
-        window.location.hash.slice(1) ||
-        (selectedStepId ? renewalDashboardTarget(selectedStepId) : "");
-      if (!id.startsWith("renewal-")) return;
-      focusRenewalDashboardControl(id);
-    };
-    if (!openedGuided) focusTarget();
+    // RenewalFocusHashTarget owns URL fragments, including fragment-only changes.
+    if (!openedGuided && !window.location.hash && selectedStepId)
+      focusRenewalDashboardControl(renewalDashboardTarget(selectedStepId));
     const onClick = (event: MouseEvent) => {
       const anchor =
         event.target instanceof Element ? event.target.closest("a[href]") : null;
-      if (!(anchor instanceof HTMLAnchorElement)) return;
+      if (
+        !(anchor instanceof HTMLAnchorElement) ||
+        anchor.hasAttribute("data-renewal-presentation-control")
+      )
+        return;
       const url = new URL(anchor.href, window.location.href);
       if (
         url.origin !== window.location.origin ||
@@ -338,10 +337,8 @@ export function RenewalDashboardNavigation({
         return;
       queueMicrotask(() => focusRenewalDashboardControl(url.hash.slice(1)));
     };
-    window.addEventListener("hashchange", focusTarget);
     document.addEventListener("click", onClick);
     return () => {
-      window.removeEventListener("hashchange", focusTarget);
       document.removeEventListener("click", onClick);
     };
   }, [selectedStepId, openedGuided]);
@@ -387,7 +384,14 @@ export function focusProgrammatically(target: HTMLElement) {
   }
 }
 
-/** Focus the unresolved control, opening enclosing disclosures without recording any progress. */
+export function setRenewalStickyOffset(shell: HTMLElement, toolbar: HTMLElement) {
+  shell.style.setProperty(
+    "--renewal-sticky-offset",
+    String(Math.ceil(toolbar.getBoundingClientRect().height) + 12) + "px",
+  );
+}
+
+/** Focus the linked heading or control, opening disclosures without recording any progress. */
 export function focusRenewalDashboardControl(
   id: string,
   {
@@ -424,22 +428,27 @@ export function focusRenewalDashboardControl(
       (allowButtons ||
         !element.matches("button, input[type='submit'], input[type='button']")),
   );
-  const target = focusContainer
-    ? root
-    : (candidates.find(
-        (element) =>
-          element.hasAttribute("data-renewal-next-control") &&
-          !element.matches(":disabled"),
-      ) ??
-      (!allowButtons
-        ? candidates.find((element) => element.matches("input, select, textarea"))
-        : undefined) ??
-      candidates.find(
-        (element) =>
-          !element.matches(":disabled") &&
-          element.getAttribute("aria-disabled") !== "true",
-      ) ??
-      root);
+  const sectionHeading = root.matches("section[id^='renewal-section-']")
+    ? root.querySelector<HTMLElement>(":scope > .renewal-heading-row > h2")
+    : null;
+  const target =
+    sectionHeading ??
+    (focusContainer
+      ? root
+      : (candidates.find(
+          (element) =>
+            element.hasAttribute("data-renewal-next-control") &&
+            !element.matches(":disabled"),
+        ) ??
+        (!allowButtons
+          ? candidates.find((element) => element.matches("input, select, textarea"))
+          : undefined) ??
+        candidates.find(
+          (element) =>
+            !element.matches(":disabled") &&
+            element.getAttribute("aria-disabled") !== "true",
+        ) ??
+        root));
   if (
     !allowButtons &&
     target.matches("button, input[type='submit'], input[type='button']")
@@ -452,6 +461,9 @@ export function focusRenewalDashboardControl(
   }
   if (!target.matches("input, select, textarea, button, summary, a[href], [tabindex]"))
     target.tabIndex = -1;
+  const shell = target.closest<HTMLElement>(".renewal-workspace-shell");
+  const toolbar = shell?.querySelector<HTMLElement>(".renewal-workspace-toolbar");
+  if (shell && toolbar) setRenewalStickyOffset(shell, toolbar);
   focusProgrammatically(target);
   target.scrollIntoView?.({ block: "start" });
   return document.activeElement === target;

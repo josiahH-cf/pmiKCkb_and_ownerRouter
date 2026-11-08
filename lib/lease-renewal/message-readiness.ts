@@ -150,6 +150,6 @@ export function projectMessageReadiness(input: MessageReadinessInput): MessageRe
     complete,
     summary: complete
       ? "Every value in this message is filled in."
-      : `${items.length} ${items.length === 1 ? "value is" : "values are"} marked in this message. You can edit, copy and draft it as it is.`,
+      : `${items.length} ${items.length === 1 ? "value is" : "values are"} marked in this message. You can edit and copy it now. Complete required values before releasing it.`,
   };
 }

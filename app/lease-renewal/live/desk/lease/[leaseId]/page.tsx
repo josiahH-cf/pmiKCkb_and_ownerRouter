@@ -1,3 +1,4 @@
+import { getRenewalCycleDisposition } from "@/lib/firestore/renewal-cycle-disposition-read";
 import { leaseViewId } from "@/lib/integrations/rentvine/lease-mapper";
 import type {
   RemainingDifferencesInputs,
@@ -450,6 +451,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
       new Date(readTimestamp),
     );
   });
+  const cycleDispositionRead = getRenewalCycleDisposition(leaseId).catch(() => undefined);
   const outcome = await loadLiveRenewalLeaseWorkspace(
     leaseId,
     readTimestamp,
@@ -491,6 +493,10 @@ export default async function LiveRenewalLeaseWorkspacePage({
       rentCharges: currentRentChargeAmounts(
         renewalAuxiliaryValue(chargeInventoryRead, null),
       ),
+    },
+    {
+      saved: await cycleDispositionRead,
+      workspaceAvailable: manualRead.status === "available",
     },
   );
   const dispositions = renewalAuxiliaryValue(dispositionsRead, []);
@@ -655,6 +661,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
         <RenewalDeskReturnLink deskView={deskView} />
         {outcome.status === "ok" ? (
           <RenewalWorkspace
+            actorUid={user.uid}
             attemptSummary={attemptSummary}
             auxiliaryFailures={auxiliaryFailures}
             finishUpPreparation={finishUpPreparation}

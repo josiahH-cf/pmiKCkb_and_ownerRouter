@@ -371,14 +371,15 @@ describe("S115 plain-language section help", () => {
     expect(screen.getByText("No Sheet update is prepared.")).toBeInTheDocument();
   });
 
-  it("AC-S115-4: section navigation focuses a real control instead of a help trigger and closes open help", () => {
+  it("AC-S115-4 and R-S258-2: section navigation focuses the destination heading and closes open help", () => {
     renderWorkspace();
     act(() => screen.getByRole("button", { name: "About Lease details" }).focus());
     expect(
       screen.getByRole("region", { name: "About Lease details" }),
     ).toBeInTheDocument();
     act(() => focusRenewalDashboardControl("renewal-section-lease-details"));
-    expect(document.activeElement?.classList.contains("info-tip-trigger")).toBe(false);
+    expect(document.activeElement?.tagName).toBe("H2");
+    expect(document.activeElement).toHaveTextContent("Lease details");
     act(() => {
       window.dispatchEvent(new Event("hashchange"));
     });

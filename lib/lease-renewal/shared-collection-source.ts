@@ -48,9 +48,15 @@ export function collectionSourceRecords(
       {
         member: { leaseId: row.id, cycleKey, cycleDate: date ?? null },
         label: row.addressLabel,
+        searchNames: [...row.tenantNameLabels, ...row.ownerNameLabels],
         href: `/lease-renewal/live/desk/lease/${encodeURIComponent(row.id)}`,
         lifecycle: row.lifecycle?.label ?? "Lifecycle unavailable",
-        workStatus: workStatusDisplayLabel(row.workStatus),
+        workStatus:
+          row.renewalTarget?.cycleDisposition?.state === "retired"
+            ? `Retired · ${row.renewalTarget.cycleDisposition.record?.reason ?? "Recorded by staff"}`
+            : row.renewalTarget?.cycleDisposition?.state === "unavailable"
+              ? "Retirement status unavailable"
+              : workStatusDisplayLabel(row.workStatus),
       },
     ];
   });

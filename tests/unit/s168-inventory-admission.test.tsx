@@ -8,6 +8,9 @@ vi.mock("next/link", () => ({
     <a {...props} data-prefetch={String(prefetch)} />
   ),
 }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
 import { RenewalDeskInventory } from "@/components/lease-renewal/RenewalDeskInventory";
 import { PersonalViewProvider } from "@/components/layout/PersonalViewProvider";
 import { resetRenewalDeskViewMemoryForTests } from "@/components/lease-renewal/RenewalDeskViewMemory";
@@ -16,6 +19,7 @@ import {
   DEFAULT_RENEWAL_DESK_QUERY_V2,
   parseRenewalDeskQueryV2,
 } from "@/lib/lease-renewal/desk-query-v2";
+import { OperationController } from "@/lib/ui/operation";
 import { getRenewalDeskView } from "@/tests/helpers/sample-desk";
 
 function deferred<T>() {
@@ -44,7 +48,7 @@ function owner(scopeKey = "fixture-admitted-scope") {
   );
 }
 function selectAll() {
-  fireEvent.click(screen.getByRole("link", { name: /^All leases/ }));
+  fireEvent.click(screen.getByRole("link", { name: /^All leases\s*\d*$/ }));
 }
 afterEach(() => {
   cleanup();
@@ -170,7 +174,7 @@ describe("S168/S170 actual admitted inventory", () => {
     await screen.findByRole("alert");
     expect(screen.queryByText("12 Elm Ct, Unit 9")).toBeNull();
     expect(screen.getByRole("table")).toBeVisible();
-    expect(screen.getByRole("link", { name: /^All leases/ })).toBeVisible();
+    expect(screen.getByRole("link", { name: /^All leases\s*\d*$/ })).toBeVisible();
     expect(screen.queryByText(/previous completed selection/)).toBeNull();
   });
 
@@ -190,6 +194,30 @@ describe("S168/S170 actual admitted inventory", () => {
       expect(screen.getByRole("button", { name: "Reload Renewals" })).toBeVisible();
     },
   );
+
+  it("clears an interrupted current selection and permits the same filter to be retried", async () => {
+    const admission = vi
+      .spyOn(OperationController.prototype, "run")
+      .mockResolvedValueOnce({ outcome: "superseded" });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        Response.json({ scopeKey: "fixture-admitted-scope", refreshAfter: null }),
+      ),
+    );
+    try {
+      render(owner());
+      selectAll();
+      expect(await screen.findByRole("alert")).toHaveTextContent(/previous view; retry/);
+      expect(screen.queryByText(/previous completed selection/)).toBeNull();
+      expect(screen.queryByText("12 Elm Ct, Unit 9")).toBeNull();
+      selectAll();
+      expect(await screen.findByText("12 Elm Ct, Unit 9")).toBeVisible();
+      expect(screen.queryByRole("alert")).toBeNull();
+    } finally {
+      admission.mockRestore();
+    }
+  });
 
   it("ignores a delayed older selection after a newer view has been admitted", async () => {
     const pending = deferred<Response>();

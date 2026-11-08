@@ -56,6 +56,9 @@ describe("workflow communication governance page", () => {
 
     const { response, html } = await client.getHtml("/admin");
     expect(response.status).toBe(200);
-    expect(html).toContain("Open communication governance");
+    expect(html).toContain("Connected services and migration");
+    expect(html).toMatch(
+      /<a\b[^>]*\bhref="\/admin\/gmail-inbox-zero"[^>]*>Communication governance<\/a>/,
+    );
   });
 });

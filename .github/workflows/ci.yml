@@ -184,7 +184,8 @@ jobs:
           retention-days: 14
 
   e2e:
-    runs-on: ubuntu-latest
+    # Keep the browser runner on an OS supported by the locked Playwright build.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
         with:
@@ -203,7 +204,11 @@ jobs:
           path: ${{ runner.temp }}/pmi-npm-cache
           key: pmi-npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
           restore-keys: pmi-npm-${{ runner.os }}-
-      - name: Complete served E2E inventory with the public emulator binaries
+      - name: Install the reviewed fallback fonts for Help screenshots
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends fonts-dejavu-core=2.37-8 fonts-dejavu-mono=2.37-8 fonts-liberation=1:2.1.5-3
+      - name: Required rendered Help and complete served E2E with the public browser and emulator
         run: |
           mkdir -p "$RUNNER_TEMP/pmi-npm-cache"
           python3 scripts/isolated-verify.py --ci-sudo --task e2e --output "$RUNNER_TEMP/pmi-e2e" --npm-cache "$RUNNER_TEMP/pmi-npm-cache" --timeout-seconds 900 --memory-mib 6144
@@ -212,7 +217,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pmi-e2e-evidence
-          path: ${{ runner.temp }}/pmi-e2e
+          path: |
+            ${{ runner.temp }}/pmi-e2e/evidence
+            ${{ runner.temp }}/pmi-e2e/runtime
           if-no-files-found: ignore
           retention-days: 14
 

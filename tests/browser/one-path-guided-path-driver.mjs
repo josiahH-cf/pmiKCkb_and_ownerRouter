@@ -1,9 +1,9 @@
 // S247 and S248: the guided path through the one-path rehearsal. Run it with
 //
-//   bash scripts/run-renewal-one-path-rehearsal.sh --overlay --driver tests/browser/one-path-guided-path-driver.mjs
+//   bash scripts/run-renewal-one-path-rehearsal.sh --hold-automatic-comparison --driver tests/browser/one-path-guided-path-driver.mjs
 //
 // As the local demo Editor it opens each of the five working-month role leases and checks the
-// Guided view default (the three-way view control with Guided view pressed, the path strip with
+// Guided view default (Guided view pressed, the path strip with
 // one current step, one Now card with one primary action, the five section links); works a later
 // step while an earlier one is unfinished; reloads and returns to the same view, step and place;
 // switches views and follows a section link into Full view; sends an owner message through the
@@ -17,6 +17,7 @@
 // directory. Synthetic data only; nothing leaves this machine.
 import assert from "node:assert/strict";
 import { writeFileSync } from "node:fs";
+import { Socket } from "node:net";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { chromium } from "playwright-core";
@@ -26,14 +27,16 @@ import { requireLoopbackRehearsalOrigin } from "../../scripts/lib/help-rehearsal
 import {
   readRehearsal,
   setNextSend,
+  standInState,
 } from "../../scripts/lib/one-path-rehearsal/control.mjs";
 import {
   routeFromPage,
-  sendOwnerMessage,
   sequenceStanding,
 } from "../../scripts/lib/one-path-rehearsal/seeds.mjs";
 import { runDueMessageTick } from "../../scripts/lib/one-path-rehearsal/due-message-tick.mjs";
 
+assert.equal(globalThis.fetch.name, "guardedFetch", "The rehearsal preload is required.");
+assert.equal(Socket.prototype.connect.name, "guardedConnect");
 const origin = requireLoopbackRehearsalOrigin(process.env.ONE_PATH_REHEARSAL_ORIGIN);
 const runDir = process.env.ONE_PATH_REHEARSAL_RUN_DIR;
 assert.ok(runDir, "Run through scripts/run-renewal-one-path-rehearsal.sh.");
@@ -80,6 +83,7 @@ export async function runGuidedPath() {
       viewport: { width: 1280, height: 800 },
       timezoneId: "America/Chicago",
       locale: "en-US",
+      serviceWorkers: "block",
     });
     await context.route("**/*", (route) =>
       new URL(route.request().url()).origin === origin
@@ -127,9 +131,132 @@ export async function runGuidedPath() {
       await page.waitForTimeout(1500);
     };
     const stageLine = async () =>
-      (
-        await guided().locator('[data-renewal-field="stage-line"]').textContent()
-      )?.trim() ?? "";
+      (await page.locator('[data-renewal-field="stage-line"]').textContent())?.trim() ??
+      "";
+
+    async function refusedRetirement(sequenceId, expected) {
+      process.stdout.write(
+        `expect L09: retirement refuses ${expected} and links the exact communication.\n`,
+      );
+      const stage = page.getByRole("region", {
+        name: "Current renewal stage",
+        exact: true,
+      });
+      const countMail = async () =>
+        (await standInState(rehearsal)).mail.mailboxes.reduce(
+          (count, box) => count + (box.messages ?? []).length + (box.drafts ?? []).length,
+          0,
+        );
+      const before = await countMail();
+      try {
+        await stage.getByRole("button", { name: "Record work", exact: true }).click();
+        await stage
+          .getByRole("button", { name: "Retire from renewals", exact: true })
+          .click();
+        const dialog = page.getByRole("dialog", {
+          name: "Retire from renewals",
+          exact: true,
+        });
+        const reason = "Synthetic retirement held for pending outreach";
+        await dialog.getByLabel("Reason", { exact: true }).fill(reason);
+        const [response] = await Promise.all([
+          page.waitForResponse(
+            (result) =>
+              new URL(result.url()).pathname === "/api/lease-renewal/cycle-disposition" &&
+              result.request().method() === "POST",
+            { timeout: 30_000 },
+          ),
+          dialog
+            .getByRole("button", { name: "Retire from renewals", exact: true })
+            .click(),
+        ]);
+        const recovery = dialog.getByRole("link", {
+          name: "Open the pending communication",
+          exact: true,
+        });
+        const href = await recovery.getAttribute("href", { timeout: 15_000 });
+        const displayed = (await dialog.innerText()).includes(expected);
+        const reasonKept =
+          (await dialog.getByLabel("Reason", { exact: true }).inputValue()) === reason;
+        const active = !/Retired from renewals/.test(await stageLine());
+        const effectsKept = (await countMail()) === before;
+        await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+        check(
+          `L09 retirement refusal: ${expected}`,
+          response.status() === 409 &&
+            href === `/gmail-hub?communication=${encodeURIComponent(sequenceId)}` &&
+            displayed &&
+            reasonKept &&
+            active &&
+            effectsKept,
+          {
+            status: response.status(),
+            exactRecovery: href?.includes(sequenceId),
+            displayed,
+            reasonKept,
+            active,
+            effectsKept,
+          },
+        );
+      } catch (error) {
+        check(`L09 retirement refusal: ${expected}`, false, String(error).slice(0, 800));
+      }
+    }
+
+    const communicationResponse = (action) =>
+      page.waitForResponse(
+        (response) => {
+          const request = response.request();
+          return (
+            request.method() === "POST" &&
+            new URL(response.url()).pathname === "/api/gmail-hub/sequences" &&
+            request.postDataJSON()?.action === action
+          );
+        },
+        { timeout: 45_000 },
+      );
+    const composer = () =>
+      page.getByRole("region", {
+        name: "Workflow communication composer",
+        exact: true,
+      });
+    const sendOwnerMessage = async (leaseId) => {
+      process.stdout.write(
+        "expect owner send: the composer shows verified recipients and prepared wording before the Editor selects Send.\n",
+      );
+      await page.goto(origin + "/gmail-hub?compose=renewal_owner&lease=" + leaseId, {
+        waitUntil: "domcontentloaded",
+      });
+      const subject = composer().getByRole("textbox", {
+        name: "Initial message subject",
+        exact: true,
+      });
+      const body = composer().getByRole("textbox", {
+        name: "Initial message body",
+        exact: true,
+      });
+      await body.locator("p").first().waitFor({ timeout: 30_000 });
+      const reviewed = {
+        subject: await subject.inputValue({ timeout: 30_000 }),
+        visibleText: await body.innerText(),
+        recipients: await composer().getByText(/^To:/).first().innerText(),
+      };
+      assert.ok(reviewed.subject && reviewed.visibleText.trim());
+      assert.match(reviewed.recipients, /@example\.invalid\b/);
+      const [response] = await Promise.all([
+        communicationResponse("send"),
+        composer()
+          .getByRole("button", { name: "Send", exact: true })
+          .click({ timeout: 30_000 }),
+      ]);
+      const result = await response.json();
+      return {
+        step: "send",
+        sent: { status: response.status(), body: result },
+        sequenceId: result.sequence?.id,
+        refusal: response.ok() ? null : result.error,
+      };
+    };
 
     // 1. Guided view is the default on each working-month lease (BEH-S247-1, L12 to L14).
     for (const leaseId of WORKING) {
@@ -155,7 +282,7 @@ export async function runGuidedPath() {
         `lease ${leaseId} opens in Guided view with the path strip and one Now card`,
         observed.pressed === "true" &&
           JSON.stringify(observed.views) ===
-            JSON.stringify(["Guided view", "Focus view", "Full view"]) &&
+            JSON.stringify(["Guided view", "Full view"]) &&
           STEPS.every((step) => observed.steps.includes(step)) &&
           observed.current === 1 &&
           observed.nowCards === 1 &&
@@ -329,11 +456,15 @@ export async function runGuidedPath() {
       reloaded,
     );
 
-    // 4. The three-way view control and the five section links (R-S247-7, L17, L18).
-    await viewButton("Focus view").click();
-    const focusShown = await page
-      .getByRole("region", { name: "Focus view", exact: true })
-      .isVisible();
+    // 4. Guided and Full are selectable, and an existing Focus entry continues to Guided.
+    const viewChoices = await page
+      .getByRole("group", { name: "Lease view", exact: true })
+      .getByRole("button")
+      .allTextContents();
+    await page.goto(`${origin}/lease-renewal/live/desk/lease/${prepared}?view=focus`, {
+      waitUntil: "domcontentloaded",
+    });
+    const focusContinues = await viewButton("Guided view").getAttribute("aria-pressed");
     await viewButton("Full view").click();
     await page.reload({ waitUntil: "domcontentloaded" });
     await page
@@ -360,12 +491,13 @@ export async function runGuidedPath() {
       () => document.activeElement?.closest("#renewal-section-owner") !== null,
     );
     check(
-      "the view control offers three views, a hand-chosen view lasts the visit, and a section link opens Full view there",
-      focusShown &&
+      "Guided and Full remain selectable, a legacy Focus entry continues, and a section link opens Full at that section",
+      viewChoices.join(",") === "Guided view,Full view" &&
+        focusContinues === "true" &&
         fullKept === "true" &&
         atSection &&
         (await viewButton("Full view").getAttribute("aria-pressed")) === "true",
-      { focusShown, fullKept, atSection },
+      { viewChoices, focusContinues, fullKept, atSection },
     );
     // The next lease opens in Guided view again.
     await open(covered);
@@ -383,7 +515,7 @@ export async function runGuidedPath() {
       `/api/lease-renewal/workspace?leaseId=${prepared}`,
     );
     await setNextSend(rehearsal, "normal");
-    const sent = await sendOwnerMessage(page, prepared);
+    const sent = await sendOwnerMessage(prepared);
     check(
       "the owner message for the prepared lease is accepted by the mail stand-in",
       sent.sent?.status === 200 &&
@@ -471,7 +603,7 @@ export async function runGuidedPath() {
 
     // 8. An unconfirmed send (L37).
     await setNextSend(rehearsal, "unconfirmed");
-    const unconfirmed = await sendOwnerMessage(page, covered);
+    const unconfirmed = await sendOwnerMessage(covered);
     await open(covered, "?step=ask-owner");
     const unconfirmedCard = ((await now().textContent()) ?? "").replace(/\s+/g, " ");
     check(
@@ -485,9 +617,14 @@ export async function runGuidedPath() {
       },
     );
 
+    await refusedRetirement(
+      unconfirmed.sequenceId,
+      "Reconcile the exact pending send in Communications before retiring this cycle.",
+    );
+
     // 9. A failed delivery (L38).
     await setNextSend(rehearsal, "bounce");
-    const bounced = await sendOwnerMessage(page, assisted);
+    const bounced = await sendOwnerMessage(assisted);
     if (bounced.sequenceId)
       await route("/api/gmail-hub/sequences", {
         action: "refresh",
@@ -503,78 +640,353 @@ export async function runGuidedPath() {
     );
     await setNextSend(rehearsal, "normal");
 
-    // 10. A scheduled message (L39): shown as scheduled, counted only after Gmail accepts it.
-    const target = missingRecipient ?? covered;
-    const composition = await route(
-      `/api/gmail-hub/composition?purpose=renewal_owner&lease=${prepared}`,
+    // 10. Schedule, pause and Resume the reviewed communication using the visible controls.
+    process.stdout.write(
+      "expect L07 and L10: the Editor schedules the exact message, pauses and resumes the same sequence, then sees one accepted synthetic send and the recorded waiting stage.\n",
     );
-    let scheduledLine = "";
-    let afterTick = "";
-    let tick = {};
-    if (composition.status === 200) {
-      const uuid = () => page.evaluate(() => crypto.randomUUID());
-      const { context: messageContext, initial, reviewedTargetHash } = composition.body;
-      const saved = await route("/api/gmail-hub/sequences", {
-        action: "save",
-        draft: { id: await uuid(), context: messageContext, initial, followUp: null },
-        expectedVersion: 0,
-        operationId: await uuid(),
-      });
-      const tomorrow = new Date(Date.now() + 86_400_000).toLocaleDateString("en-CA", {
-        timeZone: "America/Chicago",
-      });
-      const scheduled = await route("/api/gmail-hub/sequences", {
-        action: "schedule",
-        id: saved.body?.sequence?.id,
-        expectedVersion: saved.body?.sequence?.version,
-        operationId: await uuid(),
-        reviewedDraftHash: saved.body?.reviewedDraftHash,
-        reviewedTargetHash,
-        schedule: {
-          firstDate: tomorrow,
-          time: "09:00",
-          timeZone: "America/Chicago",
-          everyDays: null,
-          endDate: null,
-          sendLimit: 1,
-        },
-      });
+    await open(prepared, "?step=ask-owner");
+    const sentMessages = async () =>
+      (await standInState(rehearsal)).mail.mailboxes
+        .flatMap((box) => box.messages)
+        .filter((message) => message.labelIds.includes("SENT"));
+    const priorSends = new Set((await sentMessages()).map((entry) => entry.id));
+    await now()
+      .getByRole("button", { name: "Schedule", exact: true })
+      .click({ timeout: 30_000 });
+    const dialog = page.getByRole("dialog", { name: "Review and schedule", exact: true });
+    const review = dialog.locator('[data-renewal-field="exact-review"]');
+    await review.waitFor({ timeout: 45_000 });
+    const subject = await review.locator("strong").textContent();
+    const body = await review.locator(".draft-box").textContent();
+    const tomorrow = new Date(Date.now() + 86_400_000).toLocaleDateString("en-CA", {
+      timeZone: "America/Chicago",
+    });
+    await review.getByLabel(/^Date\b/).fill(tomorrow);
+    await review.getByLabel("Time (Central)").fill("09:00");
+    const [scheduleResponse] = await Promise.all([
+      communicationResponse("schedule"),
+      dialog.getByRole("button", { name: "Schedule this message", exact: true }).click(),
+    ]);
+    const scheduled = (await scheduleResponse.json()).sequence;
+    assert.ok(scheduleResponse.ok() && scheduled?.id);
+    await dialog.waitFor({ state: "hidden" });
+    await open(prepared, "?step=ask-owner");
+    const scheduledLine = ((await now().textContent()) ?? "").replace(/\s+/g, " ");
+    check(
+      "the exact reviewed message reads scheduled for its date and remains unsent",
+      /Owner message scheduled for/.test(scheduledLine) &&
+        scheduled.authorization?.initial.subject === subject &&
+        scheduled.authorization?.initial.plainText === body &&
+        scheduled.authorization?.schedule?.firstDate === tomorrow &&
+        scheduled.authorization?.schedule?.time === "09:00" &&
+        (await sentMessages()).length === priorSends.size,
+      {
+        scheduled: sequenceStanding(scheduled),
+        scheduledLine: scheduledLine.slice(0, 300),
+      },
+    );
+    await refusedRetirement(
+      scheduled.id,
+      "Pause or cancel the scheduled communication before retiring this cycle.",
+    );
+    await page.goto(
+      origin + "/gmail-hub?communication=" + encodeURIComponent(scheduled.id),
+      {
+        waitUntil: "domcontentloaded",
+      },
+    );
+    const [pauseResponse] = await Promise.all([
+      communicationResponse("pause"),
+      composer()
+        .getByRole("button", { name: "Pause", exact: true })
+        .click({ timeout: 30_000 }),
+    ]);
+    const paused = (await pauseResponse.json()).sequence;
+    assert.ok(pauseResponse.ok() && paused?.state === "paused");
+    const resume = composer().getByRole("button", {
+      name: "Resume reviewed sequence",
+      exact: true,
+    });
+    const [resumeResponse] = await Promise.all([
+      communicationResponse("resume"),
+      resume.click({ timeout: 30_000 }),
+    ]);
+    const resumed = (await resumeResponse.json()).sequence;
+    const resumedWithoutEffect = (await sentMessages()).length === priorSends.size;
+    check(
+      "Resume preserves the reviewed schedule and exact message with no immediate effect",
+      resumeResponse.ok() &&
+        resumed?.id === scheduled.id &&
+        resumed.state === "active" &&
+        resumed.authorization?.revision === scheduled.authorization.revision + 1 &&
+        JSON.stringify(resumed.authorization?.schedule) ===
+          JSON.stringify(scheduled.authorization.schedule) &&
+        resumed.authorization?.initial.plainText === body &&
+        resumed.authorization?.initial.subject === subject &&
+        resumedWithoutEffect,
+      {
+        paused: sequenceStanding(paused),
+        resumed: sequenceStanding(resumed),
+        resumedWithoutEffect,
+      },
+    );
+    if (resumeResponse.ok() && resumed?.state === "active") {
+      const tick = await runDueMessageTick(rehearsal, { sequenceId: resumed.id });
       await open(prepared, "?step=ask-owner");
-      scheduledLine = ((await now().textContent()) ?? "").replace(/\s+/g, " ");
-      // The server's own reading of the same source just before the tick (a read), so a held send
-      // shows whether the source moved or the tick read it differently.
-      const recomposed = await route(
-        `/api/gmail-hub/composition?purpose=renewal_owner&lease=${prepared}`,
+      const afterTick = await stageLine();
+      const standing = await route("/api/gmail-hub/sequences?id=" + resumed.id);
+      const newSends = (await sentMessages()).filter(
+        (entry) => !priorSends.has(entry.id),
       );
-      const serverSource = {
-        atSchedule: composition.body?.target?.materialSourceHash ?? null,
-        beforeTick: recomposed.body?.target?.materialSourceHash ?? null,
-        noticeCycleId: recomposed.body?.target?.noticeCycleId ?? null,
-        blockers: recomposed.body?.target?.blockers ?? null,
-      };
-      // The harness's in-process tick: the due message is sent through the mail stand-in.
-      tick = await runDueMessageTick(rehearsal, {
-        sequenceId: scheduled.body?.sequence?.id,
-      }).catch((error) => ({ error: String(error?.message ?? error) }));
-      tick = { ...tick, serverSource };
-      await open(prepared, "?step=ask-owner");
-      afterTick = await stageLine();
-      // Where the app's own record of the scheduled message stands after the tick.
-      const standing = await route(
-        `/api/gmail-hub/sequences?id=${scheduled.body?.sequence?.id}`,
+      check(
+        "the due tick accepts one exact message and the lease records Waiting on owner response",
+        /^Waiting on owner response/.test(afterTick) &&
+          newSends.length === 1 &&
+          standing.body?.sequence?.confirmedCount === 1 &&
+          newSends[0].subject === subject &&
+          newSends[0].text === body,
+        { tick, afterTick, standing: sequenceStanding(standing.body?.sequence) },
       );
-      tick = { ...tick, standing: sequenceStanding(standing.body?.sequence) };
     }
-    check(
-      "a scheduled message reads Owner message scheduled for its date and is not counted before Gmail accepts it",
-      /Owner message scheduled for/.test(scheduledLine),
-      { target, scheduledLine: scheduledLine.slice(0, 300) },
+    process.stdout.write(
+      "expect L05: a later staff record that outreach is waiting shows both its saved outcome and the accepted send in lease, desk and Dashboard. Recording the exact correction brings all three back to the same waiting stage and keeps the earlier receipt.\n",
     );
-    check(
-      "after the due-message tick has Gmail accept it, the scheduled message counts as the outreach",
-      /^Waiting on owner response/.test(afterTick),
-      { tick, afterTick },
+    const staffHeader = page.getByRole("region", {
+      name: "Current renewal stage",
+      exact: true,
+    });
+    const recordOutreach = async (outcome) => {
+      await staffHeader.getByRole("button", { name: "Record work", exact: true }).click();
+      await staffHeader
+        .getByRole("button", { name: "Owner outreach", exact: true })
+        .click();
+      const control = page.getByLabel("Owner outreach outcome", { exact: true });
+      await control.waitFor();
+      const [response] = await Promise.all([
+        page.waitForResponse(
+          (result) => {
+            const request = result.request();
+            return (
+              new URL(result.url()).pathname === "/api/lease-renewal/workspace" &&
+              request.method() === "POST" &&
+              request.postDataJSON()?.action?.activity === "owner_outreach"
+            );
+          },
+          { timeout: 30_000 },
+        ),
+        control.selectOption(outcome),
+      ]);
+      const result = await response.json();
+      assert.equal(String(response.request().postDataJSON().leaseId), String(prepared));
+      assert.ok(
+        response.ok() && result.state?.activities?.owner_outreach?.outcome === outcome,
+      );
+    };
+    const threeStageReads = async (expected) => {
+      await open(prepared);
+      const headerLine = staffHeader.locator('[data-renewal-field="stage-line"]');
+      await headerLine.filter({ hasText: expected }).waitFor({ timeout: 30_000 });
+      const leaseLine = (await headerLine.innerText()).trim();
+      const next = now().locator('[data-renewal-field="next-step"]');
+      const nextLine = (await next.innerText()).trim();
+      await page.goto(origin + "/lease-renewal/live/desk", {
+        waitUntil: "domcontentloaded",
+      });
+      const deskRow = page.locator('tr[data-batch-lease="' + prepared + '"]').first();
+      await deskRow
+        .locator(".renewal-batch-stage")
+        .filter({ hasText: leaseLine })
+        .waitFor({
+          timeout: 30_000,
+        });
+      const deskNext = (
+        await deskRow.locator("[data-batch-next-step]").innerText()
+      ).trim();
+      await page.goto(origin + "/", { waitUntil: "domcontentloaded" });
+      await page.waitForLoadState("networkidle", { timeout: 15_000 });
+      await page
+        .getByRole("textbox", { name: "Question", exact: true })
+        .fill("Which lease renewals are due next month?");
+      await page.getByRole("button", { name: "Get answer", exact: true }).click();
+      const answer = page.getByRole("region", { name: "Assistant answer", exact: true });
+      const exactLease = answer
+        .locator(
+          'a[href="' +
+            leasePath(prepared) +
+            '"], a[href^="' +
+            leasePath(prepared) +
+            '?"]',
+        )
+        .first();
+      await exactLease.waitFor({ timeout: 30_000 });
+      const resultLine = await exactLease.locator("..").innerText();
+      return {
+        sameStage: resultLine.includes(leaseLine),
+        sameNext: nextLine === "Next step: " + deskNext && resultLine.includes(nextLine),
+        leaseLine,
+        nextLine,
+      };
+    };
+    await open(prepared);
+    await recordOutreach("waiting");
+    const conflict = await threeStageReads(
+      /Needs a check:.*outreach.*waiting.*message accepted by Gmail/i,
     );
+    await open(prepared);
+    await recordOutreach("done");
+    const corrected = await threeStageReads(/^Waiting on owner response/);
+    const correctedRecord = await route(
+      "/api/lease-renewal/workspace?leaseId=" + prepared,
+    );
+    const acceptedStanding = resumed?.id
+      ? await route("/api/gmail-hub/sequences?id=" + resumed.id)
+      : null;
+    check(
+      "L05: staff outreach conflict and correction agree on lease, desk and Dashboard",
+      conflict.sameStage &&
+        conflict.sameNext &&
+        corrected.sameStage &&
+        corrected.sameNext &&
+        correctedRecord.body?.state?.activities?.owner_outreach?.outcome === "done" &&
+        acceptedStanding?.body?.sequence?.confirmedCount === 1,
+      { conflict, corrected },
+    );
+
+    // A new reply is a separate scoped action from reading the incoming evidence.
+    process.stdout.write(
+      "expect L07 linked reply: opening the received message prepares no effect. Reviewing and selecting Send accepts one exact reply on that same synthetic thread. Reload keeps the receipt and the original incoming message.\n",
+    );
+    const priorReplySends = new Set((await sentMessages()).map((entry) => entry.id));
+    await page.goto(origin + "/gmail-hub", { waitUntil: "domcontentloaded" });
+    await page.waitForLoadState("networkidle", { timeout: 15_000 });
+    await page
+      .getByRole("tab", { name: "Outgoing", exact: true })
+      .click({ timeout: 30_000 });
+    await page
+      .getByRole("tab", { name: "Outgoing", selected: true })
+      .waitFor({ timeout: 15_000 });
+    const previous = page
+      .getByRole("tabpanel", { name: "Outgoing", exact: true })
+      .getByRole("article")
+      .filter({
+        has: page.getByRole("heading", {
+          name: new RegExp("\\bLease " + replied + "\\b"),
+        }),
+      });
+    await previous
+      .getByRole("button", { name: "Open communication", exact: true })
+      .click({ timeout: 30_000 });
+    const incoming = composer().getByRole("region", {
+      name: "Linked incoming history",
+      exact: true,
+    });
+    const parentSequence = new URL(page.url()).searchParams.get("communication");
+    assert.ok(parentSequence);
+    await composer()
+      .getByRole("button", { name: "Read linked thread", exact: true })
+      .click({ timeout: 30_000 });
+    const humanReply = incoming
+      .getByRole("article")
+      .filter({ hasText: "Human response" });
+    const openReply = humanReply.getByRole("link", {
+      name: "Reply in Communications",
+      exact: true,
+    });
+    const [replyPage] = await Promise.all([
+      context.waitForEvent("page", { timeout: 30_000 }),
+      openReply.click({ timeout: 30_000 }),
+    ]);
+    try {
+      const replyComposer = replyPage.getByRole("region", {
+        name: "Workflow communication composer",
+        exact: true,
+      });
+      const replySubject = replyComposer.getByRole("textbox", {
+        name: "Initial message subject",
+        exact: true,
+      });
+      const replyBody = replyComposer.getByRole("textbox", {
+        name: "Initial message body",
+        exact: true,
+      });
+      await replyBody.waitFor({ timeout: 30_000 });
+      const subject = await replySubject.inputValue();
+      assert.ok(subject.trim());
+      assert.match(
+        await replyComposer.getByText(/^To:/).first().innerText(),
+        /@example\.invalid\b/,
+      );
+      const replyEntry = new URL(replyPage.url());
+      assert.equal(replyEntry.searchParams.get("reply_from"), parentSequence);
+      const thread = replyEntry.searchParams.get("reply_thread");
+      assert.ok(thread);
+      const wording = "Thank you for reviewing the synthetic renewal example.";
+      await replyBody.fill(wording);
+      assert.equal(await replyBody.innerText(), wording);
+      await replyComposer
+        .getByRole("note")
+        .filter({ hasText: /Review the recipients/ })
+        .waitFor();
+      assert.deepEqual(
+        new Set((await sentMessages()).map((entry) => entry.id)),
+        priorReplySends,
+      );
+      const confirm = replyComposer.getByRole("button", { name: "Send", exact: true });
+      const [response] = await Promise.all([
+        replyPage.waitForResponse(
+          (result) => {
+            const request = result.request();
+            return (
+              request.method() === "POST" &&
+              new URL(result.url()).pathname === "/api/gmail-hub/sequences" &&
+              request.postDataJSON()?.action === "send"
+            );
+          },
+          { timeout: 45_000 },
+        ),
+        confirm.click({ timeout: 30_000 }),
+      ]);
+      const accepted = (await response.json()).sequence;
+      assert.ok(response.ok() && accepted?.id);
+      const admitted = response.request().postDataJSON();
+      assert.ok(
+        admitted.reviewedDraftHash && admitted.reviewedTargetHash && admitted.operationId,
+      );
+      const sent = (await sentMessages()).filter(
+        (entry) => !priorReplySends.has(entry.id),
+      );
+      await replyPage.reload({ waitUntil: "domcontentloaded" });
+      const evidence = replyComposer.getByRole("region", {
+        name: "Message evidence",
+        exact: true,
+      });
+      await evidence.waitFor({ timeout: 30_000 });
+      const replayRefused = await confirm.isDisabled();
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await composer()
+        .getByRole("button", { name: "Read linked thread", exact: true })
+        .click({ timeout: 30_000 });
+      await incoming.getByText(wording, { exact: true }).waitFor({ timeout: 30_000 });
+      assert.equal(await humanReply.count(), 1);
+      check(
+        "L07 linked reply: the deliberate send keeps the exact subject, body, linked thread and one durable receipt",
+        sent.length === 1 &&
+          sent[0].subject === subject &&
+          sent[0].text === wording &&
+          sent[0].threadId === thread &&
+          accepted.confirmedCount === 1 &&
+          replayRefused,
+        {
+          exactThread: sent[0]?.threadId === thread,
+          exactBody: sent[0]?.text === wording,
+          accepted: sequenceStanding(accepted),
+          newSends: sent.length,
+          replayRefused,
+        },
+      );
+    } finally {
+      await replyPage.close();
+    }
   } catch (error) {
     check(
       "the guided path ran to its end",
