@@ -10,11 +10,11 @@ The implementation merged through PR #193. PR #194 repaired Tenant offer. The Up
 
 The two Help verification repairs merged through [PR #194](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/pull/194) and [PR #195](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/pull/195). Exact application main `e012bddc42a5370686e114a9bb5f848dbb1b748a` passed all seven jobs in [push CI 42448213069](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/42448213069).
 
-The eight application intakes remain queued for one release. Print-only preflight on `e012bddc42a5370686e114a9bb5f848dbb1b748a` was NOT READY. Resolve the managed Gmail assurance scope before admission. The current standalone checks do not issue a fresh run-bound prerequisite receipt.
+The eight application intakes remain queued for one release. The earlier print-only preflight on `e012bddc42a5370686e114a9bb5f848dbb1b748a` recorded NOT READY. After the governance merge, qualify the exact new main and registered pair, then collect fresh run-bound prerequisites.
 
-Once the holds are resolved, qualify the registered checkout pair, exact queue and release prerequisites under the existing runbook. Prepare one fresh exact-SHA permit and require locked GO before starting one watcher. Verify the captured predecessor, zero-traffic candidate, receipt-bound promotion, observation and independent readbacks.
+Follow the existing runbook after exact-main push CI passes on the governance merge. Prepare one fresh exact-SHA permit and require locked GO before starting one watcher. Verify the captured predecessor, zero-traffic candidate, receipt-bound promotion, observation and independent readbacks.
 
-Release assurance is held by the required managed Gmail profile read under the batch's mailbox restriction. Standalone WSL CLI/ADC, existing Admin session, billing and cost-control checks passed on November 8 UTC. See the [release holds](open-blockers.md#november-7-release-assurance). Staff verdict NOT RUN.
+The owner resolved the Gmail profile scope on November 8 for the existing guarded release check and directed governance to merge first. Standalone WSL CLI/ADC, existing Admin session, billing and cost-control checks passed on November 8 UTC. Staff verdict NOT RUN. See [guarded release assurance](../AGENTS.md#guarded-release-assurance).
 
 ## Authorized outcome
 

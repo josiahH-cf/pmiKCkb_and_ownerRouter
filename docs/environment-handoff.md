@@ -283,7 +283,9 @@ owner adds the canonical `/__/auth/handler` redirect URI (owner step A7), never 
   The shared Linux browser resolver selects the installed executable, reused by the assurance harness.
   Never copy a personal profile or infer a role from cookies. Dedicated verification accounts retain
   server-side business-effect refusal. The owner retains ordinary Admin authority; assurance uses
-  the guarded read-only browser, including state-changing GET refusals.
+  the guarded read-only browser, including state-changing GET refusals. The existing
+  Communications profile read is scoped to the release readiness verdict under
+  [guarded release assurance](../AGENTS.md#guarded-release-assurance).
 - A successful attended browser enrollment writes an opaque local marker. After a challenge the
   watcher waits for that marker to change before another browser auth probe; it cannot loop login.
 

@@ -398,6 +398,32 @@ prepared release permit is a technical interlock, not a repeated consent form; a
 stays bound to the same run/SHA through credential renewal, while a consumed or failed permit never
 authorizes new work.
 
+### Guarded release assurance
+
+On November 8 the owner directed the governance change to merge before the November 7 renewal
+usability release. An authorized application release carries its existing guarded read-only
+assurance on the verified predecessor, recovery target, candidate and canonical origins. Use the
+approved managed Admin session, exact revision and existing guard, policy and time bounds. A current
+owner restriction on a particular check takes precedence until its scope is resolved.
+
+The required Communications check may read the existing managed Gmail profile through
+`GET /api/gmail-hub/connection` under the existing delegation and read gate. This resolves the
+November 7 hold for that check. Retain the readiness verdict and release identity. Keep profile
+responses, mailbox identifiers and provider data private. This scope covers connection readiness.
+Gmail threads, messages, attachments, history, refresh and sync are outside release proof, as are
+drafts, labels, sends and customer schedules.
+
+Product audits and litmus runs use the guarded local rehearsal and synthetic fixtures. Hold automatic
+comparison and use the mail stand-in only for isolated synthetic effects. Keep production desk and
+lease reads within the existing guarded release manifest. Customer effects, provider business writes,
+production test records, signatures and billed lookups stay outside verification. The annual managed
+GET readiness probe keeps its exact candidate binding, invocation claim and PAUSED restoration.
+
+Release authority uses the existing identities, roles, exact Action Registry keys and approved
+configuration. Require exact-main CI, the release lock, one watcher, a fresh permit and locked GO,
+then the existing receipts, observation, readbacks and recovery rules. Staff acceptance requires the
+actual staff session. A change in data, effect, identity or scope requires its own authority.
+
 ## Authentication — approved local host contract (2026-09-08)
 
 The owner explicitly authorized `josiah@pmikcmetro.com` for local unattended development and
