@@ -25,7 +25,7 @@ their own evidence. The current release changes no workflow authority or held cl
 
 Published specification `4caad68df6885d3eed4cb2b3fff7c70e5c96ae15`. Remote main at the start was `bf9753d6af9c7cb90c7a17d3dee0965ae9656095`. The deployed comparison baseline is `ef81b8917209f4eec3f22097142b559f3cce875b`.
 
-The implementation merged through PR #193. The Help verification repair is on `codex/renewal-help-framing-20261108` in `/home/josiah/pmi-kc-work/renewal-usability-20261107`. The exact locally qualified candidate is `f1e2ccc125f91276a8dac5341881b9c361832d87`.
+The implementation merged through PR #193. PR #194 repaired Tenant offer. The Update status verification repair is on `codex/renewal-help-update-status-20261108` in `/home/josiah/pmi-kc-work/renewal-usability-20261107`. The exact locally qualified candidate is `85924209f000eb4b7ff7187c7b28bbec9ddde7f0`.
 
 The S259 browser matrix passed all 14 journeys on that candidate. S252 passed 107 checks and all five numerical budgets. The mailbox-disabled rehearsal passed 17 cases. The full gate passed 11,577 unit cases with 4 existing skips, all 555 Firestore tests, the production build and 65 served E2E cases with 4 skips. The separate core gate passed 46 with 23 explicit no-emulator skips. Required Help matched 27 scenes and accounted for 838 controls with zero missing. The deliberate injection detected the hidden Record work control and 9 material scene changes.
 
@@ -56,14 +56,14 @@ Release admission is held by the required managed Gmail profile read and the sep
 
 These eight verified application intakes await one authorized candidate. Each row names the exact local qualification source. Intake 129 records engineering evidence in the [litmus report](evidence/renewal-usability-litmus-2026-11-07.md).
 
-1. 121 Guided workspace, shared stage and continuity `f1e2ccc125f91276a8dac5341881b9c361832d87`
-2. 122 Exact-cycle retirement and restoration `f1e2ccc125f91276a8dac5341881b9c361832d87`
-3. 123 Monthly working table and exact target counts `f1e2ccc125f91276a8dac5341881b9c361832d87`
-4. 124 Shared collection review and recovery `f1e2ccc125f91276a8dac5341881b9c361832d87`
-5. 125 Sender setup and exact outgoing readiness `f1e2ccc125f91276a8dac5341881b9c361832d87`
-6. 126 Staff and process destinations `f1e2ccc125f91276a8dac5341881b9c361832d87`
-7. 127 Scoped Admin and Connections tasks `f1e2ccc125f91276a8dac5341881b9c361832d87`
-8. 128 Required rendered Help and V2.2 assets `f1e2ccc125f91276a8dac5341881b9c361832d87`
+1. 121 Guided workspace, shared stage and continuity `85924209f000eb4b7ff7187c7b28bbec9ddde7f0`
+2. 122 Exact-cycle retirement and restoration `85924209f000eb4b7ff7187c7b28bbec9ddde7f0`
+3. 123 Monthly working table and exact target counts `85924209f000eb4b7ff7187c7b28bbec9ddde7f0`
+4. 124 Shared collection review and recovery `85924209f000eb4b7ff7187c7b28bbec9ddde7f0`
+5. 125 Sender setup and exact outgoing readiness `85924209f000eb4b7ff7187c7b28bbec9ddde7f0`
+6. 126 Staff and process destinations `85924209f000eb4b7ff7187c7b28bbec9ddde7f0`
+7. 127 Scoped Admin and Connections tasks `85924209f000eb4b7ff7187c7b28bbec9ddde7f0`
+8. 128 Required rendered Help and V2.2 assets `85924209f000eb4b7ff7187c7b28bbec9ddde7f0`
 
 ## Continuation contract
 

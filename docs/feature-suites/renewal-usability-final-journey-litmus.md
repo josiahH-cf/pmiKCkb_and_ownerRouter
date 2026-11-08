@@ -152,7 +152,7 @@ A staff member can explain where they are, what needs attention, what the action
 and how they know it worked. They can recover after an interruption and find related
 information without losing the lease or list context. S252 supplies the staff session.
 
-- Model verdict: PASS on `f1e2ccc1` in the synthetic engineering scope. See the current evidence.
+- Model verdict: PASS on `85924209` in the synthetic engineering scope. See the current evidence.
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**

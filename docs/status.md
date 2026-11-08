@@ -19,7 +19,7 @@ remains No. Human verdict NOT RUN.
 
 Published specification `4caad68df6885d3eed4cb2b3fff7c70e5c96ae15`. Remote main at the start was `bf9753d6af9c7cb90c7a17d3dee0965ae9656095`. The deployed comparison baseline is `ef81b8917209f4eec3f22097142b559f3cce875b`.
 
-The implementation merged through PR #193. The Help verification repair is on `codex/renewal-help-framing-20261108` in `/home/josiah/pmi-kc-work/renewal-usability-20261107`. The exact locally qualified candidate is `f1e2ccc125f91276a8dac5341881b9c361832d87`.
+The implementation merged through PR #193. PR #194 repaired Tenant offer. The Update status verification repair is on `codex/renewal-help-update-status-20261108` in `/home/josiah/pmi-kc-work/renewal-usability-20261107`. The exact locally qualified candidate is `85924209f000eb4b7ff7187c7b28bbec9ddde7f0`.
 
 The S259 browser matrix passed all 14 journeys on that candidate. S252 passed 107 checks and all five numerical budgets. The mailbox-disabled rehearsal passed 17 cases. The full gate passed 11,577 unit cases with 4 existing skips, all 555 Firestore tests, the production build and 65 served E2E cases with 4 skips. The separate core gate passed 46 with 23 explicit no-emulator skips. Required Help matched 27 scenes and accounted for 838 controls with zero missing. The deliberate injection detected the hidden Record work control and 9 material scene changes.
 
