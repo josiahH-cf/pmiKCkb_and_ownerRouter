@@ -275,7 +275,10 @@ The viewport-anchor sweep `20261108T014425Z-e80564a5` reproduced the committed
 pixels at each of five starting positions with each of three nearby frame
 positions. The capture uses the middle position, preserves the original
 one-pixel framing band, and keeps the committed scene bytes and comparison
-thresholds.
+thresholds. The readback probe `20261108T014924Z-1274c463` matched all eight
+shifted images. It also measured a late 82-pixel layout expansion above the
+first image. The capture checks the frame after each paint and reframes an
+unstable section within three attempts.
 
 ## Final observations
 

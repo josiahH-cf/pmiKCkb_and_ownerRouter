@@ -87,10 +87,7 @@ const FRAME_WORKSPACE_SECTION = new Function(
   return new Promise((resolve) => {
     requestAnimationFrame(() => {
       window.scrollTo({ top: destination, behavior: "instant" });
-      requestAnimationFrame(() => {
-        const landed = heading.getBoundingClientRect().top;
-        resolve(landed >= top && landed < top + 1);
-      });
+      resolve(top);
     });
   });`,
 );
@@ -523,11 +520,9 @@ async function captureScene(scene) {
       );
     } else if (framed) await region.first().scrollIntoViewIfNeeded();
     await quiet(page);
-    if (scene.id === "lease-details" || scene.id === "tenant-offer")
+    if (scene.id === "lease-details")
       assert.ok(
-        await region
-          .first()
-          .evaluate(FRAME_WORKSPACE_SECTION, scene.id === "tenant-offer" ? 0.875 : null),
+        await region.first().evaluate(FRAME_WORKSPACE_SECTION, null),
         `The ${scene.id} heading must frame below the settled toolbar.`,
       );
     verifySearchTime?.();
@@ -560,13 +555,32 @@ async function captureScene(scene) {
     }
     assert.ok(verifiedText.every((box) => box.y >= 0 && box.y < scene.viewport.height));
     const png =
-      scene.frame === "region"
-        ? await region.first().screenshot({ animations: "disabled", caret: "hide" })
-        : await page.screenshot({ animations: "disabled", caret: "hide" });
+      scene.id === "tenant-offer"
+        ? await captureTenantOffer(page, region.first())
+        : scene.frame === "region"
+          ? await region.first().screenshot({ animations: "disabled", caret: "hide" })
+          : await page.screenshot({ animations: "disabled", caret: "hide" });
     return { png, verifiedText, verifiedIdentifier };
   } finally {
     await context.close();
   }
+}
+
+// The first screenshot commits the pending layout. If an upstream read moved the heading
+// during that paint, reframe it before accepting an image of the settled section.
+async function captureTenantOffer(page, heading) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const frameTop = await heading.evaluate(FRAME_WORKSPACE_SECTION, 0.875);
+    assert.equal(
+      typeof frameTop,
+      "number",
+      "Tenant offer needs its Full workspace frame.",
+    );
+    const png = await page.screenshot({ animations: "disabled", caret: "hide" });
+    const { top } = await heading.evaluate(PLACEMENT);
+    if (top >= frameTop && top < frameTop + 1) return png;
+  }
+  throw new Error("Tenant offer must stay framed below its settled toolbar.");
 }
 
 // Check each generated identifier against the exact seed or serving SHA before excluding its
