@@ -131,6 +131,67 @@ describe("batched complete-cohort DOM evidence", () => {
   });
 });
 
+describe("renewal usability cycle evidence in the complete desk table", () => {
+  function cycleFixture() {
+    const { page, expected } = fixture(3, false);
+    document.body.insertAdjacentHTML(
+      "afterbegin",
+      '<nav data-renewal-desk-view="table"><a href="/lease-renewal/live/desk">Working batch</a><a aria-current="page" href="/lease-renewal/live/desk?v=2&amp;scope=all">All leases and filters</a></nav>',
+    );
+    const rows = [
+      { state: "active", label: null },
+      { state: "retired", label: "Retired: Recorded by staff" },
+      { state: "unavailable", label: "Retirement status unavailable" },
+    ] as const;
+    for (const [index, row] of [
+      ...document.querySelectorAll("tr[data-lease-id]"),
+    ].entries()) {
+      const cycle = rows[index];
+      row.setAttribute("data-cycle-disposition", cycle.state);
+      if (cycle.label !== null) {
+        const label = document.createElement("span");
+        label.className = "renewal-td-secondary";
+        label.setAttribute("data-renewal-field", "cycle-disposition");
+        label.textContent = cycle.label;
+        row.querySelector("th")!.appendChild(label);
+      }
+    }
+    return () =>
+      readRowsFromPage(
+        page,
+        "https://candidate.example",
+        expected.map((row, index) => ({ ...row, cycleRetirement: rows[index] })),
+        null,
+        new AbortController().signal,
+        { requiresRenewalUsability: true },
+      );
+  }
+
+  it("retains every row when the active cycle has no retirement label", async () => {
+    const result = await cycleFixture()();
+    expect(result.rows).toHaveLength(3);
+    expect(result.fieldMismatches).toBe(0);
+    expect(result.invalidDestinations).toBe(0);
+  });
+
+  it("counts missing, duplicate and unexpected label evidence without discarding the rows", async () => {
+    const read = cycleFixture();
+    const [retired, unavailable] = document.querySelectorAll(
+      '[data-renewal-field="cycle-disposition"]',
+    );
+    retired.parentElement!.appendChild(retired.cloneNode(true));
+    unavailable.remove();
+    const active = retired.cloneNode(true) as HTMLElement;
+    active.textContent = "Retirement status unavailable";
+    document.querySelector("tr[data-cycle-disposition='active'] th")!.appendChild(active);
+
+    const result = await read();
+    expect(result.rows).toHaveLength(3);
+    expect(result.fieldMismatches).toBe(3);
+    expect(result.invalidDestinations).toBe(0);
+  });
+});
+
 describe("S156 guidance contract marker on each rendered row", () => {
   const MARKER = "s156-staff-lane";
 

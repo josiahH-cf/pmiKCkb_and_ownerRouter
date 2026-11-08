@@ -2229,17 +2229,14 @@ export async function readRowsFromPage(
           : expectedByLease
       ).get(leaseId);
       if (guidance.requiresRenewalUsability && leaseId) {
+        const cycle = expected?.cycleRetirement;
         const state = await row.getAttribute("data-cycle-disposition");
-        const label =
-          (
-            await leaseCell
-              .locator('[data-renewal-field="cycle-disposition"]')
-              .textContent()
-          )?.trim() ?? null;
+        const label = leaseCell.locator('[data-renewal-field="cycle-disposition"]');
         if (
-          !expected?.cycleRetirement ||
-          state !== expected.cycleRetirement.state ||
-          label !== expected.cycleRetirement.label
+          !cycle ||
+          state !== cycle.state ||
+          (await label.count()) !== (cycle.label === null ? 0 : 1) ||
+          (cycle.label !== null && (await label.textContent())?.trim() !== cycle.label)
         )
           rowFieldMismatches += 1;
       }
