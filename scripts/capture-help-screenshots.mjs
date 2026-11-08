@@ -59,19 +59,37 @@ const SCROLL_TO_TOP = new Function(
   window.scrollBy(0, -(cover + 12));`,
 );
 
-// Anchor the settled Full section to an integer position below its own toolbar. In this long
-// workspace, chaining native alignment and scrollBy can leave otherwise identical captures one
-// pixel apart. This changes the framing only. The comparator still checks every scene pixel.
+// Align the settled Full section below its own toolbar. Tenant offer also needs a fixed
+// subpixel position so Chromium rounds its heading and button text consistently. Settle the
+// normal-flow margin within half a CSS pixel and hold the scroll anchor for this capture.
 const FRAME_WORKSPACE_SECTION = new Function(
   "heading",
+  "paintPhase",
   `const toolbar = heading.closest(".renewal-workspace-shell")
     ?.querySelector(".renewal-workspace-toolbar");
   if (!toolbar) return false;
   const top = Math.ceil(toolbar.getBoundingClientRect().bottom) + 12;
-  const destination = Math.floor(window.scrollY + heading.getBoundingClientRect().top - top);
-  window.scrollTo({ top: destination, behavior: "instant" });
-  const landed = heading.getBoundingClientRect().top;
-  return landed >= top && landed < top + 1;`,
+  const documentTop = window.scrollY + heading.getBoundingClientRect().top;
+  if (paintPhase === null) {
+    window.scrollTo({ top: Math.floor(documentTop - top), behavior: "instant" });
+    const landed = heading.getBoundingClientRect().top;
+    return landed >= top && landed < top + 1;
+  }
+
+  const section = heading.closest("section");
+  if (!section) return false;
+  const margin = parseFloat(getComputedStyle(section).marginBlockStart);
+  if (!Number.isFinite(margin)) return false;
+  const paintTop = top + paintPhase;
+  const destination = Math.round(documentTop - paintTop);
+  document.documentElement.style.overflowAnchor = "none";
+  section.style.marginBlockStart = (margin + destination + paintTop - documentTop) + "px";
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: destination, behavior: "instant" });
+      resolve(top);
+    });
+  });`,
 );
 
 // A scene with `align: "center"` centers its region in the viewport instead.
@@ -471,6 +489,18 @@ async function captureScene(scene) {
         .getByRole("group", { name: "Pricing basis", exact: true })
         .waitFor({ state: "visible" });
     }
+    if (scene.id === "tenant-offer") {
+      // Both message panels settle after the Full view mounts. The owner panel above this
+      // heading can change the page height while the tenant panel is already visible.
+      await Promise.all(
+        ["owner", "tenant"].map((section) =>
+          page
+            .locator("#renewal-section-" + section)
+            .getByRole("button", { name: "Copy plain text", exact: true })
+            .waitFor({ state: "visible" }),
+        ),
+      );
+    }
     const framed = scene.region && scene.region !== "page";
     if (framed && scene.frame === "viewport") {
       // Frame the region, let the page settle and confirm it is still where it was put; a late
@@ -490,9 +520,9 @@ async function captureScene(scene) {
       );
     } else if (framed) await region.first().scrollIntoViewIfNeeded();
     await quiet(page);
-    if (scene.id === "lease-details" || scene.id === "tenant-offer")
+    if (scene.id === "lease-details")
       assert.ok(
-        await region.first().evaluate(FRAME_WORKSPACE_SECTION),
+        await region.first().evaluate(FRAME_WORKSPACE_SECTION, null),
         `The ${scene.id} heading must frame below the settled toolbar.`,
       );
     verifySearchTime?.();
@@ -525,13 +555,32 @@ async function captureScene(scene) {
     }
     assert.ok(verifiedText.every((box) => box.y >= 0 && box.y < scene.viewport.height));
     const png =
-      scene.frame === "region"
-        ? await region.first().screenshot({ animations: "disabled", caret: "hide" })
-        : await page.screenshot({ animations: "disabled", caret: "hide" });
+      scene.id === "tenant-offer"
+        ? await captureTenantOffer(page, region.first())
+        : scene.frame === "region"
+          ? await region.first().screenshot({ animations: "disabled", caret: "hide" })
+          : await page.screenshot({ animations: "disabled", caret: "hide" });
     return { png, verifiedText, verifiedIdentifier };
   } finally {
     await context.close();
   }
+}
+
+// The first screenshot commits the pending layout. If an upstream read moved the heading
+// during that paint, reframe it before accepting an image of the settled section.
+async function captureTenantOffer(page, heading) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const frameTop = await heading.evaluate(FRAME_WORKSPACE_SECTION, 0.875);
+    assert.equal(
+      typeof frameTop,
+      "number",
+      "Tenant offer needs its Full workspace frame.",
+    );
+    const png = await page.screenshot({ animations: "disabled", caret: "hide" });
+    const { top } = await heading.evaluate(PLACEMENT);
+    if (top >= frameTop && top < frameTop + 1) return png;
+  }
+  throw new Error("Tenant offer must stay framed below its settled toolbar.");
 }
 
 // Check each generated identifier against the exact seed or serving SHA before excluding its
