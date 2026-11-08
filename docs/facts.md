@@ -1,6 +1,6 @@
 # PMI KC facts
 
-Last reconciled: 2026-11-07 (one-path release and independent readback).
+Last reconciled: 2026-11-08 (guarded release preparation).
 
 This ledger contains present truth. Historical detail is recoverable in Git and immutable run
 evidence; an earlier receipt never authorizes a new attempt.
@@ -18,6 +18,15 @@ The S259 browser matrix passed all 14 journeys on that candidate. S252 passed 10
 The bare Renewals desk now opens the monthly table and preserves the full table, saved views and exact return. The lease shares one stage with the desk and Dashboard. Guided and Full retain the scoped controls and old Focus links. Working text is eligible for restoration when its tab, actor, lease and cycle match. The older unscoped storage key has no verifiable actor and cycle. The [litmus report](evidence/renewal-usability-litmus-2026-11-07.md) preserves the exact runs, earlier failures and evidence gaps.
 
 The owner resolved the Gmail profile scope on November 8 for the existing guarded release check and directed governance to merge first. Standalone WSL CLI/ADC, existing Admin session, billing and cost-control checks passed on November 8 UTC. Staff verdict NOT RUN. See [guarded release assurance](../AGENTS.md#guarded-release-assurance).
+
+Governance PR #196 merged before release admission at `48b5540f`. All seven exact-main jobs
+passed in `42468821789`. Run `bbc5d5cf-0baa-4dc9-bd34-3b20d8b726e7` stopped before recovery
+dispatch on `recovery_unmapped_configuration_field`. The serving revision returned two new
+output-only fields. The repair excludes exactly `containerStatuses` and container `buildInfo`
+from runtime comparison and recovery requests. The fail-first regression and 288 focused checks
+passed after the repair. A GET-only check verified the same predecessor runtime template and
+pinned digest. Both revisions proposed by the stopped run were absent. See the
+[release evidence](evidence/renewal-usability-litmus-2026-11-07.md#github-and-release-readiness).
 
 The November 8 CLI readback at 05:05:35 UTC confirmed the Ready revision
 `pmi-kc-app-rmw65wgt2-8c8249a0547c` at 100% canonical traffic and source

@@ -14,7 +14,10 @@ import {
   exactExternalReceiptPath,
   assertRecordedPredecessorBaseline,
 } from "./production-assurance-receipts.mjs";
-import { fingerprintRevisionRuntimeConfiguration } from "../lib/production-assurance/revision-fingerprint.mjs";
+import {
+  fingerprintRevisionRuntimeConfiguration,
+  revisionContainerConfiguration,
+} from "../lib/production-assurance/revision-fingerprint.mjs";
 import {
   REVIEWED_CANDIDATE_SHEET_WRITEBACK,
   SHEET_WRITEBACK_FLAG as FLAG,
@@ -90,6 +93,7 @@ const OUTPUT_KEYS = new Set([
   "service",
   "reconciling",
   "conditions",
+  "containerStatuses",
   "observedGeneration",
   "logUri",
   "satisfiesPzs",
@@ -493,7 +497,7 @@ export function predecessorActualTemplate(source, expectedRevision, imageDigests
     throw new Error("recovery_predecessor_sheet_writeback_unreadable");
   const expected = clone(source);
   expected.containers = expected.containers.map((container, index) => ({
-    ...container,
+    ...revisionContainerConfiguration(container),
     image: imageDigests[index],
   }));
   const template = Object.fromEntries(
