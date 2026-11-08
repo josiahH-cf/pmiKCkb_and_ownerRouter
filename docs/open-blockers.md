@@ -133,11 +133,13 @@ Gmail mailbox profile read. The November 7 execution instruction excludes mailbo
 verification. This holds dependent release assurance under the existing runbook. Preserve the
 required check. Synthetic engineering work can continue under the existing effect limits.
 
-The 19:20 UTC Cloud Run metadata read encountered Google reauthentication. The approved
-`npm run auth:ensure -- --unattended` refresh confirmed both WSL CLI and ADC are held
-for reauthentication. GitHub CLI remained ready. The owner enrollment command it reported is
-`npm run auth:enroll:wsl -- --attended --account=josiah@pmikcmetro.com`. The earlier
-16:31 UTC production metadata read is the last verified serving observation.
+The November 7 19:20 UTC Cloud Run metadata read and unattended CLI/ADC refresh
+encountered Google reauthentication. The November 8 scoped unattended refresh at
+05:02:47 UTC verified both tokens using the approved WSL stores. At 05:05:32 UTC,
+the existing managed Admin session passed its separate authentication check. The
+05:05:35 UTC CLI readback matched the serving revision, enabled billing and exact
+cost controls. These standalone observations do not issue a run-bound release receipt.
+The mailbox scope remains the external release hold.
 
 ## Precise client unblockers
 

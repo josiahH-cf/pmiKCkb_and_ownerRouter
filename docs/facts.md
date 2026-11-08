@@ -17,7 +17,13 @@ The S259 browser matrix passed all 14 journeys on that candidate. S252 passed 10
 
 The bare Renewals desk now opens the monthly table and preserves the full table, saved views and exact return. The lease shares one stage with the desk and Dashboard. Guided and Full retain the scoped controls and old Focus links. Working text is eligible for restoration when its tab, actor, lease and cycle match. The older unscoped storage key has no verifiable actor and cycle. The [litmus report](evidence/renewal-usability-litmus-2026-11-07.md) preserves the exact runs, earlier failures and evidence gaps.
 
-Release admission is held by the required managed Gmail profile read and the separate Google CLI/ADC reauthentication challenge. See the [release holds](open-blockers.md#november-7-release-assurance). Staff verdict NOT RUN.
+Release assurance is held by the required managed Gmail profile read under the batch's mailbox restriction. Standalone WSL CLI/ADC, existing Admin session, billing and cost-control checks passed on November 8 UTC. See the [release holds](open-blockers.md#november-7-release-assurance). Staff verdict NOT RUN.
+
+The November 8 CLI readback at 05:05:35 UTC confirmed the Ready revision
+`pmi-kc-app-rmw65wgt2-8c8249a0547c` at 100% canonical traffic and source
+`ef81b8917209f4eec3f22097142b559f3cce875b`. Production/Live, Demo=false, Sheet=true,
+RentCast allowance 50, 54 environment keys, five secret bindings and the managed
+runtime were present. Billing and the existing exact cost-control predicates passed.
 
 ## November 7 renewal one-path delivery
 

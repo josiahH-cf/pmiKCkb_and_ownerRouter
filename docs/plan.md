@@ -10,11 +10,11 @@ The implementation merged through PR #193. PR #194 repaired Tenant offer. The Up
 
 The two Help verification repairs merged through [PR #194](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/pull/194) and [PR #195](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/pull/195). Exact application main `e012bddc42a5370686e114a9bb5f848dbb1b748a` passed all seven jobs in [push CI 42448213069](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/42448213069).
 
-The eight application intakes remain queued for one release. Print-only preflight on `e012bddc42a5370686e114a9bb5f848dbb1b748a` was NOT READY. The managed Gmail assurance scope and attended Google CLI/ADC enrollment require owner action before fresh release prerequisites can be collected.
+The eight application intakes remain queued for one release. Print-only preflight on `e012bddc42a5370686e114a9bb5f848dbb1b748a` was NOT READY. Resolve the managed Gmail assurance scope before admission. The current standalone checks do not issue a fresh run-bound prerequisite receipt.
 
 Once the holds are resolved, qualify the registered checkout pair, exact queue and release prerequisites under the existing runbook. Prepare one fresh exact-SHA permit and require locked GO before starting one watcher. Verify the captured predecessor, zero-traffic candidate, receipt-bound promotion, observation and independent readbacks.
 
-Release admission is held by the required managed Gmail profile read and the separate Google CLI/ADC reauthentication challenge. See the [release holds](open-blockers.md#november-7-release-assurance). Staff verdict NOT RUN.
+Release assurance is held by the required managed Gmail profile read under the batch's mailbox restriction. Standalone WSL CLI/ADC, existing Admin session, billing and cost-control checks passed on November 8 UTC. See the [release holds](open-blockers.md#november-7-release-assurance). Staff verdict NOT RUN.
 
 ## Authorized outcome
 

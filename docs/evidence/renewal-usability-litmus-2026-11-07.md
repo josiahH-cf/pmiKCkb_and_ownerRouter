@@ -434,13 +434,21 @@ The application PR #193 merged as `e59d5505f24149afbf3034092db29902f14e8af4` aft
 
 PR #195 passed all seven jobs in [exact-head CI 42447354666](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/42447354666) on head `be4a30ba5631bc4a671284eda8780fc10195fff3` and base `322cdb48ba656d2b441c948b8306e1a0d6fc1bda`. Its tested tree matched the resulting merge. The two Help verification repairs merged through [PR #194](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/pull/194) and [PR #195](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/pull/195). Exact application main `e012bddc42a5370686e114a9bb5f848dbb1b748a` passed all seven jobs in [push CI 42448213069](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/42448213069).
 
-Print-only preflight for `e012bddc42a5370686e114a9bb5f848dbb1b748a` verified the eight ordered intakes, registered native and Windows checkout alignment, clean trees, reviewed environment flags and free release lock. Its verdict was NOT READY. The exact-run permit and fresh release prerequisites are held. The required managed Gmail profile assurance and the separate CLI/ADC reauthentication challenge are recorded below.
+Print-only preflight for `e012bddc42a5370686e114a9bb5f848dbb1b748a` verified the eight ordered intakes, registered native and Windows checkout alignment, clean trees, reviewed environment flags and free release lock. Its verdict was NOT READY. The exact-run permit and fresh release prerequisites are held. The required managed Gmail profile assurance remains held. The November 7 CLI/ADC
+challenge cleared on the scoped unattended refresh at 05:02:47 UTC on November 8.
+The existing managed Admin session verified at 05:05:32 UTC. Cloud Run CLI metadata
+at 05:05:35 UTC read Ready and 100% canonical traffic on
+`pmi-kc-app-rmw65wgt2-8c8249a0547c` at
+`ef81b8917209f4eec3f22097142b559f3cce875b`. It matched 54 environment keys, five
+secret bindings, the managed runtime, Production/Live, Demo=false, Sheet=true and
+RentCast allowance 50. Billing and exact cost-control predicates passed. These
+standalone reads remain separate from fresh exact-run prerequisites.
 
 ## Remaining blockers
 
 The separate staff session, physical device and assistive technology observations remain open. The run supplies synthetic role, responsive browser and provider-adapter evidence. The historical S254 L55 No retains its original source and verdict.
 
-Required release assurance includes a live managed Gmail profile read. The batch excludes mailbox access as verification. The WSL Google CLI and ADC also require attended reauthentication. The production readback at 16:31 UTC remains the last successful serving observation. See the [release holds](../open-blockers.md#november-7-release-assurance).
+Required release assurance includes a live managed Gmail profile read. The batch excludes mailbox access as verification. The November 8 CLI/ADC and existing Admin session checks passed. The latest serving and cost readbacks are above. See the [release holds](../open-blockers.md#november-7-release-assurance).
 
 ## Run 1
 
