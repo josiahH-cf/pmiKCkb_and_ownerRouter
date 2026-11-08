@@ -1,6 +1,6 @@
 # November 7 renewal usability litmus report, 2026-11-07
 
-Engineering qualification passed on `85924209f000eb4b7ff7187c7b28bbec9ddde7f0`. Required GitHub CI qualifies the published head and main separately.
+Engineering qualification passed on `85924209f000eb4b7ff7187c7b28bbec9ddde7f0`. Exact-head PR CI and exact-main push CI passed on the final application tree.
 
 The published specification is
 `4caad68df6885d3eed4cb2b3fff7c70e5c96ae15`, and the main branch fetched for the implementation
@@ -427,6 +427,14 @@ The final clean candidate `85924209f000eb4b7ff7187c7b28bbec9ddde7f0` repeated th
 The exact canonical run `canonical-85924209-20261108T033310Z` and core run `e2e-core-85924209-20261108T035551Z` exited zero with their tracked source unchanged. The full gate passed 11,577 unit cases with four existing skips, all 555 Firestore tests, the production build and 65 served E2E cases with four skips. The separate core gate passed 46 with 23 explicit no-emulator skips. Required Help matched 27 scenes and accounted for 838 controls with zero missing. The local isolation wrapper used a 45-minute outer limit, a 15-minute per-lane limit and four unit workers. The required test and browser limits stayed in force.
 
 The deliberate derivative `7ee47d11693268f271ddf29684b5018187287d63` in `20261108T042322Z-7ee47d11` failed the required Help gate as expected. The disposable derivative refused the hidden Record work control and 9 material scene changes. Cleanup left the candidate clean. The earlier CI failures and Runs 7 through 9 retain their original sources and verdicts. The disposable focused run `20261108T015439Z-c517ac34` failed six uncorrected frames and matched all eight corrected frames pixel for pixel. A forced 82-pixel viewport movement after the first paint required a second capture, which matched exactly. The earlier margin injector `20261108T015237Z-39c87951` did not move the viewport and did not prove that retry. The disposable two-scene run `20261108T033130Z-b944d1f9` rejected the deliberately shifted Update status frame, matched all four corrected starting positions and passed Tenant offer.
+
+## GitHub and release readiness
+
+The application PR #193 merged as `e59d5505f24149afbf3034092db29902f14e8af4` after all seven exact-head jobs passed in [42432583729](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/42432583729). Its [exact-main run 42433488323](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/42433488323) retained the Tenant offer failure. The PR #194 repair merged as `322cdb48ba656d2b441c948b8306e1a0d6fc1bda` after all seven jobs passed in [42440644475](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/42440644475). Its [exact-main run 42441713371](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/42441713371) retained the Update status failure.
+
+PR #195 passed all seven jobs in [exact-head CI 42447354666](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/42447354666) on head `be4a30ba5631bc4a671284eda8780fc10195fff3` and base `322cdb48ba656d2b441c948b8306e1a0d6fc1bda`. Its tested tree matched the resulting merge. The two Help verification repairs merged through [PR #194](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/pull/194) and [PR #195](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/pull/195). Exact application main `e012bddc42a5370686e114a9bb5f848dbb1b748a` passed all seven jobs in [push CI 42448213069](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/42448213069).
+
+Print-only preflight for `e012bddc42a5370686e114a9bb5f848dbb1b748a` verified the eight ordered intakes, registered native and Windows checkout alignment, clean trees, reviewed environment flags and free release lock. Its verdict was NOT READY. The exact-run permit and fresh release prerequisites are held. The required managed Gmail profile assurance and the separate CLI/ADC reauthentication challenge are recorded below.
 
 ## Remaining blockers
 

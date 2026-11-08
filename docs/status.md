@@ -21,9 +21,11 @@ Published specification `4caad68df6885d3eed4cb2b3fff7c70e5c96ae15`. Remote main 
 
 The implementation merged through PR #193. PR #194 repaired Tenant offer. The Update status verification repair is on `codex/renewal-help-update-status-20261108` in `/home/josiah/pmi-kc-work/renewal-usability-20261107`. The exact locally qualified candidate is `85924209f000eb4b7ff7187c7b28bbec9ddde7f0`.
 
+The two Help verification repairs merged through [PR #194](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/pull/194) and [PR #195](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/pull/195). Exact application main `e012bddc42a5370686e114a9bb5f848dbb1b748a` passed all seven jobs in [push CI 42448213069](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/42448213069).
+
 The S259 browser matrix passed all 14 journeys on that candidate. S252 passed 107 checks and all five numerical budgets. The mailbox-disabled rehearsal passed 17 cases. The full gate passed 11,577 unit cases with 4 existing skips, all 555 Firestore tests, the production build and 65 served E2E cases with 4 skips. The separate core gate passed 46 with 23 explicit no-emulator skips. Required Help matched 27 scenes and accounted for 838 controls with zero missing. The deliberate injection detected the hidden Record work control and 9 material scene changes.
 
-Qualify the pull request on its exact head and current base. After verified merge, record green push CI on the exact main commit. Leave the eight application intakes queued for one release while the recorded prerequisites are held.
+The eight application intakes remain queued for one release. Print-only preflight on `e012bddc42a5370686e114a9bb5f848dbb1b748a` was NOT READY. The managed Gmail assurance scope and attended Google CLI/ADC enrollment require owner action before fresh release prerequisites can be collected.
 
 Release admission is held by the required managed Gmail profile read and the separate Google CLI/ADC reauthentication challenge. See the [release holds](open-blockers.md#november-7-release-assurance). Staff verdict NOT RUN. The [litmus report](evidence/renewal-usability-litmus-2026-11-07.md) preserves the exact runs, earlier failures and evidence gaps.
 

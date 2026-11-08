@@ -8,7 +8,9 @@ Published specification `4caad68df6885d3eed4cb2b3fff7c70e5c96ae15`. Remote main 
 
 The implementation merged through PR #193. PR #194 repaired Tenant offer. The Update status verification repair is on `codex/renewal-help-update-status-20261108` in `/home/josiah/pmi-kc-work/renewal-usability-20261107`. The exact locally qualified candidate is `85924209f000eb4b7ff7187c7b28bbec9ddde7f0`.
 
-Qualify the pull request on its exact head and current base. After verified merge, record green push CI on the exact main commit. Leave the eight application intakes queued for one release while the recorded prerequisites are held.
+The two Help verification repairs merged through [PR #194](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/pull/194) and [PR #195](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/pull/195). Exact application main `e012bddc42a5370686e114a9bb5f848dbb1b748a` passed all seven jobs in [push CI 42448213069](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/42448213069).
+
+The eight application intakes remain queued for one release. Print-only preflight on `e012bddc42a5370686e114a9bb5f848dbb1b748a` was NOT READY. The managed Gmail assurance scope and attended Google CLI/ADC enrollment require owner action before fresh release prerequisites can be collected.
 
 Once the holds are resolved, qualify the registered checkout pair, exact queue and release prerequisites under the existing runbook. Prepare one fresh exact-SHA permit and require locked GO before starting one watcher. Verify the captured predecessor, zero-traffic candidate, receipt-bound promotion, observation and independent readbacks.
 
