@@ -388,8 +388,15 @@ paused `pmi-kc-communication-worker-readiness` Scheduler job uses only GET and t
 runtime service identity. A unique durable invocation is bound to the candidate origin/revision;
 only its exact successful readiness log and a read-back PAUSED/restored canonical target pass. The harness briefly enables only this annual GET job after verifying its calendar/provider next run is beyond the bounded probe/cleanup window, invokes once and restores PAUSED. No
 sequence is constructed, occurrence claimed, customer message sent or test production record made.
-A failed/uncertain invocation remains consumed and holds for exact reconciliation. The ordinary
-Communications browser canary also requires its real read-only managed-mailbox connection.
+A failed or uncertain invocation remains consumed and holds for exact reconciliation.
+
+The guarded Communications browser must verify `connected` through
+`GET /api/gmail-hub/connection` using the existing managed Admin session and delegation. This reads
+Gmail profile metadata through the ordinary app gate. Record the readiness verdict and exact revision
+without retaining the profile response or mailbox identifiers. This check has the same origin,
+browser guard and time bounds as the existing release procedure. Thread, message, attachment,
+history and refresh operations remain outside release assurance. Synthetic product journeys keep
+their existing effect rules. See [guarded release assurance](../AGENTS.md#guarded-release-assurance).
 
 The October 20 owner amendment supersedes the October 16 renewal-send refusal for the existing
 exact staff-confirmed renewal Send, Schedule, Resume and linked-reply contracts. Fresh reviewed

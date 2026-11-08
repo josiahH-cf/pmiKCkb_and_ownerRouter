@@ -128,10 +128,11 @@ with visible missing-value markers.
 
 ## November 7 release assurance
 
-The required Communications canary checks `/api/gmail-hub/connection`, which calls the managed
-Gmail mailbox profile read. The November 7 execution instruction excludes mailbox access as
-verification. This holds dependent release assurance under the existing runbook. Preserve the
-required check. Synthetic engineering work can continue under the existing effect limits.
+The November 7 mailbox restriction held the required managed Gmail profile check. The owner
+resolved that scope on November 8 and directed governance to merge before deployment. The existing
+guarded `GET /api/gmail-hub/connection` is authorized for release readiness. See
+[guarded release assurance](../AGENTS.md#guarded-release-assurance). Product audits and litmus runs
+remain synthetic. Fresh admission, receipts, observation and final readbacks are still required.
 
 The November 7 19:20 UTC Cloud Run metadata read and unattended CLI/ADC refresh
 encountered Google reauthentication. The November 8 scoped unattended refresh at
@@ -139,7 +140,7 @@ encountered Google reauthentication. The November 8 scoped unattended refresh at
 the existing managed Admin session passed its separate authentication check. The
 05:05:35 UTC CLI readback matched the serving revision, enabled billing and exact
 cost controls. These standalone observations do not issue a run-bound release receipt.
-The mailbox scope remains the external release hold.
+The dated reads above record operator readiness before fresh admission.
 
 ## Precise client unblockers
 
