@@ -388,7 +388,9 @@ paused `pmi-kc-communication-worker-readiness` Scheduler job uses only GET and t
 runtime service identity. A unique durable invocation is bound to the candidate origin/revision;
 only its exact successful readiness log and a read-back PAUSED/restored canonical target pass. The harness briefly enables only this annual GET job after verifying its calendar/provider next run is beyond the bounded probe/cleanup window, invokes once and restores PAUSED. No
 sequence is constructed, occurrence claimed, customer message sent or test production record made.
-A failed or uncertain invocation remains consumed and holds for exact reconciliation.
+Transient Cloud Logging read failures retry within the original 90-second probe window. The
+read must still find the exact claim and the scheduler target checks still apply. A failed or
+uncertain invocation remains consumed and holds for exact reconciliation.
 
 The guarded Communications browser must verify `connected` through
 `GET /api/gmail-hub/connection` using the existing managed Admin session and delegation. This reads

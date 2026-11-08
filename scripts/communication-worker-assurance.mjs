@@ -18,6 +18,18 @@ const BASE = "https://pmi-kc-app-kq6wuvpiva-uc.a.run.app";
 const PATH = "/api/gmail-hub/sequence-worker";
 const ACCOUNT = "pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com";
 const JOB = `projects/${PROJECT}/locations/us-central1/jobs/pmi-kc-communication-worker-readiness`;
+const LOGGING_READ = "https://logging.googleapis.com/v2/entries:list";
+const RETRYABLE_LOGGING_STATUS = new Set([408, 429, 500, 502, 503, 504]);
+
+function isTransientLoggingRead(error) {
+  const status = error?.response?.status;
+  return (
+    RETRYABLE_LOGGING_STATUS.has(status) ||
+    (status == null &&
+      error?.message?.startsWith(`request to ${LOGGING_READ} failed, reason: `))
+  );
+}
+
 function canonical(value) {
   if (Array.isArray(value)) return value.map(canonical);
   if (value && typeof value === "object")
@@ -149,14 +161,14 @@ export async function verifyCommunicationWorkerAssurance(
       scopes: ["https://www.googleapis.com/auth/cloud-platform"],
     }).getClient());
   const url = "https://cloudscheduler.googleapis.com/v1/" + JOB;
-  const request = async (method, url, data) =>
+  const request = async (method, url, data, timeout = 30_000) =>
     (
       await client.request({
         method,
         url,
         ...(data === undefined ? {} : { data }),
         retry: false,
-        timeout: 30_000,
+        timeout,
       })
     ).data;
   const original = await request("GET", url);
@@ -235,18 +247,29 @@ export async function verifyCommunicationWorkerAssurance(
     await request("POST", url + ":run", {});
     state.phase = "awaiting_readback";
     save(file, state);
-    while (now() - started < deadlineMs) {
-      const entries = await request(
-        "POST",
-        "https://logging.googleapis.com/v2/entries:list",
-        {
-          resourceNames: [`projects/${PROJECT}`],
-          pageSize: 10,
-          orderBy: "timestamp desc",
-          filter: `resource.type="cloud_run_revision" AND resource.labels.service_name="pmi-kc-app" AND resource.labels.revision_name="${cp.revision}" AND jsonPayload.event="communication_worker_readiness" AND jsonPayload.probeId="${state.probeId}" AND timestamp>="${state.startedAt}"`,
-        },
-      );
-      const ready = (entries.entries ?? []).find(
+    const readbackTimeLeft = () => started + deadlineMs - now();
+    let remaining;
+    while ((remaining = readbackTimeLeft()) > 0) {
+      let entries;
+      try {
+        entries = await request(
+          "POST",
+          LOGGING_READ,
+          {
+            resourceNames: [`projects/${PROJECT}`],
+            pageSize: 10,
+            orderBy: "timestamp desc",
+            filter: `resource.type="cloud_run_revision" AND resource.labels.service_name="pmi-kc-app" AND resource.labels.revision_name="${cp.revision}" AND jsonPayload.event="communication_worker_readiness" AND jsonPayload.probeId="${state.probeId}" AND timestamp>="${state.startedAt}"`,
+          },
+          Math.min(30_000, remaining),
+        );
+      } catch (error) {
+        // Retry the read-only lookup within the original window after a transport failure.
+        if (!isTransientLoggingRead(error)) throw error;
+      }
+      remaining = readbackTimeLeft();
+      if (remaining <= 0) break;
+      const ready = (entries?.entries ?? []).find(
         (e) =>
           e.jsonPayload?.ready === true &&
           e.jsonPayload?.probeId === state.probeId &&
@@ -263,7 +286,7 @@ export async function verifyCommunicationWorkerAssurance(
         save(file, state);
         break;
       }
-      const job = await request("GET", url);
+      const job = await request("GET", url, undefined, Math.min(30_000, remaining));
       if (
         job.state !== "ENABLED" ||
         !sameProbeConfiguration(job, original) ||
@@ -275,7 +298,7 @@ export async function verifyCommunicationWorkerAssurance(
         (job.status?.code ?? 0) !== 0
       )
         throw new Error("communication_worker_probe_request_failed");
-      await wait(3_000);
+      await wait(Math.min(3_000, Math.max(0, readbackTimeLeft())));
     }
     if (state.outcome !== "passed")
       throw new Error("communication_worker_probe_readback_unverified");
