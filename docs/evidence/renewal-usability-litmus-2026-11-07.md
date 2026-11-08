@@ -177,6 +177,15 @@ Staff session: none
   a maximum changed tile fraction of 0.2841796875. The other five parallel
   jobs passed, and the aggregate job failed. Hosted captures and logs are private.
 
+- L13 and L14 in exact-main push CI [42441713371](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/42441713371)
+  on `322cdb48ba656d2b441c948b8306e1a0d6fc1bda`. PR #194 passed all seven jobs
+  in [42440644475](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/42440644475)
+  on head `f7728a91` and base `e59d5505`. The exact merge tree matched
+  the tested tree. Tenant offer and all other scenes except Update status by
+  destination matched. The one changed scene crossed the full and tile
+  thresholds. The required inventory accounted for all 838 controls. The
+  other five parallel jobs passed and the aggregate failed.
+
 ## Repairs
 
 - L03 now waits for the initial collection list before enabling New collection. The focused
@@ -279,6 +288,15 @@ thresholds. The readback probe `20261108T014924Z-1274c463` matched all eight
 shifted images. It also measured a late 82-pixel layout expansion above the
 first image. The capture checks the frame after each paint and reframes an
 unstable section within three attempts.
+
+The Update status by destination probe `20261108T032757Z-55764438` reproduced
+the hosted difference with a controlled fractional frame. The existing
+comparison found zero changed pixels at its 24-channel cutoff between the
+hosted failure and the reproduction. Aligning the region to the pixel
+boundary passed at all four tested starting positions. The capture waits
+for the actual fixture status and reuses the bounded post-paint frame check
+at that position. The two reviewed scene images, complete control inventory
+and material thresholds are retained.
 
 ## Final observations
 
