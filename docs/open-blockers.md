@@ -22,9 +22,9 @@ meeting plans are not scheduled jobs or promises.
 
 ## Settled direction and current state
 
-Production serves `ef81b8917209f4eec3f22097142b559f3cce875b` / `pmi-kc-app-rmw65wgt2-8c8249a0547c`, 100%. The
-[one-path delivery](evidence/renewal-one-path-delivery-2026-11-07.md) carries the renewal desk, Guided path, prepared
-message, portfolio/assistance and synthetic form behavior. The holds below still govern the
+Production serves `2e5e47a8a1112c53784170a29ab134cab336e4a0` / `pmi-kc-app-rmw84kdpe-d7fc9bff670c`, 100%. The
+[renewal usability delivery](evidence/renewal-usability-delivery-2026-11-08.md) carries the monthly desk, Guided and Full views,
+exact-cycle recovery, reviewed collections, message readiness and Help V2.2. The holds below still govern the
 actual affected operations. Staff verdict NOT RUN.
 
 The November 5 run served 5b5c65c6b7be2b504b38e8c8fdea3d81367e5202 /
@@ -128,19 +128,11 @@ with visible missing-value markers.
 
 ## November 7 release assurance
 
-The November 7 mailbox restriction held the required managed Gmail profile check. The owner
-resolved that scope on November 8 and directed governance to merge before deployment. The existing
-guarded `GET /api/gmail-hub/connection` is authorized for release readiness. See
-[guarded release assurance](../AGENTS.md#guarded-release-assurance). Product audits and litmus runs
-remain synthetic. Fresh admission, receipts, observation and final readbacks are still required.
-
-The November 7 19:20 UTC Cloud Run metadata read and unattended CLI/ADC refresh
-encountered Google reauthentication. The November 8 scoped unattended refresh at
-05:02:47 UTC verified both tokens using the approved WSL stores. At 05:05:32 UTC,
-the existing managed Admin session passed its separate authentication check. The
-05:05:35 UTC CLI readback matched the serving revision, enabled billing and exact
-cost controls. These standalone observations do not issue a run-bound release receipt.
-The dated reads above record operator readiness before fresh admission.
+The owner authorized the existing guarded managed Gmail profile read for release readiness
+and directed governance to merge before deployment. The product audit and S259 remain
+synthetic. The replacement passed locked admission, guarded assurance, observation and
+independent final readbacks.
+[Guarded release authority](../AGENTS.md#guarded-release-assurance) · [Delivery evidence](evidence/renewal-usability-delivery-2026-11-08.md)
 
 ## Precise client unblockers
 

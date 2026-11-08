@@ -1,6 +1,6 @@
 # Batched release runbook
 
-Updated 2026-11-07 (UTC). One candidate must ship every queued feature.
+Updated 2026-11-08 (UTC). One candidate must ship every queued feature.
 
 The owner has launched the finalized November 3 P1–P9 gap plan to completion. That named scope
 and AGENTS.md feature-run continuity authorize its delivery and diagnosed/verified repairs without
@@ -9,9 +9,20 @@ Keep all pending outcomes in the overall program. Exact-main CI, fresh prerequis
 one watcher/application build, receipts, full observation and recovery remain mandatory. Failed
 attempts and consumed permits are immutable and never reusable.
 
-## Current verified delivery — November 7 renewal one-path
+## Current verified delivery — November 7 renewal usability
 
-Production serves `ef81b8917209f4eec3f22097142b559f3cce875b` / `pmi-kc-app-rmw65wgt2-8c8249a0547c` at 100% canonical traffic.
+Production serves `2e5e47a8a1112c53784170a29ab134cab336e4a0` / `pmi-kc-app-rmw84kdpe-d7fc9bff670c` at 100% canonical traffic.
+Run `3003f053-9450-433c-8073-734d7914d222` completed with one successful application build and its permit consumed.
+Two observation checkpoints passed in 405,871 ms. All 375 source, projected and rendered
+lease records matched, with zero discrepancies, candidate 5xx, unresolved effects or guarded
+mutation attempts. All eleven independent final readbacks passed at `2026-11-08T18:08:51Z`.
+[Delivery evidence](evidence/renewal-usability-delivery-2026-11-08.md) · [Exact-main CI](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/42505264623)
+
+Intakes 121–128 shipped together. The verified readbacks cleared the queue.
+
+## Previous verified delivery — November 7 renewal one-path (historical)
+
+Production served `ef81b8917209f4eec3f22097142b559f3cce875b` / `pmi-kc-app-rmw65wgt2-8c8249a0547c` at 100% canonical traffic.
 PR #191 and source PRs #184–#190 shipped together in run `72c6456a-3f3f-4ec2-8282-03542cfb7772` after all seven
 exact-main CI jobs passed in `42356598810`. The controller exited zero and its permit is consumed.
 Observation passed 2 checkpoints in 410,069 ms with 375 matched
@@ -233,7 +244,7 @@ gcloud beta billing projects describe pmi-kc-kb-prod --format="value(billingEnab
 
 Expect True and account `01A5A3-65CA5A-614D45`. Stop if billing is disabled.
 
-**2. Verify the watcher and checkpoint before any start.** Last verified run `91710ba5-db96-4982-8931-366661f3843c` is complete,
+**2. Verify the watcher and checkpoint before any start.** Last verified run `3003f053-9450-433c-8073-734d7914d222` is complete,
 its permit consumed and its original receipts preserved. The stale S128-only checkpoint and later
 failed cumulative attempts were archived through checked retirement; none was relabeled a pass.
 Blocked runs `dc4e1ac8`, `6eb157e1` and `a83ed59b` were archived the same way as superseded.
@@ -365,7 +376,10 @@ Each phase advances only on independent readback:
    Sheet gate expects the reviewed candidate value true; the prior helper
    `0391875f006934b8b8ddd77973bd00cf8a1ca3fb8b84bf213d1802a40cf8a930` expected false).
    Its corrected map check requires eleven nonempty entries in each exact Space map with matching
-   keys, plus the unchanged runtime fingerprint and the Sheet switch gate. Twenty-four synthetic
+   keys, plus the runtime fingerprint and the Sheet switch gate. Use the fingerprint module
+   from the exact frozen release checkout. If the reviewed helper points to another checkout,
+   use a private copy with only the fingerprint import changed. Verify both hashes and the
+   single substitution before running it. Twenty-four synthetic
    sanitizer checks passed; the original variable-count defect and helper bytes remain preserved.
 2. Confirm canonical/tagged identity, exact 100% traffic and fingerprint, exactly one candidate
    authorized domain, and revision env production/live with ASK_DEMO_MODE=false and

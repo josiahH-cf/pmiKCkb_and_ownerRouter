@@ -1,6 +1,6 @@
 # Environment and release handoff
 
-Updated 2026-11-05 (UTC).
+Updated 2026-11-08 (UTC).
 
 The owner-approved one-file Editor grant was applied with notification off and read back.
 Production now delegates Sheet/Drive as `integrations@pmikcmetro.com`; the normal keyless Sheet
@@ -10,9 +10,24 @@ keys versus that run's captured predecessor. Runtime identity, eleven Space maps
 Demo=false, Sheet=true, RentCast allowance 50 and other controls match. CLI/ADC and guarded
 Admin assurance retain the separately approved `josiah@pmikcmetro.com` identity/store/profile.
 
-## Current verified delivery — November 7 renewal one-path
+## Current verified delivery — November 7 renewal usability
 
-Production serves `ef81b8917209f4eec3f22097142b559f3cce875b` / `pmi-kc-app-rmw65wgt2-8c8249a0547c` at 100% canonical traffic.
+Production serves `2e5e47a8a1112c53784170a29ab134cab336e4a0` / `pmi-kc-app-rmw84kdpe-d7fc9bff670c` at 100% canonical traffic.
+Run `3003f053-9450-433c-8073-734d7914d222` completed with one successful application build and its permit consumed.
+Two observation checkpoints passed in 405,871 ms. All 375 source, projected and rendered
+lease records matched, with zero discrepancies, candidate 5xx, unresolved effects or guarded
+mutation attempts. All eleven independent final readbacks passed at `2026-11-08T18:08:51Z`.
+[Delivery evidence](evidence/renewal-usability-delivery-2026-11-08.md) · [Exact-main CI](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/42505264623)
+
+The running image `sha256:067ae2d533dc86323d4303134747c8e283339cc568d4f18fcdfad86529e61f29` matches build `014021ea-f3d2-4030-903f-ea7a6a8469a3`.
+The verified runtime fingerprint is `sha256:038012b4eb75f5ed3efec4261b1c0d12590afe2ea5a3142c0c664e8efa8a9509`. The final environment comparison
+found only APP_COMMIT_SHA changed among 54 keys. Eleven paired Space maps, five secret bindings,
+Production + Live, the managed service identity, Demo=false, Sheet=true and RentCast allowance
+50 passed. The annual GET readiness job returned to PAUSED and the minute worker stayed ENABLED.
+
+## Previous verified delivery — November 7 renewal one-path (historical)
+
+Production served `ef81b8917209f4eec3f22097142b559f3cce875b` / `pmi-kc-app-rmw65wgt2-8c8249a0547c` at 100% canonical traffic.
 PR #191 and source PRs #184–#190 shipped together in run `72c6456a-3f3f-4ec2-8282-03542cfb7772` after all seven
 exact-main CI jobs passed in `42356598810`. The controller exited zero and its permit is consumed.
 Observation passed 2 checkpoints in 410,069 ms with 375 matched
@@ -25,6 +40,13 @@ The verified runtime fingerprint is `sha256:582cb5fb2eaaf084ab61f0568c7518162333
 Production + Live, the existing managed runtime identity, eleven paired Space maps, five
 secret bindings, Demo=false and Sheet=true passed their readbacks. The release Admin browser
 ran read-only and Editor browser retains the approved not_run policy.
+
+The captured predecessor `pmi-kc-app-rmw3h1wp5-706485135a02` came from commit
+`5b5c65c6b7be2b504b38e8c8fdea3d81367e5202` for completed run `72c6456a-3f3f-4ec2-8282-03542cfb7772`. Its reviewed switch is Sheet=true. Run-bound recovery
+`pmi-kc-app-recovery-72c6456a3f3f4ec2` uses tag `cand-rmw3h1wp5-706485135a02`, receipt
+`a3aa0ec3-ea00-4e22-b6d0-94dc33d84f00` and reference `sha256:08d45e18e085da2d2e116b5587c0be14f1c9ef8923fc7fd4f632eed5423f76c3`. The original and
+recovery runtime fingerprints both equal `sha256:ce13be98ce4c6b9cb59a82b17399f8f93a4b489bce95de91dd90b8412eeb5c8b`.
+The watcher captured the actual prior tag binding separately. The run completed on its forward path. Earlier recovery coordinates retain their original run scope.
 
 ## Previous verified delivery — November 5 S245 litmus fixes (historical)
 
@@ -191,13 +213,13 @@ Five confirmed adversarial findings are repaired and verified deployed: lifecycl
 | Region                                  | `us-central1`                                                                                    |
 | Cloud Run service                       | `pmi-kc-app`                                                                                     |
 | URL                                     | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`                                                     |
-| Serving revision                        | `pmi-kc-app-rmw65wgt2-8c8249a0547c`                                                              |
-| Serving commit                          | `ef81b8917209f4eec3f22097142b559f3cce875b`                                                       |
+| Serving revision                        | `pmi-kc-app-rmw84kdpe-d7fc9bff670c`                                                              |
+| Serving commit                          | `2e5e47a8a1112c53784170a29ab134cab336e4a0`                                                       |
 | Traffic                                 | 100%                                                                                             |
-| Captured predecessor                    | `5b5c65c6b7be2b504b38e8c8fdea3d81367e5202` / `pmi-kc-app-rmw3h1wp5-706485135a02` with Sheet=true |
-| Run-bound recovery                      | `pmi-kc-app-recovery-72c6456a3f3f4ec2` with receipt `a3aa0ec3-ea00-4e22-b6d0-94dc33d84f00`       |
-| Recovery reference                      | `sha256:08d45e18e085da2d2e116b5587c0be14f1c9ef8923fc7fd4f632eed5423f76c3`                        |
-| Equal predecessor/recovery fingerprints | `sha256:ce13be98ce4c6b9cb59a82b17399f8f93a4b489bce95de91dd90b8412eeb5c8b`                        |
+| Captured predecessor                    | `ef81b8917209f4eec3f22097142b559f3cce875b` / `pmi-kc-app-rmw65wgt2-8c8249a0547c` with Sheet=true |
+| Run-bound recovery                      | `pmi-kc-app-recovery-3003f0539450433c` with receipt `be79e331-fb30-44a2-b228-27ac8f8b31f5`       |
+| Recovery reference                      | `sha256:1214be421545f9bad366d91c7ddb4b6d2544e8044b2827a594ba88a7b7e41e33`                        |
+| Equal predecessor/recovery fingerprints | `sha256:cbb55b2da6ca2749d700fddd02cd429e3303f3f74705908709aaf0fa055fa715`                        |
 | Descriptor                              | Production + Live                                                                                |
 | Runtime identity                        | project-managed PMI KC runtime service account                                                   |
 | Spaces                                  | 11                                                                                               |
@@ -583,13 +605,14 @@ activations; generic send, resident draft and Dotloop write keys remain closed.
 
 ## Current rollback
 
-The captured predecessor `pmi-kc-app-rmw3h1wp5-706485135a02` came from commit
-`5b5c65c6b7be2b504b38e8c8fdea3d81367e5202` for completed run `72c6456a-3f3f-4ec2-8282-03542cfb7772`. Its reviewed switch is Sheet=true. Run-bound recovery
-`pmi-kc-app-recovery-72c6456a3f3f4ec2` uses tag `cand-rmw3h1wp5-706485135a02`, receipt
-`a3aa0ec3-ea00-4e22-b6d0-94dc33d84f00` and reference `sha256:08d45e18e085da2d2e116b5587c0be14f1c9ef8923fc7fd4f632eed5423f76c3`. The original and
-recovery runtime fingerprints both equal `sha256:ce13be98ce4c6b9cb59a82b17399f8f93a4b489bce95de91dd90b8412eeb5c8b`.
-The watcher captured the actual prior tag binding separately. This run completed without a
-traffic rollback. Earlier recovery coordinates retain their original run scope.
+The captured predecessor `pmi-kc-app-rmw65wgt2-8c8249a0547c` came from commit
+`ef81b8917209f4eec3f22097142b559f3cce875b` for completed run `3003f053-9450-433c-8073-734d7914d222`. The
+recovery revision `pmi-kc-app-recovery-3003f0539450433c` keeps Sheet=true. It uses
+tag `cand-rmw7zyz2e-320436fe5c8c`, receipt `be79e331-fb30-44a2-b228-27ac8f8b31f5` and reference
+`sha256:1214be421545f9bad366d91c7ddb4b6d2544e8044b2827a594ba88a7b7e41e33`. Its runtime fingerprint and the
+predecessor's both equal `sha256:cbb55b2da6ca2749d700fddd02cd429e3303f3f74705908709aaf0fa055fa715`.
+The controller captured the prior tag binding on `pmi-kc-app-rmw7zyz2e-320436fe5c8c` separately from
+the serving predecessor. The run completed on its forward path.
 
 Forward restoration and rollback require fresh actual state and exact receipt-bound reconciliation. Earlier failed attempts and recovery receipts retain their original scope outside Git.
 

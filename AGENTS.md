@@ -19,9 +19,18 @@ When two sources disagree, use this order:
 Never revive a historical blocker, Demo/Test policy, action grant, or provider claim without checking
 the current code and live service. Date-stamped history is not authority.
 
-## Present production truth — November 7 renewal one-path delivery
+## Present production truth — November 7 renewal usability batch
 
-Production serves `ef81b8917209f4eec3f22097142b559f3cce875b` / `pmi-kc-app-rmw65wgt2-8c8249a0547c` at 100% canonical traffic.
+Production serves `2e5e47a8a1112c53784170a29ab134cab336e4a0` / `pmi-kc-app-rmw84kdpe-d7fc9bff670c` at 100% canonical traffic.
+Run `3003f053-9450-433c-8073-734d7914d222` completed with one successful application build and its permit consumed.
+Two observation checkpoints passed in 405,871 ms. All 375 source, projected and rendered
+lease records matched, with zero discrepancies, candidate 5xx, unresolved effects or guarded
+mutation attempts. All eleven independent final readbacks passed at `2026-11-08T18:08:51Z`.
+[Delivery evidence](docs/evidence/renewal-usability-delivery-2026-11-08.md) · [Exact-main CI](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/42505264623)
+
+## Previous production truth — November 7 renewal one-path (historical)
+
+Production served `ef81b8917209f4eec3f22097142b559f3cce875b` / `pmi-kc-app-rmw65wgt2-8c8249a0547c` at 100% canonical traffic.
 PR #191 and source PRs #184–#190 shipped together in run `72c6456a-3f3f-4ec2-8282-03542cfb7772` after all seven
 exact-main CI jobs passed in `42356598810`. The controller exited zero and its permit is consumed.
 Observation passed 2 checkpoints in 410,069 ms with 375 matched

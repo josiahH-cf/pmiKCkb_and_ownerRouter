@@ -2,7 +2,18 @@
 
 Updated: 2026-11-08 (UTC).
 
-Production serves `ef81b8917209f4eec3f22097142b559f3cce875b` / `pmi-kc-app-rmw65wgt2-8c8249a0547c` at 100% canonical traffic.
+## November 7 renewal usability delivery
+
+Production serves `2e5e47a8a1112c53784170a29ab134cab336e4a0` / `pmi-kc-app-rmw84kdpe-d7fc9bff670c` at 100% canonical traffic.
+Run `3003f053-9450-433c-8073-734d7914d222` completed with one successful application build and its permit consumed.
+Two observation checkpoints passed in 405,871 ms. All 375 source, projected and rendered
+lease records matched, with zero discrepancies, candidate 5xx, unresolved effects or guarded
+mutation attempts. All eleven independent final readbacks passed at `2026-11-08T18:08:51Z`.
+[Delivery evidence](evidence/renewal-usability-delivery-2026-11-08.md) · [Exact-main CI](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/42505264623)
+
+## November 7 renewal one-path (historical)
+
+Production served `ef81b8917209f4eec3f22097142b559f3cce875b` / `pmi-kc-app-rmw65wgt2-8c8249a0547c` at 100% canonical traffic.
 PR #191 and source PRs #184–#190 shipped together in run `72c6456a-3f3f-4ec2-8282-03542cfb7772` after all seven
 exact-main CI jobs passed in `42356598810`. The controller exited zero and its permit is consumed.
 Observation passed 2 checkpoints in 410,069 ms with 375 matched
@@ -15,21 +26,17 @@ UNVERIFIED on its complete `edba7cbb` run, with separately dated repair rechecks
 because the settled assistance rule classifies the voucher-only lease as Ready. Batch acceptance
 remains No. Human verdict NOT RUN.
 
-## November 7 renewal usability follow-up
+## November 7 renewal usability qualification
 
 Published specification `4caad68df6885d3eed4cb2b3fff7c70e5c96ae15`. Remote main at the start was `bf9753d6af9c7cb90c7a17d3dee0965ae9656095`. The deployed comparison baseline is `ef81b8917209f4eec3f22097142b559f3cce875b`.
 
-The implementation merged through PR #193. PR #194 repaired Tenant offer. The Update status verification repair is on `codex/renewal-help-update-status-20261108` in `/home/josiah/pmi-kc-work/renewal-usability-20261107`. The exact locally qualified candidate is `85924209f000eb4b7ff7187c7b28bbec9ddde7f0`.
+PR #193 merged the implementation. The Tenant offer and Update status Help checks were repaired in [PR #194](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/pull/194) and [PR #195](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/pull/195). Exact application main `e012bddc42a5370686e114a9bb5f848dbb1b748a` passed all seven jobs in [push CI 42448213069](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/42448213069).
 
-The two Help verification repairs merged through [PR #194](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/pull/194) and [PR #195](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/pull/195). Exact application main `e012bddc42a5370686e114a9bb5f848dbb1b748a` passed all seven jobs in [push CI 42448213069](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/42448213069).
+The full S259 replay passed all 14 journeys on `4b17ec5e4482f73225fd0dfb6d193576389fee85`. S252 passed 107 checks and all five budgets. The mailbox-disabled rehearsal passed 17 cases. The full WSL gate passed 11,578 unit tests with 4 existing skips, all 555 Firestore tests, the production build and 65 served E2E tests with 4 skips. Core E2E passed 46 with 23 explicit no-emulator skips. Rendered Help matched 27 scenes and accounted for 838 controls with zero missing. The disposable drift probe detected the hidden Record work control and nine changed scenes.
 
-The S259 browser matrix passed all 14 journeys on that candidate. S252 passed 107 checks and all five numerical budgets. The mailbox-disabled rehearsal passed 17 cases. The full gate passed 11,577 unit cases with 4 existing skips, all 555 Firestore tests, the production build and 65 served E2E cases with 4 skips. The separate core gate passed 46 with 23 explicit no-emulator skips. Required Help matched 27 scenes and accounted for 838 controls with zero missing. The deliberate injection detected the hidden Record work control and 9 material scene changes.
+Governance PR #196 merged first at `48b5540f`. PR #197 then merged the scoped recovery mapper and Lease details capture repairs at `11c502c1f05c668234b588e57393ab0b7f92d329`. All seven lanes passed on the exact PR head and exact release main. [Governance PR](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/pull/196) · [Repair PR](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/pull/197) · [PR CI](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/42478870881) · [Push CI](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/42480191023)
 
-The eight application intakes remain queued. Governance PR #196 merged first at `48b5540f`.
-Run `bbc5d5cf-0baa-4dc9-bd34-3b20d8b726e7` stopped in recovery preparation before dispatch.
-The Cloud Run response carried output-only metadata that the recovery mapper had never seen.
-Qualify the scoped mapper repair and exact main, then archive the stopped run and prepare a
-fresh release under the [runbook](release-batch-runbook.md#authorized-replacement-preparation).
+See [delivery evidence](evidence/renewal-usability-delivery-2026-11-08.md) for the preserved pre-promotion stops and repairs.
 
 The owner resolved the Gmail profile scope on November 8 for the existing guarded release check and directed governance to merge first. Standalone WSL CLI/ADC, existing Admin session, billing and cost-control checks passed on November 8 UTC. Staff verdict NOT RUN. See [guarded release assurance](../AGENTS.md#guarded-release-assurance). The [litmus report](evidence/renewal-usability-litmus-2026-11-07.md) preserves the exact runs, earlier failures and evidence gaps.
 
