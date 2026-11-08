@@ -264,9 +264,18 @@ rejects parent environment inheritance.
 The disposable exact diagnostic `20261108T013150Z-77f4e8b0` isolated Tenant
 offer framing. A fractional vertical shift reproduced the exact hosted failed
 pixels. The held toolbar and unaffected content were pixel-identical. The
-capture now lands the heading at a fixed three-quarter-pixel position within
-the existing one-pixel framing band. This keeps the committed scene bytes and
-the material and rendered-control checks.
+first correction used a relative position. The focused derivative
+`20261108T013539Z-e3233886` still changed the rendered pixels. A cold probe
+`20261108T013829Z-c7513505` also captured Reload message preparation while both
+source reads were outstanding. The capture now waits for the real Copy plain
+text control in both Full message panels before framing. The settled probe
+`20261108T014151Z-3ea57b22` confirmed material drift at six of eight shifted
+positions before correction. Its three-quarter-pixel correction still failed.
+The viewport-anchor sweep `20261108T014425Z-e80564a5` reproduced the committed
+pixels at each of five starting positions with each of three nearby frame
+positions. The capture uses the middle position, preserves the original
+one-pixel framing band, and keeps the committed scene bytes and comparison
+thresholds.
 
 ## Final observations
 

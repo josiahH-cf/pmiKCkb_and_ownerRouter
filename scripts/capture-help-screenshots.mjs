@@ -60,8 +60,8 @@ const SCROLL_TO_TOP = new Function(
 );
 
 // Align the settled Full section below its own toolbar. Tenant offer also needs a fixed
-// subpixel position so Chromium rounds its heading and button text consistently. The relative
-// inset moves only the framed section by less than one CSS pixel and leaves its layout intact.
+// subpixel position so Chromium rounds its heading and button text consistently. Settle the
+// normal-flow margin within half a CSS pixel and hold the scroll anchor for this capture.
 const FRAME_WORKSPACE_SECTION = new Function(
   "heading",
   "paintPhase",
@@ -69,17 +69,30 @@ const FRAME_WORKSPACE_SECTION = new Function(
     ?.querySelector(".renewal-workspace-toolbar");
   if (!toolbar) return false;
   const top = Math.ceil(toolbar.getBoundingClientRect().bottom) + 12;
-  const destination = Math.floor(window.scrollY + heading.getBoundingClientRect().top - top);
-  window.scrollTo({ top: destination, behavior: "instant" });
-  const landed = heading.getBoundingClientRect().top;
-  if (landed < top || landed >= top + 1) return false;
-  if (paintPhase === null) return true;
+  const documentTop = window.scrollY + heading.getBoundingClientRect().top;
+  if (paintPhase === null) {
+    window.scrollTo({ top: Math.floor(documentTop - top), behavior: "instant" });
+    const landed = heading.getBoundingClientRect().top;
+    return landed >= top && landed < top + 1;
+  }
+
   const section = heading.closest("section");
-  if (!section || getComputedStyle(section).position !== "static") return false;
+  if (!section) return false;
+  const margin = parseFloat(getComputedStyle(section).marginBlockStart);
+  if (!Number.isFinite(margin)) return false;
   const paintTop = top + paintPhase;
-  section.style.position = "relative";
-  section.style.insetBlockStart = (paintTop - landed) + "px";
-  return heading.getBoundingClientRect().top === paintTop;`,
+  const destination = Math.round(documentTop - paintTop);
+  document.documentElement.style.overflowAnchor = "none";
+  section.style.marginBlockStart = (margin + destination + paintTop - documentTop) + "px";
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: destination, behavior: "instant" });
+      requestAnimationFrame(() => {
+        const landed = heading.getBoundingClientRect().top;
+        resolve(landed >= top && landed < top + 1);
+      });
+    });
+  });`,
 );
 
 // A scene with `align: "center"` centers its region in the viewport instead.
@@ -479,6 +492,18 @@ async function captureScene(scene) {
         .getByRole("group", { name: "Pricing basis", exact: true })
         .waitFor({ state: "visible" });
     }
+    if (scene.id === "tenant-offer") {
+      // Both message panels settle after the Full view mounts. The owner panel above this
+      // heading can change the page height while the tenant panel is already visible.
+      await Promise.all(
+        ["owner", "tenant"].map((section) =>
+          page
+            .locator("#renewal-section-" + section)
+            .getByRole("button", { name: "Copy plain text", exact: true })
+            .waitFor({ state: "visible" }),
+        ),
+      );
+    }
     const framed = scene.region && scene.region !== "page";
     if (framed && scene.frame === "viewport") {
       // Frame the region, let the page settle and confirm it is still where it was put; a late
@@ -502,7 +527,7 @@ async function captureScene(scene) {
       assert.ok(
         await region
           .first()
-          .evaluate(FRAME_WORKSPACE_SECTION, scene.id === "tenant-offer" ? 0.75 : null),
+          .evaluate(FRAME_WORKSPACE_SECTION, scene.id === "tenant-offer" ? 0.875 : null),
         `The ${scene.id} heading must frame below the settled toolbar.`,
       );
     verifySearchTime?.();
