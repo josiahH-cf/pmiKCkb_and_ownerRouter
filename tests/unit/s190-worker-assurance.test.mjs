@@ -33,7 +33,8 @@ function fixture(options = {}) {
   };
   let job = structuredClone(original),
     clock = Date.parse("2026-10-10T12:00:00Z"),
-    runs = 0;
+    runs = 0,
+    logReads = 0;
   if (options.badIdentity)
     job.httpTarget.oidcToken.serviceAccountEmail =
       "unapproved@pmi-kc-kb-prod.iam.gserviceaccount.com";
@@ -47,6 +48,8 @@ function fixture(options = {}) {
       calls.push(request);
       expect(request.retry).toBe(false);
       if (request.url.includes("logging.googleapis.com")) {
+        const readError = options.logReadErrors?.[logReads++];
+        if (readError) throw readError;
         const id = job.httpTarget.headers?.["X-PMI-Worker-Readiness"];
         return {
           data: {
@@ -154,6 +157,62 @@ it("one durably claimed managed GET proves exact candidate readiness and restore
     f.close();
   }
 });
+const loggingTransportFailure = new Error(
+  "request to https://logging.googleapis.com/v2/entries:list failed, reason: ",
+);
+it("retries a transient logging read inside the existing window without a second invocation", async () => {
+  const f = fixture({ logReadErrors: [loggingTransportFailure] });
+  try {
+    expect((await verifyCommunicationWorkerAssurance(cp, f.config)).verified).toBe(true);
+    const reads = f.calls.filter((call) => call.url.includes("logging.googleapis.com"));
+    expect(reads).toHaveLength(2);
+    expect(reads[0].data).toEqual(reads[1].data);
+    expect(reads.map((call) => call.timeout)).toEqual([6000, 3000]);
+    expect(f.runs).toBe(1);
+    expect(f.job).toEqual(f.original);
+    expect(f.read()).toMatchObject({ outcome: "passed", restored: true });
+  } finally {
+    f.close();
+  }
+});
+it.each([
+  {
+    errors: [loggingTransportFailure, loggingTransportFailure],
+    expected: "communication_worker_probe_readback_unverified",
+    reads: 2,
+  },
+  {
+    errors: [
+      Object.assign(new Error("logging permission denied"), {
+        response: { status: 403 },
+      }),
+    ],
+    expected: "logging permission denied",
+    reads: 1,
+  },
+])(
+  "fails closed and restores the job when the logging read cannot be verified: $expected",
+  async ({ errors, expected, reads }) => {
+    const f = fixture({ logReadErrors: errors });
+    try {
+      await expect(verifyCommunicationWorkerAssurance(cp, f.config)).rejects.toThrow(
+        expected,
+      );
+      expect(
+        f.calls.filter((call) => call.url.includes("logging.googleapis.com")),
+      ).toHaveLength(reads);
+      expect(f.runs).toBe(1);
+      expect(f.job).toEqual(f.original);
+      expect(f.read()).toMatchObject({ outcome: "failed", restored: true });
+      await expect(verifyCommunicationWorkerAssurance(cp, f.config)).rejects.toThrow(
+        "reconciliation_required",
+      );
+      expect(f.runs).toBe(1);
+    } finally {
+      f.close();
+    }
+  },
+);
 it("S233 R-S233-5: the receipt keeps the readiness entry's worker health as times and counts only", async () => {
   const health = {
     asOfMs: 1_793_000_000_000,
