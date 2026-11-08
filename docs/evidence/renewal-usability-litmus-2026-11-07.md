@@ -457,6 +457,14 @@ GET-only read of the actual predecessor reproduced the old refusal and verified 
 immutable image digest, Sheet=true, runtime fingerprint and refusal of unknown configuration.
 Both proposed revisions returned 404 and canonical traffic stayed at 100% on the predecessor.
 
+The full gate on the first recovery repair, `dac15025e9bb79be53d2fa3d9fb95bfe38df5b02`, failed
+rendered Help on Lease details. All 838 controls were accounted for and the other 26 scenes
+matched. The changed pixels were confined to the heading. The guarded synthetic diagnostic
+`083b639af80d6606e9c4f903db4de4490c6d51ca` reproduced the drift at offsets below half a CSS
+pixel and matched the pinned scene pixel for pixel at offsets from 0.5 to 0.875. Lease details
+now uses the same fixed-position capture as Tenant offer and Update status, with the exact
+heading position checked after paint. The pinned images and material thresholds are unchanged.
+
 ## Remaining blockers
 
 The separate staff session, physical device and assistive technology observations remain open. The run supplies synthetic role, responsive browser and provider-adapter evidence. The historical S254 L55 No retains its original source and verdict.

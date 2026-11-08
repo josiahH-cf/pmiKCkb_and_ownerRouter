@@ -59,9 +59,10 @@ const SCROLL_TO_TOP = new Function(
   window.scrollBy(0, -(cover + 12));`,
 );
 
-// Some Full workspace scenes need a fixed pixel phase to reproduce the reviewed frame.
-// The two target regions have different font baselines. The adjustments affect capture only.
+// These Full workspace scenes need fixed pixel phases for their different font baselines.
+// The adjustments affect only the captured frames.
 const WORKSPACE_FRAME_PHASES = new Map([
+  ["lease-details", 0.75],
   ["tenant-offer", 0.875],
   ["update-status", 0],
 ]);
@@ -76,12 +77,6 @@ const FRAME_WORKSPACE_SECTION = new Function(
   if (!toolbar) return false;
   const top = Math.ceil(toolbar.getBoundingClientRect().bottom) + 12;
   const documentTop = window.scrollY + heading.getBoundingClientRect().top;
-  if (paintPhase === null) {
-    window.scrollTo({ top: Math.floor(documentTop - top), behavior: "instant" });
-    const landed = heading.getBoundingClientRect().top;
-    return landed >= top && landed < top + 1;
-  }
-
   const section = heading.closest("section");
   if (!section) return false;
   const margin = parseFloat(getComputedStyle(section).marginBlockStart);
@@ -93,7 +88,7 @@ const FRAME_WORKSPACE_SECTION = new Function(
   return new Promise((resolve) => {
     requestAnimationFrame(() => {
       window.scrollTo({ top: destination, behavior: "instant" });
-      resolve(top);
+      resolve(paintTop);
     });
   });`,
 );
@@ -536,11 +531,6 @@ async function captureScene(scene) {
       );
     } else if (framed) await region.first().scrollIntoViewIfNeeded();
     await quiet(page);
-    if (scene.id === "lease-details")
-      assert.ok(
-        await region.first().evaluate(FRAME_WORKSPACE_SECTION, null),
-        `The ${scene.id} heading must frame below the settled toolbar.`,
-      );
     verifySearchTime?.();
     let verifiedText = [];
     let verifiedIdentifier;
@@ -591,7 +581,7 @@ async function captureWorkspaceFrame(page, target, phase, sceneId) {
     assert.equal(typeof frameTop, "number", sceneId + " needs its Full workspace frame.");
     const png = await page.screenshot({ animations: "disabled", caret: "hide" });
     const { top } = await target.evaluate(PLACEMENT);
-    if (top >= frameTop && top < frameTop + 1) return png;
+    if (top === frameTop) return png;
   }
   throw new Error(sceneId + " must stay framed below its settled toolbar.");
 }
