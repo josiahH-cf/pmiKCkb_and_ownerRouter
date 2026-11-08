@@ -162,6 +162,12 @@ Staff session: none
   system font metrics on the native file picker. The local WSL render used a
   different host font inventory.
 
+- L14 on `f5c340ef` in `canonical-f5c340ef-20261107T233911Z`. All 27
+  scenes and 838 controls passed with the pinned fallback fonts. The S243
+  capture safety test rejected the browser's inherited environment. The unit
+  gate ended at 11,576 passed, four skips and one failure. The serial launcher
+  stopped before the remaining gates.
+
 ## Repairs
 
 - L03 now waits for the initial collection list before enabling New collection. The focused
@@ -239,6 +245,12 @@ The exact WSL review run `20261107T233301Z-0c531bce` produced all 27 scenes. Ele
 reviewed replacements show the stable glyph and native control placement, including
 the process publication identifier's new fixed-width line. The remaining process
 run scene differs only in its verified generated identifier.
+
+The Help browser now receives only its execution path, private output home,
+temporary directory, fixed locale and private Fontconfig file. The server and
+Node driver keep their existing preload, and the browser stays in the network
+namespace with its loopback request policy. The existing S243 assertion still
+rejects parent environment inheritance.
 
 ## Final observations
 

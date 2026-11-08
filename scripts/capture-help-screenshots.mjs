@@ -207,7 +207,17 @@ record({
 const browserFonts =
   managed && (verify || proposals) ? prepareHelpBrowserFonts(output) : null;
 const browser = await chromium.launch({
-  ...(browserFonts ? { env: { ...process.env, FONTCONFIG_FILE: browserFonts } } : {}),
+  ...(browserFonts
+    ? {
+        env: {
+          PATH: process.env.PATH,
+          HOME: output,
+          TMPDIR: process.env.TMPDIR ?? "/tmp",
+          LC_ALL: "C.UTF-8",
+          FONTCONFIG_FILE: browserFonts,
+        },
+      }
+    : {}),
   executablePath: fixedFixture
     ? process.env.PLAYWRIGHT_CHROME_PATH || chromium.executablePath()
     : resolveBrowserExecutable(),
