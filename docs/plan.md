@@ -6,7 +6,7 @@ Updated: 2026-11-07 (UTC), one-path production delivery.
 
 Published specification `4caad68df6885d3eed4cb2b3fff7c70e5c96ae15`. Remote main at the start was `bf9753d6af9c7cb90c7a17d3dee0965ae9656095`. The deployed comparison baseline is `ef81b8917209f4eec3f22097142b559f3cce875b`.
 
-The implementation is on `codex/renewal-usability-20261107` in `/home/josiah/pmi-kc-work/renewal-usability-20261107`. The exact locally qualified candidate is `202ad55bc3e45e47c75141b77c8b4dd9bdf390d2`.
+The implementation is on `codex/renewal-usability-20261107` in `/home/josiah/pmi-kc-work/renewal-usability-20261107`. The exact locally qualified candidate is `4b31d89b0a903ee3cc315b38c263755db29c910a`.
 
 Qualify the pull request on its exact head and current base. After verified merge, record green push CI on the exact main commit. Leave the eight application intakes queued for one release while the recorded prerequisites are held.
 

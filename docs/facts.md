@@ -9,9 +9,9 @@ evidence; an earlier receipt never authorizes a new attempt.
 
 Published specification `4caad68df6885d3eed4cb2b3fff7c70e5c96ae15`. Remote main at the start was `bf9753d6af9c7cb90c7a17d3dee0965ae9656095`. The deployed comparison baseline is `ef81b8917209f4eec3f22097142b559f3cce875b`.
 
-The implementation is on `codex/renewal-usability-20261107` in `/home/josiah/pmi-kc-work/renewal-usability-20261107`. The exact locally qualified candidate is `202ad55bc3e45e47c75141b77c8b4dd9bdf390d2`.
+The implementation is on `codex/renewal-usability-20261107` in `/home/josiah/pmi-kc-work/renewal-usability-20261107`. The exact locally qualified candidate is `4b31d89b0a903ee3cc315b38c263755db29c910a`.
 
-The S259 browser matrix passed all 14 journeys on that candidate. S252 passed 107 checks and all five numerical budgets. The mailbox-disabled rehearsal passed 17 cases. The full gate passed 11,577 unit cases with 4 existing skips, all 555 Firestore tests, the production build and 65 served E2E cases with 4 skips. The separate core gate passed 46 with 23 explicit no-emulator skips. Required Help matched 27 scenes and accounted for 838 controls with zero missing. The deliberate injection detected the hidden Record work control and nine material scene changes.
+The S259 browser matrix passed all 14 journeys on that candidate. S252 passed 107 checks and all five numerical budgets. The mailbox-disabled rehearsal passed 17 cases. The full gate passed 11,577 unit cases with 4 existing skips, all 555 Firestore tests, the production build and 65 served E2E cases with 4 skips. The separate core gate passed 46 with 23 explicit no-emulator skips. Required Help matched 27 scenes and accounted for 838 controls with zero missing. The deliberate injection detected the hidden Record work control and 9 material scene changes.
 
 The bare Renewals desk now opens the monthly table and preserves the full table, saved views and exact return. The lease shares one stage with the desk and Dashboard. Guided and Full retain the scoped controls and old Focus links. Working text is eligible for restoration when its tab, actor, lease and cycle match. The older unscoped storage key has no verifiable actor and cycle. The [litmus report](evidence/renewal-usability-litmus-2026-11-07.md) preserves the exact runs, earlier failures and evidence gaps.
 

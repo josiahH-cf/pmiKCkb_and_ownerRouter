@@ -25,9 +25,9 @@ their own evidence. The current release changes no workflow authority or held cl
 
 Published specification `4caad68df6885d3eed4cb2b3fff7c70e5c96ae15`. Remote main at the start was `bf9753d6af9c7cb90c7a17d3dee0965ae9656095`. The deployed comparison baseline is `ef81b8917209f4eec3f22097142b559f3cce875b`.
 
-The implementation is on `codex/renewal-usability-20261107` in `/home/josiah/pmi-kc-work/renewal-usability-20261107`. The exact locally qualified candidate is `202ad55bc3e45e47c75141b77c8b4dd9bdf390d2`.
+The implementation is on `codex/renewal-usability-20261107` in `/home/josiah/pmi-kc-work/renewal-usability-20261107`. The exact locally qualified candidate is `4b31d89b0a903ee3cc315b38c263755db29c910a`.
 
-The S259 browser matrix passed all 14 journeys on that candidate. S252 passed 107 checks and all five numerical budgets. The mailbox-disabled rehearsal passed 17 cases. The full gate passed 11,577 unit cases with 4 existing skips, all 555 Firestore tests, the production build and 65 served E2E cases with 4 skips. The separate core gate passed 46 with 23 explicit no-emulator skips. Required Help matched 27 scenes and accounted for 838 controls with zero missing. The deliberate injection detected the hidden Record work control and nine material scene changes.
+The S259 browser matrix passed all 14 journeys on that candidate. S252 passed 107 checks and all five numerical budgets. The mailbox-disabled rehearsal passed 17 cases. The full gate passed 11,577 unit cases with 4 existing skips, all 555 Firestore tests, the production build and 65 served E2E cases with 4 skips. The separate core gate passed 46 with 23 explicit no-emulator skips. Required Help matched 27 scenes and accounted for 838 controls with zero missing. The deliberate injection detected the hidden Record work control and 9 material scene changes.
 
 Qualify the pull request on its exact head and current base. After verified merge, record green push CI on the exact main commit. Leave the eight application intakes queued for one release while the recorded prerequisites are held.
 
@@ -56,14 +56,14 @@ Release admission is held by the required managed Gmail profile read and the sep
 
 These eight verified application intakes await one authorized candidate. Each row names the exact local qualification source. Intake 129 records engineering evidence in the [litmus report](evidence/renewal-usability-litmus-2026-11-07.md).
 
-1. 121 Guided workspace, shared stage and continuity `202ad55bc3e45e47c75141b77c8b4dd9bdf390d2`
-2. 122 Exact-cycle retirement and restoration `202ad55bc3e45e47c75141b77c8b4dd9bdf390d2`
-3. 123 Monthly working table and exact target counts `202ad55bc3e45e47c75141b77c8b4dd9bdf390d2`
-4. 124 Shared collection review and recovery `202ad55bc3e45e47c75141b77c8b4dd9bdf390d2`
-5. 125 Sender setup and exact outgoing readiness `202ad55bc3e45e47c75141b77c8b4dd9bdf390d2`
-6. 126 Staff and process destinations `202ad55bc3e45e47c75141b77c8b4dd9bdf390d2`
-7. 127 Scoped Admin and Connections tasks `202ad55bc3e45e47c75141b77c8b4dd9bdf390d2`
-8. 128 Required rendered Help and V2.2 assets `202ad55bc3e45e47c75141b77c8b4dd9bdf390d2`
+1. 121 Guided workspace, shared stage and continuity `4b31d89b0a903ee3cc315b38c263755db29c910a`
+2. 122 Exact-cycle retirement and restoration `4b31d89b0a903ee3cc315b38c263755db29c910a`
+3. 123 Monthly working table and exact target counts `4b31d89b0a903ee3cc315b38c263755db29c910a`
+4. 124 Shared collection review and recovery `4b31d89b0a903ee3cc315b38c263755db29c910a`
+5. 125 Sender setup and exact outgoing readiness `4b31d89b0a903ee3cc315b38c263755db29c910a`
+6. 126 Staff and process destinations `4b31d89b0a903ee3cc315b38c263755db29c910a`
+7. 127 Scoped Admin and Connections tasks `4b31d89b0a903ee3cc315b38c263755db29c910a`
+8. 128 Required rendered Help and V2.2 assets `4b31d89b0a903ee3cc315b38c263755db29c910a`
 
 ## Continuation contract
 
