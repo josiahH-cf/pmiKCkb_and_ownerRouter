@@ -59,11 +59,12 @@ const SCROLL_TO_TOP = new Function(
   window.scrollBy(0, -(cover + 12));`,
 );
 
-// Anchor the settled Full section to an integer position below its own toolbar. In this long
-// workspace, chaining native alignment and scrollBy can leave otherwise identical captures one
-// pixel apart. This changes the framing only. The comparator still checks every scene pixel.
+// Align the settled Full section below its own toolbar. Tenant offer also needs a fixed
+// subpixel position so Chromium rounds its heading and button text consistently. The relative
+// inset moves only the framed section by less than one CSS pixel and leaves its layout intact.
 const FRAME_WORKSPACE_SECTION = new Function(
   "heading",
+  "paintPhase",
   `const toolbar = heading.closest(".renewal-workspace-shell")
     ?.querySelector(".renewal-workspace-toolbar");
   if (!toolbar) return false;
@@ -71,7 +72,14 @@ const FRAME_WORKSPACE_SECTION = new Function(
   const destination = Math.floor(window.scrollY + heading.getBoundingClientRect().top - top);
   window.scrollTo({ top: destination, behavior: "instant" });
   const landed = heading.getBoundingClientRect().top;
-  return landed >= top && landed < top + 1;`,
+  if (landed < top || landed >= top + 1) return false;
+  if (paintPhase === null) return true;
+  const section = heading.closest("section");
+  if (!section || getComputedStyle(section).position !== "static") return false;
+  const paintTop = top + paintPhase;
+  section.style.position = "relative";
+  section.style.insetBlockStart = (paintTop - landed) + "px";
+  return heading.getBoundingClientRect().top === paintTop;`,
 );
 
 // A scene with `align: "center"` centers its region in the viewport instead.
@@ -492,7 +500,9 @@ async function captureScene(scene) {
     await quiet(page);
     if (scene.id === "lease-details" || scene.id === "tenant-offer")
       assert.ok(
-        await region.first().evaluate(FRAME_WORKSPACE_SECTION),
+        await region
+          .first()
+          .evaluate(FRAME_WORKSPACE_SECTION, scene.id === "tenant-offer" ? 0.75 : null),
         `The ${scene.id} heading must frame below the settled toolbar.`,
       );
     verifySearchTime?.();

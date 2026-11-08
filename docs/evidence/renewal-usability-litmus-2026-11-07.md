@@ -168,6 +168,15 @@ Staff session: none
   gate ended at 11,576 passed, four skips and one failure. The serial launcher
   stopped before the remaining gates.
 
+- L13 and L14 in exact-main push CI [42433488323](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/42433488323)
+  on `e59d5505f24149afbf3034092db29902f14e8af4`. PR #193 had passed all seven
+  jobs in [42432583729](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/42432583729)
+  on head `3dc88e02` and base `bf9753d6`. The exact merge tree matched the
+  tested PR tree. Main accounted for all 838 controls and rendered all 27 scenes.
+  Tenant offer exceeded the scene and tile bounds, with 8,527 changed pixels and
+  a maximum changed tile fraction of 0.2841796875. The other five parallel
+  jobs passed, and the aggregate job failed. Hosted captures and logs are private.
+
 ## Repairs
 
 - L03 now waits for the initial collection list before enabling New collection. The focused
@@ -251,6 +260,13 @@ temporary directory, fixed locale and private Fontconfig file. The server and
 Node driver keep their existing preload, and the browser stays in the network
 namespace with its loopback request policy. The existing S243 assertion still
 rejects parent environment inheritance.
+
+The disposable exact diagnostic `20261108T013150Z-77f4e8b0` isolated Tenant
+offer framing. A fractional vertical shift reproduced the exact hosted failed
+pixels. The held toolbar and unaffected content were pixel-identical. The
+capture now lands the heading at a fixed three-quarter-pixel position within
+the existing one-pixel framing band. This keeps the committed scene bytes and
+the material and rendered-control checks.
 
 ## Final observations
 
