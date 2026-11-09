@@ -33,24 +33,155 @@ describe("N09-10 rendered outcome contract", () => {
 
 describe("S260 exact matrix verdict", () => {
   const source = "a".repeat(40);
-  const rows = [
-    "N09-01",
-    "N09-02",
-    "N09-03",
-    "N09-04",
-    "N09-05",
-    "N09-06",
-    "N09-07",
-    "N09-08",
-    "N09-09-Editor",
-    "N09-09-Approver",
-    "N09-09-Admin",
-    "N09-10",
-  ].map((id) => ({ id, verdict: "Yes", observed: { readback: true } }));
+  const adapter = {
+    adapter: "1".repeat(64),
+    worker: "2".repeat(64),
+    nextConfig: "3".repeat(64),
+    isolatedNextConfig: "4".repeat(64),
+    sourcePreview: "5".repeat(64),
+  };
+  const disposition = { stage: "Recorded stage", next: "Recorded next step" };
+  const help = {
+    adminHelp: true,
+    stableGuide: true,
+    printControlsHidden: true,
+    narrowAdminHelp: true,
+    linkedScreenAndControl: true,
+    helpSource: source,
+    helpSourceManifest: "b".repeat(64),
+    matchedScenes: 27,
+    checkedControls: 831,
+    missingRequiredControls: 0,
+    rejectedDrift: "Work status",
+    canonicalRun: "canonical",
+    driftRun: "drift",
+  };
+  const reports = {
+    "N09-01": {
+      oneTable: true,
+      narrowTable: true,
+      savedViewRetained: true,
+      sharedExactReturn: true,
+      scheduled: disposition,
+      waiting: disposition,
+      unconfirmed: disposition,
+      crossCase: "N09-07",
+      exactReturn: "?group=waiting",
+      linkedWorkStage: "Offer to tenant",
+      currentStep: "offer-tenant",
+    },
+    "N09-02": {
+      legacyRefused: true,
+      interruptedResponseRecovered: true,
+      deliberateContinuation: true,
+      changedCycleRefused: true,
+      reuseAtAllowance: true,
+      eligible: 1,
+      capStops: 1,
+      draftReadbacks: [{ leaseId: "1", revision: 1 }],
+    },
+    "N09-03": {
+      exactEditorReturn: true,
+      newerRentPreserved: true,
+      concurrentClearPreserved: true,
+      explicitRefillUsedSavedEvidence: true,
+      staleSaveRefused: true,
+      noEvidenceStayedEmpty: true,
+      sourceDiscrepancyWorkingFix: true,
+      savedRevision: 1,
+    },
+    "N09-04": {
+      savedNote: true,
+      collapsedHistory: true,
+      earlierCycleAnnotation: true,
+      derivedStagePreserved: true,
+      fullToggle: true,
+      legacyTarget: true,
+      verifiedProviderHandoffAndReturn: true,
+      stickyOutcomes: 7,
+      conditionalPaths: ["housing assistance", "month-to-month"],
+    },
+    "N09-05": {
+      covered: true,
+      singleOwner: true,
+      leaseOverridePreservedPortfolio: true,
+      unrelatedLeasePreserved: true,
+      expiredCoverageHeld: true,
+      conflictingRentHeld: true,
+      approvalPreserved: true,
+      staleStatus: 409,
+      portfolioRevisions: [1, 2, 3],
+      restoredAgreementAmount: 1751,
+    },
+    "N09-06": {
+      firstUse: true,
+      savedBlank: true,
+      filledReadback: true,
+      isolatedSenders: true,
+      priorWordingHeld: true,
+      exactResponsibleSenderBytes: true,
+      explicitTakeoverRevision: 3,
+      crossCase: "N09-07",
+    },
+    "N09-07": {
+      scheduledCancellationWithoutSend: true,
+      concurrentConfirmAndWorker: true,
+      ambiguousHeldAndReconciled: true,
+      twoViewReconciliation: true,
+      twoViewWaiting: true,
+      twoViewReplyDecision: true,
+      verifiedHumanReplyPaused: true,
+      automaticReplyPreservedSchedule: true,
+      unavailableReadHeld: true,
+      bouncePaused: true,
+      expiredResumeRefused: true,
+      separatelyRecordedTenantDecision: true,
+      exactResponsibleSenderBytes: true,
+      initialSends: 1,
+      followUpSends: 1,
+      exactReceipts: 2,
+      freshResumeRevision: 2,
+    },
+    "N09-08": {
+      recordedTenantDecision: true,
+      independentDocumentsAndCompletion: true,
+      completedDeskDisposition: true,
+      nonRenewalHandoff: true,
+      unboundPreviewRefused: true,
+      exactDocumentEvaluationReadback: true,
+      unavailableSourceRetainedIndependentWork: true,
+      governedRentVinePreview: "b".repeat(64),
+    },
+    "N09-09-Editor": { ...help, protectedSpaceRequest: "denied" },
+    "N09-09-Approver": { ...help, protectedSpaceRequest: "denied" },
+    "N09-09-Admin": { ...help, protectedSpaceRequest: "read" },
+    "N09-10": {
+      delayedSaveReadback: true,
+      refusedSavePreservedAndRetried: true,
+      reconciliationTakesPriority: true,
+      readOnlyEvidenceAndExactRefusals: true,
+      actualReplyDecisionSeparation: true,
+      waitingAndDecisionInBothViews: true,
+      checkedOutcomes: 28,
+      renderedNegativeControlsRejected: 5,
+      crossCase: "N09-07",
+    },
+  };
+  const rows = Object.entries(reports).map(([id, observed]) => ({
+    id,
+    role: id.split("-")[2] ?? "Editor",
+    verdict: "Yes",
+    observed,
+  }));
   const input = {
     run: { served_sha: source, harness_sha: source },
-    rehearsal: { servedVersion: source, servedCommit: source, compiled: true },
-    compiled: { source, buildId: "exact-build" },
+    rehearsal: {
+      servedVersion: source,
+      servedCommit: source,
+      compiled: true,
+      compiledMail: adapter,
+    },
+    compiled: { source, buildId: "exact-build", compiledMail: adapter },
     results: rows,
     networkRefusals: [],
     tenantSendProof: false,
@@ -73,10 +204,46 @@ describe("S260 exact matrix verdict", () => {
     { results: rows.slice(1) },
     { results: [...rows.slice(1), rows[1]] },
     { results: [{ ...rows[0], observed: {} }, ...rows.slice(1)] },
+    { results: [{ ...rows[0], observed: { readback: true } }, ...rows.slice(1)] },
+    { results: [{ ...rows[0], human: "Yes" }, ...rows.slice(1)] },
+    {
+      results: rows.map((row) =>
+        row.id === "N09-09-Admin"
+          ? { ...row, observed: { ...row.observed, helpSource: "b".repeat(40) } }
+          : row,
+      ),
+    },
     { results: [{ ...rows[0], observed: { missing: "readback" } }, ...rows.slice(1)] },
     { networkRefusals: [{}] },
   ])("refuses a stale, mixed, missing, duplicate or unsupported report %o", (bad) => {
     expect(novemberNineMatrixVerdict({ ...input, ...bad }).verdict).toBe("No");
+  });
+
+  it("requires the compiled synthetic adapter and worker hashes to match the served fixture", () => {
+    const rehearsal = input.rehearsal;
+    expect(
+      novemberNineMatrixVerdict({
+        ...input,
+        compiled: { source, buildId: "exact-build" },
+      }).verdict,
+    ).toBe("No");
+    expect(
+      novemberNineMatrixVerdict({
+        ...input,
+        rehearsal,
+        compiled: {
+          ...input.compiled,
+          compiledMail: { ...adapter, worker: "5".repeat(64) },
+        },
+      }).verdict,
+    ).toBe("No");
+    expect(
+      novemberNineMatrixVerdict({
+        ...input,
+        rehearsal,
+        compiled: { ...input.compiled, compiledMail: adapter },
+      }).verdict,
+    ).toBe("Yes");
   });
 
   it("keeps a complete exact matrix unverified when a required observation is held", () => {

@@ -14,5 +14,10 @@ tools/client-updates/
 output/
 docs/specs/
 
+# The S260 synthetic adapters can enter only the isolated rehearsal compile.
+tests/browser/fixtures/s260-compiled-mail.ts
+tests/browser/fixtures/s260-compiled-mail-worker.ts
+tests/browser/fixtures/s260-compiled-source-preview.ts
+
 # The dedicated scanner has its own exact-file build context and service image.
 infra/publication-scanner/

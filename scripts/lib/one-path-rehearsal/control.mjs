@@ -80,6 +80,8 @@ const standInControl = (rehearsal, name, body = {}) =>
 /** L36: deliver an owner reply on a thread (the latest sent, or narrowed by `to` or `threadId`). */
 export const deliverOwnerReply = (rehearsal, options = {}) =>
   standInControl(rehearsal, "deliver-reply", options);
+export const setMailThreadUnreadable = (rehearsal, threadId) =>
+  standInControl(rehearsal, "mail-thread-unreadable", { threadId });
 /** L37 and L38: "unconfirmed", "unconfirmed-lost", "bounce" or "normal", for the next send only. */
 export const setNextSend = (rehearsal, mode) =>
   standInControl(rehearsal, "next-send", { mode });
@@ -94,6 +96,10 @@ export const setRewording = (rehearsal, mode, once = false) =>
   standInControl(rehearsal, "rewording", { mode, once });
 export const resetComparisonLog = (rehearsal) =>
   standInControl(rehearsal, "reset-comparison-log");
+export const holdComparison = (rehearsal, leaseId) =>
+  standInControl(rehearsal, "hold-comparison", { leaseId });
+export const releaseComparison = (rehearsal, leaseId) =>
+  standInControl(rehearsal, "release-comparison", { leaseId });
 
 function readFlags(rehearsal) {
   const file = rehearsal.files.rentvineControl;

@@ -27,6 +27,8 @@
 #   --driver <file>    Run this driver file (path inside the repository) in place of the smoke
 #                      driver. Arguments after -- are passed to it.
 #   --compiled         Build once in the guarded rehearsal and serve that exact production build.
+#   --compiled-synthetic-mail  Use the S260 Gmail test adapter and worker in that isolated compile.
+#                      Requires --compiled and the exact S260 driver from a clean current commit.
 #   --no-seeds         Load the source leases only; skip every app-state seed.
 #   --hold-automatic-comparison
 #                      Keep the rehearsal's automatic preparation setting off, including after
@@ -107,7 +109,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --overlay) overlay=true ;;
     --commit) commit="${2:?--commit needs a commit}"; shift ;;
-    --serve | --compiled | --no-seeds | --no-mail-adapter | --hold-automatic-comparison) args+=("$1") ;;
+    --serve | --compiled | --compiled-synthetic-mail | --no-seeds | --no-mail-adapter | --hold-automatic-comparison) args+=("$1") ;;
     --driver) driver_file="${2:?--driver needs a file}"; args+=("$1" "$2"); shift ;;
     --serve-for) args+=("$1" "${2:?--serve-for needs seconds}"); shift ;;
     --) shift; args+=(-- "$@"); break ;;

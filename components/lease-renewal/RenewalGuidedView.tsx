@@ -380,7 +380,7 @@ export function RenewalFullOutcome({
           {blocker ? <p role="alert">{blocker.label}</p> : null}
           {step.state === "not_part" ? <p>{NOT_PART_OF_PATH_LABEL}.</p> : null}
           {step.state === "waiting" && stage.waiting && current ? (
-            <p>{renewalStageWaitingLine(stage.waiting)}</p>
+            <p data-renewal-field="waiting">{renewalStageWaitingLine(stage.waiting)}</p>
           ) : null}
           {step.detail && !blocker && step.state !== "waiting" ? (
             <p>{step.detail}</p>

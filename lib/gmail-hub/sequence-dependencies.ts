@@ -11,7 +11,10 @@ import { getFirebaseAdminApp } from "@/lib/firebase/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import { currentRenewalMessage } from "@/lib/lease-renewal/current-renewal-message";
 import { requireEnvironmentDescriptor } from "@/lib/environment/descriptor";
-import { resolveRehearsalStandIn } from "@/lib/environment/rehearsal-stand-in";
+import {
+  readRehearsalMailTime,
+  resolveRehearsalMail,
+} from "@/lib/gmail-hub/rehearsal-mail";
 import {
   assertGmailEffectEnvironment,
   createGmailHubService,
@@ -49,10 +52,11 @@ export function createCommunicationSequenceService() {
   if (testDependencies) return new WorkflowCommunicationSequenceService(testDependencies);
   const descriptor = requireEnvironmentDescriptor();
   // S254: null everywhere except the isolated rehearsal (lib/environment/rehearsal-stand-in.ts).
-  const standIn = resolveRehearsalStandIn();
+  const standIn = resolveRehearsalMail();
   const attachments = new CommunicationAttachmentStore();
   return new WorkflowCommunicationSequenceService({
     store: new FirestoreCommunicationSequenceStore(),
+    now: readRehearsalMailTime,
     resolveTarget: resolveCommunicationTarget,
     resolveAttachment: (id, context) => attachments.resolve(id, context),
     readActor: readCurrentCommunicationActor,

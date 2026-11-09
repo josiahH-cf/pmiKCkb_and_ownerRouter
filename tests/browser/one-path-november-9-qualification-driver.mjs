@@ -9,12 +9,19 @@ import { resolveBrowserExecutable } from "../../scripts/lib/browser-executable.m
 import { requireLoopbackRehearsalOrigin } from "../../scripts/lib/help-rehearsal-origin.mjs";
 import {
   readRehearsal,
+  holdComparison,
+  releaseComparison,
   refusedConnections,
   resetComparisonLog,
   setComparisonAllowance,
+  setSourceCycleDate,
+  setUnavailableSourceLease,
   standInState,
 } from "../../scripts/lib/one-path-rehearsal/control.mjs";
+import { forceSourceRefresh } from "../../scripts/lib/one-path-rehearsal/seeds.mjs";
 import { inspectOutcome, outcomeFaults } from "./one-path-november-9-outcome-check.mjs";
+import { readExactHelpProof } from "./one-path-november-9-help-proof.mjs";
+import { qualifyCompiledTenantOffer } from "./one-path-november-9-mail-checks.mjs";
 import { novemberNineMatrixVerdict } from "./one-path-november-9-qualification-verdict.mjs";
 
 assert.equal(globalThis.fetch.name, "guardedFetch");
@@ -24,14 +31,25 @@ const runDir = process.env.ONE_PATH_REHEARSAL_RUN_DIR;
 const rehearsal = readRehearsal(runDir);
 const run = JSON.parse(readFileSync(join(runDir, "run.json"), "utf8"));
 const tenantSendProof = process.argv.includes("--tenant-send-proof");
+const fenceProof = process.argv.includes("--compiled-mail-fence-proof");
+const onlyTenant = tenantSendProof || fenceProof;
+assert.ok(!(tenantSendProof && fenceProof));
 assert.equal(rehearsal.servedVersion, rehearsal.servedCommit);
-assert.equal(rehearsal.compiled, !tenantSendProof);
+const compiledMail = rehearsal.compiledMail != null;
+assert.equal(rehearsal.compiled, compiledMail || fenceProof || !tenantSendProof);
+if (fenceProof) assert.equal(compiledMail, false);
 assert.equal(rehearsal.mailAdapter, true);
 const report = join(
   runDir,
-  tenantSendProof ? "tenant-send-proof.jsonl" : "s260-journeys.jsonl",
+  fenceProof
+    ? "compiled-mail-fence-proof.jsonl"
+    : tenantSendProof
+      ? "tenant-send-proof.jsonl"
+      : "s260-journeys.jsonl",
 );
 const results = [];
+const renderedHelp = readExactHelpProof(process.argv, rehearsal.servedVersion);
+let monthPreparation = null;
 const record = (entry) => {
   appendFileSync(report, JSON.stringify(entry) + "\n");
   process.stdout.write(JSON.stringify(entry) + "\n");
@@ -63,12 +81,17 @@ const post = (page, path, body) =>
     },
     [path, body],
   );
-async function seedFixture(path, fields) {
+function fixtureDocument(path) {
   assert.match(rehearsal.firestoreEmulatorHost, /^127\.0\.0\.1:\d+$/);
-  assert.match(rehearsal.projectId, /^pmi-kc-kb-[a-z0-9-]+-test$/);
+  assert.equal(rehearsal.projectId, "pmi-kc-kb-one-path-rehearsal-test");
+  assert.match(path, /^[a-z_]+\/[A-Za-z0-9_-]+$/);
   const base = "http://" + rehearsal.firestoreEmulatorHost + "/v1/projects/";
   const root = rehearsal.projectId + "/databases/(default)/documents/";
-  const response = await fetch(base + root + path, {
+  return base + root + path;
+}
+
+async function seedFixture(path, fields) {
+  const response = await fetch(fixtureDocument(path), {
     method: "PATCH",
     headers: { authorization: "Bearer owner", "content-type": "application/json" },
     body: JSON.stringify({ fields }),
@@ -100,6 +123,54 @@ async function seedUnconfirmedTenantOffer(page) {
     threads: { arrayValue: { values: [] } },
   });
   return id;
+}
+
+async function signInReadOnly(page) {
+  assert.equal(rehearsal.projectId, "pmi-kc-kb-one-path-rehearsal-test");
+  assert.match(rehearsal.authEmulatorHost, /^127\.0\.0\.1:[1-9]\d{0,4}$/);
+  const email = "canary-editor@pmikcmetro.com";
+  const emulator =
+    "http://" + rehearsal.authEmulatorHost + "/identitytoolkit.googleapis.com/v1/";
+  const call = async (path, body) => {
+    const response = await fetch(emulator + path, {
+      method: "POST",
+      headers: { authorization: "Bearer owner", "content-type": "application/json" },
+      redirect: "error",
+      body: JSON.stringify(body),
+    });
+    assert.ok(response.ok, "The local Auth emulator must admit this synthetic fixture");
+    return response.json();
+  };
+  const identity = {
+    requestUri: origin + "/sign-in",
+    returnSecureToken: true,
+    postBody: new URLSearchParams({
+      providerId: "google.com",
+      id_token: JSON.stringify({
+        sub: "s260-read-only-synthetic",
+        email,
+        email_verified: true,
+      }),
+    }).toString(),
+  };
+  const first = await call("accounts:signInWithIdp?key=synthetic", identity);
+  await call("projects/" + rehearsal.projectId + "/accounts:update", {
+    localId: first.localId,
+    customAttributes: JSON.stringify({ role: "Editor" }),
+  });
+  const signed = await call("accounts:signInWithIdp?key=synthetic", identity);
+  const session = await page.request.post(origin + "/api/auth/session", {
+    maxRedirects: 0,
+    headers: { authorization: "Bearer " + signed.idToken },
+  });
+  assert.equal(
+    session.status(),
+    200,
+    "Read-only fixture must use the real session route",
+  );
+  const { user } = await session.json();
+  assert.equal(user.email, email);
+  assert.equal(user.role, "Editor");
 }
 
 const full = (page) => page.getByRole("button", { name: "Full view", exact: true });
@@ -162,7 +233,9 @@ async function journey(id, role, viewport, allow, check) {
         error instanceof Error
           ? error.stack
               ?.split("\n")
-              .find((line) => line.includes("qualification-driver.mjs"))
+              .find((line) =>
+                /qualification-driver\.mjs|november-9-mail-checks\.mjs/.test(line),
+              )
               ?.trim()
           : undefined,
       refusals,
@@ -180,7 +253,7 @@ async function journey(id, role, viewport, allow, check) {
 const wide = { width: 1280, height: 800 };
 const narrow = { width: 390, height: 800 };
 try {
-  if (!tenantSendProof) {
+  if (!onlyTenant) {
     await journey(
       "N09-01",
       "Editor",
@@ -405,7 +478,7 @@ try {
       "N09-02",
       "Editor",
       wide,
-      ["/api/lease-renewal/kickoff-preparation"],
+      ["/api/lease-renewal/kickoff-preparation", "/api/lease-renewal/refresh"],
       async (page, mutations) => {
         await seedFixture("app_settings/renewal_kickoff_automatic_start", {
           enabled: { booleanValue: true },
@@ -470,6 +543,50 @@ try {
           name: /^Continue .* preparation$/,
         });
         await continuation.waitFor();
+        const interruption = Promise.withResolvers();
+        const depart = Promise.withResolvers();
+        await page.route(
+          "**/api/lease-renewal/kickoff-preparation",
+          async (route) => {
+            try {
+              const response = await route.fetch({ maxRedirects: 0 });
+              assert.equal(response.status(), 200);
+              const request = route.request().postDataJSON();
+              const result = await response.json();
+              interruption.resolve({ request, result });
+              await depart.promise;
+              await route.abort("failed").catch(() => undefined);
+            } catch (error) {
+              interruption.reject(error);
+              await route.abort("failed").catch(() => undefined);
+            }
+          },
+          { times: 1 },
+        );
+        let interrupted;
+        try {
+          await continuation.click();
+          interrupted = await Promise.race([
+            interruption.promise,
+            page.waitForTimeout(30_000).then(() => {
+              throw new Error("The first exact preparation did not reach the server");
+            }),
+          ]);
+          assert.ok(["prepared", "reused"].includes(interrupted.result.status));
+          await open(page, desk);
+        } finally {
+          depart.resolve();
+        }
+        const hitsBeforeReturn = await comparisons();
+        const interruptedDraft = await read(
+          page,
+          "/api/lease-renewal/message-preparation?channel=owner&leaseId=" +
+            interrupted.request.leaseId,
+        );
+        assert.ok(interruptedDraft.saved?.revision > 0);
+        await open(page, monthUrl.replace(origin, ""));
+        await continuation.waitFor();
+        assert.deepEqual(await comparisons(), hitsBeforeReturn);
         requests.length = 0;
         await continuation.click();
         await page.getByText(/Preparation finished for/).waitFor({ timeout: 60_000 });
@@ -501,50 +618,289 @@ try {
           "Continuing reuses evidence at the allowance",
         );
         await setComparisonAllowance(rehearsal, false);
+        const exact = interrupted.request;
+        const sameLease = draftReadbacks.find(({ leaseId }) => leaseId === exact.leaseId);
+        assert.equal(sameLease.revision, interruptedDraft.saved.revision);
+        assert.equal(hits[exact.leaseId], hitsBeforeReturn[exact.leaseId]);
+        const nextDate = new Date(
+          Date.parse(exact.cycleDateIso + "T12:00:00Z") + 86_400_000,
+        )
+          .toISOString()
+          .slice(0, 10);
+        try {
+          setSourceCycleDate(rehearsal, exact.leaseId, nextDate);
+          assert.ok(
+            (await forceSourceRefresh(page)).body?.refreshed,
+            "Read the changed source cycle",
+          );
+          const stale = await post(page, "/api/lease-renewal/kickoff-preparation", {
+            ...exact,
+            operationId: randomUUID(),
+          });
+          assert.equal(stale.status, 409);
+          assert.equal(stale.body.code, "outside_working_batch");
+          assert.match(stale.body.message, /cycle changed/i);
+          assert.deepEqual(await comparisons(), hits);
+        } finally {
+          setSourceCycleDate(rehearsal, exact.leaseId, null);
+          assert.ok(
+            (await forceSourceRefresh(page)).body?.refreshed,
+            "Restore the fixture's current source",
+          );
+        }
+        monthPreparation = exact;
         return {
           month,
           requested: requests.length,
           eligible: eligible.length,
           legacyRefused: true,
           capStops,
+          interruptedResponseRecovered: true,
           deliberateContinuation: true,
+          changedCycleRefused: true,
           draftReadbacks,
           reuseAtAllowance: true,
-          missing:
-            "Interrupted in-flight continuation and changed-cycle ambiguity require replay.",
         };
       },
     );
 
-    await journey("N09-03", "Editor", wide, [], async (page) => {
-      await open(page, href(prepared, "?step=compare-market"));
-      const editor = page.getByLabel("Rent to recommend", { exact: true });
-      await editor.waitFor();
-      const data = await read(
-        page,
-        "/api/lease-renewal/working-record?leaseId=" + prepared,
-      );
-      const saved = data.record?.fields?.terms_rent;
-      assert.ok(
-        saved?.value > 0 && saved.sourceLabel,
-        "Read back the app-saved recommendation and basis",
-      );
-      assert.equal(Number(await editor.inputValue()), saved.value);
-      await page.getByRole("button", { name: "Ask the owner", exact: true }).click();
-      await page
-        .getByRole("button", { name: "Change recommended rent", exact: true })
-        .click();
-      assert.equal(
-        await editor.evaluate((node) => node === document.activeElement),
-        true,
-      );
-      return {
-        savedRevision: saved.revision,
-        exactEditorReturn: true,
-        missing:
-          "The source discrepancy and interrupted-save browser branches require replay.",
-      };
-    });
+    await journey(
+      "N09-03",
+      "Editor",
+      wide,
+      ["/api/lease-renewal/working-record", "/api/lease-renewal/kickoff-preparation"],
+      async (page, mutations) => {
+        const fields = "/api/lease-renewal/working-record";
+        const recommendation = () =>
+          page.getByLabel("Rent to recommend", { exact: true });
+        await open(page, href(prepared, "?step=compare-market"));
+        const editor = recommendation();
+        await editor.waitFor();
+        const data = await read(page, fields + "?leaseId=" + prepared);
+        const saved = data.record?.fields?.terms_rent;
+        assert.ok(
+          saved?.value > 0 && saved.sourceLabel,
+          "Read the prepared recommendation and its basis",
+        );
+        assert.equal(Number(await editor.inputValue()), saved.value);
+        const verification = now(page).locator("details[data-renewal-verification]");
+        assert.equal(await verification.getAttribute("open"), null);
+        await verification.locator("summary").press("Enter");
+        assert.match(await verification.innerText(), /rent|comparison/i);
+        assert.deepEqual(mutations, []);
+        await page.getByRole("button", { name: "Ask the owner", exact: true }).click();
+        const ownerSummary = page.locator(
+          '[data-renewal-field="owner-recommended-rent"]',
+        );
+        assert.ok(
+          (await ownerSummary.innerText())
+            .replace(/[,\s]/g, "")
+            .includes(String(saved.value)),
+        );
+        const ownerDraft = await read(
+          page,
+          "/api/lease-renewal/message-preparation?channel=owner&leaseId=" + prepared,
+        );
+        assert.ok(ownerDraft.saved?.revision > 0);
+        assert.ok(
+          ownerDraft.content.plainText
+            .replace(/[,\s]/g, "")
+            .includes(String(saved.value)),
+        );
+        await page
+          .getByRole("button", { name: "Change recommended rent", exact: true })
+          .click();
+        assert.equal(
+          await editor.evaluate((node) => node === document.activeElement),
+          true,
+        );
+
+        assert.ok(monthPreparation, "Use the fresh alternate-month result on this build");
+        const alternate = monthPreparation.leaseId;
+        const alternatePath = fields + "?leaseId=" + alternate;
+        await open(page, href(alternate, "?step=compare-market"));
+        const before = (await read(page, alternatePath)).record.fields.terms_rent;
+        assert.ok(before.value > 0 && before.sourceLabel);
+        const setRent = async (value) => {
+          const accepted = page.waitForResponse(
+            (response) =>
+              new URL(response.url()).pathname === fields &&
+              response.request().method() === "POST" &&
+              response.request().postDataJSON()?.field === "terms_rent",
+          );
+          await editor.fill(value === null ? "" : String(value));
+          await editor.press("Enter");
+          assert.equal((await accepted).status(), 200);
+          return (await read(page, alternatePath)).record.fields.terms_rent;
+        };
+        const newer = await setRent(before.value + 11);
+        const prepareAgain = async () => {
+          const response = await post(page, "/api/lease-renewal/kickoff-preparation", {
+            ...monthPreparation,
+            operationId: randomUUID(),
+          });
+          assert.equal(response.status, 200);
+          assert.equal(response.body.status, "reused");
+        };
+        await prepareAgain();
+        assert.deepEqual(
+          (await read(page, alternatePath)).record.fields.terms_rent,
+          newer,
+        );
+        const cleared = await setRent(null);
+        assert.equal(cleared.value, null);
+        await prepareAgain();
+        const fresh = (await read(page, alternatePath)).record.fields.terms_rent;
+        assert.equal(fresh.revision, cleared.revision + 1);
+        assert.equal(fresh.value, before.value);
+        const stale = await post(page, fields, {
+          leaseId: alternate,
+          field: "terms_rent",
+          value: before.value,
+          expectedRevision: newer.revision,
+          operationId: randomUUID(),
+        });
+        assert.equal(stale.status, 409);
+
+        const noEvidence = String(rehearsal.groups.later.at(-1));
+        const hits = await comparisons();
+        await open(page, href(noEvidence, "?step=compare-market"));
+        await editor.waitFor();
+        assert.equal(await editor.inputValue(), "");
+        assert.deepEqual(await comparisons(), hits);
+
+        const discrepancyLease = String(rehearsal.roles.replied);
+        const racePath = fields + "?leaseId=" + discrepancyLease;
+        const raceStart = await read(page, racePath);
+        assert.equal(raceStart.record?.fields?.terms_rent, undefined);
+        const raceSource = await read(
+          page,
+          "/api/lease-renewal/message-preparation?channel=owner&leaseId=" +
+            discrepancyLease,
+        );
+        const raceInput = {
+          leaseId: discrepancyLease,
+          trigger: "staff",
+          month: rehearsal.workingMonth,
+          cycleDateIso: raceSource.facts.leaseEndDate,
+          operationId: randomUUID(),
+        };
+        await holdComparison(rehearsal, Number(discrepancyLease));
+        const inFlight = post(page, "/api/lease-renewal/kickoff-preparation", raceInput);
+        let concurrentClear;
+        try {
+          const deadline = Date.now() + 6000;
+          while (
+            (await standInState(rehearsal)).comparison.heldLeaseId !==
+            Number(discrepancyLease)
+          ) {
+            assert.ok(
+              Date.now() < deadline,
+              "Wait for the guarded provider to hold the comparison",
+            );
+            await page.waitForTimeout(75);
+          }
+          for (const [expectedRevision, value] of [
+            [0, 1701],
+            [1, null],
+          ]) {
+            const changed = await post(page, fields, {
+              leaseId: discrepancyLease,
+              field: "terms_rent",
+              value,
+              expectedRevision,
+              operationId: randomUUID(),
+            });
+            assert.equal(changed.status, 200, JSON.stringify(changed.body));
+          }
+          concurrentClear = (await read(page, racePath)).record.fields.terms_rent;
+          assert.equal(concurrentClear.value, null);
+        } finally {
+          assert.equal(
+            (await releaseComparison(rehearsal, Number(discrepancyLease))).entered,
+            true,
+          );
+        }
+        const compared = await inFlight;
+        assert.equal(compared.status, 200);
+        assert.equal(compared.body.status, "prepared");
+        assert.deepEqual(
+          (await read(page, racePath)).record.fields.terms_rent,
+          concurrentClear,
+        );
+        const beforeReuse = await comparisons();
+        assert.equal(beforeReuse[discrepancyLease], 1);
+        const reused = await post(page, "/api/lease-renewal/kickoff-preparation", {
+          ...raceInput,
+          operationId: randomUUID(),
+        });
+        assert.equal(reused.status, 200);
+        assert.equal(reused.body.status, "reused");
+        const replacement = (await read(page, racePath)).record.fields.terms_rent;
+        assert.equal(replacement.revision, concurrentClear.revision + 1);
+        assert.ok(replacement.value > 0);
+        assert.deepEqual(await comparisons(), beforeReuse);
+        await open(
+          page,
+          href(discrepancyLease, "?view=full#renewal-outcome-check-numbers"),
+        );
+        const numbers = page.locator('section[data-renewal-outcome="check-numbers"]');
+        const evidence = numbers.locator("details[data-renewal-verification]");
+        assert.equal(await evidence.getAttribute("open"), null);
+        await evidence.locator("summary").press("Enter");
+        const difference = evidence.locator("#renewal-field-current_rent");
+        await difference.waitFor();
+        const values = await difference.innerText();
+        assert.match(values, /RentVine/i);
+        assert.match(values, /Sheet/i);
+        const amounts = (await difference.locator("div.ui-row strong").allTextContents())
+          .map((value) => Number(value.replace(/[^0-9.]/g, "")))
+          .filter((value) => value > 0);
+        assert.ok(
+          amounts.includes(1800) && amounts.includes(1750),
+          "Both different source amounts are visible: " + JSON.stringify(amounts),
+        );
+        assert.equal(await difference.getByRole("button").count(), 0);
+        await evidence.locator("summary").press("Enter");
+        await numbers
+          .getByText("Correct lease facts and review source updates", { exact: true })
+          .click();
+        const corrections = numbers.getByRole("region", {
+          name: "Correct a lease fact",
+          exact: true,
+        });
+        await corrections.getByLabel("Fact to correct").selectOption("current_rent");
+        const useRentVine = corrections.getByRole("button", {
+          name: /^Use the RentVine.* value$/i,
+        });
+        const chosen = page.waitForResponse(
+          (response) =>
+            new URL(response.url()).pathname === fields &&
+            response.request().method() === "POST" &&
+            response.request().postDataJSON()?.field === "current_rent",
+        );
+        await useRentVine.click();
+        assert.equal((await chosen).status(), 200);
+        const corrected = (await read(page, fields + "?leaseId=" + discrepancyLease))
+          .record.fields.current_rent;
+        assert.ok(corrected.value > 0 && /RentVine/i.test(corrected.sourceLabel));
+        assert.ok(
+          mutations.every((path) =>
+            [fields, "/api/lease-renewal/kickoff-preparation"].includes(path),
+          ),
+        );
+        return {
+          savedRevision: saved.revision,
+          exactEditorReturn: true,
+          newerRentPreserved: true,
+          concurrentClearPreserved: true,
+          explicitRefillUsedSavedEvidence: true,
+          staleSaveRefused: true,
+          noEvidenceStayedEmpty: true,
+          sourceDiscrepancyWorkingFix: true,
+        };
+      },
+    );
 
     await journey(
       "N09-04",
@@ -556,6 +912,29 @@ try {
         await status(page).waitFor();
         assert.equal(await status(page).count(), 1);
         assert.equal(await full(page).getAttribute("aria-pressed"), "false");
+        const stage = page.locator('[data-renewal-field="stage-line"]');
+        const beforeNoteStage = await stage.innerText();
+        const historicalId = randomUUID();
+        const past = new Date(Date.now() - 31 * 86_400_000).toISOString();
+        const oldNote = {
+          schemaVersion: "renewal-status-note/v1",
+          leaseId: prepared,
+          cycleId: randomUUID(),
+          noteId: historicalId,
+          text: "Synthetic annotation from an earlier cycle",
+          recordedAt: past,
+          recordedByUid: "local-demo-editor",
+          recordedByLabel: "Fixture editor",
+          updatedAt: past,
+          eventId: randomUUID(),
+        };
+        await seedFixture("lease_renewal_status_notes/" + historicalId, {
+          ...Object.fromEntries(
+            Object.entries(oldNote).map(([key, stringValue]) => [key, { stringValue }]),
+          ),
+          revision: { integerValue: "1" },
+        });
+        await page.reload({ waitUntil: "domcontentloaded" });
         await status(page).press("Enter");
         const note = page.getByLabel("Add a note", { exact: true });
         await note.fill("Synthetic November 9 renewal note");
@@ -567,6 +946,10 @@ try {
         assert.equal(await history.getAttribute("open"), null);
         await history.locator("summary").click();
         assert.match(await history.innerText(), /Synthetic November 9 renewal note/);
+        const historical = history.locator('[data-status-log-id="' + historicalId + '"]');
+        assert.match(await historical.innerText(), /Earlier cycle/);
+        assert.equal(await historical.getAttribute("data-status-log-kind"), "note");
+        assert.equal(await stage.innerText(), beforeNoteStage);
         const stored = await read(
           page,
           "/api/lease-renewal/work-status?leaseId=" + prepared,
@@ -584,7 +967,32 @@ try {
           .getByRole("link", { name: "Open in RentVine", exact: true })
           .first();
         const destination = new URL(await provider.getAttribute("href"), origin);
-        assert.match(destination.pathname, new RegExp(prepared));
+        assert.equal(destination.protocol, "https:");
+        assert.equal(destination.hostname, "pmikcmetro.rentvine.com");
+        assert.match(destination.pathname, new RegExp("/" + prepared + "$"));
+        const shortcut = await page.request.get(origin + href(prepared) + "/rentvine", {
+          maxRedirects: 0,
+        });
+        assert.equal(shortcut.status(), 302);
+        assert.equal(shortcut.headers().location, destination.href);
+        const leaseBeforeReturn = page.url();
+        await page.context().route(
+          destination.href,
+          (route) =>
+            route.fulfill({
+              status: 200,
+              contentType: "text/plain",
+              body: "Synthetic RentVine boundary",
+            }),
+          { times: 1 },
+        );
+        const popup = page.waitForEvent("popup");
+        await provider.click();
+        const providerTab = await popup;
+        await providerTab.getByText("Synthetic RentVine boundary").waitFor();
+        await providerTab.close();
+        assert.equal(page.url(), leaseBeforeReturn);
+        assert.equal(await status(page).count(), 1);
         await open(page, href(prepared, "?view=focus#renewal-section-documents"));
         await page
           .getByRole("button", { name: "Full view", pressed: true, exact: true })
@@ -615,14 +1023,30 @@ try {
             }),
           );
         }
+        await open(
+          page,
+          href(String(rehearsal.roles.assisted), "?step=assisted-program-contact"),
+        );
+        await now(page)
+          .getByText(/Example Housing Assistance Office/)
+          .first()
+          .waitFor();
+        const periodic = String(rehearsal.groups.month_to_month[0]);
+        await open(page, href(periodic, "?step=month-to-month-review"));
+        await now(page)
+          .getByText(/month-to-month/i)
+          .first()
+          .waitFor();
         return {
           savedNote: true,
           collapsedHistory: true,
+          earlierCycleAnnotation: true,
+          derivedStagePreserved: true,
           fullToggle: true,
           legacyTarget: true,
           stickyOutcomes: 7,
-          missing:
-            "Earlier-cycle history, role cases and actual provider return require replay.",
+          verifiedProviderHandoffAndReturn: true,
+          conditionalPaths: ["housing assistance", "month-to-month"],
         };
       },
     );
@@ -631,7 +1055,7 @@ try {
       "N09-05",
       "Editor",
       wide,
-      ["/api/lease-renewal/pricing-policy"],
+      ["/api/lease-renewal/pricing-policy", "/api/lease-renewal/working-record"],
       async (page) => {
         const route = "/api/lease-renewal/pricing-policy";
         const leaseRead = route + "?leaseId=" + covered;
@@ -725,9 +1149,107 @@ try {
           (await read(page, route + "?leaseId=" + prepared)).authority,
           uncovered.authority,
         );
-        await page
-          .getByRole("button", { name: "Compare market rent", exact: true })
-          .click();
+        const source = agreement.agreement ?? agreement;
+        const agreementKeys = [
+          "id",
+          "name",
+          "policyId",
+          "portfolioId",
+          "preApprovalStatement",
+          "effectiveFrom",
+          "endsOn",
+          "agreedBy",
+          "agreedHow",
+          "agreedWhen",
+          "revoked",
+        ];
+        const exactAgreement = Object.fromEntries(
+          agreementKeys.map((key) => [key, source[key]]),
+        );
+        const workspacePath = "/api/lease-renewal/workspace?leaseId=" + covered;
+        const priorApproval =
+          (await read(page, workspacePath)).state?.ownerResponse ?? null;
+        const setAgreement = async (entry, expectedVersion) => {
+          assert.equal(
+            (await post(page, "/api/auth/demo", { role: "Admin" })).status,
+            200,
+          );
+          try {
+            const response = await post(page, route, {
+              action: "standing_agreement",
+              agreement: entry,
+              expectedVersion,
+              operationId: randomUUID(),
+            });
+            assert.equal(response.status, 200, JSON.stringify(response.body));
+            return response.body.standingAgreement;
+          } finally {
+            assert.equal(
+              (await post(page, "/api/auth/demo", { role: "Editor" })).status,
+              200,
+            );
+          }
+        };
+        const expired = await setAgreement(
+          { ...exactAgreement, endsOn: exactAgreement.effectiveFrom },
+          source.version,
+        );
+        try {
+          const unverified = await read(page, leaseRead);
+          assert.equal(unverified.authority.covered, false);
+          assert.match(unverified.authority.reason, /ended on/i);
+          await open(page, href(covered, "?step=ask-owner"));
+          await owner
+            .getByText(/ended on/i)
+            .first()
+            .waitFor();
+        } finally {
+          await setAgreement(exactAgreement, expired.version);
+        }
+        assert.equal(
+          (await read(page, leaseRead)).authority.amount,
+          original.authority.amount,
+        );
+
+        const workingRoute = "/api/lease-renewal/working-record";
+        const workingPath = workingRoute + "?leaseId=" + covered;
+        const previousRent = (await read(page, workingPath)).record?.fields?.terms_rent;
+        const setRent = async (value, expectedRevision) => {
+          const response = await post(page, workingRoute, {
+            leaseId: covered,
+            field: "terms_rent",
+            value,
+            expectedRevision,
+            operationId: randomUUID(),
+          });
+          assert.equal(response.status, 200, JSON.stringify(response.body));
+          return (await read(page, workingPath)).record.fields.terms_rent;
+        };
+        const conflict = await setRent(
+          original.authority.amount + 25,
+          previousRent?.revision ?? 0,
+        );
+        try {
+          const conflicting = await read(page, leaseRead);
+          assert.equal(conflicting.authority.covered, false);
+          assert.match(conflicting.authority.reason, /rent|amount/i);
+          await open(page, href(covered, "?step=ask-owner"));
+          await owner
+            .getByText(/rent.*rule|rule.*rent/i)
+            .first()
+            .waitFor();
+          assert.deepEqual(
+            (await read(page, workspacePath)).state?.ownerResponse ?? null,
+            priorApproval,
+          );
+        } finally {
+          await setRent(previousRent?.value ?? null, conflict.revision);
+        }
+        const finalCoverage = await read(page, leaseRead);
+        assert.equal(finalCoverage.authority.covered, true);
+        assert.equal(finalCoverage.authority.amount, original.authority.amount);
+        await open(page, href(covered, "?step=compare-market"));
+        await now(page).locator("[data-renewal-work]").waitFor();
         assert.equal(await owner.isVisible(), false);
         await full(page).click();
         await owner.waitFor();
@@ -740,7 +1262,9 @@ try {
           staleStatus: stale.status,
           restoredAgreementAmount: restored.authority.amount,
           unrelatedLeasePreserved: true,
-          missing: "Expired coverage and a conflicting working amount require replay.",
+          expiredCoverageHeld: true,
+          conflictingRentHeld: true,
+          approvalPreserved: true,
         };
       },
     );
@@ -868,158 +1392,302 @@ try {
     );
   }
 
-  await journey(
-    "N09-07",
-    "Editor",
-    wide,
-    [
-      "/api/gmail-hub/sequences",
-      "/api/lease-renewal/message-preparation",
-      "/api/lease-renewal/working-record",
-    ],
-    async (page) => {
-      await open(page, href(prepared, "?step=offer-tenant"));
-      const owner = await read(
-        page,
-        "/api/lease-renewal/message-preparation?leaseId=" + prepared + "&channel=owner",
-      );
-      const working = await read(
-        page,
-        "/api/lease-renewal/working-record?leaseId=" + prepared,
-      );
-      const leaseEnd = new Date(owner.facts.leaseEndDate + "T12:00:00Z");
-      const effective = new Date(leaseEnd.getTime() + 86_400_000)
-        .toISOString()
-        .slice(0, 10);
-      const ending = new Date(
-        Date.UTC(
-          leaseEnd.getUTCFullYear() + 1,
-          leaseEnd.getUTCMonth(),
-          leaseEnd.getUTCDate(),
-          12,
-        ),
-      )
-        .toISOString()
-        .slice(0, 10);
-      for (const [field, value] of [
-        ["terms_effective_date", effective],
-        ["terms_end_date", ending],
-      ]) {
-        const saved = await post(page, "/api/lease-renewal/working-record", {
-          leaseId: prepared,
-          field,
-          value,
-          expectedRevision: working.record?.fields?.[field]?.revision ?? 0,
-          operationId: randomUUID(),
-        });
-        assert.equal(saved.status, 200);
-      }
-      await open(page, href(prepared, "?step=offer-tenant"));
-      const composition = await read(
-        page,
-        "/api/gmail-hub/composition?purpose=renewal_tenant&lease=" + prepared,
-      );
-      if (composition.target.blockers?.length) {
-        return {
-          missing:
-            "Fixture has tenant offer readiness blockers. The exact combined review could not open.",
-          blockers: composition.target.blockers,
-        };
-      }
-      await now(page)
-        .getByRole("button", { name: "Review and send", exact: true })
-        .click();
-      const dialog = page.getByRole("dialog", { name: "Review and send", exact: true });
-      await dialog.getByRole("checkbox", { name: /Authorize follow-ups/ }).check();
-      const combined = dialog.getByRole("button", {
-        name: "Send offer now and authorize follow-ups",
-        exact: true,
-      });
-      assert.equal(await combined.isEnabled(), false);
-      await dialog.getByLabel("Follow-up subject").fill("Synthetic follow-up");
-      await dialog
-        .getByLabel("Follow-up message")
-        .fill("Please reply with your decision on the synthetic offer.");
-      await dialog.getByLabel("Every how many days").fill("3");
-      await dialog.getByLabel("Local send time").fill("09:15");
-      await dialog.getByLabel("Total send limit, including the offer").fill("2");
-      await dialog.getByText(/Expected first follow-up/).waitFor();
-      assert.equal(await combined.isEnabled(), true);
-      const mailSent = async () =>
-        (await standInState(rehearsal)).mail.mailboxes.flatMap((box) =>
-          box.messages.filter((message) => message.labelIds.includes("SENT")),
-        );
-      const before = await mailSent();
-      const sent = page.waitForResponse(
-        (response) =>
-          new URL(response.url()).pathname === "/api/gmail-hub/sequences" &&
-          response.request().method() === "POST" &&
-          response.request().postDataJSON()?.action === "send",
-      );
-      await combined.click();
-      const response = await sent;
-      const result = await response.json();
-      if (tenantSendProof) {
-        assert.ok(response.ok(), result.error);
-        const sequence = result.sequence;
-        assert.equal(sequence.context.entityId, prepared);
-        assert.equal(sequence.authorization.immediateTenantOffer, true);
-        assert.equal(sequence.confirmedCount, 1);
-        assert.equal(sequence.authorization.schedule.sendLimit, 2);
-        assert.ok(sequence.nextDueAtMs > sequence.lastSentAtMs);
-        assert.match(
-          sequence.authorization.followUp.plainText,
-          /Please reply with your decision/,
-        );
-        const replay = await post(
+  const checkTenantOffer = () =>
+    journey(
+      "N09-07",
+      "Editor",
+      wide,
+      [
+        "/api/gmail-hub/sequences",
+        "/api/lease-renewal/message-preparation",
+        "/api/lease-renewal/working-record",
+        "/api/lease-renewal/workspace",
+      ],
+      async (page) => {
+        await open(page, href(prepared, "?step=offer-tenant"));
+        const owner = await read(
           page,
-          "/api/gmail-hub/sequences",
-          response.request().postDataJSON(),
+          "/api/lease-renewal/message-preparation?leaseId=" + prepared + "&channel=owner",
         );
-        assert.ok(replay.status === 200 || replay.status === 409);
-        const after = await mailSent();
-        const fresh = after.filter(
-          (message) =>
-            !before.some((previous) => previous.rfcMessageId === message.rfcMessageId),
+        const working = await read(
+          page,
+          "/api/lease-renewal/working-record?leaseId=" + prepared,
         );
-        assert.equal(fresh.length, 1);
-        assert.equal(fresh[0].subject, sequence.authorization.initial.subject);
-        assert.equal(fresh[0].from.toLowerCase(), sequence.authorization.senderEmail);
-        const stored = await read(page, "/api/gmail-hub/sequences?id=" + sequence.id);
-        assert.equal(stored.sequence.confirmedCount, 1);
-        assert.equal(stored.sequence.nextDueAtMs, sequence.nextDueAtMs);
-        return {
-          initialSends: fresh.length,
-          oneReviewedPlan: true,
-          sameOperationReplay: replay.status,
-        };
-      }
-      assert.equal(response.status(), 409);
-      assert.equal(result.code, "environment_context_not_allowed");
-      assert.deepEqual(await mailSent(), before);
-      const refusedId = response.request().postDataJSON().id;
-      const refused = await read(page, "/api/gmail-hub/sequences?id=" + refusedId);
-      assert.equal(refused.sequence.state, "draft");
-      assert.equal(refused.sequence.confirmedCount, 0);
-      assert.equal(refused.sequence.authorization, null);
-      assert.equal(refused.sequence.unresolvedOccurrenceId, null);
-      return {
-        emptyPlanRefused: true,
-        boundedPlanReviewed: true,
-        compiledEffectRefused: result.code,
-        syntheticSendCount: 0,
-        missing:
-          "Positive dispatch in a compiled browser requires a sanctioned synthetic mail seam. Emulator and development dispatch proof are separate.",
-      };
-    },
-  );
+        const leaseEnd = new Date(owner.facts.leaseEndDate + "T12:00:00Z");
+        const effective = new Date(leaseEnd.getTime() + 86_400_000)
+          .toISOString()
+          .slice(0, 10);
+        const ending = new Date(
+          Date.UTC(
+            leaseEnd.getUTCFullYear() + 1,
+            leaseEnd.getUTCMonth(),
+            leaseEnd.getUTCDate(),
+            12,
+          ),
+        )
+          .toISOString()
+          .slice(0, 10);
+        for (const [field, value] of [
+          ["terms_effective_date", effective],
+          ["terms_end_date", ending],
+        ]) {
+          const saved = await post(page, "/api/lease-renewal/working-record", {
+            leaseId: prepared,
+            field,
+            value,
+            expectedRevision: working.record?.fields?.[field]?.revision ?? 0,
+            operationId: randomUUID(),
+          });
+          assert.equal(saved.status, 200);
+        }
+        let scheduledDesk = null;
+        if (compiledMail) {
+          const path = "/api/gmail-hub/sequences";
+          const ownerComposition = await read(
+            page,
+            "/api/gmail-hub/composition?purpose=renewal_owner&lease=" + prepared,
+          );
+          const staged = await post(page, path, {
+            action: "save",
+            expectedVersion: 0,
+            operationId: randomUUID(),
+            draft: {
+              id: randomUUID(),
+              context: ownerComposition.context,
+              initial: ownerComposition.initial,
+              followUp: null,
+            },
+          });
+          assert.equal(staged.status, 200, JSON.stringify(staged.body));
+          const candidate = staged.body.sequence;
+          const date = new Intl.DateTimeFormat("sv-SE", {
+            timeZone: "America/Chicago",
+          }).format(Date.now() + 2 * 86_400_000);
+          const authorized = await post(page, path, {
+            action: "schedule",
+            id: candidate.id,
+            expectedVersion: candidate.version,
+            operationId: randomUUID(),
+            reviewedDraftHash: staged.body.reviewedDraftHash,
+            reviewedTargetHash: ownerComposition.reviewedTargetHash,
+            schedule: {
+              firstDate: date,
+              time: "09:15",
+              timeZone: "America/Chicago",
+              everyDays: null,
+              endDate: null,
+              sendLimit: 1,
+            },
+          });
+          assert.equal(authorized.status, 200, JSON.stringify(authorized.body));
+          assert.equal(authorized.body.sequence.confirmedCount, 0);
+          await open(page, desk);
+          const row = page.locator('tr[data-batch-lease="' + prepared + '"]');
+          scheduledDesk = {
+            stage: await row.locator(".renewal-batch-stage").innerText(),
+            next: await row.locator("[data-batch-next-step]").innerText(),
+          };
+          assert.match(scheduledDesk.next, /review the scheduled owner message/i);
+          const cancelled = await post(page, path, {
+            action: "cancel",
+            id: candidate.id,
+            expectedVersion: authorized.body.sequence.version,
+            operationId: randomUUID(),
+          });
+          assert.equal(cancelled.status, 200);
+          assert.equal(cancelled.body.sequence.state, "cancelled");
+          await open(page, href(prepared, "?step=offer-tenant"));
+        }
+        if (compiledMail) {
+          const workspaceRoute = "/api/lease-renewal/workspace";
+          const initial = await read(page, workspaceRoute + "?leaseId=" + prepared);
+          const contacted = await post(page, workspaceRoute, {
+            operation: "record",
+            leaseId: prepared,
+            cycleId: initial.state.cycleId,
+            expectedRevision: initial.state.revision,
+            operationId: randomUUID(),
+            action: {
+              kind: "activity",
+              activity: "owner_outreach",
+              outcome: "done",
+              source: "Synthetic approval conversation",
+            },
+          });
+          assert.equal(contacted.status, 200, JSON.stringify(contacted.body));
+          const latest = contacted.body;
+          const approval = await post(page, workspaceRoute, {
+            operation: "record",
+            leaseId: prepared,
+            cycleId: latest.state.cycleId,
+            expectedRevision: latest.state.revision,
+            operationId: randomUUID(),
+            action: {
+              kind: "owner_response",
+              outcome: "approved_terms",
+              approval: {
+                party: {
+                  kind: "representative",
+                  name: "Synthetic owner representative",
+                  capacity: "Fixture approval",
+                },
+                channel: {
+                  kind: "conversation",
+                  participants: "Fixture owner and renewal staff",
+                },
+                occurredAt: new Date().toISOString(),
+              },
+            },
+          });
+          assert.equal(approval.status, 200, JSON.stringify(approval.body));
+          assert.equal(approval.body.state.ownerResponse.outcome, "approved_terms");
+        }
+        await open(page, href(prepared, "?step=offer-tenant"));
+        const composition = await read(
+          page,
+          "/api/gmail-hub/composition?purpose=renewal_tenant&lease=" + prepared,
+        );
+        if (composition.target.blockers?.length) {
+          return {
+            missing:
+              "Fixture has tenant offer readiness blockers. The exact combined review could not open.",
+            blockers: composition.target.blockers,
+          };
+        }
+        await now(page)
+          .getByRole("button", { name: "Review and send", exact: true })
+          .click();
+        const dialog = page.getByRole("dialog", { name: "Review and send", exact: true });
+        await dialog.getByRole("checkbox", { name: /Authorize follow-ups/ }).check();
+        const combined = dialog.getByRole("button", {
+          name: "Send offer now and authorize follow-ups",
+          exact: true,
+        });
+        assert.equal(await combined.isEnabled(), false);
+        await dialog.getByLabel("Follow-up subject").fill("Synthetic follow-up");
+        await dialog
+          .getByLabel("Follow-up message")
+          .fill("Please reply with your decision on the synthetic offer.");
+        await dialog.getByLabel("Every how many days").fill("3");
+        await dialog.getByLabel("Local send time").fill("09:15");
+        await dialog
+          .getByLabel("Total send limit, including the offer")
+          .fill(compiledMail ? "3" : "2");
+        if (compiledMail) {
+          const last = new Date(Date.now() + 6 * 86_400_000).toISOString().slice(0, 10);
+          await dialog.getByLabel("Inclusive end date").fill(last);
+        }
+        await dialog.getByText(/Expected first follow-up/).waitFor();
+        assert.equal(await combined.isEnabled(), true);
+        if (compiledMail)
+          return {
+            scheduledDesk,
+            scheduledCancellationWithoutSend: true,
+            ...(await qualifyCompiledTenantOffer({
+              page,
+              rehearsal,
+              combined,
+              leaseId: prepared,
+              href,
+              open,
+              read,
+              post,
+              record,
+            })),
+          };
+        const mailSent = async () =>
+          (await standInState(rehearsal)).mail.mailboxes.flatMap((box) =>
+            box.messages.filter((message) => message.labelIds.includes("SENT")),
+          );
+        const before = await mailSent();
+        const sent = page.waitForResponse(
+          (response) =>
+            new URL(response.url()).pathname === "/api/gmail-hub/sequences" &&
+            response.request().method() === "POST" &&
+            response.request().postDataJSON()?.action === "send",
+        );
+        await combined.click();
+        const response = await sent;
+        const result = await response.json();
+        if (tenantSendProof) {
+          assert.ok(response.ok(), result.error);
+          const sequence = result.sequence;
+          assert.equal(sequence.context.entityId, prepared);
+          assert.equal(sequence.authorization.immediateTenantOffer, true);
+          assert.equal(sequence.confirmedCount, 1);
+          assert.equal(sequence.authorization.schedule.sendLimit, 2);
+          assert.ok(sequence.nextDueAtMs > sequence.lastSentAtMs);
+          assert.match(
+            sequence.authorization.followUp.plainText,
+            /Please reply with your decision/,
+          );
+          const replay = await post(
+            page,
+            "/api/gmail-hub/sequences",
+            response.request().postDataJSON(),
+          );
+          assert.ok(replay.status === 200 || replay.status === 409);
+          const after = await mailSent();
+          const fresh = after.filter(
+            (message) =>
+              !before.some((previous) => previous.rfcMessageId === message.rfcMessageId),
+          );
+          assert.equal(fresh.length, 1);
+          assert.equal(fresh[0].subject, sequence.authorization.initial.subject);
+          assert.equal(fresh[0].from.toLowerCase(), sequence.authorization.senderEmail);
+          const stored = await read(page, "/api/gmail-hub/sequences?id=" + sequence.id);
+          assert.equal(stored.sequence.confirmedCount, 1);
+          assert.equal(stored.sequence.nextDueAtMs, sequence.nextDueAtMs);
+          return {
+            initialSends: fresh.length,
+            oneReviewedPlan: true,
+            sameOperationReplay: replay.status,
+          };
+        }
+        assert.equal(response.status(), 409);
+        assert.equal(result.code, "environment_context_not_allowed");
+        assert.deepEqual(await mailSent(), before);
+        const refusedId = response.request().postDataJSON().id;
+        const refused = await read(page, "/api/gmail-hub/sequences?id=" + refusedId);
+        assert.equal(refused.sequence.state, "draft");
+        assert.equal(refused.sequence.confirmedCount, 0);
+        assert.equal(refused.sequence.authorization, null);
+        assert.equal(refused.sequence.unresolvedOccurrenceId, null);
+        if (fenceProof) {
+          const worker = await page.request.post(
+            origin + "/api/rehearsal/s260-mail-worker",
+            { maxRedirects: 0 },
+          );
+          assert.equal(worker.status(), 404);
+          return {
+            compiledEffectRefused: result.code,
+            syntheticSendCount: 0,
+            syntheticWorkerAbsent: true,
+          };
+        }
 
-  if (!tenantSendProof) {
+        return {
+          emptyPlanRefused: true,
+          boundedPlanReviewed: true,
+          compiledEffectRefused: result.code,
+          syntheticSendCount: 0,
+          missing:
+            "Positive dispatch in a compiled browser requires a sanctioned synthetic mail seam. Emulator and development dispatch proof are separate.",
+        };
+      },
+    );
+
+  if (!onlyTenant) {
     await journey(
       "N09-08",
       "Editor",
       wide,
-      ["/api/lease-renewal/workspace"],
+      [
+        "/api/lease-renewal/workspace",
+        "/api/lease-renewal/packet-truth",
+        "/api/lease-renewal/rentvine-writeback",
+        "/api/lease-renewal/refresh",
+      ],
       async (page) => {
         const workRequests = [];
         page.on("request", (request) => {
@@ -1077,6 +1745,45 @@ try {
           .evaluateAll((nodes) => nodes.map((node) => node.dataset.renewalOutcome));
         assert.deepEqual(outcomes, ["documents", "finish-up", "complete"]);
         const documentWork = documents.locator('[data-renewal-outcome="documents"]');
+        const secondaryDocuments = documentWork.getByText(
+          "Prepare or record document work",
+          { exact: true },
+        );
+        const evaluate = documentWork.getByRole("button", {
+          name: /^(Evaluate packet|Evaluate current truth)$/,
+        });
+        if (!(await evaluate.isVisible())) await secondaryDocuments.click();
+        const packetPath = "/api/lease-renewal/packet-truth";
+        const evaluation = page.waitForResponse(
+          (response) =>
+            new URL(response.url()).pathname === packetPath &&
+            response.request().method() === "POST" &&
+            response.request().postDataJSON()?.action === "evaluate",
+        );
+        await evaluate.click();
+        const evaluated = await evaluation;
+        assert.equal(evaluated.status(), 200);
+        const packetRequest = evaluated.request().postDataJSON();
+        const savedPacket = (await evaluated.json()).snapshot;
+        assert.ok(
+          savedPacket.snapshotId ?? savedPacket.id,
+          "Read an attributable document evaluation",
+        );
+        const persisted = await read(
+          page,
+          packetPath +
+            "?" +
+            new URLSearchParams({
+              leaseId: packetRequest.leaseId,
+              transactionId: packetRequest.transactionId,
+            }),
+        );
+        assert.deepEqual(persisted.snapshot, savedPacket);
+        const dotloop = documentWork.getByRole("button", {
+          name: "Preview exact Dotloop packet creation",
+          exact: true,
+        });
+        if (await dotloop.count()) assert.equal(await dotloop.isEnabled(), false);
         const manual = documentWork.locator("#renewal-manual-documents");
         const outcome = manual.getByLabel("Required documents prepared outcome", {
           exact: true,
@@ -1100,6 +1807,94 @@ try {
           "waiting",
         );
 
+        const detailsPath = "?view=full#renewal-outcome-check-numbers";
+        await open(page, href(covered, detailsPath));
+        const details = page.locator('section[data-renewal-outcome="check-numbers"]');
+        await details
+          .getByText("Correct lease facts and review source updates", { exact: true })
+          .click();
+        const corrections = details.getByRole("region", {
+          name: "Correct a lease fact",
+          exact: true,
+        });
+        await corrections.getByLabel("Fact to correct").selectOption("renewal_date");
+        await corrections.getByLabel("Destinations").selectOption("rentvine");
+        const displayDate = new Date(Date.now() + 70 * 86_400_000)
+          .toISOString()
+          .slice(0, 10);
+        await corrections.getByLabel("Reviewed renewal date").fill(displayDate);
+        const previewPath = "/api/lease-renewal/rentvine-writeback";
+        const previewStatus = previewPath + "?leaseId=" + covered;
+        const unbound = await page.request.get(origin + previewStatus);
+        assert.equal(unbound.status(), 409);
+        assert.equal(
+          (await unbound.json()).error_type,
+          "environment_context_not_allowed",
+        );
+        let previewHash = null;
+        const previewHeaders = compiledMail
+          ? {
+              "x-s260-source-preview":
+                "Bearer " + process.env.S260_SYNTHETIC_WORKER_TOKEN,
+            }
+          : {};
+        if (compiledMail) {
+          assert.match(previewHeaders["x-s260-source-preview"], /^Bearer [a-f0-9]{64}$/);
+          await page.route(origin + previewPath, (route) => {
+            const request = route.request();
+            if (request.method() !== "POST") return route.fallback();
+            const command = request.postDataJSON();
+            if (command?.leaseId !== covered || command.operation !== "propose")
+              return route.fallback();
+            return route.fallback({
+              headers: { ...request.headers(), ...previewHeaders },
+            });
+          });
+        }
+        const previewReply = page.waitForResponse(
+          (response) =>
+            new URL(response.url()).pathname === previewPath &&
+            response.request().method() === "POST",
+        );
+        await corrections
+          .getByRole("button", {
+            name: "Prepare selected destination previews",
+            exact: true,
+          })
+          .click();
+        const preview = await previewReply;
+        const previewBody = await preview.json();
+        assert.equal(preview.request().postDataJSON().operation, "propose");
+        if (compiledMail) {
+          assert.equal(preview.status(), 200, JSON.stringify(previewBody));
+          previewHash = previewBody.proposal.preview_hash;
+          assert.match(previewHash, /^[a-f0-9]{64}$/);
+          // Status also checks the Live execution ledger. Read the proposal itself
+          // from the disposable emulator while leaving that separate gate closed.
+          const saved = await fetch(
+            fixtureDocument("renewal_writeback_proposals/" + covered),
+            { headers: { authorization: "Bearer owner" }, redirect: "error" },
+          );
+          assert.equal(saved.status, 200, "Read the exact saved synthetic proposal");
+          const { fields } = await saved.json();
+          assert.equal(fields.leaseId.stringValue, covered);
+          assert.equal(fields.previewHash.stringValue, previewHash);
+          const [effect] = fields.effects.arrayValue.values;
+          assert.equal(
+            effect.mapValue.fields.effectHash.stringValue,
+            previewBody.proposal.effects[0].effect_hash,
+          );
+          record({ id: "N09-08", check: "bound-preview-readback", previewHash });
+          await corrections
+            .getByRole("list", { name: "Destination preparation results" })
+            .getByText("Saved: apply its reviewed change below", { exact: false })
+            .waitFor();
+          await page.unroute(origin + previewPath);
+        } else {
+          assert.equal(preview.status(), 409);
+          assert.equal(previewBody.error_type, "environment_context_not_allowed");
+        }
+        await open(page, href(covered, "?view=full#renewal-section-documents"));
         const completion = documents.getByRole("button", {
           name: "Record staff completion",
           exact: true,
@@ -1148,14 +1943,36 @@ try {
           (await handoffResponse.json()).state.activities.non_renewal_handoff.outcome,
           "done",
         );
+        const unavailable = String(rehearsal.roles.replied);
+        try {
+          setUnavailableSourceLease(rehearsal, Number(unavailable));
+          assert.ok((await forceSourceRefresh(page)).body?.refreshed);
+          await open(page, href(unavailable));
+          await page
+            .getByText("This live renewal is unavailable.", { exact: true })
+            .waitFor();
+          await page
+            .getByRole("link", { name: /Back to renewals/ })
+            .first()
+            .click();
+          await batch(page).getByRole("table").waitFor();
+          await open(page, desk + "?group=completed");
+          await batch(page).locator(`tr[data-batch-lease="${covered}"]`).waitFor();
+        } finally {
+          setUnavailableSourceLease(rehearsal, null);
+          assert.ok((await forceSourceRefresh(page)).body?.refreshed);
+        }
         return {
           outcomes,
           recordedTenantDecision: true,
           independentDocumentsAndCompletion: true,
           completedDeskDisposition: true,
           nonRenewalHandoff: true,
-          missing:
-            "Governed source previews, document receipt and unavailable-source recovery require replay.",
+          governedRentVinePreview: previewHash,
+          unboundPreviewRefused: true,
+          ...(previewHash ? {} : { missing: "Run the bound compiled source preview." }),
+          exactDocumentEvaluationReadback: true,
+          unavailableSourceRetainedIndependentWork: true,
         };
       },
     );
@@ -1169,6 +1986,32 @@ try {
         assert.equal(new URL(page.url()).pathname, "/help");
         await open(page, "/help/lease-renewals/work-a-renewal#record-renewal-work");
         assert.equal(await page.locator("#record-renewal-work").count(), 1);
+        await page
+          .getByRole("link", { name: "Screen reference: Lease workspace", exact: true })
+          .click();
+        await page
+          .getByRole("heading", { name: "Lease workspace", exact: true })
+          .waitFor();
+        await page
+          .getByRole("row")
+          .filter({ hasText: /Work status/ })
+          .first()
+          .waitFor();
+        await page
+          .getByRole("link", {
+            name: "Work a renewal from the desk to a recorded outcome",
+            exact: true,
+          })
+          .click();
+        await page
+          .getByRole("heading", {
+            name: "Work a renewal from the desk to a recorded outcome",
+            exact: true,
+          })
+          .waitFor();
+        await open(page, href(prepared, "?step=check-numbers"));
+        await status(page).waitFor();
+
         await page.setViewportSize(narrow);
         await open(page, "/");
         const menu = page.getByRole("button", { name: "Menu", exact: true });
@@ -1217,8 +2060,10 @@ try {
           printControlsHidden: true,
           narrowAdminHelp: true,
           protectedSpaceRequest: role === "Admin" ? "read" : "denied",
-          missing:
-            "Exact screenshot parity and deliberate rendered drift require the separate gate.",
+          linkedScreenAndControl: true,
+          ...(renderedHelp ?? {
+            missing: "Bind the exact canonical rendered and deliberate drift gates.",
+          }),
         };
       });
     }
@@ -1227,7 +2072,7 @@ try {
       "N09-10",
       "Editor",
       wide,
-      ["/api/lease-renewal/working-record"],
+      ["/api/lease-renewal/working-record", "/api/lease-renewal/work-status"],
       async (page, mutations) => {
         const checks = [];
         const steps = [
@@ -1322,6 +2167,7 @@ try {
             if (defect === "send") {
               section.dataset.s260RestoreState = section.dataset.renewalWorkState;
               section.dataset.renewalWorkState = "reconcile";
+              node.disabled = true;
               work.append(node);
             }
           }, defect);
@@ -1437,41 +2283,135 @@ try {
         assert.equal(retried.record.fields.terms_rent.value, 1785);
         assert.equal(mutations.length, 4);
 
-        await seedUnconfirmedTenantOffer(page);
-        for (const query of [
-          "?step=offer-tenant",
-          "?view=full#renewal-outcome-offer-tenant",
-        ]) {
-          await open(page, href(prepared, query));
-          const scope = query.includes("full")
-            ? page.locator('section[data-renewal-outcome="offer-tenant"]')
-            : now(page);
-          const reconcile = scope.getByRole("button", {
-            name: "Check whether the message went out",
-            exact: true,
-          });
-          await reconcile.waitFor();
-          await scope.locator("details[data-renewal-verification]").waitFor();
-          const competing = scope.getByRole("button", {
-            name: /^(Review and send|Send this message|Schedule)$/,
-          });
-          await competing.first().waitFor({ state: "hidden", timeout: 2000 });
-          const snapshot = await scope.evaluate(inspectOutcome);
-          const faults = outcomeFaults(snapshot);
-          record({ id: "N09-10", check: "unconfirmed", query, snapshot, faults });
-          assert.deepEqual(faults, [], query + " unconfirmed offer");
+        if (!compiledMail) {
+          await seedUnconfirmedTenantOffer(page);
+          for (const query of [
+            "?step=offer-tenant",
+            "?view=full#renewal-outcome-offer-tenant",
+          ]) {
+            await open(page, href(prepared, query));
+            const scope = query.includes("full")
+              ? page.locator('section[data-renewal-outcome="offer-tenant"]')
+              : now(page);
+            const reconcile = scope.getByRole("button", {
+              name: "Check whether the message went out",
+              exact: true,
+            });
+            await reconcile.waitFor();
+            await scope.locator("details[data-renewal-verification]").waitFor();
+            const competing = scope.getByRole("button", {
+              name: /^(Review and send|Send this message|Schedule)$/,
+            });
+            await competing.first().waitFor({ state: "hidden", timeout: 2000 });
+            const snapshot = await scope.evaluate(inspectOutcome);
+            const faults = outcomeFaults(snapshot);
+            record({ id: "N09-10", check: "unconfirmed", query, snapshot, faults });
+            assert.deepEqual(faults, [], query + " unconfirmed offer");
+          }
         }
+        await signInReadOnly(page);
+        const fieldPath = "/api/lease-renewal/working-record";
+        const statusPath = "/api/lease-renewal/work-status";
+        const readOnlyValue = (await read(page, fieldPath + "?leaseId=" + prepared))
+          .record.fields.terms_rent;
+        const readOnlyNotes = await read(page, statusPath + "?leaseId=" + prepared);
+        const mutationCount = mutations.length;
+        for (const [path, scope] of [
+          ["?step=compare-market", now(page)],
+          [
+            "?view=full#renewal-outcome-compare-market",
+            page.locator('section[data-renewal-outcome="compare-market"]'),
+          ],
+        ]) {
+          await open(page, href(prepared, path));
+          const evidence = scope.locator("details[data-renewal-verification]");
+          await evidence.waitFor();
+          assert.equal(await evidence.getAttribute("open"), null);
+          const summary = evidence.locator(":scope > summary");
+          await summary.scrollIntoViewIfNeeded();
+          await summary.press("Space");
+          await scope.locator("details[data-renewal-verification][open]").waitFor();
+          await summary.press("Space");
+          await scope.locator("details[data-renewal-verification]:not([open])").waitFor();
+        }
+        assert.equal(mutations.length, mutationCount);
+        const refusedEdit = await post(page, fieldPath, {
+          leaseId: prepared,
+          field: "terms_rent",
+          value: readOnlyValue.value + 1,
+          expectedRevision: readOnlyValue.revision,
+          operationId: randomUUID(),
+        });
+        assert.equal(refusedEdit.status, 403);
+        const refusedNote = await post(page, statusPath, {
+          kind: "note",
+          leaseId: prepared,
+          noteId: randomUUID(),
+          text: "Synthetic verification must stay read-only",
+          expectedRevision: 0,
+          operationId: randomUUID(),
+        });
+        assert.equal(refusedNote.status, 403);
+        assert.deepEqual(
+          (await read(page, fieldPath + "?leaseId=" + prepared)).record.fields.terms_rent,
+          readOnlyValue,
+        );
+        assert.deepEqual(
+          await read(page, statusPath + "?leaseId=" + prepared),
+          readOnlyNotes,
+        );
         return {
-          checkedOutcomes: checks.length + 2,
+          checkedOutcomes: checks.length + (compiledMail ? 0 : 2),
           delayedSaveReadback: true,
           refusedSavePreservedAndRetried: true,
-          reconciliationTakesPriority: true,
+          reconciliationTakesPriority: !compiledMail,
           renderedNegativeControlsRejected: cases.length,
-          missing:
-            "Alternate read-only roles and provider-backed reconciliation return require replay.",
+          readOnlyEvidenceAndExactRefusals: true,
+          missing: "Provider-backed reconciliation return requires the N09-07 replay.",
         };
       },
     );
+  }
+  await checkTenantOffer();
+  const mailProof = results.find(({ id }) => id === "N09-07");
+  if (compiledMail && mailProof?.verdict === "Yes" && !onlyTenant) {
+    const mail = mailProof.observed;
+    const links = [
+      [
+        "N09-01",
+        mail.scheduledDesk &&
+          mail.waitingDesk &&
+          mail.unconfirmedDesk && {
+            scheduled: mail.scheduledDesk,
+            waiting: mail.waitingDesk,
+            unconfirmed: mail.unconfirmedDesk,
+          },
+      ],
+      [
+        "N09-06",
+        mail.exactResponsibleSenderBytes && { exactResponsibleSenderBytes: true },
+      ],
+      [
+        "N09-10",
+        mail.twoViewReconciliation &&
+          mail.twoViewWaiting &&
+          mail.twoViewReplyDecision &&
+          mail.verifiedHumanReplyPaused && {
+            reconciliationTakesPriority: true,
+            actualReplyDecisionSeparation: true,
+            waitingAndDecisionInBothViews: true,
+          },
+      ],
+    ];
+    for (const [id, evidence] of links) {
+      const row = results.find((entry) => entry.id === id);
+      if (row?.verdict !== "UNVERIFIED" || !evidence) continue;
+      const observed = { ...row.observed };
+      delete observed.missing;
+      row.observed = { ...observed, ...evidence, crossCase: "N09-07" };
+      row.verdict = "Yes";
+      record({ ...row, phase: "cross-case-final" });
+    }
   }
 } finally {
   await browser.close();
@@ -1486,12 +2426,16 @@ try {
     compiled,
     results,
     networkRefusals: refusedConnections(rehearsal),
-    tenantSendProof,
+    tenantSendProof: onlyTenant,
   });
   writeFileSync(
     join(
       runDir,
-      tenantSendProof ? "tenant-send-proof-verdict.json" : "s260-verdict.json",
+      fenceProof
+        ? "compiled-mail-fence-verdict.json"
+        : tenantSendProof
+          ? "tenant-send-proof-verdict.json"
+          : "s260-verdict.json",
     ),
     JSON.stringify(result, null, 2) + "\n",
   );

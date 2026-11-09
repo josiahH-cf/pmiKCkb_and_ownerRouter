@@ -435,4 +435,7 @@ if (
   net.Socket.prototype.connect.name !== "guardedConnect"
 )
   throw new Error("The rehearsal network guard could not be installed.");
+Object.defineProperty(globalThis, Symbol.for("pmi-kc.rehearsal-network-guard"), {
+  value: net.Socket.prototype.connect,
+});
 record({ event: "network_guard_ready" });

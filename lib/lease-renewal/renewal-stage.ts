@@ -773,6 +773,18 @@ function currentStepFor(
       : false;
     return handoffDone ? "complete" : "non-renewal-handoff";
   }
+  // A send already admitted for this cycle needs its own recovery before the
+  // desk suggests new work, even when a separate earlier staff activity is open.
+  if (
+    evidence.owner.state === "unconfirmed" &&
+    steps.some((step) => step.id === "ask-owner" && step.applies && !step.done)
+  )
+    return "ask-owner";
+  if (
+    evidence.tenant.state === "unconfirmed" &&
+    steps.some((step) => step.id === "offer-tenant" && step.applies && !step.done)
+  )
+    return "offer-tenant";
   const laneStep = STEP_FOR_ACTIVITY[lane.nextActivity];
   const started =
     Boolean(state) &&

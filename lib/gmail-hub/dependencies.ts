@@ -4,10 +4,8 @@ import {
   requireEnvironmentDescriptor,
   type EnvironmentDescriptor,
 } from "@/lib/environment/descriptor";
-import {
-  resolveRehearsalStandIn,
-  type RehearsalStandIn,
-} from "@/lib/environment/rehearsal-stand-in";
+import type { RehearsalStandIn } from "@/lib/environment/rehearsal-stand-in";
+import { resolveRehearsalMail } from "@/lib/gmail-hub/rehearsal-mail";
 import {
   FirestoreGmailLabelEffectStore,
   type GmailLabelEffectStore,
@@ -77,7 +75,7 @@ export function createGmailHubRuntimeDependencies(
   // produce a Live A2 event. Resolution happens before either injected factory can run.
   const environment = resolveGmailHubEffectEnvironment(env);
   // S254: null everywhere except the isolated rehearsal (lib/environment/rehearsal-stand-in.ts).
-  const standIn = resolveRehearsalStandIn(env);
+  const standIn = resolveRehearsalMail(env);
   const assertEffectEnvironment = () =>
     assertGmailEffectEnvironment(environment.descriptor, standIn);
   return {

@@ -18,6 +18,7 @@ import {
   assertLiveProviderActionAllowed,
   type EnvironmentDescriptor,
 } from "@/lib/environment/descriptor";
+import { resolveRehearsalMail } from "@/lib/gmail-hub/rehearsal-mail";
 import {
   REHEARSAL_STAND_IN_ORIGIN_VAR,
   loopbackStandInOrigin,
@@ -302,7 +303,8 @@ describe("S254 fence: the Gmail effect boundary", () => {
       join(process.cwd(), "lib/gmail-hub/sequence-dependencies.ts"),
       "utf8",
     );
-    expect(source).toContain("const standIn = resolveRehearsalStandIn();");
+    expect(resolveRehearsalMail).toBe(resolveRehearsalStandIn);
+    expect(source).toContain("const standIn = resolveRehearsalMail();");
     expect(source).toContain(
       "assertEffectEnvironment: () => assertGmailEffectEnvironment(descriptor, standIn),",
     );

@@ -41,7 +41,8 @@ import {
   readNovember5Mix,
   summarizeNovember5Mix,
 } from "./lib/one-path-rehearsal/november-5-mix.mjs";
-import { runSeeds } from "./lib/one-path-rehearsal/seeds.mjs";
+import { runSeeds, SEED_STEPS } from "./lib/one-path-rehearsal/seeds.mjs";
+import { setupCompiledMail } from "./lib/one-path-rehearsal/compiled-mail.mjs";
 import { startStandIns } from "./lib/one-path-rehearsal/stand-ins.mjs";
 
 const PROJECT_ID = "pmi-kc-kb-one-path-rehearsal-test";
@@ -118,14 +119,28 @@ const files = {
   standInLog: join(output, "stand-ins.jsonl"),
   serverLog: join(output, "server.log"),
   driverNetworkLog: join(output, "driver-network.jsonl"),
+  mailClock: join(output, "s260-mail-clock.json"),
 };
+
+const compiledMail = flag("--compiled-synthetic-mail")
+  ? setupCompiledMail({
+      clockFile: files.mailClock,
+      driver,
+      compiled: flag("--compiled"),
+      mailAdapter,
+      overlay,
+      namedCommit,
+      servedSha,
+      harnessSha,
+    })
+  : null;
 
 let server = null;
 let browser = null;
 let standIns = null;
 let exitCode = 1;
 try {
-  standIns = await startStandIns({ mix, logDir: output });
+  standIns = await startStandIns({ mix, logDir: output, mailNow: compiledMail?.now });
   const port = await freePort();
   const origin = requireLoopbackRehearsalOrigin(`http://localhost:${port}`);
   const rehearsalBase = {
@@ -139,6 +154,7 @@ try {
     monthsShifted: mix.monthsShifted,
     standInOrigin: standIns.origin,
     mailAdapter,
+    compiledMail: compiledMail?.identity ?? null,
     automaticComparisonHeld: flag("--hold-automatic-comparison"),
     compiled: flag("--compiled"),
     firestoreEmulatorHost: process.env.FIRESTORE_EMULATOR_HOST,
@@ -185,7 +201,13 @@ try {
     page.setDefaultTimeout(120_000);
     page.setDefaultNavigationTimeout(180_000);
     await signIn(page, origin, "Editor");
-    seeds = await runSeeds({ page, mix, rehearsal, origin });
+    const contextForSeeds = { page, mix, rehearsal, origin };
+    seeds = compiledMail
+      ? await runSeeds(
+          contextForSeeds,
+          SEED_STEPS.filter(({ name }) => name !== "replied-owner-message"),
+        )
+      : await runSeeds(contextForSeeds);
     await context.close();
     // Whatever the seeds did, the desk is left reading the current RentVine dates.
     setRecordingCycles(rehearsal, false);
@@ -389,35 +411,39 @@ async function startServer(port) {
       RENEWAL_DESK_PARTY_FILTER_KEY: randomBytes(32).toString("base64url"),
     },
   };
-  const launch = (args) => {
-    const child = spawn(process.execPath, [next, ...args], options);
+  const launch = (args, runtimeEnvironment = {}) => {
+    const child = spawn(process.execPath, [next, ...args], {
+      ...options,
+      env: { ...options.env, ...runtimeEnvironment },
+    });
     child.stdout.pipe(serverLog, { end: false });
     child.stderr.pipe(serverLog, { end: false });
     return child;
   };
   if (compiled) {
-    const build = launch(["build"]);
-    await new Promise((resolve, reject) => {
-      build.once("error", reject);
-      build.once("exit", (code) =>
-        code === 0
-          ? resolve()
-          : reject(new Error(`Guarded production build failed: ${files.serverLog}`)),
-      );
-    });
+    const build = () =>
+      new Promise((resolve, reject) => {
+        const child = launch(["build"]);
+        child.once("error", reject);
+        child.once("exit", (code) =>
+          code === 0
+            ? resolve()
+            : reject(new Error(`Guarded production build failed: ${files.serverLog}`)),
+        );
+      });
+    if (compiledMail) await compiledMail.build(build);
+    else await build();
     record({
       event: "compiled",
       source: servedSha,
+      compiledMail: compiledMail?.identity ?? null,
       buildId: readFileSync("temp/e2e/.next/BUILD_ID", "utf8").trim(),
     });
   }
-  const child = launch([
-    compiled ? "start" : "dev",
-    "-p",
-    String(port),
-    "-H",
-    "127.0.0.1",
-  ]);
+  const child = launch(
+    [compiled ? "start" : "dev", "-p", String(port), "-H", "127.0.0.1"],
+    compiledMail?.environment,
+  );
   record({ event: "server-started", pid: child.pid, port });
   return child;
 }
@@ -498,6 +524,7 @@ function runDriver(rehearsal) {
           NOVDEC_JOURNEY_NETWORK_LOG: files.driverNetworkLog,
           ONE_PATH_REHEARSAL_ORIGIN: rehearsal.origin,
           ONE_PATH_REHEARSAL_RUN_DIR: output,
+          ...(compiledMail ? { S260_SYNTHETIC_WORKER_TOKEN: compiledMail.token } : {}),
           FIRESTORE_EMULATOR_HOST: process.env.FIRESTORE_EMULATOR_HOST,
           FIREBASE_AUTH_EMULATOR_HOST: process.env.FIREBASE_AUTH_EMULATOR_HOST,
           FIREBASE_PROJECT_ID: PROJECT_ID,

@@ -373,6 +373,17 @@ describe("S248 AC-S248-4: a message sent before the lease had a work record", ()
     expect(counted(SENT_AT_MS, outreachScopeFor(null, null))).toBe(false);
   });
 
+  it("routes a current tenant send awaiting reconciliation ahead of an open owner action", () => {
+    const state = recordedState(LEASE);
+    const uncertain = evidenceInput([
+      message({ audience: "tenant", acceptedAtMs: null, unconfirmed: true }),
+    ]);
+    const stage = projectRenewalStage(state, context(uncertain));
+    expect(stage.currentStepId).toBe("offer-tenant");
+    expect(stage.nextStep.label).toBe("Check whether the message went out");
+    expect(stage.evidence.tenant.derived).toBeNull();
+  });
+
   it("moves a lease with no work record to the owner's response, and a reply to the team", () => {
     const sent = message({ cycleId: null });
     const waiting = projectRenewalStage(null, context(evidenceInput([sent])));

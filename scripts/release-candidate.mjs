@@ -51,6 +51,8 @@ export const LOCAL_ONLY_DEPLOY_VARIABLES = Object.freeze({
     "OLLAMA_HOST",
     // S254: names the isolated rehearsal's loopback stand-in (lib/environment/rehearsal-stand-in.ts).
     "REHEARSAL_STAND_IN_ORIGIN",
+    "S260_SYNTHETIC_WORKER_TOKEN",
+    "S260_SYNTHETIC_MAIL_CLOCK",
   ]),
   trueIsFatal: Object.freeze(["LOCAL_DEMO_AUTH", "ASK_DEMO_MODE"]),
 });

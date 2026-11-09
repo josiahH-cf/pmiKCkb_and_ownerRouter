@@ -158,7 +158,12 @@ const base64Lines = (text) =>
  * Start the stand-ins on a free 127.0.0.1 port. `mix` is the loaded November 5 mix (for the
  * comparison stand-in's rent and lease lookup); `logDir` receives stand-ins.jsonl.
  */
-export async function startStandIns({ mix = null, logDir = null, port = 0 } = {}) {
+export async function startStandIns({
+  mix = null,
+  logDir = null,
+  port = 0,
+  mailNow = () => Date.now(),
+} = {}) {
   if (logDir) mkdirSync(logDir, { recursive: true });
   const logFile = logDir ? join(logDir, "stand-ins.jsonl") : null;
   const record = (entry) => {
@@ -171,9 +176,15 @@ export async function startStandIns({ mix = null, logDir = null, port = 0 } = {}
 
   const state = {
     startedAt: new Date().toISOString(),
-    comparison: { requests: [] },
+    comparison: { requests: [], hold: null },
     model: { requests: [], rewording: "accept", rewordingNext: null },
-    mail: { mailboxes: new Map(), nextSend: "normal", counter: 0, refused: 0 },
+    mail: {
+      mailboxes: new Map(),
+      nextSend: "normal",
+      counter: 0,
+      refused: 0,
+      unreadableThread: null,
+    },
   };
 
   // ---- Comparison ---------------------------------------------------------------------------
@@ -192,7 +203,7 @@ export async function startStandIns({ mix = null, logDir = null, port = 0 } = {}
   };
   const isoDaysAgo = (days) => new Date(Date.now() - days * 86_400_000).toISOString();
 
-  function comparison(url) {
+  async function comparison(url) {
     if (url.pathname === "/rentcast/v1/avm/rent/long-term") {
       const address = url.searchParams.get("address") ?? "";
       const row = leaseForAddress(address);
@@ -203,6 +214,23 @@ export async function startStandIns({ mix = null, logDir = null, port = 0 } = {}
         leaseId,
       });
       record({ standIn: "comparison", kind: "comparison", leaseId });
+      const hold = state.comparison.hold;
+      if (hold?.leaseId === leaseId) {
+        hold.entered = true;
+        let timeout;
+        try {
+          await Promise.race([
+            hold.promise,
+            new Promise((resolve) => {
+              timeout = setTimeout(resolve, 8000);
+            }),
+          ]);
+          if (state.comparison.hold === hold)
+            refuse(503, "The comparison hold expired before the fixture released it.");
+        } finally {
+          clearTimeout(timeout);
+        }
+      }
       const base = row ? Number(row.unit.rent) : 1500;
       const beds = row?.unit?.beds ?? 2;
       const baths = (row?.unit?.fullBaths ?? 1) + (row?.unit?.halfBaths ?? 0) * 0.5;
@@ -341,7 +369,7 @@ export async function startStandIns({ mix = null, logDir = null, port = 0 } = {}
       id: nextId("m"),
       threadId: threadId ?? nextId("t"),
       labelIds,
-      internalDate: String(Date.now()),
+      internalDate: String(mailNow()),
       historyId: String(mailbox.historyId),
       raw,
       payload,
@@ -568,6 +596,10 @@ export async function startStandIns({ mix = null, logDir = null, port = 0 } = {}
     }
     const threadId = /^\/threads\/([A-Za-z0-9_-]+)$/.exec(path)?.[1];
     if (method === "GET" && threadId) {
+      if (state.mail.unreadableThread === threadId) {
+        record({ standIn: "mail", thread: "unavailable", threadId });
+        refuse(503, "The selected synthetic thread is temporarily unavailable.");
+      }
       const messages = threadMessages(mailbox, threadId);
       if (!messages.length) refuse(404, "The thread does not exist.");
       return {
@@ -721,7 +753,13 @@ export async function startStandIns({ mix = null, logDir = null, port = 0 } = {}
     }
     return {
       startedAt: state.startedAt,
-      comparison: { requests: state.comparison.requests, comparisonsByLease },
+      comparison: {
+        requests: state.comparison.requests,
+        comparisonsByLease,
+        heldLeaseId: state.comparison.hold?.entered
+          ? state.comparison.hold.leaseId
+          : null,
+      },
       model: {
         requests: state.model.requests,
         rewording: state.model.rewording,
@@ -743,6 +781,13 @@ export async function startStandIns({ mix = null, logDir = null, port = 0 } = {}
       state.mail.nextSend = body.mode;
       return { nextSend: state.mail.nextSend };
     }
+    if (name === "mail-thread-unreadable") {
+      const id = body?.threadId;
+      if (id !== null && (typeof id !== "string" || !/^[A-Za-z0-9_-]+$/.test(id)))
+        refuse(400, "Choose an exact synthetic thread.");
+      state.mail.unreadableThread = id;
+      return { threadId: id };
+    }
     if (name === "deliver-reply") {
       const { mailbox, message } = sentTarget(body ?? {});
       const from =
@@ -760,6 +805,7 @@ export async function startStandIns({ mix = null, logDir = null, port = 0 } = {}
           ),
           inReplyTo: message.rfcMessageId,
           references: message.rfcMessageId,
+          extra: body?.automatic === true ? ["Auto-Submitted: auto-replied"] : [],
         }),
         threadId: message.threadId,
         labelIds: ["INBOX", "UNREAD"],
@@ -812,6 +858,24 @@ export async function startStandIns({ mix = null, logDir = null, port = 0 } = {}
         rewordingNext: state.model.rewordingNext,
       };
     }
+    if (name === "hold-comparison") {
+      const leaseId = body?.leaseId;
+      if (
+        !mix?.leases.some((row) => row.lease.leaseID === leaseId) ||
+        state.comparison.hold
+      )
+        refuse(400, "Choose one exact synthetic comparison to hold.");
+      state.comparison.hold = { leaseId, entered: false, ...Promise.withResolvers() };
+      return { leaseId };
+    }
+    if (name === "release-comparison") {
+      const hold = state.comparison.hold;
+      if (!hold || hold.leaseId !== body?.leaseId)
+        refuse(400, "Choose the exact held synthetic comparison.");
+      state.comparison.hold = null;
+      hold.resolve();
+      return { leaseId: hold.leaseId, entered: hold.entered };
+    }
     if (name === "reset-comparison-log") {
       state.comparison.requests = [];
       return { comparison: { requests: [] } };
@@ -821,12 +885,15 @@ export async function startStandIns({ mix = null, logDir = null, port = 0 } = {}
       // (scripts/lib/one-path-rehearsal/reset.mjs). Every kept message, draft, request and mode
       // goes back to how the stand-ins start; the id counter keeps counting so no id repeats.
       state.comparison.requests = [];
+      state.comparison.hold?.resolve();
+      state.comparison.hold = null;
       state.model.requests = [];
       state.model.rewording = "accept";
       state.model.rewordingNext = null;
       state.mail.mailboxes = new Map();
       state.mail.nextSend = "normal";
       state.mail.refused = 0;
+      state.mail.unreadableThread = null;
       record({ standIn: "control", control: "reset" });
       return describe();
     }
@@ -878,7 +945,7 @@ export async function startStandIns({ mix = null, logDir = null, port = 0 } = {}
       if (url.pathname === "/health") return send(200, { ok: true });
       if (url.pathname.startsWith("/rentcast/")) {
         if (method !== "GET") refuse(405, "The comparison stand-in answers reads only.");
-        const answer = comparison(url);
+        const answer = await comparison(url);
         return answer === undefined
           ? send(404, { error: "not found" })
           : send(200, answer);
