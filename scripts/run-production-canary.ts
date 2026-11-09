@@ -1078,6 +1078,9 @@ async function hasGuidedWorkspaceLandmarks(
     name: contract.sections,
     exact: true,
   });
+  // The single-toggle workspace owns these links in Full view. Its default
+  // Guided outcome has no separate footer. Older exact layouts still need it.
+  if (singleToggle) return (await sections.count()) === 0;
   if (
     (await sections.count()) !== 1 ||
     (await sections.getByRole("link").count()) !== RENEWAL_DASHBOARD_SECTIONS.length

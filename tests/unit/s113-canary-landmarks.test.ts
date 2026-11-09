@@ -225,7 +225,7 @@ function guidedFixture(options: GuidedOptions = {}): Page {
     },
   };
   const sections = {
-    ...locator(options.sectionNavs ?? 1),
+    ...locator(options.sectionNavs ?? (options.singleToggle ? 0 : 1)),
     getByRole: (_role: string, args?: { name?: string }) =>
       args?.name
         ? locator(
@@ -305,7 +305,7 @@ function guidedFixture(options: GuidedOptions = {}): Page {
   } as unknown as Page;
 }
 describe("S113 candidate and captured predecessor workspace landmarks", () => {
-  it("S260 requires one Full toggle and closed status and Verification disclosures", async () => {
+  it("S260 requires the current Guided controls and keeps Full section links out of Guided", async () => {
     const current = { singleToggle: true, stageHeaders: 1 };
     expect(await hasRenewalWorkspaceLandmarks(guidedFixture(current))).toBe(true);
     for (const defect of [
@@ -314,6 +314,7 @@ describe("S113 candidate and captured predecessor workspace landmarks", () => {
       { workStatusCount: 2 },
       { workAreas: 2 },
       { verificationOpen: true },
+      { sectionNavs: 1 },
     ]) {
       expect(
         await hasRenewalWorkspaceLandmarks(guidedFixture({ ...current, ...defect })),
