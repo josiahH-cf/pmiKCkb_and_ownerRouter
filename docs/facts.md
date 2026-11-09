@@ -1,25 +1,33 @@
 # PMI KC facts
 
-Last reconciled: 2026-11-09 (exact local qualification and canonical predecessor readback).
+Last reconciled: 2026-11-09 (exact production delivery and independent final readbacks).
 
 This ledger contains present truth. Historical detail is recoverable in Git and immutable run
 evidence; an earlier receipt never authorizes a new attempt.
 
-## November 9 local qualification
+## November 9 renewal simplification delivery
 
-The corrected eleven authoring files matched the transfer into the isolated WSL
-worktree at intake base `aa5f12e9b75f992b8fc3ec8a67e8acef6bfa792d`. Traceability
-passed for 1,085 acceptance IDs across 174 specifications. S260 passed all ten
-journeys on `b4fb6aa03e65aca6398b8adcefd523b6530e2f2f`, build `b9znJuQzNo6VAt8ZaK0Ut`. The ordinary
-compiled mail fence refused dispatch and the isolated fixture matched two synthetic
-receipts. Full verification, Core E2E and rendered Help passed on the exact source.
-The approved CLI and ADC refreshed unattended. Staff verdict NOT RUN. The serving
-revision remains the verified November 7 renewal usability release pending admission
-and delivery of the qualified batch. [Exact qualification](evidence/renewal-simplification-qualification-2026-11-09.md)
+Production serves `0afd020671ea9fbb1f0ee75484943c60e331b91a` / `pmi-kc-app-rmw9w581k-2489abae9071` at 100% canonical traffic.
+Run `b61162cf-8646-4f9c-803e-3b24824c6e34` consumed its permit after one successful application build `1f42ae31-629b-418d-807a-e12fe229a9c1`.
+Two observation checkpoints passed in 401,874 ms. All 375 source, projected and rendered
+lease records matched with zero discrepancies, candidate 5xx, unresolved effects or guarded
+mutation attempts. All eleven independent final readbacks passed at `2026-11-09T23:53:48Z`.
+[Delivery evidence](evidence/renewal-simplification-delivery-2026-11-09.md) · [Exact-main CI](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/42718078835)
 
-## November 7 renewal usability delivery
+Intakes 130–138 shipped together and the queue cleared after independent readbacks.
+S260 engineering is Yes across ten journeys and all three Help roles on exact source
+`b4fb6aa03e65aca6398b8adcefd523b6530e2f2f` and build `b9znJuQzNo6VAt8ZaK0Ut`. Staff verdict NOT RUN.
+[Qualification](evidence/renewal-simplification-qualification-2026-11-09.md)
 
-Production serves `2e5e47a8a1112c53784170a29ab134cab336e4a0` / `pmi-kc-app-rmw84kdpe-d7fc9bff670c` at 100% canonical traffic.
+The running image `sha256:01c07a86d73ee5c551c664399d9b54d32d304818aee47c83581a8ab0f687e965` matches the successful regional build.
+Runtime fingerprint `sha256:bda4f86d6582874edd25bd04858c269d77bea7c1b79546b5e686427edcb545ec`. Only APP_COMMIT_SHA changed among 54 environment keys.
+The managed service identity, eleven paired Space maps, five secret bindings, Production/Live,
+Demo=false, Sheet=true and RentCast allowance 50 match reviewed state. The annual GET
+readiness job returned to PAUSED, and the minute worker stayed ENABLED with its exact target and calendar.
+
+## November 7 renewal usability delivery (historical)
+
+Production served `2e5e47a8a1112c53784170a29ab134cab336e4a0` / `pmi-kc-app-rmw84kdpe-d7fc9bff670c` at 100% canonical traffic.
 Run `3003f053-9450-433c-8073-734d7914d222` completed with one successful application build and its permit consumed.
 Two observation checkpoints passed in 405,871 ms. All 375 source, projected and rendered
 lease records matched, with zero discrepancies, candidate 5xx, unresolved effects or guarded

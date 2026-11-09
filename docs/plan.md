@@ -2,20 +2,20 @@
 
 Updated: 2026-11-09 (UTC).
 
-## November 9 authorized batch
+## Completed November 9 batch
 
-The owner authorized intakes 130–138 through exact qualification, mainline integration
-and native Cloud Run delivery. The corrected November 9 specs govern the batch.
-[Suite registry](feature-suites/README.md#november-9-renewal-simplification)
+Intakes 130–138 shipped together and the queue cleared after independent readbacks.
+S260 engineering is Yes across ten journeys and all three Help roles on exact source
+`b4fb6aa03e65aca6398b8adcefd523b6530e2f2f` and build `b9znJuQzNo6VAt8ZaK0Ut`. Staff verdict NOT RUN.
+[Qualification](evidence/renewal-simplification-qualification-2026-11-09.md)
 
-S260 passed on `b4fb6aa03e65aca6398b8adcefd523b6530e2f2f`. The cumulative queue binds all nine
-intakes to that source. Require exact-main CI, fresh prerequisites and one watcher
-on locked GO. Capture the predecessor and tag bindings, promote using the candidate
-receipt and clear the queue after observation and independent readback. [Exact qualification](evidence/renewal-simplification-qualification-2026-11-09.md)
+Exact main `0afd020671ea9fbb1f0ee75484943c60e331b91a` passed all seven CI jobs. Native run `b61162cf-8646-4f9c-803e-3b24824c6e34` passed locked GO, receipt-bound
+promotion, full observation and independent final readbacks. The approved configuration passed
+its independent comparison. [Delivery evidence](evidence/renewal-simplification-delivery-2026-11-09.md) · [Suite registry](feature-suites/README.md#november-9-renewal-simplification)
 
 ## Completed November 7 follow-up
 
-Production serves `2e5e47a8a1112c53784170a29ab134cab336e4a0` / `pmi-kc-app-rmw84kdpe-d7fc9bff670c` at 100% canonical traffic.
+Production served `2e5e47a8a1112c53784170a29ab134cab336e4a0` / `pmi-kc-app-rmw84kdpe-d7fc9bff670c` at 100% canonical traffic.
 Run `3003f053-9450-433c-8073-734d7914d222` completed with one successful application build and its permit consumed.
 Two observation checkpoints passed in 405,871 ms. All 375 source, projected and rendered
 lease records matched, with zero discrepancies, candidate 5xx, unresolved effects or guarded
@@ -44,7 +44,7 @@ assessment gaps, newly diagnosed A-08 PDF publication dependency, and the config
 communication work needed to unblock real renewals.
 The owner finalized this scope, then launched implementation and backend-question maintenance.
 It was delivered at `b5ba7802` / `pmi-kc-app-rmw123csb-dc0ce89a8583`; the current serving source
-`2e5e47a8` / `pmi-kc-app-rmw84kdpe-d7fc9bff670c` includes it.
+`0afd0206` / `pmi-kc-app-rmw9w581k-2489abae9071` includes it.
 The four independent source findings are repaired and reviewed; full07 passed 10,162 unit tests
 with four parity skips and all 497 backend tests, core passed 46 with 23 explicit configuration
 skips, and exact-main CI passed all five jobs. Run `ff1f44bf` passed candidate/promotion, two

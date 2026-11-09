@@ -4,34 +4,24 @@ Last updated: 2026-11-09 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current execution
 
-The owner launched November 9 intakes 130–138 as one unattended cumulative batch. Work is
-isolated under WSL at `/home/josiah/pmi-kc-work/renewal-simplification-20261109` on
-`codex/renewal-simplification-20261109`, based on exact main
-`aa5f12e9b75f992b8fc3ec8a67e8acef6bfa792d`. The corrected working-tree specifications
-and S260 baseline were verified before implementation. Intake auth and the subsequent WSL
-CLI and ADC refresh passed with the existing identity. The authoring checkout is preserved.
-[November 9 baseline](evidence/renewal-simplification-baseline-2026-11-09.md) · [Local qualification](evidence/renewal-simplification-qualification-2026-11-09.md)
+Production serves `0afd020671ea9fbb1f0ee75484943c60e331b91a` / `pmi-kc-app-rmw9w581k-2489abae9071` at 100% canonical traffic.
+Run `b61162cf-8646-4f9c-803e-3b24824c6e34` consumed its permit after one successful application build `1f42ae31-629b-418d-807a-e12fe229a9c1`.
+Two observation checkpoints passed in 401,874 ms. All 375 source, projected and rendered
+lease records matched with zero discrepancies, candidate 5xx, unresolved effects or guarded
+mutation attempts. All eleven independent final readbacks passed at `2026-11-09T23:53:48Z`.
+[Delivery evidence](evidence/renewal-simplification-delivery-2026-11-09.md) · [Exact-main CI](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/42718078835)
 
-The cumulative implementation passed exact local qualification at `b4fb6aa03e65aca6398b8adcefd523b6530e2f2f`.
-S260 engineering is Yes across ten journeys and all three Help roles. The ordinary
-compiled fence refused dispatch. Full verification and Core E2E passed. Staff
-verdict NOT RUN. Exact-main CI, fresh prerequisites and locked GO govern the native
-release. [Exact qualification](evidence/renewal-simplification-qualification-2026-11-09.md)
+Intakes 130–138 shipped together and the queue cleared after independent readbacks.
+S260 engineering is Yes across ten journeys and all three Help roles on exact source
+`b4fb6aa03e65aca6398b8adcefd523b6530e2f2f` and build `b9znJuQzNo6VAt8ZaK0Ut`. Staff verdict NOT RUN.
+[Qualification](evidence/renewal-simplification-qualification-2026-11-09.md)
 
-Exact-main CI `42704855984` passed for `213b7c9d`. The first native run
-`37a33366-89b3-4de5-8357-da8597ca0e8f` verified recovery after a resumed
-predecessor baseline and built one zero-traffic candidate. It stopped before
-promotion when its canary required the retired Guided footer. The corrected
-checker rendered all 13 routes against that candidate. Reconciliation matched
-375 source, projected and rendered records. The queue remains complete for the
-corrected replacement. [Qualification and held run](evidence/renewal-simplification-qualification-2026-11-09.md)
-
-Production serves `2e5e47a8a1112c53784170a29ab134cab336e4a0` / `pmi-kc-app-rmw84kdpe-d7fc9bff670c` at 100% canonical traffic.
-Run `3003f053-9450-433c-8073-734d7914d222` completed with one successful application build and its permit consumed.
-Two observation checkpoints passed in 405,871 ms. All 375 source, projected and rendered
-lease records matched, with zero discrepancies, candidate 5xx, unresolved effects or guarded
-mutation attempts. All eleven independent final readbacks passed at `2026-11-08T18:08:51Z`.
-[Delivery evidence](evidence/renewal-usability-delivery-2026-11-08.md) · [Exact-main CI](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/42505264623)
+The isolated WSL run used the corrected eleven authoring files, exact intake base
+`aa5f12e9b75f992b8fc3ec8a67e8acef6bfa792d` and the approved credential store. Intake,
+admission and final CLI/ADC refreshes passed unattended. The authoring checkout is preserved.
+The first admitted run stopped before promotion and was archived under the lock. The replacement
+used the corrected read-only checker and its own CI, permit, build and receipts.
+[November 9 baseline](evidence/renewal-simplification-baseline-2026-11-09.md)
 
 Historical S254 recorded 62 Yes, two No and seven UNVERIFIED on its complete `edba7cbb` run.
 L55 and the batch verdict remain No under that run's assistance rule and source. S259 Run 11
@@ -73,17 +63,7 @@ The owner resolved the Gmail profile scope on November 8 for the existing guarde
 
 ## Awaiting release
 
-The nine qualified intakes ride one cumulative candidate.
-
-1. 130 S246 monthly Renewal Desk `b4fb6aa03e65aca6398b8adcefd523b6530e2f2f`
-2. 131 S249 click-only month preparation and working rent `b4fb6aa03e65aca6398b8adcefd523b6530e2f2f`
-3. 132 S248 and S258 shared status and lease controls `b4fb6aa03e65aca6398b8adcefd523b6530e2f2f`
-4. 133 S250 owner pricing choices and verified standing coverage `b4fb6aa03e65aca6398b8adcefd523b6530e2f2f`
-5. 134 S224 responsible sender signature setup `b4fb6aa03e65aca6398b8adcefd523b6530e2f2f`
-6. 135 S242 Help under Admin `b4fb6aa03e65aca6398b8adcefd523b6530e2f2f`
-7. 136 S247, S258 and S249 Guided and Full ownership `b4fb6aa03e65aca6398b8adcefd523b6530e2f2f`
-8. 137 S189 immediate offer and follow-ups `b4fb6aa03e65aca6398b8adcefd523b6530e2f2f`
-9. 138 S260 exact cumulative qualification `b4fb6aa03e65aca6398b8adcefd523b6530e2f2f`
+None. The November 9 intakes cleared after full observation and independent final readbacks.
 
 ## Continuation contract
 

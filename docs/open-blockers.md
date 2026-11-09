@@ -22,10 +22,9 @@ meeting plans are not scheduled jobs or promises.
 
 ## Settled direction and current state
 
-Production serves `2e5e47a8a1112c53784170a29ab134cab336e4a0` / `pmi-kc-app-rmw84kdpe-d7fc9bff670c`, 100%. The
-[renewal usability delivery](evidence/renewal-usability-delivery-2026-11-08.md) carries the monthly desk, Guided and Full views,
-exact-cycle recovery, reviewed collections, message readiness and Help V2.2. The holds below still govern the
-actual affected operations. Staff verdict NOT RUN.
+Production serves `0afd020671ea9fbb1f0ee75484943c60e331b91a` / `pmi-kc-app-rmw9w581k-2489abae9071`, 100%. The
+[November 9 delivery](evidence/renewal-simplification-delivery-2026-11-09.md) carries the cumulative renewal simplification.
+The holds below still govern their named operations. Staff verdict NOT RUN.
 
 The November 5 run served 5b5c65c6b7be2b504b38e8c8fdea3d81367e5202 /
 pmi-kc-app-rmw3h1wp5-706485135a02, 100%: run 8bf183d8 delivered the S245 litmus fixes for S87,
