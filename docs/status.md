@@ -4,12 +4,18 @@ Updated: 2026-11-09 (UTC).
 
 ## November 9 renewal simplification
 
-Intakes 130–138 passed S260 on exact compiled source `7fb02b96f0c241e432c6cd9ed268aeff44ccbdf3`, build
-`Zd15gfipPo-fxJdhSSEBl`. Full verification, Core E2E, the ordinary compiled fence,
+Intakes 130–138 passed S260 on exact compiled source `b4fb6aa03e65aca6398b8adcefd523b6530e2f2f`, build
+`b9znJuQzNo6VAt8ZaK0Ut`. Full verification, Core E2E, the ordinary compiled fence,
 canonical Help and deliberate Help drift passed in their recorded scopes.
 The approved WSL CLI and ADC credentials refreshed unattended. The cumulative
 queue is ready for exact-main CI and native admission. Staff verdict NOT RUN.
 [Exact qualification](evidence/renewal-simplification-qualification-2026-11-09.md)
+
+The first exact-main CI passed all seven jobs. Its admitted run
+`37a33366-89b3-4de5-8357-da8597ca0e8f` stopped before promotion when the
+canary required a footer that now belongs to Full view. The corrected read-only
+check passed on the same zero-traffic candidate. The nine queue entries remain
+bound to the qualified application for a verified replacement.
 
 ## November 7 renewal usability delivery
 

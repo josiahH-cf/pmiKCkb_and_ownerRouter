@@ -10,7 +10,7 @@ evidence; an earlier receipt never authorizes a new attempt.
 The corrected eleven authoring files matched the transfer into the isolated WSL
 worktree at intake base `aa5f12e9b75f992b8fc3ec8a67e8acef6bfa792d`. Traceability
 passed for 1,085 acceptance IDs across 174 specifications. S260 passed all ten
-journeys on `7fb02b96f0c241e432c6cd9ed268aeff44ccbdf3`, build `Zd15gfipPo-fxJdhSSEBl`. The ordinary
+journeys on `b4fb6aa03e65aca6398b8adcefd523b6530e2f2f`, build `b9znJuQzNo6VAt8ZaK0Ut`. The ordinary
 compiled mail fence refused dispatch and the isolated fixture matched two synthetic
 receipts. Full verification, Core E2E and rendered Help passed on the exact source.
 The approved CLI and ADC refreshed unattended. Staff verdict NOT RUN. The serving

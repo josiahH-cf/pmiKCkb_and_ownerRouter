@@ -6,7 +6,22 @@ and the untracked S260 specification. The isolated WSL implementation starts at 
 remote main `aa5f12e9b75f992b8fc3ec8a67e8acef6bfa792d`. Traceability passed for 1,085
 acceptance IDs across 174 specifications. [Fail-first and preservation baseline](renewal-simplification-baseline-2026-11-09.md)
 
-## Exact continuation verdict
+## Exact replacement qualification
+
+S260 engineering is **Yes** on corrected source `b4fb6aa03e65aca6398b8adcefd523b6530e2f2f`, build `b9znJuQzNo6VAt8ZaK0Ut`
+and private compiled run `20261109T230100Z-b4fb6aa0`. All ten journeys and three Help
+roles passed, with twelve Yes rows and zero refused outbound connections. Human
+verdict **NOT RUN**. The product and rehearsal files match the initial qualified
+application. The repair changes only the production canary and its focused test.
+
+The corrected tree passed full verification, Core E2E and exact rendered Help.
+Help run `20261109T223038Z-b4fb6aa0` matched all 27 scenes and accounted for 831
+controls with zero missing required controls. The exact derivative
+`20261109T223256Z-b4fb6aa0-overlay` rejected the hidden Work status control. The ordinary
+mail fence proof below keeps its original exact build. The replacement queue
+binds all nine intakes to the corrected qualified source.
+
+## Initial qualified application (historical)
 
 S260 engineering **Yes** on source `7fb02b96f0c241e432c6cd9ed268aeff44ccbdf3`, compiled build
 `Zd15gfipPo-fxJdhSSEBl` and private run `20261109T213231Z-7fb02b96`. The ten journeys returned
@@ -55,6 +70,43 @@ The private batch logs are under
 `/home/josiah/pmi-kc-work/evidence/renewal-simplification-20261109`.
 The exact matrix and ordinary fence reports are in their named native rehearsal directories.
 The release queue binds all nine intakes to this qualified application source.
+
+## First native admission and scoped assurance correction
+
+Exact main `213b7c9dc47fc57f71e81206bb84033c34d1e773` passed all seven jobs in
+[push CI 42704855984](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/42704855984).
+Run `37a33366-89b3-4de5-8357-da8597ca0e8f` passed locked GO with nine queued
+intakes. The first predecessor baseline failed during recovery preparation before
+dispatch. Cloud Run recorded an HTTP 200 desk response in 50.147 seconds. The
+guarded recheck rendered all 13 routes with zero diagnostics and no traffic or tag
+changes. The same admitted run resumed and verified its recovery target, then
+built the one application candidate in Cloud Build
+`1b7dbcd2-4093-48e1-ac3d-39e8b02831b3`.
+
+The candidate `pmi-kc-app-rmw9t0yj6-740f3d7ea24e` passed smoke, fingerprint and
+authorized-domain readback, then stopped at `assurance_unverified` at zero traffic.
+The annual GET readiness probe passed and restored its original target and PAUSED
+calendar. Guarded diagnostics matched 375 source, projected and rendered records
+with zero discrepancies. The failed route was Renewal workspace. The former
+checker required the retired section navigation inside Guided, although the
+corrected S247 and S258 layout places those five links in Full. The fail-first
+fixture reproduced the missing-landmark verdict. The corrected check requires
+the legacy footer to be absent in the new single-toggle Guided view and retains
+the exact older contracts. The corrected read-only canary rendered all 13 routes
+on the same candidate with zero diagnostics. The focused assurance and release
+tests passed 143.
+
+The first compiled replay with the corrected checker, `20261109T225341Z-b4fb6aa0` /
+`mEgJdbljxD959ry8W9ocK`, recorded a No on N09-01. It saw the expected ten
+filtered rows before navigation and zero at the immediate narrow return count.
+The other eleven rows passed with zero refused connections. That attempt keeps
+its No verdict.
+
+The failed run retains its checkpoint, permit, application claim, worker proof,
+recovery receipt and the stopped assurance evidence. Canonical traffic stayed
+on the verified predecessor. A replacement requires its own exact-main CI, locked
+admission, one application build and all candidate, observation and independent
+readback receipts. The original S260 evidence retains its source and build.
 
 ## Initial compiled verdict (historical)
 

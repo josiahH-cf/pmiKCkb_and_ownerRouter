@@ -8,7 +8,7 @@ The owner authorized intakes 130–138 through exact qualification, mainline int
 and native Cloud Run delivery. The corrected November 9 specs govern the batch.
 [Suite registry](feature-suites/README.md#november-9-renewal-simplification)
 
-S260 passed on `7fb02b96f0c241e432c6cd9ed268aeff44ccbdf3`. The cumulative queue binds all nine
+S260 passed on `b4fb6aa03e65aca6398b8adcefd523b6530e2f2f`. The cumulative queue binds all nine
 intakes to that source. Require exact-main CI, fresh prerequisites and one watcher
 on locked GO. Capture the predecessor and tag bindings, promote using the candidate
 receipt and clear the queue after observation and independent readback. [Exact qualification](evidence/renewal-simplification-qualification-2026-11-09.md)

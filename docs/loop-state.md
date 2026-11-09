@@ -12,11 +12,19 @@ and S260 baseline were verified before implementation. Intake auth and the subse
 CLI and ADC refresh passed with the existing identity. The authoring checkout is preserved.
 [November 9 baseline](evidence/renewal-simplification-baseline-2026-11-09.md) · [Local qualification](evidence/renewal-simplification-qualification-2026-11-09.md)
 
-The cumulative implementation passed exact local qualification at `7fb02b96f0c241e432c6cd9ed268aeff44ccbdf3`.
+The cumulative implementation passed exact local qualification at `b4fb6aa03e65aca6398b8adcefd523b6530e2f2f`.
 S260 engineering is Yes across ten journeys and all three Help roles. The ordinary
 compiled fence refused dispatch. Full verification and Core E2E passed. Staff
 verdict NOT RUN. Exact-main CI, fresh prerequisites and locked GO govern the native
 release. [Exact qualification](evidence/renewal-simplification-qualification-2026-11-09.md)
+
+Exact-main CI `42704855984` passed for `213b7c9d`. The first native run
+`37a33366-89b3-4de5-8357-da8597ca0e8f` verified recovery after a resumed
+predecessor baseline and built one zero-traffic candidate. It stopped before
+promotion when its canary required the retired Guided footer. The corrected
+checker rendered all 13 routes against that candidate. Reconciliation matched
+375 source, projected and rendered records. The queue remains complete for the
+corrected replacement. [Qualification and held run](evidence/renewal-simplification-qualification-2026-11-09.md)
 
 Production serves `2e5e47a8a1112c53784170a29ab134cab336e4a0` / `pmi-kc-app-rmw84kdpe-d7fc9bff670c` at 100% canonical traffic.
 Run `3003f053-9450-433c-8073-734d7914d222` completed with one successful application build and its permit consumed.
@@ -67,15 +75,15 @@ The owner resolved the Gmail profile scope on November 8 for the existing guarde
 
 The nine qualified intakes ride one cumulative candidate.
 
-1. 130 S246 monthly Renewal Desk `7fb02b96f0c241e432c6cd9ed268aeff44ccbdf3`
-2. 131 S249 click-only month preparation and working rent `7fb02b96f0c241e432c6cd9ed268aeff44ccbdf3`
-3. 132 S248 and S258 shared status and lease controls `7fb02b96f0c241e432c6cd9ed268aeff44ccbdf3`
-4. 133 S250 owner pricing choices and verified standing coverage `7fb02b96f0c241e432c6cd9ed268aeff44ccbdf3`
-5. 134 S224 responsible sender signature setup `7fb02b96f0c241e432c6cd9ed268aeff44ccbdf3`
-6. 135 S242 Help under Admin `7fb02b96f0c241e432c6cd9ed268aeff44ccbdf3`
-7. 136 S247, S258 and S249 Guided and Full ownership `7fb02b96f0c241e432c6cd9ed268aeff44ccbdf3`
-8. 137 S189 immediate offer and follow-ups `7fb02b96f0c241e432c6cd9ed268aeff44ccbdf3`
-9. 138 S260 exact cumulative qualification `7fb02b96f0c241e432c6cd9ed268aeff44ccbdf3`
+1. 130 S246 monthly Renewal Desk `b4fb6aa03e65aca6398b8adcefd523b6530e2f2f`
+2. 131 S249 click-only month preparation and working rent `b4fb6aa03e65aca6398b8adcefd523b6530e2f2f`
+3. 132 S248 and S258 shared status and lease controls `b4fb6aa03e65aca6398b8adcefd523b6530e2f2f`
+4. 133 S250 owner pricing choices and verified standing coverage `b4fb6aa03e65aca6398b8adcefd523b6530e2f2f`
+5. 134 S224 responsible sender signature setup `b4fb6aa03e65aca6398b8adcefd523b6530e2f2f`
+6. 135 S242 Help under Admin `b4fb6aa03e65aca6398b8adcefd523b6530e2f2f`
+7. 136 S247, S258 and S249 Guided and Full ownership `b4fb6aa03e65aca6398b8adcefd523b6530e2f2f`
+8. 137 S189 immediate offer and follow-ups `b4fb6aa03e65aca6398b8adcefd523b6530e2f2f`
+9. 138 S260 exact cumulative qualification `b4fb6aa03e65aca6398b8adcefd523b6530e2f2f`
 
 ## Continuation contract
 
