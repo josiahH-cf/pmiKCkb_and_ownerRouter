@@ -4,17 +4,14 @@ Updated: 2026-11-09 (UTC).
 
 ## November 9 authorized batch
 
-The owner authorized intakes 130–138 together through exact qualification, mainline integration
-and native Cloud Run delivery. The owning contracts are the corrected November 9 specifications.
+The owner authorized intakes 130–138 through exact qualification, mainline integration
+and native Cloud Run delivery. The corrected November 9 specs govern the batch.
 [Suite registry](feature-suites/README.md#november-9-renewal-simplification)
 
-The isolated WSL implementation uses the approved local identity. The S260 baseline ties the
-suite to browser and backend checks. Resolve the sanctioned compiled mail proof and the
-remaining preservation cases before mainline integration. Keep the compiled effect fence.
-Once qualified, use the complete queue, exact-main
-CI, fresh prerequisites and one watcher on locked GO. Capture the predecessor and tag
-bindings, promote using the candidate receipt and clear the queue after observation and
-independent readback. [Baseline](evidence/renewal-simplification-baseline-2026-11-09.md) · [Local qualification](evidence/renewal-simplification-qualification-2026-11-09.md)
+S260 passed on `7fb02b96f0c241e432c6cd9ed268aeff44ccbdf3`. The cumulative queue binds all nine
+intakes to that source. Require exact-main CI, fresh prerequisites and one watcher
+on locked GO. Capture the predecessor and tag bindings, promote using the candidate
+receipt and clear the queue after observation and independent readback. [Exact qualification](evidence/renewal-simplification-qualification-2026-11-09.md)
 
 ## Completed November 7 follow-up
 

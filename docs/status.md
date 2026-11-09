@@ -4,13 +4,12 @@ Updated: 2026-11-09 (UTC).
 
 ## November 9 renewal simplification
 
-Intakes 130–138 are held at local qualification on the isolated WSL checkout. Intake and
-repeat unattended authentication checks passed. The compiled Demo rehearsal refused the
-actual tenant confirmation before authorization and read back zero sends. The local
-qualification ledger records the ten journeys on exact compiled source `1f48b57f`.
-The full verification script passed on `c3d36bba`, with the same application
-code as the matrix source. S260 UNVERIFIED. Staff verdict NOT RUN.
-[Baseline](evidence/renewal-simplification-baseline-2026-11-09.md) · [Local qualification](evidence/renewal-simplification-qualification-2026-11-09.md)
+Intakes 130–138 passed S260 on exact compiled source `7fb02b96f0c241e432c6cd9ed268aeff44ccbdf3`, build
+`Zd15gfipPo-fxJdhSSEBl`. Full verification, Core E2E, the ordinary compiled fence,
+canonical Help and deliberate Help drift passed in their recorded scopes.
+The approved WSL CLI and ADC credentials refreshed unattended. The cumulative
+queue is ready for exact-main CI and native admission. Staff verdict NOT RUN.
+[Exact qualification](evidence/renewal-simplification-qualification-2026-11-09.md)
 
 ## November 7 renewal usability delivery
 

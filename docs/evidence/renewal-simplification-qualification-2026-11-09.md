@@ -6,7 +6,57 @@ and the untracked S260 specification. The isolated WSL implementation starts at 
 remote main `aa5f12e9b75f992b8fc3ec8a67e8acef6bfa792d`. Traceability passed for 1,085
 acceptance IDs across 174 specifications. [Fail-first and preservation baseline](renewal-simplification-baseline-2026-11-09.md)
 
-## Current verdict
+## Exact continuation verdict
+
+S260 engineering **Yes** on source `7fb02b96f0c241e432c6cd9ed268aeff44ccbdf3`, compiled build
+`Zd15gfipPo-fxJdhSSEBl` and private run `20261109T213231Z-7fb02b96`. The ten journeys returned
+twelve Yes rows, including Editor, Approver and Admin Help. There were zero refused
+outbound connections. Human verdict **NOT RUN**.
+
+| Intake                  | Case                  | Verified outcome                                                                                                                                                                                                                                                             |
+| ----------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 130 S246                | N09-01                | One sortable monthly table, carryover, top filters, linked work parity and exact return from saved and shared scopes. Scheduled, waiting and unconfirmed rows have distinct next actions.                                                                                    |
+| 131 S249                | N09-02 and N09-03     | Passive navigation made zero comparisons with the legacy setting on. Explicit selected-month preparation honored the cap, resumed a committed response, reused evidence and kept one draft per applicable lease. Existing values and newer edits and clears survived.        |
+| 132 S248 and S258       | N09-04                | One sticky status with a note and collapsed history, earlier-cycle labeling, exact Full link and keyboard focus return. The verified RentVine destination matched, with the external return simulated locally.                                                               |
+| 133 S250                | N09-05                | One owner-step chooser. Lease and portfolio scope, stale refusal, expired and conflicting coverage, and restoration of the verified amount preserved approval evidence.                                                                                                      |
+| 134 S224                | N09-06                | Separate first-use setup, a saved blank, distinct senders and deliberate takeover. The synthetic authorized initial and follow-up bytes retained the responsible sender.                                                                                                     |
+| 135 S242                | N09-09                | Help under Admin for three roles. Protected settings, guide-to-reference links, print and both widths passed. The exact Help gate rejected hidden Work status.                                                                                                               |
+| 136 S247, S258 and S249 | N09-08 and N09-10     | Governed document and source previews, audited completion and unavailable-source recovery. Seven Guided outcomes and their Full counterparts passed in both widths and themes. Evidence viewing was read-only. The rendered check rejected all five deliberate Full defects. |
+| 137 S189                | N09-07                | One exact review, initial claim, acceptance hold and one follow-up. Two synthetic receipts matched. A verified tenant reply paused unsent work, the automatic reply preserved the schedule, and the tenant decision read back as its own staff event.                        |
+| 138 S260                | N09-01 through N09-10 | Complete exact compiled matrix, bound Help evidence, retained S254 and S259 verdicts and a separate human verdict.                                                                                                                                                           |
+
+Full verification exited zero at this source with 11,609 unit passes and four
+existing skips, all 558 Firestore tests, a production build and 65 served E2E passes
+with four expected skips. Core E2E passed 46 with 23 expected no-emulator skips.
+The focused rehearsal, sender, stage and release tests passed 184.
+
+Canonical Help `20261109T210828Z-7fb02b96` matched all 27 scenes and accounted
+for 831 controls with zero missing required controls. The deliberate derivative
+`20261109T211030Z-7fb02b96-overlay` failed the required Work status check. The ordinary
+compiled fence proof `20261109T213037Z-7fb02b96` / `lr9874BcCskuG4-x6V3_7` returned HTTP 409
+before mail authorization, read back zero sends and returned 404 for the synthetic
+worker. The positive mail fixture is limited to the isolated compile. The governed
+RentVine preview used synthetic reads and its proposal and effect hashes matched in the
+local Firestore emulator. The live execution ledger gate and provider writer stayed closed.
+
+The private batch evidence retains the earlier runs as recorded. The `8dbec550`
+matrix at `20261109T202344Z-8dbec550` failed two disclosure checks. The `092dd98c`
+attempts at `20261109T205519Z-092dd98c` and `20261109T210028Z-092dd98c` retained the
+zero closed-cohort projection, the first refused completion response and the
+overbroad waiting-text match. The final checks refresh an incomplete fixture
+projection before asserting all ten closed rows, require an accepted completion
+event with exact readback, and count the visible waiting cue. The stabilized
+diagnostic captured a rejected stale completion at revision 1 followed by the
+app's accepted save at revision 2. The earlier full unit run's two timing
+failures remain in the private log and both checks passed in isolation and on this
+exact final source. No earlier S254 or S259 result is revised.
+
+The private batch logs are under
+`/home/josiah/pmi-kc-work/evidence/renewal-simplification-20261109`.
+The exact matrix and ordinary fence reports are in their named native rehearsal directories.
+The release queue binds all nine intakes to this qualified application source.
+
+## Initial compiled verdict (historical)
 
 S260 engineering is **UNVERIFIED**. Staff observation is **NOT RUN**. The compiled
 run `20261109T180428Z-1f48b57f` served
@@ -77,7 +127,7 @@ next step across surfaces. The `1f48b57f` driver requires the served, harness an
 compiled identities to match. Its 18 focused checks include rejection of a mixed
 build, missing or duplicate case, unsupported Yes and refused outbound request.
 
-## Production and continuation
+## Initial production and continuation (historical)
 
 Approved WSL CLI and ADC refreshed unattended at intake and on repeat checks. GitHub CLI
 authentication passed. The fresh read at 17:54 UTC found remote main at
