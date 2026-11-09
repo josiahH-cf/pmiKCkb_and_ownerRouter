@@ -63,6 +63,17 @@ const prepared = String(rehearsal.roles.prepared);
 const covered = String(rehearsal.roles.covered);
 const href = (lease = prepared, search = "") => desk + "/lease/" + lease + search;
 const open = (page, path) => page.goto(origin + path, { waitUntil: "domcontentloaded" });
+async function toggleDisclosure(page, details, expanded) {
+  const summary = details.locator(":scope > summary");
+  await summary.waitFor();
+  await page.waitForLoadState("networkidle", { timeout: 15_000 });
+  assert.equal((await details.getAttribute("open")) !== null, !expanded);
+  await summary.scrollIntoViewIfNeeded();
+  await summary.press("Space");
+  await details
+    .and(page.locator(expanded ? "details[open]" : "details:not([open])"))
+    .waitFor();
+}
 const read = (page, path) =>
   page.evaluate(async (path) => {
     const response = await fetch(path, { cache: "no-store" });
@@ -684,8 +695,7 @@ try {
         );
         assert.equal(Number(await editor.inputValue()), saved.value);
         const verification = now(page).locator("details[data-renewal-verification]");
-        assert.equal(await verification.getAttribute("open"), null);
-        await verification.locator("summary").press("Enter");
+        await toggleDisclosure(page, verification, true);
         assert.match(await verification.innerText(), /rent|comparison/i);
         assert.deepEqual(mutations, []);
         await page.getByRole("button", { name: "Ask the owner", exact: true }).click();
@@ -846,8 +856,7 @@ try {
         );
         const numbers = page.locator('section[data-renewal-outcome="check-numbers"]');
         const evidence = numbers.locator("details[data-renewal-verification]");
-        assert.equal(await evidence.getAttribute("open"), null);
-        await evidence.locator("summary").press("Enter");
+        await toggleDisclosure(page, evidence, true);
         const difference = evidence.locator("#renewal-field-current_rent");
         await difference.waitFor();
         const values = await difference.innerText();
@@ -861,7 +870,7 @@ try {
           "Both different source amounts are visible: " + JSON.stringify(amounts),
         );
         assert.equal(await difference.getByRole("button").count(), 0);
-        await evidence.locator("summary").press("Enter");
+        await toggleDisclosure(page, evidence, false);
         await numbers
           .getByText("Correct lease facts and review source updates", { exact: true })
           .click();
@@ -935,7 +944,8 @@ try {
           revision: { integerValue: "1" },
         });
         await page.reload({ waitUntil: "domcontentloaded" });
-        await status(page).press("Enter");
+        const statusPanel = page.locator("#renewal-staff-status-log");
+        await toggleDisclosure(page, statusPanel, true);
         const note = page.getByLabel("Add a note", { exact: true });
         await note.fill("Synthetic November 9 renewal note");
         await note.press("Tab");
@@ -943,8 +953,7 @@ try {
           .locator('[data-testid="renewal-status-note-autosave"] [data-autosave="saved"]')
           .waitFor();
         const history = page.locator('details[data-testid="renewal-status-log"]');
-        assert.equal(await history.getAttribute("open"), null);
-        await history.locator("summary").click();
+        await toggleDisclosure(page, history, true);
         assert.match(await history.innerText(), /Synthetic November 9 renewal note/);
         const historical = history.locator('[data-status-log-id="' + historicalId + '"]');
         assert.match(await historical.innerText(), /Earlier cycle/);
@@ -960,6 +969,11 @@ try {
           1,
         );
         await page.keyboard.press("Escape");
+        await statusPanel.and(page.locator("details:not([open])")).waitFor();
+        assert.equal(
+          await status(page).evaluate((summary) => summary === document.activeElement),
+          true,
+        );
         await full(page).click();
         assert.equal(await full(page).getAttribute("aria-pressed"), "true");
         assert.equal(await status(page).count(), 1);
@@ -1929,7 +1943,7 @@ try {
         });
         await handoff.waitFor();
         if ((await handoff.getAttribute("open")) === null)
-          await handoff.locator(":scope > summary").press("Enter");
+          await toggleDisclosure(page, handoff, true);
         await nonRenewal.waitFor();
         const [handoffResponse] = await Promise.all([
           savedWork(
@@ -2098,12 +2112,10 @@ try {
           await outcome.waitFor();
           const snapshot = await outcome.evaluate(inspectOutcome);
           checks.push({ view: "full", step, faults: outcomeFaults(snapshot) });
-          await outcome.locator("details[data-renewal-verification] > summary").click();
-          assert.equal(
-            await outcome
-              .locator("details[data-renewal-verification]")
-              .getAttribute("open"),
-            "",
+          await toggleDisclosure(
+            page,
+            outcome.locator("details[data-renewal-verification]"),
+            true,
           );
         }
         assert.deepEqual(mutations, [], "Verification caused a mutation attempt");
@@ -2325,14 +2337,8 @@ try {
         ]) {
           await open(page, href(prepared, path));
           const evidence = scope.locator("details[data-renewal-verification]");
-          await evidence.waitFor();
-          assert.equal(await evidence.getAttribute("open"), null);
-          const summary = evidence.locator(":scope > summary");
-          await summary.scrollIntoViewIfNeeded();
-          await summary.press("Space");
-          await scope.locator("details[data-renewal-verification][open]").waitFor();
-          await summary.press("Space");
-          await scope.locator("details[data-renewal-verification]:not([open])").waitFor();
+          await toggleDisclosure(page, evidence, true);
+          await toggleDisclosure(page, evidence, false);
         }
         assert.equal(mutations.length, mutationCount);
         const refusedEdit = await post(page, fieldPath, {
