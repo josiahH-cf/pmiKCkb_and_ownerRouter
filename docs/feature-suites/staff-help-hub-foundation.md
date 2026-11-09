@@ -3,7 +3,7 @@
 
 # S242 — Staff help hub foundation: section, navigation, content model, versioning, print
 
-> Status: November 7 verification revision AUTHORING READY, intake 128. The Help foundation and its November 5 repairs are delivered. The required browser gate and reviewable capture evidence await implementation.
+> Status: Help and its required rendered gate delivered at `2e5e47a8`, intake 128. November 9 intake 135 is AUTHORING READY for the Admin menu move.
 
 **Goal.**
 
@@ -61,6 +61,10 @@ guide" and "Print the whole manual", and three deterministic checks in `bash scr
 and the screenshot capture pipeline are S243; the hover refresh and its deep links are S244; the
 post-implementation machine litmus is S245.
 
+On November 9 the Help entry is under My Work in the owner screenshot and in
+`lib/navigation/primary-navigation.ts`. The Admin menu is already shown to staff.
+The Help routes require read access. Administrative settings keep their own capability.
+
 **Actors and entry conditions.**
 
 - Any authenticated managed staff user with the existing `read` capability (every role) opens
@@ -75,13 +79,14 @@ post-implementation machine litmus is S245.
 
 **What it is / how it functions.**
 
-- **R-S242-1 — Help section and navigation.** Add a `help` item to the primary navigation
-  manifest with `visibility: "all-staff"`, a short description and an icon, placed in the first
-  group so it is reachable from every page; `validatePrimaryNavigationManifest` still passes.
-  `/help` renders inside `AppShell` with the ordinary guards (`requirePageCapability("read")`).
-  The section has a landing page (what the app is for, how the manual is organized, the current
-  help version, the serving release it describes, and the What changed entry point), one page per
-  guide and one page per screen reference, and a print route for the whole manual.
+- **R-S242-1 — Help section and navigation.** Put the single Help item in the Admin primary
+  navigation group, with its existing icon, description and all-staff visibility. Remove
+  the My Work menu entry. The Admin menu is a navigation group. Help opens the canonical
+  `/help` route behind the ordinary read capability for Editor, Approver and Admin.
+  All Help subroutes mark Help active. The Admin settings pages retain their own
+  management access. Preserve Help's landing, guides, reference, version, release,
+  What changed, deep links and whole-manual print. Update the navigation manifest and
+  rendered coverage wherever they assert the item's group.
 - **R-S242-2 — Table of contents sidebar.** A sidebar lists the manual in reading order: Start
   here; one collapsible section per area (Home and Ask; Lease renewals; Communications; Documents
   and Dotloop; Connections; Admin; Spaces and processes; Approval Queue and Notifications;
@@ -177,9 +182,8 @@ providers or protected paths.
 
 **Open questions & assumptions.**
 
-- Assumption (labeled): the manifest validator accepts a fourth item in the first group; if it
-  constrains icons or ids, the implementer extends the icon set rather than reusing another
-  item's icon.
+- The existing Help icon and ID apply in the Admin group. Validate the new group position
+  through the manifest and rendered navigation gates.
 - Assumption (labeled): the serving commit is readable server-side the same way the environment
   badge reads it; if not, the guide header shows the help version and date only, and the release
   identity appears on the landing page from the existing version endpoint (`/api/version`).
@@ -208,11 +212,16 @@ ordinary candidate, observation and readback gates.
 | Owner clarification 2026-11-04 (this suite's decisions)                                           | Intent evidence                     | Repository-managed content, release-shipped, browser print, global version, sidebar with dropdowns.    |
 | November 7 browser audit and accepted Q7                                                          | Current source and confirmed intent | Make rendered Help drift a required verification result and produce reviewable synthetic replacements. |
 
+The November 9 Help annotation moves the menu entry. The owner's accepted interpretation
+keeps its audience and route. The navigation manifest and signed-in guards establish
+the baseline for this move.
+
 **Architecture outcome (deterministic, fail-first).**
 
-- **ARCH-S242-1** — The navigation manifest contains a `help` item visible to all staff and the
-  manifest validator passes; a test that resolves navigation for Editor, Approver and Admin fails
-  on the starting state (no item) and passes after.
+- **ARCH-S242-1** — One manifest item in Admin resolves Help and its active paths for every
+  staff role. The canonical route is in AppShell behind read access. Fail-first for the
+  November 9 move: the item resolves under My Work. Route authorization remains independent
+  of menu placement.
 - **ARCH-S242-2** — Help content modules satisfy a typed schema (guide, step, screen, glossary,
   changelog) and a test that loads every module through the schema fails on the starting state
   (no modules) and passes after.
@@ -237,9 +246,9 @@ ordinary candidate, observation and readback gates.
 
 **Behavior outcome (deterministic, fail-first).**
 
-- **BEH-S242-1** — Signed in as each role, the primary navigation shows Help; opening it renders
-  the landing page with the help version, serving release and the table of contents; the
-  starting state has no such route (404).
+- **BEH-S242-1** — Every signed-in staff role finds Help in Admin, opens the existing
+  manual and can navigate to and print the same guides. Opening Help gives no additional
+  access to settings or administrative actions.
 - **BEH-S242-2** — The sidebar section for the current page is open on arrival; activating a
   section header toggles it by pointer and keyboard; the toggle is announced; on a narrow
   viewport the contents live in a disclosure above the content.
@@ -271,20 +280,20 @@ browser with the pictures and the version on every page.
 
 **Requirement-to-outcome traceability.**
 
-| Requirement                             | Architecture outcome | Behavior outcome | Human litmus                                 | Deterministic evidence / falsification                                                           |
-| --------------------------------------- | -------------------- | ---------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| R-S242-1 section and navigation         | ARCH-S242-1          | BEH-S242-1       | Find and print how to do anything in the app | Navigation resolution test per role; route render test; 404 before.                              |
-| R-S242-2 table of contents sidebar      | ARCH-S242-2          | BEH-S242-2       | Find and print how to do anything in the app | Mounted sidebar test for open state, toggle, announcement and narrow layout.                     |
-| R-S242-3 content model                  | ARCH-S242-2          | BEH-S242-1       | Find and print how to do anything in the app | Schema test over every module; a malformed module fails.                                         |
-| R-S242-4 global version and changelog   | ARCH-S242-6          | BEH-S242-1       | Find and print how to do anything in the app | Version appears on landing, guide header and print footer; change test.                          |
-| R-S242-5 deep links                     | ARCH-S242-2          | BEH-S242-3       | Find and print how to do anything in the app | Known id scrolls and highlights; unknown id falls back visibly.                                  |
-| R-S242-6 print layout                   | ARCH-S242-2          | BEH-S242-4       | Find and print how to do anything in the app | Print media render test for removed shell and present steps, images and footer.                  |
-| R-S242-7 coverage gate                  | ARCH-S242-3          | BEH-S242-1       | Find and print how to do anything in the app | Gate fails on an undocumented route and passes with the allow-list.                              |
-| R-S242-8 control-name gate              | ARCH-S242-4          | BEH-S242-1       | Find and print how to do anything in the app | Renamed label fails with guide, step and label named.                                            |
-| R-S242-9 screenshot gate                | ARCH-S242-5          | BEH-S242-4       | Find and print how to do anything in the app | Missing, orphan or unmanifested image fails.                                                     |
-| R-S242-10 content rules gate            | ARCH-S242-2          | BEH-S242-5       | Find and print how to do anything in the app | Forbidden phrase or em dash fails with location.                                                 |
-| R-S242-11 required browser verification | ARCH-S242-7          | BEH-S242-6       | Find and print how to do anything in the app | AC-S242-9. Prove ordinary verification catches rendered drift even when the source check passes. |
-| R-S242-12 screenshot fidelity           | ARCH-S242-8          | BEH-S242-6       | Find and print how to do anything in the app | AC-S242-10. Detect a stale scene and verify the proposed replacement under the same fixture.     |
+| Requirement                                      | Architecture outcome | Behavior outcome | Human litmus                                 | Deterministic evidence / falsification                                                           |
+| ------------------------------------------------ | -------------------- | ---------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| R-S242-1 Help under Admin with staff read access | ARCH-S242-1          | BEH-S242-1       | Find and print how to do anything in the app | AC-S242-1. Verify one Admin item and canonical routes with the same role guards.                 |
+| R-S242-2 table of contents sidebar               | ARCH-S242-2          | BEH-S242-2       | Find and print how to do anything in the app | Mounted sidebar test for open state, toggle, announcement and narrow layout.                     |
+| R-S242-3 content model                           | ARCH-S242-2          | BEH-S242-1       | Find and print how to do anything in the app | Schema test over every module; a malformed module fails.                                         |
+| R-S242-4 global version and changelog            | ARCH-S242-6          | BEH-S242-1       | Find and print how to do anything in the app | Version appears on landing, guide header and print footer; change test.                          |
+| R-S242-5 deep links                              | ARCH-S242-2          | BEH-S242-3       | Find and print how to do anything in the app | Known id scrolls and highlights; unknown id falls back visibly.                                  |
+| R-S242-6 print layout                            | ARCH-S242-2          | BEH-S242-4       | Find and print how to do anything in the app | Print media render test for removed shell and present steps, images and footer.                  |
+| R-S242-7 coverage gate                           | ARCH-S242-3          | BEH-S242-1       | Find and print how to do anything in the app | Gate fails on an undocumented route and passes with the allow-list.                              |
+| R-S242-8 control-name gate                       | ARCH-S242-4          | BEH-S242-1       | Find and print how to do anything in the app | Renamed label fails with guide, step and label named.                                            |
+| R-S242-9 screenshot gate                         | ARCH-S242-5          | BEH-S242-4       | Find and print how to do anything in the app | Missing, orphan or unmanifested image fails.                                                     |
+| R-S242-10 content rules gate                     | ARCH-S242-2          | BEH-S242-5       | Find and print how to do anything in the app | Forbidden phrase or em dash fails with location.                                                 |
+| R-S242-11 required browser verification          | ARCH-S242-7          | BEH-S242-6       | Find and print how to do anything in the app | AC-S242-9. Prove ordinary verification catches rendered drift even when the source check passes. |
+| R-S242-12 screenshot fidelity                    | ARCH-S242-8          | BEH-S242-6       | Find and print how to do anything in the app | AC-S242-10. Detect a stale scene and verify the proposed replacement under the same fixture.     |
 
 **Preservation set.**
 
@@ -295,8 +304,11 @@ it, `bash scripts/verify.sh` lanes, copy-voice, redaction, active-doc-paths and 
 
 **Adversarial acceptance checks.**
 
-- **AC-S242-1** — ARCH-S242-1 / BEH-S242-1: Help is visible for Editor, Approver and Admin and
-  absent from the Vendor portal; `/help` renders only for signed-in staff.
+- **AC-S242-1** — For Editor, Approver and Admin at desktop and phone widths, open Admin by
+  keyboard and pointer and find one Help entry. Check its active state on the landing
+  page, a bookmarked guide/step and print route. Confirm the My Work entry is absent.
+  Verify Help uses read authorization, existing restricted Admin actions still refuse an
+  ineligible role, and signed-out Help follows existing sign-in rules.
 - **AC-S242-2** — ARCH-S242-3: removing one documented route from the content makes the coverage
   gate fail naming that route; allow-listing it without a reason still fails.
 - **AC-S242-3** — ARCH-S242-4: renaming one control in a mounted component makes the control-name

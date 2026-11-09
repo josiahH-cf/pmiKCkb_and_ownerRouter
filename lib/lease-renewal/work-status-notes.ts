@@ -13,6 +13,7 @@ export const RENEWAL_STATUS_NOTE_START_ANOTHER_LABEL = "Start another note";
 export interface RenewalStatusNote {
   readonly schemaVersion: typeof RENEWAL_STATUS_NOTE_SCHEMA_VERSION;
   readonly leaseId: string;
+  readonly cycleId?: string | null;
   /** The logical entry identity. One composed note keeps it across every save and retry. */
   readonly noteId: string;
   readonly revision: number;
@@ -43,6 +44,7 @@ export type RenewalStatusLogEntry =
       readonly at: string;
       readonly byUid: string;
       readonly byLabel: string;
+      readonly cycleId?: string | null;
       readonly status: RenewalWorkStatus;
       readonly previousStatus: RenewalWorkStatus | null;
     }
@@ -52,6 +54,7 @@ export type RenewalStatusLogEntry =
       readonly at: string;
       readonly byUid: string;
       readonly byLabel: string;
+      readonly cycleId?: string | null;
       readonly text: string;
       /** Set only when the composition was saved again after its first save. */
       readonly lastSavedAt: string | null;
@@ -73,6 +76,7 @@ export function buildRenewalStatusLog(
     at: entry.recordedAt,
     byUid: entry.recordedByUid,
     byLabel: entry.recordedByLabel,
+    ...(entry.cycleId ? { cycleId: entry.cycleId } : {}),
     status: entry.status,
     previousStatus: entry.previousStatus,
   }));
@@ -85,6 +89,7 @@ export function buildRenewalStatusLog(
       at: note.recordedAt,
       byUid: note.recordedByUid,
       byLabel: note.recordedByLabel,
+      ...(note.cycleId !== undefined ? { cycleId: note.cycleId } : {}),
       text: note.text,
       lastSavedAt: note.updatedAt !== note.recordedAt ? note.updatedAt : null,
     });

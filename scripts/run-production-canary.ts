@@ -5,6 +5,7 @@ import { RENEWAL_DASHBOARD_SECTIONS } from "../lib/lease-renewal/dashboard-secti
 import {
   ASSURANCE_GUIDED_WORKSPACE,
   RENEWAL_USABILITY_PREDECESSOR,
+  RENEWAL_SIMPLIFICATION_PREDECESSOR,
 } from "../lib/production-assurance/manifest";
 import { countIndependentGuidedWorkspaceMismatches } from "../lib/production-assurance/guided-workspace-projection";
 
@@ -805,17 +806,36 @@ export async function hasRenewalWorkspaceLandmarks(
     );
   const viewSwitch = page.getByRole("group", { name: "Lease view", exact: true });
   if ((await viewSwitch.count()) !== 1 || !(await viewSwitch.isVisible())) return false;
+  const toggle = viewSwitch.locator("[data-renewal-full-toggle]");
+  if (await toggle.count()) {
+    const status = page.locator(".renewal-workspace-toolbar #renewal-staff-status-log");
+    if (
+      (await status.count()) !== 1 ||
+      (await status.getAttribute("open")) !== null ||
+      (await toggle.getAttribute("aria-pressed")) !== "false"
+    )
+      return false;
+    return hasGuidedWorkspaceLandmarks(page, viewSwitch, false, true);
+  }
   // S247: a switch that offers Guided view is held to the exact Guided default contract.
   const guided = viewSwitch.getByRole("button", {
     name: ASSURANCE_GUIDED_WORKSPACE.views[0],
     exact: true,
   });
-  if (await guided.count())
+  if (await guided.count()) {
+    if (
+      expectedCommit &&
+      ![RENEWAL_USABILITY_PREDECESSOR, RENEWAL_SIMPLIFICATION_PREDECESSOR].includes(
+        expectedCommit,
+      )
+    )
+      return false;
     return hasGuidedWorkspaceLandmarks(
       page,
       viewSwitch,
       !expectedCommit || expectedCommit === RENEWAL_USABILITY_PREDECESSOR,
     );
+  }
   // S152: the lease opens in Focus view. Exactly one view switch whose Focus view is the selected
   // one and whose Full view is offered, and exactly one visible Focus view region.
   const focus = viewSwitch.getByRole("button", { name: "Focus view", exact: true });
@@ -841,19 +861,25 @@ async function hasGuidedWorkspaceLandmarks(
   page: Page,
   viewSwitch: ReturnType<Page["getByRole"]>,
   allowPredecessor: boolean,
+  singleToggle = false,
 ): Promise<boolean> {
   const contract = ASSURANCE_GUIDED_WORKSPACE;
   const buttonCount = await viewSwitch.getByRole("button").count();
   const predecessor =
     allowPredecessor && buttonCount === contract.predecessorViews.length;
-  const views = predecessor ? contract.predecessorViews : contract.views;
+  const views = singleToggle
+    ? ["Full view"]
+    : predecessor
+      ? contract.predecessorViews
+      : contract.views;
   if (buttonCount !== views.length) return false;
   for (const [index, name] of views.entries()) {
     const button = viewSwitch.getByRole("button", { name, exact: true });
     if (
       (await button.count()) !== 1 ||
       !(await button.isVisible()) ||
-      (await button.getAttribute("aria-pressed")) !== (index === 0 ? "true" : "false")
+      (await button.getAttribute("aria-pressed")) !==
+        (!singleToggle && index === 0 ? "true" : "false")
     )
       return false;
   }
@@ -876,6 +902,16 @@ async function hasGuidedWorkspaceLandmarks(
   if ((await path.locator('[aria-current="step"]').count()) !== 1) return false;
   const now = region.getByRole("region", { name: contract.now, exact: true });
   if ((await now.count()) !== 1 || !(await now.isVisible())) return false;
+  if (singleToggle) {
+    const verification = now.locator("details[data-renewal-verification]");
+    if (
+      (await now.locator("[data-renewal-work]").count()) !== 1 ||
+      (await verification.count()) !== 1 ||
+      !(await verification.isVisible()) ||
+      (await verification.getAttribute("open")) !== null
+    )
+      return false;
+  }
   const primary = now.locator(contract.primarySelector);
   if ((await primary.count()) !== 1 || !(await primary.isVisible())) return false;
   const stageHeader = page.getByRole("region", {
@@ -912,7 +948,7 @@ async function hasGuidedWorkspaceLandmarks(
     !(await nextStep.isVisible())
   )
     return false;
-  const layout = await now.evaluate((element) => {
+  const layout = await now.evaluate((element, currentToggle) => {
     const action = element.querySelector<HTMLElement>("[data-renewal-now-primary]");
     const context = element.querySelectorAll(
       '[data-renewal-field="next-step"], [data-renewal-field="now-detail"]',
@@ -928,7 +964,8 @@ async function hasGuidedWorkspaceLandmarks(
     const needsRent =
       (element.getAttribute("data-renewal-now-step") === "compare-market" &&
         element.getAttribute("data-renewal-now-state") !== "not_part") ||
-      (element.getAttribute("data-renewal-now-step") === "ask-owner" &&
+      (!currentToggle &&
+        element.getAttribute("data-renewal-now-step") === "ask-owner" &&
         action?.textContent?.trim() === "Review and send");
     const main = [
       ...document.querySelectorAll<HTMLElement>('main, [role="main"]'),
@@ -978,7 +1015,7 @@ async function hasGuidedWorkspaceLandmarks(
         ),
       ),
     };
-  });
+  }, singleToggle);
   if (
     countIndependentGuidedWorkspaceMismatches({
       stageHeaderValid,

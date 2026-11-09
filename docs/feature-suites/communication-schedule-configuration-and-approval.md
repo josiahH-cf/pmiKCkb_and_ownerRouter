@@ -3,7 +3,7 @@
 
 # S189 — Configurable schedules and durable end-state authorization
 
-> Status: READY — finalized October 9, 2026 owner-directed scope; execution active under the owner instruction; engineering scope is in the native program ledger and delivery remains unverified. This file authorizes no live effect and starts no implementation run.
+> Status: READY. Configurable scheduling delivered in run `5b3dfb90`, intake 061. November 9 intake 137 is authoring-ready for one exact tenant offer now with reviewed follow-ups.
 
 **Goal.**
 
@@ -15,6 +15,14 @@ Existing notice rules resolve global/property/lease timing and follow-up attenti
 
 The starting implementation was inspected in the newer WSL checkout `~/pmi-kc-work/main` at `43bad3adc7777ea035bc70eb8d2bee913427c810`; the documented serving release is October 8, 2026, `337ac163c5709381e8db8d2c18810bec357d8a96` / `pmi-kc-app-rmuz9g28p-0a2909d490e1`. These are source/documented release baselines, not a new live verification. Revalidate them before implementation; the Windows checkout's earlier production snapshot is not the baseline.
 
+On serving source `2e5e47a8`, Communications supports a future first message with
+recurrence. In `components/lease-renewal/RenewalPreparedMessage.tsx` the compact lease
+review supplies no follow-up draft and its schedule is one-time.
+`lib/gmail-hub/sequence-service.ts` explicitly rejects a schedule on Send now.
+The November 9 revision adds one tenant-only admission that starts the first
+message immediately and records the bounded follow-up authorization in the same
+staff confirmation.
+
 **Actors and entry conditions.**
 
 Ordinary authorized PMI staff with accessible linked work and their managed sender. The user supplies date, time and explicit timezone; repeating work additionally supplies a positive interval. Optional end date/count are deliberate inputs. Recipient/content readiness affects dispatch, not ability to save an incomplete draft.
@@ -25,13 +33,77 @@ The hub provides one understandable schedule editor next to the final message. S
 
 This is intake 061 of the named program. This contract is consumable by the existing implementation process after a separate owner execution instruction; registration and READY are not execution authority.
 
+- **R-S189-8 — One exact review for an immediate tenant offer and follow-ups.** From
+  Offer the tenant, the responsible staff sender can review and edit the current
+  offer and enable follow-ups as part of Send now. Show the exact lease/cycle,
+  current managed sender and signature, verified tenant To/Cc, initial and
+  follow-up subjects, bodies and attachments, and the complete recurrence and
+  stopping rule. Use the existing reviewed message/source and role/Space gates
+  for both payloads. The control makes both effects clear, for example “Send
+  offer now and authorize follow-ups”. One affirmative action binds the shown
+  revisions, audience, source/disposition, timing, policy and sender. Cancel or
+  change the draft/settings before confirmation without dispatch or enrollment.
+  Preserve the same applicable composer handoff, one-time Send now, and future
+  Schedule paths. Availability of the combined action is limited to a new initial
+  tenant renewal offer for the current authorized cycle. A previous confirmed,
+  scheduled, active or ambiguous initial offer leads to its existing work and
+  recovery. The combined action does not send it again or duplicate a sequence.
+- **R-S189-9 — Pick a real recurrence and an end.** Require a positive every-X-days
+  interval, local send time and named timezone with the existing Central default,
+  a complete independently reviewable follow-up message, and at least one
+  stopping bound, an inclusive end date or a total send limit. A total limit
+  includes the initial offer and counts confirmed sends only. Show the resulting
+  number of follow-ups if a limit is set. Use the existing calendar validation
+  and DST rules. The first follow-up is due the chosen number of calendar days
+  after the confirmed initial send's date in that zone, at the chosen wall time.
+  Preview the rule and expected next date before Send, then read back the actual
+  date on settlement. Show the earlier stop if both bounds apply. Refuse
+  incomplete/invalid settings, or settings that allow no follow-up at review,
+  with the entered work kept and zero outgoing effects. Offer one-time Send as
+  its own reviewed choice. A delayed acceptance that reaches the bound still
+  settles the initial receipt and ends the recurrence. No fixed client cadence,
+  automatic default enrollment or catch-up burst.
+- **R-S189-10 — Bind one initial attempt and hold recurrence until confirmed.** Use
+  the existing exact renewal operation, durable authorization, sequence version,
+  occurrence claim, receipt and reconciliation owners. Under one confirmed
+  operation, store the immutable initial and follow-up snapshots and reserve one
+  initial occurrence before the provider can receive it. The existing one-attempt
+  claim governs concurrent callers, retries and worker races. Keep the recurrence
+  ineligible while the initial send is pending, refused or ambiguous. On exact
+  provider acceptance, settle one confirmed initial send and its outreach
+  evidence, then make only the approved next follow-up eligible. If settlement
+  or schedule readback fails after the provider accepted, reconcile the original
+  occurrence and arm the still-valid recurrence once, without another initial
+  send. A proven pre-dispatch refusal keeps the draft with its actual reason and
+  the permitted reviewed retry. An uncertain outcome offers the original
+  reconciliation action. Retry, reload, browser closure, process restart and a
+  worker tick cannot turn an unresolved initial attempt into a second dispatch.
+- **R-S189-11 — Pause on an actual linked reply and retain explicit recovery.**
+  Continue the existing S190–S192 exact sequence controls and the S233 observation
+  evidence. Before each follow-up, verify the authorized scope, current material
+  sources and a complete fresh observation of the linked communication under the
+  existing policy. Any post-offer human reply from a verified tenant participant,
+  including a question or counteroffer, pauses unsent follow-ups. A bounce,
+  unresolved sender or unavailable observation holds the affected action under
+  the existing rules. An identified auto-reply has its own evidence and neither
+  records acceptance nor counts as a human reply. Staff separately record the
+  actual renewal decision. Display last confirmed send, next occurrence, count,
+  pause/reconciliation reason and its recovery from the tenant step and
+  Communications. Pausing, cancelling, revising, changing sender or resuming
+  keeps current version/receipt rules and requires the existing review where
+  applicable. Respect concurrent reply/claim ordering. Report an already
+  dispatched occurrence truthfully and prevent the later ones when the pause wins.
+
 **In scope / out of scope.**
 
 Schedule editing, calendar semantics, initial/follow-up content authorization, optional bounds and durable versioning are in scope. No mandatory preset cadence, fixed 15th/three-day/ten-day interval, enrollment inferred from policy membership, model authorization or generic campaign management is added. S190 dispatches and S192 operates/revises schedules.
 
 **Open questions & assumptions.**
 
-No material product question remains for this bounded suite. Dates, times, timezone, repeat interval, optional end date/send limit, actual recipients and sender mailbox are explicit runtime inputs, not invented defaults or an authoring blocker. Ordinary implementation choices must be grounded in the owning code and documented provider contracts.
+The November 9 owner answer explicitly chooses an initial send now and authorization of
+future follow-ups in the same review. Tenant reply means a human reply from a verified
+participant. Dates, local time, timezone, interval, stopping bound, current recipients
+and approved wording are chosen or resolved for each actual authorization.
 
 **Cross-product impacts.**
 
@@ -51,6 +123,12 @@ Starting owners are discovery anchors, not a frozen implementation allowlist. Re
 | Supplied `feature-specs-to-scope/feature-spec-bundle/` meeting notes, PDF and screenshots | Intake evidence                   | Supply reported staff journeys and defects; they do not prove provider delivery or settle an unchosen runtime schedule.                                                                                                                                                           |
 | Managed mailbox permissions, real recipient mapping and provider observations             | Runtime external input            | Absence blocks only the affected provider operation; no guessed recipient, substituted account or synthetic customer record.                                                                                                                                                      |
 
+The November 9 “Offer the tenant” screenshot and Q8 answer establish the new behavior.
+`app/api/gmail-hub/sequences/route.ts`, `lib/gmail-hub/sequence-service.ts`,
+`sequence-store.ts`, `sequence-worker.ts` and `schedule-calendar.ts` are the serving
+operation, durable state and timing owners. The screenshot establishes a crowded
+step, while the source establishes the current separation of Send now and Schedule.
+
 **Architecture outcome (deterministic, fail-first).**
 
 - **ARCH-S189-1** — The canonical schedule stores first local date/time and named timezone, one-time versus positive every-X-days recurrence, optional end date and total send limit with server validation. At initial Schedule admission, reject a first instant already in the past according to server time; never silently convert it to an immediate send. The staff member may deliberately choose Send now through S187 or a future first instant. This differs from recovery of an already-authorized overdue occurrence under S192.
@@ -60,6 +138,14 @@ Starting owners are discovery anchors, not a frozen implementation allowlist. Re
 - **ARCH-S189-5** — The schedule identity includes real lease/ticket and audience/purpose; atomic version checks prevent stale approval from authorizing revised content, ownership or recipients.
 - **ARCH-S189-6** — One calendar projection derives the human schedule summary and next occurrence from the same stored contract used by workers; optional send limit counts confirmed sends rather than task delivery attempts.
 - **ARCH-S189-7** — An active sequence uses its approved snapshots; edits to templates, source data or future policy do not silently authorize altered messages or enroll other leases.
+
+- **ARCH-S189-8** — One tenant-cycle authorization commits the immediate occurrence
+  and immutable follow-up plan under the exact actor, payload and source. Fail-first:
+  the serving Send action rejects a recurrence and its compact draft has no follow-up.
+- **ARCH-S189-9** — Settlement of the first occurrence alone establishes future
+  eligibility. The existing worker, calendar and reply gate read the same claim,
+  confirmed count, current scope and verified observation. Use exact state recovery
+  after a lost receipt, plus atomic ordering of claim and pause.
 
 **Behavior outcome (deterministic, fail-first).**
 
@@ -71,6 +157,13 @@ Starting owners are discovery anchors, not a frozen implementation allowlist. Re
 - **BEH-S189-6** — Before approval and afterward, staff see first date/time/timezone, repeat interval and any end/count bounds in plain language. Failures/retries do not consume a successful-send quota.
 - **BEH-S189-7** — Staff can reuse a schedule pattern while choosing each actual linked work item; unrelated leases and old drafts remain unscheduled until explicitly authorized.
 
+- **BEH-S189-8** — In the tenant step, staff review the offer and the follow-up
+  wording and timing together, approve once, see the immediate result and find the
+  next approved action without a separate visit or Schedule confirmation.
+- **BEH-S189-9** — Staff can distinguish initial uncertainty, delivery refusal,
+  next follow-up, human reply, pause and confirmed stop. They can check the actual
+  reply and record its outcome while earlier authorizations and receipts stay readable.
+
 **Human litmus outcome.**
 
 ### Choose the schedule that fits the work
@@ -78,6 +171,16 @@ Starting owners are discovery anchors, not a frozen implementation allowlist. Re
 **If this was built correctly:** A staff member chooses a date and time, sees the timezone, optionally sets every X days and an end date or limit, reviews the first and follow-up messages, and clicks Schedule once. The app remembers exactly that choice without requiring an Admin or prescribing a cadence.
 
 - Model verdict: ENGINEERING VERIFIED / DELIVERED — all mapped engineering scopes and independent deployment verified in run 5b3dfb90 /780f48db; exact CI, full observation, eleven readbacks and mobile scope are recorded in the native ledger. Human NOT RUN; no customer send was test proof.
+- Human verdict: NOT RUN — no human observer
+
+### Send the tenant offer now and follow up
+
+**If this was built correctly:** A staff member can send an offer now after reviewing
+both messages and the timing in one place. They can see whether the offer went out
+and when a follow-up is due. An uncertain send shows what to check. A tenant reply
+pauses the remaining messages and leaves staff to record the actual decision.
+
+- Model verdict: NOT RUN for the November 9 combined flow.
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**
@@ -91,6 +194,16 @@ Starting owners are discovery anchors, not a frozen implementation allowlist. Re
 | **R-S189-5** — Bind authority to a specific workflow and version.                  | `ARCH-S189-5`        | `BEH-S189-5`     | Choose the schedule that fits the work | `AC-S189-5`: Swap workflow, actor, recipient, attachment or draft revision between prepare/action and require bounded conflict with zero dispatch; ordinary unchanged schedule succeeds.                                  |
 | **R-S189-6** — Make selected timing and optional bounds transparent.               | `ARCH-S189-6`        | `BEH-S189-6`     | Choose the schedule that fits the work | `AC-S189-6`: Compare editor/readback/worker projections for timezone and count cases; rejected dispatch and duplicate task events cannot advance confirmed-send count.                                                    |
 | **R-S189-7** — Keep enrollment and future changes deliberate.                      | `ARCH-S189-7`        | `BEH-S189-7`     | Choose the schedule that fits the work | `AC-S189-7`: Edit shared template/policy/source and add a lease after authorization; assert no additional schedule or changed approved payload and visible affected-state handling through S192.                          |
+
+November 9 requirements for intake 137. The preceding table retains the October
+program's requirement identities.
+
+| Requirement                                    | Architecture outcome     | Behavior outcome | Human litmus                            | Deterministic evidence / falsification                                    |
+| ---------------------------------------------- | ------------------------ | ---------------- | --------------------------------------- | ------------------------------------------------------------------------- |
+| `R-S189-8` joint review and exact tenant scope | ARCH-S189-8              | BEH-S189-8       | Send the tenant offer now and follow up | AC-S189-8. One exact confirmation, correct cycle and both snapshots.      |
+| `R-S189-9` chosen bounded recurrence           | ARCH-S189-8, ARCH-S189-9 | BEH-S189-8       | Send the tenant offer now and follow up | AC-S189-9. Calendar, first due, count and stopping bound.                 |
+| `R-S189-10` first attempt and settlement       | ARCH-S189-9              | BEH-S189-9       | Send the tenant offer now and follow up | AC-S189-10. Race, lost responses, restart and refusal.                    |
+| `R-S189-11` reply and operations               | ARCH-S189-9              | BEH-S189-9       | Send the tenant offer now and follow up | AC-S189-11. Linked reply, pause, refusal, readback and explicit recovery. |
 
 **Preservation set.**
 
@@ -108,6 +221,29 @@ Existing notice-rule/last-contact history retains its original meaning; no unver
 
 Keep failed and partial outcomes honest. A passing UI alone does not prove dispatch, observation, provider delivery or access isolation.
 
+- **AC-S189-8** — In a compiled tenant journey and the backend emulator, verify both
+  payloads and exact calendar in one preview. Confirm once, then replay the command.
+  Expect one initial call and one plan. Try cancel, altered terms or attachment,
+  changed signature/sender/recipient, wrong cycle, stale source, missing authorization,
+  concurrent sequence creation and an active/already-sent offer. Assert the exact
+  refusal and zero duplicate effects. Verify owner, generic, maintenance and legacy
+  routes cannot use this admission.
+- **AC-S189-9** — Drive the calendar with a fixed clock across midnight, DST and
+  inclusive end date. Check zero/invalid recurrence, no bound, already ended or
+  limit reached, a one-time offer, and a valid plan with both bounds. Compare preview,
+  confirmed readback and worker due times. Retries do not consume a confirmed count.
+- **AC-S189-10** — Concurrently double-confirm, tick the worker and restart after a
+  simulated accepted send with lost response. Exercise a proven refusal, unresolved
+  response and delayed settlement. Assert one original occurrence and receipt,
+  zero eligible follow-ups until exact acceptance and one approved future plan
+  after reconciliation. A late or repeated callback never resends the offer.
+- **AC-S189-11** — Drive a verified human reply, an auto-reply, bounce, unrelated
+  message and incomplete observation before the next due occurrence, then race
+  a reply against the claim. Compare the lease and Communications pause, reasons,
+  fresh-review Resume and actual decision fields. Confirm untouched snapshot bytes,
+  no advance from an uncertain result, and the approved follow-up alone when a
+  current complete check establishes no reply.
+
 **Forbidden actions / hard gates.**
 
 No unlinked general-mail sending, guessed recipients, customer/model-triggered authorization, synthetic live records, mailbox impersonation, credential substitution, or unrelated mailbox disclosure. Private message content, attachments, tokens and raw evidence stay outside Git and value-bearing logs. Do not open Action Registry keys, alter protected paths, deploy or send as part of specification authoring. A future selected implementation must reconcile exact capability/operation contracts before enabling its named effects; an open key alone does not authorize arbitrary mail.
@@ -118,7 +254,7 @@ S187 supplies approved content and S188 sender/responsibility. S190 consumes aut
 
 **Standalone delivery contract.**
 
-- **Deliverable now:** Validated configurable schedule model/editor, durable exact authorization, conflict/idempotency behavior and calendar projections with deterministic future-time scenarios.
+- **Deliverable now:** Validated configurable schedule model/editor, durable exact authorization, conflict/idempotency behavior calendar projections, and the tenant immediate-plus-follow-up admission and recovery with deterministic adapters.
 - **Consumes, but does not assume:** Real workflow/contact/content snapshots and named timezone; actual chosen schedule values are runtime user inputs. Missing send capability creates an honest blocked operation, not a fabricated authorization.
 - **Externally blocked effect:** Live dispatch requires the exact provider permission/configuration and named send capability once implemented under the selected governance program. Creating the schedule model and verifying its refusal paths needs no live send.
 - **Produces for downstream suites:** One versioned durable approved-sequence contract for S190–S193, including immutable content and runtime-selected timing.

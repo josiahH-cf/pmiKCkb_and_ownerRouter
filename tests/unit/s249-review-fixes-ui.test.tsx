@@ -37,7 +37,6 @@ vi.mock("@/components/lease-renewal/RenewalManualWorkspace", () => ({
 }));
 
 import {
-  AUTOMATIC_START_IDLE_MS,
   KICKOFF_PREPARATION_ROUTE,
   RenewalKickoffPreparation,
 } from "@/components/lease-renewal/RenewalKickoffPreparation";
@@ -97,8 +96,7 @@ describe("S249 C: the preparation loop belongs to the view that started it", () 
   const props = {
     targets: TARGETS,
     canPrepare: true,
-    automaticStart: { enabled: true, version: 0, canChange: false },
-    rehearsal: false,
+    month: "2026-12",
   };
   let inFlight = 0;
   let maxInFlight = 0;
@@ -165,24 +163,34 @@ describe("S249 C: the preparation loop belongs to the view that started it", () 
 
   it("leaving the batch mid-loop stops it: nothing further is sent and the next page is never refreshed", async () => {
     const view = render(<RenewalKickoffPreparation {...props} />);
-    await advance(AUTOMATIC_START_IDLE_MS + 50);
+    fireEvent.click(
+      screen.getByRole("button", { name: /Prepare December|Continue December/ }),
+    );
+    await advance(50);
     expect(calls).toEqual(["9101"]);
     view.unmount();
     // The first answer arrives after the staff member left.
     await act(async () => pending[0]?.resolve());
-    await advance(AUTOMATIC_START_IDLE_MS * 4);
+    await advance(6000);
     expect(calls).toEqual(["9101"]);
     expect(router.refresh).not.toHaveBeenCalled();
     expect(pending[0]?.signal?.aborted).toBe(true);
   });
 
-  it("a remount never runs a second loop beside the first; it starts again from the server's state", async () => {
+  it("a remount never runs a second loop beside the first; an explicit continuation rechecks the same targets", async () => {
     const first = render(<RenewalKickoffPreparation {...props} />);
-    await advance(AUTOMATIC_START_IDLE_MS + 50);
+    fireEvent.click(
+      screen.getByRole("button", { name: /Prepare December|Continue December/ }),
+    );
+    await advance(50);
     expect(calls).toEqual(["9101"]);
     first.unmount();
+    await advance(0);
     render(<RenewalKickoffPreparation {...props} />);
-    await advance(AUTOMATIC_START_IDLE_MS + 50);
+    fireEvent.click(
+      screen.getByRole("button", { name: /Prepare December|Continue December/ }),
+    );
+    await advance(50);
     // Answer whatever the remounted view asked, one lease at a time.
     for (let round = 0; round < 4; round += 1) {
       await act(async () => {
@@ -310,7 +318,7 @@ for (const sourceLabel of [
   "Standing agreement Example agreement, rule v1",
   "Pricing policy v1",
 ]) {
-  it(`shows the recorded ${sourceLabel} basis beside a saved working rent on Now`, () => {
+  it(`shows the recorded ${sourceLabel} basis without a duplicate editor on Ask the owner`, () => {
     const save = vi.fn(async () => true);
     working.current = {
       record: fixtureWorkingRecord({
@@ -320,12 +328,7 @@ for (const sourceLabel of [
       save,
     };
     mountOwner();
-    const input = screen.getByLabelText("Rent to recommend");
-    expect(input).toHaveValue("1751");
-    expect(input.closest(".renewal-now-rent")).toHaveTextContent(
-      `Saved working rent from ${sourceLabel}. Later proposals keep this saved amount.`,
-    );
-    expect(input.closest(".renewal-now-rent")).not.toHaveTextContent("Entered by staff");
+    expect(screen.queryByLabelText("Rent to recommend")).toBeNull();
     expect(save).not.toHaveBeenCalled();
   });
 }
@@ -434,26 +437,15 @@ describe("S249 I and J: Review and send", () => {
     expect(operations.size).toBe(1);
   });
 
-  it("J: after the send, the working rent saved is the figure the reviewed message carried", async () => {
+  it("does not save a recommendation as a side effect of sending", async () => {
     const save = vi.fn(async () => true);
     working.current = { record: null, canEdit: true, save };
     mountOwner();
-    await act(async () =>
-      fireEvent.click(await screen.findByRole("button", { name: "Review and send" })),
-    );
+    fireEvent.click(await screen.findByRole("button", { name: "Review and send" }));
     await screen.findByRole("dialog");
-    await act(async () =>
-      fireEvent.click(screen.getByRole("button", { name: "Send this message" })),
-    );
-    await waitFor(() => expect(save).toHaveBeenCalled());
-    // The page's own projection suggests a different figure; the send carried 1405.
-    const projected = projectRenewalPreparation(FACTS).rent.value;
-    expect(projected).not.toBe(1405);
-    expect(save).toHaveBeenCalledWith(
-      "terms_rent",
-      1405,
-      expect.objectContaining({ origin: "adopted_source" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Send this message" }));
+    await screen.findByText(/Sent. Gmail accepted/);
+    expect(save).not.toHaveBeenCalled();
   });
 });
 
@@ -779,7 +771,9 @@ describe("S249 D: the Gmail draft signal reads the last created draft", () => {
         },
       }),
     );
-    const review = await screen.findByRole("button", { name: "Review and send" });
+    const review = await screen.findByRole("button", {
+      name: "Review the marked values",
+    });
     const readiness = document.getElementById(MESSAGE_CONTROL_IDS.readiness("tenant"))!;
     const link = within(readiness).getByRole("link", {
       name: "Shared resource link: Renewal information form",
@@ -791,12 +785,9 @@ describe("S249 D: the Gmail draft signal reads the last created draft", () => {
     fireEvent.click(review);
     expect(readiness.querySelector("summary")).toHaveFocus();
     expect(screen.queryByRole("dialog")).toBeNull();
-    fireEvent.click(
-      within(screen.getByRole("region", { name: "Tenant offer" })).getByRole("button", {
-        name: "Review the marked values",
-      }),
-    );
-    expect(readiness.querySelector("summary")).toHaveFocus();
+    expect(
+      screen.getAllByRole("button", { name: "Review the marked values" }),
+    ).toHaveLength(1);
     expect(
       vi
         .mocked(fetch)

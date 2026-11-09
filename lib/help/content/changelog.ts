@@ -8,6 +8,14 @@ import type { HelpChangelogEntry } from "@/lib/help/types";
  */
 export const HELP_CHANGELOG: readonly HelpChangelogEntry[] = [
   {
+    version: "V3.0",
+    date: "2026-11-09",
+    summary:
+      "Renewals has one monthly table, deliberate preparation and a shared Guided and Full workspace. Work status opens from the sticky lease header. The tenant offer review supports bounded follow-ups. Help opens from Admin.",
+    affectedGuides: ["find-your-way", "work-a-renewal", "compare-rent", "tenant-offer"],
+    contentDigest: "d306c8fb8b94c9c827b5211b1f1b2a8cafd69546daeac4274a9af131dedfbf33",
+  },
+  {
     version: "V2.2",
     date: "2026-11-07",
     summary:

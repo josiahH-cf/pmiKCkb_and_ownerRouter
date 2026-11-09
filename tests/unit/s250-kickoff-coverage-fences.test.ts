@@ -5,7 +5,6 @@
 // provider, a mailbox or a store. Names, ids and amounts are synthetic.
 import { describe, expect, it, vi } from "vitest";
 
-import { automaticStartAllowed } from "@/components/lease-renewal/RenewalKickoffPreparation";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import type { KickoffSupportRead } from "@/lib/lease-renewal/kickoff-facts";
 import {
@@ -68,7 +67,6 @@ function harness(lease: KickoffLeaseRead) {
     },
   }));
   const deps: KickoffPreparationDeps = {
-    automaticStartEnabled: async () => true,
     readLease: async () => lease,
     storedComparison: async () => false,
     allowanceReached: async () => false,
@@ -79,16 +77,22 @@ function harness(lease: KickoffLeaseRead) {
   };
   return { deps, lookup, claim };
 }
-const automatic = { leaseId: "9102", trigger: "automatic" as const, operationId: "op-1" };
+const batch = {
+  leaseId: "9102",
+  trigger: "staff" as const,
+  operationId: "op-1",
+  month: "2026-12",
+  cycleDateIso: "2026-12-31",
+};
 const staff = { leaseId: "9102", trigger: "staff" as const, operationId: "op-1" };
 
-describe("S250 server fence: the automatic start looks up no lease a standing agreement covers", () => {
+describe("S250 server fence: monthly preparation looks up no lease a standing agreement covers", () => {
   it("a covered lease is not looked up by itself, and no claim is taken", async () => {
     const { deps, lookup, claim } = harness({
       ...LEASE,
       ownerStepCoverage: "covered",
     } as KickoffLeaseRead);
-    const result = await runKickoffPreparation(STAFF, automatic, deps);
+    const result = await runKickoffPreparation(STAFF, batch, deps);
     expect(result).toMatchObject({ status: "covered", billed: false });
     expect(result.message).toMatch(/standing agreement/i);
     expect(lookup).not.toHaveBeenCalled();
@@ -100,7 +104,7 @@ describe("S250 server fence: the automatic start looks up no lease a standing ag
       ...LEASE,
       ownerStepCoverage: "unconfirmed",
     } as KickoffLeaseRead);
-    const result = await runKickoffPreparation(STAFF, automatic, deps);
+    const result = await runKickoffPreparation(STAFF, batch, deps);
     expect(result).toMatchObject({ status: "refused", code: "coverage_unconfirmed" });
     expect(lookup).not.toHaveBeenCalled();
     expect(claim).not.toHaveBeenCalled();
@@ -123,7 +127,7 @@ describe("S250 server fence: the automatic start looks up no lease a standing ag
         ...LEASE,
         ownerStepCoverage,
       } as KickoffLeaseRead);
-      expect(await runKickoffPreparation(STAFF, automatic, deps)).toMatchObject({
+      expect(await runKickoffPreparation(STAFF, batch, deps)).toMatchObject({
         status: "prepared",
       });
       expect(lookup).toHaveBeenCalledTimes(1);
@@ -132,20 +136,6 @@ describe("S250 server fence: the automatic start looks up no lease a standing ag
 });
 
 // ---- The client fence ------------------------------------------------------------------------
-
-describe("S249 client fence: the automatic start reads only a current batch", () => {
-  it("a batch drawn from an out-of-date or incomplete RentVine read starts nothing by itself", () => {
-    const base = {
-      enabled: true,
-      canPrepare: true,
-      targets: 1,
-      webdriver: false,
-      rehearsal: false,
-    };
-    expect(automaticStartAllowed({ ...base, sourceCurrent: true })).toBe(true);
-    expect(automaticStartAllowed({ ...base, sourceCurrent: false })).toBe(false);
-  });
-});
 
 // ---- The desk: one coverage identity through an aging read ------------------------------------
 

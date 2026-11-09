@@ -1,8 +1,25 @@
 # Loop state
 
-Last updated: 2026-11-08 (UTC). Read AGENTS.md and docs/facts.md first.
+Last updated: 2026-11-09 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current execution
+
+The owner launched November 9 intakes 130–138 as one unattended cumulative batch. Work is
+isolated under WSL at `/home/josiah/pmi-kc-work/renewal-simplification-20261109` on
+`codex/renewal-simplification-20261109`, based on exact main
+`aa5f12e9b75f992b8fc3ec8a67e8acef6bfa792d`. The corrected working-tree specifications
+and S260 baseline were verified before implementation. Intake auth and the subsequent WSL
+CLI and ADC refresh passed with the existing identity. The authoring checkout is preserved.
+[November 9 baseline](evidence/renewal-simplification-baseline-2026-11-09.md) · [Local qualification](evidence/renewal-simplification-qualification-2026-11-09.md)
+
+Product work and guarded qualification are local. Exact compiled source `1f48b57f`
+and build `zWkE2Dw7kX0VinPf0TcQt` ran all ten S260 journeys and recorded UNVERIFIED.
+The compiled Demo confirmation returned HTTP 409 and read back a draft with zero
+authorizations or sends. Development and emulator effects have separate evidence.
+Positive compiled dispatch requires a sanctioned synthetic mail path. The remaining
+preservation cases are in the qualification ledger. Exact-main CI, the complete
+queue and locked GO follow qualification. The full verification script passed
+on `c3d36bba`, with the same application code as the final matrix. Staff verdict NOT RUN.
 
 Production serves `2e5e47a8a1112c53784170a29ab134cab336e4a0` / `pmi-kc-app-rmw84kdpe-d7fc9bff670c` at 100% canonical traffic.
 Run `3003f053-9450-433c-8073-734d7914d222` completed with one successful application build and its permit consumed.
@@ -51,7 +68,8 @@ The owner resolved the Gmail profile scope on November 8 for the existing guarde
 
 ## Awaiting release
 
-The queue is empty. Intakes 121–128 shipped together. Intake 129 records the separate S259 qualification.
+The release queue is empty. Intakes 130–138 are in local qualification. Intakes 121–128 shipped
+together. Intake 129 records the separate S259 qualification.
 
 ## Continuation contract
 

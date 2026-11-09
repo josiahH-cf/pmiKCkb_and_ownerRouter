@@ -384,6 +384,12 @@ export async function automaticStartSetting(page, enabled, why) {
         detail: "The served commit has no automatic start setting.",
       };
     if (current.status !== 200) return { state: "skipped", detail: refusal(current) };
+    if (current.body?.retired === true && current.body.enabled === false)
+      return {
+        state: "retired",
+        detail: "The served commit admits deliberate preparation only.",
+      };
+
     if (current.body?.enabled === enabled)
       return {
         state: "seeded",

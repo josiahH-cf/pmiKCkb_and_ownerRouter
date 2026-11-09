@@ -288,15 +288,15 @@ function Now() {
 
 function mount(
   initialRecord: RenewalWorkingRecord | null = null,
-  extra: "terms" | "current" | null = null,
+  extra: "current" | null = null,
 ) {
   return render(
     <RenewalWorkingRecordProvider canEdit leaseId="9101" initialRecord={initialRecord}>
-      {extra === "terms" ? (
-        <WorkingMoneyField field="terms_rent" label="Retained Full rent" />
-      ) : null}
       {extra === "current" ? <WorkingMoneyField field="current_rent" /> : null}
       <RenewalNowCardProvider preparation={preparation}>
+        <section aria-label="Market rent comparison">
+          <RentToRecommendField preparation={preparation} />
+        </section>
         <Now />
         <WorkingDateField
           field="terms_effective_date"
@@ -348,7 +348,7 @@ describe("a reviewed message uses confirmed working figures", () => {
     const api = server();
     const slow = deferred<Response>();
     api.queue.push(() => slow.promise);
-    mount(null, "terms");
+    mount();
     const input = await recommended();
     fireEvent.change(input, { target: { value: "1499" } });
     fireEvent.blur(input);
@@ -364,13 +364,16 @@ describe("a reviewed message uses confirmed working figures", () => {
     expect(api.compositions()).toHaveLength(0);
     expect(screen.queryByRole("dialog")).toBeNull();
     fireEvent.click(
-      within(screen.getByRole("region", { name: "Owner message" })).getByRole("button", {
-        name: "Try again",
-      }),
+      within(screen.getByRole("region", { name: "Market rent comparison" })).getByRole(
+        "button",
+        {
+          name: "Try again",
+        },
+      ),
     );
-    await within(screen.getByRole("region", { name: "Owner message" })).findByText(
-      "Saved",
-    );
+    await within(
+      screen.getByRole("region", { name: "Market rent comparison" }),
+    ).findByText("Saved");
     await waitFor(() =>
       expect(screen.queryByText(/Rent to recommend is not confirmed/)).toBeNull(),
     );
@@ -416,17 +419,17 @@ describe("a reviewed message uses confirmed working figures", () => {
       const input = await recommended();
       fireEvent.change(input, { target: { value: "1499" } });
       fireEvent.blur(input);
-      await within(screen.getByRole("region", { name: "Owner message" })).findByText(
-        "Saved",
-      );
+      await within(
+        screen.getByRole("region", { name: "Market rent comparison" }),
+      ).findByText("Saved");
       await review();
       const response = await started.promise;
       fireEvent.change(input, { target: { value: "1511" } });
       fireEvent.blur(input);
       await waitFor(() => expect(api.record()?.fields.terms_rent?.value).toBe(1511));
-      await within(screen.getByRole("region", { name: "Owner message" })).findByText(
-        "Saved",
-      );
+      await within(
+        screen.getByRole("region", { name: "Market rent comparison" }),
+      ).findByText("Saved");
       await act(async () => released.resolve(response));
       await screen.findAllByText(/Working figures changed while this review was loading/);
       expect(screen.queryByRole("dialog")).toBeNull();

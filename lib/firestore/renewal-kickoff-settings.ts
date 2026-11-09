@@ -1,12 +1,6 @@
-// S249 ARCH-S249-4 (D-OP-1): the ONE reviewed setting for the automatic start of batch
-// preparation. It is stored app configuration that an Admin changes in the app, so turning the
-// automatic start off needs no release and touches no environment key. The owner approved the
-// automatic start, so with nothing saved it reads as on. With it off, no billed comparison starts
-// without a staff action, and "Prepare this batch" stays available.
-//
-// Change history (G): every saved change writes one audit row in the same transaction, the way
-// the publication policy does (`publication_policy_audit`): who, when, why, and the setting
-// before and after. A refused change writes nothing. The history is app metadata only.
+// Historical S249 automatic preparation setting and audit. The November 9 click-only
+// contract retains the saved configuration and its history for readback. The active
+// route reports preparation disabled and refuses setting changes.
 
 import type { Firestore } from "firebase-admin/firestore";
 import { v7 as uuidv7 } from "uuid";
@@ -33,7 +27,7 @@ export interface KickoffSettingAuditRow {
   readonly after: { readonly enabled: boolean; readonly version: number };
 }
 
-/** The shipped state: on (owner decision D-OP-1, November 5, 2026). */
+/** The historical November 5 default, used only to report the retired setting. */
 export const KICKOFF_AUTOMATIC_START_DEFAULT = true;
 
 export interface KickoffAutomaticStartSetting {
@@ -75,7 +69,7 @@ export async function readKickoffAutomaticStart(
   return settingOf(snap.exists ? snap.data() : undefined);
 }
 
-/** Admin only, one reviewed change at a time, bound to the version the Admin saw. */
+/** Historical Admin transaction, retained for verification of the saved setting and audit. */
 export async function saveKickoffAutomaticStart(
   actor: AuthenticatedUser,
   input: {

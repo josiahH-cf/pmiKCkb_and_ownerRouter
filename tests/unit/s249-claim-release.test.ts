@@ -26,7 +26,6 @@ function claimHarness(answer: KickoffLookupAnswer & Record<string, unknown>) {
   const claims = new Map<string, KickoffPreparationRecord>();
   const lookup = vi.fn(async () => answer);
   const deps: KickoffPreparationDeps = {
-    automaticStartEnabled: async () => true,
     readLease: async () => ({
       cycleDateIso: "2026-12-31",
       inWorkingBatch: true,
@@ -75,11 +74,7 @@ function claimHarness(answer: KickoffLookupAnswer & Record<string, unknown>) {
 }
 
 const run = (deps: KickoffPreparationDeps, operationId: string) =>
-  runKickoffPreparation(
-    STAFF,
-    { leaseId: "9101", trigger: "automatic", operationId },
-    deps,
-  );
+  runKickoffPreparation(STAFF, { leaseId: "9101", trigger: "staff", operationId }, deps);
 
 describe("S249 F: the claim is released only when nothing was billed", () => {
   it("a refusal before the provider was called (runtime suspension) releases the claim; the cycle can be prepared later", async () => {

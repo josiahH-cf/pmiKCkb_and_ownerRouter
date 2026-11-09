@@ -233,7 +233,7 @@ export const HOME_AND_ASK_SCREENS: readonly HelpScreenReference[] = [
           "lib/navigation/primary-navigation.ts",
         ],
         sourceText: "Contains current page",
-        does: "Opens the My Work menu: My Work, Dashboard, Approval Queue and Help. Its name adds Contains current page for screen readers when the page you are on, such as the Dashboard, is in this menu.",
+        does: "Opens the My Work menu: My Work, Dashboard and Approval Queue. Its name adds Contains current page for screen readers when the page you are on, such as the Dashboard, is in this menu.",
         who: "All staff",
       },
       {
@@ -251,7 +251,7 @@ export const HOME_AND_ASK_SCREENS: readonly HelpScreenReference[] = [
         region: PRIMARY,
         availability: "required",
         source: NAVIGATION_SOURCE,
-        does: "Opens the Admin menu: Admin, Connections and Communications.",
+        does: "Opens the Admin menu with Admin, Connections, Communications and Help.",
         who: "All staff",
       },
       {
@@ -290,7 +290,7 @@ export const HOME_AND_ASK_SCREENS: readonly HelpScreenReference[] = [
         region: PRIMARY,
         availability: "required",
         source: NAVIGATION_SOURCE,
-        actions: MY_WORK_MENU,
+        actions: ADMIN_MENU,
         does: "Opens Help, this manual, at Start here.",
         who: "All staff",
       },

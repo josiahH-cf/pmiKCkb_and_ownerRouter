@@ -182,6 +182,75 @@ afterAll(async () => {
   vi.unstubAllEnvs();
 });
 
+describe("November 9 responsible sender wording", () => {
+  it("keeps the prior sender's authored bytes through an unrelated save and a stale takeover", async () => {
+    const fresh = await read();
+    const authored = "Synthetic prior offer.\n\nPrevious sender footer";
+    const save = {
+      kind: "save",
+      leaseId: "701",
+      channel: "tenant",
+      inputs: fresh.inputs,
+    };
+    const first = await post({
+      ...save,
+      expectedRevision: 0,
+      operationId: randomUUID(),
+      bodyOverride: { text: authored, baseHash: fresh.bodyBaseHash },
+    });
+    expect(first.status, JSON.stringify(first.data)).toBe(200);
+    expect(first.data.content.plainText).toBe(authored);
+
+    testState.actor = {
+      uid: "s224-second-editor",
+      email: "s224-second-editor@pmikcmetro.com",
+      hd: "pmikcmetro.com",
+      role: "Editor",
+    };
+    const foreign = await read();
+    expect(foreign.priorSenderWording).toBe(authored);
+    expect(foreign.content.plainText).not.toContain("Previous sender footer");
+
+    const unrelated = await post({
+      ...save,
+      cycleId: first.data.cycleId,
+      expectedRevision: 1,
+      operationId: randomUUID(),
+      bodyOverride: null,
+      inputs: foreign.inputs,
+    });
+    expect(unrelated.status, JSON.stringify(unrelated.data)).toBe(200);
+    expect(unrelated.data.priorSenderWording).toBe(authored);
+    expect(unrelated.data.saved.revision).toBe(2);
+    expect(unrelated.data.outgoingReasons).toContain(
+      "Review prior sender wording and rebuild or edit the current message.",
+    );
+    const takeover = {
+      ...save,
+      cycleId: first.data.cycleId,
+      replacePriorSenderWording: true,
+      bodyOverride: null,
+      inputs: unrelated.data.inputs,
+    };
+    const stale = await post({
+      ...takeover,
+      expectedRevision: 1,
+      operationId: randomUUID(),
+    });
+    expect(stale.status).toBe(409);
+    const rebuilt = await post({
+      ...takeover,
+      expectedRevision: 2,
+      operationId: randomUUID(),
+    });
+    expect(rebuilt.status, JSON.stringify(rebuilt.data)).toBe(200);
+    expect(rebuilt.data.priorSenderWording).toBeNull();
+    expect(rebuilt.data.content.plainText).not.toContain("Previous sender footer");
+    expect(rebuilt.data.senderEmail).toBe(testState.actor.email);
+    expect(gmail.creates).toBe(0);
+  });
+});
+
 describe("S161 message persistence without a cycle step", () => {
   it("BEH-S161-3, BEH-S161-7, BEH-S163-1, AC-S161-1, AC-S161-2: the first save establishes the work record and authored wording survives changed working information exactly", async () => {
     const fresh = await read();

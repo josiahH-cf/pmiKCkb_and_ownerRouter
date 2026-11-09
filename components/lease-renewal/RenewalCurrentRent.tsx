@@ -82,6 +82,7 @@ export function RenewalCurrentRent({
   chargeInventory,
   rentvinePreviewHash,
   rentvineHref = null,
+  placement = "combined",
 }: Readonly<{
   summary: {
     currentRent: number | null;
@@ -93,6 +94,7 @@ export function RenewalCurrentRent({
   /** The saved RentVine preview this page showed; a replacement is bound to it. */
   rentvinePreviewHash: string | null;
   rentvineHref?: string | null;
+  placement?: "combined" | "work" | "verification";
 }>) {
   const context = useRenewalWorkingRecord();
   const router = useRouter();
@@ -280,88 +282,90 @@ export function RenewalCurrentRent({
       data-current-rent-basis={rent.basis}
       data-current-rent-evidence={rent.chargeEvidence}
     >
-      <dl className="ui-stack-tight">
-        <div>
-          <dt>Current rent</dt>
-          <dd data-rent-fact="operational">
-            {rent.amount === null ? "Needs verification" : money(rent.amount)}{" "}
-            <span className="muted">{rent.label}</span>
-          </dd>
-        </div>
-        <div>
-          <dt>Current rent charge (RentVine)</dt>
-          <dd data-rent-fact="rent-charge">
-            {rent.chargeEvidence === "single" && rent.rentCharge ? (
-              <>
-                <ChargeEvidence charge={rent.rentCharge} />{" "}
-                {chargeInventory ? (
-                  <span className="muted">{inventoryLeaseDates(chargeInventory)}.</span>
-                ) : null}
-              </>
-            ) : rent.candidates.length > 0 ? (
-              <>
-                <ul className="ui-rows">
-                  {rent.candidates.map((charge) => (
-                    <li key={charge.id}>
-                      <ChargeEvidence charge={charge} />
-                    </li>
-                  ))}
-                </ul>
-                {chargeInventory ? (
-                  <span className="muted">{inventoryLeaseDates(chargeInventory)}.</span>
-                ) : null}
-              </>
-            ) : (
+      {placement !== "work" ? (
+        <dl className="ui-stack-tight">
+          <div>
+            <dt>Current rent</dt>
+            <dd data-rent-fact="operational">
+              {rent.amount === null ? "Needs verification" : money(rent.amount)}{" "}
+              <span className="muted">{rent.label}</span>
+            </dd>
+          </div>
+          <div>
+            <dt>Current rent charge (RentVine)</dt>
+            <dd data-rent-fact="rent-charge">
+              {rent.chargeEvidence === "single" && rent.rentCharge ? (
+                <>
+                  <ChargeEvidence charge={rent.rentCharge} />{" "}
+                  {chargeInventory ? (
+                    <span className="muted">{inventoryLeaseDates(chargeInventory)}.</span>
+                  ) : null}
+                </>
+              ) : rent.candidates.length > 0 ? (
+                <>
+                  <ul className="ui-rows">
+                    {rent.candidates.map((charge) => (
+                      <li key={charge.id}>
+                        <ChargeEvidence charge={charge} />
+                      </li>
+                    ))}
+                  </ul>
+                  {chargeInventory ? (
+                    <span className="muted">{inventoryLeaseDates(chargeInventory)}.</span>
+                  ) : null}
+                </>
+              ) : (
+                <span className="muted">
+                  {rent.chargeEvidence === "none"
+                    ? "None identified in the current schedule."
+                    : rent.chargeEvidence === "unavailable"
+                      ? "Unavailable right now."
+                      : "Not read for this view."}
+                </span>
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt>Contractual lease rent</dt>
+            <dd data-rent-fact="contractual">
+              {summary.currentRent == null
+                ? "Needs verification"
+                : money(summary.currentRent)}{" "}
               <span className="muted">
-                {rent.chargeEvidence === "none"
-                  ? "None identified in the current schedule."
-                  : rent.chargeEvidence === "unavailable"
-                    ? "Unavailable right now."
-                    : "Not read for this view."}
+                RentVine lease detail; the lease&apos;s own rent term
               </span>
-            )}
-          </dd>
-        </div>
-        <div>
-          <dt>Contractual lease rent</dt>
-          <dd data-rent-fact="contractual">
-            {summary.currentRent == null
-              ? "Needs verification"
-              : money(summary.currentRent)}{" "}
-            <span className="muted">
-              RentVine lease detail; the lease&apos;s own rent term
-            </span>
-          </dd>
-        </div>
-        <div>
-          <dt>Lease total (RentVine)</dt>
-          <dd data-rent-fact="lease-total">
-            {summary.leaseTotalRent == null
-              ? "Unavailable"
-              : money(summary.leaseTotalRent)}{" "}
-            <span className="muted">
-              RentVine lease total; the sum of active recurring charges, never the rent
-            </span>
-          </dd>
-        </div>
-        <div>
-          <dt>Unit listed rent (reference)</dt>
-          <dd data-rent-fact="listing">
-            {summary.unitListedRent == null
-              ? "Unavailable"
-              : money(summary.unitListedRent)}{" "}
-            <span className="muted">
-              RentVine unit listing; a reference, not a lease term
-            </span>
-          </dd>
-        </div>
-      </dl>
-      {rent.attention ? (
+            </dd>
+          </div>
+          <div>
+            <dt>Lease total (RentVine)</dt>
+            <dd data-rent-fact="lease-total">
+              {summary.leaseTotalRent == null
+                ? "Unavailable"
+                : money(summary.leaseTotalRent)}{" "}
+              <span className="muted">
+                RentVine lease total; the sum of active recurring charges, never the rent
+              </span>
+            </dd>
+          </div>
+          <div>
+            <dt>Unit listed rent (reference)</dt>
+            <dd data-rent-fact="listing">
+              {summary.unitListedRent == null
+                ? "Unavailable"
+                : money(summary.unitListedRent)}{" "}
+              <span className="muted">
+                RentVine unit listing; a reference, not a lease term
+              </span>
+            </dd>
+          </div>
+        </dl>
+      ) : null}
+      {rent.attention && placement !== "verification" ? (
         <p className="muted" data-rent-attention role="note">
           {rent.attention}
         </p>
       ) : null}
-      {context ? (
+      {context && placement !== "verification" ? (
         <div className="ui-stack-tight" id={WORKING_CURRENT_RENT_TARGET} tabIndex={-1}>
           <WorkingMoneyField
             field="current_rent"

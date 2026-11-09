@@ -205,6 +205,9 @@ async function renewalTarget(actor: AuthenticatedUser, c: WorkflowCommunicationC
       ...new Set([
         ...blockers,
         ...required,
+        ...(c.replyTo && current.priorSenderWording
+          ? ["Review prior sender wording and rebuild or edit the current message."]
+          : []),
         ...(!c.replyTo && current.publication.status !== "approved"
           ? [current.publication.reason]
           : []),

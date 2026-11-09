@@ -14,10 +14,12 @@ export function RenewalCompPreparation({
   compScreenshotExecutable,
   marketSubject = null,
   sourceFresh = true,
+  canonicalRecommendation = false,
 }: {
   address: string;
   currentRent?: number;
   sourceFresh?: boolean;
+  canonicalRecommendation?: boolean;
   compScreenshotExecutable: boolean;
   /** S118: the server-resolved subject behind the starting range and the report links. */
   marketSubject?: MarketSubjectProjection | null;
@@ -68,13 +70,16 @@ export function RenewalCompPreparation({
   return (
     <Card title={renewalCardTitle("market-evidence", "Market evidence")}>
       {error ? <p role="alert">{error}</p> : null}
-      <RenewalRecommendation currentRent={currentRent ?? null} fresh={sourceFresh} />
+      {!canonicalRecommendation ? (
+        <RenewalRecommendation currentRent={currentRent ?? null} fresh={sourceFresh} />
+      ) : null}
       <OwnerDecisionForm
         key={state?.cycleId ?? "unrecorded"}
         leaseId={context.leaseId}
         current={null}
         currentRent={currentRent}
         address={address}
+        canonicalRecommendation={canonicalRecommendation}
         compScreenshotExecutable={compScreenshotExecutable}
         marketSubject={marketSubject}
         preparation={{

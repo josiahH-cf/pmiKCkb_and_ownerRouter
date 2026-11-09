@@ -2,8 +2,7 @@
 
 // S246: the working batch, the Renewals desk's default view. A presentation over the batch rows
 // the page projected from the one desk orchestration (ARCH-S246-2): it partitions exactly those
-// rows for the working month, lists "Carried over" and "This batch", and shows every other lease
-// as a count that opens its rows. It reads no source of its own.
+// rows for the selected month and shows one table. Count filters change its displayed cohort.
 //
 // The only things it can record are the two staff choices of R-S246-5, each from a staff click
 // and each through the existing workspace route: record staff completion (after a confirmation)
@@ -45,7 +44,9 @@ import {
   renewalBatchSummary,
   serializeRenewalBatchQuery,
   shiftRenewalBatchMonth,
-  thisBatchParts,
+  sortRenewalBatchCohort,
+  type RenewalBatchSort,
+  type RenewalBatchSortColumn,
   type RenewalBatchCountGroup,
   type RenewalBatchGroup,
   type RenewalBatchQuery,
@@ -94,8 +95,8 @@ export interface RenewalWorkingBatchProps {
   readonly recordingPaused?: boolean;
   /** False when staff's keep-working choices could not be read for this render. */
   readonly decisionsAvailable?: boolean;
-  /** S249: batch preparation and its automatic start; absent where the desk did not offer it. */
-  readonly kickoff?: Omit<KickoffPreparationProps, "targets"> | null;
+  /** S249: deliberate preparation for the selected month. */
+  readonly kickoff?: Omit<KickoffPreparationProps, "targets" | "month"> | null;
 }
 
 function subscribeToUrl(onChange: () => void): () => void {
@@ -197,6 +198,7 @@ export function RenewalWorkingBatch({
   );
   const month = query.month ?? defaultMonth;
   const openGroup = query.group;
+  const sort = query.sort ?? null;
   // S251 R-S251-11: the additive `tag` key narrows every group to rows carrying that tag.
   const tagFilter: RenewalBatchTagFilter | null = query.tag ?? null;
   const shownRows = useMemo(
@@ -217,23 +219,26 @@ export function RenewalWorkingBatch({
       month: month === defaultMonth ? null : month,
       group: openGroup,
       tag: tagFilter,
+      sort,
     });
     return value === "" ? null : value;
-  }, [month, defaultMonth, openGroup, tagFilter]);
+  }, [month, defaultMonth, openGroup, tagFilter, sort]);
 
   const batchQueryFor = useCallback(
     (next: {
       month?: string;
       group?: RenewalBatchCountGroup | null;
+      sort?: RenewalBatchSort | null;
     }): RenewalBatchQuery => {
       const nextMonth = next.month ?? month;
       return {
         month: nextMonth === defaultMonth ? null : nextMonth,
         group: next.group === undefined ? openGroup : next.group,
         tag: tagFilter,
+        sort: next.sort === undefined ? sort : next.sort,
       };
     },
-    [month, defaultMonth, openGroup, tagFilter],
+    [month, defaultMonth, openGroup, tagFilter, sort],
   );
 
   // A plain history entry, with no state of its own, so the app router keeps its own address in
@@ -367,7 +372,26 @@ export function RenewalWorkingBatch({
   };
 
   const count = partition.counts.this_batch;
-  const openRows = openGroup ? partition.groups[openGroup] : [];
+  const cohorts = openGroup
+    ? ([openGroup] as const)
+    : (["this_batch", "carried_over"] as const);
+  const scopeLabel = openGroup
+    ? RENEWAL_BATCH_GROUP_LABELS[openGroup]
+    : "Monthly renewals";
+  const scopeCount = cohorts.reduce((total, group) => total + partition.counts[group], 0);
+  const targets = partitionRenewalBatch(rows, month).groups.this_batch.flatMap((row) =>
+    row.canOpen && row.placement.kind === "dated"
+      ? [
+          {
+            leaseId: row.leaseId,
+            address: row.unit ? `${row.address}, ${row.unit}` : row.address,
+            cycleDateIso: row.placement.dateIso,
+          },
+        ]
+      : [],
+  );
+  const setSort = (next: RenewalBatchSort | null) =>
+    showBatch(renewalBatchHref(batchQueryFor({ sort: next })), "replace");
 
   return (
     <section
@@ -441,56 +465,40 @@ export function RenewalWorkingBatch({
         </Notice>
       ) : null}
 
-      {partition.counts.carried_over > 0 ? (
-        <BatchList
-          continuation={continuation}
-          group="carried_over"
-          note="From earlier months with no completion recorded, oldest end date first."
-          rows={partition.groups.carried_over}
+      {kickoff ? (
+        <RenewalKickoffPreparation
+          {...kickoff}
+          key={month}
+          month={month}
+          targets={targets}
         />
       ) : null}
 
-      <BatchList
-        continuation={continuation}
-        emptyText={`Nothing is listed for ${renewalBatchMonthInWords(month)}.`}
-        group="this_batch"
-        rows={partition.groups.this_batch}
-        preparation={
-          kickoff && month === defaultMonth ? (
-            <RenewalKickoffPreparation
-              {...kickoff}
-              targets={partition.groups.this_batch.flatMap((row) =>
-                row.kickoff?.needsComparison &&
-                !row.kickoff.allowanceReached &&
-                row.canOpen
-                  ? [
-                      {
-                        leaseId: row.leaseId,
-                        address: row.unit ? `${row.address}, ${row.unit}` : row.address,
-                        cycleDateIso: row.kickoff.cycleDateIso,
-                      },
-                    ]
-                  : [],
-              )}
-            />
-          ) : null
-        }
-      />
-
       <section aria-label="Other leases" className="ui-stack renewal-batch-others">
-        <h2 className="renewal-batch-heading">Everything else</h2>
-        <p className="muted renewal-batch-note">
-          All {partition.total} loaded leases are counted once across these groups. Choose
-          a count to list its leases.
-        </p>
+        <h2 className="renewal-batch-heading">Filter renewals</h2>
+        <p className="muted renewal-batch-note">{partition.total} loaded leases</p>
         <ul className="renewal-batch-counts">
+          <li>
+            <button
+              aria-controls={panelId}
+              aria-pressed={openGroup === null}
+              className="renewal-batch-count"
+              onClick={() =>
+                showBatch(renewalBatchHref(batchQueryFor({ group: null })), "replace")
+              }
+              type="button"
+            >
+              Monthly renewals{" "}
+              {partition.counts.this_batch + partition.counts.carried_over}
+            </button>
+          </li>
           {RENEWAL_BATCH_COUNT_GROUPS.map((group) => {
             const open = openGroup === group;
             return (
               <li key={group}>
                 <button
-                  aria-controls={open ? panelId : undefined}
-                  aria-expanded={open}
+                  aria-controls={panelId}
+                  aria-pressed={open}
                   className="renewal-batch-count"
                   data-batch-count={partition.counts[group]}
                   data-batch-group={group}
@@ -511,102 +519,121 @@ export function RenewalWorkingBatch({
             );
           })}
         </ul>
-
-        {openGroup ? (
-          <div
-            aria-label={RENEWAL_BATCH_GROUP_LABELS[openGroup]}
-            className="ui-stack renewal-batch-panel"
-            data-batch-open-group={openGroup}
-            id={panelId}
-            role="region"
-          >
-            <h3 className="renewal-batch-heading">
-              {RENEWAL_BATCH_GROUP_LABELS[openGroup]}
-            </h3>
-            <p className="muted renewal-batch-note">
-              {RENEWAL_BATCH_GROUP_HELP[openGroup]}
-            </p>
-            {openGroup === "not_targets" && partition.notTargetReasons.length > 0 ? (
-              <ul className="renewal-batch-reasons">
-                {partition.notTargetReasons.map((reason) => (
-                  <li data-batch-reason-count={reason.count} key={reason.label}>
-                    {reason.label}: {reason.count}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-            {openGroup === "renewed_in_rentvine" && !decisionsAvailable ? (
-              <Notice tone="caution">
-                Keep-working choices could not be read just now, so a lease you chose to
-                keep working can be listed here again. Your earlier choice is still saved.
-              </Notice>
-            ) : null}
-            {openGroup === "renewed_in_rentvine" && openRows.length > 0 && !canRecord ? (
-              <p className="muted renewal-batch-note">
-                Recording a completion or a keep-working choice needs Editor access. You
-                can open each lease to review it.
-              </p>
-            ) : null}
-            {openGroup === "renewed_in_rentvine" && canRecord && recordingPaused ? (
-              <p className="muted renewal-batch-note">
-                Recording is paused while the lease data is past its limit. Refresh the
-                lease data first.
-              </p>
-            ) : null}
-            {openRows.length === 0 ? (
-              <p className="muted renewal-batch-note">No leases are in this group.</p>
-            ) : (
-              <BatchTable label={RENEWAL_BATCH_GROUP_LABELS[openGroup]}>
-                {openRows.map((row) => (
-                  <BatchRow
-                    actions={
-                      openGroup === "renewed_in_rentvine" &&
-                      row.sourceRenewal &&
-                      canRecord ? (
-                        <span className="renewal-batch-actions">
-                          <Button
-                            busy={
-                              busy?.leaseId === row.leaseId &&
-                              busy.choice === "confirm_source_renewal"
-                            }
-                            busyLabel="Recording…"
-                            disabled={recordingPaused || busy !== null}
-                            onClick={(event) => {
-                              confirmTrigger.current = event.currentTarget;
-                              setConfirming(row);
-                            }}
-                            size="compact"
-                            variant="secondary"
-                          >
-                            Record staff completion
-                          </Button>
-                          <Button
-                            busy={
-                              busy?.leaseId === row.leaseId &&
-                              busy.choice === "keep_working"
-                            }
-                            busyLabel="Saving…"
-                            disabled={recordingPaused || busy !== null}
-                            onClick={() => void record(row, "keep_working")}
-                            size="compact"
-                            variant="tertiary"
-                          >
-                            Keep working
-                          </Button>
-                        </span>
-                      ) : null
-                    }
-                    continuation={continuation}
-                    group={openGroup}
-                    key={row.key}
-                    row={row}
-                  />
-                ))}
-              </BatchTable>
-            )}
-          </div>
-        ) : null}
       </section>
+
+      <div
+        aria-label={scopeLabel}
+        className="ui-stack renewal-batch-panel"
+        data-batch-open-group={openGroup ?? undefined}
+        id={panelId}
+        role="region"
+      >
+        <h2 className="renewal-batch-heading" id="renewal-this-batch">
+          {scopeLabel}
+        </h2>
+        <p role="status">
+          {scopeCount} {scopeCount === 1 ? "lease" : "leases"}
+        </p>
+        {openGroup ? (
+          <p className="muted renewal-batch-note">
+            {RENEWAL_BATCH_GROUP_HELP[openGroup]}
+          </p>
+        ) : null}
+        {sort ? (
+          <Button onClick={() => setSort(null)} size="compact" variant="tertiary">
+            Restore default sort
+          </Button>
+        ) : null}
+        {openGroup === "not_targets" && partition.notTargetReasons.length > 0 ? (
+          <ul className="renewal-batch-reasons">
+            {partition.notTargetReasons.map((reason) => (
+              <li data-batch-reason-count={reason.count} key={reason.label}>
+                {reason.label}: {reason.count}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        {openGroup === "renewed_in_rentvine" && !decisionsAvailable ? (
+          <Notice tone="caution">
+            Keep-working choices could not be read just now, so a lease you chose to keep
+            working can be listed here again. Your earlier choice is still saved.
+          </Notice>
+        ) : null}
+        {openGroup === "renewed_in_rentvine" && scopeCount > 0 && !canRecord ? (
+          <p className="muted renewal-batch-note">
+            Recording a completion or a keep-working choice needs Editor access. You can
+            open each lease to review it.
+          </p>
+        ) : null}
+        {openGroup === "renewed_in_rentvine" && canRecord && recordingPaused ? (
+          <p className="muted renewal-batch-note">
+            Recording is paused while the lease data is past its limit. Refresh the lease
+            data first.
+          </p>
+        ) : null}
+        <BatchTable label={scopeLabel} sort={sort} onSort={setSort}>
+          {cohorts.map((group) => (
+            <tbody
+              key={group}
+              data-batch-list={group}
+              data-batch-count={partition.counts[group]}
+            >
+              {sortRenewalBatchCohort(partition.groups[group], sort).map((row) => (
+                <BatchRow
+                  actions={
+                    openGroup === "renewed_in_rentvine" &&
+                    row.sourceRenewal &&
+                    canRecord ? (
+                      <span className="renewal-batch-actions">
+                        <Button
+                          busy={
+                            busy?.leaseId === row.leaseId &&
+                            busy.choice === "confirm_source_renewal"
+                          }
+                          busyLabel="Recording…"
+                          disabled={recordingPaused || busy !== null}
+                          onClick={(event) => {
+                            confirmTrigger.current = event.currentTarget;
+                            setConfirming(row);
+                          }}
+                          size="compact"
+                          variant="secondary"
+                        >
+                          Record staff completion
+                        </Button>
+                        <Button
+                          busy={
+                            busy?.leaseId === row.leaseId &&
+                            busy.choice === "keep_working"
+                          }
+                          busyLabel="Saving…"
+                          disabled={recordingPaused || busy !== null}
+                          onClick={() => void record(row, "keep_working")}
+                          size="compact"
+                          variant="tertiary"
+                        >
+                          Keep working
+                        </Button>
+                      </span>
+                    ) : null
+                  }
+                  continuation={continuation}
+                  group={group}
+                  key={row.key}
+                  row={row}
+                />
+              ))}
+            </tbody>
+          ))}
+          {scopeCount === 0 ? (
+            <tbody>
+              <tr>
+                <td colSpan={6}>No leases in this view.</td>
+              </tr>
+            </tbody>
+          ) : null}
+        </BatchTable>
+      </div>
 
       <ConfirmationDialog
         busy={busy?.choice === "confirm_source_renewal"}
@@ -646,84 +673,24 @@ export function RenewalWorkingBatch({
   );
 }
 
-function BatchList({
-  group,
-  rows,
-  continuation,
-  note,
-  emptyText,
-  preparation = null,
-}: Readonly<{
-  group: "carried_over" | "this_batch";
-  rows: readonly RenewalBatchRowView[];
-  continuation: string | null;
-  note?: string;
-  emptyText?: string;
-  /** S249: "Prepare this batch" and its progress, under "This batch". */
-  preparation?: ReactNode;
-}>) {
-  const label = RENEWAL_BATCH_GROUP_LABELS[group];
-  // S249 R-S249-13: under "This batch", leases ready for review list first with a count, then
-  // leases missing an input with the input named, then waiting and finished leases.
-  const parts =
-    group === "this_batch" &&
-    rows.some((row) => row.kickoffGroup === "ready" || row.kickoffGroup === "missing")
-      ? thisBatchParts(rows)
-      : null;
-  const list = (items: readonly RenewalBatchRowView[], tableLabel: string) => (
-    <BatchTable label={tableLabel}>
-      {items.map((row) => (
-        <BatchRow continuation={continuation} group={group} key={row.key} row={row} />
-      ))}
-    </BatchTable>
-  );
-  return (
-    <section
-      aria-label={label}
-      id={group === "this_batch" ? "renewal-this-batch" : undefined}
-      className="ui-stack renewal-batch-group"
-      data-batch-count={rows.length}
-      data-batch-list={group}
-    >
-      <h2 className="renewal-batch-heading">{label}</h2>
-      {note ? <p className="muted renewal-batch-note">{note}</p> : null}
-      {preparation}
-      {rows.length === 0 ? (
-        <p className="muted renewal-batch-note">{emptyText}</p>
-      ) : parts ? (
-        (
-          [
-            ["ready", KICKOFF_WORDS.readyForReview, parts.ready],
-            ["missing", KICKOFF_WORDS.needsAnInput, parts.missing],
-            ["other", KICKOFF_WORDS.waitingOrDone, parts.other],
-          ] as const
-        ).map(([part, heading, items]) =>
-          items.length === 0 ? null : (
-            <section
-              aria-label={heading}
-              className="ui-stack-tight renewal-batch-part"
-              data-batch-part={part}
-              data-batch-part-count={items.length}
-              key={part}
-            >
-              <h3 className="renewal-batch-subheading">
-                {heading} ({items.length})
-              </h3>
-              {list(items, heading)}
-            </section>
-          ),
-        )
-      ) : (
-        list(rows, label)
-      )}
-    </section>
-  );
-}
+const SORT_COLUMNS: ReadonlyArray<{ column: RenewalBatchSortColumn; label: string }> = [
+  { column: "date", label: "Cycle or review date" },
+  { column: "stage", label: "Stage and context" },
+  { column: "base", label: "Current base rent" },
+  { column: "recommended", label: "Rent to recommend" },
+];
 
 function BatchTable({
   children,
   label,
-}: Readonly<{ children: ReactNode; label: string }>) {
+  sort,
+  onSort,
+}: Readonly<{
+  children: ReactNode;
+  label: string;
+  sort: RenewalBatchSort | null;
+  onSort: (next: RenewalBatchSort) => void;
+}>) {
   return (
     <div className="renewal-batch-table-scroll">
       <table className="renewal-batch-table">
@@ -732,13 +699,38 @@ function BatchTable({
           <tr>
             <th scope="col">Lease and tenants</th>
             <th scope="col">Next action</th>
-            <th scope="col">Cycle or review date</th>
-            <th scope="col">Stage and context</th>
-            <th scope="col">Current base rent</th>
-            <th scope="col">Rent to recommend</th>
+            {SORT_COLUMNS.map(({ column, label }) => {
+              const direction = sort?.column === column ? sort.direction : null;
+              return (
+                <th
+                  aria-sort={
+                    direction === "asc"
+                      ? "ascending"
+                      : direction === "desc"
+                        ? "descending"
+                        : undefined
+                  }
+                  key={column}
+                  scope="col"
+                >
+                  <button
+                    className="text-link"
+                    onClick={() =>
+                      onSort({ column, direction: direction === "asc" ? "desc" : "asc" })
+                    }
+                    type="button"
+                  >
+                    {label}
+                    {direction ? (
+                      <span aria-hidden="true">{direction === "asc" ? " ↑" : " ↓"}</span>
+                    ) : null}
+                  </button>
+                </th>
+              );
+            })}
           </tr>
         </thead>
-        <tbody>{children}</tbody>
+        {children}
       </table>
     </div>
   );
@@ -822,6 +814,9 @@ function BatchRow({
       </td>
       <td>
         <span className="renewal-batch-date">{row.dateLabel}</span>
+        {group === "carried_over" ? (
+          <span className="renewal-batch-date-note">Carried over</span>
+        ) : null}
         {row.dateNote ? (
           <span className="renewal-batch-date-note">{row.dateNote}</span>
         ) : null}
@@ -873,14 +868,9 @@ function BatchRow({
           : formatMoneyReference(row.currentBaseRent)}
       </td>
       <td>
-        {row.recommendedRent ? (
-          <>
-            {formatMoneyReference(row.recommendedRent.value)}
-            <span className="renewal-batch-date-note">{row.recommendedRent.basis}</span>
-          </>
-        ) : (
-          "Not set"
-        )}
+        {row.recommendedRent
+          ? formatMoneyReference(row.recommendedRent.value)
+          : "Not set"}
       </td>
     </tr>
   );

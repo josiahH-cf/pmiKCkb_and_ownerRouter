@@ -48,7 +48,14 @@ import {
 } from "@/lib/lease-renewal/working-record";
 import { fetchWithDeadline } from "@/lib/ui/fetch-lifetime";
 import { focusRenewalDashboardControl } from "./RenewalDashboardNavigation";
-import { RentToRecommendField, StoredComparisonSummary } from "./RenewalKickoffFields";
+import {
+  addCalendarDays,
+  CommunicationScheduleSchema,
+  localDateAt,
+  nextOccurrence,
+  formatZonedInstant,
+} from "@/lib/gmail-hub/schedule-calendar";
+import { useRenewalFocusView } from "./RenewalFocusViewContext";
 import { nowSlotKey, useRenewalNowCard } from "./RenewalNowCardContext";
 import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
 import { workingRecommendationBasis } from "@/lib/lease-renewal/kickoff-facts";
@@ -182,25 +189,15 @@ const STEP_FOR_CHANNEL: Record<"owner" | "tenant", RenewalPathStepId> = {
 interface ReviewState {
   readonly mode: "send" | "schedule";
   readonly sequence: CommunicationSequence;
+  readonly signatureParagraph: RichCommunicationMessage["paragraphs"][number] | null;
+  readonly noticeCycleId: string | null;
+  readonly reviewedAtMs: number;
   readonly reviewedDraftHash: string;
   readonly reviewedTargetHash: string;
   readonly to: readonly string[];
   readonly cc: readonly string[];
   readonly subject: string;
   readonly body: string;
-  /**
-   * R-S249-5: the prefilled rent to recommend the reviewed message carries, as the server composed
-   * it; null when the message carries a typed figure or none. This, never the page's own
-   * projection, is what a send makes the staff reviewed recommendation.
-   */
-  readonly carriedRecommendation: CarriedRecommendation | null;
-}
-
-/** The prefilled rent to recommend a composed owner message carries (the server's own words). */
-export interface CarriedRecommendation {
-  readonly value: number;
-  readonly origin: "agreement" | "comparison";
-  readonly basis: string;
 }
 
 /** One save of the communication draft: the exact request, reused as is when it is retried. */
@@ -211,7 +208,7 @@ interface PendingSave {
       readonly id: string;
       readonly context: WorkflowCommunicationContext;
       readonly initial: RichCommunicationMessage;
-      readonly followUp: null;
+      readonly followUp: RichCommunicationMessage | null;
     };
     readonly expectedVersion: number;
     readonly operationId: string;
@@ -299,6 +296,8 @@ function tomorrowIso(): string {
 
 export function PreparedMessageSlot({
   data,
+  compactFull = false,
+  deliveryHeld = false,
   onSaveSignature,
   onSignatureSetupSaved,
   onReasonChange,
@@ -312,8 +311,16 @@ export function PreparedMessageSlot({
   onRebuildRule,
   onReturnToStandardWording,
   onUndoWording,
-}: Readonly<{ data: PreparedMessageData } & PreparedMessageHandlers>) {
+}: Readonly<
+  {
+    data: PreparedMessageData;
+    compactFull?: boolean;
+    deliveryHeld?: boolean;
+  } & PreparedMessageHandlers
+>) {
   const nowCard = useRenewalNowCard();
+  const view = useRenewalFocusView();
+  const full = compactFull && view?.view === "full";
   const step = data.renewOrNot
     ? "assisted-owner-renewal-answer"
     : STEP_FOR_CHANNEL[data.channel];
@@ -340,11 +347,13 @@ export function PreparedMessageSlot({
   const preview = nowCard?.slots[nowSlotKey(step, "message-preview")] ?? null;
   const actions = nowCard?.slots[nowSlotKey(step, "review-and-send")] ?? null;
   // Only a shown Now card step that sends this audience's message takes the block.
-  if (!nowCard || !preview) return null;
+  if (!nowCard || (!preview && !full)) return null;
   return (
     <PreparedMessageBlock
       actionsSlot={actions}
       api={api}
+      full={full}
+      deliveryHeld={deliveryHeld}
       preparation={nowCard?.preparation ?? null}
       previewSlot={preview}
       setPrimary={nowCard?.setPrimary ?? null}
@@ -358,6 +367,8 @@ function PreparedMessageBlock({
   preparation,
   previewSlot,
   actionsSlot,
+  full,
+  deliveryHeld,
   setPrimary,
   step,
 }: Readonly<{
@@ -365,6 +376,8 @@ function PreparedMessageBlock({
   preparation: RenewalPreparation | null;
   previewSlot: HTMLElement | null;
   actionsSlot: HTMLElement | null;
+  full: boolean;
+  deliveryHeld: boolean;
   setPrimary: NonNullable<ReturnType<typeof useRenewalNowCard>>["setPrimary"] | null;
   step: RenewalPathStepId;
 }>) {
@@ -387,6 +400,63 @@ function PreparedMessageBlock({
   const [scheduleDate, setScheduleDate] = useState(tomorrowIso);
   const [scheduleTime, setScheduleTime] = useState("09:00");
   const scheduleReady = Boolean(scheduleDate && scheduleTime);
+  const [followUps, setFollowUps] = useState(false);
+  const [followUpSubject, setFollowUpSubject] = useState("");
+  const [followUpBody, setFollowUpBody] = useState("");
+  const [everyDays, setEveryDays] = useState("");
+  const [followUpTime, setFollowUpTime] = useState("");
+  const [followUpZone, setFollowUpZone] = useState<string>(BUSINESS_TIME_ZONE);
+  const [followUpEnd, setFollowUpEnd] = useState("");
+  const [followUpLimit, setFollowUpLimit] = useState("");
+  const [unknownAuthorization, setUnknownAuthorization] = useState<string | null>(null);
+  const confirmLock = useRef(false);
+  const followUpSave = useRef<PendingSave | null>(null);
+
+  const canIncludeFollowUps =
+    api.channel === "tenant" && review?.mode === "send" && Boolean(review.noticeCycleId);
+  const includesFollowUps = canIncludeFollowUps && followUps;
+  const followUpMessage =
+    review && followUpSubject.trim() && followUpBody.trim()
+      ? {
+          subject: followUpSubject.trim(),
+          paragraphs: [
+            ...followUpBody
+              .trim()
+              .split(/\n{2,}/)
+              .map((text) => [{ text }]),
+            ...(review.signatureParagraph ? [review.signatureParagraph] : []),
+          ],
+          attachmentIds: [],
+        }
+      : null;
+  const followUpPlan = (() => {
+    if (!review || !includesFollowUps || !followUpMessage) return null;
+    const now = review.reviewedAtMs;
+    const interval = Number(everyDays);
+    if (
+      !Number.isInteger(interval) ||
+      interval < 1 ||
+      interval > 366 ||
+      (!followUpEnd && !followUpLimit)
+    )
+      return null;
+    try {
+      const parsed = CommunicationScheduleSchema.safeParse({
+        firstDate: addCalendarDays(localDateAt(now, followUpZone), interval),
+        time: followUpTime,
+        timeZone: followUpZone,
+        everyDays: interval,
+        endDate: followUpEnd || null,
+        sendLimit: followUpLimit ? Number(followUpLimit) : null,
+      });
+      if (!parsed.success) return null;
+      const due = nextOccurrence(parsed.data, now, 1);
+      return due === null ? null : { schedule: parsed.data, due };
+    } catch {
+      return null;
+    }
+  })();
+
   const [draftOpen, setDraftOpen] = useState(false);
   const draftOpenRef = useRef(false);
   const failedDraftRecovery = useRef<(() => void) | null>(null);
@@ -413,7 +483,11 @@ function PreparedMessageBlock({
       closeDraft();
     }
   }
-  const [signatureOpen, setSignatureOpen] = useState(false);
+  const [signatureChoiceOpen, setSignatureChoiceOpen] = useState<boolean | null>(null);
+  const signatureOpen =
+    signatureChoiceOpen ??
+    Boolean(api.canEdit && api.onSignatureSetupSaved && !api.signaturePresent);
+  const setSignatureOpen = setSignatureChoiceOpen;
   const [signature, setSignature] = useState<PreparedSignatureFields>({
     name: "",
     role: "",
@@ -534,6 +608,12 @@ function PreparedMessageBlock({
     (live ? sendReady(live) : needs.every((item) => item.ready)) &&
     !api.outgoingReasons?.length;
   const missingWords = needs.filter((item) => !item.ready && item.missing);
+  const firstMissing = needs.find((item) => !item.ready);
+  const reviewLabel = ready
+    ? KICKOFF_WORDS.reviewAndSend
+    : firstMissing?.key === "signature"
+      ? "Set up your signature"
+      : (firstMissing?.fix?.label ?? "Review required message inputs");
   const staleDraft =
     api.draft.createdRevision !== null && api.draft.createdRevision !== api.revision;
   // H: the reason carries the same guard as edited wording, and says what to take out.
@@ -569,9 +649,14 @@ function PreparedMessageBlock({
         json<{
           context: WorkflowCommunicationContext;
           initial: RichCommunicationMessage;
-          target: { to: string[]; cc: string[]; blockers?: string[] };
+          target: {
+            to: string[];
+            cc: string[];
+            blockers?: string[];
+            noticeCycleId?: string | null;
+          };
+          signatureParagraph?: RichCommunicationMessage["paragraphs"][number] | null;
           reviewedTargetHash: string;
-          carriedRecommendation?: CarriedRecommendation | null;
         }>(
           `/api/gmail-hub/composition?purpose=${api.channel === "owner" ? "renewal_owner" : "renewal_tenant"}&lease=${encodeURIComponent(api.leaseId)}`,
         );
@@ -664,8 +749,11 @@ function PreparedMessageBlock({
         saved.sequence.initial.paragraphs,
         saved.sequence.initial.layout,
       );
+      followUpSave.current = null;
       setReview({
         mode,
+        signatureParagraph: composition.signatureParagraph ?? null,
+        noticeCycleId: composition.target.noticeCycleId ?? null,
         sequence: saved.sequence,
         reviewedDraftHash: saved.reviewedDraftHash,
         reviewedTargetHash: composition.reviewedTargetHash,
@@ -673,7 +761,7 @@ function PreparedMessageBlock({
         cc: composition.target.cc,
         subject: saved.sequence.initial.subject,
         body: rendered.plainText,
-        carriedRecommendation: composition.carriedRecommendation ?? null,
+        reviewedAtMs: saved.sequence.updatedAtMs,
       });
     } catch (error) {
       setMessage(
@@ -687,18 +775,59 @@ function PreparedMessageBlock({
   };
 
   async function confirm() {
-    if (!review || (review.mode === "schedule" && !scheduleReady)) return;
+    if (
+      !review ||
+      unknownAuthorization ||
+      confirmLock.current ||
+      (review.mode === "schedule" && !scheduleReady) ||
+      (includesFollowUps && (!followUpPlan || !followUpMessage))
+    )
+      return;
+    confirmLock.current = true;
     setBusy(true);
     setMessage("");
+    let sendingId: string | null = null;
     try {
+      let sequence = review.sequence;
+      let reviewedDraftHash = review.reviewedDraftHash;
+      if (includesFollowUps && followUpPlan && followUpMessage) {
+        const draft = {
+          id: sequence.id,
+          context: sequence.context,
+          initial: sequence.initial,
+          followUp: followUpMessage,
+        };
+        const pending = followUpSave.current ?? {
+          body: {
+            action: "save" as const,
+            draft,
+            expectedVersion: sequence.version,
+            operationId: crypto.randomUUID(),
+          },
+        };
+        if (JSON.stringify(pending.body.draft) !== JSON.stringify(draft)) {
+          setMessage(
+            "The prior save is unresolved. Reopen the current communication and review its saved wording.",
+          );
+          return;
+        }
+        followUpSave.current = pending;
+        const saved = await json<{
+          sequence: CommunicationSequence;
+          reviewedDraftHash: string;
+        }>("/api/gmail-hub/sequences", pending.body);
+        sequence = saved.sequence;
+        reviewedDraftHash = saved.reviewedDraftHash;
+      }
+      sendingId = sequence.id;
       const result = await json<{ sequence: CommunicationSequence }>(
         "/api/gmail-hub/sequences",
         {
           action: review.mode,
-          id: review.sequence.id,
-          expectedVersion: review.sequence.version,
+          id: sequence.id,
+          expectedVersion: sequence.version,
           operationId: crypto.randomUUID(),
-          reviewedDraftHash: review.reviewedDraftHash,
+          reviewedDraftHash,
           reviewedTargetHash: review.reviewedTargetHash,
           schedule:
             review.mode === "schedule"
@@ -710,53 +839,37 @@ function PreparedMessageBlock({
                   endDate: null,
                   sendLimit: 1,
                 }
-              : null,
+              : includesFollowUps
+                ? (followUpPlan?.schedule ?? null)
+                : null,
         },
       );
       sequenceRef.current = null;
       setReview(null);
       const accepted = (result.sequence.threads ?? []).length > 0;
+      const next = result.sequence.nextDueAtMs;
+      const nextFollowUp =
+        accepted && includesFollowUps && next !== null && followUpPlan
+          ? ` Next follow-up: ${formatZonedInstant(next, followUpPlan.schedule.timeZone)}.`
+          : "";
       setMessage(
         review.mode === "schedule"
           ? `Scheduled for ${scheduleDate} at ${scheduleTime} Central. It counts as sent once Gmail accepts it.`
           : accepted
-            ? "Sent. Gmail accepted the message; the lease now waits on the reply."
+            ? `Sent. Gmail accepted the message; the lease now waits on the reply.${nextFollowUp}`
             : "The send is recorded, and Gmail has not confirmed it yet. The lease says what happens next.",
       );
-      // R-S249-5: a prefilled figure becomes the staff reviewed recommendation once it is sent:
-      // the figure the reviewed message carried, as the server composed it, never the page's own
-      // projection (which can differ from what was sent). A typed rent is never replaced.
-      const carried = review.carriedRecommendation;
-      if (
-        api.channel === "owner" &&
-        accepted &&
-        carried &&
-        typedRent === null &&
-        !working?.hasUnsettled?.(["terms_rent"]) &&
-        working?.canEdit
-      )
-        await working
-          .save("terms_rent", carried.value, {
-            origin: "adopted_source",
-            sourceLabel:
-              carried.origin === "agreement"
-                ? "Standing agreement"
-                : "Comparable-rent recommendation",
-            context:
-              `Sent in the owner message, revision ${api.revision}. ${carried.basis}`.slice(
-                0,
-                1000,
-              ),
-          })
-          .catch(() => false);
+
       router.refresh();
     } catch (error) {
+      if (sendingId && outcomeUnknown(error)) setUnknownAuthorization(sendingId);
       setMessage(
         error instanceof Error
           ? `${error.message} Check the lease before trying again; nothing is sent twice.`
           : "The response did not arrive. Check the lease before trying again; nothing is sent twice.",
       );
     } finally {
+      confirmLock.current = false;
       setBusy(false);
     }
   }
@@ -764,10 +877,18 @@ function PreparedMessageBlock({
   // R-S249-8: "Review and send" is the Now card's primary action while the step asks for its send.
   const runReview = (button: HTMLButtonElement) => {
     if (!ready) {
-      const first = needs.find((item) => !item.ready);
-      if (first?.key === "signature") setSignatureOpen(true);
-      else if (first?.fix) focusRenewalDashboardControl(first.fix.target);
-      else focusRenewalDashboardControl(MESSAGE_CONTROL_IDS.readiness(api.channel));
+      if (firstMissing?.key === "signature") {
+        setSignatureOpen(true);
+        requestAnimationFrame(() => {
+          focusRenewalDashboardControl(MESSAGE_CONTROL_IDS.signature(api.channel), {
+            focusContainer: true,
+          });
+        });
+      } else if (firstMissing?.fix) {
+        focusRenewalDashboardControl(firstMissing.fix.target);
+      } else {
+        focusRenewalDashboardControl(MESSAGE_CONTROL_IDS.readiness(api.channel));
+      }
       return;
     }
     // Preparing the review can disable the button before the dialog opens.
@@ -791,20 +912,34 @@ function PreparedMessageBlock({
   );
   useEffect(() => {
     if (!setPrimary) return;
+    if (full || deliveryHeld) {
+      setPrimary(step, null);
+      return;
+    }
     setPrimary(step, {
-      label: KICKOFF_WORDS.reviewAndSend,
+      label: reviewLabel,
       run: stableRun,
       busy,
       disabled: busy || !api.canEdit,
       reason,
     });
-  }, [setPrimary, step, stableRun, busy, api.canEdit, reason]);
+  }, [
+    setPrimary,
+    step,
+    stableRun,
+    busy,
+    api.canEdit,
+    reason,
+    reviewLabel,
+    full,
+    deliveryHeld,
+  ]);
   useEffect(
     () => (setPrimary ? () => setPrimary(step, null) : undefined),
     [setPrimary, step],
   );
 
-  if (!previewSlot) return null;
+  if (!previewSlot && !full) return null;
   const previewBlock = (
     <section
       aria-label={api.channel === "owner" ? "Owner message" : "Tenant offer"}
@@ -813,8 +948,6 @@ function PreparedMessageBlock({
     >
       {api.channel === "owner" && live ? (
         <>
-          <StoredComparisonSummary preparation={live} />
-          <RentToRecommendField preparation={live} />
           <div className="ui-stack-tight">
             <label htmlFor={`${base}-reason`}>{KICKOFF_WORDS.reasonToInclude}</label>
             <input
@@ -868,7 +1001,9 @@ function PreparedMessageBlock({
         {needs.map((item) => (
           <li data-renewal-ready={item.ready ? "ready" : "missing"} key={item.key}>
             {item.label}: {item.ready ? "Ready" : `Missing ${item.missing ?? ""}`}
-            {!item.ready && item.key === "signature" ? (
+            {!item.ready &&
+            item.key === "signature" &&
+            (deliveryHeld || firstMissing?.key !== "signature") ? (
               <>
                 {" "}
                 <button
@@ -880,7 +1015,9 @@ function PreparedMessageBlock({
                   Set up your signature
                 </button>
               </>
-            ) : !item.ready && item.fix ? (
+            ) : !item.ready &&
+              item.fix &&
+              (deliveryHeld || item.key !== firstMissing?.key) ? (
               <>
                 {" "}
                 <button
@@ -909,6 +1046,7 @@ function PreparedMessageBlock({
       ) : null}
       {signatureOpen && api.onSignatureSetupSaved ? (
         <RenewalSenderSignatureForm
+          id={MESSAGE_CONTROL_IDS.signature(api.channel)}
           onCancel={() => setSignatureOpen(false)}
           onSaved={async (choice) => {
             await api.onSignatureSetupSaved?.(choice);
@@ -1145,14 +1283,39 @@ function PreparedMessageBlock({
   );
   return (
     <>
-      {createPortal(previewBlock, previewSlot)}
-      {actionsSlot ? createPortal(actionsBlock, actionsSlot) : null}
+      {full ? (
+        <div className="ui-stack-tight" data-renewal-message-work={api.channel}>
+          {!deliveryHeld && api.canEdit ? (
+            <Button
+              data-renewal-work-primary
+              busy={busy}
+              onClick={(event) => runReview(event.currentTarget)}
+            >
+              {reviewLabel}
+            </Button>
+          ) : null}
+          {previewBlock}
+          {!deliveryHeld ? actionsBlock : null}
+        </div>
+      ) : previewSlot ? (
+        createPortal(previewBlock, previewSlot)
+      ) : null}
+      {actionsSlot && !deliveryHeld ? createPortal(actionsBlock, actionsSlot) : null}
       <ConfirmationDialog
         busy={busy}
         busyLabel={review?.mode === "schedule" ? "Scheduling…" : "Sending…"}
-        confirmDisabled={!review || (review.mode === "schedule" && !scheduleReady)}
+        confirmDisabled={
+          !review ||
+          Boolean(unknownAuthorization) ||
+          (review.mode === "schedule" && !scheduleReady) ||
+          Boolean(includesFollowUps && !followUpPlan)
+        }
         confirmLabel={
-          review?.mode === "schedule" ? "Schedule this message" : "Send this message"
+          review?.mode === "schedule"
+            ? "Schedule this message"
+            : includesFollowUps
+              ? "Send offer now and authorize follow-ups"
+              : "Send this message"
         }
         description="Review the exact message, recipients and sender. Confirming is the one step that sends or schedules it."
         error={review && message ? message : undefined}
@@ -1173,6 +1336,119 @@ function PreparedMessageBlock({
               <strong>{review.subject}</strong>
             </p>
             <div className="draft-box">{review.body}</div>
+            <p>
+              Lease {api.leaseId}
+              {review.noticeCycleId ? ` · Cycle ${review.noticeCycleId}` : ""}
+            </p>
+            {unknownAuthorization ? (
+              <a
+                href={`/gmail-hub?communication=${encodeURIComponent(unknownAuthorization)}`}
+              >
+                Open this communication to check the send
+              </a>
+            ) : null}
+            {canIncludeFollowUps ? (
+              <label>
+                <input
+                  type="checkbox"
+                  checked={followUps}
+                  disabled={busy}
+                  onChange={(event) => setFollowUps(event.target.checked)}
+                />
+                Authorize follow-ups after the tenant offer
+              </label>
+            ) : null}
+            {includesFollowUps ? (
+              <fieldset className="ui-stack-tight" disabled={busy}>
+                <legend>Follow-up message and timing</legend>
+                <label>
+                  Follow-up subject{" "}
+                  <input
+                    value={followUpSubject}
+                    maxLength={300}
+                    onChange={(event) => setFollowUpSubject(event.target.value)}
+                  />
+                </label>
+                <label>
+                  Follow-up message{" "}
+                  <textarea
+                    value={followUpBody}
+                    rows={4}
+                    maxLength={20_000}
+                    onChange={(event) => setFollowUpBody(event.target.value)}
+                  />
+                </label>
+                {review.signatureParagraph ? (
+                  <p>
+                    Sender signature:{" "}
+                    {review.signatureParagraph.map((run) => run.text).join("")}
+                  </p>
+                ) : (
+                  <p>Saved blank signature</p>
+                )}
+                <p>Follow-up attachments: none</p>
+                <label>
+                  Every how many days{" "}
+                  <input
+                    type="number"
+                    min={1}
+                    max={366}
+                    value={everyDays}
+                    onChange={(event) => setEveryDays(event.target.value)}
+                  />
+                </label>
+                <label>
+                  Local send time{" "}
+                  <input
+                    type="time"
+                    value={followUpTime}
+                    onChange={(event) => setFollowUpTime(event.target.value)}
+                  />
+                </label>
+                <label>
+                  Timezone{" "}
+                  <input
+                    value={followUpZone}
+                    onChange={(event) => setFollowUpZone(event.target.value)}
+                  />
+                </label>
+                <label>
+                  Inclusive end date{" "}
+                  <input
+                    type="date"
+                    value={followUpEnd}
+                    onChange={(event) => setFollowUpEnd(event.target.value)}
+                  />
+                </label>
+                <label>
+                  Total send limit, including the offer{" "}
+                  <input
+                    type="number"
+                    min={2}
+                    max={1000}
+                    value={followUpLimit}
+                    onChange={(event) => setFollowUpLimit(event.target.value)}
+                  />
+                </label>
+                {followUpPlan ? (
+                  <p role="status">
+                    Expected first follow-up{" "}
+                    {formatZonedInstant(followUpPlan.due, followUpPlan.schedule.timeZone)}
+                    .
+                    {followUpPlan.schedule.sendLimit
+                      ? ` Up to ${followUpPlan.schedule.sendLimit - 1} follow-ups.`
+                      : ""}{" "}
+                    Follow-ups start after confirmed acceptance and pause on a verified
+                    tenant reply.
+                  </p>
+                ) : (
+                  <p>
+                    Enter the complete message, recurrence and at least one stopping
+                    bound.
+                  </p>
+                )}
+              </fieldset>
+            ) : null}
             {review.mode === "schedule" ? (
               <div className="ui-row">
                 <Field

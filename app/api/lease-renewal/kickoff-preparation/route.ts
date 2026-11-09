@@ -12,22 +12,24 @@ import { runKickoffPreparation } from "@/lib/lease-renewal/kickoff-preparation-s
 import { kickoffPreparationDeps } from "@/lib/lease-renewal/kickoff-preparation-runtime";
 import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
 
-// S249 ARCH-S249-3 / ARCH-S249-4: one lease's batch preparation, in the signed-in staff member's
-// own request. Its one possible billed effect is the existing comparison lookup, run through the
-// market-comps route unchanged (action gate, suspension check, cache, allowance stop, metering),
-// at most once per lease and cycle behind a claim. No Gmail draft, send, schedule or provider write
-// is created here. "trigger" says whether a staff member chose "Prepare this batch" (staff) or the
-// batch opened with the reviewed automatic start on (automatic); the automatic start is refused for
-// a verification identity, with the setting off, outside the working batch, at the allowance and
-// for a lease and cycle that already hold a claim.
-
+// S249: one deliberate preparation request. Accept the legacy automatic discriminator so
+// the service can explicitly refuse it before source reads or effects.
 const RequestSchema = z
   .object({
     leaseId: z.string().regex(/^[1-9]\d*$/),
     trigger: z.enum(["staff", "automatic"]),
+    month: z
+      .string()
+      .regex(/^\d{4}-(0[1-9]|1[0-2])$/)
+      .optional(),
+    cycleDateIso: z.iso.date().optional(),
     operationId: z.string().uuid(),
   })
-  .strict();
+  .strict()
+  .refine(
+    (input) => Boolean(input.month) === Boolean(input.cycleDateIso),
+    "A batch request needs both the selected month and the cycle date.",
+  );
 
 const STATUS_CODES = {
   verification_identity: 403,

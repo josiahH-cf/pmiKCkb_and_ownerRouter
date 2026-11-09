@@ -181,7 +181,7 @@ export const RENEWAL_PATH_DEFINITION: Readonly<
     controls: [
       "renewal-card-lease-term",
       "renewal-rent-and-charges",
-      "renewal-card-data-check",
+      "renewal-source-resolutions",
     ],
     handlers: [
       "/api/lease-renewal/correction-review",
@@ -214,7 +214,7 @@ export const RENEWAL_PATH_DEFINITION: Readonly<
     next: "ask-owner",
     processStepId: null,
     sectionId: "comps",
-    slots: ["stored-comparison", "rent-to-recommend"],
+    slots: ["stored-comparison"],
   },
   "ask-owner": {
     id: "ask-owner",
@@ -222,6 +222,7 @@ export const RENEWAL_PATH_DEFINITION: Readonly<
     ready: "The owner message prepared from the saved numbers and the working terms.",
     decides: "When to send the owner message, and the owner's decision once it comes.",
     controls: [
+      "renewal-owner-pricing-basis",
       "renewal-card-message-owner",
       "renewal-manual-owner_outreach",
       "renewal-manual-owner_response",

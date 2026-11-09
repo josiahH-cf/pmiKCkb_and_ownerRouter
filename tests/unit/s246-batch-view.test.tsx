@@ -132,20 +132,25 @@ afterEach(() => {
 });
 
 describe("S246 the working batch is the default view (R-S246-2, R-S246-3, R-S246-6, R-S246-11)", () => {
-  it("BEH-S246-1: states the working month and its count in words above the table, with Carried over first and every other lease as a count", () => {
+  it("BEH-S246-1: states the working month and its count in words above the table, with the selected month first and top count filters", () => {
     open();
     expect(summary()).toHaveTextContent(
       "Three leases ending in December 2026 need renewal work.",
     );
     expect(screen.getByText("Working month: December 2026")).toBeInTheDocument();
-    const carried = screen.getByRole("region", { name: "Carried over" });
-    const batch = screen.getByRole("region", { name: "This batch" });
-    // The words come before both tables, and Carried over shows first.
+    const carried = list("carried_over")!;
+    const batch = list("this_batch")!;
+    expect(screen.getAllByRole("table")).toHaveLength(1);
+    expect(
+      countButton("completed").compareDocumentPosition(batch) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // The scope and selected month lead the carryover cohort in one table.
     expect(
       summary().compareDocumentPosition(carried) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
-      carried.compareDocumentPosition(batch) & Node.DOCUMENT_POSITION_FOLLOWING,
+      batch.compareDocumentPosition(carried) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     // R-S246-3: oldest end date first.
     expect(leaseIds(carried)).toEqual([
@@ -181,7 +186,7 @@ describe("S246 the working batch is the default view (R-S246-2, R-S246-3, R-S246
       expect(countButton(group)).toHaveAccessibleName(
         `${RENEWAL_BATCH_GROUP_LABELS[group]} ${counts[group]}`,
       );
-      expect(countButton(group)).toHaveAttribute("aria-expanded", "false");
+      expect(countButton(group)).toHaveAttribute("aria-pressed", "false");
     }
     // R-S246-11: the two tables and the counts add up to every loaded lease.
     const listed = leaseIds(carried).length + leaseIds(batch).length;
@@ -204,7 +209,7 @@ describe("S246 the working batch is the default view (R-S246-2, R-S246-3, R-S246
     expect(summary()).toHaveTextContent(
       "No leases ending in January 2027 need renewal work.",
     );
-    expect(screen.getByText("Nothing is listed for January 2027.")).toBeInTheDocument();
+    expect(leaseIds(list("this_batch")!)).toEqual([]);
     // December's targets are now earlier months without a completion.
     expect(leaseIds(list("carried_over")!)).toHaveLength(5);
     expect(screen.getByRole("link", { name: "Return to December 2026" })).toHaveAttribute(
@@ -245,7 +250,8 @@ describe("S246 the working batch is the default view (R-S246-2, R-S246-3, R-S246
     expect(screen.queryByRole("region", { name: "Not renewal targets" })).toBeNull();
     fireEvent.click(countButton("not_targets"));
     expect(window.location.search).toBe("?group=not_targets");
-    expect(countButton("not_targets")).toHaveAttribute("aria-expanded", "true");
+    expect(countButton("not_targets")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getAllByRole("table")).toHaveLength(1);
     const panel = screen.getByRole("region", { name: "Not renewal targets" });
     expect(new Set(leaseIds(panel))).toEqual(
       new Set([
@@ -280,7 +286,7 @@ describe("S246 the working batch is the default view (R-S246-2, R-S246-3, R-S246
 
     // Choosing the count again closes its rows.
     fireEvent.click(countButton("not_targets"));
-    expect(countButton("not_targets")).toHaveAttribute("aria-expanded", "false");
+    expect(countButton("not_targets")).toHaveAttribute("aria-pressed", "false");
     expect(`${window.location.pathname}${window.location.search}`).toBe(DESK);
 
     const expected: [RenewalBatchCountGroup, string[]][] = [

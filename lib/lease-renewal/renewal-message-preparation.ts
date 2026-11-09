@@ -126,6 +126,8 @@ export const SaveMessagePreparationSchema = z
     inputs: MessagePreparationInputsSchema,
     /** The authored body for this revision; null or absent keeps the composed body. */
     bodyOverride: RefinedBodySchema.nullable().optional(),
+    /** The responsible sender deliberately replaced or rebuilt a prior sender's authored body. */
+    replacePriorSenderWording: z.literal(true).optional(),
     /** S161: the authored subject for this revision; null or absent keeps the composed subject. */
     subjectOverride: AuthoredSubjectSchema.nullable().optional(),
     /**

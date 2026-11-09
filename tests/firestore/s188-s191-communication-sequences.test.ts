@@ -47,7 +47,9 @@ import {
   type SequenceDraft,
   type CommunicationSequence,
 } from "@/lib/gmail-hub/sequence-model";
+import type { GmailThreadView } from "@/lib/gmail-runtime/types";
 import type { WorkflowMimeMessage } from "@/lib/gmail-runtime/workflow-mime";
+import { addCalendarDays, localDateAt } from "@/lib/gmail-hub/schedule-calendar";
 import { GMAIL_STATE_COLLECTIONS } from "@/lib/gmail-hub/state-store";
 const projectId = "pmi-kc-kb-sequence-emulator-test";
 let env: RulesTestEnvironment, app: App, db: Firestore;
@@ -95,7 +97,7 @@ function preparedFor(s: CommunicationSequence) {
     confirmedCount: s.confirmedCount,
   };
 }
-function fixture(now?: () => number) {
+function fixture(now?: () => number, noticeCycleId?: string) {
   const store = new FirestoreCommunicationSequenceStore(db),
     sent = new Map<
       string,
@@ -108,17 +110,25 @@ function fixture(now?: () => number) {
     sourceRefs: context.sourceRefs,
     materialSourceHash: "a".repeat(64),
     label: "Emulator lease",
+    ...(noticeCycleId ? { noticeCycleId } : {}),
   };
   const send = vi.fn(async (m: WorkflowMimeMessage) => {
     const result = {
       messageId: "provider-message",
       threadId: "provider-thread",
       labelIds: ["SENT"],
-      sentAtMs: Date.now(),
+      sentAtMs: now?.() ?? Date.now(),
     };
     sent.set(m.messageId, result);
     return result;
   });
+  const getThread = vi.fn(
+    async (id: string): Promise<GmailThreadView> => ({
+      id,
+      messages: [],
+      truncated: false,
+    }),
+  );
   const service = new WorkflowCommunicationSequenceService({
     store,
     now,
@@ -138,7 +148,7 @@ function fixture(now?: () => number) {
         threadsTotal: 0,
         historyId: "100",
       }),
-      getThread: async (id) => ({ id, messages: [], truncated: false }),
+      getThread,
       sendWorkflowMessage: send,
       findWorkflowMessage: async (id) => sent.get(id) ?? null,
     }),
@@ -168,7 +178,7 @@ function fixture(now?: () => number) {
       }),
     });
   }
-  return { store, service, send, draft, approve, target };
+  return { store, service, send, draft, approve, target, getThread };
 }
 describe("S188–S191 real Firestore transaction ordering with isolated Gmail", () => {
   it("S224 keeps an unfinished follow-up private during a one-off send and refuses a repeating schedule", async () => {
@@ -1153,4 +1163,115 @@ it("S224 actual profile transactions feed signature provenance; profile edits pr
   ).not.toBe(before);
   expect(f.send).not.toHaveBeenCalled();
   expect(restarted.send).not.toHaveBeenCalled();
+});
+
+describe("November 9 immediate tenant offer and follow-ups", () => {
+  it("admits one initial offer across two drafts and two dispatchers, then derives the next date from acceptance", async () => {
+    let now = Date.parse("2026-10-31T18:00:00Z");
+    const f = fixture(() => now, randomUUID());
+    const draft: SequenceDraft = {
+      ...f.draft,
+      context: { ...f.draft.context, purpose: "renewal_tenant" },
+      followUp: plainCommunicationMessage("Exact follow-up", "Synthetic follow-up body."),
+    };
+    const [a, b] = await Promise.all([
+      f.service.save(actor, draft, 0, randomUUID()),
+      f.service.save(actor, { ...draft, id: randomUUID() }, 0, randomUUID()),
+    ]);
+    const timeZone = "America/Chicago";
+    const schedule = {
+      firstDate: addCalendarDays(localDateAt(now, timeZone), 1),
+      time: "01:30",
+      timeZone,
+      everyDays: 1,
+      endDate: "2026-11-02",
+      sendLimit: 2,
+    };
+    const confirm = (saved: CommunicationSequence) =>
+      f.service.authorize(actor, {
+        action: "send",
+        id: saved.id,
+        expectedVersion: saved.version,
+        operationId: randomUUID(),
+        schedule,
+        reviewedDraftHash: sequenceHash({
+          initial: saved.initial,
+          followUp: saved.followUp,
+        }),
+        reviewedTargetHash: sequenceHash({
+          to: f.target.to,
+          cc: f.target.cc,
+          materialSourceHash: f.target.materialSourceHash,
+        }),
+      });
+    const results = await Promise.allSettled([confirm(a), confirm(b)]);
+    const authorized = results.flatMap((result) =>
+      result.status === "fulfilled" ? [result.value] : [],
+    );
+    expect(authorized).toHaveLength(1);
+    const sequence = authorized[0]!;
+    expect(sequence.authorization?.immediateTenantOffer).toBe(true);
+    expect(sequence.nextDueAtMs).toBe(now);
+    expect(sequence.confirmedCount).toBe(0);
+    const deliver = f.send.getMockImplementation()!;
+    f.send.mockImplementationOnce(async (message) => {
+      await deliver(message);
+      throw new Error("Synthetic lost response");
+    });
+    await Promise.allSettled([
+      f.service.dispatch(sequence.id),
+      f.service.dispatch(sequence.id),
+    ]);
+    expect(f.send).toHaveBeenCalledTimes(1);
+    const uncertain = await f.service.get(actor, sequence.id);
+    expect(uncertain).toMatchObject({
+      state: "needs_reconciliation",
+      confirmedCount: 0,
+      nextDueAtMs: null,
+    });
+    expect(await f.service.dispatch(sequence.id)).toMatchObject({
+      status: "needs_reconciliation",
+    });
+    const accepted = await f.service.reconcile(actor, sequence.id);
+    const due = Date.parse("2026-11-01T06:30:00Z");
+    expect(accepted).toMatchObject({
+      state: "active",
+      confirmedCount: 1,
+      nextDueAtMs: due,
+    });
+    expect(await f.service.dispatch(sequence.id)).toMatchObject({ status: "not_due" });
+    expect((await f.store.listOccurrences(sequence.id)).occurrences).toHaveLength(1);
+    now = due;
+    f.getThread.mockResolvedValue({
+      id: "provider-thread",
+      truncated: false,
+      messages: [
+        {
+          id: "tenant-reply",
+          threadId: "provider-thread",
+          labelIds: ["INBOX"],
+          internalDate: String(due - 60_000),
+          from: f.target.to[0],
+          to: [actor.email],
+          cc: [],
+          bcc: [],
+          subject: "Question about the offer",
+          date: "",
+          messageId: "<tenant-reply@example.invalid>",
+          references: [],
+          bodyText: "Can we discuss the timing?",
+          bodyTruncated: false,
+          attachments: [],
+        },
+      ],
+    });
+    const paused = await f.service.dispatch(sequence.id);
+    expect(paused.sequence).toMatchObject({
+      state: "paused",
+      confirmedCount: 1,
+      nextDueAtMs: null,
+      pause: { cause: "reply" },
+    });
+    expect(f.send).toHaveBeenCalledTimes(1);
+  });
 });

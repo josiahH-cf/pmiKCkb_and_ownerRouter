@@ -67,7 +67,6 @@ import type { RawLease } from "@/lib/integrations/rentvine/client";
 import type { RenewalChargeInventory } from "@/lib/lease-renewal/writeback/charge-inventory-model";
 import { getRenewalResourceLocations } from "@/lib/firestore/renewal-resource-locations";
 import { readBusinessProfile } from "@/lib/firestore/presentation-settings";
-import { profileSignature } from "@/lib/staff/business-profile";
 import { getRetainedSenderSignature } from "@/lib/firestore/renewal-sender-signatures";
 import { loadRenewalChargeInventory } from "@/lib/lease-renewal/writeback/charge-inventory";
 import { chargeDateIso } from "@/lib/lease-renewal/writeback/charge-inventory-model";
@@ -572,7 +571,7 @@ export async function currentRenewalMessage(
       : null;
   const signatureOrigin: MessageSignatureOrigin = senderChoice
     ? { kind: "retained_sender", recordedAt: senderChoice.updatedAt }
-    : savedInputs.signature
+    : savedOwn && savedInputs.signature
       ? { kind: "saved" }
       : retainedSignature
         ? { kind: "retained_sender", recordedAt: retainedSignature.updatedAt }
@@ -587,9 +586,9 @@ export async function currentRenewalMessage(
     ...savedInputs,
     signature: senderChoice
       ? senderChoice.signature
-      : (savedInputs.signature ??
-        retainedSignature?.signature ??
-        (businessProfile ? profileSignature(businessProfile.profile) : null)),
+      : senderChoice === null
+        ? legacySignature
+        : null,
   };
   // S129/S161: the same policy applicability the workspace shows. It is listed with the message
   // as information; it withholds neither the message nor its draft, and an unrelated lease has none.
@@ -809,15 +808,7 @@ export async function currentRenewalMessage(
     return url ? { url, source: `renewal-resource:${id}:${entry!.recordedAt}` } : null;
   };
   const provider = market?.provider;
-  const signature = inputs.signature
-    ? {
-        ...inputs.signature,
-        email:
-          senderChoice || !savedInputs.signature
-            ? actor.email
-            : (saved?.signatureEmail ?? actor.email),
-      }
-    : null;
+  const signature = inputs.signature ? { ...inputs.signature, email: actor.email } : null;
   // S163: greeting first names come from the provider's own first-name field for each person.
   const greeting = greetingPartyNames(
     channel === "owner" ? identity.owners : identity.tenants,
@@ -939,10 +930,19 @@ export async function currentRenewalMessage(
           ),
         ])
       : [null, null];
+  // A prior sender's authored paragraph can include a footer with no structural boundary.
+  // Keep it as prior wording and require an explicit edit or rebuild before an outgoing review.
+  const priorSenderWording =
+    savedOverride &&
+    savedOverride !== "unreadable" &&
+    savedOverride.revision === saved?.revision &&
+    savedOverride.updatedByUid !== actor.uid
+      ? savedOverride.text
+      : null;
   const refined = resolveMessageBodyOverride(
     composed,
     saved?.revision ?? null,
-    savedOverride,
+    priorSenderWording ? null : savedOverride,
   );
   const authoredSubject = resolveMessageSubjectOverride(
     refined.content,
@@ -951,12 +951,19 @@ export async function currentRenewalMessage(
   );
   const content = authoredSubject.content;
   const signatureMatchesActor = Boolean(senderChoice || savedOwn);
-  const outgoingReasons = outgoingRenewalReasons({
-    content,
-    signatureConfigured:
-      signatureSetup !== null && (signatureMatchesActor || !savedInputs.signature),
-    reply: false,
-  });
+  const outgoingReasons = [
+    ...outgoingRenewalReasons({
+      content,
+      signatureConfigured: signatureSetup !== null,
+      reply: false,
+    }),
+    ...(priorSenderWording
+      ? ["Review prior sender wording and rebuild or edit the current message."]
+      : []),
+    ...(savedOverride === "unreadable"
+      ? ["The saved wording could not be read. Reload the message."]
+      : []),
+  ];
   return {
     /** S249 R-S249-5: the rent to recommend and its basis, as the Now card reads it. */
     rentToRecommend,
@@ -1040,6 +1047,7 @@ export async function currentRenewalMessage(
     composedContent: composed,
     bodyBaseHash: refined.baseHash,
     bodyOverride: refined.state,
+    priorSenderWording,
     /** S161: the authored subject for this saved revision, or null for the composed subject. */
     subjectOverride: authoredSubject.subject,
     basis,

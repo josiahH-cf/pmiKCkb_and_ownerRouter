@@ -140,6 +140,7 @@ try {
     standInOrigin: standIns.origin,
     mailAdapter,
     automaticComparisonHeld: flag("--hold-automatic-comparison"),
+    compiled: flag("--compiled"),
     firestoreEmulatorHost: process.env.FIRESTORE_EMULATOR_HOST,
     authEmulatorHost: process.env.FIREBASE_AUTH_EMULATOR_HOST,
     projectId: PROJECT_ID,
@@ -158,7 +159,7 @@ try {
   setRecordingCycles(rehearsal, seeding);
 
   await seedDemoAccounts();
-  server = startServer(port);
+  server = await startServer(port);
   await waitForServer(origin);
   const served = await fetch(`${origin}/api/version`)
     .then((response) => response.json())
@@ -322,7 +323,7 @@ async function seedDemoAccounts() {
   }
 }
 
-function startServer(port) {
+async function startServer(port) {
   const serverHome = join(output, "server-home");
   mkdirSync(serverHome, { recursive: true });
   writeFileSync(
@@ -335,64 +336,88 @@ function startServer(port) {
     }),
   );
   const serverLog = createWriteStream(files.serverLog);
-  const child = spawn(
-    process.execPath,
-    ["node_modules/next/dist/bin/next", "dev", "-p", String(port)],
-    {
-      detached: true,
-      stdio: ["ignore", "pipe", "pipe"],
-      // A from-scratch environment: no inherited credential, account or provider variable reaches
-      // the server.
-      env: {
-        PATH: process.env.PATH,
-        HOME: serverHome,
-        GOOGLE_APPLICATION_CREDENTIALS: join(serverHome, "synthetic-adc.json"),
-        TMPDIR: process.env.TMPDIR ?? "/tmp",
-        LANG: "en_US.UTF-8",
-        TZ: "America/Chicago",
-        NODE_OPTIONS: `--import ${join(process.cwd(), PRELOAD)}`,
-        NOVDEC_JOURNEY_NETWORK_LOG: files.networkLog,
-        NOVDEC_JOURNEY_OUTAGE_FLAG: files.rentvineOutage,
-        ONE_PATH_REHEARSAL_MIX: join(process.cwd(), NOVEMBER_5_MIX_PATH),
-        ONE_PATH_REHEARSAL_RENTVINE_CONTROL: files.rentvineControl,
-        ONE_PATH_REHEARSAL_STAND_IN_ORIGIN: standIns.origin,
-        NEXT_E2E_ISOLATED_BUILD: "true",
-        NEXT_TELEMETRY_DISABLED: "1",
-        ENVIRONMENT_KIND: "demo",
-        DATA_CONTEXT: "demo",
-        LOCAL_DEMO_AUTH: "true",
-        // The model is the rehearsal's loopback stand-in; no hosted model is configured.
-        ASK_DEMO_MODE: "false",
-        MODEL_PROVIDER: "local",
-        LOCAL_MODEL_BASE_URL: standIns.origin,
-        LOCAL_MODEL_NAME: "rehearsal-stand-in-model",
-        // Comparisons are answered by the stand-in through the provider boundary.
-        MARKET_COMP_PROVIDER: "rentcast",
-        RENTCAST_API_KEY: "synthetic-rehearsal-key",
-        RENTCAST_MONTHLY_ALLOWANCE: String(REHEARSAL_COMPARISON_ALLOWANCE),
-        // Mail is answered by the stand-in through the Demo-owned adapter, where the served
-        // commit has one (lib/environment/rehearsal-stand-in.ts); --no-mail-adapter leaves it out.
-        ...(mailAdapter ? { REHEARSAL_STAND_IN_ORIGIN: standIns.origin } : {}),
-        APP_COMMIT_SHA: servedSha,
-        FIRESTORE_EMULATOR_HOST: process.env.FIRESTORE_EMULATOR_HOST,
-        FIREBASE_AUTH_EMULATOR_HOST: process.env.FIREBASE_AUTH_EMULATOR_HOST,
-        FIREBASE_PROJECT_ID: PROJECT_ID,
-        GOOGLE_CLOUD_PROJECT: PROJECT_ID,
-        CLOUDSDK_CONFIG: join(output, "no-gcloud-config"),
-        RENTVINE_API_BASE_URL: "https://pmikcmetro.rentvine.com/api/manager",
-        RENTVINE_API_KEY: "synthetic-rehearsal-key",
-        RENTVINE_API_SECRET: "synthetic-rehearsal-secret",
-        RENEWAL_SHEET_ID: "synthetic-rehearsal-sheet",
-        SHEETS_IMPERSONATE_SA: "synthetic-rehearsal@example.invalid",
-        SHEETS_DWD_SUBJECT: "synthetic-rehearsal@pmikcmetro.com",
-        // S252: the desk's owner and tenant header filters submit opaque tokens under a key, as
-        // in production; a fresh random key per run keys this disposable rehearsal only.
-        RENEWAL_DESK_PARTY_FILTER_KEY: randomBytes(32).toString("base64url"),
-      },
+  const compiled = flag("--compiled");
+  const next = "node_modules/next/dist/bin/next";
+  const options = {
+    detached: true,
+    stdio: ["ignore", "pipe", "pipe"],
+    // A from-scratch environment: no inherited account or provider variable reaches the app.
+    env: {
+      PATH: process.env.PATH,
+      HOME: serverHome,
+      GOOGLE_APPLICATION_CREDENTIALS: join(serverHome, "synthetic-adc.json"),
+      TMPDIR: process.env.TMPDIR ?? "/tmp",
+      LANG: "en_US.UTF-8",
+      TZ: "America/Chicago",
+      NODE_OPTIONS: `--max-old-space-size=6144 --import ${join(process.cwd(), PRELOAD)}`,
+      NOVDEC_JOURNEY_NETWORK_LOG: files.networkLog,
+      NOVDEC_JOURNEY_OUTAGE_FLAG: files.rentvineOutage,
+      ONE_PATH_REHEARSAL_MIX: join(process.cwd(), NOVEMBER_5_MIX_PATH),
+      ONE_PATH_REHEARSAL_RENTVINE_CONTROL: files.rentvineControl,
+      ONE_PATH_REHEARSAL_STAND_IN_ORIGIN: standIns.origin,
+      NEXT_E2E_ISOLATED_BUILD: "true",
+      NEXT_TELEMETRY_DISABLED: "1",
+      ENVIRONMENT_KIND: "demo",
+      DATA_CONTEXT: "demo",
+      LOCAL_DEMO_AUTH: "true",
+      // The model is the rehearsal's loopback stand-in; no hosted model is configured.
+      ASK_DEMO_MODE: "false",
+      MODEL_PROVIDER: "local",
+      LOCAL_MODEL_BASE_URL: standIns.origin,
+      LOCAL_MODEL_NAME: "rehearsal-stand-in-model",
+      // Comparisons are answered by the stand-in through the provider boundary.
+      MARKET_COMP_PROVIDER: "rentcast",
+      RENTCAST_API_KEY: "synthetic-rehearsal-key",
+      RENTCAST_MONTHLY_ALLOWANCE: String(REHEARSAL_COMPARISON_ALLOWANCE),
+      // Mail is answered by the stand-in through the Demo-owned adapter, where the served
+      // commit has one (lib/environment/rehearsal-stand-in.ts); --no-mail-adapter leaves it out.
+      ...(mailAdapter ? { REHEARSAL_STAND_IN_ORIGIN: standIns.origin } : {}),
+      APP_COMMIT_SHA: servedSha,
+      FIRESTORE_EMULATOR_HOST: process.env.FIRESTORE_EMULATOR_HOST,
+      FIREBASE_AUTH_EMULATOR_HOST: process.env.FIREBASE_AUTH_EMULATOR_HOST,
+      FIREBASE_PROJECT_ID: PROJECT_ID,
+      GOOGLE_CLOUD_PROJECT: PROJECT_ID,
+      CLOUDSDK_CONFIG: join(output, "no-gcloud-config"),
+      RENTVINE_API_BASE_URL: "https://pmikcmetro.rentvine.com/api/manager",
+      RENTVINE_API_KEY: "synthetic-rehearsal-key",
+      RENTVINE_API_SECRET: "synthetic-rehearsal-secret",
+      RENEWAL_SHEET_ID: "synthetic-rehearsal-sheet",
+      SHEETS_IMPERSONATE_SA: "synthetic-rehearsal@example.invalid",
+      SHEETS_DWD_SUBJECT: "synthetic-rehearsal@pmikcmetro.com",
+      // S252: the desk's owner and tenant header filters submit opaque tokens under a key, as
+      // in production; a fresh random key per run keys this disposable rehearsal only.
+      RENEWAL_DESK_PARTY_FILTER_KEY: randomBytes(32).toString("base64url"),
     },
-  );
-  child.stdout.pipe(serverLog, { end: false });
-  child.stderr.pipe(serverLog, { end: false });
+  };
+  const launch = (args) => {
+    const child = spawn(process.execPath, [next, ...args], options);
+    child.stdout.pipe(serverLog, { end: false });
+    child.stderr.pipe(serverLog, { end: false });
+    return child;
+  };
+  if (compiled) {
+    const build = launch(["build"]);
+    await new Promise((resolve, reject) => {
+      build.once("error", reject);
+      build.once("exit", (code) =>
+        code === 0
+          ? resolve()
+          : reject(new Error(`Guarded production build failed: ${files.serverLog}`)),
+      );
+    });
+    record({
+      event: "compiled",
+      source: servedSha,
+      buildId: readFileSync("temp/e2e/.next/BUILD_ID", "utf8").trim(),
+    });
+  }
+  const child = launch([
+    compiled ? "start" : "dev",
+    "-p",
+    String(port),
+    "-H",
+    "127.0.0.1",
+  ]);
   record({ event: "server-started", pid: child.pid, port });
   return child;
 }

@@ -1,9 +1,21 @@
 # PMI KC facts
 
-Last reconciled: 2026-11-08 (renewal usability delivery and independent readbacks).
+Last reconciled: 2026-11-09 (local intake and canonical traffic readback).
 
 This ledger contains present truth. Historical detail is recoverable in Git and immutable run
 evidence; an earlier receipt never authorizes a new attempt.
+
+## November 9 local qualification
+
+The corrected authoring files, including S260, matched the files transferred into the WSL
+worktree based on `aa5f12e9b75f992b8fc3ec8a67e8acef6bfa792d`. Spec traceability passed for
+1,085 acceptance IDs across 174 specifications. The approved WSL CLI and ADC identity
+completed unattended verification and refresh. At 17:54 UTC, remote main matched the
+intake base and a read-only Cloud Run check found the November 8 revision at 100 percent
+of canonical traffic. Source `1f48b57f`, build `zWkE2Dw7kX0VinPf0TcQt`, ran all ten
+S260 journeys and recorded UNVERIFIED. The tenant confirmation returned HTTP 409 before
+authorization and read back a draft with zero sends. Compiled dispatch proof and the
+remaining preservation cases hold integration. [Baseline](evidence/renewal-simplification-baseline-2026-11-09.md) · [Local qualification](evidence/renewal-simplification-qualification-2026-11-09.md)
 
 ## November 7 renewal usability delivery
 

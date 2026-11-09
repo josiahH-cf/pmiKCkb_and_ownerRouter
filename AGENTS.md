@@ -589,7 +589,11 @@ persistent labeled link-entry boxes now, with blank pending-team states. Verifie
 supplied or hardcoded later when applicable. Missing values do not block S113 implementation/release;
 only the exact resource-dependent output waits for real content and its existing execution contract.
 
-Owner-approved 2026-11-05: for leases in the Renewals working batch, the app may start the existing RentCast comparison when a staff member opens the batch, at most once per lease per renewal cycle and within the monthly allowance. This adds no send, Gmail draft, schedule, provider write or Action Registry key.
+Owner-approved 2026-11-09: the selected month can be prepared only by a deliberate staff click.
+Resolve each lease and cycle from current source evidence and preserve the existing per-cycle claim,
+RentCast action gate, cache, verification fence and monthly allowance. Preparation may save an
+app-owned recommendation and owner draft through their current owners. The November 5 D-OP-1
+permission is superseded. Opening a page, changing its scope or viewing evidence starts no lookup.
 
 S113 (`docs/feature-suites/renewal-workflow-consolidation.md`) is the completed product implementation:
 F1 dashboard/facts, F2 corrections/source updates, F3 comps/messages, F4 manual progress, then F5

@@ -3,7 +3,7 @@
 
 # S250 — Standing owner agreements set once per owner portfolio and chosen on the lease
 
-> Status: AUTHORING READY: intake 116; implementation merged in PR #189 at `daf8ee05`. Resumed UX repairs and scoped qualification are recorded on `codex/renewal-one-path-ux`; production delivered at `ef81b891`, human verdict NOT RUN. D-OP-3 remains settled and S194 policies, prefill and history are kept. This specification grants no provider effect.
+> Status: Portfolio agreement and pricing rules delivered at `ef81b891`, intake 116. November 9 intake 133 is AUTHORING READY for two clear choices in Ask the owner.
 
 **Goal.**
 
@@ -41,6 +41,11 @@ Intended: one agreement per owner portfolio with a pricing rule and a recorded s
 owner has pre-approved renewals at that rule; a selector on the lease's Now card; rent prefilled
 from the rule; the owner step shown as covered.
 
+The November 9 screenshot and serving `RenewalPricingPolicy.tsx` show a single
+“Owner decides each renewal” radio when no standing agreement is available, and the
+policy panel can appear on unrelated steps. The intended choice is between asking
+for this renewal and applying a verified standing agreement.
+
 **Actors and entry conditions.**
 
 An Admin creates and edits agreements. Renewal staff (Editor or higher) apply an existing agreement
@@ -59,20 +64,26 @@ verified RentVine read; a lease whose portfolio cannot be verified is never cove
   RentVine portfolio, shown by the portfolio and owner names staff recognize, with the numeric id
   kept as the stored reference. It can also be applied to single leases. A lease assignment wins
   over the portfolio assignment, as today.
-- **R-S250-3 — Chosen on the lease.** The Now card shows "Pricing basis" with the choices "Owner
-  decides each renewal" and each active agreement by name and rule. Choosing an agreement asks
-  "This lease only" or "Every lease in this owner's portfolio" and saves on one action with an
-  optional reason. When Pricing basis is on Now, its chooser and standing-agreement summary
-  appear once. The existing pricing panel keeps the same assignment and policy controls,
-  and its original chooser remains available in Focus and Full view.
-  The reusable pricing rule it refers to uses the required fields and recovery in S194.
+- **R-S250-3 — Two choices in Ask the owner.** Show one compact pricing-basis control only
+  in the Ask the owner step and its corresponding Full Owner approval section. Use two
+  labeled radio choices, “Ask the owner for this renewal” and “Use a standing owner
+  agreement”. Reflect the current effective basis, defaulting to ask when there is no
+  applicable recorded agreement. If the agreement path is unavailable, show why, with a
+  permitted route to review or manage agreements. When it is available, show the applicable
+  agreement's name and rule, let staff choose among eligible agreements where needed,
+  and preserve the explicit lease-only or verified portfolio scope, versioned save,
+  optional reason and audit. Preserve the attribution and scope of an existing exact
+  per-cycle approval separately from standing coverage. Keep agreement management in its
+  existing authorized settings. The radio alone neither assigns coverage nor records an owner decision.
+  Applying any change uses the existing exact assignment and current coverage checks.
+  Elsewhere a concise read-only basis can explain an amount or a covered step.
 - **R-S250-4 — Rent from the rule.** For a covered lease the rent to recommend is the rule applied
   to the authoritative current rent with the existing whole-dollar rounding, shown with its basis.
   A staff typed rent always wins and is never overwritten.
 - **R-S250-5 — Owner step covered.** While an active pre-approved agreement covers the lease's verified portfolio and the working rent equals the rule's result,
   Ask the owner reads "Covered by {agreement}: no owner message needed" and the path continues at
   Offer the tenant. When staff open the covered owner step, its primary action is "Continue to
-  Offer the tenant" and its Ready and You decide facts describe the agreement. The existing owner
+  Offer the tenant" and the short coverage cue names the agreement. The existing owner
   message tools remain available. Each renewal cycle is covered while the agreement is in effect; no per-cycle
   record is needed.
 - **R-S250-6 — Leaving the rule returns the owner step.** A working rent different from the rule's
@@ -84,8 +95,11 @@ verified RentVine read; a lease whose portfolio cannot be verified is never cove
   the earlier rule reads "Built on the earlier rule" and offers to rebuild.
   Both the untouched prefill and the existing Use policy proposal action retain the actual
   agreement and policy version as the saved rent's basis. Its earlier rent remains recognizable
-  on the message after a rule change. Explicit rebuild updates an adopted rule rent and the
-  prepared message through their ordinary saves; a staff typed rent keeps precedence.
+  on the message after a rule change. The existing rebuild offers the new rule and proposed
+  amount. Link to the single recommendation owner in Compare market rent for deliberate
+  adoption or edit of a populated amount, with its exact value and ordinary versioned
+  save. The owner draft reads back that field. Automatic preparation follows S249's
+  empty-field rule. Pricing basis and approval decisions stay with Ask the owner.
 - **R-S250-8 — Visible everywhere it matters.** The desk row carries a "Standing agreement" tag;
   the lease page names the agreement, its rule and when it took effect; the tenant offer and the
   source update previews show the rule as their basis.
@@ -145,6 +159,10 @@ proposal (S249), the desk tag (S246) and the help guides (S252).
 - **ARCH-S250-3** — The lease selector and the Admin list read and write the same assignment store
   with a single save action and an audit entry. Fail-first: no selector on the path step.
 
+- **ARCH-S250-4** — The same coverage and assignment owners drive two choices at the
+  owner decision, without a duplicate editor on other steps. Fail-first: the no-agreement
+  fixture has a single radio and a policy panel appears while comparing rent or offering the tenant.
+
 **Behavior outcome (deterministic, fail-first).**
 
 - **BEH-S250-1** — An Admin records an agreement for a portfolio; every lease in that portfolio
@@ -157,6 +175,10 @@ proposal (S249), the desk tag (S246) and the help guides (S252).
   unverifiable portfolio or a conflict returns the lease to Ask the owner with the reason.
 - **BEH-S250-5** — A rule change alters later proposals only and marks a prepared message as built
   on the earlier rule.
+
+- **BEH-S250-6** — In Ask the owner, staff can tell why they must ask or which standing
+  agreement they can use. In another step they only see a basis when it explains that
+  step's value or decision.
 
 **Human litmus outcome.**
 
@@ -172,17 +194,17 @@ the staff member picks the agreement from a list on the same page.
 
 **Requirement-to-outcome traceability.**
 
-| Requirement                            | Architecture outcome | Behavior outcome | Human litmus                                          | Deterministic evidence / falsification                                   |
-| -------------------------------------- | -------------------- | ---------------- | ----------------------------------------------------- | ------------------------------------------------------------------------ |
-| R-S250-1 one agreement record          | ARCH-S250-1          | BEH-S250-1       | Work a lease covered by an owner's standing agreement | Schema and store tests: versions kept, required words present.           |
-| R-S250-2 set once for the portfolio    | ARCH-S250-2          | BEH-S250-1       | Work a lease covered by an owner's standing agreement | Two leases in one portfolio share it; unverified portfolio is uncovered. |
-| R-S250-3 chosen on the lease           | ARCH-S250-3          | BEH-S250-2       | Work a lease covered by an owner's standing agreement | Selector saves lease or portfolio scope in one action with audit.        |
-| R-S250-4 rent from the rule            | ARCH-S250-2          | BEH-S250-1       | Work a lease covered by an owner's standing agreement | Percentage, fixed and no-increase fixtures; typed rent preserved.        |
-| R-S250-5 owner step covered            | ARCH-S250-2          | BEH-S250-3       | Work a lease covered by an owner's standing agreement | Covered across two cycle dates with no per-cycle record.                 |
-| R-S250-6 leaving the rule              | ARCH-S250-2          | BEH-S250-4       | Work a lease covered by an owner's standing agreement | Different rent, ended, revoked, unverifiable and conflicting fixtures.   |
-| R-S250-7 rule changes apply forward    | ARCH-S250-1          | BEH-S250-5       | Work a lease covered by an owner's standing agreement | Changed rule leaves sent and recorded values; prepared message flagged.  |
-| R-S250-8 visible everywhere            | ARCH-S250-3          | BEH-S250-1       | Work a lease covered by an owner's standing agreement | Desk tag, lease naming and basis lines render from the same projection.  |
-| R-S250-9 existing records keep meaning | ARCH-S250-1          | BEH-S250-1       | Work a lease covered by an owner's standing agreement | Existing exact agreement and older rule fixtures behave as before.       |
+| Requirement                            | Architecture outcome     | Behavior outcome       | Human litmus                                          | Deterministic evidence / falsification                                                            |
+| -------------------------------------- | ------------------------ | ---------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| R-S250-1 one agreement record          | ARCH-S250-1              | BEH-S250-1             | Work a lease covered by an owner's standing agreement | Schema and store tests: versions kept, required words present.                                    |
+| R-S250-2 set once for the portfolio    | ARCH-S250-2              | BEH-S250-1             | Work a lease covered by an owner's standing agreement | Two leases in one portfolio share it; unverified portfolio is uncovered.                          |
+| R-S250-3 two choices on the owner step | ARCH-S250-3, ARCH-S250-4 | BEH-S250-2, BEH-S250-6 | Work a lease covered by an owner's standing agreement | AC-S250-5. One owner-step chooser, ineligible and eligible states, exact lease or portfolio save. |
+| R-S250-4 rent from the rule            | ARCH-S250-2              | BEH-S250-1             | Work a lease covered by an owner's standing agreement | Percentage, fixed and no-increase fixtures; typed rent preserved.                                 |
+| R-S250-5 owner step covered            | ARCH-S250-2              | BEH-S250-3             | Work a lease covered by an owner's standing agreement | Covered across two cycle dates with no per-cycle record.                                          |
+| R-S250-6 leaving the rule              | ARCH-S250-2              | BEH-S250-4             | Work a lease covered by an owner's standing agreement | Different rent, ended, revoked, unverifiable and conflicting fixtures.                            |
+| R-S250-7 rule changes apply forward    | ARCH-S250-1              | BEH-S250-5             | Work a lease covered by an owner's standing agreement | Changed rule leaves sent and recorded values; prepared message flagged.                           |
+| R-S250-8 visible everywhere            | ARCH-S250-3              | BEH-S250-1             | Work a lease covered by an owner's standing agreement | Desk tag, lease naming and basis lines render from the same projection.                           |
+| R-S250-9 existing records keep meaning | ARCH-S250-1              | BEH-S250-1             | Work a lease covered by an owner's standing agreement | Existing exact agreement and older rule fixtures behave as before.                                |
 
 **Preservation set.**
 
@@ -203,6 +225,14 @@ change; stable RentVine ids; audit history.
   records no owner response; an Editor cannot create or edit an agreement (ARCH-S250-3).
 - **AC-S250-4** — No sent message, recorded approval, recorded term or staff typed value changes
   when a rule or assignment changes (BEH-S250-5).
+
+- **AC-S250-5** — Walk all Guided steps and matching Full sections. Find exactly two pricing
+  basis choices at the owner decision and verify the current basis and precise unavailable
+  reason on a lease with no valid agreement. Exercise one and multiple eligible agreements,
+  lease-only and portfolio scope, ineligible role, expired or conflicting terms, different
+  working rent and a revoked agreement between preview and save. Verify the existing audit
+  and one applicable rule, no silent coverage or amount overwrite, and the authorized
+  return to asking the owner when coverage no longer holds.
 
 **Forbidden actions / hard gates.**
 

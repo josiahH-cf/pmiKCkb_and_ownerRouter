@@ -351,7 +351,6 @@ describe("S251 ARCH-S251-4 / BEH-S251-4 / AC-S251-4: no paid comparison before P
     return {
       lookup,
       deps: {
-        automaticStartEnabled: async () => true,
         readLease: async () => ({
           cycleDateIso: "2026-12-31",
           inWorkingBatch: true,
@@ -378,7 +377,13 @@ describe("S251 ARCH-S251-4 / BEH-S251-4 / AC-S251-4: no paid comparison before P
     const held = deps({});
     const result = await runKickoffPreparation(
       actor,
-      { leaseId: "9103", trigger: "automatic", operationId: "op-1" },
+      {
+        leaseId: "9103",
+        trigger: "staff",
+        operationId: "op-1",
+        month: "2026-12",
+        cycleDateIso: "2026-12-31",
+      },
       held.deps,
     );
     expect(result.status).toBe("held_back");
@@ -386,7 +391,13 @@ describe("S251 ARCH-S251-4 / BEH-S251-4 / AC-S251-4: no paid comparison before P
     const proposed = deps({ rentChangeProposed: true });
     const after = await runKickoffPreparation(
       actor,
-      { leaseId: "9103", trigger: "automatic", operationId: "op-2" },
+      {
+        leaseId: "9103",
+        trigger: "staff",
+        operationId: "op-2",
+        month: "2026-12",
+        cycleDateIso: "2026-12-31",
+      },
       proposed.deps,
     );
     expect(after.status).toBe("prepared");

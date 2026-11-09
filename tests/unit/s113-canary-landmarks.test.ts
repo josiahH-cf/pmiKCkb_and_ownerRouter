@@ -82,6 +82,7 @@ function focusFixture(
       if (role === "group" && args.name === "Lease view")
         return {
           ...locator(options.switches ?? 1, options.switchVisible ?? true),
+          locator: () => locator(0),
           getByRole: (_role: string, inner: { name: string }) =>
             // S247: the S152 predecessor's switch offers no Guided view.
             inner.name === "Guided view"
@@ -107,6 +108,11 @@ function focusFixture(
 }
 /** S247: a lease that opened in Guided view, rendered exactly as the contract names it. */
 interface GuidedOptions {
+  singleToggle?: boolean;
+  workStatusCount?: number;
+  workStatusOpen?: boolean;
+  workAreas?: number;
+  verificationOpen?: boolean;
   switchButtons?: number;
   pressed?: Partial<Record<"Guided view" | "Focus view" | "Full view", string | null>>;
   regions?: number;
@@ -197,8 +203,11 @@ function guidedFixture(options: GuidedOptions = {}): Page {
       viewportHeight: options.viewportHeight ?? 800,
       viewportWidth: options.viewportWidth ?? 1280,
     }),
-    locator: (selector: string) =>
-      selector.includes("next-step")
+    locator: (selector: string) => {
+      if (selector === "[data-renewal-work]") return locator(options.workAreas ?? 1);
+      if (selector === "details[data-renewal-verification]")
+        return locator(1, true, options.verificationOpen ? "" : null);
+      return selector.includes("next-step")
         ? {
             ...locator(options.nextSteps ?? 1),
             textContent: async () =>
@@ -212,7 +221,8 @@ function guidedFixture(options: GuidedOptions = {}): Page {
             ),
             textContent: async () => options.primaryLabel ?? "Check the numbers",
             evaluate: async () => options.primaryTargetPresent ?? true,
-          },
+          };
+    },
   };
   const sections = {
     ...locator(options.sectionNavs ?? 1),
@@ -260,10 +270,14 @@ function guidedFixture(options: GuidedOptions = {}): Page {
             : locator(0),
   };
   return {
+    locator: () =>
+      locator(options.workStatusCount ?? 1, true, options.workStatusOpen ? "" : null),
     getByRole: (role: string, args: { name: string }) => {
       if (role === "group" && args.name === "Lease view")
         return {
           ...locator(1),
+          locator: () =>
+            locator(options.singleToggle ? 1 : 0, true, pressed["Full view"]),
           getByRole: (_role: string, inner?: { name: string }) =>
             inner?.name
               ? locator(
@@ -271,7 +285,7 @@ function guidedFixture(options: GuidedOptions = {}): Page {
                   true,
                   pressed[inner.name],
                 )
-              : locator(options.switchButtons ?? 3),
+              : locator(options.switchButtons ?? (options.singleToggle ? 1 : 3)),
         };
       if (role === "region" && args.name === "Current renewal stage")
         return {
@@ -291,6 +305,22 @@ function guidedFixture(options: GuidedOptions = {}): Page {
   } as unknown as Page;
 }
 describe("S113 candidate and captured predecessor workspace landmarks", () => {
+  it("S260 requires one Full toggle and closed status and Verification disclosures", async () => {
+    const current = { singleToggle: true, stageHeaders: 1 };
+    expect(await hasRenewalWorkspaceLandmarks(guidedFixture(current))).toBe(true);
+    for (const defect of [
+      { pressed: { "Full view": "true" } },
+      { workStatusOpen: true },
+      { workStatusCount: 2 },
+      { workAreas: 2 },
+      { verificationOpen: true },
+    ]) {
+      expect(
+        await hasRenewalWorkspaceLandmarks(guidedFixture({ ...current, ...defect })),
+      ).toBe(false);
+    }
+  });
+
   it("S248: requires one stage and one Record work control in the shared header", async () => {
     expect(await hasRenewalWorkspaceLandmarks(guidedFixture({ stageHeaders: 1 }))).toBe(
       true,

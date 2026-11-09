@@ -278,7 +278,9 @@ export function OwnerDecisionForm({
   compScreenshotExecutable = false,
   preparation,
   marketSubject = null,
+  canonicalRecommendation = false,
 }: Readonly<{
+  canonicalRecommendation?: boolean;
   leaseId: string;
   current: RecordedDecision | null;
   /** Server-rendered address used only to suppress an obviously empty lookup; it is never submitted. */
@@ -1399,24 +1401,26 @@ export function OwnerDecisionForm({
             value={rangeHigh}
           />
         </Field>
-        <Field
-          htmlFor={id.pmiNumber}
-          hint={originHint("pmiNumber")}
-          label={
-            preparing
-              ? "PMI recommended monthly rent"
-              : "PMI recommended monthly rent (optional)"
-          }
-        >
-          <input
-            id={id.pmiNumber}
-            inputMode="decimal"
-            onChange={(event) => editFigure("pmiNumber", event.target.value)}
-            placeholder="$1,525"
-            type="text"
-            value={pmiNumber}
-          />
-        </Field>
+        {!canonicalRecommendation ? (
+          <Field
+            htmlFor={id.pmiNumber}
+            hint={originHint("pmiNumber")}
+            label={
+              preparing
+                ? "PMI recommended monthly rent"
+                : "PMI recommended monthly rent (optional)"
+            }
+          >
+            <input
+              id={id.pmiNumber}
+              inputMode="decimal"
+              onChange={(event) => editFigure("pmiNumber", event.target.value)}
+              placeholder="$1,525"
+              type="text"
+              value={pmiNumber}
+            />
+          </Field>
+        ) : null}
       </div>
       {compScreenshotExecutable &&
       !compScreenshotRef &&

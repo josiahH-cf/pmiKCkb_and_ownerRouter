@@ -342,9 +342,18 @@ export function projectRenewalBatchRow(
   const unitLabel = row.identity.unit?.label?.label?.trim() || null;
   const key = row.id || row.identity.address?.sourceRef || row.addressLabel;
   const kickoff = kickoffFor(row);
+  const triage = row.renewalStage?.triage;
+  const attention = triage
+    ? {
+        ...triage,
+        rank: triage.rank === 1 && kickoff.group === "missing" ? 0 : triage.rank,
+        due: row.followUp?.due?.atIso ?? null,
+      }
+    : undefined;
   return {
     key,
     placement,
+    attention,
     kickoffGroup: kickoff.group,
     kickoff: kickoff.view,
     sortDateIso: dateIso,

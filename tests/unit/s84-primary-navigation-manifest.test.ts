@@ -45,7 +45,7 @@ afterEach(() => {
 });
 
 describe("S84 primary-navigation manifest", () => {
-  // S242 R-S242-1 adds Help to the first group, so every staff member reaches it from every page.
+  // S242 R-S242-1 places Help in Admin, so every staff member reaches it from every page.
   it("owns exactly the requested groups and nine ordered destinations with no retired maintenance entry", () => {
     expect(PRIMARY_NAVIGATION_MANIFEST.map((group) => group.label)).toEqual([
       "My Work",
@@ -55,9 +55,9 @@ describe("S84 primary-navigation manifest", () => {
     expect(
       PRIMARY_NAVIGATION_MANIFEST.map((group) => group.items.map((item) => item.label)),
     ).toEqual([
-      ["My Work", "Dashboard", "Approval Queue", "Help"],
+      ["My Work", "Dashboard", "Approval Queue"],
       ["Lease Renewal", "Communications", "Internal Processes"],
-      ["Admin", "Connections"],
+      ["Admin", "Connections", "Help"],
     ]);
     expect(PRIMARY_NAVIGATION_MANIFEST.flatMap((group) => group.items)).toHaveLength(9);
     expect(
@@ -103,10 +103,9 @@ describe("S84 primary-navigation manifest", () => {
         "My Work",
         "Dashboard",
         "Approval Queue",
-        "Help",
       ]);
       expect(labels(groups, "operations")).toEqual(ALL_OPERATIONS);
-      expect(labels(groups, "admin")).toEqual(["Admin", "Connections"]);
+      expect(labels(groups, "admin")).toEqual(["Admin", "Connections", "Help"]);
       // The role still decides the Admin destination: a non-Admin gets self-service access only.
       expect(findItem(groups, "admin")).toMatchObject({
         href: "/admin/access",

@@ -36,10 +36,12 @@ import {
   WorkingMoneyField,
   useRenewalWorkingRecord,
 } from "./RenewalWorkingRecord";
+import { useRenewalFocusView } from "./RenewalFocusViewContext";
 import { tenantAnswerCoversCurrentTerms } from "@/lib/lease-renewal/tenant-answer-terms";
 import { OwnerApprovalCoverageLine } from "./OwnerApprovalCoverageLine";
 import { Button, Card, Field } from "@/components/ui";
 import { projectCycleSourceDateChange } from "@/lib/lease-renewal/cycle-source-date";
+import { STEP_FOR_ACTIVITY } from "@/lib/lease-renewal/renewal-stage";
 import {
   currentManualOwnerTerms,
   MANUAL_ACTIVITIES,
@@ -582,10 +584,12 @@ const ACTIVITIES_BEFORE_RESPONSE: readonly ManualActivity[] = [
 ];
 export function RenewalManualSection({
   section,
+  documentOutcome,
   moveOutInitiated = false,
   currentRent = null,
 }: {
   section: "owner" | "tenant" | "documents";
+  documentOutcome?: "documents" | "finish-up" | "complete";
   /** S251 R-S251-6: the current rent "Keep the current rent" records as the working rent. */
   currentRent?: number | null;
   /**
@@ -623,6 +627,9 @@ export function RenewalManualSection({
     .filter(
       ([key, value]) =>
         value.section === section &&
+        (!documentOutcome ||
+          STEP_FOR_ACTIVITY[key as ManualActivity] === documentOutcome ||
+          (documentOutcome === "complete" && key === "non_renewal_handoff")) &&
         (key !== "non_renewal_handoff" || summary.nonRenewal || moveOutInitiated) &&
         // S251 R-S251-4: the program contact is part of the path only with Housing assistance
         // Yes; a record staff already made stays visible.
@@ -642,7 +649,15 @@ export function RenewalManualSection({
   const activityForm = (key: ManualActivity) => <ActivityForm key={key} activity={key} />;
   const completionState = context.states.completion ?? AUTOSAVE_IDLE;
   return (
-    <Card title={renewalCardTitle(`staff-work-${section}`, "Work recorded by staff")}>
+    <Card
+      title={
+        documentOutcome === "finish-up"
+          ? "Follow-up work recorded by staff"
+          : documentOutcome === "complete"
+            ? "Completion recorded by staff"
+            : renewalCardTitle(`staff-work-${section}`, "Work recorded by staff")
+      }
+    >
       {beforeResponse.map(activityForm)}
       {/* S251 R-S251-5 / R-S251-6: the owner's answer on renewing and the rent choice, shown only
           for a lease whose Housing assistance fact is Yes. */}
@@ -652,94 +667,93 @@ export function RenewalManualSection({
       {section === "owner" ? <ResponseForm audience="owner" /> : null}
       {section === "tenant" ? <ResponseForm audience="tenant" /> : null}
       {afterResponse.map(activityForm)}
-      {section === "documents" ? (
-        <>
-          <div id="renewal-manual-complete" tabIndex={-1} className="ui-stack">
-            <RenewalSectionHeading id="staff-completion" as="h3">
-              {summary.label}
-            </RenewalSectionHeading>
-            {summary.complete || summary.nextActivity !== "complete" ? (
-              <p>
-                {summary.complete
-                  ? "This renewal is recorded complete by staff. That record is separate from verified completion in RentVine, Gmail or Dotloop."
-                  : `Suggested next: ${manualActionLabel(summary.nextActivity, summary)}.`}
-              </p>
-            ) : null}
-            <Button
-              data-renewal-next-control
-              disabled={context.pending}
-              onClick={() =>
-                void context
-                  .record({ kind: summary.complete ? "reopen" : "complete" })
-                  .catch(() => undefined)
-              }
-            >
+      {section === "documents" && (!documentOutcome || documentOutcome === "complete") ? (
+        <div id="renewal-manual-complete" tabIndex={-1} className="ui-stack">
+          <RenewalSectionHeading id="staff-completion" as="h3">
+            {summary.label}
+          </RenewalSectionHeading>
+          {summary.complete || summary.nextActivity !== "complete" ? (
+            <p>
               {summary.complete
-                ? "Reopen recorded completion"
-                : "Record staff completion"}
-            </Button>
-            <AutosaveStatus state={completionState} subject="Completion" />
-          </div>
-          {/* S247: Finish up shows the source updates in place, by this one wrapper. */}
-          <div className="ui-stack" id="renewal-manual-source-updates">
-            <RenewalSectionHeading id="source-updates" as="h3">
-              Source updates
-            </RenewalSectionHeading>
-            {state && derivedSheetValue ? (
-              // S248 R-S248-11: the derived tenant offer holds the same Sheet value a staff record
-              // holds; preparing it is a deliberate step and its update is confirmed separately.
-              <p data-renewal-derived-source={derivedSheetValue.intent.field}>
-                {SHEET_FIELD_LABELS[derivedSheetValue.intent.field]}:{" "}
-                {String(derivedSheetValue.intent.value)} :{" "}
-                {context.writebackPaused
-                  ? "Sheet updates are paused"
-                  : "The Sheet changes only when you confirm its update"}
-                .{" "}
-                <Button
-                  variant="secondary"
-                  disabled={context.pending || context.writebackPaused}
-                  onClick={() =>
-                    void context.prepareDerivedSource(derivedSheetValue.record)
-                  }
-                >
-                  Prepare the Sheet update for{" "}
-                  {SHEET_FIELD_LABELS[derivedSheetValue.intent.field].toLowerCase()}
-                </Button>
-              </p>
-            ) : null}
-            {state && Object.values(state.sourceUpdates).length ? (
-              <ul>
-                {Object.values(state.sourceUpdates).map((update) => (
-                  <li key={update.eventId}>
-                    {SHEET_FIELD_LABELS[update.intent.field]}:{" "}
-                    {String(update.intent.value)} :{" "}
-                    {update.state === "verified"
-                      ? "Read back after confirmed update"
-                      : context.writebackPaused
-                        ? "Saved in the app. Sheet updates are paused"
-                        : "Saved in the app. The Sheet changes only when you confirm its update"}
-                    {update.reason ? ` · ${update.reason}` : ""}.{" "}
-                    <a href="#renewal-step-verify-renewal">Review Sheet updates</a>
-                    {update.state !== "verified" ? (
-                      <Button
-                        variant="secondary"
-                        disabled={context.pending || context.writebackPaused}
-                        onClick={() =>
-                          void context.prepareSource(update.intent.field, update.eventId)
-                        }
-                      >
-                        Prepare the Sheet update for{" "}
-                        {SHEET_FIELD_LABELS[update.intent.field].toLowerCase()}
-                      </Button>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>No source update is recorded for this lease.</p>
-            )}
-          </div>
-        </>
+                ? "This renewal is recorded complete by staff. That record is separate from verified completion in RentVine, Gmail or Dotloop."
+                : `Suggested next: ${manualActionLabel(summary.nextActivity, summary)}.`}
+            </p>
+          ) : null}
+          <Button
+            data-renewal-next-control
+            data-renewal-work-primary={documentOutcome === "complete" ? true : undefined}
+            disabled={context.pending}
+            onClick={() =>
+              void context
+                .record({ kind: summary.complete ? "reopen" : "complete" })
+                .catch(() => undefined)
+            }
+          >
+            {summary.complete ? "Reopen recorded completion" : "Record staff completion"}
+          </Button>
+          <AutosaveStatus state={completionState} subject="Completion" />
+        </div>
+      ) : null}
+      {section === "documents" &&
+      (!documentOutcome || documentOutcome === "finish-up") ? (
+        <div className="ui-stack" id="renewal-manual-source-updates">
+          <RenewalSectionHeading id="source-updates" as="h3">
+            Source updates
+          </RenewalSectionHeading>
+          {state && derivedSheetValue ? (
+            // S248 R-S248-11: the derived tenant offer holds the same Sheet value a staff record
+            // holds; preparing it is a deliberate step and its update is confirmed separately.
+            <p data-renewal-derived-source={derivedSheetValue.intent.field}>
+              {SHEET_FIELD_LABELS[derivedSheetValue.intent.field]}:{" "}
+              {String(derivedSheetValue.intent.value)} :{" "}
+              {context.writebackPaused
+                ? "Sheet updates are paused"
+                : "The Sheet changes only when you confirm its update"}
+              .{" "}
+              <Button
+                variant="secondary"
+                disabled={context.pending || context.writebackPaused}
+                onClick={() =>
+                  void context.prepareDerivedSource(derivedSheetValue.record)
+                }
+              >
+                Prepare the Sheet update for{" "}
+                {SHEET_FIELD_LABELS[derivedSheetValue.intent.field].toLowerCase()}
+              </Button>
+            </p>
+          ) : null}
+          {state && Object.values(state.sourceUpdates).length ? (
+            <ul>
+              {Object.values(state.sourceUpdates).map((update) => (
+                <li key={update.eventId}>
+                  {SHEET_FIELD_LABELS[update.intent.field]}: {String(update.intent.value)}{" "}
+                  :{" "}
+                  {update.state === "verified"
+                    ? "Read back after confirmed update"
+                    : context.writebackPaused
+                      ? "Saved in the app. Sheet updates are paused"
+                      : "Saved in the app. The Sheet changes only when you confirm its update"}
+                  {update.reason ? ` · ${update.reason}` : ""}.{" "}
+                  <a href="#renewal-step-verify-renewal">Review Sheet updates</a>
+                  {update.state !== "verified" ? (
+                    <Button
+                      variant="secondary"
+                      disabled={context.pending || context.writebackPaused}
+                      onClick={() =>
+                        void context.prepareSource(update.intent.field, update.eventId)
+                      }
+                    >
+                      Prepare the Sheet update for{" "}
+                      {SHEET_FIELD_LABELS[update.intent.field].toLowerCase()}
+                    </Button>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>No source update is recorded for this lease.</p>
+          )}
+        </div>
       ) : null}
     </Card>
   );
@@ -920,6 +934,7 @@ function ActivityForm({ activity }: { activity: ManualActivity }) {
   );
 }
 function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
+  const outcomeLayout = useRenewalFocusView()?.outcomeLayout ?? false;
   const context = useRenewalManualWorkspace()!,
     state = context.state,
     current = audience === "owner" ? state?.ownerResponse : state?.tenantResponse;
@@ -1053,8 +1068,9 @@ function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
           data-renewal-next-control
           value={outcome}
           onChange={(event) => {
-            setOutcome(event.target.value);
-            save(event.target.value);
+            const selected = event.currentTarget.value;
+            setOutcome(selected);
+            save(selected);
           }}
         >
           {options.map(([value, label]) => (
@@ -1157,7 +1173,9 @@ function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
           <RenewalSectionHeading id="working-terms" as="h3">
             Working renewal terms
           </RenewalSectionHeading>
-          <WorkingMoneyField field="terms_rent" label="Working monthly rent" />
+          {!outcomeLayout ? (
+            <WorkingMoneyField field="terms_rent" label="Working monthly rent" />
+          ) : null}
           <WorkingDateField field="terms_effective_date" label="Working effective date" />
           <WorkingDateField field="terms_end_date" label="Working term end date" />
           {recordedTerms ? (

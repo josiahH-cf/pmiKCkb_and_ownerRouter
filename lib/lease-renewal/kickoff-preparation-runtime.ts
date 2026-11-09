@@ -1,6 +1,16 @@
-// S249: the stored facts batch preparation reads for one lease, in the signed-in staff member's
-// session. Reads only; the lookup itself is supplied by the route (the existing market-comps route).
+// S249: read the exact current lease before preparation and save app-owned results
+// through the working-record and message-preparation owners.
 
+import { randomUUID } from "node:crypto";
+import { readLeaseOutreachEvidence } from "@/lib/firestore/renewal-outreach-records";
+import {
+  outreachScopeFor,
+  projectOutreachEvidence,
+} from "@/lib/lease-renewal/outreach-evidence";
+import {
+  standingRuleContext,
+  standingRuleSourceLabel,
+} from "@/lib/lease-renewal/standing-agreement";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { cycleDispositionHold } from "./cycle-disposition";
 import { getRenewalCycleDisposition } from "@/lib/firestore/renewal-cycle-disposition-read";
@@ -11,10 +21,18 @@ import {
   releaseKickoffPreparation,
   settleKickoffPreparation,
 } from "@/lib/firestore/renewal-kickoff-preparations";
-import { readKickoffAutomaticStart } from "@/lib/firestore/renewal-kickoff-settings";
+import { getRenewalProgress } from "@/lib/firestore/lease-renewal-progress";
+import { saveMessagePreparation } from "@/lib/firestore/renewal-message-preparations";
+import { currentRenewalMessage } from "@/lib/lease-renewal/current-renewal-message";
 import { listMarketObservations } from "@/lib/firestore/renewal-market-observations";
-import { getRenewalWorkspace } from "@/lib/firestore/renewal-workspace";
-import { getRenewalWorkingRecord } from "@/lib/firestore/renewal-working-record";
+import {
+  ensureRenewalWorkRecord,
+  getRenewalWorkspace,
+} from "@/lib/firestore/renewal-workspace";
+import {
+  getRenewalWorkingRecord,
+  saveRenewalWorkingField,
+} from "@/lib/firestore/renewal-working-record";
 import {
   housingAssistanceVariant,
   workingRenewalTerms,
@@ -22,7 +40,11 @@ import {
 import { effectiveRenewalTerms } from "@/lib/lease-renewal/effective-terms";
 import { readRenewalPricingForViews } from "@/lib/lease-renewal/pricing-policy-read";
 import { resolveRenewalPricing } from "@/lib/lease-renewal/renewal-pricing-policy";
-import { currentRentChoice } from "@/lib/lease-renewal/workspace-state";
+import {
+  currentRentChoice,
+  currentStaffActivity,
+  workBasisDateIso,
+} from "@/lib/lease-renewal/workspace-state";
 import {
   createRentcastUsageStore,
   rentcastMonthKey,
@@ -35,7 +57,9 @@ import { businessDateIso } from "@/lib/lease-renewal/business-calendar";
 import { classifyRenewalCohort } from "@/lib/lease-renewal/cohort";
 import { buildRenewalDeskWindow } from "@/lib/lease-renewal/desk-query";
 import type {
+  KickoffLeaseRead,
   KickoffLookupAnswer,
+  KickoffPreparationStatus,
   KickoffPreparationDeps,
 } from "@/lib/lease-renewal/kickoff-preparation-service";
 import { buildLiveRentVineConfig } from "@/lib/lease-renewal/live-config";
@@ -54,8 +78,7 @@ export function kickoffPreparationDeps(
   lookup: (leaseId: string, cycleId: string | null) => Promise<KickoffLookupAnswer>,
 ): KickoffPreparationDeps {
   return {
-    automaticStartEnabled: async () => (await readKickoffAutomaticStart()).enabled,
-    readLease: async (leaseId) => {
+    readLease: async (leaseId, month) => {
       const config = buildLiveRentVineConfig();
       if (!config.ok) return null;
       const nowMs = Date.now();
@@ -66,20 +89,26 @@ export function kickoffPreparationDeps(
         { leaseId },
       );
       const views = read.snapshot.views.filter((view) => leaseViewId(view) === leaseId);
-      if (views.length !== 1) return null;
+      if (
+        views.length !== 1 ||
+        (month && (!read.snapshot.complete || read.currency.state !== "fresh"))
+      )
+        return null;
       const view = views[0]!;
-      const [manual, decision, disposition, termReview, working] = await Promise.all([
-        getRenewalWorkspace(actor, leaseId),
-        getRenewalCycleDateDecision(actor, leaseId).catch(() => null),
-        getRenewalCycleDisposition(leaseId).catch(() => undefined),
-        getLeaseTermReview(actor, leaseId).catch(() => undefined),
-        // S251: the Housing assistance fact. An unreadable record is not read as "not set":
-        // nothing is prepared for the lease until it reads back.
-        getRenewalWorkingRecord(actor, leaseId).then(
-          (record) => ({ ok: true as const, record }),
-          () => ({ ok: false as const }),
-        ),
-      ]);
+      const [manual, decision, disposition, termReview, working, progress] =
+        await Promise.all([
+          getRenewalWorkspace(actor, leaseId),
+          getRenewalCycleDateDecision(actor, leaseId),
+          getRenewalCycleDisposition(leaseId).catch(() => undefined),
+          getLeaseTermReview(actor, leaseId).catch(() => undefined),
+          // S251: the Housing assistance fact. An unreadable record is not read as "not set":
+          // nothing is prepared for the lease until it reads back.
+          getRenewalWorkingRecord(actor, leaseId).then(
+            (record) => ({ ok: true as const, record }),
+            () => ({ ok: false as const }),
+          ),
+          getRenewalProgress(actor, leaseId),
+        ]);
       if (!working.ok) return null;
       const today = businessDateIso(nowMs);
       const classification = classifyRenewalCohort([view], {
@@ -99,7 +128,9 @@ export function kickoffPreparationDeps(
         }),
         manual,
         statusTable: read.statusTable,
-        appCompletionCurrent: false,
+        // A completion that needs current-source verification may be inspected on the lease.
+        // Monthly preparation holds it until that existing result is resolved.
+        appCompletionCurrent: progress?.complete === true,
         decision,
         disposition: {
           saved: disposition,
@@ -119,7 +150,8 @@ export function kickoffPreparationDeps(
       ).then(
         (pricing) => {
           const facts = pricing.facts[0];
-          if (!facts) return { ownerStepCoverage: null, coveredBy: null };
+          if (!facts)
+            return { ownerStepCoverage: "unconfirmed" as const, coveredBy: null };
           const authority = resolveRenewalPricing(
             pricing.snapshot,
             {
@@ -146,7 +178,19 @@ export function kickoffPreparationDeps(
       return {
         cycleDateIso:
           target.kind === "target" ? target.cycleDateIso : classification.endDateIso,
-        inWorkingBatch: isRenewalTargetForMonth(target, defaultRenewalBatchMonth(today)),
+        inWorkingBatch:
+          !target.statusUnavailable &&
+          disposition !== undefined &&
+          termReview !== undefined &&
+          isRenewalTargetForMonth(target, month ?? defaultRenewalBatchMonth(today)),
+        rentField: {
+          revision: working.record?.fields.terms_rent?.revision ?? 0,
+          empty: working.record?.fields.terms_rent?.value == null,
+        },
+        draftEligible:
+          !progress?.ownerDecision &&
+          (!manual ||
+            (!currentStaffActivity(manual, "owner_outreach") && !manual.ownerResponse)),
         dispositionHold: cycleDispositionHold(target.cycleDisposition),
         dispositionRevision:
           target.cycleDisposition?.state === "unavailable"
@@ -159,6 +203,8 @@ export function kickoffPreparationDeps(
         ...coverage,
       };
     },
+    prepareWorkingResult: (leaseId, lease, status, month) =>
+      prepareWorkingResult(actor, leaseId, lease, status, month),
     storedComparison: async (leaseId, cycleId) => {
       if (!cycleId) return false;
       const manual = await getRenewalWorkspace(actor, leaseId);
@@ -180,4 +226,125 @@ export function kickoffPreparationDeps(
     release: (input) => releaseKickoffPreparation(input),
     lookup,
   };
+}
+
+async function prepareWorkingResult(
+  actor: AuthenticatedUser,
+  leaseId: string,
+  lease: KickoffLeaseRead,
+  status: KickoffPreparationStatus,
+  month?: string,
+): Promise<string> {
+  if (!lease.cycleDateIso || !lease.rentField) return "";
+  const cycleDateIso = lease.cycleDateIso;
+  // Recheck eligibility and the cycle after an in-flight provider read.
+  if (month) {
+    const current = await kickoffPreparationDeps(actor, async () => ({
+      ok: false,
+    })).readLease(leaseId, month);
+    if (
+      !current?.inWorkingBatch ||
+      current.dispositionHold ||
+      current.cycleDateIso !== cycleDateIso
+    )
+      return "The lease or cycle changed. Review its current work before preparing it again.";
+  }
+  const workspace = await ensureRenewalWorkRecord(
+    actor,
+    leaseId,
+    undefined,
+    async () => ({
+      kind: "lease_end",
+      dateIso: cycleDateIso,
+      source: "Verified RentVine renewal cycle",
+    }),
+  );
+  if (
+    (lease.workRecordCycleId && workspace.cycleId !== lease.workRecordCycleId) ||
+    workBasisDateIso(workspace.basis) !== cycleDateIso
+  )
+    return "The work record changed. Review the current renewal cycle on the lease.";
+  let current = await currentRenewalMessage(actor, leaseId, "owner");
+  if (current.workspace?.cycleId !== workspace.cycleId)
+    return "The renewal cycle changed.";
+  const rent = current.rentToRecommend;
+  let rentResult = lease.rentField.empty ? "" : "The existing recommendation was kept.";
+  if (
+    lease.rentField.empty &&
+    rent.value !== null &&
+    (rent.origin === "agreement" || rent.origin === "comparison")
+  ) {
+    const basis = rent.origin === "agreement" ? current.ruleBasis : null;
+    const saved = await saveRenewalWorkingField(
+      actor,
+      {
+        leaseId,
+        field: "terms_rent",
+        value: rent.value,
+        expectedRevision: lease.rentField.revision,
+        operationId: randomUUID(),
+        origin: "adopted_source",
+        sourceLabel: basis
+          ? standingRuleSourceLabel(
+              lease.coveredBy ?? "verified rule",
+              basis.policyVersion,
+            )
+          : "stored market comparison",
+        context: basis
+          ? standingRuleContext({
+              ...basis,
+              basis: `${rent.basis} Cycle ${cycleDateIso} (${workspace.cycleId}).`,
+            })
+          : JSON.stringify({
+              cycleId: workspace.cycleId,
+              cycleDateIso,
+              basis: rent.basis.slice(0, 430),
+            }),
+      },
+      undefined,
+      { cycleId: workspace.cycleId, dateIso: cycleDateIso },
+    );
+    if (saved.record.fields.terms_rent?.value !== rent.value)
+      return "The working rent changed. Review the amount on the lease.";
+    rentResult = "Recommendation saved.";
+    current = await currentRenewalMessage(actor, leaseId, "owner");
+  }
+  if (
+    !month ||
+    !lease.draftEligible ||
+    status === "covered" ||
+    current.saved ||
+    current.workspace?.cycleId !== workspace.cycleId
+  )
+    return rentResult;
+  if (
+    currentStaffActivity(current.workspace, "owner_outreach") ||
+    current.workspace.ownerResponse
+  )
+    return rentResult;
+  const outreach = projectOutreachEvidence(
+    await readLeaseOutreachEvidence(leaseId),
+    outreachScopeFor(current.workspace, cycleDateIso),
+  );
+  if (!outreach.readable)
+    return [rentResult, "Owner draft waits for the current outreach read."]
+      .filter(Boolean)
+      .join(" ");
+  if (outreach.owner.state !== "none")
+    return [rentResult, "The existing owner outreach was kept."]
+      .filter(Boolean)
+      .join(" ");
+  await saveMessagePreparation(actor, {
+    leaseId,
+    cycleId: workspace.cycleId,
+    channel: "owner",
+    expectedRevision: 0,
+    operationId: randomUUID(),
+    inputs: { ...current.inputs, signature: null },
+  });
+  const readback = await currentRenewalMessage(actor, leaseId, "owner");
+  const draft = readback.outgoingReasons.length
+    ? `Owner draft needs a check: ${readback.outgoingReasons.join(" ")}`
+    : "Owner draft ready to review in the app.";
+  return [rentResult, draft].filter(Boolean).join(" ");
 }

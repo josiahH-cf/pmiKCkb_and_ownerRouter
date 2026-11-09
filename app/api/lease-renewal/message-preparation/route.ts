@@ -95,6 +95,7 @@ function publicPreparation(current: Current) {
     content: current.content,
     // S139/S161: the saved authored wording, and the hash of the composition it would start from.
     bodyOverride: current.bodyOverride,
+    priorSenderWording: current.priorSenderWording,
     bodyBaseHash: current.bodyBaseHash,
     subjectOverride: current.subjectOverride,
     sourceFingerprint: current.basis.sourceFingerprint,
@@ -177,7 +178,7 @@ export async function POST(request: Request) {
     }
     if (input.kind === "save") {
       // S161: an autosave. It needs no cycle, no review and no current source read to be stored.
-      const { kind: _kind, ...save } = input;
+      const save = SaveMessagePreparationSchema.strip().parse(input);
       const result = await saveMessage(actor, save, input.leaseId);
       return NextResponse.json({
         duplicate: result.duplicate,
@@ -271,6 +272,11 @@ export async function POST(request: Request) {
       undefined,
       { requireFreshNotice: true },
     );
+    if (current.priorSenderWording)
+      return refusedBeforeGmail(
+        "Review prior sender wording and rebuild or edit the current message.",
+        "prior_sender_wording",
+      );
     if (
       !input.confirm &&
       input.displayed &&

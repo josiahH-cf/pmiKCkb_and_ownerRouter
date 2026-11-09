@@ -146,6 +146,14 @@ export interface RenewalBatchItem {
   /** The date a group orders by: the cycle date, the review date or the lease end. */
   readonly sortDateIso: string | null;
   readonly sortLabel: string;
+  /** Priority derived from the shared renewal stage, then the step and its known due date. */
+  readonly attention?: {
+    readonly rank: number;
+    readonly step: number;
+    readonly due: string | null;
+  };
+  readonly currentBaseRent?: number | null;
+  readonly recommendedRent?: { readonly value: number } | null;
   /**
    * S249 R-S249-13: where the lease sorts inside "This batch" by its kickoff: ready for review,
    * missing an input, or waiting and finished. Absent rows sort with the waiting and finished.
@@ -168,16 +176,67 @@ function byDateThenLabel(left: RenewalBatchItem, right: RenewalBatchItem): numbe
 }
 
 /**
- * The order inside "This batch". S249 R-S249-13: leases whose kickoff is prepared and sendable
- * come first ("Ready for your review"), then leases missing an input, then waiting and finished
- * leases; inside each, soonest end date first. The one place that order is decided.
+ * S246: staff attention leads the selected month. Older callers without the stage projection
+ * retain their kickoff ordering.
  */
 export function orderThisBatch<T extends RenewalBatchItem>(rows: readonly T[]): T[] {
   return [...rows].sort(
     (left, right) =>
-      KICKOFF_RANK[left.kickoffGroup ?? "other"] -
-        KICKOFF_RANK[right.kickoffGroup ?? "other"] || byDateThenLabel(left, right),
+      compareRenewalBatchAttention(left, right) || byDateThenLabel(left, right),
   );
+}
+
+function compareRenewalBatchAttention(
+  left: RenewalBatchItem,
+  right: RenewalBatchItem,
+): number {
+  const rank = (row: RenewalBatchItem) =>
+    row.attention?.rank ?? KICKOFF_RANK[row.kickoffGroup ?? "other"];
+  return (
+    rank(left) - rank(right) ||
+    (left.attention?.step ?? 0) - (right.attention?.step ?? 0) ||
+    (left.attention?.due ?? "9999").localeCompare(right.attention?.due ?? "9999")
+  );
+}
+
+export const RENEWAL_BATCH_SORT_COLUMNS = [
+  "stage",
+  "date",
+  "base",
+  "recommended",
+] as const;
+export type RenewalBatchSortColumn = (typeof RENEWAL_BATCH_SORT_COLUMNS)[number];
+export type RenewalBatchSort = {
+  readonly column: RenewalBatchSortColumn;
+  readonly direction: "asc" | "desc";
+};
+
+/** Sort inside the displayed cohort. Absent numeric values and dates stay last in both directions. */
+export function sortRenewalBatchCohort<T extends RenewalBatchItem>(
+  rows: readonly T[],
+  sort: RenewalBatchSort | null,
+): readonly T[] {
+  if (!sort) return rows;
+  const value = (row: T) => {
+    switch (sort.column) {
+      case "stage":
+        return row.attention?.rank ?? KICKOFF_RANK[row.kickoffGroup ?? "other"];
+      case "date":
+        return row.sortDateIso;
+      case "base":
+        return row.currentBaseRent ?? null;
+      case "recommended":
+        return row.recommendedRent?.value ?? null;
+    }
+  };
+  return [...rows].sort((left, right) => {
+    const a = value(left);
+    const b = value(right);
+    if (a === null || b === null)
+      return Number(a === null) - Number(b === null) || byDateThenLabel(left, right);
+    const order = a < b ? -1 : a > b ? 1 : 0;
+    return order * (sort.direction === "asc" ? 1 : -1) || byDateThenLabel(left, right);
+  });
 }
 
 /** R-S249-13: the three parts of "This batch", in order, each with its own count. */
@@ -358,6 +417,7 @@ export const RENEWAL_BATCH_GROUP_PARAM = "group";
  * key keeps its meaning, and a URL without it reads exactly as before.
  */
 export const RENEWAL_BATCH_TAG_PARAM = "tag";
+const RENEWAL_BATCH_SORT_PARAM = "batchSort";
 export const RENEWAL_BATCH_TAG_FILTERS = [
   "standing_agreement",
   "housing_assistance",
@@ -372,6 +432,7 @@ export interface RenewalBatchQuery {
   readonly group: RenewalBatchCountGroup | null;
   /** S251: the tag the rows are narrowed to; absent or null shows every row. */
   readonly tag?: RenewalBatchTagFilter | null;
+  readonly sort?: RenewalBatchSort | null;
 }
 
 type SearchParamRecord = Record<string, string | string[] | undefined>;
@@ -397,9 +458,19 @@ export function parseRenewalBatchQuery(
 ): RenewalBatchQuery {
   const month = firstValue(input, RENEWAL_BATCH_MONTH_PARAM);
   const tag = firstValue(input, RENEWAL_BATCH_TAG_PARAM);
+  const [column, direction, extra] = (
+    firstValue(input, RENEWAL_BATCH_SORT_PARAM) ?? ""
+  ).split("-");
+  const sort: RenewalBatchSort | null =
+    extra === undefined &&
+    (RENEWAL_BATCH_SORT_COLUMNS as readonly string[]).includes(column) &&
+    (direction === "asc" || direction === "desc")
+      ? { column: column as RenewalBatchSortColumn, direction }
+      : null;
   return {
     month: isRenewalBatchMonth(month) ? month : null,
     group: countGroup(firstValue(input, RENEWAL_BATCH_GROUP_PARAM)),
+    ...(sort ? { sort } : {}),
     ...((RENEWAL_BATCH_TAG_FILTERS as readonly string[]).includes(tag ?? "")
       ? { tag: tag as RenewalBatchTagFilter }
       : {}),
@@ -412,6 +483,8 @@ export function serializeRenewalBatchQuery(query: RenewalBatchQuery): string {
   if (query.month) params.set(RENEWAL_BATCH_MONTH_PARAM, query.month);
   if (query.group) params.set(RENEWAL_BATCH_GROUP_PARAM, query.group);
   if (query.tag) params.set(RENEWAL_BATCH_TAG_PARAM, query.tag);
+  if (query.sort)
+    params.set(RENEWAL_BATCH_SORT_PARAM, `${query.sort.column}-${query.sort.direction}`);
   return params.toString();
 }
 
@@ -422,7 +495,7 @@ export function serializeRenewalBatchQuery(query: RenewalBatchQuery): string {
 export function validateRenewalBatchContinuation(
   value: string | null | undefined,
 ): string | null {
-  if (typeof value !== "string" || value === "" || value.length > 64) return null;
+  if (typeof value !== "string" || value === "" || value.length > 100) return null;
   if (value.startsWith("?") || value.includes("#")) return null;
   let params: URLSearchParams;
   try {
@@ -438,7 +511,8 @@ export function validateRenewalBatchContinuation(
       (key) =>
         key !== RENEWAL_BATCH_MONTH_PARAM &&
         key !== RENEWAL_BATCH_GROUP_PARAM &&
-        key !== RENEWAL_BATCH_TAG_PARAM,
+        key !== RENEWAL_BATCH_TAG_PARAM &&
+        key !== RENEWAL_BATCH_SORT_PARAM,
     )
   )
     return null;

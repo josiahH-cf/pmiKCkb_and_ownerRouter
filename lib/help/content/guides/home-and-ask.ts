@@ -108,22 +108,22 @@ export const HOME_AND_ASK_GUIDES: readonly HelpGuide[] = [
         result:
           "The Operations menu opens with Lease Renewal, Communications and Internal Processes, each with a short description. Choose a destination to open it; Escape closes the menu.",
         effect: "reads",
-        note: "The My Work menu holds My Work, Dashboard, Approval Queue and Help. The Admin menu holds Admin, Connections and Communications; for staff who are not Admins, Admin opens your access page, where you request the permissions you need. On a phone the three menus sit under Menu, and a menu that holds the page you are on tells screen readers Contains current page.",
+        note: "The My Work menu holds My Work, Dashboard and Approval Queue. The Admin menu holds Admin, Connections and Help; for staff who are not Admins, Admin opens your access page, where you request the permissions you need. On a phone the three menus sit under Menu, and a menu that holds the page you are on tells screen readers Contains current page.",
       },
       {
         id: "open-help",
         scene: "help-contents-narrow",
-        action: "Open the My Work menu and choose Help.",
+        action: "Open the Admin menu and choose Help.",
         control: {
           label: "Help",
           role: "link",
           region: "navigation:Primary",
           availability: "required",
           source: ["lib/navigation/primary-navigation.ts"],
-          actions: ["click-button:My Work Contains current page"],
+          actions: ["click-button:Admin"],
         },
         route: "/",
-        where: "Top bar, My Work menu",
+        where: "Top bar, Admin menu",
         result:
           "Help opens at Start here. Help contents lists every area of the app with its guides, then Reference, Glossary and What changed.",
         effect: "reads",

@@ -47,9 +47,11 @@ function fieldsFor(record: Read): Values {
 }
 
 export function RenewalSenderSignatureForm({
+  id,
   onSaved,
   onCancel,
 }: Readonly<{
+  id?: string;
   onSaved?: (choice: SenderSignatureChoice) => void | Promise<void>;
   onCancel?: () => void;
 }>) {
@@ -140,6 +142,8 @@ export function RenewalSenderSignatureForm({
 
   return (
     <form
+      id={id}
+      tabIndex={id ? -1 : undefined}
       aria-label="Your signature"
       className="ui-stack-tight renewal-now-signature-form"
       onSubmit={(event) => {

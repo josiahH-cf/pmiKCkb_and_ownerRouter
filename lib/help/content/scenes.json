@@ -1,5 +1,5 @@
 {
-  "version": "V2.2",
+  "version": "V3.0",
   "routeParameters": {
     "leaseId": "4821",
     "propertyKey": "4821",
@@ -115,7 +115,7 @@
       "region": "page",
       "frame": "viewport",
       "source": "rehearsal",
-      "alt": "The Renewals desk on the working batch: the lease count for the working month in words, Previous month and Next month, and Carried over above This batch.",
+      "alt": "The Renewals desk with the selected month, its preparation action and count filters above one table.",
       "caption": "Renewals opens on the working batch for the working month."
     },
     {
@@ -129,10 +129,10 @@
         "width": 375,
         "height": 812
       },
-      "region": "region:This batch",
+      "region": "region:Monthly renewals",
       "frame": "viewport",
       "source": "rehearsal",
-      "alt": "This batch on a phone-width screen: Prepare this batch, then Ready for your review with the prepared lease's address, tenant, end date, stage line and its Send the owner message link.",
+      "alt": "The monthly table at phone width, with the next action and renewal date beside each lease.",
       "caption": "Each row's address or next step link opens the lease in this tab."
     },
     {
@@ -168,7 +168,7 @@
       "frame": "viewport",
       "actions": ["click-button:Ask the owner"],
       "source": "rehearsal",
-      "alt": "The prepared owner message on the Now card: the stored comparison with its five comparable listings, Rent to recommend, Reason to include and What sending needs with every item Ready.",
+      "alt": "The owner message at Ask the owner with its readiness, recipients and preview.",
       "caption": "Ask the owner on the Now card shows the prepared owner message and what sending needs."
     },
     {
@@ -274,7 +274,7 @@
       "frame": "viewport",
       "actions": ["click-button:Compare market rent"],
       "source": "rehearsal",
-      "alt": "The Now card on Compare market rent: the Compare market rent button, what is ready, the stored comparison with its five comparable listings, Rent to recommend and Pricing basis.",
+      "alt": "The comparison outcome with the current recommendation and the comparison evidence.",
       "caption": "Compare market rent on the Now card holds the comparison and the rent to recommend."
     },
     {
@@ -308,7 +308,7 @@
       },
       "region": "region:Update status by destination",
       "frame": "viewport",
-      "actions": ["click-button:Full view"],
+      "actions": ["click-button:Full view", "open-summary:Verify check the numbers"],
       "source": "rehearsal",
       "alt": "Update status by destination in Rent and charges, one row per destination.",
       "caption": "Update status by destination shows what is saved, prepared and applied."
@@ -327,7 +327,11 @@
       "region": "heading:Copy the message",
       "frame": "viewport",
       "align": "center",
-      "actions": ["click-button:Full view", "wait-text:Copy the message"],
+      "actions": [
+        "click-button:Full view",
+        "open-summary:Edit owner message and manage delivery options",
+        "wait-text:Copy the message"
+      ],
       "source": "rehearsal",
       "alt": "The Copy the message area in Full view with the Subject, To and Email body fields.",
       "caption": "The owner message is prepared from the lease facts and the saved comparison."
@@ -363,7 +367,10 @@
       },
       "region": "region:Document preparation and signature handoff",
       "frame": "viewport",
-      "actions": ["click-button:Full view"],
+      "actions": [
+        "click-button:Full view",
+        "open-summary:Prepare or record document work"
+      ],
       "source": "rehearsal",
       "alt": "Document preparation and signature handoff with the Dotloop line and the readiness rows.",
       "caption": "The readiness rows say which packet actions are available."

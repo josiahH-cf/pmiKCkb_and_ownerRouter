@@ -65,6 +65,7 @@ const WORKSPACE_FRAME_PHASES = new Map([
   ["lease-details", 0.75],
   ["tenant-offer", 0.875],
   ["update-status", 0],
+  ["document-handoff", 0],
 ]);
 
 // Align the settled Full section below its own toolbar. A fixed phase moves the
@@ -75,6 +76,11 @@ const FRAME_WORKSPACE_SECTION = new Function(
   `const toolbar = heading.closest(".renewal-workspace-shell")
     ?.querySelector(".renewal-workspace-toolbar");
   if (!toolbar) return false;
+  // The Full toggle holds its first destination through late layout changes. Once
+  // capturing a different destination, release that focus before setting the frame.
+  const active = document.activeElement;
+  if (active instanceof HTMLElement && active.matches(".renewal-heading-row > h2"))
+    active.blur();
   const top = Math.ceil(toolbar.getBoundingClientRect().bottom) + 12;
   const documentTop = window.scrollY + heading.getBoundingClientRect().top;
   const section = heading.closest("section");
@@ -266,7 +272,7 @@ if (managed) {
       false,
       "Rendered Help rehearsal holds automatic preparation.",
     );
-    assert.equal(setting.state, "seeded", setting.detail);
+    assert.ok(["seeded", "retired"].includes(setting.state), setting.detail);
     const currentSetting = await routeFromPage(
       page,
       "/api/lease-renewal/kickoff-settings",
@@ -483,24 +489,12 @@ async function captureScene(scene) {
     const region = locate(page, scene.region);
     await region.first().waitFor({ state: "visible" });
     if (scene.id === "market-rent-comparison") {
-      // The comparison renders before the independent pricing read. Wait for the chooser
-      // rather than taking a picture while its loading status is still at the viewport edge.
-      await region
-        .first()
-        .getByRole("group", { name: "Pricing basis", exact: true })
-        .waitFor({ state: "visible" });
+      await region.first().getByLabel("Rent to recommend", { exact: true }).waitFor();
     }
     if (scene.id === "tenant-offer") {
-      // Both message panels settle after the Full view mounts. The owner panel above this
-      // heading can change the page height while the tenant panel is already visible.
-      await Promise.all(
-        ["owner", "tenant"].map((section) =>
-          page
-            .locator("#renewal-section-" + section)
-            .getByRole("button", { name: "Copy plain text", exact: true })
-            .waitFor({ state: "visible" }),
-        ),
-      );
+      await page
+        .locator("#renewal-section-tenant [data-renewal-message-work=tenant]")
+        .waitFor();
     } else if (scene.id === "update-status") {
       await region
         .first()
@@ -512,7 +506,8 @@ async function captureScene(scene) {
         )
         .waitFor({ state: "visible" });
     }
-    const framed = scene.region && scene.region !== "page";
+    const framePhase = WORKSPACE_FRAME_PHASES.get(scene.id);
+    const framed = framePhase === undefined && scene.region && scene.region !== "page";
     if (framed && scene.frame === "viewport") {
       // Frame the region, let the page settle and confirm it is still where it was put; a late
       // layout change gets one more framing. A region that will not hold its place fails the scene.
@@ -560,7 +555,6 @@ async function captureScene(scene) {
       );
     }
     assert.ok(verifiedText.every((box) => box.y >= 0 && box.y < scene.viewport.height));
-    const framePhase = WORKSPACE_FRAME_PHASES.get(scene.id);
     const png =
       framePhase !== undefined
         ? await captureWorkspaceFrame(page, region.first(), framePhase, scene.id)

@@ -35,9 +35,9 @@ function files(dir: string): string[] {
 }
 
 describe("S242 Help in the primary navigation", () => {
-  it("ARCH-S242-1: the manifest has an all-staff Help item in the first group and still validates", () => {
-    const [first] = PRIMARY_NAVIGATION_MANIFEST;
-    const help = first.items.find((item) => item.id === "help");
+  it("ARCH-S242-1: the manifest has an all-staff Help item in the Admin group and still validates", () => {
+    const admin = PRIMARY_NAVIGATION_MANIFEST.find((group) => group.id === "admin");
+    const help = admin?.items.find((item) => item.id === "help");
     expect(help).toMatchObject({
       label: "Help",
       href: "/help",
@@ -63,7 +63,12 @@ describe("S242 Help in the primary navigation", () => {
         .flatMap((group) => group.items)
         .find((item) => item.id === "help");
       expect(help).toMatchObject({ label: "Help", href: "/help" });
-      expect(groups[0].items.map((item) => item.id)).toContain("help");
+      expect(
+        groups.find((group) => group.id === "admin")?.items.map((item) => item.id),
+      ).toContain("help");
+      expect(
+        groups.flatMap((group) => group.items).filter((item) => item.id === "help"),
+      ).toHaveLength(1);
     },
   );
 

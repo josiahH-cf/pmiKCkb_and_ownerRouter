@@ -15,7 +15,10 @@ import {
   listRenewalWorkingRecords,
   saveRenewalWorkingField,
 } from "@/lib/firestore/renewal-working-record";
-import { RENEWAL_WORKSPACE_COLLECTIONS } from "@/lib/firestore/renewal-workspace";
+import {
+  ensureRenewalWorkRecord,
+  RENEWAL_WORKSPACE_COLLECTIONS,
+} from "@/lib/firestore/renewal-workspace";
 import { RENEWAL_WORK_STATUS_COLLECTIONS } from "@/lib/firestore/renewal-work-status";
 import {
   completeWorkingTerms,
@@ -469,5 +472,70 @@ describe("S157 lease-bound working record store", () => {
       tabTitle: "Lease Renewal",
       rowNumber: 42,
     });
+  });
+});
+
+describe("November 9 preparation only fills an exact empty recommendation", () => {
+  const leaseId = "135";
+  const dateIso = "2026-12-31";
+  const fill = (operationId: string, expectedRevision = 0) => ({
+    leaseId,
+    field: "terms_rent",
+    value: 1550,
+    expectedRevision,
+    operationId,
+    origin: "adopted_source" as const,
+    sourceLabel: "stored market comparison",
+  });
+  async function scope() {
+    const workspace = await ensureRenewalWorkRecord(editor, leaseId, db, async () => ({
+      kind: "lease_end",
+      dateIso,
+      source: "Synthetic RentVine",
+    }));
+    return { cycleId: workspace.cycleId, dateIso };
+  }
+
+  it("rejects the wrong cycle and a newer staff edit and clear, then permits a new preparation", async () => {
+    const current = await scope();
+    await expect(
+      saveRenewalWorkingField(editor, fill(OP(61)), db, { ...current, cycleId: OP(60) }),
+    ).rejects.toThrow(/current cycle/);
+    expect(await getRenewalWorkingRecord(editor, leaseId, db)).toBeNull();
+    await saveRenewalWorkingField(
+      secondEditor,
+      { ...fill(OP(62)), origin: "staff_entry", value: 1599 },
+      db,
+    );
+    await expect(
+      saveRenewalWorkingField(editor, fill(OP(63)), db, current),
+    ).rejects.toThrow(/Another operator/);
+    expect(
+      (await getRenewalWorkingRecord(editor, leaseId, db))?.fields.terms_rent.value,
+    ).toBe(1599);
+    await saveRenewalWorkingField(
+      secondEditor,
+      { ...fill(OP(64), 1), origin: "staff_entry", value: null },
+      db,
+    );
+    await expect(
+      saveRenewalWorkingField(editor, fill(OP(63)), db, current),
+    ).rejects.toThrow(/Another operator/);
+    expect(
+      (await getRenewalWorkingRecord(editor, leaseId, db))?.fields.terms_rent.value,
+    ).toBeNull();
+    const saved = await saveRenewalWorkingField(editor, fill(OP(65), 2), db, current);
+    expect(saved.record.fields.terms_rent).toMatchObject({
+      value: 1550,
+      revision: 3,
+      sourceLabel: "stored market comparison",
+    });
+    expect(
+      (await saveRenewalWorkingField(editor, fill(OP(65), 2), db, current)).duplicate,
+    ).toBe(true);
+    await expect(
+      saveRenewalWorkingField(editor, fill(OP(66), 3), db, current),
+    ).rejects.toThrow(/working rent changed/);
+    expect(await countDocs(RENEWAL_WORKING_RECORD_COLLECTIONS.activity)).toBe(3);
   });
 });

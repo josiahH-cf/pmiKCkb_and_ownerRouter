@@ -1,20 +1,6 @@
-// S249 ARCH-S249-3 / ARCH-S249-4: batch preparation for one lease, in the signed-in staff
-// member's own request. It runs the EXISTING comparison lookup (the market-comps route, with its
-// action gate, runtime suspension check, cache, allowance stop and metering unchanged) at most once
-// per lease and renewal cycle, behind a claim taken before the lookup starts. It creates no Gmail
-// draft, send, schedule, reminder or provider write: its only effects are the claim record and the
-// lookup's own stored observation.
-//
-// Every refusal happens before any billed call, in this order:
-//   1. a verification identity (lib/auth/canary-policy.ts) never starts a lookup;
-//   2. the automatic start is refused while the reviewed setting is off;
-//   3. the automatic start is refused for a lease outside the working batch;
-//   3a. the automatic start looks up no lease whose standing agreement covers its owner step (its
-//       rent comes from the rule, S250), and none whose coverage could not be confirmed;
-//   4. a lease held back for housing assistance (S251) is refused;
-//   5. a stored comparison for the cycle is reused, with no lookup;
-//   6. at the allowance nothing is looked up;
-//   7. a lease and cycle that already hold a claim are not looked up again.
+// S249: admit deliberate, exact-lease comparison preparation. The existing lookup owns
+// action authority, quota and provider evidence. Its durable per-cycle claim is never retried
+// after an ambiguous result.
 
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { isVerificationAccount } from "@/lib/auth/canary-policy";
@@ -65,6 +51,8 @@ export interface KickoffLeaseRead {
   /** True when the lease is a renewal target in the default working month. */
   readonly inWorkingBatch: boolean;
   readonly dispositionHold?: string | null;
+  readonly rentField?: { readonly revision: number; readonly empty: boolean };
+  readonly draftEligible?: boolean;
   readonly dispositionRevision?: number;
   /** The work record's cycle the lookup is stored under; null before one exists. */
   readonly workRecordCycleId: string | null;
@@ -103,8 +91,16 @@ export interface KickoffLookupAnswer {
 const UNBILLED_REFUSAL_REASONS: ReadonlySet<string> = new Set(["http_error"]);
 
 export interface KickoffPreparationDeps {
-  readonly automaticStartEnabled: () => Promise<boolean>;
-  readonly readLease: (leaseId: string) => Promise<KickoffLeaseRead | null>;
+  readonly readLease: (
+    leaseId: string,
+    month?: string,
+  ) => Promise<KickoffLeaseRead | null>;
+  readonly prepareWorkingResult?: (
+    leaseId: string,
+    lease: KickoffLeaseRead,
+    status: KickoffPreparationStatus,
+    month?: string,
+  ) => Promise<string>;
   readonly storedComparison: (
     leaseId: string,
     workRecordCycleId: string | null,
@@ -155,6 +151,8 @@ export async function runKickoffPreparation(
     readonly leaseId: string;
     readonly trigger: KickoffTrigger;
     readonly operationId: string;
+    readonly month?: string;
+    readonly cycleDateIso?: string;
   },
   deps: KickoffPreparationDeps,
 ): Promise<KickoffPreparationResult> {
@@ -176,12 +174,12 @@ export async function runKickoffPreparation(
       "verification_identity",
       "Verification sessions read only, so no comparison was started.",
     );
-  if (input.trigger === "automatic" && !(await deps.automaticStartEnabled()))
+  if (input.trigger === "automatic")
     return refuse(
       "automatic_start_off",
-      `Automatic preparation is turned off. Choose ${KICKOFF_WORDS.prepareBatch} to run it.`,
+      "Choose the preparation button for the selected month to start.",
     );
-  const lease = await deps.readLease(input.leaseId);
+  const lease = await deps.readLease(input.leaseId, input.month);
   if (!lease)
     return refuse(
       "source_unavailable",
@@ -189,27 +187,37 @@ export async function runKickoffPreparation(
     );
   if (lease.dispositionHold)
     return refuse("outside_working_batch", lease.dispositionHold, lease.cycleDateIso);
-  if (input.trigger === "automatic" && !lease.inWorkingBatch)
+  if (input.month && (!lease.inWorkingBatch || lease.cycleDateIso !== input.cycleDateIso))
     return refuse(
       "outside_working_batch",
-      "This lease is not in the working batch, so it was not prepared automatically.",
+      "The selected month or lease cycle changed. Refresh the desk and review its current month.",
       lease.cycleDateIso,
     );
-  // S250: the automatic start buys no comparison a covered kickoff does not use. A staff member
-  // can still run one by hand at any time.
-  if (input.trigger === "automatic" && lease.ownerStepCoverage === "unconfirmed")
+  if (input.month && lease.ownerStepCoverage === "unconfirmed")
     return refuse(
       "coverage_unconfirmed",
-      "This lease's standing agreement could not be confirmed just now, so no comparison was started by itself.",
+      "Review the lease's pricing basis. Its standing coverage could not be confirmed.",
       lease.cycleDateIso,
     );
-  if (input.trigger === "automatic" && lease.ownerStepCoverage === "covered")
-    return {
+  const complete = async (
+    result: KickoffPreparationResult,
+  ): Promise<KickoffPreparationResult> => {
+    if (!deps.prepareWorkingResult) return result;
+    const working = await deps
+      .prepareWorkingResult(input.leaseId, lease, result.status, input.month)
+      .catch(
+        () =>
+          "The app-owned work could not be read back. Continue preparation to check the saved comparison and draft.",
+      );
+    return { ...result, message: [result.message, working].filter(Boolean).join(" ") };
+  };
+  if (input.month && lease.ownerStepCoverage === "covered")
+    return complete({
       ...base,
       status: "covered",
       cycleDateIso: lease.cycleDateIso,
-      message: `${lease.coveredBy ? `Covered by ${lease.coveredBy}` : "A standing agreement covers this lease"}: its rent comes from the agreement's rule, so no comparison was started by itself. Run the lease's own comparison when one is wanted.`,
-    };
+      message: `${lease.coveredBy ?? "A verified standing agreement"} supplies the rent basis.`,
+    });
   if (!lease.cycleDateIso)
     return refuse(
       "no_cycle",
@@ -222,19 +230,19 @@ export async function runKickoffPreparation(
       rentChangeProposed: lease.rentChangeProposed === true,
     })
   )
-    return {
+    return complete({
       ...base,
       status: "held_back",
       cycleDateIso: cycleKey,
       message: HOUSING_ASSISTANCE_HOLD_REASON,
-    };
+    });
   if (await deps.storedComparison(input.leaseId, lease.workRecordCycleId))
-    return {
+    return complete({
       ...base,
       status: "reused",
       cycleDateIso: cycleKey,
       message: "A comparison is already stored for this cycle; it is reused.",
-    };
+    });
   if (await deps.allowanceReached())
     return {
       ...base,
@@ -348,14 +356,14 @@ export async function runKickoffPreparation(
       observationId: answer.observationId,
       billed,
     });
-    return {
+    return complete({
       ...base,
       billed,
       status: "prepared",
       cycleDateIso: cycleKey,
       message: "The comparison is stored for this cycle.",
       observationId: answer.observationId,
-    };
+    });
   }
   const reason =
     NO_USABLE_WORDS[answer.reason ?? ""] ?? "the comparison returned no usable estimate";
@@ -367,11 +375,11 @@ export async function runKickoffPreparation(
     billed,
     reason,
   });
-  return {
+  return complete({
     ...base,
     billed,
     status: "no_usable",
     cycleDateIso: cycleKey,
     message: `The comparison found nothing usable: ${reason}. Enter your own comparison figures on the lease.`,
-  };
+  });
 }

@@ -1,6 +1,16 @@
 # Current status
 
-Updated: 2026-11-08 (UTC).
+Updated: 2026-11-09 (UTC).
+
+## November 9 renewal simplification
+
+Intakes 130–138 are held at local qualification on the isolated WSL checkout. Intake and
+repeat unattended authentication checks passed. The compiled Demo rehearsal refused the
+actual tenant confirmation before authorization and read back zero sends. The local
+qualification ledger records the ten journeys on exact compiled source `1f48b57f`.
+The full verification script passed on `c3d36bba`, with the same application
+code as the matrix source. S260 UNVERIFIED. Staff verdict NOT RUN.
+[Baseline](evidence/renewal-simplification-baseline-2026-11-09.md) · [Local qualification](evidence/renewal-simplification-qualification-2026-11-09.md)
 
 ## November 7 renewal usability delivery
 

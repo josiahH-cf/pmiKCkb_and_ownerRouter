@@ -101,7 +101,7 @@ export const COMMUNICATIONS_GUIDES: readonly HelpGuide[] = [
           region: "region:Owner approval",
           availability: "required",
           source: ["components/lease-renewal/RenewalWorkspace.tsx"],
-          actions: FULL_VIEW,
+          actions: [...FULL_VIEW, "open-summary:Verify ask the owner"],
         },
         route: WORKSPACE,
         where: "Owner approval, at the end of the section",
@@ -129,7 +129,7 @@ export const COMMUNICATIONS_GUIDES: readonly HelpGuide[] = [
         result:
           "The subject and body show the message built from the lease facts, the saved market comparison and your sender signature, and your edits save by themselves. Each value still missing reads Needs Verification in the message and is listed under Marked values with a link to the control that fills it.",
         effect: "saves-in-app",
-        note: "Formatted preview shows the body with its formatting. The Managed sender signature fields hold your signature, which is shared across leases for your managed mailbox.",
+        note: "Formatted preview shows the body with its formatting. The first time you send, set up the signature for your own managed mailbox. Save blank signature is a valid choice. If the message has wording from another sender, check Prior sender wording and rebuild or edit it before sending.",
       },
       {
         id: "copy-owner-message",

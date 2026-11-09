@@ -17,6 +17,11 @@ import { isVerificationAccount } from "@/lib/auth/canary-policy";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
 import { getAdminFirestore } from "@/lib/firestore/admin";
+import {
+  currentRenewalWorkspaceState,
+  renewalWorkspaceHeadRefs,
+} from "@/lib/firestore/renewal-workspace";
+import { workBasisDateIso } from "@/lib/lease-renewal/workspace-state";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
   HousingAssistanceValueSchema,
@@ -200,6 +205,7 @@ export async function saveRenewalWorkingField(
   actor: AuthenticatedUser,
   raw: unknown,
   db: Firestore = getAdminFirestore(),
+  fillEmptyRentForCycle?: { readonly cycleId: string; readonly dateIso: string },
 ): Promise<{ record: RenewalWorkingRecord; duplicate: boolean }> {
   assertActor(actor, true);
   const input = SaveRenewalWorkingFieldSchema.parse(raw);
@@ -213,7 +219,16 @@ export async function saveRenewalWorkingField(
   }
   if (input.origin === "adopted_source" && !input.sourceLabel)
     throw new EditableLayerError("Name the source this value was adopted from.", 400);
+  if (
+    fillEmptyRentForCycle &&
+    (input.field !== "terms_rent" || typeof value !== "number")
+  )
+    throw new EditableLayerError(
+      "Only a recommendation can fill the empty rent field.",
+      400,
+    );
   const requestHash = hashExecutionPreview({
+    ...(fillEmptyRentForCycle ? { fillEmptyRentForCycle } : {}),
     actorUid: actor.uid,
     ...input,
     value,
@@ -241,6 +256,29 @@ export async function saveRenewalWorkingField(
         "Another operator changed this value. Your entry is kept; review the current value before saving again.",
         409,
       );
+    if (fillEmptyRentForCycle) {
+      const refs = renewalWorkspaceHeadRefs(db, input.leaseId);
+      const [dated, leaseBound] = await Promise.all([
+        tx.get(refs.dated),
+        tx.get(refs.leaseBound),
+      ]);
+      const workspace = currentRenewalWorkspaceState(
+        db,
+        input.leaseId,
+        dated,
+        leaseBound,
+      );
+      if (
+        !workspace ||
+        workspace.cycleId !== fillEmptyRentForCycle.cycleId ||
+        workBasisDateIso(workspace.basis) !== fillEmptyRentForCycle.dateIso ||
+        (entry !== null && entry.value !== null)
+      )
+        throw new EditableLayerError(
+          "The current cycle or working rent changed. Review Rent to recommend.",
+          409,
+        );
+    }
     if (!entry && value === null)
       throw new EditableLayerError("There is no working value to clear.", 400);
     if (entry && sameWorkingValue(entry.value, value) && entry.origin === input.origin)

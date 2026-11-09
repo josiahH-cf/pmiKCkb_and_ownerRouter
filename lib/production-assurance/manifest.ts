@@ -18,6 +18,8 @@ export interface CanaryRouteDefinition {
  * at this path.
  */
 export const ASSURANCE_RENEWAL_DESK_PATH = "/lease-renewal/live/desk?v=2&scope=all";
+export const RENEWAL_SIMPLIFICATION_PREDECESSOR =
+  "2e5e47a8a1112c53784170a29ab134cab336e4a0";
 export const RENEWAL_USABILITY_PREDECESSOR = "ef81b8917209f4eec3f22097142b559f3cce875b";
 
 /**

@@ -1,50 +1,37 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
-
-import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
+import { apiErrorResponse } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
-import {
-  assertMutationAllowed,
-  requireEnvironmentDescriptor,
-} from "@/lib/environment/descriptor";
-import {
-  readKickoffAutomaticStart,
-  saveKickoffAutomaticStart,
-} from "@/lib/firestore/renewal-kickoff-settings";
+import { readKickoffAutomaticStart } from "@/lib/firestore/renewal-kickoff-settings";
 import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
-
-// S249 ARCH-S249-4: the one reviewed setting for the automatic start of batch preparation. Staff
-// read it; an Admin changes it in the app (the renewal configuration authority), bound to the
-// version shown, with a reason. Changing it needs no release and no environment key.
-
-const SaveSchema = z
-  .object({
-    enabled: z.boolean(),
-    expectedVersion: z.number().int().nonnegative(),
-    reason: z.string().trim().min(1).max(500),
-  })
-  .strict();
 
 const headers = { "Cache-Control": "private, no-store" };
 
 export async function GET() {
   try {
     await requireCapabilityInSpace(renewalRoleCapability("read_workspace"), "renewals");
-    return NextResponse.json(await readKickoffAutomaticStart(), { headers });
+    const saved = await readKickoffAutomaticStart();
+    return NextResponse.json(
+      { ...saved, historicalEnabled: saved.enabled, enabled: false, retired: true },
+      { headers },
+    );
   } catch (error) {
     return apiErrorResponse(error);
   }
 }
 
-export async function POST(request: Request) {
+export async function POST() {
   try {
-    const actor = await requireCapabilityInSpace(
+    await requireCapabilityInSpace(
       renewalRoleCapability("manage_renewal_configuration"),
       "renewals",
     );
-    const input = await parseJsonBody(request, SaveSchema);
-    assertMutationAllowed(requireEnvironmentDescriptor());
-    return NextResponse.json(await saveKickoffAutomaticStart(actor, input), { headers });
+    return NextResponse.json(
+      {
+        error:
+          "Automatic preparation is retired. Choose the preparation button for the selected month.",
+      },
+      { status: 410, headers },
+    );
   } catch (error) {
     return apiErrorResponse(error);
   }

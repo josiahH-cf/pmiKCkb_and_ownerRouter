@@ -270,7 +270,7 @@ describe("S254: the rehearsal runs only in a disposable worktree against loopbac
       'ENVIRONMENT_KIND: "demo"',
       'DATA_CONTEXT: "demo"',
       'LOCAL_DEMO_AUTH: "true"',
-      "NODE_OPTIONS: `--import ${join(process.cwd(), PRELOAD)}`",
+      "NODE_OPTIONS: `--max-old-space-size=6144 --import ${join(process.cwd(), PRELOAD)}`",
       "FIREBASE_PROJECT_ID: PROJECT_ID",
       "GOOGLE_CLOUD_PROJECT: PROJECT_ID",
       'RENTVINE_API_KEY: "synthetic-rehearsal-key"',

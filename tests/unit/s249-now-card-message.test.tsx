@@ -227,14 +227,10 @@ afterEach(() => {
 });
 
 describe("S249 the prepared owner message on the Now card", () => {
-  it("BEH-S249-1: shows the comparison, the prefilled rent with its basis and the message preview with no action", () => {
+  it("BEH-S249-1 and R-S247-14: the owner message previews the recommended amount without another comparison or editor", () => {
     mount();
-    expect(screen.getByRole("region", { name: "Stored comparison" })).toBeInTheDocument();
-    const rent = screen.getByLabelText("Rent to recommend") as HTMLInputElement;
-    expect(Number(rent.value)).toBeGreaterThan(0);
-    expect(
-      screen.getByText(/This is a proposal until you send or change it\./),
-    ).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Stored comparison" })).toBeNull();
+    expect(screen.queryByLabelText("Rent to recommend")).toBeNull();
     expect(screen.getByLabelText("Reason to include")).toBeInTheDocument();
     expect(screen.getByRole("document", { name: "Message preview" })).toHaveTextContent(
       "Our reviewed rental analysis suggests $1,420.00 per month.",
@@ -493,7 +489,7 @@ describe("S249 the prepared owner message on the Now card", () => {
     mount({ signaturePresent: false }, on, { ...FACTS, signature: false });
     expect(screen.getByTestId("send-needs")).toHaveTextContent("your signature");
     await act(async () =>
-      fireEvent.click(screen.getByRole("button", { name: "Review and send" })),
+      fireEvent.click(screen.getByRole("button", { name: "Set up your signature" })),
     );
     const form = screen.getByRole("form", { name: "Your signature" });
     const name = screen.getByLabelText("Sender name");

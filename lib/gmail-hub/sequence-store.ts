@@ -91,6 +91,7 @@ export interface SequenceStore {
     nowMs: number;
     action: string;
     dispositionRevision?: number;
+    initialTenantAuthorization?: boolean;
     apply(current: CommunicationSequence | null): CommunicationSequence;
   }): Promise<CommunicationSequence>;
   claim(
@@ -312,6 +313,49 @@ export class FirestoreCommunicationSequenceStore implements SequenceStore {
           "This communication exceeds its supported size.",
           400,
         );
+      let tenantOfferClaim: FirebaseFirestore.DocumentReference | null = null;
+      if (i.initialTenantAuthorization && next.noticeCycleId) {
+        const key = sequenceHash([
+          "tenant-initial-offer",
+          next.context.entityId,
+          next.noticeCycleId,
+        ]);
+        const claim = this.db
+          .collection(COMMUNICATION_SEQUENCE_COLLECTIONS.operations)
+          .doc(key);
+        const owned = await tx.get(claim);
+        if (owned.exists && owned.get("sequenceId") !== next.id)
+          throw new EditableLayerError(
+            "This cycle has an initial tenant offer. Open its communication to review or recover it.",
+            409,
+          );
+        if (next.authorization?.immediateTenantOffer) {
+          const related = await tx.get(
+            this.db
+              .collection(COMMUNICATION_SEQUENCE_COLLECTIONS.sequences)
+              .where("context.entityId", "==", next.context.entityId),
+          );
+          if (
+            related.docs.some((doc) => {
+              if (doc.id === next.id || doc.get("purged")) return false;
+              const prior = assertRecord(doc.data());
+              return (
+                prior.context.purpose === "renewal_tenant" &&
+                !prior.context.replyTo &&
+                Boolean(prior.authorization) &&
+                (prior.noticeCycleId === next.noticeCycleId ||
+                  (!prior.noticeCycleId &&
+                    OPEN_SEQUENCE_STATES.some((state) => state === prior.state)))
+              );
+            })
+          )
+            throw new EditableLayerError(
+              "Review the tenant offer already authorized for this lease before adding follow-ups.",
+              409,
+            );
+          if (!owned.exists) tenantOfferClaim = claim;
+        }
+      }
       const attachmentIds = [
         ...new Set([
           ...next.initial.attachmentIds,
@@ -344,6 +388,12 @@ export class FirestoreCommunicationSequenceStore implements SequenceStore {
           "A selected file is no longer ready. Your wording is kept; remove or replace that file.",
           409,
         );
+      if (tenantOfferClaim)
+        tx.create(tenantOfferClaim, {
+          sequenceId: next.id,
+          kind: "tenant_initial_offer",
+          createdAtMs: i.nowMs,
+        });
       tx.set(this.ref(i.id), storedSequence(next));
       tx.create(operationRef, {
         actorUid: i.actorUid,
@@ -502,9 +552,19 @@ export class FirestoreCommunicationSequenceStore implements SequenceStore {
         const due =
           a?.schedule && a.followUp ? nextOccurrence(a.schedule, sentAtMs, count) : null;
         // A pause/cancel/transfer ordered after claim remains in force even when the admitted send settles.
-        const active = s.state === "active";
+        const recoveredInitial =
+          o.index === 0 &&
+          a?.immediateTenantOffer === true &&
+          s.state === "needs_reconciliation" &&
+          s.pause?.cause === "send_unconfirmed" &&
+          s.pause.evidenceIds.includes(o.id);
+        const active = s.state === "active" || recoveredInitial;
+        const beforeEnd =
+          !a?.schedule?.endDate ||
+          localDateAt(i.nowMs, a.schedule.timeZone) <= a.schedule.endDate;
+        const nextDue = recoveredInitial && !beforeEnd ? null : due;
         const state = active
-          ? due === null
+          ? nextDue === null
             ? "completed"
             : "active"
           : s.state === "needs_reconciliation"
@@ -525,7 +585,8 @@ export class FirestoreCommunicationSequenceStore implements SequenceStore {
           state,
           confirmedCount: count,
           lastSentAtMs: sentAtMs,
-          nextDueAtMs: state === "active" ? due : null,
+          nextDueAtMs: state === "active" ? nextDue : null,
+          ...(recoveredInitial ? { pause: null } : {}),
           unresolvedOccurrenceId: null,
           threads,
           updatedAtMs: i.nowMs,

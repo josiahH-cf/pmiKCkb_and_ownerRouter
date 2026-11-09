@@ -49,6 +49,7 @@ export function RentAndCharges({
   summary,
   chargeInventory = null,
   rentChargeStatus = null,
+  placement = "combined",
 }: Readonly<{
   summary: {
     currentRent: number | null;
@@ -58,6 +59,7 @@ export function RentAndCharges({
   };
   chargeInventory?: RenewalChargeInventory | null;
   rentChargeStatus?: readonly RentChargeOutcomeRow[] | null;
+  placement?: "combined" | "work" | "verification";
 }>) {
   const rentvine = summary.sourceDestinations?.rentvine ?? null;
   const rows = rentChargeStatus ?? [];
@@ -67,80 +69,91 @@ export function RentAndCharges({
     null;
   const charges = chargeInventory ? splitChargesBySchedule(chargeInventory) : null;
   return (
-    <Card title={renewalCardTitle("rent-and-charges", "Rent and charges")}>
+    <Card
+      title={
+        placement === "verification"
+          ? "Rent and charge evidence"
+          : renewalCardTitle("rent-and-charges", "Rent and charges")
+      }
+    >
       <RenewalCurrentRent
         chargeInventory={chargeInventory}
         rentvineHref={rentvine?.href ?? null}
         rentvinePreviewHash={rentvinePreviewHash}
         summary={summary}
+        placement={placement}
       />
-      <section aria-label="Recurring charges (RentVine)" className="ui-stack-tight">
-        <h3>Recurring charges (RentVine)</h3>
-        {charges ? (
-          charges.current.length > 0 ? (
-            <ul aria-label="Current charges" className="ui-rows">
-              {charges.current.map((charge) => (
-                <ChargeRow charge={charge} key={charge.id} />
-              ))}
-            </ul>
+      {placement !== "work" ? (
+        <section aria-label="Recurring charges (RentVine)" className="ui-stack-tight">
+          <h3>Recurring charges (RentVine)</h3>
+          {charges ? (
+            charges.current.length > 0 ? (
+              <ul aria-label="Current charges" className="ui-rows">
+                {charges.current.map((charge) => (
+                  <ChargeRow charge={charge} key={charge.id} />
+                ))}
+              </ul>
+            ) : (
+              <p className="muted">
+                {chargeInventory!.charges.length === 0
+                  ? "No recurring charges returned for this lease."
+                  : "No recurring charge is within the current schedule."}
+              </p>
+            )
           ) : (
-            <p className="muted">
-              {chargeInventory!.charges.length === 0
-                ? "No recurring charges returned for this lease."
-                : "No recurring charge is within the current schedule."}
-            </p>
-          )
-        ) : (
-          <p className="muted">The recurring charge list is unavailable right now.</p>
-        )}
-        {charges && charges.other.length > 0 ? (
-          <details>
-            <summary>
-              Charges outside the current schedule ({charges.other.length})
-            </summary>
-            <ul aria-label="Earlier and future charges" className="ui-rows">
-              {charges.other.map((charge) => (
-                <ChargeRow charge={charge} key={charge.id} />
-              ))}
-            </ul>
-          </details>
-        ) : null}
-        <p className="muted">
-          One-time fees, deposits, ledger history, party changes and insurance enrollment
-          are outside these RentVine actions
-          {rentvine ? (
-            <>
-              ; handle those in the{" "}
-              <a
-                className="text-link"
-                href={rentvine.href}
-                rel={EXTERNAL_LINK_REL}
-                target={EXTERNAL_LINK_TARGET}
-              >
-                RentVine lease record
-              </a>
-            </>
+            <p className="muted">The recurring charge list is unavailable right now.</p>
+          )}
+          {charges && charges.other.length > 0 ? (
+            <details>
+              <summary>
+                Charges outside the current schedule ({charges.other.length})
+              </summary>
+              <ul aria-label="Earlier and future charges" className="ui-rows">
+                {charges.other.map((charge) => (
+                  <ChargeRow charge={charge} key={charge.id} />
+                ))}
+              </ul>
+            </details>
           ) : null}
-          .
-        </p>
-      </section>
-      <ul aria-label="What to change" className="ui-rows">
-        <li>
-          <a className="text-link" href={`#${WORKING_CURRENT_RENT_TARGET}`}>
-            Correct the current rent
-          </a>
-        </li>
-        <li>
-          <a className="text-link" href="#renewal-future-rent">
-            Prepare future renewal rent
-          </a>{" "}
-          <span className="muted">
-            Uses the working renewal terms. Today&apos;s billing and the Sheet current
-            rent stay unchanged until the confirmed RentVine change takes effect.
-          </span>
-        </li>
-      </ul>
-      <RentChargeUpdateStatus rows={rows} />
+          <p className="muted">
+            One-time fees, deposits, ledger history, party changes and insurance
+            enrollment are outside these RentVine actions
+            {rentvine ? (
+              <>
+                ; handle those in the{" "}
+                <a
+                  className="text-link"
+                  href={rentvine.href}
+                  rel={EXTERNAL_LINK_REL}
+                  target={EXTERNAL_LINK_TARGET}
+                >
+                  RentVine lease record
+                </a>
+              </>
+            ) : null}
+            .
+          </p>
+        </section>
+      ) : null}
+      {placement !== "verification" ? (
+        <ul aria-label="What to change" className="ui-rows">
+          <li>
+            <a className="text-link" href={`#${WORKING_CURRENT_RENT_TARGET}`}>
+              Correct the current rent
+            </a>
+          </li>
+          <li>
+            <a className="text-link" href="#renewal-future-rent">
+              Prepare future renewal rent
+            </a>{" "}
+            <span className="muted">
+              Uses the working renewal terms. Today&apos;s billing and the Sheet current
+              rent stay unchanged until the confirmed RentVine change takes effect.
+            </span>
+          </li>
+        </ul>
+      ) : null}
+      {placement !== "work" ? <RentChargeUpdateStatus rows={rows} /> : null}
     </Card>
   );
 }

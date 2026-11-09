@@ -232,10 +232,17 @@ describe("S120 retained sender signature", () => {
     expect(after.signatureOrigin).toEqual({ kind: "saved" });
     expect(after.signatureMatchesActor).toBe(true);
 
-    // The other actor loads the saved message: the signature is shown as saved by someone else,
-    // not adopted, and their own retained signature stays empty.
+    // S224: the other actor's active preview omits the foreign signature. The historical record
+    // still attributes the exact saved signature to its sender.
     const otherAfter = await currentRenewalMessage(secondEditor, "702", "owner", db);
-    expect(otherAfter.signatureOrigin).toEqual({ kind: "saved" });
+    expect(otherAfter.signatureOrigin).toEqual({ kind: "none" });
+    expect(otherAfter.inputs.signature).toBeNull();
+    expect(otherAfter.facts.signature).toBeNull();
+    expect(otherAfter.saved).toMatchObject({
+      inputs: { signature },
+      signatureActorUid: editor.uid,
+      signatureEmail: editor.email,
+    });
     expect(otherAfter.signatureMatchesActor).toBe(false);
     expect(otherAfter.retainedSignature).toBeNull();
 

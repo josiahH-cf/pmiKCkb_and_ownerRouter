@@ -108,6 +108,8 @@ export function RenewalWorkspaceSidebars({
   processGuide = null,
   sectionNavigation = null,
   viewSwitch = null,
+  workStatus = null,
+  rentvineHref,
 }: Readonly<{
   children: ReactNode;
   /** Compact lease identity that stays visible while the operator is lower on the page. */
@@ -120,6 +122,8 @@ export function RenewalWorkspaceSidebars({
   sectionNavigation?: ReactNode;
   /** S143: the lease-level Full view / Focus view switch, shown in both views. */
   viewSwitch?: ReactNode;
+  workStatus?: ReactNode;
+  rentvineHref?: string | null;
 }>) {
   const instanceId = useId();
   const panelSize = useWorkspacePanelSize("renewals");
@@ -189,9 +193,30 @@ export function RenewalWorkspaceSidebars({
       ref={shellRef}
       style={{ "--inspector-width": `${panelSize.width}px` } as CSSProperties}
     >
-      <div className="renewal-workspace-toolbar" ref={toolbarRef}>
+      <div
+        className="renewal-workspace-toolbar"
+        data-shared-header={rentvineHref !== undefined ? true : undefined}
+        ref={toolbarRef}
+      >
         <div className="renewal-workspace-toolbar-row">
           <p className="renewal-workspace-identity">{identity}</p>
+          {rentvineHref ? (
+            <a
+              className="text-link"
+              href={rentvineHref}
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              Open in RentVine
+            </a>
+          ) : rentvineHref === null ? (
+            <span className="muted">
+              RentVine link unavailable.{" "}
+              <a className="text-link" href="#renewal-step-verify-renewal">
+                Review source
+              </a>
+            </span>
+          ) : null}
           {viewSwitch}
           <div
             aria-label="Lease workspace panels"
@@ -208,6 +233,7 @@ export function RenewalWorkspaceSidebars({
             >
               Lease information
             </button>
+            {workStatus}
             {processGuide && !focusView ? (
               <button
                 aria-controls={guideId}

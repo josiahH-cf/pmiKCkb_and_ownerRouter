@@ -3,8 +3,7 @@
 // never moves the status revision and a status change never touches a note. One composition keeps
 // one note id across every save and retry; an operation id makes a repeated request return the
 // first result instead of writing again. The actor and time come from the server. Notes are never
-// rewritten by another person and never removed. No provider, cycle or work record is read or
-// written here.
+// rewritten by another person. A scoped save reads the current cycle in its own transaction.
 
 import {
   assertMutationAllowed,
@@ -18,6 +17,10 @@ import { isVerificationAccount } from "@/lib/auth/canary-policy";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
 import { getAdminFirestore } from "@/lib/firestore/admin";
+import {
+  currentRenewalWorkspaceState,
+  renewalWorkspaceHeadRefs,
+} from "./renewal-workspace";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
   RENEWAL_STATUS_NOTE_MAX_LENGTH,
@@ -37,6 +40,7 @@ export const RenewalStatusNoteSchema = z
   .object({
     schemaVersion: z.literal(RENEWAL_STATUS_NOTE_SCHEMA_VERSION),
     leaseId,
+    cycleId: z.string().uuid().nullable().optional(),
     noteId: z.string().uuid(),
     revision: z.number().int().positive(),
     text: z.string().min(1).max(RENEWAL_STATUS_NOTE_MAX_LENGTH),
@@ -52,6 +56,7 @@ export const SaveRenewalStatusNoteSchema = z
   .object({
     kind: z.literal("note"),
     leaseId,
+    expectedCycleId: z.string().uuid().nullable().optional(),
     /** The composition's identity, chosen once by the editor and kept for every save of it. */
     noteId: z.string().uuid(),
     text: z.string(),
@@ -133,6 +138,9 @@ export async function saveRenewalStatusNote(
     );
   const requestHash = hashExecutionPreview({
     actorUid: actor.uid,
+    ...(input.expectedCycleId !== undefined
+      ? { expectedCycleId: input.expectedCycleId }
+      : {}),
     leaseId: input.leaseId,
     noteId: input.noteId,
     text,
@@ -169,6 +177,24 @@ export async function saveRenewalStatusNote(
         "This note was saved from another place. Your text is kept; review the saved note before saving again.",
         409,
       );
+    if (input.expectedCycleId !== undefined || current?.cycleId !== undefined) {
+      const heads = renewalWorkspaceHeadRefs(db, input.leaseId);
+      const [dated, leaseBound] = await Promise.all([
+        tx.get(heads.dated),
+        tx.get(heads.leaseBound),
+      ]);
+      const active =
+        currentRenewalWorkspaceState(db, input.leaseId, dated, leaseBound)?.cycleId ??
+        null;
+      if (
+        (input.expectedCycleId !== undefined && input.expectedCycleId !== active) ||
+        (current?.cycleId !== undefined && current.cycleId !== active)
+      )
+        throw new EditableLayerError(
+          "The renewal cycle changed. Your note is kept. Reload the lease and review its current cycle.",
+          409,
+        );
+    }
     if (current) {
       // R-S164-10: no historical edit. A person continues only their most recent note on this
       // lease; every earlier note stays exactly as it was recorded.
@@ -198,6 +224,11 @@ export async function saveRenewalStatusNote(
     const next = RenewalStatusNoteSchema.parse({
       schemaVersion: RENEWAL_STATUS_NOTE_SCHEMA_VERSION,
       leaseId: input.leaseId,
+      ...(current?.cycleId !== undefined
+        ? { cycleId: current.cycleId }
+        : !current && input.expectedCycleId !== undefined
+          ? { cycleId: input.expectedCycleId }
+          : {}),
       noteId: input.noteId,
       revision: (current?.revision ?? 0) + 1,
       text,

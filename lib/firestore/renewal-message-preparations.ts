@@ -12,6 +12,8 @@ import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import { retainSenderSignature } from "@/lib/firestore/renewal-sender-signatures";
 import {
+  MessageBodyOverrideRecordSchema,
+  messageBodyOverrideRef,
   writeMessageBodyOverride,
   writeMessageSubjectOverride,
 } from "@/lib/firestore/renewal-message-body-overrides";
@@ -151,13 +153,15 @@ export async function saveMessagePreparation(
     .collection(MESSAGE_PREPARATION_COLLECTIONS.activity)
     .doc(input.operationId);
   const heads = renewalWorkspaceHeadRefs(db, input.leaseId);
+  const bodyRef = messageBodyOverrideRef(db, input.leaseId, cycleId, input.channel);
   const requestHash = hashExecutionPreview({ actorUid: actor.uid, ...input });
   const duplicate = await db.runTransaction(async (transaction) => {
-    const [snapshot, prior, dated, leaseBound] = await Promise.all([
+    const [snapshot, prior, dated, leaseBound, priorBody] = await Promise.all([
       transaction.get(ref),
       transaction.get(audit),
       transaction.get(heads.dated),
       transaction.get(heads.leaseBound),
+      transaction.get(bodyRef),
     ]);
     if (prior.exists) {
       if (prior.get("request_hash") !== requestHash)
@@ -211,15 +215,31 @@ export async function saveMessagePreparation(
       updatedByUid: actor.uid,
     });
     transaction.set(ref, record);
-    // Authored wording belongs to exactly this revision; a revision saved without it clears it.
-    const bodyOverride = writeMessageBodyOverride(transaction, db, actor, {
-      leaseId: input.leaseId,
-      cycleId,
-      channel: input.channel,
-      revision: record.revision,
-      body: input.bodyOverride ?? null,
-      now,
-    });
+    // An unrelated edit preserves earlier wording and its actual author. Only an exact
+    // takeover of the body can make it active for the current sender.
+    const priorWording = priorBody.exists
+      ? MessageBodyOverrideRecordSchema.parse(priorBody.data())
+      : null;
+    const keepPriorWording =
+      priorWording &&
+      priorWording.revision === current?.revision &&
+      priorWording.updatedByUid !== actor.uid &&
+      !input.replacePriorSenderWording;
+    const bodyOverride = keepPriorWording
+      ? {
+          textHash: hashExecutionPreview({ text: priorWording.text }),
+          baseHash: priorWording.baseHash,
+        }
+      : writeMessageBodyOverride(transaction, db, actor, {
+          leaseId: input.leaseId,
+          cycleId,
+          channel: input.channel,
+          revision: record.revision,
+          body: input.bodyOverride ?? null,
+          now,
+        });
+    if (keepPriorWording)
+      transaction.set(bodyRef, { ...priorWording, revision: record.revision });
     const subjectOverride = writeMessageSubjectOverride(transaction, db, actor, {
       leaseId: input.leaseId,
       cycleId,

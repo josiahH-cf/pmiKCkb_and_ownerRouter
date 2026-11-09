@@ -158,7 +158,8 @@
     "location": "components/lease-renewal/RenewalWorkingBatch.tsx",
     "text": "All …loaded leases are counted once across these groups. Choose a count to list its leases.",
     "describes": "Working batch: every loaded lease is in exactly one group, and a count lists its leases",
-    "disposition": "keep"
+    "disposition": "remove",
+    "contradicts": ["S246"]
   },
   {
     "kind": "inline",
@@ -578,14 +579,16 @@
     "location": "components/lease-renewal/RenewalKickoffPreparation.tsx",
     "text": "Preparation starts by itself when a staff member opens this batch, at most once per lease each cycle and within the monthly allowance.",
     "describes": "Batch preparation with the reviewed automatic start on: it runs on opening the batch, once per lease per cycle, within the allowance (S249)",
-    "disposition": "keep"
+    "disposition": "remove",
+    "contradicts": ["S249"]
   },
   {
     "kind": "inline",
     "location": "components/lease-renewal/RenewalKickoffPreparation.tsx",
     "text": "Automatic preparation is off; choose Prepare this batch to run it.",
     "describes": "Batch preparation with the reviewed automatic start off: nothing starts by itself and Prepare this batch still runs it (S249)",
-    "disposition": "keep"
+    "disposition": "remove",
+    "contradicts": ["S249"]
   },
   {
     "kind": "inline",

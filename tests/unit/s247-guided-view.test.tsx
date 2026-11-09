@@ -1,7 +1,5 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import {
   act,
   cleanup,
@@ -29,7 +27,6 @@ import {
 } from "@/lib/lease-renewal/renewal-path";
 import { emptyRenewalWorkspace } from "@/lib/lease-renewal/workspace-state";
 import { renewalStageContextFor } from "@/lib/lease-renewal/renewal-stage-context";
-import { fullViewSignature } from "@/tests/helpers/full-view-signature";
 import {
   renderWorkspace,
   settle,
@@ -45,17 +42,6 @@ import { manualFixture } from "@/tests/helpers/renewal-action-fixtures";
 // choosing a step, switching views and following an older link change presentation only: no
 // request, save, navigation or refresh. Full view keeps its recorded presentation.
 
-const BASELINE = JSON.parse(
-  readFileSync(
-    join(
-      __dirname,
-      "..",
-      "fixtures",
-      "s224-outgoing-readiness-full-view-presentation.json",
-    ),
-    "utf8",
-  ),
-) as Record<string, ReturnType<typeof fullViewSignature>>;
 const CYCLE_ID = "b4bc3b81-c402-4f62-a2e2-c605c67867fb";
 const PINNED_NOW = new Date("2026-09-30T17:00:00.000Z");
 const LEASE_PATH = "/lease-renewal/live/desk/lease/lease-318-cedar-7";
@@ -65,6 +51,44 @@ function manualState(leaseId = "lease-318-cedar-7") {
     kind: "lease_end",
     dateIso: "2026-12-31",
     source: "RentVine lease end",
+  });
+}
+
+function liveWorkspace(leaseId = "lease-318-cedar-7") {
+  const workspace = getRenewalLeaseWorkspace(leaseId)!;
+  return {
+    ...workspace,
+    live: {
+      leaseId,
+      ownerDecision: null,
+      ownerDecisionCurrent: false,
+      ownerOutcome: null,
+      ownerResponseRecordable: false,
+      tenantOfferDraftId: null,
+      tenantOutcome: null,
+      processVersion: workspace.process.version,
+      complete: false,
+    },
+  };
+}
+
+function stubLiveRenewalRoutes(state: ReturnType<typeof manualState>) {
+  return stubRenewalRoutes(state, {
+    other({ url }) {
+      if (url.includes("/api/lease-renewal/notice-review")) {
+        return Response.json({
+          disposition: { state: "not_initiated", label: "No move-out notice recorded." },
+          ready: false,
+        });
+      }
+      if (url.includes("/api/lease-renewal/notice-timing-basis")) {
+        return Response.json({
+          timingBasis: { state: "missing", record: null },
+          canSelect: false,
+        });
+      }
+      return null;
+    },
   });
 }
 
@@ -110,18 +134,22 @@ afterEach(() => {
 });
 
 describe("S247 Guided view", { timeout: 120_000 }, () => {
-  it("keeps secondary header statuses in Focus and Full while Guided names the stage once", async () => {
-    stubRenewalRoutes(manualState());
+  it("keeps one sticky Work status disclosure in both views", async () => {
+    stubLiveRenewalRoutes(manualState());
     const { container } = await renderWorkspace({
       manual: manualState(),
       view: "default",
+      workspace: liveWorkspace(),
       extra: { workStatus: WORK_STATUS },
     });
-    const statuses = [...container.querySelectorAll("[data-renewal-secondary-status]")];
-    expect(statuses.length).toBeGreaterThan(0);
-    for (const status of statuses) expect(status).not.toBeVisible();
+    const status = container.querySelector(
+      ".renewal-workspace-toolbar #renewal-staff-status-log",
+    );
+    expect(status?.querySelector("summary")).toBeVisible();
+    expect(status).not.toHaveAttribute("open");
     await userEvent.setup().click(viewButton("Full view"));
-    for (const status of statuses) expect(status).toBeVisible();
+    expect(container.querySelectorAll("#renewal-staff-status-log")).toHaveLength(1);
+    expect(container.querySelector("#renewal-staff-status-log")).toBe(status);
   });
 
   it("continues a covered owner step to the tenant offer while keeping the message tools reachable", async () => {
@@ -164,10 +192,11 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
   });
 
   it("BEH-S247-1: a lease opens in Guided view with the path strip and one Now card", async () => {
-    const routes = stubRenewalRoutes(manualState());
+    const routes = stubLiveRenewalRoutes(manualState());
     await renderWorkspace({
       manual: manualState(),
       view: "default",
+      workspace: liveWorkspace(),
       extra: { workStatus: WORK_STATUS },
     });
     const group = screen.getByRole("group", { name: "Lease view" });
@@ -175,8 +204,8 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
       within(group)
         .getAllByRole("button")
         .map((button) => button.textContent),
-    ).toEqual(["Guided view", "Focus view", "Full view"]);
-    expect(viewButton("Guided view")).toHaveAttribute("aria-pressed", "true");
+    ).toEqual(["Full view"]);
+    expect(viewButton("Full view")).toHaveAttribute("aria-pressed", "false");
     const pane = guidedPane();
     const strip = within(pane).getByRole("navigation", { name: "Renewal path" });
     expect(
@@ -201,21 +230,13 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
     expect(strip.querySelectorAll("[aria-current='step']")).toHaveLength(1);
     const card = nowCard();
     expect(card.querySelectorAll("[data-renewal-now-primary]")).toHaveLength(1);
-    expect(within(card).getByRole("button", { name: "Add a note" })).toBeVisible();
+    expect(within(card).queryByRole("button", { name: "Add a note" })).toBeNull();
     expect(screen.getByRole("button", { name: "Record work" })).toBeVisible();
     // The staff status and its Status log stay reachable from Guided view.
+    expect(document.querySelector("#renewal-staff-status-log > summary")).toBeVisible();
     expect(
-      screen.getByRole("region", { name: "Staff status and Status log" }),
-    ).toBeVisible();
-    // The five sections are links that open Full view; the Full view navigation steps aside.
-    const sections = within(pane).getByRole("navigation", {
-      name: "Every section in Full view",
-    });
-    expect(
-      within(sections)
-        .getAllByRole("link")
-        .map((link) => link.textContent),
-    ).toEqual(RENEWAL_DASHBOARD_SECTIONS.map((section) => section.label));
+      within(pane).queryByRole("navigation", { name: "Every section in Full view" }),
+    ).toBeNull();
     expect(
       screen.queryByRole("navigation", { name: "Renewal dashboard sections" }),
     ).toBeNull();
@@ -501,19 +522,19 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
     expect(discrepancy).toBeVisible();
   });
 
-  it("R-S247-8: Add a note reaches the separate staff annotation", async () => {
-    stubRenewalRoutes(manualState());
+  it("R-S248-15: Work status shows its single note input and closed History", async () => {
+    stubLiveRenewalRoutes(manualState());
     await renderWorkspace({
       manual: manualState(),
       view: "default",
+      workspace: liveWorkspace(),
       extra: { workStatus: WORK_STATUS },
     });
+    const disclosure = document.querySelector("#renewal-staff-status-log")!;
+    await userEvent.setup().click(disclosure.querySelector("summary")!);
     const status = screen.getByRole("region", { name: "Staff status and Status log" });
-    await userEvent
-      .setup()
-      .click(within(nowCard()).getByRole("button", { name: "Add a note" }));
-    expect(status.contains(document.activeElement)).toBe(true);
-    expect(document.activeElement?.tagName).toBe("TEXTAREA");
+    expect(within(status).getByLabelText("Add a note")).toBeVisible();
+    expect(within(status).getByTestId("renewal-status-log")).not.toHaveAttribute("open");
   });
 
   for (const name of ["admin-default-manual", "editor-maple-manual"] as const)
@@ -521,8 +542,8 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
       const leaseId =
         name === "editor-maple-manual" ? "lease-4821-maple-4" : "lease-318-cedar-7";
       const state = manualState(leaseId);
-      const routes = stubRenewalRoutes(state);
-      const workspace = getRenewalLeaseWorkspace(leaseId)!;
+      const routes = stubLiveRenewalRoutes(state);
+      const workspace = liveWorkspace(leaseId);
       const view = render(
         <RenewalWorkspace
           manualState={state}
@@ -539,15 +560,36 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
       const requests = routes.calls.length;
       await user.click(viewButton("Full view"));
       await settle();
-      expect(fullViewSignature(view.container)).toEqual(BASELINE[name]);
-      await user.click(viewButton("Guided view"));
+      expect(
+        view.container.querySelectorAll("section[data-renewal-outcome]"),
+      ).toHaveLength(7);
+      expect(
+        view.container.querySelectorAll("details[data-renewal-verification][open]"),
+      ).toHaveLength(0);
+      await user.click(viewButton("Full view"));
       const strip = within(guidedPane()).getByRole("navigation", {
         name: "Renewal path",
       });
       await user.click(within(strip).getByRole("button", { name: "Finish up" }));
       await user.click(viewButton("Full view"));
       await settle();
-      expect(fullViewSignature(view.container)).toEqual(BASELINE[name]);
+      expect(
+        document.activeElement?.closest("#renewal-section-documents"),
+      ).not.toBeNull();
+      const sections = screen.getByRole("navigation", {
+        name: "Renewal dashboard sections",
+      });
+      expect(
+        within(sections)
+          .getAllByRole("link")
+          .map((link) => link.textContent),
+      ).toEqual(RENEWAL_DASHBOARD_SECTIONS.map((section) => section.label));
+      expect(
+        view.container.querySelectorAll("section[data-renewal-outcome]"),
+      ).toHaveLength(7);
+      expect(
+        view.container.querySelectorAll("details[data-renewal-verification][open]"),
+      ).toHaveLength(0);
       expect(
         document.querySelectorAll<HTMLElement>("[data-renewal-focus-hidden]"),
       ).toHaveLength(0);

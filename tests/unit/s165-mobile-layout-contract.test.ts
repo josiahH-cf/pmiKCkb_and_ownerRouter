@@ -257,13 +257,26 @@ describe("S165 sticky and fixed controls leave fields and actions reachable (BEH
     );
   });
 
-  it("the lease toolbar is height-limited on a tablet and scrolls with the page on a phone", () => {
-    const tablet = s165RulesFor(".renewal-workspace-toolbar", /max-width: 760px/)[0];
+  it("limits the legacy lease toolbar on tablets and keeps the shared header sticky on phones", () => {
+    const toolbar = ".renewal-workspace-toolbar";
+    const legacyToolbar = `${toolbar}:where(:not([data-shared-header]))`;
+    const tablet = s165RulesFor(legacyToolbar, /max-width: 760px/)[0];
     expect(tablet?.body).toMatch(/max-height: [^;]*dvh/);
     expect(tablet?.body).toContain("overflow-y: auto");
-
-    const phone = s165RulesFor(".renewal-workspace-toolbar", /max-width: 560px/)[0];
-    expect(phone?.body).toContain("position: static");
+    expect(s165RulesFor(legacyToolbar, /max-width: 560px/)[0]?.body).toContain(
+      "position: static",
+    );
+    expect(s165RulesFor(toolbar, /max-width: (560|760)px/)).toEqual([]);
+    expect(
+      allRules.find((rule) => rule.selector === toolbar && rule.context.length === 0)
+        ?.body,
+    ).toContain("position: sticky");
+    expect(
+      s165RulesFor(
+        `${toolbar}[data-shared-header] .renewal-header-work-status-panel`,
+        /max-height: 520px/,
+      )[0]?.body,
+    ).toContain("position: relative");
   });
 
   it("side panels fill a phone screen without a viewport-width overflow and clear the home indicator", () => {

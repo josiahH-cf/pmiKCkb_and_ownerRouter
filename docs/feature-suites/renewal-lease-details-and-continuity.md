@@ -3,7 +3,7 @@
 
 # S258 — Find lease details and resume the same work
 
-> Status: AUTHORING READY, intake 121. This is the third lease-page specification. The accepted two-view transition and continuity checks await implementation.
+> Status: Guided and Full continuity delivered at `2e5e47a8`, intake 121. November 9 intakes 132 and 136 are AUTHORING READY for the header controls and outcome-led Full sections.
 
 **Goal.**
 
@@ -26,6 +26,11 @@ for looking up or using specific details. The same control inventory and precise
 entry destinations remain reachable. Navigation visibly lands at its target and keeps
 the user's work through an ordinary interruption.
 
+On November 9 the screenshots and the serving `RenewalWorkspace.tsx` and
+`RenewalGuidedView.tsx` show two view buttons in the header and a duplicate Full section list at the bottom.
+RentVine record links are available deeper in the workspace. The new header exposes
+one view toggle and the exact RentVine lease record beside the copyable lease identity.
+
 **Actors and entry conditions.**
 
 Use the current Renewal roles, lease scope and route guards. A visit can begin on the
@@ -35,23 +40,24 @@ the destination. An unscoped process page can lead to the desk without guessing 
 
 **What it is / how it functions.**
 
-- **R-S258-1 — Offer Guided and Full.** Guided is the default for a fresh lease open.
-  The lease view switch offers Guided and Full. Carry useful Focus context and actions
-  into their matching Guided steps or Full sections before retiring its selectable
-  choice. Keep Lease information available in both views. Show the active view and
-  make the route back to Guided easy to identify. Preserve the deliberate view choice
-  for that lease visit.
-- **R-S258-2 — Land where the detail link says it will.** Keep the five existing
-  section destinations from Guided. Make the applicable action or information
-  reachable from its step or one navigation to its owning Full section or control.
-  A requested destination puts its heading or control visibly in the viewport after
-  layout and focuses it where appropriate, including keyboard navigation. A Guided
-  detail link replaces an older fragment with its own destination in the same visit.
-  Choosing Guided again clears that detail fragment. Keep the existing control
-  identifiers used by Help and tests. Retain applicable nested details,
-  confirmations and authority. Compare the full Focus
-  action and Help control inventories, including conditional states. If a target is
-  unavailable, keep a useful explanation and recovery at its nearest valid section.
+- **R-S258-1 — Toggle Full from the header.** Guided is the default for a fresh
+  lease open. Expose one labeled Full view toggle with its on/off state in the shared
+  sticky header. Off is Guided. The toggle is keyboard-operable, remains visible at
+  narrow widths and keeps the current view, step and working input context. Switching
+  back restores the prior applicable Guided step and position. Lease information and
+  the work controls remain reachable in both views. Remove the generic footer links
+  and duplicate view buttons. Keep named, task-specific detail links in their step.
+- **R-S258-2 — Land where the detail link says it will.** Preserve the five existing
+  Full section destinations through the header toggle and the Full section navigation.
+  A Guided link to a source or record opens its exact Verification item. A fix
+  link focuses the actual Work control at its owner. Keep either destination usable
+  while the other area is collapsed. When switched on without an exact target, Full shows the current step's
+  matching section where available. A requested destination puts its heading or
+  control visibly in the viewport after layout and focuses it where appropriate.
+  A new detail link replaces an older fragment in the visit. Choosing Guided again
+  clears the Full fragment. Preserve valid bookmarks, the actual control identifiers
+  used by Help/tests, conditional details and permissions. An unavailable destination
+  explains its recovery at the nearest valid section.
 - **R-S258-3 — Keep exact links useful.** A recognized step opens Guided there. A
   recognized section or control anchor opens Full at that target. A valid explicit
   target takes precedence over a remembered view. A legacy Focus link or stored
@@ -80,15 +86,47 @@ the destination. An unscoped process page can lead to the desk without guessing 
   its own entry. Navigation adds no new business save or approval. A stale or refused
   operation retains usable inputs and the current review or recovery route.
 
+- **R-S258-6 — Open the exact lease in RentVine from the header.** Display Open in RentVine
+  next to the lease identifier and its existing copy control in Guided and Full.
+  Reuse the verified lease destination resolver and supported shortcut route. Bind
+  the source link to the current authorized lease and expected HTTPS provider host,
+  with the existing link safety checks. Open in a new tab so the exact lease task and
+  pending local input stay in the app tab. If there is no verified link, show a short
+  unavailable state and route to the existing source review/refresh. A pasted or
+  conflicting link, guessed host/ID or another record cannot become this destination.
+  Keep the in-app lease entry and provider link clearly distinct.
+
+- **R-S258-7 — Consolidate the five Full sections around outcomes.** Full applies
+  S247 R-S247-14 and R-S247-15 at every section and exact linked outcome. It shows
+  more supporting detail and applicable secondary work using the same facts, fields
+  and operation owners as Guided. On entry to each section, place the outcome, named
+  action or wait, and any blocking or overdue cue before optional details. Keep
+  evidence in separate read-only links or disclosures. A named evidence link can
+  open the relevant detail on arrival. A named work link lands on the exact control
+  or its current refusal/recovery with evidence closed. Each applicable action has
+  one owning location. Preserve existing section and control links, including
+  legacy Focus links, by routing them to that owner. Do not retain a second editor
+  to satisfy an old anchor. Render neutral read-only evidence for eligible readers.
+  Hide unrelated inputs by applicability. Keep the current next step available
+  while staff inspect a different section.
+
 **Where to find deferred details.**
 
-| Staff need                                       | Entry and destination                                                                                                                                                        | Preservation and tradeoff                                                                                                                      |
-| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| Identify the lease and relevant source fact      | Lease information from either view. Lease details in Full contains the detailed facts, working record and applicable source corrections.                                     | The current cycle and material alerts stay in Guided. Detailed source history and exact edit controls stay in their original owners.           |
-| Understand a comparison or a price               | The shown Guided step retains the decision and its basis. The Market rent comparison section and existing Pricing basis control hold saved detail and the rule.              | Keep source date, stored comparison and override choices. Opening details adds no lookup.                                                      |
-| Verify an owner or tenant decision               | The relevant step and the Owner approval or Tenant offer and response section lead to the applicable message, evidence and controls. S248's Status log explains attribution. | Keep audience, recorded decision and provider evidence distinct. Communications remains available for its scoped work.                         |
-| Find documents, signatures, updates or receipts  | The matching Guided step and Documents and completion in Full lead to the actual file, evidence, preview or reconciliation control.                                          | Full remains longer for purposeful inspection. Current work remains in Guided and historical artifacts stay available in their approved scope. |
-| Follow guidance or correct a configuration input | Existing Help steps and authorized process, Admin or Connections links lead to the named destination. Back returns to the source when present.                               | Keep the distinction between guidance and a lease action. A role-restricted or unavailable target offers its actual next route.                |
+The five Full destinations use these Work and Verification placements. The Guided
+step remains independently workable through the same owner. Entries that depend on
+actual evidence or permission have the same reason and next action in both views.
+
+| Existing Full destination              | Work                                                                                                                                                                                                                | Read-only verification                                                                                                                                       |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Lease details (`lease-details`)        | Check the numbers and reach the exact current-fact correction, explicit refresh, term, assistance or notice input when it needs staff. A later source update links to Finish up when it belongs there.              | Source values and links, freshness, comparisons, current and historical recurring charges, lease/cycle basis.                                                |
+| Market rent comparison (`comps`)       | Run the applicable comparison, use manual input or edit the single Rent to recommend field. Deliberate rerun and inputs stay in secondary Work.                                                                     | RentCast result, input basis, comparable listings, derivation, report links and prior rent.                                                                  |
+| Owner approval (`owner`)               | Choose the pricing basis, review the owner message or record the decision. Link to the recommendation editor when a different amount is needed.                                                                     | Actual agreement and approved terms, linked replies and decision attribution.                                                                                |
+| Tenant offer and response (`tenant`)   | Review the tenant offer and its optional follow-ups, reconcile delivery or record the response. Keep applicable pause, cancel and Resume with that communication.                                                   | Current verified terms and recipients, last confirmed message, linked replies, schedule and recorded outcome.                                                |
+| Documents and completion (`documents`) | Group Documents and signatures, Finish up and Complete under their separate outcome headings within this section. Show the applicable next action, exact source preview/recovery, or staff completion at its owner. | Packet, form and signature evidence under Documents, discrepancies and receipts under Finish up, and recorded disposition and cycle evidence under Complete. |
+
+Lease information and the shared status control remain available in the header.
+A guidance, settings or provider handoff uses its existing authorized destination
+and preserves the source context.
 
 **Journey coverage.**
 
@@ -102,8 +140,8 @@ the destination. An unscoped process page can lead to the desk without guessing 
 
 **In scope / out of scope.**
 
-View choice, secondary detail discovery, legacy URLs, safe continuation, and presentation
-and working-input recovery. S247 owns the path and primary action. S248 owns evidence and
+View choice, outcome-led Full sections, separate Work and Verification destinations,
+legacy URLs, safe continuation and working-input recovery. S247 owns the path and primary action. S248 owns evidence and
 whether the result counts as work. S201, S224, S246 and S249 retain their own data and
 admission contracts.
 
@@ -131,6 +169,10 @@ My Work lease links and the S252 Help and assurance coverage.
 | [November 6 UX review](../evidence/renewal-one-path-ux-review-2026-11-06.md) and [litmus](../evidence/renewal-one-path-litmus-2026-11-06.md) | Recorded synthetic evidence | J04–J06 and the recorded typing and recovery repairs. L54 remains scoped.                                 |
 | Owner's accepted intake 121 direction and follow-up                                                                                          | Confirmed intent            | Guided replaces the selectable Focus choice. Full, useful controls and older destinations stay reachable. |
 
+The November 9 “Lease Renewal Page” screenshot marks the copyable lease reference
+and the repeated footer links. The owner's confirmation keeps both view modes and
+moves their selection and the external lease shortcut into the header.
+
 **Architecture outcome (deterministic, fail-first).**
 
 - **ARCH-S258-1** — One view and link resolver maps valid step, section and legacy
@@ -138,6 +180,16 @@ My Work lease links and the S252 Help and assurance coverage.
 - **ARCH-S258-2** — The existing continuation and retained-input owners restore
   authorized view and working state by record, tab and current context. Navigation
   and older acknowledgments cannot publish a business effect or replace newer work.
+
+- **ARCH-S258-3** — Use the existing lease-scoped destination resolver and continuation
+  rather than introducing a new provider URL builder or second view state. Fail-first:
+  the header has no RentVine record action and the footer duplicates view navigation.
+
+- **ARCH-S258-4** — The five Full destinations map to the same outcome and owner
+  contract as Guided. Existing selectors and anchors reach the appropriate Work or
+  Verification location. The starting Full section composition exposes evidence and
+  work controls in mixed panels. The consolidation check fails if either view keeps
+  a parallel editor or hides its required action in optional details.
 
 **Behavior outcome (deterministic, fail-first).**
 
@@ -147,6 +199,14 @@ My Work lease links and the S252 Help and assurance coverage.
   surface and recognize its scope and current state.
 - **BEH-S258-3** — A person resumes after a reload or refusal with their usable work
   and focus, or sees why a changed or inaccessible target needs a new selection.
+
+- **BEH-S258-4** — At any scroll position staff can recognize and change the active view
+  or open the exact authorized RentVine lease. The app still holds the same work on return.
+
+- **BEH-S258-5** — Staff land in Full and immediately identify the selected outcome,
+  the applicable action or its state, and where to check evidence. They can open
+  detail without navigating through editing or confirmation. They return to the
+  same task and state when they switch back to Guided.
 
 **Human litmus outcome.**
 
@@ -162,13 +222,15 @@ them to the promised control.
 
 **Requirement-to-outcome traceability.**
 
-| Requirement                   | Architecture outcome | Behavior outcome | Human litmus                         | Deterministic evidence / falsification                                                   |
-| ----------------------------- | -------------------- | ---------------- | ------------------------------------ | ---------------------------------------------------------------------------------------- |
-| R-S258-1 view choice          | ARCH-S258-1          | BEH-S258-1       | Find the detail and get back to work | AC-S258-1. Verify fresh, selected and reload cases with the complete original inventory. |
-| R-S258-2 visible destinations | ARCH-S258-1          | BEH-S258-1       | Find the detail and get back to work | AC-S258-1. Check real headings and focus after layout, including conditional controls.   |
-| R-S258-3 legacy links         | ARCH-S258-1          | BEH-S258-1       | Find the detail and get back to work | AC-S258-2. Test explicit, generic, invalid and unauthorized destinations.                |
-| R-S258-4 safe return          | ARCH-S258-2          | BEH-S258-2       | Find the detail and get back to work | AC-S258-3. Compare original scope and returned context across entrances.                 |
-| R-S258-5 working continuity   | ARCH-S258-2          | BEH-S258-3       | Find the detail and get back to work | AC-S258-4. Check text, focus, view, scope, pending feedback and restoration.             |
+| Requirement                            | Architecture outcome     | Behavior outcome       | Human litmus                         | Deterministic evidence / falsification                                                    |
+| -------------------------------------- | ------------------------ | ---------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------- |
+| R-S258-1 one sticky view toggle        | ARCH-S258-1, ARCH-S258-3 | BEH-S258-1, BEH-S258-4 | Find the detail and get back to work | AC-S258-1. Verify fresh, selected and reload cases with the complete original inventory.  |
+| R-S258-2 visible destinations          | ARCH-S258-1              | BEH-S258-1             | Find the detail and get back to work | AC-S258-1. Check real headings and focus after layout, including conditional controls.    |
+| R-S258-3 legacy links                  | ARCH-S258-1              | BEH-S258-1             | Find the detail and get back to work | AC-S258-2. Test explicit, generic, invalid and unauthorized destinations.                 |
+| R-S258-4 safe return                   | ARCH-S258-2              | BEH-S258-2             | Find the detail and get back to work | AC-S258-3. Compare original scope and returned context across entrances.                  |
+| R-S258-5 working continuity            | ARCH-S258-2              | BEH-S258-3             | Find the detail and get back to work | AC-S258-4. Check text, focus, view, scope, pending feedback and restoration.              |
+| R-S258-6 verified RentVine header link | ARCH-S258-3              | BEH-S258-4             | Find the detail and get back to work | AC-S258-5. Exact host/lease guard, unavailable recovery, separate tab and work retained.  |
+| R-S258-7 outcome-led Full sections     | ARCH-S258-4              | BEH-S258-5             | Find the detail and get back to work | AC-S258-6. Check all five sections, their named outcomes and separate exact destinations. |
 
 **Preservation set.**
 
@@ -181,9 +243,10 @@ conditional evidence separately.
 **Adversarial acceptance checks.**
 
 - **AC-S258-1** — Compare the original control inventory by identity and real handler.
-  Open all five Full sections from Guided and check the visible heading, keyboard focus
-  and return. Verify the two choices, useful former Focus actions and all applicable
-  conditional controls at desktop and phone widths in both themes.
+  Toggle Full at desktop and phone widths in both themes, then reach all five
+  sections via the retained section navigation and actual step links. Check visible
+  heading, focus, announced state, view/step restoration, absence of generic footer
+  links, useful former Focus actions and all applicable conditional controls.
 - **AC-S258-2** — Walk old lease, Focus, step, section and Help links, including an
   exact former Focus target, a generic entry, a malformed target and denied access.
   Verify actual destinations and useful fallback without loss of route guards.
@@ -197,6 +260,22 @@ conditional evidence separately.
   Verify actual retained text and focus in the same tab and authorized record. Confirm
   actor, record and tab isolation and honest save feedback.
 
+- **AC-S258-5** — In each view, the same lease copy and exact RentVine link are reachable
+  in the sticky header and identify the expected lease. Cover a missing destination,
+  conflicting lease ID, unexpected host and unauthorized access. The guarded rehearsal
+  observes the synthetic destination and new-tab behavior without a provider mutation.
+  Returning keeps the original step, work, scroll and authorized desk continuation.
+
+- **AC-S258-6** — Enter each Full section from its navigation, the toggle and an exact
+  task or evidence link. For Documents and completion, target all three outcomes
+  individually. At both supported widths, with optional details collapsed, verify
+  the heading, active Work action or reason and focus before supporting detail. Open
+  each read-only evidence region and assert zero action calls. Follow the same
+  cross-step correction in Guided and Full and confirm one owning control, shared
+  pending/rejected state, same refusal for a read-only actor, one result and exact
+  return. A section that retains the old mixed panels or a hidden work action fails
+  even if every control is reachable.
+
 **Forbidden actions / hard gates.**
 
 Use the guarded synthetic rehearsal. Opening, switching and returning are presentation.
@@ -204,14 +283,17 @@ Use the existing local retention boundaries, access checks and exact action owne
 
 **Dependencies / sequencing.**
 
-The delivered Guided and Full surfaces provide the controls for this slice. The
-transition can be verified independently of the revised S247 action and S248 header.
-Land view removal only after its exact control and route mappings pass.
+The existing Guided and Full handlers are the starting inventory. The header, exact
+link and continuation checks can run independently. Full consolidation consumes S247's
+shared Work and Verification rules and S248's single header status. Land any removal
+only after its exact owner, route and role mapping passes. Qualify both views together
+under S260 N09-10.
 
 **Standalone delivery contract.**
 
-Deliver the two-view transition, complete destination and legacy link mapping, return
-and restore coverage, and corresponding Help and assurance updates. Use the existing
+Deliver the consolidated Full sections, shared outcome and action ownership, header
+toggle and provider link, destination mapping, return and restore coverage, and
+corresponding Help and assurance updates. Use the existing
 synthetic records for qualification. A staff walkthrough supplies human evidence.
 
 **Verification and delivery contract.**
@@ -225,7 +307,7 @@ synthetic records for qualification. A staff walkthrough supplies human evidence
 
 1. Inventory reachable controls, links and the sources of return state.
 2. Prove the fail-first focus and compatibility cases and retain verified typing cases.
-3. Verify the two choices, actual destinations and interruption recovery before delivery.
+3. Verify both views, the five outcome-led Full sections, exact destinations and interruption recovery.
 
 **Deletion/merge recommendation.**
 

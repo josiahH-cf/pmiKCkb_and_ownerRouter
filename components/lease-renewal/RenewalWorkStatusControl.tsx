@@ -48,6 +48,7 @@ interface StatusLogRead {
 
 /** One note being written: a stable identity from its first save until another note is started. */
 interface NoteComposition {
+  cycleId?: string | null;
   noteId: string | null;
   revision: number;
   savedText: string;
@@ -76,8 +77,15 @@ async function readStatusLog(leaseId: string): Promise<StatusLogRead | null> {
   }
 }
 
-function newComposition(): NoteComposition {
-  return { noteId: null, revision: 0, savedText: "", pending: null, sent: new Set() };
+function newComposition(cycleId?: string | null): NoteComposition {
+  return {
+    cycleId,
+    noteId: null,
+    revision: 0,
+    savedText: "",
+    pending: null,
+    sent: new Set(),
+  };
 }
 
 /**
@@ -93,11 +101,15 @@ function newComposition(): NoteComposition {
 export function RenewalWorkStatusControl({
   leaseId,
   canEdit,
+  compact = false,
+  historyExtras,
   read,
   noteIdleMs = 1500,
 }: Readonly<{
   leaseId: string;
   canEdit: boolean;
+  compact?: boolean;
+  historyExtras?: React.ReactNode;
   read: RenewalWorkStatusPanelInput;
   /** How long typing pauses before the note saves by itself. */
   noteIdleMs?: number;
@@ -132,7 +144,9 @@ export function RenewalWorkStatusControl({
   /** True once the note in the note area has been saved, so another can be started. */
   const [noteSaved, setNoteSaved] = useState(false);
   const noteTextRef = useRef("");
-  const composition = useRef<NoteComposition>(newComposition());
+  const composition = useRef<NoteComposition>(
+    newComposition(compact ? read.currentCycleId : undefined),
+  );
   const noteFlight = useRef<Promise<boolean> | null>(null);
   const noteQueued = useRef(false);
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -310,6 +324,7 @@ export function RenewalWorkStatusControl({
     const request = {
       kind: "note",
       leaseId,
+      ...(current.cycleId !== undefined ? { expectedCycleId: current.cycleId } : {}),
       noteId: current.noteId,
       text,
       expectedRevision: current.revision,
@@ -382,7 +397,7 @@ export function RenewalWorkStatusControl({
   }
 
   function beginNote() {
-    composition.current = newComposition();
+    composition.current = newComposition(compact ? read.currentCycleId : undefined);
     setNoteSaved(false);
     setNoteState(AUTOSAVE_IDLE);
     setNoteError(null);
@@ -481,6 +496,9 @@ export function RenewalWorkStatusControl({
         <p className="muted renewal-status-log-meta">
           Note by {entry.byLabel} at{" "}
           <time dateTime={entry.at}>{formatWorkStatusRecordedAt(entry.at)}</time>
+          {compact && entry.cycleId && entry.cycleId !== read.currentCycleId
+            ? " · Earlier cycle"
+            : ""}
           {entry.lastSavedAt ? (
             <>
               , last saved at{" "}
@@ -503,11 +521,14 @@ export function RenewalWorkStatusControl({
           : NOT_RECORDED_WORK_STATUS_LABEL}
         ), recorded by {entry.byLabel} at{" "}
         <time dateTime={entry.at}>{formatWorkStatusRecordedAt(entry.at)}</time>
+        {compact && entry.cycleId && entry.cycleId !== read.currentCycleId
+          ? " · Earlier cycle"
+          : ""}
       </li>
     ),
   );
 
-  return (
+  const form = (
     <div className="ui-stack-tight renewal-work-status">
       <p
         className="renewal-work-status-saved"
@@ -530,7 +551,7 @@ export function RenewalWorkStatusControl({
         )}
       </p>
       <Field
-        hint="A choice saves by itself."
+        hint={compact ? undefined : "A choice saves by itself."}
         htmlFor={controlId}
         label={RENEWAL_WORK_STATUS_CONTROL_LABEL}
       >
@@ -569,7 +590,9 @@ export function RenewalWorkStatusControl({
       )}
       <Field
         error={noteError ?? undefined}
-        hint="A note saves by itself and leaves the status as it is."
+        hint={
+          compact ? undefined : "A note saves by itself and leaves the status as it is."
+        }
         htmlFor={noteFieldId}
         label={RENEWAL_STATUS_NOTE_LABEL}
       >
@@ -613,9 +636,9 @@ export function RenewalWorkStatusControl({
       <details
         className="renewal-work-status-history"
         data-testid="renewal-status-log"
-        open
+        open={compact ? undefined : true}
       >
-        <summary>{RENEWAL_STATUS_LOG_LABEL}</summary>
+        <summary>{compact ? "History" : RENEWAL_STATUS_LOG_LABEL}</summary>
         {notesRead === "unavailable" ? (
           <p className="renewal-status-log-unread">
             Saved notes could not be read, so only status changes are listed.{" "}
@@ -645,7 +668,36 @@ export function RenewalWorkStatusControl({
             ) : null}
           </>
         )}
+        {historyExtras}
       </details>
     </div>
+  );
+  return compact ? (
+    <details
+      className="renewal-header-work-status"
+      id="renewal-staff-status-log"
+      onKeyDown={(event) => {
+        if (event.key !== "Escape" || event.defaultPrevented || !event.currentTarget.open)
+          return;
+        event.preventDefault();
+        event.currentTarget.open = false;
+        event.currentTarget.querySelector("summary")?.focus();
+      }}
+    >
+      <summary
+        aria-label="Work status"
+        className="secondary-button renewal-workspace-toggle"
+      >
+        Work status{projection.state === "recorded" ? `: ${projection.label}` : ""}
+      </summary>
+      <section
+        aria-label="Staff status and Status log"
+        className="panel ui-stack renewal-header-work-status-panel"
+      >
+        {form}
+      </section>
+    </details>
+  ) : (
+    form
   );
 }

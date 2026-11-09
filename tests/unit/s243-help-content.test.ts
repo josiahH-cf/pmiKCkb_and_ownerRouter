@@ -143,7 +143,7 @@ describe("S243 R-S243-2 / R-S243-3: references, glossary and What changed", () =
     };
     for (let index = 1; index < versions.length; index += 1)
       expect(rank(versions[index - 1])).toBeGreaterThan(rank(versions[index]));
-    expect(versions).toEqual(["V2.2", "V2.1", "V2.0", "V1.1", "V1.0"]);
+    expect(versions).toEqual(["V3.0", "V2.2", "V2.1", "V2.0", "V1.1", "V1.0"]);
   });
 });
 

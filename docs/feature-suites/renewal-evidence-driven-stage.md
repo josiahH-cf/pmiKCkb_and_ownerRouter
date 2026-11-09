@@ -3,7 +3,7 @@
 
 # S248 — See and record what happened on a renewal
 
-> Status: November 7 intake 121 revision AUTHORING READY. The original evidence rules shipped at `ef81b891`. This revision owns the shared stage, status header and recording or reconciliation of work.
+> Status: Shared stage and header recording delivered at `2e5e47a8`, intake 121. November 9 intake 132 is AUTHORING READY for one sticky status, note and history entry.
 
 **Goal.**
 
@@ -39,6 +39,10 @@ The working batch retained its target and labeled a missing RentVine status. A f
 read after the existing per-user refresh window cleared the warning. The revision
 keeps the shared evidence projection and makes its current result and authorized
 recording action available together by the lease identity.
+
+The serving lease header has Record work and the evidence-based stage, while the
+work-status and Status log control is rendered beneath the Guided steps and in Full.
+November 9 replaces those repeated panels with one persistent header entry.
 
 **Actors and entry conditions.**
 
@@ -93,15 +97,13 @@ and its own source reads for the current cycle.
   stage. Elapsed time is shown as a fact ("since November 4") and nothing more.
 
 - **R-S248-13 — See the stage and record work from the header.** Put the shared current
-  stage and a secondary "Record work" control at the top left beside the lease identity
-  in Guided and Full, above the path strip where shown. Show one authoritative stage using
-  the existing staff vocabulary. Read-only staff can see the available stage and history
-  and understand any unavailable action. "Record work" presents the applicable existing
-  record or correction, including the actual event and evidence it requires. The Status log retains the separate staff annotation and notes.
-  Keep "Add a note" available in the Now card. A discrepancy shows a short "Needs a check"
-  cue and opens both attributed facts together. Preserve confirmation, cancel and
-  keyboard focus. An eligible retire or restore entry routes to the existing
-  S255 disposition action when available.
+  stage at the left beside lease identity in Guided and Full. Keep Record work reachable
+  in the header for the applicable existing milestone, evidence, correction and
+  retirement actions. Preserve current permission, confirmation and keyboard return.
+  A disagreement shows a short Needs a check cue linked to the affected Work outcome.
+  Keep its actionable remedy visible there and its two attributed facts available in
+  read-only Verification under S247 R-S247-15.
+  Use the shared status entry in R-S248-15 for annotations and notes.
 - **R-S248-14 — Show the result of the exact action.** During a save, retain the last
   confirmed stage with pending feedback. A confirmed readback shows the saved fact,
   provenance and updated stage and next step for the same cycle on lease, desk and
@@ -112,6 +114,25 @@ and its own source reads for the current cycle.
   identifiable. For an ambiguous send or save, use its existing receipt or readback
   and reconciliation path before a new attempt. Preserve independent later work and
   avoid moving focus after the person has chosen another task.
+
+- **R-S248-15 — One sticky Work status disclosure.** Place a compact, labeled control at
+  the right of the sticky lease header next to Lease information, with a responsive
+  placement below identity at narrow widths. Use the same instance and scope throughout
+  Guided and Full. The closed control shows the available recorded status. On opening it,
+  staff see the status selector, a simple Add a note field and a separately collapsed
+  History disclosure. Keep concise save, failure and recovery feedback and remove
+  explanatory subtext and per-step status/note panels. Route any legacy Add a note or
+  Status log link to this control and its relevant input or history.
+  Use the existing independently saved status and append-note operations, exact lease
+  and cycle, authorization and version checks. A note alone leaves status intact.
+  History shows prior entries newest first with actor, time and cycle attribution as
+  recorded. Keep readable earlier history and mark prior-cycle facts with their scope.
+  An eligible reader can inspect available status and history. Staff selection or a
+  note remains an annotation, and never records outreach, owner/tenant decisions,
+  documents, signatures, source writes or completion. A save does not switch the step.
+  Show the last confirmed value while saving. On refusal, stale scope or lost response,
+  retain usable input and offer the existing exact retry or refresh/readback. Dismissing
+  the control restores focus without losing an eligible in-progress note.
 
 **Journey coverage.**
 
@@ -163,6 +184,10 @@ help guides that today instruct the manual steps (S252).
 | Gmail acceptance, reply and bounce records                              | Provider evidence                        | Accepted means Gmail took the message; it never proves delivery to a person or reading.                            |
 | November 7 guarded replay and accepted Q1                               | Browser observation and confirmed intent | The stage remains visible during inspection. Bring the record action to the header and base it on actual evidence. |
 
+The November 9 header annotation and owner Q4 settle right-hand desktop placement.
+`RenewalWorkspace.tsx`, `RenewalStageHeader.tsx` and `RenewalWorkStatusControl.tsx`
+identify the delivered stage, log and autosave owners.
+
 **Architecture outcome (deterministic, fail-first).**
 
 - **ARCH-S248-1** — The stage projection consumes the lease cycle's per-message evidence, observed
@@ -177,6 +202,10 @@ help guides that today instruct the manual steps (S252).
 - **ARCH-S248-4** — The header uses the same cycle-scoped projection and existing
   evidence handlers. Changing a menu choice cannot write a milestone. Mutation feedback
   is driven by the owning result, not by a local stage selection.
+
+- **ARCH-S248-5** — One header status control shares S164/S232's existing store and save
+  operations across views. Fail-first: the Guided step renders a secondary status/log
+  panel and focuses a note field in that panel rather than the sticky header.
 
 **Behavior outcome (deterministic, fail-first).**
 
@@ -194,6 +223,10 @@ help guides that today instruct the manual steps (S252).
 - **BEH-S248-6** — In Guided and Full, staff can see the stage, find the actual record
   or correction, and distinguish saved, waiting, failed and unknown results. A denied
   action has an honest state and retains applicable readable history.
+
+- **BEH-S248-7** — While scrolled in any step, staff can open status, update it or add a
+  note, and optionally inspect history. The recorded milestone, authoritative stage and
+  applicable evidence stay distinguishable. Refresh reads the exact saved result.
 
 **Human litmus outcome.**
 
@@ -217,22 +250,23 @@ step back on the desk.
 
 **Requirement-to-outcome traceability.**
 
-| Requirement                          | Architecture outcome | Behavior outcome | Human litmus                              | Deterministic evidence / falsification                                                                          |
-| ------------------------------------ | -------------------- | ---------------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| R-S248-1 confirmed send records      | ARCH-S248-2          | BEH-S248-1       | Send the owner message and move on        | Sequence service test: accepted send writes one bound outreach record.                                          |
-| R-S248-2 scheduled state             | ARCH-S248-1          | BEH-S248-3       | Send the owner message and move on        | Scheduled fixture reads scheduled and stays open.                                                               |
-| R-S248-3 unclear never advances      | ARCH-S248-1          | BEH-S248-3       | Send the owner message and move on        | Needs-verification attempt fixture keeps the step open with reconcile.                                          |
-| R-S248-4 reply changes next step     | ARCH-S248-1          | BEH-S248-2       | Send the owner message and move on        | Reply fixture: next step is the decision; outcome field unset.                                                  |
-| R-S248-5 failed delivery             | ARCH-S248-1          | BEH-S248-3       | Send the owner message and move on        | Correlated bounce fixture reads delivery failed with resend step.                                               |
-| R-S248-6 draft is not a send         | ARCH-S248-1          | BEH-S248-3       | Send the owner message and move on        | Draft fixture never records outreach until staff confirm.                                                       |
-| R-S248-7 source evidence             | ARCH-S248-1          | BEH-S248-1       | Send the owner message and move on        | Changed source date and verified receipt fixtures; no auto completion.                                          |
-| R-S248-8 outside work counts         | ARCH-S248-3          | BEH-S248-4       | Send the owner message and move on        | An opened menu leaves stage unchanged. Saved hand evidence advances it, and agreeing evidence renders one fact. |
-| R-S248-9 gaps and disagreement       | ARCH-S248-1          | BEH-S248-4       | Send the owner message and move on        | Extend the S232 status tests: nothing recorded, agreeing, disagreeing.                                          |
-| R-S248-10 attributed and correctable | ARCH-S248-3          | BEH-S248-5       | Send the owner message and move on        | Correction removes the derived record, keeps history, reopens the step.                                         |
-| R-S248-11 Sheet parity               | ARCH-S248-2          | BEH-S248-1       | Send the owner message and move on        | Derived record prepares the same Sheet proposal as a staff record.                                              |
-| R-S248-12 no timers                  | ARCH-S248-1          | BEH-S248-3       | Send the owner message and move on        | Static and behavior check: no schedule or reminder created by a stage.                                          |
-| R-S248-13 header and actual work     | ARCH-S248-4          | BEH-S248-6       | See and record the status from the header | AC-S248-6. Test reading, opening, recording, annotating, cancelling and role refusal.                           |
-| R-S248-14 result and recovery        | ARCH-S248-4          | BEH-S248-6       | See and record the status from the header | AC-S248-7. Check confirmed readback, stale, unavailable and ambiguous outcomes.                                 |
+| Requirement                               | Architecture outcome | Behavior outcome | Human litmus                              | Deterministic evidence / falsification                                                                          |
+| ----------------------------------------- | -------------------- | ---------------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| R-S248-1 confirmed send records           | ARCH-S248-2          | BEH-S248-1       | Send the owner message and move on        | Sequence service test: accepted send writes one bound outreach record.                                          |
+| R-S248-2 scheduled state                  | ARCH-S248-1          | BEH-S248-3       | Send the owner message and move on        | Scheduled fixture reads scheduled and stays open.                                                               |
+| R-S248-3 unclear never advances           | ARCH-S248-1          | BEH-S248-3       | Send the owner message and move on        | Needs-verification attempt fixture keeps the step open with reconcile.                                          |
+| R-S248-4 reply changes next step          | ARCH-S248-1          | BEH-S248-2       | Send the owner message and move on        | Reply fixture: next step is the decision; outcome field unset.                                                  |
+| R-S248-5 failed delivery                  | ARCH-S248-1          | BEH-S248-3       | Send the owner message and move on        | Correlated bounce fixture reads delivery failed with resend step.                                               |
+| R-S248-6 draft is not a send              | ARCH-S248-1          | BEH-S248-3       | Send the owner message and move on        | Draft fixture never records outreach until staff confirm.                                                       |
+| R-S248-7 source evidence                  | ARCH-S248-1          | BEH-S248-1       | Send the owner message and move on        | Changed source date and verified receipt fixtures; no auto completion.                                          |
+| R-S248-8 outside work counts              | ARCH-S248-3          | BEH-S248-4       | Send the owner message and move on        | An opened menu leaves stage unchanged. Saved hand evidence advances it, and agreeing evidence renders one fact. |
+| R-S248-9 gaps and disagreement            | ARCH-S248-1          | BEH-S248-4       | Send the owner message and move on        | Extend the S232 status tests: nothing recorded, agreeing, disagreeing.                                          |
+| R-S248-10 attributed and correctable      | ARCH-S248-3          | BEH-S248-5       | Send the owner message and move on        | Correction removes the derived record, keeps history, reopens the step.                                         |
+| R-S248-11 Sheet parity                    | ARCH-S248-2          | BEH-S248-1       | Send the owner message and move on        | Derived record prepares the same Sheet proposal as a staff record.                                              |
+| R-S248-12 no timers                       | ARCH-S248-1          | BEH-S248-3       | Send the owner message and move on        | Static and behavior check: no schedule or reminder created by a stage.                                          |
+| R-S248-13 header and actual work          | ARCH-S248-4          | BEH-S248-6       | See and record the status from the header | AC-S248-6. Test reading, opening, recording, annotating, cancelling and role refusal.                           |
+| R-S248-14 result and recovery             | ARCH-S248-4          | BEH-S248-6       | See and record the status from the header | AC-S248-7. Check confirmed readback, stale, unavailable and ambiguous outcomes.                                 |
+| R-S248-15 sticky status, note and history | ARCH-S248-5          | BEH-S248-7       | See and record the status from the header | AC-S248-8. Verify one entry, keyboard/mobile behavior, distinct writes and prior history.                       |
 
 **Preservation set.**
 
@@ -264,6 +298,13 @@ provider-verified facts; Status log entries; and the existing manual recording c
   typed inputs, exact retry or reconciliation and one readback. Check focus with and
   without intervening staff navigation. A real recorded result advances only its cycle.
 
+- **AC-S248-8** — From all seven steps and Full, scroll then open the single sticky control
+  by keyboard and pointer. Check initial collapsed History, note-only and status-only
+  writes, exact readback and prior entries. Exercise read-only role, stale cycle, refused
+  save, lost acknowledgment and repeated retry. Assert zero evidence advancement or
+  provider calls from annotations. Prove actual Record work and Retire/Restore still
+  open their existing guarded actions and stale links reach the header.
+
 **Forbidden actions / hard gates.**
 
 No send, resend, follow-up or schedule without the existing staff confirmation. No decision
@@ -279,7 +320,7 @@ and Full views before the S258 transition. S255 owns any retirement effect.
 
 **Standalone delivery contract.**
 
-- **Deliverable now:** R-S248-1 to R-S248-14 with projection and sequence tests, header
+- **Deliverable now:** R-S248-1 to R-S248-15 with projection and sequence tests, header
   recording, correction and recovery, Sheet proposal parity and updated reconciliation rules.
 - **Consumes, but does not assume:** S247 (absent: existing status line), a linked thread (absent:
   staff record only).

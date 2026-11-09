@@ -722,12 +722,6 @@ export const RENEWAL_CONTROL_INVENTORY = [
     ],
   },
   {
-    control: "Turn the automatic start of batch preparation on or off",
-    source: "components/lease-renewal/RenewalKickoffPreparation.tsx",
-    capability: "manage_renewal_configuration",
-    enforcementSources: ["app/api/lease-renewal/kickoff-settings/route.ts"],
-  },
-  {
     control: "Store comp screenshot",
     source: "components/lease-renewal/RenewalProgressControls.tsx",
     capability: "screenshot_store",

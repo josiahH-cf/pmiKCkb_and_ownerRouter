@@ -29,8 +29,6 @@ import {
   renewalRoleCapability,
 } from "@/lib/lease-renewal/role-action-governance";
 import { isVerificationAccount } from "@/lib/auth/canary-policy";
-import { resolveRehearsalStandIn } from "@/lib/environment/rehearsal-stand-in";
-import { readKickoffAutomaticStart } from "@/lib/firestore/renewal-kickoff-settings";
 import {
   RENEWAL_SOURCE_REFRESH_COOKIE,
   parseRenewalSourceRefreshAfter,
@@ -184,12 +182,6 @@ export default async function LiveRenewalDeskPage({
   // S246 ARCH-S246-2: the batch rows are projected from the rows already loaded above. Group
   // membership is decided in the batch view from each row's one target verdict.
   const todayIso = businessDateIso(now);
-  // S249 R-S249-4: the one reviewed automatic-start setting (stored app configuration) and whether
-  // this process is the isolated rehearsal, which only resolveRehearsalStandIn() decides.
-  const automaticStart =
-    entry.surface === "batch"
-      ? await readKickoffAutomaticStart().catch(() => null)
-      : null;
   const canPrepare =
     hasRenewalRoleAuthority("request_reference_comps", user.role) &&
     !isVerificationAccount(user);
@@ -198,17 +190,6 @@ export default async function LiveRenewalDeskPage({
       ? {
           kickoff: {
             canPrepare,
-            automaticStart: automaticStart
-              ? {
-                  enabled: automaticStart.enabled,
-                  version: automaticStart.version,
-                  canChange:
-                    hasRenewalRoleAuthority("manage_renewal_configuration", user.role) &&
-                    !isVerificationAccount(user),
-                }
-              : null,
-            rehearsal: resolveRehearsalStandIn() !== null,
-            // S249 client fence: the automatic start reads only a batch from a current read.
             sourceCurrent:
               outcome.view.dataCurrency.state === "fresh" && outcome.view.readComplete,
           },

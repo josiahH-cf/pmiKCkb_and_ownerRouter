@@ -39,6 +39,7 @@ import {
   firstOccurrence,
   CommunicationScheduleSchema,
   localDateAt,
+  nextOccurrence,
   type CommunicationSchedule,
 } from "./schedule-calendar";
 import {
@@ -452,8 +453,23 @@ export class WorkflowCommunicationSequenceService {
         "Choose the first local date, time and timezone.",
         400,
       );
-    if (input.action === "send" && schedule)
-      throw new EditableLayerError("Send now and Schedule are separate actions.", 400);
+    const immediateTenantOffer = input.action === "send" && schedule !== null;
+    if (
+      immediateTenantOffer &&
+      schedule &&
+      (s.context.purpose !== "renewal_tenant" ||
+        s.context.replyTo ||
+        !target.noticeCycleId ||
+        s.confirmedCount !== 0 ||
+        s.authorization ||
+        s.state !== "draft" ||
+        schedule.everyDays === null ||
+        (!schedule.endDate && (schedule.sendLimit ?? 0) < 2))
+    )
+      throw new EditableLayerError(
+        "Send now with follow-ups requires a new tenant offer for the exact current cycle and a bounded recurrence.",
+        409,
+      );
     if (input.action === "resume") schedule = s.authorization!.schedule;
     const authorizesFollowUp =
       schedule?.everyDays !== null && schedule?.everyDays !== undefined;
@@ -521,10 +537,21 @@ export class WorkflowCommunicationSequenceService {
       throw new EditableLayerError("The approved send limit is already reached.", 409);
     if (schedule?.endDate && localDateAt(nowMs, schedule.timeZone) > schedule.endDate)
       throw new EditableLayerError("The schedule's inclusive end date has passed.", 409);
+    if (immediateTenantOffer && schedule) {
+      const followUp = nextOccurrence(schedule, nowMs, 1);
+      if (
+        followUp === null ||
+        localDateAt(followUp, schedule.timeZone) !== schedule.firstDate
+      )
+        throw new EditableLayerError(
+          "The reviewed plan does not allow a follow-up on the shown date. Review its timing again.",
+          409,
+        );
+    }
     const nextDueAtMs =
       input.action === "resume"
         ? Math.max(nowMs, s.nextDueAtMs ?? nowMs)
-        : schedule
+        : input.action === "schedule" && schedule
           ? firstOccurrence(schedule, nowMs).instantMs
           : nowMs;
     const a = {
@@ -541,6 +568,10 @@ export class WorkflowCommunicationSequenceService {
       initial,
       followUp,
       schedule,
+      ...(immediateTenantOffer ||
+      (input.action === "resume" && s.authorization?.immediateTenantOffer)
+        ? { immediateTenantOffer: true as const }
+        : {}),
       ...(target.reply ? { reply: target.reply } : {}),
     };
     const authorization: CommunicationAuthorization = {
@@ -557,6 +588,11 @@ export class WorkflowCommunicationSequenceService {
       nowMs,
       action: input.action === "send" ? "send_authorized" : "schedule_authorized",
       dispositionRevision: target.dispositionRevision,
+      initialTenantAuthorization:
+        input.action !== "resume" &&
+        s.confirmedCount === 0 &&
+        s.context.purpose === "renewal_tenant" &&
+        !s.context.replyTo,
       apply: (current) => {
         const c = requireSequence(current);
         if (
@@ -676,12 +712,11 @@ export class WorkflowCommunicationSequenceService {
   async observe(s: CommunicationSequence): Promise<CommunicationSequence> {
     if (!s.authorization) return s;
     await this.deps.assertRuntimeAction("gmail.mailbox.read");
-    const unique = new Map(
-      [...s.linkedThreads, ...s.threads].map((t) => [
-        `${t.senderEmail}:${t.threadId}`,
-        t,
-      ]),
-    );
+    const linked =
+      s.authorization.immediateTenantOffer && s.confirmedCount > 0
+        ? s.threads
+        : [...s.linkedThreads, ...s.threads];
+    const unique = new Map(linked.map((t) => [`${t.senderEmail}:${t.threadId}`, t]));
     const senders = new Set(s.threads.map((t) => t.senderEmail.toLowerCase()));
     senders.add(s.senderEmail.toLowerCase());
     const ids: string[] = [];
@@ -718,7 +753,10 @@ export class WorkflowCommunicationSequenceService {
             continue;
           }
           if (
-            receivedAtMs < s.authorization.approvedAtMs ||
+            receivedAtMs <
+              (s.authorization.immediateTenantOffer
+                ? (s.threads[0]?.sentAtMs ?? s.authorization.approvedAtMs)
+                : s.authorization.approvedAtMs) ||
             s.observedMessageIds.includes(`${mailboxKey}:${m.id}`) ||
             s.observedMessageIds.includes(m.id)
           )

@@ -2826,6 +2826,8 @@ describe("S113 mounted operator journey with persisted backend state", () => {
       }> = [];
       const routePaths = {
         "/api/lease-renewal/workspace": "workspace",
+        "/api/lease-renewal/work-status": "work_status",
+        "/api/lease-renewal/sender-signature": "sender_signature",
         "/api/lease-renewal/message-preparation": "message_preparation",
         "/api/lease-renewal/notice-review": "notice_review",
         "/api/lease-renewal/notice-timing-basis": "notice_timing_basis",
@@ -3268,6 +3270,13 @@ describe("S113 mounted operator journey with persisted backend state", () => {
           owningGetParsed("pricing_policy", result);
           return response;
         }
+        if (url.pathname === "/api/lease-renewal/work-status" && request.method === "GET")
+          return (await import("@/app/api/lease-renewal/work-status/route")).GET(request);
+        if (url.pathname === "/api/lease-renewal/sender-signature") {
+          const signature =
+            await import("@/app/api/lease-renewal/sender-signature/route");
+          return request.method === "GET" ? signature.GET() : signature.POST(request);
+        }
         if (url.pathname.endsWith("/operating-sheet"))
           return request.method === "GET" ? GET(request) : POST(request);
         if (url.pathname.endsWith("/market-comps")) return compRoute(request);
@@ -3638,6 +3647,16 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         ).toBe(1300);
         expect(screen.getByText(/Retained provider basis: RentCast/)).toBeInTheDocument();
       }
+      function recommendedRentEditor() {
+        return within(
+          screen.getByRole("region", { name: "Market rent comparison" }),
+        ).getByLabelText("Rent to recommend");
+      }
+      function enterRecommendedRent(value: string) {
+        const input = recommendedRentEditor();
+        change(input, value);
+        fireEvent.keyDown(input, { key: "Enter" });
+      }
       /**
        * S155/S156: a response is recorded by choosing it, and its source saves when that field is
        * left; nothing waits on a Record button. S157: the owner-approved terms are the working
@@ -3668,7 +3687,11 @@ describe("S113 mounted operator journey with persisted backend state", () => {
               change(root.getByLabelText("Working effective date"), terms.effectiveDate);
             if (terms.endDate)
               change(root.getByLabelText("Working term end date"), terms.endDate);
-            enter(root.getByLabelText("Working monthly rent"), terms.rent);
+            fireEvent.click(
+              root.getByRole("button", { name: "Change recommended rent" }),
+            );
+            expect(recommendedRentEditor()).toHaveFocus();
+            enterRecommendedRent(terms.rent);
             await waitFor(
               async () =>
                 expect(
@@ -3711,7 +3734,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
             change(root.getByLabelText("Working effective date"), terms.effectiveDate);
           if (terms.endDate)
             change(root.getByLabelText("Working term end date"), terms.endDate);
-          enter(root.getByLabelText("Working monthly rent"), terms.rent);
+          enterRecommendedRent(terms.rent);
           await waitFor(
             async () => {
               const record = await getRenewalWorkingRecord(actor, "701", db);
@@ -3891,12 +3914,15 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         // The remounted preparation loads through the emulator-backed route; same budget as
         // the journey's other reloads.
         await message.findByLabelText("Current lease origin", {}, { timeout: 10_000 });
-        // S161/S155: entries save by themselves (a choice on change, text on blur); there is no
-        // review checkbox and no Save button.
+        // S224: the first-use form saves for the actual managed sender before any outgoing work.
+        const signature = within(message.getByRole("form", { name: "Your signature" }));
+        change(await signature.findByLabelText("Sender name"), "Emulator Staff");
+        fireEvent.click(signature.getByRole("button", { name: "Save my signature" }));
+        await message.findByRole("button", { name: /^Edit signature$/ });
+        // S161/S155: message entries save by themselves (a choice on change, text on blur).
         change(message.getByLabelText("Current lease origin"), "pmi");
         for (const control of message.getAllByLabelText("Does this charge apply?"))
           change(control, "false");
-        change(message.getByLabelText("Sender name"), "Emulator Staff");
         change(
           message.getByLabelText("Response request (optional wording edit)"),
           "Please share your preferred next step.",
@@ -3975,7 +4001,10 @@ describe("S113 mounted operator journey with persisted backend state", () => {
             },
           },
         );
-        expect(resumed().getByLabelText("Sender name")).toHaveValue("Emulator Staff");
+        expect((await readMessage()).facts.signature).toMatchObject({
+          name: "Emulator Staff",
+          email: actor.email,
+        });
         expect(
           resumed().queryByRole("button", { name: "Preview unsent Gmail draft" }),
         ).toBeEnabled();

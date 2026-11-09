@@ -261,9 +261,11 @@ export interface RenewalStage {
   readonly finishUp: readonly RenewalFinishUpItem[];
 }
 
-const STEP_FOR_ACTIVITY: Record<
-  ManualActivity | "owner_response" | "tenant_response" | "complete",
-  RenewalPathStepId
+export const STEP_FOR_ACTIVITY: Readonly<
+  Record<
+    ManualActivity | "owner_response" | "tenant_response" | "complete",
+    RenewalPathStepId
+  >
 > = {
   program_contact: "assisted-program-contact",
   owner_outreach: "ask-owner",
@@ -1140,7 +1142,7 @@ export function projectRenewalStage(
     : scopedContext.verification
       ? {
           label: scopedContext.verification.label,
-          target: scopedContext.verification.refresh ? null : "renewal-card-data-check",
+          target: scopedContext.verification.refresh ? null : "renewal-rent-and-charges",
         }
       : null;
   return {
@@ -1211,6 +1213,7 @@ export interface RenewalStageSummary {
   readonly stageLine: string;
   readonly currentStepId: RenewalPathStepId;
   readonly currentStepLabel: string;
+  readonly triage?: { readonly rank: number; readonly step: number };
   readonly nextStep: RenewalStage["nextStep"];
   readonly needsCheck: boolean;
   readonly checkDetail: string | null;
@@ -1220,7 +1223,25 @@ export interface RenewalStageSummary {
 }
 
 export function summarizeRenewalStage(stage: RenewalStage): RenewalStageSummary {
+  const step = stage.steps.findIndex((item) => item.id === stage.currentStepId);
+  const current = stage.steps[step];
+  const urgent =
+    stage.blocker ||
+    stage.check ||
+    stage.evidence.owner?.unconfirmedSequenceId ||
+    stage.evidence.tenant?.unconfirmedSequenceId ||
+    stage.nextStep.label === RENEWAL_STAGE_NEXT_STEP.checkAddress;
   return {
+    triage: {
+      rank: urgent
+        ? 0
+        : current?.scheduled
+          ? 2
+          : stage.waiting || current?.state === "waiting"
+            ? 3
+            : 1,
+      step: Math.max(step, 0),
+    },
     version: stage.version,
     stage: stage.stage,
     stageLine: stage.stageLine,

@@ -127,6 +127,8 @@ export interface CommunicationAuthorization {
   initial: AuthorizedMessage;
   followUp: AuthorizedMessage | null;
   schedule: CommunicationSchedule | null;
+  /** An immediate first tenant offer followed by an explicitly reviewed recurrence. */
+  immediateTenantOffer?: true;
 }
 export interface CommunicationSequence
   extends

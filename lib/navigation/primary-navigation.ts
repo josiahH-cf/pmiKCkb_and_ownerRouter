@@ -80,16 +80,6 @@ export const PRIMARY_NAVIGATION_MANIFEST: readonly PrimaryNavigationGroupDefinit
         icon: "approval-tray",
         visibility: "renewals-or-admin",
       },
-      {
-        // S242 R-S242-1: the staff manual, reachable from every page for every role.
-        id: "help",
-        label: "Help",
-        description: "Read step-by-step guides for every part of the app.",
-        href: "/help",
-        activePaths: ["/help"],
-        icon: "help-book",
-        visibility: "all-staff",
-      },
     ],
   },
   {
@@ -147,6 +137,16 @@ export const PRIMARY_NAVIGATION_MANIFEST: readonly PrimaryNavigationGroupDefinit
         href: "/connections",
         activePaths: ["/connections"],
         icon: "plug-connected",
+        visibility: "all-staff",
+      },
+      {
+        // S242 R-S242-1: one staff Help entry in the Admin menu.
+        id: "help",
+        label: "Help",
+        description: "Read step-by-step guides for every part of the app.",
+        href: "/help",
+        activePaths: ["/help"],
+        icon: "help-book",
         visibility: "all-staff",
       },
     ],

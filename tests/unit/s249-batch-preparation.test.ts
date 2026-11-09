@@ -55,7 +55,6 @@ function harness(
     claims.delete(`${input.leaseId}_${input.cycleKey}`);
   });
   const deps: KickoffPreparationDeps = {
-    automaticStartEnabled: async () => overrides.enabled ?? true,
     readLease: async () => (overrides.lease === undefined ? LEASE : overrides.lease),
     storedComparison: async () => overrides.stored ?? false,
     allowanceReached: async () => overrides.allowance ?? false,
@@ -109,32 +108,43 @@ describe("S249 ARCH-S249-4 server fences: no lookup outside the approved limits"
     expect(lookup).not.toHaveBeenCalled();
   });
 
-  it("refuses the automatic start while the reviewed setting is off; a staff click still runs", async () => {
-    const off = harness({ enabled: false });
-    expect(await runKickoffPreparation(STAFF, automatic, off.deps)).toMatchObject({
+  it("refuses a legacy automatic request before reading anything", async () => {
+    const { deps, lookup } = harness();
+    const read = vi.spyOn(deps, "readLease");
+    expect(await runKickoffPreparation(STAFF, automatic, deps)).toMatchObject({
       status: "refused",
       code: "automatic_start_off",
     });
-    expect(off.lookup).not.toHaveBeenCalled();
-    expect(await runKickoffPreparation(STAFF, staff, off.deps)).toMatchObject({
+    expect(read).not.toHaveBeenCalled();
+    expect(lookup).not.toHaveBeenCalled();
+    expect(await runKickoffPreparation(STAFF, staff, deps)).toMatchObject({
       status: "prepared",
       billed: true,
     });
-    expect(off.lookup).toHaveBeenCalledTimes(1);
   });
 
-  it("refuses the automatic start for a lease outside the working batch", async () => {
-    const { deps, lookup } = harness({ lease: { ...LEASE, inWorkingBatch: false } });
-    expect(await runKickoffPreparation(STAFF, automatic, deps)).toMatchObject({
+  it.each([
+    { inWorkingBatch: false, cycleDateIso: "2026-12-31" },
+    { inWorkingBatch: true, cycleDateIso: "2026-12-30" },
+  ])("refuses stale selected-month membership or a changed cycle", async (scope) => {
+    const { deps, lookup } = harness({ lease: { ...LEASE, ...scope } });
+    expect(
+      await runKickoffPreparation(
+        STAFF,
+        { ...staff, month: "2026-12", cycleDateIso: "2026-12-31" },
+        deps,
+      ),
+    ).toMatchObject({
       status: "refused",
       code: "outside_working_batch",
     });
     expect(lookup).not.toHaveBeenCalled();
+    expect(deps.claim).not.toHaveBeenCalled();
   });
 
   it("at the allowance makes no lookup and takes no claim", async () => {
     const { deps, lookup } = harness({ allowance: true });
-    expect(await runKickoffPreparation(STAFF, automatic, deps)).toMatchObject({
+    expect(await runKickoffPreparation(STAFF, staff, deps)).toMatchObject({
       status: "allowance_reached",
       message: "Comparison not run: monthly allowance reached",
     });
@@ -144,10 +154,10 @@ describe("S249 ARCH-S249-4 server fences: no lookup outside the approved limits"
 
   it("refuses a lease and cycle that already hold a claim", async () => {
     const { deps, lookup } = harness();
-    await runKickoffPreparation(STAFF, automatic, deps);
+    await runKickoffPreparation(STAFF, staff, deps);
     const again = await runKickoffPreparation(
       STAFF,
-      { ...automatic, operationId: "op-2" },
+      { ...staff, operationId: "op-2" },
       deps,
     );
     expect(again).toMatchObject({ status: "already_claimed", billed: false });
@@ -158,7 +168,7 @@ describe("S249 ARCH-S249-4 server fences: no lookup outside the approved limits"
     const { deps, lookup } = harness({
       lease: { ...LEASE, housingAssistance: { program: "Example Housing Office" } },
     });
-    expect(await runKickoffPreparation(STAFF, automatic, deps)).toMatchObject({
+    expect(await runKickoffPreparation(STAFF, staff, deps)).toMatchObject({
       status: "held_back",
     });
     expect(lookup).not.toHaveBeenCalled();
@@ -180,7 +190,7 @@ describe("S249 ARCH-S249-3 batch preparation: one billed lookup per lease per cy
     const { deps, lookup } = harness();
     const results = [];
     for (const [index, trigger] of (
-      ["automatic", "staff", "automatic", "staff", "automatic"] as const
+      ["staff", "staff", "staff", "staff", "staff"] as const
     ).entries())
       results.push(
         await runKickoffPreparation(
@@ -200,7 +210,7 @@ describe("S249 ARCH-S249-3 batch preparation: one billed lookup per lease per cy
     const { deps, release, claims } = harness({
       answer: { ok: true, reason: "out_of_allowance", confidence: "Needs Verification" },
     });
-    expect(await runKickoffPreparation(STAFF, automatic, deps)).toMatchObject({
+    expect(await runKickoffPreparation(STAFF, staff, deps)).toMatchObject({
       status: "allowance_reached",
     });
     expect(release).toHaveBeenCalledTimes(1);
@@ -211,7 +221,7 @@ describe("S249 ARCH-S249-3 batch preparation: one billed lookup per lease per cy
     const { deps, claims } = harness({
       answer: { ok: true, reason: "too_few_comps", confidence: "Needs Verification" },
     });
-    const result = await runKickoffPreparation(STAFF, automatic, deps);
+    const result = await runKickoffPreparation(STAFF, staff, deps);
     expect(result.status).toBe("no_usable");
     expect(result.message).toMatch(/Enter your own comparison figures/);
     expect([...claims.values()][0]?.state).toBe("no_usable");
@@ -223,16 +233,16 @@ describe("S249 ARCH-S249-3 batch preparation: one billed lookup per lease per cy
       throw new Error("synthetic timeout");
     });
     const fenced = { ...deps, lookup: silent };
-    expect((await runKickoffPreparation(STAFF, automatic, fenced)).status).toBe("failed");
+    expect((await runKickoffPreparation(STAFF, staff, fenced)).status).toBe("failed");
     expect(
-      (await runKickoffPreparation(STAFF, { ...automatic, operationId: "op-9" }, fenced))
+      (await runKickoffPreparation(STAFF, { ...staff, operationId: "op-9" }, fenced))
         .status,
     ).toBe("already_claimed");
     expect(silent).toHaveBeenCalledTimes(1);
   });
 });
 
-describe("S249 AC-S249-4 no preparation path creates a draft, send, schedule or provider write", () => {
+describe("S249 AC-S249-4 no preparation path creates a Gmail draft, send, schedule or provider write", () => {
   const sources = [
     "lib/lease-renewal/kickoff-preparation-service.ts",
     "lib/lease-renewal/kickoff-preparation-runtime.ts",
@@ -240,7 +250,7 @@ describe("S249 AC-S249-4 no preparation path creates a draft, send, schedule or 
     "lib/firestore/renewal-kickoff-preparations.ts",
     "components/lease-renewal/RenewalKickoffPreparation.tsx",
   ].map((path) => [path, readFileSync(path, "utf8")] as const);
-  it("imports no Gmail, sequence, draft, schedule or provider write module", () => {
+  it("imports no Gmail transport, sequence, schedule or provider write module", () => {
     for (const [path, text] of sources) {
       const imports = [...text.matchAll(/from "([^"]+)"/g)].map((match) => match[1]);
       for (const name of imports)

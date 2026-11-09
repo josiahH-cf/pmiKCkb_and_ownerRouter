@@ -10,11 +10,35 @@ import type { HelpGuide } from "@/lib/help/types";
 const DESK = "/lease-renewal/live/desk";
 const LEASE = "/lease-renewal/live/desk/lease/[leaseId]";
 const FULL_VIEW = ["click-button:Full view"];
+const FULL_CORRECTIONS = [
+  ...FULL_VIEW,
+  "open-summary:Correct lease facts and review source updates",
+];
+const FULL_NUMBERS_EVIDENCE = [...FULL_VIEW, "open-summary:Verify check the numbers"];
+const FULL_COMPARISON_INPUTS = [
+  ...FULL_VIEW,
+  "open-summary:Comparison inputs and deliberate rerun",
+];
+const FULL_OWNER_RECORD = [
+  ...FULL_VIEW,
+  "open-summary:Record owner outreach or decision",
+];
+const FULL_TENANT_RECORD = [
+  ...FULL_VIEW,
+  "open-summary:Record tenant contact or response",
+];
+const FULL_TENANT_EDIT = [
+  ...FULL_VIEW,
+  "open-summary:Edit tenant message and manage delivery options",
+];
+const FULL_FINISH_UP = [
+  ...FULL_VIEW,
+  "open-summary:Work remaining follow-ups and source updates",
+];
 const ALL_LEASES = ["click-link:All leases and filters"];
 
 const SECTIONS = ["lib/lease-renewal/dashboard-sections.ts"];
 const BATCH = ["components/lease-renewal/RenewalWorkingBatch.tsx"];
-const BATCH_GROUPS = ["lib/lease-renewal/renewal-batch.ts"];
 const GUIDED = ["components/lease-renewal/RenewalGuidedView.tsx"];
 const PATH = ["lib/lease-renewal/renewal-path.ts"];
 const KICKOFF = ["lib/lease-renewal/renewal-preparation.ts"];
@@ -49,7 +73,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         id: "open-renewals",
         scene: "renewal-batch",
         action:
-          "Open Lease Renewal. The desk opens on the working batch, with the working month and the number of leases in words above This batch.",
+          "Open Lease Renewal. The desk opens on the working batch, with the working month and lease count above Monthly renewals.",
         control: {
           label: "Working batch",
           role: "region",
@@ -59,22 +83,22 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         route: DESK,
         where: "Renewals desk, at the top",
         result:
-          "This batch lists the working month's leases: Ready for your review first with a count, then the leases that need an input with the input named, then waiting and finished leases. Carried over lists earlier leases with no completion recorded, and Everything else counts the other groups. Opening the batch changes nothing in RentVine or the operating Sheet.",
+          "The table lists the selected month's targets first and unfinished earlier leases after them. Sort by stage, date or rent. Each row distinguishes staff action, a scheduled send, waiting and an unconfirmed result.",
         effect: "reads",
-        note: "Previous month and Next month change the month shown. Choose a count under Everything else, such as Renewed in RentVine, confirm and close or Not renewal targets, to list its leases. While preparation is on, opening the batch prepares each lease's comparison and owner message once per lease each cycle, inside the month's comparison allowance; Prepare this batch runs the same preparation when you choose it.",
+        note: "Previous month and Next month change the month shown. Choose a count above the table, such as Renewed in RentVine, confirm and close or Not renewal targets, to list its leases. Choose the button that names the month to prepare its eligible leases. The app reuses stored comparisons, follows the RentCast allowance and keeps owner drafts in the app. Changing the month or opening the desk starts no preparation.",
       },
       {
         id: "open-a-lease",
         scene: "renewal-batch-narrow",
-        action: "Under This batch, choose the lease's address or its next step link.",
+        action: "In Monthly renewals, choose the lease's address or next step link.",
         control: {
-          label: "This batch",
+          label: "Monthly renewals",
           role: "region",
           availability: "required",
-          source: BATCH_GROUPS,
+          source: BATCH,
         },
         route: DESK,
-        where: "Renewals desk, This batch",
+        where: "Renewals desk, Monthly renewals",
         result:
           "The lease opens in this tab in Guided view at its current step: the stage line says who it waits on and since when, the Renewal path names each step, and the Now card shows its primary action after the heading and any alert, followed by the supporting next-step and detail text. ← Back to renewals returns to the same month, group and place.",
         effect: "reads",
@@ -203,6 +227,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         where: "Guided view, the Now card on Offer the tenant",
         result:
           "Once Gmail accepts the offer, the lease reads Waiting on tenant response. Prepare the tenant offer and record the response covers copying the offer, a Gmail draft and Communications.",
+        note: "In the exact review, you can authorize follow-ups after the tenant offer. Enter their wording, interval, time, timezone and stopping bound. The next follow-up is due after confirmed acceptance. A verified tenant reply pauses unsent follow-ups. Record the decision separately.",
         effect: "explicit-send",
       },
       {
@@ -265,7 +290,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           region: "region:Documents and completion",
           availability: "conditional",
           source: MANUAL,
-          actions: FULL_VIEW,
+          actions: [...FULL_VIEW, "open-summary:Record completion or non-renewal"],
         },
         route: LEASE,
         where: "Complete, or Documents and completion, Staff completion",
@@ -277,20 +302,21 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
       {
         id: "work-a-covered-lease",
         action:
-          "On a lease under a standing owner agreement, read Pricing basis on the Now card: Ask the owner reads Covered by the agreement with no owner message needed, and Rent to recommend applies the agreement's rule to the current rent with its basis shown.",
+          "Open Ask the owner and read Pricing basis. When a verified standing agreement covers this renewal, the owner step shows the rule and the rent it gives.",
         control: {
           label: "Pricing basis",
           role: "group",
-          region: "region:Now",
+          region: "region:Renewal pricing policy",
           availability: "conditional",
           source: ["lib/lease-renewal/standing-agreement.ts"],
+          actions: ["click-button:Ask the owner"],
         },
         route: LEASE,
-        where: "Guided view, the Now card on Compare market rent or Ask the owner",
+        where: "Ask the owner in Guided view or Owner approval in Full view",
         result:
-          "The path continues at Offer the tenant. If you opened the covered Ask the owner step, choose Continue to Offer the tenant on its Now card. The message tools stay available below. Choosing an agreement asks This lease only or Every lease in this owner's portfolio and saves on one action, and typing a different rent returns the lease to Ask the owner with the reason in words.",
+          "Coverage lets you continue to Offer the tenant. When saving a pricing basis, choose This lease only or Every lease in this owner's portfolio. A recommendation outside the rule returns the lease to Ask the owner with the reason shown.",
         effect: "saves-in-app",
-        note: "The desk row carries the Standing agreement tag. Owner decides each renewal returns the lease to asking the owner each cycle. When Now shows Pricing basis, use that chooser. Full view keeps it in Renewal pricing policy.",
+        note: "The desk row carries the Standing agreement tag. Choose Owner decides each renewal when an owner decision is needed each cycle.",
       },
       {
         id: "work-an-assisted-lease",
@@ -314,7 +340,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         id: "choose-full-view",
         scene: "lease-full-view",
         action:
-          "Choose Full view to see every section of the lease. Guided view returns to the current step.",
+          "Turn on Full view to see all five sections. Turn it off to return to the Guided path.",
         control: {
           label: "Full view",
           role: "button",
@@ -327,7 +353,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "Full view shows every section, with section links for Lease details, Market rent comparison, Owner approval, Tenant offer and response, and Documents and completion. Switching views saves nothing, and the next lease you open starts in Guided view.",
         effect: "reads",
-        note: "Every section in Full view, under the Now card, opens Full view at one section.",
+        note: "Full view opens at the Guided outcome you were viewing. Use the section links to move to another section.",
       },
       {
         id: "read-lease-details",
@@ -376,7 +402,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           region: "region:Lease details",
           availability: "required",
           source: ["components/lease-renewal/LeaseTermReviewControl.tsx"],
-          actions: FULL_VIEW,
+          actions: FULL_CORRECTIONS,
         },
         route: LEASE,
         where: "Lease details, Lease term",
@@ -395,7 +421,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           region: "region:Lease details",
           availability: "required",
           source: WORKSPACE,
-          actions: FULL_VIEW,
+          actions: FULL_NUMBERS_EVIDENCE,
         },
         route: LEASE,
         where: "Lease details, Data check",
@@ -407,18 +433,19 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
       {
         id: "record-work-status",
         action:
-          "Open Staff status and Status log to add a staff status annotation. Add a note on the Now card opens the note box.",
+          "Open Work status beside Lease information to select a status, add a note or open History.",
         control: {
           label: "Work status (recorded by staff)",
           role: "label",
           region: "region:Staff status and Status log",
+          actions: ["open-summary:Work status"],
           availability: "required",
           source: ["lib/lease-renewal/work-status.ts"],
         },
         route: LEASE,
-        where: "Lease page, Staff status and Status log",
+        where: "Sticky lease header, Work status",
         result:
-          "Your annotation or note saves with your name and time in the Status log. The stage beside the lease identity follows the actual work and evidence.",
+          "Your annotation or note saves with your name and time in History. The stage beside the lease identity follows the actual work and evidence.",
         effect: "saves-in-app",
       },
       {
@@ -432,7 +459,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           availability: "conditional",
           source: ACTIVITIES,
           sourceText: "{definition.label} outcome",
-          actions: FULL_VIEW,
+          actions: FULL_OWNER_RECORD,
         },
         route: LEASE,
         where: "Owner approval, Work recorded by staff",
@@ -468,7 +495,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           source: ["components/lease-renewal/RenewalDeskSurfaceSwitch.tsx"],
         },
         route: DESK,
-        where: "Renewals desk, under Everything else",
+        where: "Renewals desk, in the count filters above the table",
         result:
           "The Renewal worklist opens with Worklist views, the column filters, the sort and the Renewal table. Open my saved view, when you have one, opens your saved worklist view; the Renewals address on its own always opens the working batch.",
         effect: "reads",
@@ -530,7 +557,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
       "prepare-documents",
     ],
     relatedScreens: ["renewal-desk", "lease-workspace", "live-renewal-review"],
-    lastUpdated: "2026-11-06",
+    lastUpdated: "2026-11-09",
     navItems: ["lease-renewal"],
     spaces: ["lease-renewals"],
   },
@@ -563,7 +590,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "The Now card shows Compare market rent with the stored comparison and Rent to recommend, or Prepare this lease when none is stored. Choosing the step spends no paid lookup.",
         effect: "reads",
-        note: "In Full view, Market rent comparison in the section links shows Market evidence and Recommendation and working offer.",
+        note: "In Full view, Market rent comparison opens the same working rent. Comparison inputs and deliberate rerun holds additional controls.",
       },
       {
         id: "read-the-stored-comparison",
@@ -577,7 +604,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           source: KICKOFF,
         },
         route: LEASE,
-        where: "Guided view, the Now card on Compare market rent or Ask the owner",
+        where: "Ask the owner in Guided or Full view",
         result:
           "A comparison stored for this lease and cycle is reused by the owner message, so it never needs a second run. A figure you type saves with this lease and always wins over the suggestion.",
         effect: "saves-in-app",
@@ -610,7 +637,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           region: "region:Market rent comparison",
           availability: "required",
           source: COMPS,
-          actions: FULL_VIEW,
+          actions: FULL_COMPARISON_INPUTS,
         },
         route: LEASE,
         where: "Market rent comparison, Market evidence",
@@ -629,7 +656,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           region: "region:Market rent comparison",
           availability: "required",
           source: COMPS,
-          actions: FULL_VIEW,
+          actions: FULL_COMPARISON_INPUTS,
         },
         route: LEASE,
         where: "Market rent comparison, Market evidence",
@@ -648,7 +675,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           region: "region:Market rent comparison",
           availability: "required",
           source: COMPS,
-          actions: FULL_VIEW,
+          actions: FULL_COMPARISON_INPUTS,
         },
         route: LEASE,
         where: "Market rent comparison, Market evidence",
@@ -667,7 +694,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           region: "region:Market rent comparison",
           availability: "conditional",
           source: COMPS,
-          actions: FULL_VIEW,
+          actions: FULL_COMPARISON_INPUTS,
         },
         route: LEASE,
         where: "Market rent comparison, Market evidence",
@@ -677,36 +704,36 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
       },
       {
         id: "set-pmi-recommendation",
-        action: "Enter the reviewed rent you recommend in PMI recommended monthly rent.",
+        action: "In Compare market rent, edit Rent to recommend.",
         control: {
-          label: "PMI recommended monthly rent",
+          label: "Rent to recommend",
           role: "label",
           region: "region:Market rent comparison",
           availability: "required",
-          source: COMPS,
+          source: KICKOFF,
           actions: FULL_VIEW,
         },
         route: LEASE,
-        where: "Market rent comparison, Market evidence",
+        where: "Market rent comparison, Work",
         result:
-          "The recommendation saves with the comparison. The saved PMI recommendation prepares the Sheet Market value update, which you review and confirm separately under Review Sheet updates.",
+          "The amount saves in the app. Ask the owner shows this same amount and links back to its editor.",
         effect: "saves-in-app",
-        note: "A recommendation that is still the RentCast point estimate enters a message only after staff accept that exact number or enter their own.",
+        note: "Preparation can fill an empty amount using a verified basis. Your saved amount takes precedence.",
       },
       {
         id: "enter-working-terms",
         action:
-          "Under Working renewal terms in Owner approval, enter Working monthly rent, Working effective date and Working term end date as you know them.",
+          "Under Owner approval, open Record owner outreach or decision, then enter Working effective date and Working term end date.",
         control: {
-          label: "Working monthly rent",
+          label: "Working effective date",
           role: "label",
           region: "region:Owner approval",
           availability: "required",
           source: MANUAL,
-          actions: FULL_VIEW,
+          actions: FULL_OWNER_RECORD,
         },
         route: LEASE,
-        where: "Owner approval, Working renewal terms",
+        where: "Owner approval, Record owner outreach or decision",
         result:
           "Each value saves on its own with your name and time and stays until you change it. Tenant messages, the RentVine renewal rent preview and the Sheet and RentVine update previews use the saved values.",
         effect: "saves-in-app",
@@ -718,13 +745,13 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
     doesNotDo: [
       "A comparison, a lookup or a saved figure never sets the renewal rent and sends nothing.",
       "The starting range is only a starting point; market evidence comes from a comparison or your own sourced figures.",
-      "Opening a step or a section, typing and saving spend no paid lookup; only Prepare this lease, Prepare this batch, the automatic preparation and Look up market comps (reference only) use one.",
+      "Opening a step or a section, typing and saving spend no paid lookup; only Prepare this lease, the selected month's preparation button and Look up market comps (reference only) can use one.",
       "Saving the PMI recommendation or the working terms does not change the Sheet or RentVine; each update needs its own exact confirmation.",
       "Working renewal terms record no owner approval and no tenant acceptance.",
     ],
     relatedGuides: ["work-a-renewal", "owner-message", "tenant-offer", "update-sources"],
     relatedScreens: ["lease-workspace"],
-    lastUpdated: "2026-11-06",
+    lastUpdated: "2026-11-09",
   },
   {
     id: "tenant-offer",
@@ -785,7 +812,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           region: "region:Tenant message preparation",
           availability: "conditional",
           source: MESSAGE,
-          actions: FULL_VIEW,
+          actions: FULL_TENANT_EDIT,
         },
         route: LEASE,
         where: "Tenant offer and response, Tenant message preparation",
@@ -804,7 +831,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           region: "region:Tenant message preparation",
           availability: "conditional",
           source: MESSAGE,
-          actions: FULL_VIEW,
+          actions: FULL_TENANT_EDIT,
         },
         route: LEASE,
         where: "Tenant message preparation, below the message",
@@ -822,7 +849,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           region: "region:Tenant message preparation",
           availability: "conditional",
           source: MESSAGE,
-          actions: FULL_VIEW,
+          actions: FULL_TENANT_EDIT,
         },
         route: LEASE,
         where: "Tenant message preparation, Copy the message",
@@ -840,7 +867,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           region: "region:Tenant message preparation",
           availability: "conditional",
           source: MESSAGE,
-          actions: FULL_VIEW,
+          actions: [...FULL_VIEW, "open-summary:Verify offer the tenant"],
         },
         route: LEASE,
         where: "Tenant message preparation, Unsent Gmail draft",
@@ -860,7 +887,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           availability: "required",
           source: MESSAGE,
           sourceText: "Compose {channel} message in Communications",
-          actions: FULL_VIEW,
+          actions: FULL_TENANT_EDIT,
         },
         route: LEASE,
         where: "Tenant message preparation, at the top",
@@ -884,7 +911,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "The message goes out, or waits for the time you chose, once its current checks pass, and Communications shows its delivery state.",
         effect: "explicit-send",
-        note: "If the communication could not be read, choose Try again or Close. A reply or a failed delivery pauses follow-ups, and Resume requires a fresh review.",
+        note: "For the first tenant offer, you can authorize follow-ups in the same review. Enter the follow-up wording, interval, local time, timezone and an end date or total send limit. The next follow-up becomes due after Gmail confirms the offer. A verified tenant reply pauses unsent follow-ups. Record the actual decision under Tenant response. If the communication could not be read, choose Try again or Close. Resume requires a fresh review.",
       },
       {
         id: "record-tenant-delivery",
@@ -897,7 +924,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           availability: "conditional",
           source: ACTIVITIES,
           sourceText: "{definition.label} outcome",
-          actions: FULL_VIEW,
+          actions: FULL_TENANT_RECORD,
         },
         route: LEASE,
         where: "Tenant offer and response, Work recorded by staff",
@@ -915,7 +942,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           region: "region:Tenant offer and response",
           availability: "conditional",
           source: MANUAL,
-          actions: FULL_VIEW,
+          actions: FULL_TENANT_RECORD,
         },
         route: LEASE,
         where: "Tenant offer and response, Tenant response",
@@ -933,7 +960,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           region: "region:Documents and completion",
           availability: "conditional",
           source: WORKSPACE,
-          actions: FULL_VIEW,
+          actions: [...FULL_VIEW, "open-summary:Verify finish up"],
         },
         route: LEASE,
         where: "Documents and completion, Notice timing",
@@ -957,7 +984,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
       "prepare-documents",
     ],
     relatedScreens: ["lease-workspace", "communications"],
-    lastUpdated: "2026-11-06",
+    lastUpdated: "2026-11-09",
   },
   {
     id: "update-sources",
@@ -981,7 +1008,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           region: "region:Rent and charges working area",
           availability: "required",
           source: ["lib/lease-renewal/working-record.ts", ...CURRENT_RENT],
-          actions: FULL_VIEW,
+          actions: FULL_CORRECTIONS,
         },
         route: LEASE,
         where: "Lease details, Rent and charges",
@@ -1000,7 +1027,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           region: "region:Rent and charges working area",
           availability: "conditional",
           source: CURRENT_RENT,
-          actions: FULL_VIEW,
+          actions: FULL_CORRECTIONS,
         },
         route: LEASE,
         where: "Rent and charges, beside the working current rent",
@@ -1018,7 +1045,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           region: "region:Correct a lease fact",
           availability: "required",
           source: ["components/lease-renewal/RenewalCorrections.tsx"],
-          actions: FULL_VIEW,
+          actions: FULL_CORRECTIONS,
         },
         route: LEASE,
         where: "Rent and charges, Correct a lease fact",
@@ -1037,7 +1064,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           region: "region:Rent and charges working area",
           availability: "conditional",
           source: ["components/lease-renewal/RenewalFutureRent.tsx"],
-          actions: FULL_VIEW,
+          actions: FULL_CORRECTIONS,
         },
         route: LEASE,
         where: "Rent and charges, Prepare future renewal rent in RentVine",
@@ -1055,7 +1082,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           region: "article:Review Sheet updates",
           availability: "conditional",
           source: SHEET,
-          actions: FULL_VIEW,
+          actions: FULL_CORRECTIONS,
         },
         route: LEASE,
         where: "Rent and charges, Review Sheet updates",
@@ -1074,7 +1101,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           region: "article:Review Sheet updates",
           availability: "conditional",
           source: SHEET,
-          actions: FULL_VIEW,
+          actions: FULL_CORRECTIONS,
         },
         route: LEASE,
         where: "Rent and charges, Review Sheet updates",
@@ -1092,7 +1119,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           region: "article:Review RentVine updates",
           availability: "conditional",
           source: RENTVINE,
-          actions: FULL_VIEW,
+          actions: FULL_CORRECTIONS,
         },
         route: LEASE,
         where: "Rent and charges, Review RentVine updates",
@@ -1110,7 +1137,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           region: "article:Review RentVine updates",
           availability: "conditional",
           source: RENTVINE,
-          actions: FULL_VIEW,
+          actions: FULL_CORRECTIONS,
         },
         route: LEASE,
         where: "Rent and charges, Review RentVine updates",
@@ -1125,10 +1152,10 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         control: {
           label: "Update status by destination",
           role: "region",
-          region: "region:Rent and charges working area",
+          region: "region:Lease details",
           availability: "required",
           source: CURRENT_RENT,
-          actions: FULL_VIEW,
+          actions: FULL_NUMBERS_EVIDENCE,
         },
         route: LEASE,
         where: "Rent and charges, Update status by destination",
@@ -1146,7 +1173,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           region: "region:Documents and completion",
           availability: "required",
           source: MANUAL,
-          actions: FULL_VIEW,
+          actions: FULL_FINISH_UP,
         },
         route: LEASE,
         where: "Documents and completion, Source updates",
@@ -1166,6 +1193,6 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
     ],
     relatedGuides: ["work-a-renewal", "compare-rent", "tenant-offer"],
     relatedScreens: ["lease-workspace"],
-    lastUpdated: "2026-11-06",
+    lastUpdated: "2026-11-09",
   },
 ];

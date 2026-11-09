@@ -19,6 +19,10 @@ import {
   type RenewalWorkspaceView,
 } from "@/lib/lease-renewal/workspace-view";
 import {
+  pathStepForLinkStep,
+  RENEWAL_PATH_DEFINITION,
+} from "@/lib/lease-renewal/renewal-path";
+import {
   focusProgrammatically,
   focusRenewalDashboardControl,
   setRenewalStickyOffset,
@@ -42,6 +46,7 @@ import { createFocusReveal, type FocusReveal } from "./renewal-focus-reveal";
 export type { RenewalWorkspaceView };
 
 interface FocusViewValue {
+  readonly outcomeLayout: boolean;
   readonly view: RenewalWorkspaceView;
   readonly setView: (view: RenewalWorkspaceView) => void;
   /** Return to Full view at one existing control instead of the saved scroll position. */
@@ -322,6 +327,7 @@ export function RenewalFocusViewProvider({
   }, [continuityScope]);
   const current = useRef<RenewalWorkspaceView>(initialView);
   const scrollY = useRef<number | null>(null);
+  const guidedScroll = useRef<number | null>(null);
   const fullTarget = useRef<string | null>(null);
   const stopFullAlignment = useRef<(() => void) | undefined>(undefined);
   const restoringScroll = useRef(false);
@@ -337,15 +343,20 @@ export function RenewalFocusViewProvider({
   const rememberStep = useCallback((step: string | null) => {
     stepRef.current = step;
   }, []);
-  const move = useCallback((next: RenewalWorkspaceView) => {
-    if (next === current.current) return false;
-    stopFullAlignment.current?.();
-    stopFullAlignment.current = undefined;
-    if (current.current === "full") scrollY.current = window.scrollY;
-    current.current = next;
-    setViewState(next);
-    return true;
-  }, []);
+  const move = useCallback(
+    (next: RenewalWorkspaceView) => {
+      if (next === current.current) return false;
+      stopFullAlignment.current?.();
+      stopFullAlignment.current = undefined;
+      if (current.current === "full") scrollY.current = window.scrollY;
+      if (current.current === "guided" && !allowLegacyFocus)
+        guidedScroll.current = window.scrollY;
+      current.current = next;
+      setViewState(next);
+      return true;
+    },
+    [allowLegacyFocus],
+  );
   // A view chosen by hand: shown, and kept for a reload of this page (see below).
   const setView = useCallback(
     (next: RenewalWorkspaceView) => {
@@ -410,6 +421,13 @@ export function RenewalFocusViewProvider({
     if (target && focusFullTarget(target)) return;
     if (y !== null) window.scrollTo?.({ top: y });
   }, [focusFullTarget, view]);
+  useLayoutEffect(() => {
+    if (view !== "guided" || guidedScroll.current === null) return;
+    const y = guidedScroll.current;
+    guidedScroll.current = null;
+    const frame = window.requestAnimationFrame(() => window.scrollTo?.({ top: y }));
+    return () => window.cancelAnimationFrame(frame);
+  }, [view]);
   useEffect(
     () => () => {
       stopFullAlignment.current?.();
@@ -508,6 +526,7 @@ export function RenewalFocusViewProvider({
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const value = useMemo(
     () => ({
+      outcomeLayout: !allowLegacyFocus,
       view,
       setView,
       showInFull,
@@ -529,6 +548,7 @@ export function RenewalFocusViewProvider({
       restoredStep,
     }),
     [
+      allowLegacyFocus,
       view,
       setView,
       showInFull,
@@ -584,7 +604,13 @@ export function RenewalFocusViewSwitch({
       const { pathname, search } = window.location;
       window.history.replaceState(window.history.state, "", pathname + search);
     }
-    context.setView(next);
+    if (next === "full" && context.outcomeLayout) {
+      const step = pathStepForLinkStep(context.nowPresentation?.stepId);
+      const section = step ? RENEWAL_PATH_DEFINITION[step].sectionId : null;
+      context.showInFull(section ? `renewal-section-${section}` : null);
+    } else {
+      context.setView(next);
+    }
     setAnnouncement(ANNOUNCEMENTS[next]);
   };
   return (
@@ -594,18 +620,30 @@ export function RenewalFocusViewSwitch({
       data-renewal-view-switch
       role="group"
     >
-      {views.map((option) => (
+      {!views.includes("focus") ? (
         <button
-          aria-pressed={context.view === option}
+          aria-pressed={context.view === "full"}
+          data-renewal-full-toggle
           className="secondary-button renewal-view-switch-button"
-          data-selected={context.view === option ? "true" : undefined}
-          key={option}
-          onClick={() => choose(option)}
+          onClick={() => choose(context.view === "full" ? "guided" : "full")}
           type="button"
         >
-          {RENEWAL_VIEW_LABELS[option]}
+          Full view
         </button>
-      ))}
+      ) : (
+        views.map((option) => (
+          <button
+            aria-pressed={context.view === option}
+            className="secondary-button renewal-view-switch-button"
+            data-selected={context.view === option ? "true" : undefined}
+            key={option}
+            onClick={() => choose(option)}
+            type="button"
+          >
+            {RENEWAL_VIEW_LABELS[option]}
+          </button>
+        ))
+      )}
       <span className="sr-only" role="status">
         {announcement}
       </span>
@@ -661,7 +699,12 @@ export function RenewalFocusViewSlot({
         role={guided ? "region" : undefined}
       >
         <div className="ui-stack renewal-now-intro" ref={attachNow} />
-        {children}
+        <div
+          className="renewal-preserved-workspace"
+          data-renewal-secondary-work={guided ? true : undefined}
+        >
+          {children}
+        </div>
       </div>
       <div
         className="ui-stack renewal-guided-after"

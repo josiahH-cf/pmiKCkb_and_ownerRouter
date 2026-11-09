@@ -91,7 +91,7 @@ export const HELP_GLOSSARY: readonly HelpGlossaryTerm[] = [
     id: "ready-for-your-review",
     term: "Ready for your review",
     definition:
-      "The first part of This batch: leases whose numbers, comparison and owner message are prepared, so the kickoff is Review and send and its confirmation. A lease that needs an input follows with the input named.",
+      "Leases with a prepared comparison and owner message, so the owner step offers Review and send and its confirmation.",
     relatedGuides: ["work-a-renewal"],
   },
   {
@@ -146,7 +146,7 @@ export const HELP_GLOSSARY: readonly HelpGlossaryTerm[] = [
     id: "working-batch",
     term: "Working batch",
     definition:
-      "What the Renewals desk opens on: the working month's leases under This batch, with Carried over and counts for every other group. Each lease is counted once.",
+      "The desk's monthly table. The selected month's targets appear first and unfinished earlier leases follow. The counts filter this same table.",
     relatedGuides: ["work-a-renewal"],
   },
   {

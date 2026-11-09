@@ -28,8 +28,8 @@ import {
   type StandingAgreement,
 } from "@/lib/lease-renewal/standing-agreement";
 import { formatCalendarDate } from "@/lib/date-display";
-import { useRenewalFocusView } from "./RenewalFocusViewContext";
 import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
+import { useRenewalFocusView } from "./RenewalFocusViewContext";
 class PricingResponseError extends Error {}
 function pricingFailure(e: unknown, fallback: string) {
   return e instanceof PricingResponseError ? e.message : waitFailureMessage(e, fallback);
@@ -90,11 +90,7 @@ export function useRenewalPricingPolicy() {
 export function showsPricingBasisOnNow(
   step: { readonly stepId: string; readonly state: string } | null | undefined,
 ) {
-  return Boolean(
-    step &&
-    (step.stepId === "compare-market" || step.stepId === "ask-owner") &&
-    step.state !== "not_part",
-  );
+  return Boolean(step && step.stepId === "ask-owner" && step.state !== "not_part");
 }
 /**
  * S194 binds the exact authority to the staff record revision it was read with. An S250 standing
@@ -535,8 +531,13 @@ export function RenewalPricingPolicyPanel() {
   const htmlId = useId();
   if (!c) return null;
   const { view } = c;
+  const legacy = !display?.outcomeLayout;
   const basisOnNow =
-    display?.view === "guided" && showsPricingBasisOnNow(display.nowPresentation);
+    legacy &&
+    display?.view === "guided" &&
+    display.nowPresentation?.state !== "not_part" &&
+    (display.nowPresentation?.stepId === "compare-market" ||
+      display.nowPresentation?.stepId === "ask-owner");
   const agreementOnNow =
     basisOnNow && view?.standingAgreement && view.basisChoice?.kind === "agreement";
   async function assign() {
@@ -587,7 +588,7 @@ export function RenewalPricingPolicyPanel() {
     <section
       className="panel"
       aria-label="Renewal pricing policy"
-      data-renewal-focus-context
+      data-renewal-focus-context={legacy ? true : undefined}
     >
       <h2>Renewal pricing policy</h2>
       <a href="/admin#admin-owner-pricing-rules">
@@ -614,12 +615,18 @@ export function RenewalPricingPolicyPanel() {
               authorized communications retain their own basis.
             </p>
           ) : null}
-          {!agreementOnNow ? <p role="status">{view.authority.reason}</p> : null}
+          {legacy && !agreementOnNow ? (
+            <p role="status">{view.authority.reason}</p>
+          ) : null}
           {!basisOnNow ? <StandingAgreementSummary /> : null}
-          {/* Keep the original chooser's entries across views. Only one chooser is visible. */}
-          <div hidden={basisOnNow && c.canEdit}>
+          {!legacy ? <StandingRuleNotice /> : null}
+          {legacy ? (
+            <div hidden={basisOnNow && c.canEdit}>
+              <PricingBasisChooser context="panel" />
+            </div>
+          ) : (
             <PricingBasisChooser context="panel" />
-          </div>
+          )}
           <details>
             <summary>Policy assignment</summary>
             <Field htmlFor={`${htmlId}-policy`} label="Lease pricing policy">

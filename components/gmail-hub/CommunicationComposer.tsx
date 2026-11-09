@@ -66,7 +66,13 @@ type Entry =
 interface Composition {
   context: WorkflowCommunicationContext;
   initial: RichCommunicationMessage;
-  target: { label: string; to: string[]; cc: string[]; blockers?: string[] };
+  target: {
+    label: string;
+    to: string[];
+    cc: string[];
+    blockers?: string[];
+    signatureSetup?: object | null;
+  };
   attachmentNotice: string | null;
   signatureParagraph?: RichCommunicationMessage["paragraphs"][number] | null;
   reviewedTargetHash: string;
@@ -152,12 +158,13 @@ export function CommunicationComposer({
   } | null>(null);
   const [draft, setDraft] = useState<SequenceDraft | null>(null),
     [sequence, setSequence] = useState<CommunicationSequence | null>(null);
-  const [signatureOpen, setSignatureOpen] = useState(false);
+  const [signatureOverride, setSignatureOpen] = useState<boolean | null>(null);
   const [reviewedTargetHash, setReviewedTargetHash] = useState("");
   const [target, setTarget] = useState<Composition["target"] | null>(null),
     [error, setError] = useState(""),
     [status, setStatus] = useState("Loading communication…"),
     [busy, setBusy] = useState(false);
+  const signatureOpen = signatureOverride ?? Boolean(target?.signatureSetup === null);
   const [attachments, setAttachments] = useState<Record<string, CommunicationAttachment>>(
       {},
     ),

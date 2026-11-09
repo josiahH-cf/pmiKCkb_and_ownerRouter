@@ -88,7 +88,12 @@ export function PreparedNumbersCheck({
 export function StoredComparisonSummary({
   preparation,
   action = null,
-}: Readonly<{ preparation: RenewalPreparation; action?: React.ReactNode }>) {
+  readOnly = false,
+}: Readonly<{
+  preparation: RenewalPreparation;
+  action?: React.ReactNode;
+  readOnly?: boolean;
+}>) {
   const comparison = preparation.comparison;
   return (
     <section
@@ -117,7 +122,7 @@ export function StoredComparisonSummary({
           ))}
         </ol>
       ) : null}
-      {comparison.fix || action ? (
+      {!readOnly && (comparison.fix || action) ? (
         <p className="ui-row">
           {action}
           {comparison.fix ? (
@@ -141,14 +146,15 @@ export function StoredComparisonSummary({
  */
 export function RentToRecommendField({
   preparation,
-}: Readonly<{ preparation: RenewalPreparation }>) {
+}: Readonly<{ preparation: RenewalPreparation | null }>) {
   const working = useRenewalWorkingRecord();
   const id = "renewal-now-rent-to-recommend";
   const input = useRef<HTMLInputElement>(null);
   const editor = useWorkingFieldEditor(working, "terms_rent", input);
   const typed = workingRenewalTerms(working?.record ?? null).rent;
-  const proposal = preparation.rent.origin !== "typed" ? preparation.rent : null;
-  const shown = typed ?? proposal?.value ?? null;
+  const proposal =
+    preparation?.rent.origin === "typed" ? null : (preparation?.rent ?? null);
+  const shown = typed;
   // What staff are typing; null while they are not, so the field follows the saved or proposed rent.
   const [draft, setDraft] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
@@ -166,13 +172,21 @@ export function RentToRecommendField({
       ? (workingRecommendationBasis(working?.record) ??
         "Entered by staff. A later proposal never replaces it.")
       : proposal && proposal.value !== null
-        ? `${proposal.basis} This is a proposal until you send or change it.`
-        : preparation.rent.basis;
+        ? `Suggested ${formatUsd(proposal.value)}. ${proposal.basis}`
+        : (preparation?.rent.basis ??
+          "No suggested rent is available. Enter a recommendation if you have a basis.");
   async function save(value = text): Promise<boolean> {
     if (editor.shared) value = editor.draft()?.text ?? value;
     if (!working) return false;
     if (!editor.dirty()) return true;
     const generation = editor.version();
+    if (value.trim() === "" && typed !== null) {
+      const cleared = await working.save("terms_rent", null, {
+        editorVersion: generation,
+      });
+      if (cleared && editor.confirmed(generation)) setDraft(null);
+      return cleared;
+    }
     const parsed = parseOptionalCurrencyInput(value);
     if (!parsed.ok || parsed.value === undefined || parsed.value <= 0) {
       setNotice("Enter the monthly rent as 1500 or $1,500.00.");
@@ -243,5 +257,27 @@ export function RentToRecommendField({
         onRetry={() => void editor.flush()}
       />
     </div>
+  );
+}
+
+/** The owner outcome reads the working amount and returns to its only editor. */
+export function RentRecommendationSummary({
+  preparation,
+}: Readonly<{ preparation: RenewalPreparation | null }>) {
+  const working = useRenewalWorkingRecord();
+  const rent =
+    workingRenewalTerms(working?.record ?? null).rent ?? preparation?.rent.value ?? null;
+  return (
+    <p data-renewal-field="owner-recommended-rent">
+      {KICKOFF_WORDS.rentToRecommend}:{" "}
+      <strong>{rent === null ? "Not set" : formatUsd(rent)}</strong>{" "}
+      <button
+        className="text-link"
+        onClick={() => focusRenewalDashboardControl("renewal-now-rent-to-recommend")}
+        type="button"
+      >
+        {working?.canEdit ? "Change recommended rent" : "View recommended rent"}
+      </button>
+    </p>
   );
 }

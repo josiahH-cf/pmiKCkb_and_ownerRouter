@@ -14,15 +14,43 @@ import {
 const DESK = "/lease-renewal/live/desk";
 const LEASE = "/lease-renewal/live/desk/lease/[leaseId]";
 const FULL_VIEW = ["click-button:Full view"];
+const FULL_CORRECTIONS = [
+  ...FULL_VIEW,
+  "open-summary:Correct lease facts and review source updates",
+];
+const FULL_NUMBERS_EVIDENCE = [...FULL_VIEW, "open-summary:Verify check the numbers"];
+const FULL_COMPARISON_INPUTS = [
+  ...FULL_VIEW,
+  "open-summary:Comparison inputs and deliberate rerun",
+];
+const FULL_OWNER_RECORD = [
+  ...FULL_VIEW,
+  "open-summary:Record owner outreach or decision",
+];
+const FULL_TENANT_RECORD = [
+  ...FULL_VIEW,
+  "open-summary:Record tenant contact or response",
+];
+const FULL_OWNER_EDIT = [
+  ...FULL_VIEW,
+  "open-summary:Edit owner message and manage delivery options",
+];
+const FULL_TENANT_EDIT = [
+  ...FULL_VIEW,
+  "open-summary:Edit tenant message and manage delivery options",
+];
+const FULL_DOCUMENT_WORK = [...FULL_VIEW, "open-summary:Prepare or record document work"];
+const FULL_FINISH_UP = [
+  ...FULL_VIEW,
+  "open-summary:Work remaining follow-ups and source updates",
+];
+const FULL_COMPLETION = [...FULL_VIEW, "open-summary:Record completion or non-renewal"];
 const LEASE_INFORMATION = ["click-button:Lease information"];
 // S252: the table controls live in All leases and filters; the bare desk opens the working batch.
 const ALL_LEASES = ["click-link:All leases and filters"];
 
 const DESK_PAGE = ["components/lease-renewal/RenewalDesk.tsx"];
 const BATCH = ["components/lease-renewal/RenewalWorkingBatch.tsx"];
-const BATCH_GROUPS = ["lib/lease-renewal/renewal-batch.ts"];
-const KICKOFF = ["lib/lease-renewal/renewal-preparation.ts"];
-const GUIDED = ["components/lease-renewal/RenewalGuidedView.tsx"];
 const DESK_TABLE = ["components/lease-renewal/RenewalDeskTable.tsx"];
 const VIEW_MEMORY = ["components/lease-renewal/RenewalDeskViewMemory.tsx"];
 const WORKSPACE = ["components/lease-renewal/RenewalWorkspace.tsx"];
@@ -124,7 +152,35 @@ const CONDITIONAL_ABOUT: ReadonlySet<SectionHelpId> = new Set<SectionHelpId>([
   "sheet-updates",
 ]);
 
-const WORKSPACE_MAP_CONTROLS = renewalControlMapScreenControls(LEASE);
+const WORKSPACE_MAP_CONTROLS = renewalControlMapScreenControls(LEASE).filter(
+  (control) => control.label !== "Add a note" || control.availability === "required",
+);
+
+const ABOUT_ACTIONS: Partial<Record<SectionHelpId, readonly string[]>> = {
+  "lease-term": FULL_CORRECTIONS,
+  "rent-and-charges": FULL_CORRECTIONS,
+  "correct-a-fact": FULL_CORRECTIONS,
+  "future-rent": FULL_CORRECTIONS,
+  "data-check": FULL_NUMBERS_EVIDENCE,
+  "sheet-updates": FULL_CORRECTIONS,
+  "rentvine-updates": FULL_CORRECTIONS,
+  "source-updates": FULL_FINISH_UP,
+  "market-evidence": FULL_COMPARISON_INPUTS,
+  "waiting-follow-up": FULL_TENANT_RECORD,
+  "staff-work-owner": FULL_OWNER_RECORD,
+  "staff-work-tenant": FULL_TENANT_RECORD,
+  "staff-work-documents": FULL_DOCUMENT_WORK,
+  "owner-response": FULL_OWNER_RECORD,
+  "working-terms": FULL_OWNER_RECORD,
+  "tenant-response": FULL_TENANT_RECORD,
+  "document-preparation": FULL_DOCUMENT_WORK,
+  "packet-truth": FULL_DOCUMENT_WORK,
+  "document-handoff": FULL_DOCUMENT_WORK,
+  "resource-links": FULL_DOCUMENT_WORK,
+  "notice-timing": [...FULL_VIEW, "open-summary:Verify finish up"],
+  "staff-completion": FULL_COMPLETION,
+  "completion-checks": [...FULL_VIEW, "open-summary:Verify complete"],
+};
 
 /** One About control per section help id; the map rows already carry some, with their region. */
 const WORKSPACE_ABOUT_CONTROLS: readonly HelpScreenControl[] = SECTION_HELP_IDS.filter(
@@ -138,7 +194,7 @@ const WORKSPACE_ABOUT_CONTROLS: readonly HelpScreenControl[] = SECTION_HELP_IDS.
   does: ABOUT_PANEL[id],
   who: "Renewal staff",
   route: LEASE,
-  actions: FULL_VIEW,
+  actions: ABOUT_ACTIONS[id] ?? FULL_VIEW,
 }));
 
 export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
@@ -161,7 +217,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
     ],
     guides: ["work-a-renewal"],
     spaces: ["lease-renewals"],
-    lastUpdated: "2026-11-06",
+    lastUpdated: "2026-11-09",
   },
   {
     id: "renewal-desk",
@@ -169,7 +225,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
     routes: [DESK],
     who: "Renewal staff",
     summary:
-      "The renewal desk opens on the working batch: the working month and its lease count in words, This batch with Ready for your review first, Carried over, and a count for every other group, each lease counted once. A row's address or next step link opens the lease in this tab. All leases and filters opens the Renewal worklist, one row per lease with its location, parties, renewal date, current base rent, lifecycle, overall status, rent verification and current action, with the same views, filters, sorting and links as before. Reading the desk changes nothing in RentVine or the operating Sheet.",
+      "Renewals opens one monthly table. The selected month comes first and unfinished carryover follows. The counts above the table filter its rows. Sort by stage, date or rent, or choose All leases and filters for the wider worklist and saved views.",
     controls: [
       // The map's recorded Refresh data name describes the same button listed below.
       ...renewalControlMapScreenControls(DESK).filter(
@@ -185,30 +241,12 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         who: "Renewal staff",
       },
       {
-        label: "Carried over",
-        role: "region",
-        region: "region:Working batch",
-        availability: "conditional",
-        source: BATCH_GROUPS,
-        does: "Leases from earlier months with no completion recorded, oldest end date first.",
-        who: "Renewal staff",
-      },
-      {
-        label: "Ready for your review",
-        role: "region",
-        region: "region:This batch",
-        availability: "conditional",
-        source: KICKOFF,
-        does: "The prepared leases, listed first with a count; each one's kickoff is Review and send and its confirmation.",
-        who: "Renewal staff",
-      },
-      {
         label: "Other leases",
         role: "region",
         region: "region:Working batch",
         availability: "required",
         source: BATCH,
-        does: "Everything else: a count for Renewed in RentVine, confirm and close, Month-to-month reviews due, Non-renewals to hand off, Coming up later, Not renewal targets and Completed. Choosing a count lists its leases.",
+        does: "The filter bar shows counts for Renewed in RentVine, confirm and close, Month-to-month reviews due, Non-renewals to hand off, Coming up later, Not renewal targets and Completed. Choosing a count lists its leases.",
         who: "Renewal staff",
       },
       {
@@ -404,7 +442,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
     guides: ["work-a-renewal"],
     navItems: ["lease-renewal"],
     spaces: ["lease-renewals"],
-    lastUpdated: "2026-11-06",
+    lastUpdated: "2026-11-09",
   },
   {
     id: "lease-workspace",
@@ -417,34 +455,15 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
       ...WORKSPACE_MAP_CONTROLS,
       ...WORKSPACE_ABOUT_CONTROLS,
       {
-        label: "Guided view",
-        role: "region",
-        availability: "required",
-        source: GUIDED,
-        does: "The default view: the stage line, the Renewal path, the Now card and links to every section in Full view; choosing a step saves nothing.",
-        who: "Renewal staff",
-        route: LEASE,
-      },
-      {
-        label: "Every section in Full view",
-        role: "navigation",
-        region: "region:Guided view",
-        availability: "required",
-        source: GUIDED,
-        does: "Opens Full view at Lease details, Market rent comparison, Owner approval, Tenant offer and response or Documents and completion.",
-        who: "Renewal staff",
-        route: LEASE,
-      },
-      {
         label: "Pricing basis",
         role: "group",
-        region: "region:Now",
+        region: "region:Renewal pricing policy",
         availability: "conditional",
         source: ["lib/lease-renewal/standing-agreement.ts"],
-        does: "Owner decides each renewal or an active standing agreement by name and rule; choosing an agreement asks This lease only or Every lease in this owner's portfolio and saves on one action.",
+        does: "Choose whether the owner decides each renewal or a verified standing agreement supplies the rule. Review the lease or portfolio scope before saving.",
         who: "Renewal staff",
         route: LEASE,
-        actions: ["click-button:Compare market rent"],
+        actions: ["click-button:Ask the owner"],
       },
       {
         label: "Housing assistance",
@@ -492,7 +511,8 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         label: "Staff status and Status log",
         role: "region",
         availability: "required",
-        source: WORKSPACE,
+        actions: ["open-summary:Work status"],
+        source: ["components/lease-renewal/RenewalWorkStatusControl.tsx"],
         does: "Holds Work status (recorded by staff), Add a note and the Status log; each choice or note saves by itself.",
         who: "Renewal staff",
         route: LEASE,
@@ -516,7 +536,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         does: "Records Fixed-term or Month-to-month for these lease facts; the choice saves by itself in the app.",
         who: "Renewal staff",
         route: LEASE,
-        actions: FULL_VIEW,
+        actions: FULL_CORRECTIONS,
       },
       {
         label: "Data check",
@@ -527,7 +547,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         does: "Lists each lease fact as Agrees, One source, Needs input or Needs your decision, with a source badge that opens the exact record.",
         who: "Renewal staff",
         route: LEASE,
-        actions: FULL_VIEW,
+        actions: FULL_NUMBERS_EVIDENCE,
       },
       {
         label: "Review and resolve this source item",
@@ -538,7 +558,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         does: "Opens the live renewal review at this field so you can record a decision.",
         who: "Renewal staff",
         route: LEASE,
-        actions: FULL_VIEW,
+        actions: FULL_CORRECTIONS,
       },
       {
         label: "Discrepancy decision history and advanced disposition",
@@ -549,7 +569,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         does: "Opens the source decisions saved for this lease and the form for an advanced disposition, which saves in the app.",
         who: "Renewal staff",
         route: LEASE,
-        actions: FULL_VIEW,
+        actions: FULL_CORRECTIONS,
       },
       {
         label: "Prepare RentVine rent charge update",
@@ -560,7 +580,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         does: "Prepares the rent charge change to the working value for review under Review RentVine updates.",
         who: "Renewal staff",
         route: LEASE,
-        actions: FULL_VIEW,
+        actions: FULL_CORRECTIONS,
       },
       {
         label: "Prepare selected destination previews",
@@ -571,7 +591,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         does: "Saves an exact proposal for each chosen destination; the Sheet and RentVine change only after you confirm each one.",
         who: "Renewal staff",
         route: LEASE,
-        actions: FULL_VIEW,
+        actions: FULL_CORRECTIONS,
       },
       {
         label: "Refresh recurring charges",
@@ -581,7 +601,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         does: "Reads the recurring charges from RentVine again; nothing changes.",
         who: "Renewal staff",
         route: LEASE,
-        actions: FULL_VIEW,
+        actions: FULL_CORRECTIONS,
       },
       {
         label: "Prepare a RentVine update proposal",
@@ -591,7 +611,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         does: "Opens the form that saves a renewal dates or recurring charge proposal in the app for review.",
         who: "Renewal staff",
         route: LEASE,
-        actions: FULL_VIEW,
+        actions: FULL_CORRECTIONS,
       },
       {
         label: "Look up market comps (reference only)",
@@ -602,7 +622,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         does: "Runs one RentCast lookup from the monthly allowance and keeps the result with this renewal cycle; it sets no rent.",
         who: "Renewal staff",
         route: LEASE,
-        actions: FULL_VIEW,
+        actions: FULL_COMPARISON_INPUTS,
       },
       {
         label: "Maximum comp search radius (miles)",
@@ -613,7 +633,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         does: "The radius the next lookup searches; the default is five miles.",
         who: "Renewal staff",
         route: LEASE,
-        actions: FULL_VIEW,
+        actions: FULL_COMPARISON_INPUTS,
       },
       {
         label: "Market rent: low estimate",
@@ -624,7 +644,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         does: "Your sourced low figure; it saves by itself and wins over a lookup.",
         who: "Renewal staff",
         route: LEASE,
-        actions: FULL_VIEW,
+        actions: FULL_COMPARISON_INPUTS,
       },
       {
         label: "Market rent: high estimate",
@@ -635,18 +655,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         does: "Your sourced high figure; it saves by itself and wins over a lookup.",
         who: "Renewal staff",
         route: LEASE,
-        actions: FULL_VIEW,
-      },
-      {
-        label: "PMI recommended monthly rent",
-        role: "label",
-        region: "region:Market rent comparison",
-        availability: "required",
-        source: COMPS,
-        does: "The reviewed recommendation; saving it prepares the Sheet Market value update you confirm separately.",
-        who: "Renewal staff",
-        route: LEASE,
-        actions: FULL_VIEW,
+        actions: FULL_COMPARISON_INPUTS,
       },
       {
         label: "Source of the comparison and review notes (optional)",
@@ -657,18 +666,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         does: "Where the figures came from and your review notes, saved with the comparison.",
         who: "Renewal staff",
         route: LEASE,
-        actions: FULL_VIEW,
-      },
-      {
-        label: "Renewal recommendation",
-        role: "region",
-        region: "region:Market rent comparison",
-        availability: "required",
-        source: ["components/lease-renewal/RenewalRecommendation.tsx"],
-        does: "Shows the current rent used for comparison, the selected working offer and any policy or comparison proposal you can adopt.",
-        who: "Renewal staff",
-        route: LEASE,
-        actions: FULL_VIEW,
+        actions: FULL_COMPARISON_INPUTS,
       },
       {
         label: "Compose owner message in Communications",
@@ -680,7 +678,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         does: "Opens the owner message in Communications in a new tab; opening it sends nothing.",
         who: "Renewal staff",
         route: LEASE,
-        actions: FULL_VIEW,
+        actions: FULL_OWNER_EDIT,
       },
       {
         label: "Owner outreach outcome",
@@ -692,14 +690,14 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         does: "Records owner outreach done outside the app; the choice saves at once.",
         who: "Renewal staff",
         route: LEASE,
-        actions: FULL_VIEW,
+        actions: FULL_OWNER_RECORD,
       },
       {
-        label: "Working monthly rent",
+        label: "Rent to recommend",
         role: "label",
-        region: "region:Owner approval",
+        region: "region:Market rent comparison",
         availability: "required",
-        source: MANUAL,
+        source: ["lib/lease-renewal/renewal-preparation.ts"],
         does: "The working renewal rent; it saves by itself and feeds the tenant message and the update previews.",
         who: "Renewal staff",
         route: LEASE,
@@ -714,7 +712,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         does: "The date the working renewal terms start; it saves by itself.",
         who: "Renewal staff",
         route: LEASE,
-        actions: FULL_VIEW,
+        actions: FULL_OWNER_RECORD,
       },
       {
         label: "Working term end date",
@@ -725,7 +723,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         does: "The date the working renewal term ends; it saves by itself.",
         who: "Renewal staff",
         route: LEASE,
-        actions: FULL_VIEW,
+        actions: FULL_OWNER_RECORD,
       },
       {
         label: "Prior owner decision and provider evidence",
@@ -736,7 +734,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         does: "Opens the earlier owner decision facts and owner email preview, kept as evidence.",
         who: "Renewal staff",
         route: LEASE,
-        actions: FULL_VIEW,
+        actions: [...FULL_VIEW, "open-summary:Verify ask the owner"],
       },
       {
         label: "Compose tenant message in Communications",
@@ -748,7 +746,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         does: "Opens the tenant message in Communications in a new tab; opening it sends nothing.",
         who: "Renewal staff",
         route: LEASE,
-        actions: FULL_VIEW,
+        actions: FULL_TENANT_EDIT,
       },
       {
         label: "Email body",
@@ -759,7 +757,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         does: "The tenant message wording, built from the working terms; your edits save by themselves.",
         who: "Renewal staff",
         route: LEASE,
-        actions: FULL_VIEW,
+        actions: FULL_TENANT_EDIT,
       },
       {
         label: "Tenant offer delivered outcome",
@@ -771,7 +769,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         does: "Records delivery of the tenant offer done outside the app; the choice saves at once.",
         who: "Renewal staff",
         route: LEASE,
-        actions: FULL_VIEW,
+        actions: FULL_TENANT_RECORD,
       },
       {
         label: "Inspect earlier channel drafts; terms may be superseded",
@@ -782,7 +780,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         does: "Opens earlier unsent email, portal chat and text drafts, kept as evidence; the current message preparation governs.",
         who: "Renewal staff",
         route: LEASE,
-        actions: FULL_VIEW,
+        actions: [...FULL_VIEW, "open-summary:Verify offer the tenant"],
       },
       {
         label: "Documented notice basis",
@@ -826,7 +824,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
       "update-sources",
       "prepare-documents",
     ],
-    lastUpdated: "2026-11-06",
+    lastUpdated: "2026-11-09",
   },
   {
     id: "live-renewal-review",
@@ -926,7 +924,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
       },
     ],
     guides: ["work-a-renewal"],
-    lastUpdated: "2026-11-06",
+    lastUpdated: "2026-11-09",
   },
   {
     id: "renewal-older-links",
@@ -989,7 +987,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
       },
     ],
     guides: ["work-a-renewal"],
-    lastUpdated: "2026-11-06",
+    lastUpdated: "2026-11-09",
   },
   {
     id: "shared-lease-collections",
@@ -1146,7 +1144,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
       },
     ],
     guides: ["work-a-renewal"],
-    lastUpdated: "2026-11-06",
+    lastUpdated: "2026-11-09",
   },
   {
     id: "property-decision-history",
@@ -1174,7 +1172,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
       },
     ],
     guides: [],
-    lastUpdated: "2026-11-06",
+    lastUpdated: "2026-11-09",
   },
   {
     id: "renewal-run-readiness",
@@ -1266,6 +1264,6 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
       },
     ],
     guides: ["work-a-renewal"],
-    lastUpdated: "2026-11-06",
+    lastUpdated: "2026-11-09",
   },
 ];
