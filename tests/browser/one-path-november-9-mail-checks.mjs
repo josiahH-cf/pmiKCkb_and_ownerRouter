@@ -169,9 +169,11 @@ export async function qualifyCompiledTenantOffer({
   assert.match(waitingDesk.stage + " " + waitingDesk.next, /waiting.*tenant/i);
   for (const [query, scope] of offerViews) {
     await open(page, href(leaseId, query));
-    const waiting = scope.getByText(/^Waiting on the tenant since /);
+    const waiting = scope
+      .locator('[data-renewal-field="waiting"]:visible')
+      .filter({ hasText: /^Waiting on the tenant since / });
     await waiting.waitFor();
-    assert.equal(await waiting.getAttribute("data-renewal-field"), "waiting");
+    assert.equal(await waiting.count(), 1);
     await checkOfferLayout(scope, "waiting", query);
   }
 

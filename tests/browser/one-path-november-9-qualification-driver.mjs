@@ -62,7 +62,11 @@ const desk = "/lease-renewal/live/desk";
 const prepared = String(rehearsal.roles.prepared);
 const covered = String(rehearsal.roles.covered);
 const href = (lease = prepared, search = "") => desk + "/lease/" + lease + search;
-const open = (page, path) => page.goto(origin + path, { waitUntil: "domcontentloaded" });
+async function open(page, path) {
+  const navigation = await page.goto(origin + path, { waitUntil: "domcontentloaded" });
+  await page.waitForLoadState("networkidle", { timeout: 15_000 });
+  return navigation;
+}
 async function toggleDisclosure(page, details, expanded) {
   const summary = details.locator(":scope > summary");
   await summary.waitFor();
@@ -271,6 +275,7 @@ try {
       wide,
       [
         "/api/lease-renewal/desk-preferences",
+        "/api/lease-renewal/refresh",
         "/api/lease-renewal/collections",
         "/api/personal-view",
         "/api/assistant/query",
@@ -317,11 +322,29 @@ try {
         await root.getByRole("table").waitFor();
         assert.equal(await root.getAttribute("data-batch-month"), rehearsal.workingMonth);
 
+        const filtered = root.locator('button[data-batch-group="not_targets"]');
+        const expected = rehearsal.groups.closed.length;
+        const countNotTargets = async () =>
+          Number(await filtered.getAttribute("data-batch-count"));
+        const firstCount = await countNotTargets();
+        if (firstCount !== expected) {
+          record({
+            id: "N09-01",
+            check: "target-projection-refresh",
+            firstCount,
+            expected,
+          });
+          const refreshed = await forceSourceRefresh(page);
+          assert.equal(refreshed.status, 200, JSON.stringify(refreshed.body));
+          assert.equal(refreshed.body.refreshed, true);
+          await open(page, desk);
+        }
+        const count = await countNotTargets();
+        assert.equal(count, expected, "Read the full closed cohort from the fixture");
+
         const sort = root.getByRole("button", { name: "Current base rent" });
         await sort.press("Enter");
         await root.locator('th[aria-sort="ascending"]').waitFor();
-        const filtered = root.locator('button[data-batch-group="not_targets"]');
-        const count = Number(await filtered.getAttribute("data-batch-count"));
         await filtered.click();
         assert.equal(await root.getByRole("table").count(), 1);
         assert.equal(await root.locator("tr[data-batch-lease]").count(), count);
@@ -1715,12 +1738,13 @@ try {
             [action?.kind, action?.activity, action?.outcome].filter(Boolean).join(":"),
           );
         });
-        const savedWork = (predicate) =>
+        const savedWork = (predicate, { requireAccepted = false } = {}) =>
           page
             .waitForResponse(
               (response) =>
                 new URL(response.url()).pathname === "/api/lease-renewal/workspace" &&
                 response.request().method() === "POST" &&
+                (!requireAccepted || response.ok()) &&
                 predicate(response.request().postDataJSON()?.action),
             )
             .catch((error) => {
@@ -1914,16 +1938,46 @@ try {
           exact: true,
         });
         assert.equal(await completion.count(), 1);
-        const [completionResponse] = await Promise.all([
-          savedWork((action) => action?.kind === "complete"),
-          completion.click(),
-        ]);
-        assert.ok(completionResponse.ok());
-        const completed = await read(
-          page,
-          "/api/lease-renewal/workspace?leaseId=" + covered,
-        );
-        assert.ok(completed.state.completion?.eventId);
+        const workspacePath = "/api/lease-renewal/workspace?leaseId=" + covered;
+        const beforeCompletion = (await read(page, workspacePath)).state;
+        assert.equal(beforeCompletion.completion, null);
+        assert.equal(beforeCompletion.activities.documents.outcome, "waiting");
+        const completionAttempts = [];
+        const readAttempt = (response) => {
+          if (
+            new URL(response.url()).pathname !== "/api/lease-renewal/workspace" ||
+            response.request().method() !== "POST"
+          )
+            return;
+          const request = response.request().postDataJSON();
+          if (request?.leaseId === covered && request.action?.kind === "complete")
+            completionAttempts.push({
+              status: response.status(),
+              revision: request.expectedRevision,
+            });
+        };
+        page.on("response", readAttempt);
+        let completionResponse;
+        try {
+          [completionResponse] = await Promise.all([
+            savedWork((action) => action?.kind === "complete", { requireAccepted: true }),
+            completion.click(),
+          ]);
+        } finally {
+          page.off("response", readAttempt);
+          record({
+            id: "N09-08",
+            check: "staff-completion-attempts",
+            completionAttempts,
+          });
+        }
+        const completionInput = completionResponse.request().postDataJSON();
+        assert.equal(completionInput.leaseId, covered);
+        assert.equal(completionInput.cycleId, beforeCompletion.cycleId);
+        const completionReceipt = (await completionResponse.json()).state.completion;
+        assert.equal(completionReceipt.eventId, completionInput.operationId);
+        const completed = await read(page, workspacePath);
+        assert.deepEqual(completed.state.completion, completionReceipt);
         await open(page, desk + "?group=completed");
         await batch(page).locator(`tr[data-batch-lease="${covered}"]`).waitFor();
 
