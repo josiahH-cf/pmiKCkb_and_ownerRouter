@@ -28,6 +28,24 @@ export function workspaceMessageBasisFingerprint(head: Record<string, unknown>) 
     preparation: head.preparation,
   });
 }
+/**
+ * S265 (ARCH-S265-3): the fingerprint of the tenant resources a reviewed message includes, from
+ * their frozen evidence only. A resource the message omits contributes nothing, so a change to it
+ * changes no message that leaves it out.
+ */
+export function includedResourceFingerprint(
+  included: readonly import("./tenant-resource-evidence").FrozenTenantResource[],
+) {
+  return hashExecutionPreview({
+    includedResources: [...included].sort((left, right) =>
+      left.id.localeCompare(right.id),
+    ),
+  });
+}
+/**
+ * The pre-S265 fingerprint of all three tenant entries. Snapshots reviewed before S265 carry it;
+ * claims no longer compare it, because an unused resource change must not refuse a message.
+ */
 export function messageResourceFingerprint(settings: Record<string, unknown> | null) {
   const entries = settings?.entries as Record<string, unknown> | undefined;
   return hashExecutionPreview({
@@ -53,4 +71,10 @@ export interface RenewalMessageClaimBasis {
   /** Zero or absent means that this lease had no retirement record at review. */
   dispositionRevision?: number;
   signatureSetup?: import("./sender-signature-choice").SenderSignatureEvidence;
+  /**
+   * S265 (R-S265-4): the frozen evidence of each tenant resource the exact reviewed content
+   * includes; empty when it includes none. Absent only on snapshots prepared before S265, whose
+   * stored content then decides whether they include a resource.
+   */
+  includedResources?: import("./tenant-resource-evidence").FrozenTenantResource[];
 }

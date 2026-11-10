@@ -29,7 +29,16 @@ export interface MessageReadinessInput {
    * unrelated lease. They are listed as information.
    */
   policyGates?: ReadonlyArray<{ field: string; message: string }>;
+  /**
+   * S265 (R-S265-3): whether the viewer maintains the shared resource links. Any role reaches the
+   * same exact Connections entry; a role that does not maintain it also reads the Admin handoff.
+   */
+  canManageResources?: boolean;
 }
+
+/** S265: the handoff a shared-link item reads for a role that does not maintain the links. */
+export const RESOURCE_ADMIN_HANDOFF =
+  "An Admin records the tenant audience check in Connections.";
 
 export interface MessageReadiness {
   items: MessageMissingInput[];
@@ -135,7 +144,11 @@ export function projectMessageReadiness(input: MessageReadinessInput): MessageRe
   for (const entry of input.missing)
     items.push({
       field: entry.field,
-      message: entry.message,
+      message:
+        input.canManageResources === false &&
+        entry.field in RESOURCE_FIELD_BY_MESSAGE_FIELD
+          ? `${entry.message} ${RESOURCE_ADMIN_HANDOFF}`
+          : entry.message,
       target: messageInputTarget(input.channel, entry.field),
     });
   for (const gate of input.policyGates ?? [])

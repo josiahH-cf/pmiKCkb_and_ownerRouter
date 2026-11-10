@@ -6,6 +6,17 @@ import {
 import { z } from "zod";
 import { UNVERIFIED_PLACEHOLDER } from "@/lib/constants";
 import { formatCalendarDate } from "@/lib/date-display";
+import {
+  currentTenantResourceDecisions,
+  projectTenantResourceRequirements,
+  type TenantResourceDecisions,
+} from "@/lib/lease-renewal/tenant-resource-decisions";
+import {
+  TENANT_RESOURCE_MESSAGE_FIELDS,
+  tenantResourcePendingMessage,
+  type TenantResourceId,
+  type TenantResourceMessageField,
+} from "@/lib/lease-renewal/tenant-resource-evidence";
 
 /** Normalized from the owner's September 10 source pack; no example customer or sender values. */
 export const SUPPLIED_RENEWAL_COPY = Object.freeze({
@@ -255,6 +266,17 @@ export interface RenewalMessageFacts {
   informationForm: z.infer<typeof MessageLinkSchema> | null;
   insuranceFlyer: z.infer<typeof MessageLinkSchema> | null;
   rbpFlyer: z.infer<typeof MessageLinkSchema> | null;
+  /**
+   * S265: why a tenant resource link is not usable for tenants (Source pending), by its message
+   * field. Absent when the link is usable or no reason is known; a needed link then keeps the note
+   * it carried before S265.
+   */
+  resourcePending?: Partial<Record<TenantResourceMessageField, string>>;
+  /**
+   * S265/S264: the offer's material transition and inclusion decisions. Absent reads today's
+   * message inputs (`currentTenantResourceDecisions`).
+   */
+  resourceDecisions?: TenantResourceDecisions;
   signature: ManagedMessageSignature | null;
   /** Only actual reviewed file identities belong here. The caller owns download and Gmail attachment readiness. */
   attachments: Array<{ filename: string; source: string }>;
@@ -578,35 +600,43 @@ export function composeRenewalMessage(
       if (facts.otherChargesComparison.unchanged)
         add(SUPPLIED_RENEWAL_COPY.tenant.unchanged);
     }
-    const insurance = included.find((charge) => charge.id === "insurance");
-    if (insurance && !facts.insuranceTransition)
+    // S265 (R-S265-2): the offer's resources follow its decisions, those S264 supplies or today's
+    // inputs. A needed link is the one usable for tenants, else a named marker whose note says why
+    // it is Source pending (R-S161-9: no link is made up). An unknown material transition keeps
+    // its wording and flyer out.
+    const decisions =
+      facts.resourceDecisions ??
+      currentTenantResourceDecisions({
+        charges: included,
+        insuranceTransition: facts.insuranceTransition,
+      });
+    const form = link(facts.informationForm);
+    const requirements = projectTenantResourceRequirements(decisions, Boolean(form));
+    const pendingNote = (id: TenantResourceId) =>
+      tenantResourcePendingMessage(
+        id,
+        facts.resourcePending?.[TENANT_RESOURCE_MESSAGE_FIELDS[id]],
+      );
+    if (facts.insuranceTransition) sourced(facts.insuranceTransition.source);
+    if (decisions.insuranceTransition === "unknown")
       note(
         "insuranceTransition",
         "The insurance transition wording is left out until you choose whether it applies.",
       );
-    if (facts.insuranceTransition) {
-      sourced(facts.insuranceTransition.source);
-      if (facts.insuranceTransition.applicable) {
-        add(SUPPLIED_RENEWAL_COPY.tenant.insuranceChange);
-        const flyer = link(facts.insuranceFlyer);
-        if (flyer) {
-          sourced(flyer.source);
-          paragraphs.push([
-            { text: SUPPLIED_RENEWAL_COPY.tenant.insuranceLinkLabel, href: flyer.url },
-          ]);
-        } else {
-          // R-S161-9: a missing resource stays an explicit marker; no link is made up.
-          add(missingValueMarker("insurance flyer link"));
-          note("insuranceFlyer", "The insurance flyer link is not saved yet.");
-        }
+    if (requirements.required.includes("insurance_flyer")) {
+      add(SUPPLIED_RENEWAL_COPY.tenant.insuranceChange);
+      const flyer = link(facts.insuranceFlyer);
+      if (flyer) {
+        sourced(flyer.source);
+        paragraphs.push([
+          { text: SUPPLIED_RENEWAL_COPY.tenant.insuranceLinkLabel, href: flyer.url },
+        ]);
+      } else {
+        add(missingValueMarker("insurance flyer link"));
+        note("insuranceFlyer", pendingNote("insurance_flyer"));
       }
     }
-    const rbp = included.find(
-      (charge) =>
-        charge.id === "rbp" &&
-        (charge.comparison === "changed" || charge.comparison === "new"),
-    );
-    if (rbp) {
+    if (requirements.required.includes("rbp_flyer")) {
       const flyer = link(facts.rbpFlyer);
       if (flyer) {
         sourced(flyer.source);
@@ -615,21 +645,28 @@ export function composeRenewalMessage(
         ]);
       } else {
         add(missingValueMarker("Resident Benefits Package information link"));
-        note("rbpFlyer", "The Resident Benefits Package link is not saved yet.");
+        note("rbpFlyer", pendingNote("rbp_flyer"));
       }
     }
+    if (decisions.rbpChange === "unknown")
+      note(
+        "charge.rbp",
+        "Resident Benefits Package: confirm whether it is new, changed or unchanged before releasing this offer. Its flyer stays out until then.",
+      );
     add(edits.responseRequest || SUPPLIED_RENEWAL_COPY.tenant.response);
-    const form = link(facts.informationForm);
-    if (form || !facts.outgoingContract)
-      add(SUPPLIED_RENEWAL_COPY.tenant.informationForm);
-    if (form) {
+    // An outgoing offer carries the optional form only when it is included (a usable link, or
+    // deliberately); with neither, both the request and its link stay out with no placeholder.
+    const formIncluded =
+      !facts.outgoingContract || requirements.informationForm === "included";
+    if (formIncluded) add(SUPPLIED_RENEWAL_COPY.tenant.informationForm);
+    if (formIncluded && form) {
       sourced(form.source);
       paragraphs.push([
         { text: SUPPLIED_RENEWAL_COPY.tenant.informationLinkLabel, href: form.url },
       ]);
-    } else if (!facts.outgoingContract) {
+    } else if (formIncluded) {
       add(missingValueMarker("renewal information form link"));
-      note("informationForm", "The renewal information form link is not saved yet.");
+      note("informationForm", pendingNote("renewal_information_form"));
     }
   }
   for (const attachment of facts.attachments) sourced(attachment.source);

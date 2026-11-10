@@ -11,9 +11,21 @@ import {
   expectedRentvineHost,
 } from "@/lib/lease-renewal/desk-destinations";
 import {
-  messageResourceFingerprint,
+  includedResourceFingerprint,
   workingTermsFingerprint,
 } from "./message-claim-basis";
+import {
+  TENANT_RESOURCE_IDS,
+  TENANT_RESOURCE_MESSAGE_FIELDS,
+  tenantResourceSourceRef,
+  tenantResourceUses,
+  type TenantResourceId,
+  type TenantResourceMessageField,
+} from "./tenant-resource-evidence";
+import {
+  applyTenantResourceInclusion,
+  tenantResourceStatesFromUses,
+} from "./tenant-resource-inclusion";
 import { observeRenewalNotice } from "@/lib/firestore/renewal-notice-safety";
 import {
   readAdmittedRenewalNoticeLease,
@@ -105,7 +117,6 @@ import {
   policyMessageGates,
   projectPolicyApplicability,
 } from "@/lib/lease-renewal/policy-content";
-import { usableRenewalResourceUrl } from "@/lib/lease-renewal/resource-locations";
 import { ownerDraftMarketFromBasis } from "@/lib/lease-renewal/owner-draft";
 import { getRenewalCycleDisposition } from "@/lib/firestore/renewal-cycle-disposition-read";
 import { getRenewalCycleDateDecision } from "@/lib/firestore/renewal-cycle-date-decisions";
@@ -802,11 +813,22 @@ export async function currentRenewalMessage(
       kind: "proposal",
     };
   notices.push(...marketEvidence.notices);
-  const link = (id: string) => {
-    const entry = resources?.entries[id];
-    const url = usableRenewalResourceUrl(entry);
-    return url ? { url, source: `renewal-resource:${id}:${entry!.recordedAt}` } : null;
+  // S265 (R-S265-1/2): a tenant resource reaches the message only with its current tenant audience
+  // check, read on today's business date. A blank, legacy, failed or expired entry is Source
+  // pending with its reason; an unreadable settings read pends all three.
+  const tenantResources = tenantResourceUses(resources, businessDateIso(nowMs));
+  const link = (id: TenantResourceId) => {
+    const use = tenantResources[id];
+    return use.state === "usable"
+      ? { url: use.url, source: tenantResourceSourceRef(use.evidence) }
+      : null;
   };
+  const resourcePending: Partial<Record<TenantResourceMessageField, string>> = {};
+  for (const id of TENANT_RESOURCE_IDS) {
+    const use = tenantResources[id];
+    if (use.state === "source_pending")
+      resourcePending[TENANT_RESOURCE_MESSAGE_FIELDS[id]] = use.reason;
+  }
   const provider = market?.provider;
   const signature = inputs.signature ? { ...inputs.signature, email: actor.email } : null;
   // S163: greeting first names come from the provider's own first-name field for each person.
@@ -861,6 +883,7 @@ export async function currentRenewalMessage(
     insuranceFlyer: link("insurance_flyer"),
     informationForm: link("renewal_information_form"),
     rbpFlyer: link("rbp_flyer"),
+    resourcePending,
     signature,
     attachments: attachment
       ? [
@@ -870,40 +893,6 @@ export async function currentRenewalMessage(
           },
         ]
       : [],
-  };
-  const basis = {
-    noticeSafety: noticeSafety.basis,
-    resourceFingerprint: messageResourceFingerprint(resources),
-    sourceFingerprint: hashExecutionPreview({
-      leaseId,
-      channel,
-      noticeSafety: noticeSafety.basis,
-      names: facts.names,
-      firstNames: facts.firstNames,
-      address: facts.address,
-      currentBaseRent,
-      leaseEndDate: facts.leaseEndDate,
-      ownerTerms: facts.ownerTerms,
-      preparation,
-      resourceEntries: resources
-        ? {
-            insurance_flyer: resources.entries.insurance_flyer ?? null,
-            renewal_information_form: resources.entries.renewal_information_form ?? null,
-            rbp_flyer: resources.entries.rbp_flyer ?? null,
-          }
-        : null,
-      cycleId: workspace?.cycleId ?? null,
-      availableCompScreenshot: availableCompScreenshot
-        ? compScreenshotDraftAttachmentIdentity(availableCompScreenshot)
-        : null,
-      workspaceBasis: workspace
-        ? workspaceMessageBasisFingerprint({ ...workspace })
-        : null,
-    }),
-    workspaceFingerprint: workspace
-      ? workspaceMessageBasisFingerprint({ ...workspace })
-      : null,
-    workingTermsFingerprint: workingTermsFingerprint(workingRecord),
   };
   const composed = composeRenewalMessage(facts, inputs.edits);
   if (marketEvidence.rangeRequirement) {
@@ -949,7 +938,50 @@ export async function currentRenewalMessage(
     saved?.revision ?? null,
     savedSubject,
   );
-  const content = authoredSubject.content;
+  // S265 (R-S265-2/4): one inclusion projection over the exact final content, authored wording
+  // included. Each included resource must be usable, linked as its current destination, keep its
+  // wording and cover the actual recipients; each failure is a callout item that holds this review
+  // with its Connections fix. The included evidence is the reviewed basis the claims recheck.
+  const recipients = projectCurrentMessageRecipients(lease, channel);
+  const { content, inclusion } = applyTenantResourceInclusion(
+    authoredSubject.content,
+    facts,
+    {
+      states: tenantResourceStatesFromUses(tenantResources),
+      recipients:
+        recipients.status === "ready" ? [recipients.to, ...recipients.cc] : undefined,
+    },
+  );
+  const basis = {
+    noticeSafety: noticeSafety.basis,
+    resourceFingerprint: includedResourceFingerprint(inclusion.included),
+    includedResources: [...inclusion.included],
+    sourceFingerprint: hashExecutionPreview({
+      leaseId,
+      channel,
+      noticeSafety: noticeSafety.basis,
+      names: facts.names,
+      firstNames: facts.firstNames,
+      address: facts.address,
+      currentBaseRent,
+      leaseEndDate: facts.leaseEndDate,
+      ownerTerms: facts.ownerTerms,
+      preparation,
+      // S265: only the resources this message includes; an unused change moves nothing here.
+      resourceEntries: inclusion.included,
+      cycleId: workspace?.cycleId ?? null,
+      availableCompScreenshot: availableCompScreenshot
+        ? compScreenshotDraftAttachmentIdentity(availableCompScreenshot)
+        : null,
+      workspaceBasis: workspace
+        ? workspaceMessageBasisFingerprint({ ...workspace })
+        : null,
+    }),
+    workspaceFingerprint: workspace
+      ? workspaceMessageBasisFingerprint({ ...workspace })
+      : null,
+    workingTermsFingerprint: workingTermsFingerprint(workingRecord),
+  };
   const signatureMatchesActor = Boolean(senderChoice || savedOwn);
   const outgoingReasons = [
     ...outgoingRenewalReasons({
@@ -1004,7 +1036,11 @@ export async function currentRenewalMessage(
     signatureOrigin,
     retainedSignature: retainedSignature?.signature ?? null,
     chargeInventory,
-    recipients: projectCurrentMessageRecipients(lease, channel),
+    recipients,
+    /** S265: each tenant resource's current use, from this read; the send target rechecks it. */
+    tenantResources,
+    /** S265: the resources this offer's decisions require, for the exact-content check at Send. */
+    tenantResourceRequired: inclusion.required,
     destinations: {
       gmailDrafts: buildManagedGmailDraftsDestination(actor.email),
       lease: buildRentvineRecordDestination({

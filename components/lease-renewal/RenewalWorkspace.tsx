@@ -799,6 +799,7 @@ export function RenewalWorkspace({
                                     key={`message-preparation-${section.id}`}
                                     channel={section.id}
                                     canEdit={can(role, "edit")}
+                                    canManageResources={can(role, "manageAdmin")}
                                     outcomeContext={separated ? stageContext : undefined}
                                   />
                                 ) : null}
