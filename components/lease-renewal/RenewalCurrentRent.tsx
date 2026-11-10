@@ -1,7 +1,9 @@
 "use client";
 import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 
-// S153/S157/S160: the current-rent facts inside the Rent and charges card.
+// S153/S157/S160: the current-rent facts inside the Rent and charges card. S261: the first fact is
+// the Current base rent from the one base decision; a contradicted amount reads Needs verification
+// with the differing sources named.
 //
 // The operational current rent follows the one shared meaning (lib/lease-renewal/current-rent):
 // a retained staff working value, then the single current rent-account charge, then the
@@ -16,7 +18,10 @@ import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui";
-import { operationalCurrentRent } from "@/lib/lease-renewal/current-rent";
+import {
+  CURRENT_BASE_RENT_LABEL,
+  currentBaseRent,
+} from "@/lib/lease-renewal/current-rent";
 import {
   CHARGE_CLASSIFICATION_LABELS,
   chargeAmountNumber,
@@ -111,10 +116,14 @@ export function RenewalCurrentRent({
   const previewHash =
     saved && saved.basedOn === rentvinePreviewHash ? saved.value : rentvinePreviewHash;
 
-  const rent = operationalCurrentRent({
+  // S261: the one current base rent decision. It keeps the S153 precedence and evidence, and a
+  // source that contradicts the chosen amount leaves the base for staff to verify.
+  const rent = currentBaseRent({
     working: context?.record ?? null,
     inventory: chargeInventory,
     contractualRent: summary.currentRent,
+    providerTotal: summary.leaseTotalRent ?? null,
+    listedRent: summary.unitListedRent ?? null,
   });
   const working = rent.workingRent;
   const chargeAmount = rent.rentCharge ? chargeAmountNumber(rent.rentCharge) : null;
@@ -281,14 +290,17 @@ export function RenewalCurrentRent({
       className="ui-stack"
       data-current-rent-basis={rent.basis}
       data-current-rent-evidence={rent.chargeEvidence}
+      data-renewal-base-rent={rent.state}
     >
       {placement !== "work" ? (
         <dl className="ui-stack-tight">
           <div>
-            <dt>Current rent</dt>
+            <dt>{CURRENT_BASE_RENT_LABEL}</dt>
             <dd data-rent-fact="operational">
               {rent.amount === null ? "Needs verification" : money(rent.amount)}{" "}
-              <span className="muted">{rent.label}</span>
+              <span className="muted">
+                {rent.amount === null && rent.check ? rent.check.text : rent.label}
+              </span>
             </dd>
           </div>
           <div>

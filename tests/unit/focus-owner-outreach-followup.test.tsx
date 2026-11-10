@@ -112,7 +112,8 @@ it("keeps the source difference visible independently of equal rent amounts and 
   expect(
     within(pane).getByText(/RentVine and the operating Sheet do not agree/),
   ).toBeVisible();
-  expect(within(context).getByText("Current rent")).toBeInTheDocument();
+  // S261: the Focus pane names the one Current base rent decision.
+  expect(within(context).getByText("Current base rent")).toBeInTheDocument();
   expect(
     within(context).getByText("Contractual lease rent (RentVine)"),
   ).toBeInTheDocument();

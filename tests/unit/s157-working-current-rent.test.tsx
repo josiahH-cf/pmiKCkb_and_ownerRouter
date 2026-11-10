@@ -201,6 +201,8 @@ describe("S157 direct working current rent", () => {
   it("BEH-S157-2: working renewal terms never change the current rent shown", () => {
     const { container } = render(
       card({
+        // S261: a rent charge is the current base rent while the contract agrees with it.
+        contractual: 1180,
         record: fixtureWorkingRecord({
           terms_rent: { value: 1500, revision: 1 },
           terms_effective_date: { value: "2027-01-01", revision: 2 },

@@ -13,6 +13,7 @@ import { AUTOSAVE_IDLE, AutosaveStatus, withEdited } from "./AutosaveStatus";
 import { useWorkingFieldEditor } from "./WorkingFieldEditor";
 import { formatUsd } from "@/lib/lease-renewal/owner-draft";
 import {
+  KICKOFF_FIX_TARGETS,
   KICKOFF_WORDS,
   type RenewalPreparation,
 } from "@/lib/lease-renewal/renewal-preparation";
@@ -25,6 +26,13 @@ import {
 } from "./RenewalDashboardNavigation";
 import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
 import { workingRecommendationBasis } from "@/lib/lease-renewal/kickoff-facts";
+import {
+  OwnerCurrentBaseRent,
+  type CurrentBaseRentFacts,
+} from "./RenewalCurrentBaseRent";
+
+/** The one Rent to recommend editor, in Compare market rent. */
+const RENT_TO_RECOMMEND_TARGET = KICKOFF_FIX_TARGETS.rentToRecommend;
 
 export function PreparedNumbersCheck({
   preparation,
@@ -260,24 +268,40 @@ export function RentToRecommendField({
   );
 }
 
-/** The owner outcome reads the working amount and returns to its only editor. */
+/**
+ * The owner outcome reads the current base rent and the working amount, and links to the only
+ * editor of Rent to recommend in Compare market rent (S261: one editor per value).
+ */
 export function RentRecommendationSummary({
   preparation,
-}: Readonly<{ preparation: RenewalPreparation | null }>) {
+  base = null,
+}: Readonly<{
+  preparation: RenewalPreparation | null;
+  /** S261: the lease facts the one base decision reads; absent where the page has none. */
+  base?: CurrentBaseRentFacts | null;
+}>) {
   const working = useRenewalWorkingRecord();
   const rent =
     workingRenewalTerms(working?.record ?? null).rent ?? preparation?.rent.value ?? null;
+  const target = RENT_TO_RECOMMEND_TARGET;
   return (
-    <p data-renewal-field="owner-recommended-rent">
-      {KICKOFF_WORDS.rentToRecommend}:{" "}
-      <strong>{rent === null ? "Not set" : formatUsd(rent)}</strong>{" "}
-      <button
-        className="text-link"
-        onClick={() => focusRenewalDashboardControl("renewal-now-rent-to-recommend")}
-        type="button"
-      >
-        {working?.canEdit ? "Change recommended rent" : "View recommended rent"}
-      </button>
-    </p>
+    <div className="ui-stack-tight" data-renewal-field="owner-pricing-summary">
+      {base ? <OwnerCurrentBaseRent facts={base} /> : null}
+      <p data-renewal-field="owner-recommended-rent">
+        {KICKOFF_WORDS.rentToRecommend}:{" "}
+        <strong>{rent === null ? "Not set" : formatUsd(rent)}</strong>{" "}
+        <a
+          className="text-link"
+          href={`#${target}`}
+          onClick={(event) => {
+            // The link opens the editor in the step that owns it, in this view.
+            event.preventDefault();
+            focusRenewalDashboardControl(target);
+          }}
+        >
+          {working?.canEdit ? "Edit rent to recommend" : "View rent to recommend"}
+        </a>
+      </p>
+    </div>
   );
 }

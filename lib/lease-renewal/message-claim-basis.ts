@@ -19,6 +19,17 @@ export function workingTermsFingerprint(working: RenewalWorkingRecord | null) {
     endDate: field("terms_end_date"),
   });
 }
+/**
+ * S261 ARCH-S261-2: the working current rent correction an owner message's base was calculated
+ * from, with its revision. The draft claim re-reads it in its transaction, so a correction saved
+ * after the preview (even to the same amount) refuses that older preview.
+ */
+export function workingBaseFingerprint(working: RenewalWorkingRecord | null) {
+  const entry = workingEntry(working, "current_rent");
+  return hashExecutionPreview({
+    currentRent: entry ? { value: entry.value, revision: entry.revision } : null,
+  });
+}
 export function workspaceMessageBasisFingerprint(head: Record<string, unknown>) {
   return hashExecutionPreview({
     cycleId: head.cycleId,
@@ -50,6 +61,11 @@ export interface RenewalMessageClaimBasis {
   noticeSafety?: { scopeHash: string; version: number; semanticHash: string };
   /** S234: absent only on snapshots prepared before it; never sufficient for a new claim. */
   workingTermsFingerprint?: string;
+  /**
+   * S261: the owner message's base correction by revision. Absent on tenant messages and on owner
+   * snapshots prepared before it, which keep their recovery.
+   */
+  workingBaseFingerprint?: string;
   /** Zero or absent means that this lease had no retirement record at review. */
   dispositionRevision?: number;
   signatureSetup?: import("./sender-signature-choice").SenderSignatureEvidence;

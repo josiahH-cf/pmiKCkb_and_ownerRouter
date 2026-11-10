@@ -218,6 +218,11 @@ export interface RenewalMessageFacts {
   firstNames?: Array<string | null>;
   address: string | null;
   currentBaseRent: { value: number; source: string } | null;
+  /**
+   * S261 BEH-S261-1: what to verify while the current base rent cannot be verified, so the
+   * dependent field names it instead of a guessed amount. Absent when the base is known.
+   */
+  currentBaseRentCheck?: string | null;
   leaseEndDate: string | null;
   /**
    * S156/S161: the renewal terms staff are working with (working terms first, then terms already
@@ -419,7 +424,11 @@ export function composeRenewalMessage(
     );
     const currentRent = money(facts.currentBaseRent?.value);
     if (currentRent) sourced(facts.currentBaseRent!.source);
-    else note("currentBaseRent", "The current rent is not available yet.");
+    else
+      note(
+        "currentBaseRent",
+        text(facts.currentBaseRentCheck) ?? "The current rent is not available yet.",
+      );
     add(
       fillSuppliedCopy(SUPPLIED_RENEWAL_COPY.owner.currentRent, {
         current_base_rent: currentRent ?? missingValueMarker("current rent"),

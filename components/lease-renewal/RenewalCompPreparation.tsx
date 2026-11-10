@@ -6,6 +6,8 @@ import { RenewalRecommendation } from "@/components/lease-renewal/RenewalRecomme
 import { Card } from "@/components/ui";
 import { OwnerDecisionForm } from "@/components/lease-renewal/RenewalProgressControls";
 import { useRenewalManualWorkspace } from "@/components/lease-renewal/RenewalManualWorkspace";
+import { useRenewalWorkingRecord } from "@/components/lease-renewal/RenewalWorkingRecord";
+import { operationalCurrentRent } from "@/lib/lease-renewal/current-rent";
 import type { RenewalMarketObservation } from "@/lib/lease-renewal/market-observation";
 import type { MarketSubjectProjection } from "@/lib/lease-renewal/market-subject";
 export function RenewalCompPreparation({
@@ -25,6 +27,14 @@ export function RenewalCompPreparation({
   marketSubject?: MarketSubjectProjection | null;
 }) {
   const context = useRenewalManualWorkspace();
+  // S261 ARCH-S261-1: the comparison reads the one base decision: the working current rent
+  // correction first, else the lease rent this page passed.
+  const working = useRenewalWorkingRecord();
+  const baseRent =
+    operationalCurrentRent({
+      working: working?.record ?? null,
+      contractualRent: currentRent ?? null,
+    }).amount ?? undefined;
   const [observations, setObservations] = useState<RenewalMarketObservation[]>([]),
     [error, setError] = useState("");
   const leaseId = context?.leaseId,
@@ -71,13 +81,13 @@ export function RenewalCompPreparation({
     <Card title={renewalCardTitle("market-evidence", "Market evidence")}>
       {error ? <p role="alert">{error}</p> : null}
       {!canonicalRecommendation ? (
-        <RenewalRecommendation currentRent={currentRent ?? null} fresh={sourceFresh} />
+        <RenewalRecommendation currentRent={baseRent ?? null} fresh={sourceFresh} />
       ) : null}
       <OwnerDecisionForm
         key={state?.cycleId ?? "unrecorded"}
         leaseId={context.leaseId}
         current={null}
-        currentRent={currentRent}
+        currentRent={baseRent}
         address={address}
         canonicalRecommendation={canonicalRecommendation}
         compScreenshotExecutable={compScreenshotExecutable}

@@ -5,6 +5,7 @@ import type { AuthenticatedUser } from "@/lib/auth/session";
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
 import {
   messageResourceFingerprint,
+  workingBaseFingerprint,
   workingTermsFingerprint,
   workspaceMessageBasisFingerprint,
 } from "@/lib/lease-renewal/message-claim-basis";
@@ -53,7 +54,7 @@ export async function assertCurrentRenewalMessageClaim(
     );
   const fail = (): never => {
     throw new EditableLayerError(
-      "The saved message, renewal terms, resource links or approved publication changed after this preview. Preview the message again before creating the draft.",
+      "The saved message, current base rent, renewal terms, resource links or approved publication changed after this preview. Preview the message again before creating the draft.",
       409,
     );
   };
@@ -126,6 +127,9 @@ export async function assertCurrentRenewalMessageClaim(
     workspaceMessageBasisFingerprint(head) !== basis.workspaceFingerprint ||
     !basis.workingTermsFingerprint ||
     workingTermsFingerprint(working) !== basis.workingTermsFingerprint ||
+    // S261 ARCH-S261-2: an owner preview is bound to the base correction it was calculated from.
+    (basis.workingBaseFingerprint !== undefined &&
+      workingBaseFingerprint(working) !== basis.workingBaseFingerprint) ||
     !message ||
     message.revision !== basis.preparationRevision ||
     active.get("executionId") !== execution.id ||

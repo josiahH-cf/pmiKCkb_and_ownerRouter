@@ -51,6 +51,7 @@ import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
 import { housingAssistanceVariant } from "@/lib/lease-renewal/working-record";
 import { nowSlotKey, useRenewalNowCard } from "./RenewalNowCardContext";
 import { PreparedNumbersCheck, StoredComparisonSummary } from "./RenewalKickoffFields";
+import { CurrentBaseRentSummary } from "./RenewalCurrentBaseRent";
 import { PrepareThisLeaseButton } from "./RenewalKickoffPreparation";
 import { FinishUpSourcePreviews } from "./RenewalFinishUpPreviews";
 import {
@@ -731,6 +732,7 @@ function GuidedPane({
               canEdit={canEdit}
               choose={choose}
               context={context}
+              facts={facts}
               heading={heading}
               leaseId={leaseId}
               shown={shown}
@@ -812,6 +814,7 @@ function NowCard({
   canEdit,
   choose,
   context,
+  facts,
   heading,
   leaseId,
   shown,
@@ -820,6 +823,7 @@ function NowCard({
   canEdit: boolean;
   choose: (id: RenewalPathStepId) => void;
   context: RenewalStageContext;
+  facts: RenewalFocusFacts;
   heading: React.RefObject<HTMLHeadingElement | null>;
   leaseId: string;
   shown: RenewalPathStepView;
@@ -1133,6 +1137,17 @@ function NowCard({
                 key={nowSlotKey(shown.id, slot)}
                 ref={nowCard?.slotRef}
               >
+                {/* S261: Current base rent is the first rent fact of the numbers check. */}
+                {slot === "prepared-numbers-check" ? (
+                  <CurrentBaseRentSummary
+                    facts={{
+                      contractualRent: facts.currentRent,
+                      providerTotal: facts.leaseTotalRent ?? null,
+                      listedRent: facts.unitListedRent ?? null,
+                      chargeInventory: facts.chargeInventory,
+                    }}
+                  />
+                ) : null}
                 {preparation && slot === "prepared-numbers-check" ? (
                   <PreparedNumbersCheck preparation={preparation} />
                 ) : null}

@@ -38,19 +38,23 @@ import { getRenewalLeaseWorkspace } from "@/tests/helpers/sample-desk";
 const PRIOR_PATH = join(__dirname, "..", "fixtures", "s181-full-view-presentation.json");
 // S244 R-S244-2 corrects the document handoff's loop sentence (loop creation follows its
 // readiness row), so only the documents section's copy changes in the manual sample cases. The
-// S238 presentation becomes the immediate prior and stays immutable; S244 is recorded separately.
+// S238 presentation became the immediate prior and stayed immutable; S244 was recorded separately.
+// S261 names the first rent fact "Current base rent" (the one base decision), so only the lease
+// details copy changes in these sample cases. The S224 presentation becomes the immediate prior
+// and stays immutable; S261 is recorded separately.
 const IMMEDIATE_PRIOR_PATH = join(
-  __dirname,
-  "..",
-  "fixtures",
-  "s244-help-copy-full-view-presentation.json",
-);
-const BASELINE_PATH = join(
   __dirname,
   "..",
   "fixtures",
   "s224-outgoing-readiness-full-view-presentation.json",
 );
+const BASELINE_PATH = join(
+  __dirname,
+  "..",
+  "fixtures",
+  "s261-base-rent-full-view-presentation.json",
+);
+const S261_COPY = ["renewal-section-lease-details"];
 // November3 S238 A-01 updates reviewed draft/Communications guidance; S235 A-03 names the
 // existing connection/selection review accurately. Only owner/tenant/documents copy and the
 // exact same-target Connections label change in these sample cases. S125's live-only selector
@@ -58,10 +62,8 @@ const BASELINE_PATH = join(
 // Record the new presentation only in the isolated fixture lane; every earlier fixture is immutable.
 const CONNECTION_LINK_BEFORE = "Open Connections for Dotloop setup -> /connections";
 const CONNECTION_LINK_AFTER = "Review Dotloop connection and selection -> /connections";
-// S224 changes the marked-value explanation in both message sections. Preserve the
-// S253 recording and every unaffected control; the copy change has its own fixture.
-const S253_COPY = ["renewal-section-documents"];
-const S224_COPY = ["renewal-section-owner", "renewal-section-tenant", ...S253_COPY];
+// S224 changed the marked-value explanation in both message sections (owner and tenant copy, with
+// the S253 documents copy); that presentation has its own fixture, now the immediate prior.
 // UX review: the old registration wording implied an unsupported assistance-animal requirement.
 // The new recorded presentation changes only this documented name and the documents copy.
 // Every prior fixture stays immutable; the same controls, counts, sections and links are required.
@@ -371,7 +373,7 @@ describe("S145 preservation with authorized current renewal guidance", () => {
       expect(
         changedCopy,
         `${testCase.name}: exact authorized section-copy changes`,
-      ).toEqual(testCase.manual ? S224_COPY : S253_COPY);
+      ).toEqual(S261_COPY);
       expect(signature.copy).toHaveLength(previous.copy.length);
     }
     const prior = JSON.parse(readFileSync(PRIOR_PATH, "utf8")) as typeof signatures;

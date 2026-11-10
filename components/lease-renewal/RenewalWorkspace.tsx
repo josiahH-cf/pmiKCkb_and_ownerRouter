@@ -35,6 +35,10 @@ import {
   RentToRecommendField,
   StoredComparisonSummary,
 } from "@/components/lease-renewal/RenewalKickoffFields";
+import {
+  CurrentBaseRentSummary,
+  type CurrentBaseRentFacts,
+} from "@/components/lease-renewal/RenewalCurrentBaseRent";
 import { RenewalWorkStatusControl } from "@/components/lease-renewal/RenewalWorkStatusControl";
 import { RenewalCopyValue } from "@/components/lease-renewal/RenewalCopyValue";
 import { RenewalCompPreparation } from "@/components/lease-renewal/RenewalCompPreparation";
@@ -328,8 +332,18 @@ export function RenewalWorkspace({
           correctionPanel: Boolean(correctionPanel),
         })
       : null;
+  // S261: the lease facts the one current base rent decision reads on this page.
+  const baseRentFacts: CurrentBaseRentFacts = {
+    contractualRent: summary.currentRent,
+    providerTotal: summary.leaseTotalRent ?? null,
+    listedRent: summary.unitListedRent ?? null,
+    chargeInventory,
+  };
   const focusFacts: RenewalFocusFacts = {
-    currentRent: workspace.guidance.currentBaseRent,
+    // The contractual lease rent; the Focus pane and the Now card decide the base from it.
+    currentRent: summary.currentRent,
+    leaseTotalRent: baseRentFacts.providerTotal,
+    unitListedRent: baseRentFacts.listedRent,
     chargeInventory,
     endDateIso: summary.endDateIso,
     lifecycleLabel: summary.lifecycle
@@ -808,6 +822,7 @@ export function RenewalWorkspace({
                                     id="renewal-owner-pricing-basis"
                                   >
                                     <RentRecommendationSummary
+                                      base={baseRentFacts}
                                       preparation={stageContext.preparation ?? null}
                                     />
                                     <RenewalPricingPolicyPanel />
@@ -835,6 +850,14 @@ export function RenewalWorkspace({
                                       />
                                     </RenewalSecondaryWork>
                                   </div>
+                                ) : null}
+                                {/* S261: in Full view, Current base rent leads Check the numbers
+                                    (the Now card carries it in Guided view). */}
+                                {separated && section.id === "lease-details" ? (
+                                  <CurrentBaseRentSummary
+                                    facts={baseRentFacts}
+                                    placement="full"
+                                  />
                                 ) : null}
                                 {separated && section.steps[0] ? (
                                   <div

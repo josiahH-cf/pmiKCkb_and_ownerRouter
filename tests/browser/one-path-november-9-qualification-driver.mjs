@@ -740,8 +740,9 @@ try {
             .replace(/[,\s]/g, "")
             .includes(String(saved.value)),
         );
+        // S261: Ask the owner links to the one Rent to recommend editor.
         await page
-          .getByRole("button", { name: "Change recommended rent", exact: true })
+          .getByRole("link", { name: "Edit rent to recommend", exact: true })
           .click();
         assert.equal(
           await editor.evaluate((node) => node === document.activeElement),

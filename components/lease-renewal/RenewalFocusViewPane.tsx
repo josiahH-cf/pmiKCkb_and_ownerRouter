@@ -14,7 +14,10 @@ import { createPortal } from "react-dom";
 
 import { formatCalendarDate } from "@/lib/date-display";
 import type { ActionGraphDiagnostic } from "@/lib/lease-renewal/action-graph";
-import { operationalCurrentRent } from "@/lib/lease-renewal/current-rent";
+import {
+  CURRENT_BASE_RENT_LABEL,
+  currentBaseRent,
+} from "@/lib/lease-renewal/current-rent";
 import { describeRenewalTerms } from "@/lib/lease-renewal/current-rent-display";
 import { effectiveRenewalTerms } from "@/lib/lease-renewal/effective-terms";
 import { outreachFillFor } from "@/lib/lease-renewal/outreach-evidence";
@@ -58,6 +61,10 @@ import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
 export interface RenewalFocusFacts {
   /** The contractual lease rent from the RentVine lease detail. */
   readonly currentRent: number | null;
+  /** S261: the RentVine lease total of every recurring charge; never the base rent. */
+  readonly leaseTotalRent?: number | null;
+  /** S261: the unit's listed rent; a reference, never the base rent. */
+  readonly unitListedRent?: number | null;
   /**
    * S153: the recurring charge inventory the page read (null when that read failed, undefined
    * when the page did not pass it), so the pane shows the same operational current rent as the
@@ -485,14 +492,17 @@ function FocusPane({
       ? selected.detail
       : null;
   // S153/S156: the same working-value precedence and renewal terms the Rent and charges card uses.
+  // S261: the one current base rent decision, the same as Check the numbers.
   const workingRecord = working?.record ?? null;
   const terms = describeRenewalTerms(effectiveRenewalTerms(workingRecord), (value) =>
     USD.format(value),
   );
-  const rent = operationalCurrentRent({
+  const rent = currentBaseRent({
     working: workingRecord,
     inventory: facts.chargeInventory,
     contractualRent: facts.currentRent,
+    providerTotal: facts.leaseTotalRent ?? null,
+    listedRent: facts.unitListedRent ?? null,
   });
   // The recovery that clears an unreadable source, when the projection names one.
   const recovery = projection.actions.find(
@@ -656,10 +666,12 @@ function FocusPane({
             </div>
           ) : null}
           <div>
-            <dt>Current rent</dt>
-            <dd data-current-rent-basis={rent.basis}>
+            <dt>{CURRENT_BASE_RENT_LABEL}</dt>
+            <dd data-current-rent-basis={rent.basis} data-renewal-base-rent={rent.state}>
               {rent.amount === null ? "Needs Verification" : USD.format(rent.amount)}{" "}
-              <span className="muted">{rent.label}</span>
+              <span className="muted">
+                {rent.amount === null && rent.check ? rent.check.text : rent.label}
+              </span>
             </dd>
           </div>
           <div>

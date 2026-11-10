@@ -2,6 +2,7 @@
 // desk orchestration and the lease page already loaded plus one bulk read of stored comparisons
 // (`kickoff-support.ts`). Pure: it reads no source and records nothing.
 
+import { operationalCurrentRent } from "@/lib/lease-renewal/current-rent";
 import type { DeskReconItem } from "@/lib/lease-renewal/desk-model";
 import { RENTVINE_SOURCE_SYSTEM } from "@/lib/integrations/rentvine/lease-mapper";
 import { marketBasisFromCapturedResult } from "@/lib/lease-renewal/market-observation";
@@ -252,9 +253,16 @@ export function kickoffFactsFor(input: KickoffFactsInput): RenewalKickoffFacts {
           : input.support.allowanceReached === true
             ? { state: "allowance_reached" }
             : // ARCH-S249-3: this cycle's one claimed lookup already ran (or is running), so the
-              // batch never offers it to the automatic start again.
+              // batch never offers it to the automatic start again. S261 R-S261-4: a lookup that
+              // failed for this cycle keeps its exact reason, shown before any new lookup.
               outcome
-              ? { state: "none", attempted: true }
+              ? {
+                  state: "none",
+                  attempted: true,
+                  ...(outcome.state === "failed" && outcome.reason
+                    ? { failedReason: outcome.reason }
+                    : {}),
+                }
               : { state: "none" };
   return {
     numbers: {
@@ -270,7 +278,13 @@ export function kickoffFactsFor(input: KickoffFactsInput): RenewalKickoffFacts {
     typedRent: typedRecommendation(input.working, input.manual),
     workingRentBasis: workingRecommendationBasis(input.working),
     agreementRent: input.agreementRent ?? null,
-    currentRent: input.contractualRent,
+    // S261 ARCH-S261-1: the one base decision as the desk can make it (no charge read): the
+    // working correction, else the contractual base. The owner message holds its proposal near
+    // the same base.
+    currentRent: operationalCurrentRent({
+      workingRent: input.workingCurrentRent ?? null,
+      contractualRent: input.contractualRent,
+    }).amount,
     ownerRecipient: input.ownerRecipient,
     signature: input.support.signature,
     templateApproved: input.support.templateApproved,

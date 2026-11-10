@@ -105,8 +105,15 @@ export interface RenewalStoredComparison {
 /** R-S249-2: the comparison for this lease and cycle. */
 export type RenewalComparisonFacts =
   | { readonly state: "stored"; readonly comparison: RenewalStoredComparison }
-  /** None stored. `attempted`: this cycle's one claimed lookup already ran (or is running). */
-  | { readonly state: "none"; readonly attempted?: boolean }
+  /**
+   * None stored. `attempted`: this cycle's one claimed lookup already ran (or is running).
+   * `failedReason` (S261 R-S261-4): the exact reason that lookup failed, kept for a return visit.
+   */
+  | {
+      readonly state: "none";
+      readonly attempted?: boolean;
+      readonly failedReason?: string;
+    }
   /** No lookup ran because this month's allowance is reached (R-S249-3). */
   | { readonly state: "allowance_reached" }
   /** A lookup ran for this cycle and returned nothing usable (S121 stays separate). */
@@ -421,9 +428,11 @@ function comparisonView(facts: RenewalComparisonFacts): RenewalComparisonView {
       return {
         state: "none",
         line:
-          facts.state === "none" && facts.attempted
-            ? "This cycle's comparison already ran once and stored no result"
-            : "No comparison is stored for this cycle yet",
+          facts.state === "none" && facts.attempted && facts.failedReason
+            ? `This cycle's comparison did not finish: ${facts.failedReason.replace(/[.\s]+$/, "")}. It is not started again by itself`
+            : facts.state === "none" && facts.attempted
+              ? "This cycle's comparison already ran once and stored no result"
+              : "No comparison is stored for this cycle yet",
         stored: null,
         firstComps: [],
         ageLine: null,
