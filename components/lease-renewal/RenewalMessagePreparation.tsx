@@ -211,9 +211,15 @@ interface Preparation {
 }
 
 import { RenewalSecondaryWork, useRenewalOutcomeStage } from "./RenewalGuidedView";
+import { applyTenantResourceInclusion } from "@/lib/lease-renewal/tenant-resource-inclusion";
 import type { RenewalStageContext } from "@/lib/lease-renewal/renewal-stage";
 
-type MessageOwnerProps = Readonly<{ channel: "owner" | "tenant"; canEdit: boolean }>;
+type MessageOwnerProps = Readonly<{
+  channel: "owner" | "tenant";
+  canEdit: boolean;
+  /** S265: whether the viewer maintains shared resource links (Admin); others read the handoff. */
+  canManageResources?: boolean;
+}>;
 
 export function RenewalMessagePreparation({
   outcomeContext,
@@ -338,6 +344,7 @@ function TenantOfferProgress({
 function MessageOwner({
   channel,
   canEdit,
+  canManageResources,
   compact = false,
   deliveryHeld = false,
 }: MessageOwnerProps & { compact?: boolean; deliveryHeld?: boolean }) {
@@ -350,6 +357,7 @@ function MessageOwner({
       refreshBasis={`${context.state?.cycleId}:${context.state?.revision}:${context.state?.termsRevision}:${context.state?.preparation?.revision}:${working?.record?.revision ?? 0}`}
       channel={channel}
       canEdit={canEdit}
+      canManageResources={canManageResources}
       compact={compact}
       deliveryHeld={deliveryHeld}
     />
@@ -611,6 +619,10 @@ function composedPreparation(
     shownContent = applyRefinedBody(shownContent, authoredBody);
   if (shownContent && authoredSubject)
     shownContent = applyAuthoredSubject(shownContent, authoredSubject);
+  // S265 (R-S265-2): the same inclusion projection the server applies to the exact final content,
+  // so an authored resource clause or link shows its own fix here too.
+  if (shownContent && current)
+    shownContent = applyTenantResourceInclusion(shownContent, current.facts).content;
   return { payload, content, shownContent };
 }
 
@@ -619,6 +631,7 @@ function MessagePreparationEditor({
   refreshBasis,
   channel,
   canEdit,
+  canManageResources,
   compact,
   deliveryHeld,
 }: {
@@ -626,6 +639,7 @@ function MessagePreparationEditor({
   refreshBasis: string;
   channel: "owner" | "tenant";
   canEdit: boolean;
+  canManageResources?: boolean;
   compact: boolean;
   deliveryHeld: boolean;
 }) {
@@ -1078,6 +1092,11 @@ function MessagePreparationEditor({
           channel,
           missing: shownContent.missing,
           policyGates: policyNotes,
+          // S265: the Admin handoff accompanies the tenant audience review, which applies to the
+          // outgoing offer contract; an older composition keeps its own notes unchanged.
+          canManageResources: current.facts.outgoingContract
+            ? canManageResources
+            : undefined,
         })
       : null;
   function openMissingInput(item: MessageMissingInput) {

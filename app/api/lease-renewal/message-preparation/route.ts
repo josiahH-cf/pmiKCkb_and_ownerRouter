@@ -125,6 +125,8 @@ function claimBasisOf(current: Current) {
     workspaceFingerprint: current.basis.workspaceFingerprint!,
     sourceFingerprint: current.basis.sourceFingerprint,
     resourceFingerprint: current.basis.resourceFingerprint,
+    // S265 (R-S265-4): the included tenant resources' evidence, rechecked at the draft claim.
+    includedResources: current.basis.includedResources,
     preparationRevision: current.saved!.revision,
     workingTermsFingerprint: current.basis.workingTermsFingerprint,
     // S261 ARCH-S261-2: an owner preview is bound to the base correction it was calculated from.

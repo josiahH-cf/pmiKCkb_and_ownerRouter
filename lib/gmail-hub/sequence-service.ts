@@ -65,6 +65,45 @@ import {
   type SequenceStore,
 } from "./sequence-store";
 import type { WorkflowCommunicationContext } from "./workflow-context";
+import {
+  authorizedOccurrenceBasis,
+  projectTenantResourceInclusion,
+  tenantResourceEffectVerdict,
+  tenantResourceStatesFromUses,
+  type AuthorizedTenantResourceBasis,
+} from "@/lib/lease-renewal/tenant-resource-inclusion";
+import type { TenantResourceId } from "@/lib/lease-renewal/tenant-resource-evidence";
+
+/**
+ * S265 (R-S265-4, ARCH-S265-4): the tenant resources each exact authorized message includes, with
+ * their frozen evidence. Every included resource must be usable now, linked as its current
+ * destination, keep its wording and cover the reviewed recipients; the initial offer must carry
+ * what the decisions require. Any failure refuses the authorization with each exact fix.
+ */
+function tenantResourceAuthorizationBasis(
+  target: VerifiedCommunicationTarget,
+  initial: AuthorizedMessage,
+  followUp: AuthorizedMessage | null,
+): AuthorizedTenantResourceBasis | undefined {
+  if (!target.tenantResources) return undefined;
+  const states = tenantResourceStatesFromUses(target.tenantResources);
+  const recipients = [...target.to, ...target.cc];
+  const review = (message: AuthorizedMessage, required: readonly TenantResourceId[]) =>
+    projectTenantResourceInclusion({
+      content: message,
+      states,
+      requirements: { required, informationForm: "omitted", holds: [] },
+      recipients,
+    });
+  const first = review(initial, target.tenantResourceRequired ?? []);
+  const next = followUp ? review(followUp, []) : null;
+  const problems = [...first.problems, ...(next?.problems ?? [])].map(
+    (problem) => problem.message,
+  );
+  if (problems.length)
+    throw new EditableLayerError([...new Set(problems)].join(" "), 409);
+  return { initial: [...first.included], followUp: next ? [...next.included] : null };
+}
 
 export interface SequenceMailClient {
   subject: string;
@@ -528,6 +567,7 @@ export class WorkflowCommunicationSequenceService {
       if (!target.signatureSetup) gaps.unshift(SIGNATURE_SETUP_REQUIRED);
       if (gaps.length) throw new EditableLayerError([...new Set(gaps)].join(" "), 409);
     }
+    const resourceBasis = tenantResourceAuthorizationBasis(target, initial, followUp);
     const nowMs = this.now();
     if (
       schedule?.sendLimit !== null &&
@@ -573,6 +613,7 @@ export class WorkflowCommunicationSequenceService {
         ? { immediateTenantOffer: true as const }
         : {}),
       ...(target.reply ? { reply: target.reply } : {}),
+      ...(resourceBasis ? { resourceBasis } : {}),
     };
     const authorization: CommunicationAuthorization = {
       ...a,
@@ -970,6 +1011,61 @@ export class WorkflowCommunicationSequenceService {
         }),
       });
       return { status: "paused", sequence: s };
+    }
+    // S265 (R-S265-4): the tenant resources the occurrence about to be claimed includes, against
+    // this fresh read, today's date and its actual recipients. An unsent occurrence whose proof
+    // changed, was revoked, expired or no longer covers its recipients pauses for review; a
+    // resource it omits is never read. The claim transaction rereads the same evidence.
+    if (target.tenantResources) {
+      const verdict = tenantResourceEffectVerdict({
+        basis: authorizedOccurrenceBasis(authorization.resourceBasis, s.confirmedCount),
+        content:
+          (s.confirmedCount === 0 ? authorization.initial : authorization.followUp) ??
+          authorization.initial,
+        uses: target.tenantResources,
+        recipients: [...authorization.to, ...authorization.cc],
+        effect: "send",
+      });
+      if (!verdict.ok && verdict.kind === "unavailable") {
+        await this.deps.store.observe(s.id, {
+          authorizationRevision: authorization.revision,
+          checkedAtMs: this.now(),
+          messageIds: [],
+          pause: null,
+          historyId: null,
+          complete: false,
+          reason: "source_unavailable",
+        });
+        return {
+          status: "awaiting_source",
+          sequence: requireSequence(await this.deps.store.get(id)),
+        };
+      }
+      if (!verdict.ok) {
+        const evidenceIds = [`renewal-resource:${verdict.resourceId}`];
+        s = await this.deps.store.write({
+          id: s.id,
+          actorUid: actor.uid,
+          expectedVersion: s.version,
+          operationId: randomUUID(),
+          operationHash: sequenceHash(["resource_changed", s.version, evidenceIds]),
+          nowMs: this.now(),
+          action: "tenant_resource_changed",
+          apply: (current) => ({
+            ...requireSequence(current),
+            version: s.version + 1,
+            state: "paused",
+            pause: {
+              cause: "resource_changed",
+              byUid: "communication-worker",
+              atMs: this.now(),
+              evidenceIds,
+            },
+            nextDueAtMs: null,
+          }),
+        });
+        return { status: "paused", sequence: s };
+      }
     }
     s = await this.observe(s);
     if (s.state !== "active") return { status: "paused", sequence: s };

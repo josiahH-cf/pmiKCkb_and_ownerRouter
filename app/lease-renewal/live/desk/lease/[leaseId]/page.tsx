@@ -801,6 +801,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
                   user.role,
                 )}
                 settings={renewalAuxiliaryValue(resourceLocationsRead, null)}
+                todayIso={businessDateIso(readTimestamp)}
               />
             }
             packetReadinessPanel={

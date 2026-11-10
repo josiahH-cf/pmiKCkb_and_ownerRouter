@@ -140,6 +140,10 @@ async function renewalTarget(actor: AuthenticatedUser, c: WorkflowCommunicationC
     cadence,
     effectiveDate,
   }));
+  // S265 (ARCH-S265-4): the resource members of both material hashes are retired. A link alone
+  // never stood for the reviewed resource; the included resources' full evidence is frozen with
+  // each authorized message and rechecked at dispatch instead. They stay null so an authorization
+  // reviewed before S265 (when every tenant entry read blank or unverified) keeps its hash.
   const legacyMaterialSourceHash = sequenceHash({
     ...leaseBasis,
     address: f.address,
@@ -148,8 +152,8 @@ async function renewalTarget(actor: AuthenticatedUser, c: WorkflowCommunicationC
     terms,
     charges,
     insuranceTransition: f.insuranceTransition?.applicable ?? null,
-    informationForm: f.informationForm?.url ?? null,
-    insuranceFlyer: f.insuranceFlyer?.url ?? null,
+    informationForm: null,
+    insuranceFlyer: null,
     blockers,
   });
   const required = c.replyTo
@@ -173,18 +177,9 @@ async function renewalTarget(actor: AuthenticatedUser, c: WorkflowCommunicationC
               terms,
               charges: charges.filter((charge) => charge.applicable === true),
               insuranceTransition: f.insuranceTransition?.applicable ?? null,
-              informationForm: f.informationForm?.url ?? null,
-              insuranceFlyer: f.insuranceTransition?.applicable
-                ? (f.insuranceFlyer?.url ?? null)
-                : null,
-              rbpFlyer: f.charges.some(
-                (charge) =>
-                  charge.id === "rbp" &&
-                  charge.applicable === true &&
-                  (charge.comparison === "changed" || charge.comparison === "new"),
-              )
-                ? (f.rbpFlyer?.url ?? null)
-                : null,
+              informationForm: null,
+              insuranceFlyer: null,
+              rbpFlyer: null,
             }
           : f.ownerIntent === "renew_or_not"
             ? { ownerIntent: f.ownerIntent }
@@ -219,6 +214,14 @@ async function renewalTarget(actor: AuthenticatedUser, c: WorkflowCommunicationC
     ],
     materialSourceHash: sequenceHash({ ...leaseBasis, contentBasis, blockers }),
     legacyMaterialSourceHash,
+    // S265: the tenant resources as read now, and those the offer's decisions require. Only the
+    // resources an exact authorized message includes are frozen and compared.
+    ...(channel === "tenant"
+      ? {
+          tenantResources: current.tenantResources,
+          tenantResourceRequired: c.replyTo ? [] : [...current.tenantResourceRequired],
+        }
+      : {}),
   };
   const initial = communicationMessageFromRenewalContent(current.content);
   const signatureParagraph =

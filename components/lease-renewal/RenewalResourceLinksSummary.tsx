@@ -18,15 +18,23 @@ import {
   usableRenewalResourceUrl,
   type RenewalResourceSettings,
 } from "@/lib/lease-renewal/resource-locations";
+import {
+  describeTenantResourceUse,
+  isTenantResourceId,
+  tenantResourceUse,
+} from "@/lib/lease-renewal/tenant-resource-evidence";
 
 export function RenewalResourceLinksSummary({
   canManage,
   settings,
+  todayIso,
 }: Readonly<{
   /** The page's existing Admin capability check; the summary itself grants nothing. */
   canManage: boolean;
   /** Null means the settings read failed; the saved values are unknown, not blank. */
   settings: RenewalResourceSettings | null;
+  /** S265: the page's business date; a tenant entry is read for tenant use on it. */
+  todayIso: string;
 }>) {
   const admin = canManage;
   return (
@@ -52,15 +60,26 @@ export function RenewalResourceLinksSummary({
       <ul className="ui-rows">
         {RENEWAL_RESOURCE_FIELDS.map((field) => {
           const entry = settings?.entries[field.id];
-          const url = usableRenewalResourceUrl(entry);
+          // S265: a tenant link is usable only with its current tenant audience check.
+          const tenantUse =
+            settings !== null && isTenantResourceId(field.id)
+              ? tenantResourceUse(field.id, entry, todayIso)
+              : null;
+          const url = tenantUse
+            ? tenantUse.state === "usable"
+              ? tenantUse.url
+              : null
+            : usableRenewalResourceUrl(entry);
           const state =
             settings === null
               ? "Unknown saved state"
-              : !entry?.url
-                ? "Pending team input"
-                : url
-                  ? "Checked by staff"
-                  : "Destination needs review";
+              : tenantUse
+                ? describeTenantResourceUse(tenantUse)
+                : !entry?.url
+                  ? "Pending team input"
+                  : url
+                    ? "Checked by staff"
+                    : "Destination needs review";
           return (
             <li key={field.id} id={`renewal-resource-${field.id}`}>
               <strong>{field.label}</strong>: {state}

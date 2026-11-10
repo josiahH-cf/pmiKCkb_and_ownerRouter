@@ -129,6 +129,12 @@ export interface CommunicationAuthorization {
   schedule: CommunicationSchedule | null;
   /** An immediate first tenant offer followed by an explicitly reviewed recurrence. */
   immediateTenantOffer?: true;
+  /**
+   * S265 (R-S265-4): the frozen evidence of the tenant resources each authorized message includes.
+   * Present on tenant authorizations given after S265 (empty lists when nothing is included);
+   * absent on earlier ones, whose stored content then decides whether they include a resource.
+   */
+  resourceBasis?: import("@/lib/lease-renewal/tenant-resource-inclusion").AuthorizedTenantResourceBasis;
 }
 export interface CommunicationSequence
   extends
@@ -163,7 +169,8 @@ export interface CommunicationSequence
       | "authorization_unavailable"
       | "provider_refused"
       | "send_unconfirmed"
-      | "unexpected_sender";
+      | "unexpected_sender"
+      | "resource_changed";
     byUid: string;
     atMs: number;
     evidenceIds: string[];
@@ -270,6 +277,13 @@ export interface VerifiedCommunicationTarget {
   materialSourceHash: string;
   label: string;
   blockers?: string[];
+  /**
+   * S265: for a tenant renewal message, each tenant resource's current use from this read. Not
+   * part of the reviewed target hash: only the resources a message includes are compared.
+   */
+  tenantResources?: import("@/lib/lease-renewal/tenant-resource-evidence").TenantResourceUses;
+  /** S265: the resources the offer's decisions require in its initial message. */
+  tenantResourceRequired?: readonly import("@/lib/lease-renewal/tenant-resource-evidence").TenantResourceId[];
 }
 export function communicationSendKey(
   context: WorkflowCommunicationContext,

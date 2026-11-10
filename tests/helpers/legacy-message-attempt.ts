@@ -40,6 +40,8 @@ export async function legacyMessageAttemptFixture(
       resourceFingerprint: current.basis.resourceFingerprint,
       preparationRevision: current.saved.revision,
       workingTermsFingerprint: current.basis.workingTermsFingerprint,
+      // S265: mirrors the route's claim basis; the included tenant resources' frozen evidence.
+      includedResources: current.basis.includedResources,
     };
     if (input.confirm) {
       const saved = await getMessageDraftSnapshot(

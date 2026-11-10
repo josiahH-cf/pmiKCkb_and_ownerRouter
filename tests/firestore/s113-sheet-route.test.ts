@@ -1452,6 +1452,16 @@ async function readMessage() {
   expect(result.status).toBe(200);
   return result.json();
 }
+/** S265: a synthetic tenant-wide audience check for the fixture form link. */
+const SYNTHETIC_FORM_AUDIENCE_CHECK = {
+  documentVersion: "Fixture renewal information form v1",
+  audience: { kind: "tenant_wide" },
+  method: "signed_out_open",
+  result: "current_document",
+  checkedBy: "Fixture Resource Owner",
+  checkedOn: "2026-01-02",
+  validUntil: "2099-12-31",
+} as const;
 async function preparedMessage() {
   let state = await startManual();
   // S234 R-S234-2: the message reads the saved Working terms; the approval covers them.
@@ -1476,6 +1486,9 @@ async function preparedMessage() {
         id: "renewal_information_form",
         url: "https://fixture-rental.net/form",
         verified: true,
+        // S265 (deliberate change): a tenant link reaches the offer only with its current tenant
+        // audience check; the checkbox alone leaves it Source pending and the form omitted.
+        tenantAccess: SYNTHETIC_FORM_AUDIENCE_CHECK,
       },
     }),
   );
@@ -3894,6 +3907,28 @@ describe("S113 mounted operator journey with persisted backend state", () => {
           "https://fixture-rental.net/form",
         );
         fireEvent.click(within(form).getByRole("checkbox"));
+        // S265 (deliberate change): the tenant audience check makes the form link usable for the
+        // offer; the destination checkbox alone leaves it Source pending.
+        const audienceCheck = within(form);
+        change(
+          audienceCheck.getByLabelText("Document version"),
+          SYNTHETIC_FORM_AUDIENCE_CHECK.documentVersion,
+        );
+        change(audienceCheck.getByLabelText("Audience"), "tenant_wide");
+        change(audienceCheck.getByLabelText("How it was checked"), "signed_out_open");
+        change(audienceCheck.getByLabelText("What opened"), "current_document");
+        change(
+          audienceCheck.getByLabelText("Checked by"),
+          SYNTHETIC_FORM_AUDIENCE_CHECK.checkedBy,
+        );
+        change(
+          audienceCheck.getByLabelText("Checked on"),
+          SYNTHETIC_FORM_AUDIENCE_CHECK.checkedOn,
+        );
+        change(
+          audienceCheck.getByLabelText("Check valid until"),
+          SYNTHETIC_FORM_AUDIENCE_CHECK.validUntil,
+        );
         fireEvent.click(
           within(form).getByRole("button", { name: "Save renewal information form" }),
         );
