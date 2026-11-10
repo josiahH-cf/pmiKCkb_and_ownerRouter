@@ -305,6 +305,10 @@ function action(input: DeskGuidanceInput, status: RenewalOverallStatus): DeskLea
 export function buildDeskLeaseGuidance(input: DeskGuidanceInput): DeskLeaseGuidance {
   const status = overallStatus(input);
   return {
+    // S261 ARCH-S261-1: the worklist shows this explicitly typed RentVine source amount (the
+    // production reconciliation reads it against RentVine), with a working correction beside it.
+    // The batch row, the preparation, the lease page and the owner message read the one base
+    // decision in lib/lease-renewal/current-rent.
     currentBaseRent:
       typeof input.rentvineCurrentRent === "number" &&
       Number.isFinite(input.rentvineCurrentRent)

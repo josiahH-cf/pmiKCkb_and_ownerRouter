@@ -100,13 +100,15 @@ describe("S117 Rent and charges working area (R117.1, R117.4)", () => {
     });
     expect(within(area).getByRole("heading", { name: "Rent and charges" })).toBeVisible();
     for (const label of [
-      "Current rent",
+      // S261: the first fact is the one Current base rent decision.
+      "Current base rent",
       "Current rent charge (RentVine)",
       "Contractual lease rent",
       "Lease total (RentVine)",
       "Unit listed rent (reference)",
     ]) {
-      expect(within(area).getByText(label)).toBeInTheDocument();
+      // The fact correction's own "Current base rent" option shares the base label.
+      expect(within(area).getByText(label, { selector: "dt" })).toBeInTheDocument();
     }
     const operational = area.querySelector('[data-rent-fact="operational"]');
     expect(operational).toHaveTextContent("1180.00");

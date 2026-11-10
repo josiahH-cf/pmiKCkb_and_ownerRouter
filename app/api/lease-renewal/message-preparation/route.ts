@@ -127,6 +127,10 @@ function claimBasisOf(current: Current) {
     resourceFingerprint: current.basis.resourceFingerprint,
     preparationRevision: current.saved!.revision,
     workingTermsFingerprint: current.basis.workingTermsFingerprint,
+    // S261 ARCH-S261-2: an owner preview is bound to the base correction it was calculated from.
+    ...(current.facts.channel === "owner"
+      ? { workingBaseFingerprint: current.basis.workingBaseFingerprint }
+      : {}),
   };
 }
 /** A refusal that happened before any Gmail call, in the shape the message card reports. */

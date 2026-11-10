@@ -8,6 +8,7 @@
 
 import { formatCalendarDate, formatCalendarDateOrTimestamp } from "@/lib/date-display";
 import type { DeskLeaseRow } from "@/lib/lease-renewal/desk-model";
+import { operationalCurrentRent } from "@/lib/lease-renewal/current-rent";
 import { isStableLeaseId } from "@/lib/lease-renewal/desk-view-continuation";
 import {
   deskLeaseWorkStatusInput,
@@ -367,7 +368,12 @@ export function projectRenewalBatchRow(
     dateIso,
     dateNote,
     stageLine: stage.stageLine,
-    currentBaseRent: row.currentRent,
+    // S261 ARCH-S261-1: "Current base rent" is the one base decision as the desk can make it
+    // without a charge read: the working correction, else the RentVine contractual base.
+    currentBaseRent: operationalCurrentRent({
+      workingRent: row.workingCurrentRent ?? null,
+      contractualRent: row.currentRent,
+    }).amount,
     recommendedRent:
       row.kickoff?.rent.value != null && !cycleDispositionHold(target?.cycleDisposition)
         ? { value: row.kickoff.rent.value, basis: row.kickoff.rent.basis }

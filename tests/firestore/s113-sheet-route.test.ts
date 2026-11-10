@@ -3687,9 +3687,8 @@ describe("S113 mounted operator journey with persisted backend state", () => {
               change(root.getByLabelText("Working effective date"), terms.effectiveDate);
             if (terms.endDate)
               change(root.getByLabelText("Working term end date"), terms.endDate);
-            fireEvent.click(
-              root.getByRole("button", { name: "Change recommended rent" }),
-            );
+            // S261: Ask the owner links to the one Rent to recommend editor.
+            fireEvent.click(root.getByRole("link", { name: "Edit rent to recommend" }));
             expect(recommendedRentEditor()).toHaveFocus();
             enterRecommendedRent(terms.rent);
             await waitFor(

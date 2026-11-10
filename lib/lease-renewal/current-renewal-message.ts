@@ -12,8 +12,10 @@ import {
 } from "@/lib/lease-renewal/desk-destinations";
 import {
   messageResourceFingerprint,
+  workingBaseFingerprint,
   workingTermsFingerprint,
 } from "./message-claim-basis";
+import { ownerPricingWordingReview } from "./owner-pricing-wording";
 import { observeRenewalNotice } from "@/lib/firestore/renewal-notice-safety";
 import {
   readAdmittedRenewalNoticeLease,
@@ -50,7 +52,10 @@ import {
   resolveMessageSubjectOverride,
 } from "@/lib/firestore/renewal-message-body-overrides";
 import { getRenewalWorkingRecord } from "@/lib/firestore/renewal-working-record";
-import { operationalCurrentRent } from "@/lib/lease-renewal/current-rent";
+import {
+  currentBaseRent as decideCurrentBaseRent,
+  operationalCurrentRent,
+} from "@/lib/lease-renewal/current-rent";
 import { housingAssistanceVariant } from "./working-record";
 import { effectiveRenewalTerms } from "@/lib/lease-renewal/effective-terms";
 import { RenewalPricingPolicyStore } from "@/lib/firestore/renewal-pricing-policies";
@@ -84,6 +89,8 @@ import { LeaseDataExpiredError } from "@/lib/lease-renewal/live-lease-cache";
 import {
   leaseCurrentRent,
   leaseEndDateIso,
+  leaseTotalRentAmount,
+  leaseUnitListedRent,
   leaseViewId,
 } from "@/lib/integrations/rentvine/lease-mapper";
 import { projectMessageMarketEvidence } from "@/lib/lease-renewal/message-market-evidence";
@@ -686,20 +693,26 @@ export async function currentRenewalMessage(
   // S153/S157 (BEH-S157-10): current rent in a newly prepared owner message has the one shared
   // meaning: the working value staff entered, then the single current rent-account charge, then the
   // contractual lease amount under its own label. Nothing is summed, split or chosen among several.
+  // S261 R-S261-1: the one base decision every surface reads. A base the sources contradict is not
+  // guessed: the message marks it and says exactly what to verify.
   let currentBaseRent: RenewalMessageFacts["currentBaseRent"] = null;
+  let currentBaseRentCheck: string | null = null;
   if (channel === "owner") {
-    const rent = operationalCurrentRent({
+    const rent = decideCurrentBaseRent({
       working: workingRecord,
       inventory,
       contractualRent: leaseCurrentRent(lease) ?? null,
+      providerTotal: leaseTotalRentAmount(lease) ?? null,
+      listedRent: leaseUnitListedRent(lease) ?? null,
     });
     if (rent.amount !== null)
       currentBaseRent = { value: rent.amount, source: rent.label };
-    if (rent.basis !== "working" && rent.attention)
+    if (rent.state === "needs_verification" && rent.check) {
+      currentBaseRentCheck = rent.check.text;
+      notices.push(rent.check.text);
+    } else if (rent.basis !== "working" && rent.attention)
       notices.push(
-        rent.amount === null
-          ? rent.attention
-          : `${rent.attention} The current rent in this message is the ${rent.label}.`,
+        `${rent.attention} The current rent in this message is the ${rent.label}.`,
       );
   }
   // S156 (R-S161-2): the terms staff are working with, field by field. S234 R-S234-2: terms recorded
@@ -770,7 +783,12 @@ export async function currentRenewalMessage(
     workingRentBasis: workingRecommendationBasis(workingRecord),
     agreementRent: standingRule.rent,
     comparison: stored ? { state: "stored", comparison: stored } : { state: "none" },
-    currentRent: leaseCurrentRent(lease) ?? null,
+    // S261 ARCH-S261-1: the comparison proposal is held near the same base the desk and the Now
+    // card hold it near: the working correction, else the contractual base.
+    currentRent: operationalCurrentRent({
+      working: workingRecord,
+      contractualRent: leaseCurrentRent(lease) ?? null,
+    }).amount,
   });
   // The rule the shown rent was built on, only where that rent is the agreement's.
   const fromRule = rentToRecommend.origin === "agreement";
@@ -828,6 +846,7 @@ export async function currentRenewalMessage(
     firstNames: greeting.firstNames,
     address: identity.address?.label ?? null,
     currentBaseRent,
+    ...(currentBaseRentCheck ? { currentBaseRentCheck } : {}),
     leaseEndDate: leaseEndDateIso(lease) ?? null,
     ownerTerms: termsSource
       ? {
@@ -904,6 +923,8 @@ export async function currentRenewalMessage(
       ? workspaceMessageBasisFingerprint({ ...workspace })
       : null,
     workingTermsFingerprint: workingTermsFingerprint(workingRecord),
+    // S261 ARCH-S261-2: the base correction the owner message's base was calculated from.
+    workingBaseFingerprint: workingBaseFingerprint(workingRecord),
   };
   const composed = composeRenewalMessage(facts, inputs.edits);
   if (marketEvidence.rangeRequirement) {
@@ -951,6 +972,22 @@ export async function currentRenewalMessage(
   );
   const content = authoredSubject.content;
   const signatureMatchesActor = Boolean(senderChoice || savedOwn);
+  // S261 R-S261-2 / ARCH-S261-2: saved owner wording kept exactly as written (S161) qualifies for
+  // the exact review only while the base and suggestion it states are the current ones.
+  const pricingReview =
+    channel === "owner" &&
+    refined.state &&
+    (refined.state.state === "applied" || refined.state.state === "stale")
+      ? ownerPricingWordingReview({
+          text: content.plainText,
+          currentBase: currentBaseRent?.value ?? null,
+          recommendation:
+            marketEvidence.suggestedRent &&
+            marketEvidence.suggestedRent.kind !== "provider_reference"
+              ? marketEvidence.suggestedRent.value
+              : null,
+        })
+      : null;
   const outgoingReasons = [
     ...outgoingRenewalReasons({
       content,
@@ -963,6 +1000,7 @@ export async function currentRenewalMessage(
     ...(savedOverride === "unreadable"
       ? ["The saved wording could not be read. Reload the message."]
       : []),
+    ...(pricingReview ? [pricingReview] : []),
   ];
   return {
     /** S249 R-S249-5: the rent to recommend and its basis, as the Now card reads it. */

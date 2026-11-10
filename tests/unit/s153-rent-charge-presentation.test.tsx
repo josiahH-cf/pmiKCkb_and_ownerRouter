@@ -44,6 +44,11 @@ import { getRenewalLeaseWorkspace } from "@/tests/helpers/sample-desk";
 // S153: the lease workspace shows the operational current rent from actual charge evidence and
 // keeps the contractual, aggregate, listing and working amounts under their own labels. Nothing
 // here sums, splits or selects a charge; every amount is synthetic.
+//
+// S261 (deliberate change): the first fact is now labelled "Current base rent", and a single
+// rent charge is the base only while the contractual base does not contradict it. The cases that
+// show a charge as the base therefore give the contract the same amount; a contradicted charge
+// reads Needs verification with both sources named (BEH-S153-10 below and the S261 suites).
 
 let fetchMock: ReturnType<typeof vi.fn>;
 
@@ -97,18 +102,19 @@ describe("S153 current rent and charge presentation", () => {
   it("BEH-S153-1/4: one identified current rent charge is the prominent current rent, with its actual amount and billing period", () => {
     const { container } = renderCard({
       inventory: fixtureInventory([RENT_CHARGE, PET_FEE]),
-      contractual: 1150,
+      contractual: 1180,
     });
-    expect(screen.getByText("Current rent")).toBeInTheDocument();
+    expect(screen.getByText("Current base rent")).toBeInTheDocument();
     const operational = fact(container, "operational");
     expect(operational).toHaveTextContent("1180.00");
     expect(operational).toHaveTextContent("RentVine rent-account recurring charge");
-    expect(operational).not.toHaveTextContent("1150");
+    // The pet fee is never added to the base.
+    expect(operational).not.toHaveTextContent("1215");
     const charge = fact(container, "rent-charge");
     expect(charge).toHaveTextContent("1180.00");
     expect(charge).toHaveTextContent("every 1 month(s) on day 1");
     expect(charge).toHaveTextContent("Billing period: 02/01/2026 to no end date");
-    expect(fact(container, "contractual")).toHaveTextContent("1150.00");
+    expect(fact(container, "contractual")).toHaveTextContent("1180.00");
     expect(
       container.querySelector('[data-current-rent-basis="rent_charge"]'),
     ).not.toBeNull();
@@ -117,7 +123,7 @@ describe("S153 current rent and charge presentation", () => {
   it("BEH-S153-2 / AC-S153-2: fees and a future rent charge never change the amount labelled current rent", () => {
     const { container } = renderCard({
       inventory: fixtureInventory([RENT_CHARGE, PET_FEE, INSURANCE_FEE, FUTURE_RENT]),
-      contractual: 1150,
+      contractual: 1180,
       total: 1227,
     });
     const operational = fact(container, "operational");
@@ -139,7 +145,7 @@ describe("S153 current rent and charge presentation", () => {
       listing: 1395,
     });
     const labels = [
-      "Current rent",
+      "Current base rent",
       "Current rent charge (RentVine)",
       "Contractual lease rent",
       "Lease total (RentVine)",
@@ -257,6 +263,7 @@ describe("S153 current rent and charge presentation", () => {
   it("BEH-S153-7 / AC-S153-2: current applicable charges are emphasized and historical and future charges stay reachable in a disclosure in the same card", () => {
     const { container } = renderCard({
       inventory: fixtureInventory([RENT_CHARGE, PET_FEE, FUTURE_RENT, ENDED_RENT]),
+      contractual: 1180,
     });
     const charges = screen.getByRole("region", { name: "Recurring charges (RentVine)" });
     const current = within(charges).getByRole("list", { name: "Current charges" });
@@ -361,10 +368,13 @@ describe("S153 current rent and charge presentation", () => {
     expect(mismatch).toHaveTextContent("1180.00");
     expect(status.textContent).not.toMatch(/synchroniz/i);
     // The card itself keeps the readback and the contractual amount under separate labels.
-    expect(fact(container, "operational")).toHaveTextContent("1300.00");
-    expect(fact(container, "operational")).toHaveTextContent(
-      "RentVine rent-account recurring charge",
-    );
+    // S261 (deliberate change): while the charge and the contractual base differ, the current
+    // base rent is not guessed; it reads Needs verification and names both sources.
+    const operational = fact(container, "operational");
+    expect(operational).toHaveTextContent("Needs verification");
+    expect(operational).toHaveTextContent("RentVine rent charge is $1,300");
+    expect(operational).toHaveTextContent("RentVine contractual base rent is $1,180");
+    expect(fact(container, "rent-charge")).toHaveTextContent("1300.00");
     expect(fact(container, "contractual")).toHaveTextContent("1180.00");
   });
 
@@ -413,7 +423,7 @@ describe("S153 consumers in the lease workspace", () => {
     expect(context.closest("details")).not.toHaveAttribute("open");
     fireEvent.click(context);
     expect(context.closest("details")).toHaveAttribute("open");
-    const paneRent = within(pane).getByText("Current rent").nextElementSibling!;
+    const paneRent = within(pane).getByText("Current base rent").nextElementSibling!;
     expect(paneRent).toHaveTextContent("$1,250.00");
     expect(paneRent).toHaveTextContent("Staff working value");
     expect(within(pane).getByText("Contractual lease rent (RentVine)")).toBeVisible();
