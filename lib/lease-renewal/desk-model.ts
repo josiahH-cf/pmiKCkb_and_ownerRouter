@@ -2,6 +2,7 @@ import type { RenewalPreparation } from "@/lib/lease-renewal/renewal-preparation
 import type { RenewalPricingProjection } from "@/lib/lease-renewal/renewal-pricing-policy";
 import type { HousingAssistanceValue } from "@/lib/lease-renewal/working-record";
 import type { CycleSourceDateChange } from "@/lib/lease-renewal/cycle-source-date";
+import type { VerifiedLeaseEnd } from "@/lib/lease-renewal/renewal-date-proposal";
 import type {
   MoveOutDisposition,
   MoveOutQueryKey,
@@ -504,4 +505,9 @@ export interface RenewalLeaseWorkspace {
    * facts. Absent on a sample workspace; the guided view then reads the staff record alone.
    */
   renewalStageContext?: RenewalStageContext;
+  /**
+   * S263 R-S263-1/4: the verified current lease end, shared by Check the numbers, the working
+   * date proposal and the tenant offer. Absent on a sample workspace.
+   */
+  leaseEnd?: VerifiedLeaseEnd;
 }

@@ -1001,7 +1001,14 @@ describe("synthetic isolated renewal journey through current services and durabl
     refreshSource();
     const refreshedSource = await read();
     expect(initial.facts.leaseEndDate).toBe("2026-12-31");
-    expect(refreshedSource.facts.leaseEndDate).toBe(terms.endDate);
+    // S263 R-S263-4: the refreshed read reports the renewed end while this cycle was recorded
+    // for the earlier one. Until staff resolve that (S246), the offer's lease-end sentence is
+    // held and names both dates; the raw provider date is never used in its place.
+    expect(refreshedSource.facts.leaseEndDate).toBeNull();
+    expect(JSON.stringify(refreshedSource)).toContain(
+      "RentVine now reports 12/31/2027 and this renewal was recorded for 12/31/2026.",
+    );
+    expect(terms.endDate).toBe("2027-12-31");
     const recovered = await post({
       kind: "draft",
       leaseId: "701",

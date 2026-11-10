@@ -102,8 +102,9 @@ describe("S161 composition from available information", () => {
     expect(message.plainText).toContain(
       `Rent: $1,525.00 per month, effective 01/01/2027. Renewal term: 01/01/2027 through ${missingValueMarker("renewal end date")}.`,
     );
+    // S263 R-S263-4: the missing end names its own field, so its fix opens the end date.
     expect(message.missing).toContainEqual({
-      field: "ownerTerms",
+      field: "renewalEndDate",
       message: "The renewal end date is not entered yet.",
     });
     expect(message.missing.map((entry) => entry.message).join(" ")).not.toMatch(

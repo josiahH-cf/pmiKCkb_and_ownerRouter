@@ -28,6 +28,10 @@ import {
   projectCurrentCycleWorkingRecord,
 } from "@/lib/lease-renewal/current-cycle-terms";
 import {
+  nextCalendarDay,
+  type VerifiedLeaseEnd,
+} from "@/lib/lease-renewal/renewal-date-proposal";
+import {
   HousingAssistanceValueSchema,
   RENEWAL_WORKING_RECORD_SCHEMA_VERSION,
   WORKING_VALUE_ORIGINS,
@@ -130,9 +134,25 @@ export const SaveRenewalWorkingFieldSchema = z
      * reviewed. The working renewal base takes exactly that amount, or nothing is saved.
      */
     recommendationRevision: z.number().int().positive().optional(),
+    /**
+     * S263 R-S263-1: the explicit "Use the day after the current lease ends" choice and the
+     * verified lease end it was proposed from. The server checks that end before it saves.
+     */
+    dateProposal: z
+      .object({
+        kind: z.literal("day_after_lease_end"),
+        leaseEndIso: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      })
+      .strict()
+      .optional(),
   })
   .strict();
 export type SaveRenewalWorkingFieldInput = z.input<typeof SaveRenewalWorkingFieldSchema>;
+
+/** S263: how the route resolves the verified current lease end for an explicit date proposal. */
+export interface SaveRenewalWorkingFieldOptions {
+  readonly verifyLeaseEnd?: () => Promise<VerifiedLeaseEnd | null>;
+}
 
 const CYCLE_CHANGED =
   "This lease's renewal cycle changed since this page was opened, so nothing was saved. Reload the lease and enter the renewal terms for the current cycle.";
@@ -280,9 +300,31 @@ export async function saveRenewalWorkingField(
   raw: unknown,
   db: Firestore = getAdminFirestore(),
   fillEmptyRentForCycle?: { readonly cycleId: string; readonly dateIso: string },
+  options: SaveRenewalWorkingFieldOptions = {},
 ): Promise<{ record: RenewalWorkingRecord; duplicate: boolean }> {
   assertActor(actor, true);
   const input = SaveRenewalWorkingFieldSchema.parse(raw);
+  // S263 R-S263-1: the next-day start is saved only as that exact date, and only while the
+  // verified current lease end it came from still stands. The cycle and revision follow below.
+  if (input.dateProposal) {
+    if (
+      input.field !== "terms_effective_date" ||
+      input.value !== nextCalendarDay(input.dateProposal.leaseEndIso)
+    )
+      throw new EditableLayerError(
+        "Only the day after the current lease ends can be saved as this suggestion.",
+        400,
+      );
+    const verified = await options.verifyLeaseEnd?.().catch(() => null);
+    if (
+      verified?.state !== "verified" ||
+      verified.endIso !== input.dateProposal.leaseEndIso
+    )
+      throw new EditableLayerError(
+        "The current lease end changed or could not be verified, so the suggested start was not saved. Verify current lease end, then review the renewal start date.",
+        409,
+      );
+  }
   if (!workingFieldKind(input.field))
     throw new EditableLayerError("This working field is not recognized.", 400);
   let value: WorkingValue | null = null;
@@ -368,6 +410,12 @@ export async function saveRenewalWorkingField(
       );
     const entryScope =
       scopedField && entry ? futureTermScope(scopedField, entry, workspace) : "current";
+    // S263 R-S263-3: a saved or unconfirmed start wins over a suggestion; a stale one never replaces it.
+    if (input.dateProposal && entry && entry.value !== null && entryScope !== "earlier")
+      throw new EditableLayerError(
+        "A renewal start date is already saved for this renewal, so the suggestion was not used. The saved date stays.",
+        409,
+      );
     if (fillEmptyRentForCycle) {
       // S249 under R-S262-5: an earlier cycle's rent leaves this cycle's field empty; an unbound
       // value is neither current nor empty, so nothing fills it.

@@ -23,6 +23,7 @@ import {
   type WorkingSheetRow,
 } from "@/lib/lease-renewal/working-record";
 import { projectCurrentCycleWorkingRecord } from "@/lib/lease-renewal/current-cycle-terms";
+import { verifiedLeaseEnd } from "@/lib/lease-renewal/renewal-date-proposal";
 import {
   manualRenewalSummary,
   staffOwnerOutcome,
@@ -2597,9 +2598,26 @@ export async function loadLiveRenewalLeaseWorkspace(
         standingCovered: deskSummary.renewalPricing?.authority.covered === true,
       }),
     );
+    // S263: an open cycle's recorded lease end is the evidence a different RentVine end must agree
+    // with; a completed cycle is history and no longer contradicts the current read.
+    const recordedLeaseEnd =
+      manual?.basis.kind === "lease_end" && !manual.completion
+        ? manual.basis.dateIso
+        : null;
     const workspace: RenewalLeaseWorkspace = {
       summary: { ...deskSummary, renewalStage, ...(kickoff ? { kickoff } : {}) },
       renewalStageContext,
+      // S263 R-S263-1/4: the one verified current lease end for the date proposal and the offer.
+      leaseEnd: verifiedLeaseEnd({
+        rentvineEndIso: deskSummary.endDateIso ?? null,
+        sourceReadable: complete && currency.state !== "expired",
+        recordedLeaseEndIso: recordedLeaseEnd,
+        keptRecordedCycle: cycleDateDecisionIsCurrent(cycleDateDecision, {
+          cycleId: manual?.cycleId,
+          recordedDateIso: recordedLeaseEnd,
+          sourceDateIso: deskSummary.endDateIso ?? null,
+        }),
+      }),
       // S104: the desk row and this workspace read ONE guidance projection, from the same builder
       // and the same process/data-check/rent inputs, so the two surfaces cannot disagree about
       // status, blockers, or the next action for this lease.

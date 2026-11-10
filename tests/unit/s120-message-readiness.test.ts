@@ -89,7 +89,11 @@ describe("S120 message readiness", () => {
     const cases: Array<[string, string]> = [
       ["names", "renewal-section-lease-details"],
       ["address", "renewal-section-lease-details"],
-      ["leaseEndDate", "renewal-section-lease-details"],
+      // S263 R-S263-4: the verified current lease end is fixed in Check the numbers, and each
+      // working date opens its own field.
+      ["leaseEndDate", "renewal-correct-a-fact"],
+      ["renewalStartDate", "renewal-working-terms-start"],
+      ["renewalEndDate", "renewal-working-terms-end"],
       ["currentBaseRent", "renewal-rent-and-charges"],
       ["range", "renewal-section-comps"],
       ["comps", "renewal-section-comps"],

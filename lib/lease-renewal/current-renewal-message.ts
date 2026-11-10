@@ -54,6 +54,7 @@ import {
   recommendationFact,
   recommendedRentValue,
 } from "@/lib/lease-renewal/current-cycle-terms";
+import { verifiedLeaseEnd } from "@/lib/lease-renewal/renewal-date-proposal";
 import { operationalCurrentRent } from "@/lib/lease-renewal/current-rent";
 import { housingAssistanceVariant } from "./working-record";
 import { effectiveRenewalTerms } from "@/lib/lease-renewal/effective-terms";
@@ -706,6 +707,33 @@ export async function currentRenewalMessage(
           : `${rent.attention} The current rent in this message is the ${rent.label}.`,
       );
   }
+  // S263 R-S263-4: the tenant offer's lease-end sentence, its review and its send basis use only the
+  // verified current lease end. A stale read, a missing date or an unresolved disagreement with the
+  // recorded cycle holds that sentence with its exact fix; the raw provider date is never used.
+  const rawLeaseEnd = leaseEndDateIso(lease) ?? null;
+  // An open cycle's recorded end is contrary evidence; a completed cycle is history.
+  const recordedLeaseEnd =
+    workspace?.basis.kind === "lease_end" && !workspace.completion
+      ? workspace.basis.dateIso
+      : null;
+  const keepDecision =
+    channel === "tenant" &&
+    recordedLeaseEnd &&
+    rawLeaseEnd &&
+    recordedLeaseEnd !== rawLeaseEnd
+      ? await getRenewalCycleDateDecision(actor, leaseId, db).catch(() => undefined)
+      : undefined;
+  const leaseEnd = verifiedLeaseEnd({
+    rentvineEndIso: rawLeaseEnd,
+    // An expired read was refused above; an incomplete one cannot verify the end.
+    sourceReadable: leaseRead.snapshot.complete !== false,
+    recordedLeaseEndIso: recordedLeaseEnd,
+    keptRecordedCycle: cycleDateDecisionIsCurrent(keepDecision, {
+      cycleId: workspace?.cycleId,
+      recordedDateIso: recordedLeaseEnd,
+      sourceDateIso: rawLeaseEnd,
+    }),
+  });
   // S156 (R-S161-2): the terms staff are working with, field by field. S234 R-S234-2: terms recorded
   // on an earlier owner response are never used in their place.
   const terms = effectiveRenewalTerms(workingRecord);
@@ -844,7 +872,12 @@ export async function currentRenewalMessage(
     firstNames: greeting.firstNames,
     address: identity.address?.label ?? null,
     currentBaseRent,
-    leaseEndDate: leaseEndDateIso(lease) ?? null,
+    leaseEndDate:
+      channel === "tenant"
+        ? leaseEnd.state === "verified"
+          ? leaseEnd.endIso
+          : null
+        : rawLeaseEnd,
     ownerTerms: termsSource
       ? {
           rent: terms.rent,
@@ -922,6 +955,11 @@ export async function currentRenewalMessage(
     workingTermsFingerprint: workingTermsFingerprint(workingRecord),
   };
   const composed = composeRenewalMessage(facts, inputs.edits);
+  if (channel === "tenant" && leaseEnd.state === "unverified") {
+    // S263: the held lease-end sentence names why and its exact fix.
+    const entry = composed.missing.find((item) => item.field === "leaseEndDate");
+    if (entry) entry.message = `${leaseEnd.line} Verify the current lease end first.`;
+  }
   if (marketEvidence.rangeRequirement) {
     // R118.4: the starting range alone is not comparable evidence; the callout says so.
     const entry = composed.missing.find((item) => item.field === "range");

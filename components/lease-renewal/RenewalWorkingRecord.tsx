@@ -65,6 +65,14 @@ interface SaveOptions {
    * server applies the amount only while that revision, the working revision and cycle stand.
    */
   readonly recommendationRevision?: number;
+  /**
+   * S263 R-S263-1: the explicit next-day choice and the verified lease end it came from. The
+   * server checks that end, the cycle and the field revision before it saves the date.
+   */
+  readonly dateProposal?: {
+    readonly kind: "day_after_lease_end";
+    readonly leaseEndIso: string;
+  };
 }
 
 interface WorkingRecordContextValue {
@@ -308,6 +316,7 @@ export function RenewalWorkingRecordProvider({
         ...(options.recommendationRevision !== undefined
           ? { recommendationRevision: options.recommendationRevision }
           : {}),
+        ...(options.dateProposal ? { dateProposal: options.dateProposal } : {}),
       };
       const key = JSON.stringify(body);
       const prior = pending.current.get(field);
@@ -747,7 +756,18 @@ export function WorkingMoneyField({ field, label, hint, source }: WorkingFieldPr
 }
 
 /** One autosaved working date. A complete, valid date saves as soon as it is chosen. */
-export function WorkingDateField({ field, label, hint }: WorkingFieldProps) {
+export function WorkingDateField({
+  field,
+  label,
+  hint,
+  controlId,
+  children,
+}: WorkingFieldProps & {
+  /** S263: a stable anchor so an exact date fix can open this field. */
+  readonly controlId?: string;
+  /** S263: content shown with the field, such as a supported date suggestion. */
+  readonly children?: ReactNode;
+}) {
   const context = useRenewalWorkingRecord();
   const id = useId();
   const input = useRef<HTMLInputElement>(null);
@@ -801,7 +821,11 @@ export function WorkingDateField({ field, label, hint }: WorkingFieldProps) {
   if (!context) return null;
 
   return (
-    <div className="working-field" data-working-field={field}>
+    <div
+      className="working-field"
+      data-working-field={field}
+      {...(controlId ? { id: controlId, tabIndex: -1 } : {})}
+    >
       <Field hint={hint} htmlFor={`${id}-input`} label={title}>
         <input
           disabled={!context.canEdit}
@@ -838,6 +862,7 @@ export function WorkingDateField({ field, label, hint }: WorkingFieldProps) {
         field={field}
         format={(value) => formatCalendarDate(String(value))}
       />
+      {children}
       {context.canEdit && saved !== null ? (
         <div className="working-field-actions">
           <Button

@@ -66,6 +66,14 @@ import {
   type OwnerApprovalChoices,
 } from "@/lib/lease-renewal/owner-approval-evidence";
 import { ContinueToTenantOffer, ManualOwnerAnswerApproval } from "./RenewalOwnerAnswer";
+import {
+  CurrentLeaseEndFact,
+  RenewalEndDateCheck,
+  RenewalStartSuggestion,
+  ReturnToTenantOffer,
+  WORKING_END_CONTROL_ID,
+  WORKING_START_CONTROL_ID,
+} from "./RenewalDateProposal";
 import type { ApprovedBaseInput } from "@/lib/lease-renewal/owner-approval-scope";
 import { SHEET_FIELD_LABELS } from "@/lib/lease-renewal/sheet-writeback/field-intent";
 
@@ -1190,11 +1198,27 @@ function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
           <RenewalSectionHeading id="working-terms" as="h3">
             Working renewal terms
           </RenewalSectionHeading>
+          {/* S263: the way back to a tenant offer that opened a date fix, then the verified
+              current lease end, kept apart from the working renewal dates. */}
+          <ReturnToTenantOffer />
+          <CurrentLeaseEndFact />
           {!outcomeLayout ? (
             <WorkingMoneyField field="terms_rent" label="Working monthly rent" />
           ) : null}
-          <WorkingDateField field="terms_effective_date" label="Working effective date" />
-          <WorkingDateField field="terms_end_date" label="Working term end date" />
+          <WorkingDateField
+            controlId={WORKING_START_CONTROL_ID}
+            field="terms_effective_date"
+            label="Working effective date"
+          >
+            <RenewalStartSuggestion />
+          </WorkingDateField>
+          <WorkingDateField
+            controlId={WORKING_END_CONTROL_ID}
+            field="terms_end_date"
+            label="Working term end date"
+          >
+            <RenewalEndDateCheck />
+          </WorkingDateField>
           {recordedTerms ? (
             <p className="muted">
               Owner-approved terms recorded earlier on this cycle:{" "}

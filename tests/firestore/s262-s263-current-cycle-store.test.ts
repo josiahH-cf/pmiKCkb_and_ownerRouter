@@ -167,6 +167,13 @@ async function collections() {
   return (await db.listCollections()).map((ref) => ref.id).sort();
 }
 
+const verifiedEnd = (endIso: string) => async () => ({
+  state: "verified" as const,
+  endIso,
+  basis: "rentvine" as const,
+  fingerprint: `rentvine:${endIso}`,
+});
+
 describe("AC-S262-5 future terms saved and read for the exact cycle", () => {
   it("AC-S262-5: a new cycle reads none of the previous cycle's terms as current, keeps them as history, and refuses a late save from the earlier cycle", async () => {
     const first = await startCycle();
@@ -698,5 +705,99 @@ describe("AC-S262-1..4 the reviewed owner answer and its Amount approved", () =>
     expect(state!.ownerResponse?.approvedWorkingTerms).toMatchObject({ rent: 1850 });
     expect(await coverage()).toMatchObject({ state: "current" });
     expect((await stored())!.fields.recommended_rent).toBeUndefined();
+  });
+});
+
+describe("AC-S263-1/3 the explicit next-day start", () => {
+  function propose(
+    value: string,
+    leaseEndIso: string,
+    verify: () => Promise<unknown>,
+    expectedRevision = 0,
+  ) {
+    return saveRenewalWorkingField(
+      editor,
+      {
+        leaseId: LEASE,
+        field: "terms_effective_date",
+        value,
+        expectedRevision,
+        operationId: op(),
+        dateProposal: { kind: "day_after_lease_end", leaseEndIso },
+      },
+      db,
+      undefined,
+      // The route resolves the verified current lease end; the store checks it again.
+      { verifyLeaseEnd: verify } as never,
+    );
+  }
+
+  it("AC-S263-1: the explicit choice saves the day after the verified end for the active cycle", async () => {
+    const { cycleId } = await startCycle();
+    const { record } = await propose(
+      "2026-12-01",
+      "2026-11-30",
+      verifiedEnd("2026-11-30"),
+    );
+    expect(record!.fields.terms_effective_date).toMatchObject({
+      value: "2026-12-01",
+      revision: 1,
+      cycleId,
+    });
+    // Nothing else changed: no end date is invented.
+    expect(record!.fields.terms_end_date).toBeUndefined();
+  });
+
+  it("AC-S263-3: a wrong date, a changed or unverified end, or a saved start saves nothing", async () => {
+    await startCycle();
+    expect(
+      await refusal(propose("2026-12-02", "2026-11-30", verifiedEnd("2026-11-30"))),
+    ).toMatchObject({ status: 400 });
+    expect(
+      await refusal(propose("2026-12-01", "2026-11-30", verifiedEnd("2027-11-30"))),
+    ).toMatchObject({ status: 409 });
+    expect(
+      await refusal(
+        propose("2026-12-01", "2026-11-30", async () => ({
+          state: "unverified",
+          reason: "unreadable",
+          rawEndIso: "2026-11-30",
+          line: "The RentVine read for this lease is not current.",
+        })),
+      ),
+    ).toMatchObject({ status: 409 });
+    expect(
+      await refusal(
+        propose("2026-12-01", "2026-11-30", async () => {
+          throw new Error("source unavailable");
+        }),
+      ),
+    ).toMatchObject({ status: 409 });
+    expect(await stored()).toBeUndefined();
+    await save("terms_effective_date", "2026-12-15", 0);
+    const saved = await refusal(
+      propose("2026-12-01", "2026-11-30", verifiedEnd("2026-11-30"), 1),
+    );
+    expect(saved).toMatchObject({ status: 409 });
+    expect(saved.message).toContain("The saved date stays");
+    expect((await stored())!.fields.terms_effective_date).toMatchObject({
+      value: "2026-12-15",
+    });
+  });
+
+  it("AC-S263-1: an earlier cycle's start leaves the current start empty for the suggestion", async () => {
+    await startCycle();
+    await save("terms_effective_date", "2026-12-01", 0);
+    const second = await startCycle(SECOND);
+    const { record } = await propose(
+      "2027-12-01",
+      "2027-11-30",
+      verifiedEnd("2027-11-30"),
+      1,
+    );
+    expect(record!.fields.terms_effective_date).toMatchObject({
+      value: "2027-12-01",
+      cycleId: second.cycleId,
+    });
   });
 });
