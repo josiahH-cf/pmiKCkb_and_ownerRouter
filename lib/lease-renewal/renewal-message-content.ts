@@ -17,6 +17,7 @@ import {
   type TenantResourceId,
   type TenantResourceMessageField,
 } from "@/lib/lease-renewal/tenant-resource-evidence";
+import type { OfferChargeComposition } from "@/lib/lease-renewal/offer-charges";
 
 /** Normalized from the owner's September 10 source pack; no example customer or sender values. */
 export const SUPPLIED_RENEWAL_COPY = Object.freeze({
@@ -282,6 +283,13 @@ export interface RenewalMessageFacts {
    * message inputs (`currentTenantResourceDecisions`).
    */
   resourceDecisions?: TenantResourceDecisions;
+  /**
+   * S264 (R-S264-2/4): the tenant offer's charges from the one charge projection: each selected
+   * row with its own identity, the unchanged statement only where the compared rows support it,
+   * and the holds the review waits on. When present it replaces the family-only `charges` and
+   * `otherChargesComparison`, which stay as earlier entries for inspection.
+   */
+  offerCharges?: OfferChargeComposition | null;
   signature: ManagedMessageSignature | null;
   /** Only actual reviewed file identities belong here. The caller owns download and Gmail attachment readiness. */
   attachments: Array<{ filename: string; source: string }>;
@@ -398,6 +406,59 @@ export function composeRenewalMessage(
   const link = (value: z.infer<typeof MessageLinkSchema> | null) => {
     const parsed = MessageLinkSchema.safeParse(value);
     return parsed.success ? parsed.data : null;
+  };
+  /**
+   * S264 (R-S264-4): each selected row is its own line, under the approved heading for its
+   * cadence: base in the terms sentence, recurring lines under the monthly heading, one-time fees
+   * under their own heading. A recurring line on another cadence has no approved wording, so it
+   * keeps its cadence as a review gap instead of reading as monthly. The unchanged statement
+   * appears only when the compared rows support it. Every hold is a callout entry.
+   */
+  const composeOfferCharges = (offer: OfferChargeComposition) => {
+    const label = (value: string) => text(value) ?? "Charge";
+    const line = (entry: OfferChargeComposition["lines"][number], cadence: string) => {
+      const name = label(entry.label);
+      const amount = entry.amountCents === null ? null : money(entry.amountCents / 100);
+      const effective = day(entry.effectiveDate);
+      const field = `offerCharge.${entry.rowKey}`;
+      if (!amount) note(field, `${name}: the amount is not entered yet.`);
+      if (!effective) note(field, `${name}: the date it applies from is not entered yet.`);
+      sourced(entry.source);
+      add(
+        fillSuppliedCopy(SUPPLIED_RENEWAL_COPY.tenant.chargeLine, {
+          label: name,
+          amount: amount ?? missingValueMarker(`${name} amount`),
+          cadence,
+          effective_date: effective ?? missingValueMarker(`${name} start date`),
+        }),
+      );
+    };
+    const monthly = offer.lines.filter((entry) => entry.cadence?.kind === "monthly");
+    const oneTime = offer.lines.filter((entry) => entry.cadence?.kind === "one_time");
+    const other = offer.lines.filter(
+      (entry) => entry.cadence?.kind !== "monthly" && entry.cadence?.kind !== "one_time",
+    );
+    if (monthly.length) add(SUPPLIED_RENEWAL_COPY.tenant.monthlyHeading);
+    for (const entry of monthly) line(entry, SUPPLIED_RENEWAL_COPY.tenant.monthlyCadence);
+    if (oneTime.length) add(SUPPLIED_RENEWAL_COPY.tenant.oneTimeHeading);
+    for (const entry of oneTime) line(entry, SUPPLIED_RENEWAL_COPY.tenant.oneTimeCadence);
+    for (const entry of other) {
+      const name = label(entry.label);
+      const cadence =
+        entry.cadence?.kind === "every_months"
+          ? `every ${entry.cadence.months} months`
+          : "cadence";
+      note(
+        `offerCharge.${entry.rowKey}`,
+        `${name} is charged ${cadence === "cadence" ? "on a cadence not entered yet" : cadence}. The approved wording names monthly and one-time charges only, so review this line before releasing the offer.`,
+      );
+      line(entry, ` ${missingValueMarker(`${name} ${cadence} wording`)}`);
+    }
+    if (offer.unchangedStatement) {
+      sourced(offer.statementSource);
+      add(SUPPLIED_RENEWAL_COPY.tenant.unchanged);
+    }
+    for (const hold of offer.notes) note(hold.field, hold.message);
   };
   const editsResult = RenewalMessageEditsSchema.safeParse(rawEdits);
   const edits = editsResult.success ? editsResult.data : { responseRequest: "" };
@@ -558,7 +619,8 @@ export function composeRenewalMessage(
     if (facts.leaseOrigin) sourced(facts.leaseOrigin.source);
     const ids = new Set<string>();
     const included: MessageCharge[] = [];
-    for (const raw of facts.charges) {
+    // S264: with the charge projection, the family-only entries are earlier entries only.
+    for (const raw of facts.offerCharges ? [] : facts.charges) {
       const parsed = MessageChargeSchema.safeParse(raw);
       if (!parsed.success || ids.has(parsed.data.id)) continue;
       const charge = parsed.data;
@@ -604,7 +666,8 @@ export function composeRenewalMessage(
         );
       }
     }
-    if (facts.otherChargesComparison) {
+    if (facts.offerCharges) composeOfferCharges(facts.offerCharges);
+    else if (facts.otherChargesComparison) {
       sourced(facts.otherChargesComparison.source);
       if (facts.otherChargesComparison.unchanged)
         add(SUPPLIED_RENEWAL_COPY.tenant.unchanged);
@@ -626,8 +689,16 @@ export function composeRenewalMessage(
         id,
         facts.resourcePending?.[TENANT_RESOURCE_MESSAGE_FIELDS[id]],
       );
-    if (facts.insuranceTransition) sourced(facts.insuranceTransition.source);
-    if (decisions.insuranceTransition === "unknown")
+    // S264 R-S264-7: with the charge projection, the transition choice lives in Review offer
+    // charges with its own source, and an unknown one holds the outgoing review.
+    if (facts.offerCharges) {
+      if (decisions.insuranceTransition === "unknown")
+        note(
+          "offerCharges.insuranceTransition",
+          "Choose whether the insurance transition applies to this renewal, with its source, before releasing this offer. Its wording and flyer stay out until then.",
+        );
+    } else if (facts.insuranceTransition) sourced(facts.insuranceTransition.source);
+    if (!facts.offerCharges && decisions.insuranceTransition === "unknown")
       note(
         "insuranceTransition",
         "The insurance transition wording is left out until you choose whether it applies.",
@@ -659,7 +730,7 @@ export function composeRenewalMessage(
     }
     if (decisions.rbpChange === "unknown")
       note(
-        "charge.rbp",
+        facts.offerCharges ? "offerCharges.rbpChange" : "charge.rbp",
         "Resident Benefits Package: confirm whether it is new, changed or unchanged before releasing this offer. Its flyer stays out until then.",
       );
     add(edits.responseRequest || SUPPLIED_RENEWAL_COPY.tenant.response);
