@@ -30,7 +30,10 @@ import {
   useStandingOwnerAuthority,
 } from "./RenewalPricingPolicy";
 import { housingAssistanceVariant } from "@/lib/lease-renewal/working-record";
-import { AssistedRenewalControls } from "./RenewalHousingAssistance";
+import {
+  AssistedRenewalControls,
+  HousingProgramContactLead,
+} from "./RenewalHousingAssistance";
 import {
   WorkingDateField,
   WorkingMoneyField,
@@ -855,6 +858,8 @@ function ActivityForm({ activity }: { activity: ManualActivity }) {
           (historical ? "Recorded before the terms changed" : "Not recorded")}
       </summary>
       <div className="ui-stack">
+        {/* S266 R-S266-2: the assisted outcome leads with the program and its contact input. */}
+        {activity === "program_contact" ? <HousingProgramContactLead /> : null}
         <Field htmlFor={`${id}-outcome`} label={`${definition.label} outcome`}>
           <select
             data-renewal-next-control

@@ -7,12 +7,24 @@
 // record with who and when (R-S251-2), carries across renewal cycles until staff change it
 // (R-S251-3) and is never written to RentVine or the operating Sheet. RentVine wording that
 // mentions housing assistance shows a suggestion and saves nothing (R-S251-10).
+//
+// S266: the field reads whether it belongs in the active Work (an explicit task or a material
+// program indication) or stays optional (ordinary Not set), and nothing is preselected either way.
+// On an assisted lease the existing program contact step leads with the program and its current
+// contact input, saved on this same field; a future RentVine program source is shown only as its
+// own hint line, apart from the saved fact.
 
 import { useId, useRef, useState } from "react";
 
 import { Button, Field } from "@/components/ui";
 import { formatBusinessTimestamp } from "@/lib/date-display";
 import { HOUSING_ASSISTANCE_SUGGESTION } from "@/lib/lease-renewal/cohort";
+import {
+  housingAssistanceWork,
+  programContactLead,
+  programSourceHint,
+  shippedProgramSourceReadiness,
+} from "@/lib/lease-renewal/housing-assistance-source";
 import {
   ASSISTED_CONTROL_IDS,
   ASSISTED_RENEWAL_ANSWERS,
@@ -25,7 +37,10 @@ import {
   workingRenewalTerms,
   type HousingAssistanceValue,
 } from "@/lib/lease-renewal/working-record";
-import { currentRentChoice } from "@/lib/lease-renewal/workspace-state";
+import {
+  currentRentChoice,
+  type RenewalWorkspaceState,
+} from "@/lib/lease-renewal/workspace-state";
 import { AUTOSAVE_IDLE, AutosaveStatus, withEdited } from "./AutosaveStatus";
 import { useRenewalManualWorkspace } from "./RenewalManualWorkspace";
 import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
@@ -67,22 +82,42 @@ function attribution(entry: ReturnType<typeof workingEntry>): string | null {
   return `${entry.value === null ? "Cleared" : "Saved"} by ${entry.recordedByLabel}, ${formatBusinessTimestamp(entry.recordedAt)}`;
 }
 
+/** S266: program work staff recorded on this lease (a program contact or assisted follow-up). */
+function programWorkRecorded(state: RenewalWorkspaceState | null | undefined): boolean {
+  return (["program_contact", "assisted_housing"] as const).some((key) => {
+    const outcome = state?.activities[key]?.outcome;
+    return outcome === "waiting" || outcome === "done";
+  });
+}
+
 /**
  * R-S251-1 / R-S251-2: "Housing assistance": not set, No, or Yes with the program name and an
  * optional contact and notes. It sits on the Check the numbers step and in Lease information.
  */
 export function HousingAssistanceField({
   mention = false,
+  explicitTask = false,
   placement,
 }: Readonly<{
   /** RentVine text mentions housing assistance: a suggestion only (R-S251-10). */
   mention?: boolean;
+  /** S266: a staff task or an exact link names this field, so it belongs in the active Work. */
+  explicitTask?: boolean;
   placement: "now" | "lease-information";
 }>) {
   const working = useRenewalWorkingRecord();
+  const manual = useRenewalManualWorkspace();
   const id = useId();
   const entry = workingEntry(working?.record, FIELD);
   const saved = housingAssistanceFact(working?.record);
+  // S266 R-S266-1: ordinary Not set stays optional; a task or a program indication brings the same
+  // field into Work. Either way the answer shown is the saved one, or none.
+  const work = housingAssistanceWork({
+    fact: saved,
+    mention,
+    explicitTask,
+    recordedProgramWork: programWorkRecorded(manual?.state),
+  });
   const [status, setStatus] = useState<"no" | "yes" | null>(saved?.status ?? null);
   const [program, setProgram] = useState(saved?.status === "yes" ? saved.program : "");
   const [contact, setContact] = useState(
@@ -161,6 +196,8 @@ export function HousingAssistanceField({
       className="ui-stack-tight renewal-housing-assistance"
       data-renewal-housing-assistance={saved?.status ?? "not_set"}
       data-renewal-housing-placement={placement}
+      data-renewal-housing-work={work.active ? "active" : "optional"}
+      data-renewal-housing-reason={work.reason ?? undefined}
       id={
         placement === "now"
           ? "renewal-now-housing-assistance"
@@ -315,6 +352,107 @@ export function HousingAssistanceField({
         subject="Housing assistance"
       />
       {notice ? <p role="status">{notice}</p> : null}
+    </div>
+  );
+}
+
+/**
+ * S266 R-S266-2: the assisted outcome's lead, in the existing program contact step. It names the
+ * lease's program and holds its current contact input, saved on the one Housing assistance field
+ * with the program and notes kept exactly as saved. Correcting the contact here starts no lookup and
+ * writes no vendor. The program source hint is its own line, apart from the saved fact.
+ */
+export function HousingProgramContactLead() {
+  const working = useRenewalWorkingRecord();
+  const id = useId();
+  const entry = workingEntry(working?.record, FIELD);
+  const saved = housingAssistanceFact(working?.record);
+  const lead = programContactLead(saved);
+  const [contact, setContact] = useState(lead?.contact ?? "");
+  const [editing, setEditing] = useState(false);
+  const [notice, setNotice] = useState("");
+  // Adopt a newer saved contact (the full field, a reload) while nothing here is being typed.
+  const [seen, setSeen] = useState(entry?.revision ?? 0);
+  if ((entry?.revision ?? 0) !== seen) {
+    setSeen(entry?.revision ?? 0);
+    if (!editing) setContact(lead?.contact ?? "");
+  }
+  if (!working || !lead || saved?.status !== "yes") return null;
+  const yes = saved;
+  const state = working.states[FIELD];
+  function next(): HousingAssistanceValue {
+    const { contact: previous, ...rest } = yes;
+    void previous;
+    const typed = contact.trim();
+    return typed ? { ...rest, contact: typed } : rest;
+  }
+  async function save() {
+    if (!working) return;
+    const value = next();
+    if (JSON.stringify(value) === JSON.stringify(yes)) {
+      setEditing(false);
+      return;
+    }
+    const ok = await working.save(FIELD, value);
+    if (ok) setEditing(false);
+    setNotice(
+      ok
+        ? "Program contact saved for this lease."
+        : "The program contact was not saved yet. Your entry is kept.",
+    );
+  }
+  const autosave = withEdited(
+    state ?? AUTOSAVE_IDLE,
+    contact.trim() !== (lead.contact ?? ""),
+  );
+  return (
+    <div
+      className="ui-stack-tight renewal-program-contact"
+      data-renewal-housing-placement="program-contact"
+      data-renewal-program-contact={lead.action}
+    >
+      <p data-renewal-field="assisted-program">Program: {lead.program}</p>
+      <Field
+        htmlFor={`${id}-contact`}
+        label={HOUSING_ASSISTANCE_WORDS.contact}
+        hint={
+          lead.contact ? undefined : "No program contact is saved for this lease yet."
+        }
+      >
+        <input
+          // The missing contact is the step's exact action, so the step's primary focuses it.
+          data-renewal-next-control={
+            lead.action === "enter_contact" && working.canEdit ? true : undefined
+          }
+          disabled={!working.canEdit}
+          id={`${id}-contact`}
+          maxLength={200}
+          onBlur={() => void save()}
+          onChange={(event) => {
+            setEditing(true);
+            setNotice("");
+            setContact(event.target.value);
+          }}
+          value={contact}
+        />
+      </Field>
+      {attribution(entry) ? (
+        <p className="muted working-field-attribution">{attribution(entry)}</p>
+      ) : null}
+      <AutosaveStatus
+        hideWhenIdle
+        onRetry={working.canEdit ? () => void save() : undefined}
+        state={
+          autosave.phase === "failed" || autosave.phase === "saving"
+            ? autosave
+            : AUTOSAVE_IDLE
+        }
+        subject="Program contact"
+      />
+      {notice ? <p role="status">{notice}</p> : null}
+      <p className="muted" data-renewal-field="housing-assistance-source-hint">
+        {programSourceHint(shippedProgramSourceReadiness(yes))}
+      </p>
     </div>
   );
 }
