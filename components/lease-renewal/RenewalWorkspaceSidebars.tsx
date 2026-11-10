@@ -18,7 +18,11 @@ import {
 } from "@/components/ui/WorkspaceResizer";
 import { PersonalViewStatus } from "@/components/layout/PersonalViewProvider";
 import { useRenewalFocusView } from "./RenewalFocusViewContext";
-import { setRenewalStickyOffset } from "./RenewalDashboardNavigation";
+import {
+  RENEWAL_LEASE_INFORMATION_REQUEST_EVENT,
+  focusRenewalDashboardControl,
+  setRenewalStickyOffset,
+} from "./RenewalDashboardNavigation";
 
 // S114: two separate, independent slide-out surfaces over the same projections the workspace
 // renders. The lease-information panel holds the consolidated header facts; the process-guide panel
@@ -157,6 +161,35 @@ export function RenewalWorkspaceSidebars({
     observer.observe(toolbar);
     return () => observer.disconnect();
   }, []);
+
+  // S266: a step that shows a lease fact read-only opens this panel at the fact's one editor, as
+  // the Lease information toggle would, then moves focus to that exact control. Nothing is saved.
+  const requestedTarget = useRef<string | null>(null);
+  useEffect(() => {
+    const onRequest = (event: Event) => {
+      const targetId = (event as CustomEvent<{ targetId?: string }>).detail?.targetId;
+      if (!targetId) return;
+      event.preventDefault();
+      if (informationOpen) {
+        focusRenewalDashboardControl(targetId, { viewRequest: false });
+        return;
+      }
+      requestedTarget.current = targetId;
+      taskScroll.current = window.scrollY;
+      setInformationMounted(true);
+      setInformationOpen(true);
+    };
+    document.addEventListener(RENEWAL_LEASE_INFORMATION_REQUEST_EVENT, onRequest);
+    return () =>
+      document.removeEventListener(RENEWAL_LEASE_INFORMATION_REQUEST_EVENT, onRequest);
+  }, [informationOpen]);
+  // After the opened panel focuses its own heading, the requested control takes focus.
+  useEffect(() => {
+    const targetId = requestedTarget.current;
+    if (!informationOpen || !targetId) return;
+    requestedTarget.current = null;
+    focusRenewalDashboardControl(targetId, { viewRequest: false });
+  }, [informationOpen]);
 
   function toggleInformation() {
     if (informationOpen) {

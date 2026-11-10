@@ -8,7 +8,8 @@ import { formatCentralTime } from "@/lib/lease-documents/returned-state-view";
 
 /**
  * S235 R-S235-1: the read-only per-family readiness for this lease. Viewing writes nothing and
- * sends nothing; "Evaluate packet" stays the explicit snapshot step.
+ * sends nothing; "Evaluate packet" stays the explicit snapshot step. S268 adds why each form
+ * applies and holds a family whose original or map no longer matches what was reviewed.
  */
 export function LeasePacketReadiness({
   rows,
@@ -92,7 +93,18 @@ export function LeasePacketReadiness({
                     </details>
                   ) : null}
                 </td>
-                <td>{row.applicability}</td>
+                <td>
+                  {row.applicability}
+                  {/* S268 R-S268-1: why this form applies, or does not, to this lease. */}
+                  {row.applicabilityReason ? (
+                    <>
+                      <br />
+                      <span className="muted" data-family-why>
+                        {row.applicabilityReason}
+                      </span>
+                    </>
+                  ) : null}
+                </td>
                 <td>
                   {row.original}
                   <br />
