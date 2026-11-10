@@ -8,6 +8,23 @@ import { MESSAGE_CHARGES } from "@/lib/lease-renewal/renewal-message-content";
 import { POLICY_PRODUCT_LABELS } from "@/lib/lease-renewal/policy-content";
 import { RENEWAL_RESOURCE_FIELDS } from "@/lib/lease-renewal/resource-locations";
 import { offerChargeRowControlId } from "@/lib/lease-renewal/offer-charges";
+import { KICKOFF_FIX_TARGETS } from "@/lib/lease-renewal/renewal-preparation";
+import {
+  ENTER_RENEWAL_END_LABEL,
+  ENTER_RENEWAL_START_LABEL,
+  VERIFY_CURRENT_LEASE_END_LABEL,
+} from "@/lib/lease-renewal/renewal-date-proposal";
+
+/** S263: the anchors of the two working date fields in Ask the owner. */
+export const WORKING_START_FIELD_ID = "renewal-working-terms-start";
+export const WORKING_END_FIELD_ID = "renewal-working-terms-end";
+
+/** S263: missing values whose fix is a date the tenant offer can return from. */
+export const OFFER_DATE_FIX_FIELDS = [
+  "leaseEndDate",
+  "renewalStartDate",
+  "renewalEndDate",
+] as const;
 
 export type MessageChannel = "owner" | "tenant";
 
@@ -95,7 +112,15 @@ export function messageInputTarget(
     id,
     label,
   });
-  if (field === "names" || field === "address" || field === "leaseEndDate")
+  // S263: the offer's lease-end sentence uses only the verified current lease end; its fix is the
+  // source correction in Check the numbers. The two working dates open their own fields.
+  if (field === "leaseEndDate")
+    return control(KICKOFF_FIX_TARGETS.correctFact, VERIFY_CURRENT_LEASE_END_LABEL);
+  if (field === "renewalStartDate")
+    return control(WORKING_START_FIELD_ID, ENTER_RENEWAL_START_LABEL);
+  if (field === "renewalEndDate")
+    return control(WORKING_END_FIELD_ID, ENTER_RENEWAL_END_LABEL);
+  if (field === "names" || field === "address")
     return control("renewal-section-lease-details", "Lease details (source facts)");
   if (field === "currentBaseRent")
     return control("renewal-rent-and-charges", "Rent and charges: current base rent");
@@ -121,7 +146,7 @@ export function messageInputTarget(
   if (field === "offerCharges.rbpChange")
     return control(MESSAGE_CONTROL_IDS.rbpChange, "Resident Benefits Package change");
   if (field === "offerCharges.renewalDate")
-    return control("renewal-working-terms", "Working renewal terms");
+    return control(WORKING_START_FIELD_ID, ENTER_RENEWAL_START_LABEL);
   if (field === "offerCharges" || field.startsWith("offerCharges."))
     return control(MESSAGE_CONTROL_IDS.offerCharges, "Review offer charges");
   if (field.startsWith("offerCharge."))

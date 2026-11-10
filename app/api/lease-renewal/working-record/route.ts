@@ -11,11 +11,14 @@ import {
   saveRenewalWorkingField,
 } from "@/lib/firestore/renewal-working-record";
 import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
+import { resolveVerifiedLeaseEnd } from "@/lib/lease-renewal/workspace-cycle-context";
 
 // S157/S156/S158: the lease-bound staff working record. It writes only the app's own record and
 // append-only activity for one lease, one field per request; the actor comes from the server
-// session, never the body. No RentVine, Sheet, Gmail or RentCast call, no cycle and no staff
-// activity derives from it. A deliberate source update is a separate exact action.
+// session, never the body. No RentVine, Sheet, Gmail or RentCast write, no cycle and no staff
+// activity derives from it. A deliberate source update is a separate exact action. S262: future
+// renewal terms are saved for the lease's active cycle. S263: an explicit next-day start reads
+// the current lease end to check it.
 
 export async function GET(request: Request) {
   try {
@@ -47,7 +50,15 @@ export async function POST(request: Request) {
       "renewals",
     );
     const input = await parseJsonBody(request, SaveRenewalWorkingFieldSchema);
-    return NextResponse.json(await saveRenewalWorkingField(actor, input));
+    // S263 R-S263-1: an explicit next-day start is checked against the verified current lease
+    // end, read from the current source and the work record; reading writes nothing.
+    return NextResponse.json(
+      await saveRenewalWorkingField(actor, input, undefined, undefined, {
+        ...(input.dateProposal
+          ? { verifyLeaseEnd: () => resolveVerifiedLeaseEnd(actor, input.leaseId) }
+          : {}),
+      }),
+    );
   } catch (error) {
     return apiErrorResponse(error);
   }

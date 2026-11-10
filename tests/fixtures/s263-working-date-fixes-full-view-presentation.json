@@ -258,8 +258,8 @@
       "Compose tenant message in Communications -> /gmail-hub?compose=renewal_tenant&lease=lease-318-cedar-7",
       "Lease details (source facts) -> #renewal-section-lease-details",
       "Working renewal terms -> #renewal-working-terms",
-      "Working renewal terms -> #renewal-working-terms",
-      "Working renewal terms -> #renewal-working-terms",
+      "Enter renewal start date -> #renewal-working-terms-start",
+      "Enter renewal end date -> #renewal-working-terms-end",
       "Shared resource link: Renewal information form -> /connections#renewal-resource-entry-renewal_information_form",
       "Managed sender signature -> #renewal-message-tenant-signature-name",
       "Manage location -> /connections#renewal-resource-entry-standard_lease",
@@ -287,7 +287,7 @@
       "renewal-section-lease-details:8d1c7b78a5bb79d9",
       "renewal-section-comps:e4d13c4a0cb1c5d5",
       "renewal-section-owner:7bc5539e676d9053",
-      "renewal-section-tenant:14827019ed49e0fc",
+      "renewal-section-tenant:e123b3771d8373db",
       "renewal-section-documents:7ac65ad69cf12cf4"
     ]
   },
@@ -550,8 +550,8 @@
       "Compose tenant message in Communications -> /gmail-hub?compose=renewal_tenant&lease=lease-318-cedar-7",
       "Lease details (source facts) -> #renewal-section-lease-details",
       "Working renewal terms -> #renewal-working-terms",
-      "Working renewal terms -> #renewal-working-terms",
-      "Working renewal terms -> #renewal-working-terms",
+      "Enter renewal start date -> #renewal-working-terms-start",
+      "Enter renewal end date -> #renewal-working-terms-end",
       "Shared resource link: Renewal information form -> /connections#renewal-resource-entry-renewal_information_form",
       "Managed sender signature -> #renewal-message-tenant-signature-name",
       "Manage location -> /connections#renewal-resource-entry-standard_lease",
@@ -579,7 +579,7 @@
       "renewal-section-lease-details:8d1c7b78a5bb79d9",
       "renewal-section-comps:e4d13c4a0cb1c5d5",
       "renewal-section-owner:7bc5539e676d9053",
-      "renewal-section-tenant:14827019ed49e0fc",
+      "renewal-section-tenant:e123b3771d8373db",
       "renewal-section-documents:7ac65ad69cf12cf4"
     ]
   },
@@ -842,8 +842,8 @@
       "Compose tenant message in Communications -> /gmail-hub?compose=renewal_tenant&lease=lease-318-cedar-7",
       "Lease details (source facts) -> #renewal-section-lease-details",
       "Working renewal terms -> #renewal-working-terms",
-      "Working renewal terms -> #renewal-working-terms",
-      "Working renewal terms -> #renewal-working-terms",
+      "Enter renewal start date -> #renewal-working-terms-start",
+      "Enter renewal end date -> #renewal-working-terms-end",
       "Shared resource link: Renewal information form -> /connections#renewal-resource-entry-renewal_information_form",
       "Managed sender signature -> #renewal-message-tenant-signature-name",
       "Manage location -> /connections#renewal-resource-entry-standard_lease",
@@ -871,7 +871,7 @@
       "renewal-section-lease-details:8d1c7b78a5bb79d9",
       "renewal-section-comps:e4d13c4a0cb1c5d5",
       "renewal-section-owner:7bc5539e676d9053",
-      "renewal-section-tenant:14827019ed49e0fc",
+      "renewal-section-tenant:e123b3771d8373db",
       "renewal-section-documents:7ac65ad69cf12cf4"
     ]
   },
@@ -1243,8 +1243,8 @@
       "Compose tenant message in Communications -> /gmail-hub?compose=renewal_tenant&lease=lease-4821-maple-4",
       "Lease details (source facts) -> #renewal-section-lease-details",
       "Working renewal terms -> #renewal-working-terms",
-      "Working renewal terms -> #renewal-working-terms",
-      "Working renewal terms -> #renewal-working-terms",
+      "Enter renewal start date -> #renewal-working-terms-start",
+      "Enter renewal end date -> #renewal-working-terms-end",
       "Shared resource link: Renewal information form -> /connections#renewal-resource-entry-renewal_information_form",
       "Managed sender signature -> #renewal-message-tenant-signature-name",
       "Manage location -> /connections#renewal-resource-entry-standard_lease",
@@ -1272,7 +1272,7 @@
       "renewal-section-lease-details:e0136158bcb41acc",
       "renewal-section-comps:e4d13c4a0cb1c5d5",
       "renewal-section-owner:4c47a23a4a1b5f56",
-      "renewal-section-tenant:b842cb988bd9f684",
+      "renewal-section-tenant:4b23afacefc1a88a",
       "renewal-section-documents:4f5b79b14bed88eb"
     ]
   },
@@ -1532,8 +1532,8 @@
       "Compose tenant message in Communications -> /gmail-hub?compose=renewal_tenant&lease=lease-1207-walnut-2",
       "Lease details (source facts) -> #renewal-section-lease-details",
       "Working renewal terms -> #renewal-working-terms",
-      "Working renewal terms -> #renewal-working-terms",
-      "Working renewal terms -> #renewal-working-terms",
+      "Enter renewal start date -> #renewal-working-terms-start",
+      "Enter renewal end date -> #renewal-working-terms-end",
       "Shared resource link: Renewal information form -> /connections#renewal-resource-entry-renewal_information_form",
       "Managed sender signature -> #renewal-message-tenant-signature-name",
       "Manage location -> /connections#renewal-resource-entry-standard_lease",
@@ -1561,7 +1561,7 @@
       "renewal-section-lease-details:1f79a79a0c51b65d",
       "renewal-section-comps:e4d13c4a0cb1c5d5",
       "renewal-section-owner:594a3be9a6f8b2c5",
-      "renewal-section-tenant:b842cb988bd9f684",
+      "renewal-section-tenant:4b23afacefc1a88a",
       "renewal-section-documents:048414318449edc9"
     ]
   }

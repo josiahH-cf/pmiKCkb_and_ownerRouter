@@ -13,10 +13,14 @@ export function workingTermsFingerprint(working: RenewalWorkingRecord | null) {
     const entry = workingEntry(working, key);
     return entry ? { value: entry.value, revision: entry.revision } : null;
   };
+  // S262 R-S262-2: once Rent to recommend is its own fact the owner message reads it, so a
+  // recommendation edit after the preview refuses the claim. Absent, the hash is unchanged.
+  const recommendation = field("recommended_rent");
   return hashExecutionPreview({
     rent: field("terms_rent"),
     effectiveDate: field("terms_effective_date"),
     endDate: field("terms_end_date"),
+    ...(recommendation ? { recommendation } : {}),
   });
 }
 /**

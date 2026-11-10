@@ -8,7 +8,7 @@
 
 import { useLayoutEffect, useRef, useState } from "react";
 
-import { Button, Field } from "@/components/ui";
+import { Button, ConfirmationDialog, Field } from "@/components/ui";
 import { AUTOSAVE_IDLE, AutosaveStatus, withEdited } from "./AutosaveStatus";
 import { useWorkingFieldEditor } from "./WorkingFieldEditor";
 import { formatUsd } from "@/lib/lease-renewal/owner-draft";
@@ -19,12 +19,17 @@ import {
 } from "@/lib/lease-renewal/renewal-preparation";
 import { comparableDistanceLabel } from "@/lib/lease-renewal/comparable-presentation";
 import { parseOptionalCurrencyInput } from "@/lib/currency-input";
-import { workingRenewalTerms } from "@/lib/lease-renewal/working-record";
+import {
+  offerAdoptionCandidate,
+  recommendationFact,
+  recommendationField,
+  recommendedRentValue,
+} from "@/lib/lease-renewal/current-cycle-terms";
 import {
   focusRenewalDashboardControl,
   isRenewalPresentationMove,
 } from "./RenewalDashboardNavigation";
-import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
+import { HeldWorkingValueNote, useRenewalWorkingRecord } from "./RenewalWorkingRecord";
 import { workingRecommendationBasis } from "@/lib/lease-renewal/kickoff-facts";
 import {
   OwnerCurrentBaseRent,
@@ -148,9 +153,16 @@ export function StoredComparisonSummary({
   );
 }
 
+/** S262: the one deliberate change of the working renewal base from Rent to recommend. */
+export const USE_FOR_OFFER_LABEL = "Use this amount for the offer";
+
 /**
  * R-S249-5: the one "Rent to recommend" field. It shows the typed working renewal rent, else the
  * proposal with its basis in words. Typing saves the working renewal rent when the field is left.
+ * S262 R-S262-2: once a recorded owner answer or a deliberate adoption gives the working renewal
+ * base its own value, this field edits Rent to recommend as its own fact and leaves the offer
+ * basis and any approval coverage as they are. "Use this amount for the offer" is the one
+ * deliberate way to move a differing recommendation into the working base.
  */
 export function RentToRecommendField({
   preparation,
@@ -158,11 +170,25 @@ export function RentToRecommendField({
   const working = useRenewalWorkingRecord();
   const id = "renewal-now-rent-to-recommend";
   const input = useRef<HTMLInputElement>(null);
-  const editor = useWorkingFieldEditor(working, "terms_rent", input);
-  const typed = workingRenewalTerms(working?.record ?? null).rent;
+  const field = recommendationField(working?.record);
+  const fact = recommendationFact(working?.record);
+  const editor = useWorkingFieldEditor(working, field, input);
+  const typed = recommendedRentValue(working?.record);
   const proposal =
     preparation?.rent.origin === "typed" ? null : (preparation?.rent ?? null);
   const shown = typed;
+  const adoption = offerAdoptionCandidate(working?.record);
+  const [adopting, setAdopting] = useState<"review" | "saving" | "refused" | null>(null);
+  const adoptTrigger = useRef<HTMLButtonElement>(null);
+  const baseState = working?.states?.terms_rent;
+  async function adopt() {
+    if (!working || !adoption) return;
+    setAdopting("saving");
+    const saved = await working.save("terms_rent", adoption.value, {
+      recommendationRevision: adoption.recommendationRevision,
+    });
+    setAdopting(saved ? null : "refused");
+  }
   // What staff are typing; null while they are not, so the field follows the saved or proposed rent.
   const [draft, setDraft] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
@@ -189,7 +215,7 @@ export function RentToRecommendField({
     if (!editor.dirty()) return true;
     const generation = editor.version();
     if (value.trim() === "" && typed !== null) {
-      const cleared = await working.save("terms_rent", null, {
+      const cleared = await working.save(field, null, {
         editorVersion: generation,
       });
       if (cleared && editor.confirmed(generation)) setDraft(null);
@@ -203,12 +229,12 @@ export function RentToRecommendField({
     if (
       typed !== null &&
       Math.abs(parsed.value - typed) < 0.005 &&
-      !["failed", "saving"].includes(working.states?.terms_rent?.phase ?? "idle")
+      !["failed", "saving"].includes(working.states?.[field]?.phase ?? "idle")
     ) {
       if (editor.confirmed(generation)) setDraft(null);
       return true;
     }
-    const saved = await working.save("terms_rent", parsed.value, {
+    const saved = await working.save(field, parsed.value, {
       editorVersion: generation,
     });
     if (saved && editor.confirmed(generation)) {
@@ -259,11 +285,70 @@ export function RentToRecommendField({
       <p className="muted" data-renewal-field="rent-basis">
         {basis}
       </p>
+      {fact.kind === "unavailable" ? (
+        // S262: the recorded owner answer set the offer amount and no earlier recommendation
+        // can be established; the approved rent is never copied back into this field.
+        <p className="muted" data-renewal-field="recommendation-unavailable">
+          The earlier recommendation is not available. The offer amount is the amount
+          recorded from the owner&apos;s answer.
+        </p>
+      ) : null}
+      <HeldWorkingValueNote field={field} format={(value) => formatUsd(Number(value))} />
       <AutosaveStatus
-        state={withEdited(working?.states?.terms_rent ?? AUTOSAVE_IDLE, dirty)}
+        state={withEdited(working?.states?.[field] ?? AUTOSAVE_IDLE, dirty)}
         subject={KICKOFF_WORDS.rentToRecommend}
         onRetry={() => void editor.flush()}
       />
+      {adoption && working?.canEdit && !dirty ? (
+        <p data-renewal-field="use-for-offer">
+          <span className="muted">
+            The offer uses{" "}
+            {adoption.workingValue === null
+              ? "no amount yet"
+              : formatUsd(adoption.workingValue)}
+            .{" "}
+          </span>
+          <Button
+            onClick={() => setAdopting("review")}
+            ref={adoptTrigger}
+            size="compact"
+            variant="secondary"
+          >
+            {USE_FOR_OFFER_LABEL}
+          </Button>
+        </p>
+      ) : null}
+      {adoption ? (
+        <ConfirmationDialog
+          busy={adopting === "saving"}
+          confirmLabel={`Use ${formatUsd(adoption.value)} for the offer`}
+          error={
+            adopting === "refused"
+              ? baseState?.phase === "failed"
+                ? baseState.message
+                : "The offer amount was not changed."
+              : undefined
+          }
+          onCancel={() => setAdopting(null)}
+          onConfirm={() => void adopt()}
+          open={adopting !== null}
+          title={`${USE_FOR_OFFER_LABEL}?`}
+          triggerRef={adoptTrigger}
+        >
+          <p>
+            The offer amount changes from{" "}
+            {adoption.workingValue === null
+              ? "no amount"
+              : formatUsd(adoption.workingValue)}{" "}
+            to {formatUsd(adoption.value)}, the current Rent to recommend.
+          </p>
+          <p>
+            The owner&apos;s recorded answer stays as recorded. This is not an owner
+            approval: an approval of the earlier amount no longer covers the offer, and
+            prepared offer previews are reviewed again.
+          </p>
+        </ConfirmationDialog>
+      ) : null}
     </div>
   );
 }
@@ -281,8 +366,12 @@ export function RentRecommendationSummary({
   base?: CurrentBaseRentFacts | null;
 }>) {
   const working = useRenewalWorkingRecord();
+  // S262 R-S262-2: Rent to recommend's own value once it is its own fact; an unavailable
+  // recommendation is never filled from the approved rent.
   const rent =
-    workingRenewalTerms(working?.record ?? null).rent ?? preparation?.rent.value ?? null;
+    recommendationFact(working?.record).kind === "unavailable"
+      ? null
+      : (recommendedRentValue(working?.record) ?? preparation?.rent.value ?? null);
   const target = RENT_TO_RECOMMEND_TARGET;
   return (
     <div className="ui-stack-tight" data-renewal-field="owner-pricing-summary">

@@ -9,7 +9,7 @@ import {
   requireEnvironmentDescriptor,
 } from "@/lib/environment/descriptor";
 import { createHash } from "node:crypto";
-import type { Firestore } from "firebase-admin/firestore";
+import type { Firestore, Transaction } from "firebase-admin/firestore";
 import { z } from "zod";
 
 import { can } from "@/lib/auth/roles";
@@ -24,14 +24,24 @@ import {
 import { workBasisDateIso } from "@/lib/lease-renewal/workspace-state";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
+  futureTermScope,
+  projectCurrentCycleWorkingRecord,
+} from "@/lib/lease-renewal/current-cycle-terms";
+import {
+  nextCalendarDay,
+  type VerifiedLeaseEnd,
+} from "@/lib/lease-renewal/renewal-date-proposal";
+import {
   HousingAssistanceValueSchema,
   RENEWAL_WORKING_RECORD_SCHEMA_VERSION,
   WORKING_VALUE_ORIGINS,
+  isCycleScopedWorkingField,
   parseWorkingFieldValue,
   sameWorkingValue,
   workingFieldKind,
   type RenewalWorkingActivity,
   type RenewalWorkingRecord,
+  type WorkingFieldEntry,
   type WorkingValue,
 } from "@/lib/lease-renewal/working-record";
 
@@ -60,8 +70,38 @@ const entrySchema = z
     origin: z.enum(WORKING_VALUE_ORIGINS),
     sourceLabel: z.string().min(1).max(120).optional(),
     context: z.string().min(1).max(1000).optional(),
+    // S262 R-S262-5: the cycle a future-term value was saved for (null: before any work record).
+    cycleId: z.string().uuid().nullable().optional(),
+    // S262: what set the working renewal base, when not an ordinary entry.
+    basis: z
+      .discriminatedUnion("kind", [
+        z
+          .object({
+            kind: z.literal("owner_approval"),
+            ownerResponseEventId: z.string().uuid(),
+          })
+          .strict(),
+        z
+          .object({
+            kind: z.literal("recommendation"),
+            recommendationRevision: z.number().int().positive(),
+          })
+          .strict(),
+        z.object({ kind: z.literal("working_entry") }).strict(),
+      ])
+      .optional(),
+    // S262 R-S262-2: Rent to recommend preserved from the shared working value.
+    preservedFrom: z
+      .object({
+        field: z.literal("terms_rent"),
+        revision: z.number().int().positive(),
+        eventId: z.string().uuid(),
+      })
+      .strict()
+      .optional(),
   })
   .strict();
+export const RenewalWorkingEntrySchema = entrySchema;
 
 export const RenewalWorkingRecordSchema = z
   .object({
@@ -84,9 +124,38 @@ export const SaveRenewalWorkingFieldSchema = z
     origin: z.enum(WORKING_VALUE_ORIGINS).default("staff_entry"),
     sourceLabel: z.string().trim().min(1).max(120).optional(),
     context: z.string().trim().min(1).max(1000).optional(),
+    /**
+     * S262 R-S262-5: the active cycle the editor read for a future-term field; null when it read
+     * no work record. A save made for another cycle is refused.
+     */
+    expectedCycleId: z.string().uuid().nullable().optional(),
+    /**
+     * S262 "Use this amount for the offer": the Rent to recommend revision the staff member
+     * reviewed. The working renewal base takes exactly that amount, or nothing is saved.
+     */
+    recommendationRevision: z.number().int().positive().optional(),
+    /**
+     * S263 R-S263-1: the explicit "Use the day after the current lease ends" choice and the
+     * verified lease end it was proposed from. The server checks that end before it saves.
+     */
+    dateProposal: z
+      .object({
+        kind: z.literal("day_after_lease_end"),
+        leaseEndIso: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      })
+      .strict()
+      .optional(),
   })
   .strict();
 export type SaveRenewalWorkingFieldInput = z.input<typeof SaveRenewalWorkingFieldSchema>;
+
+/** S263: how the route resolves the verified current lease end for an explicit date proposal. */
+export interface SaveRenewalWorkingFieldOptions {
+  readonly verifyLeaseEnd?: () => Promise<VerifiedLeaseEnd | null>;
+}
+
+const CYCLE_CHANGED =
+  "This lease's renewal cycle changed since this page was opened, so nothing was saved. Reload the lease and enter the renewal terms for the current cycle.";
 
 export function renewalWorkingRecordDocId(id: string): string {
   return createHash("sha256").update(leaseId.parse(id)).digest("hex");
@@ -150,20 +219,45 @@ function activityFromStored(
   };
 }
 
+/**
+ * S262 R-S262-5: the lease's working record as its active cycle reads it, with the work record
+ * read beside it (inside the caller's transaction when one is given). Future terms that are not
+ * current for that cycle are held back with their scope; lease facts are unchanged.
+ */
+export async function readCurrentCycleWorkingRecord(
+  db: Firestore,
+  id: string,
+  transaction?: Transaction,
+): Promise<RenewalWorkingRecord | null> {
+  const ref = renewalWorkingRecordRef(db, id);
+  const heads = renewalWorkspaceHeadRefs(db, id);
+  const read = (target: FirebaseFirestore.DocumentReference) =>
+    transaction ? transaction.get(target) : target.get();
+  const [snapshot, dated, leaseBound] = await Promise.all([
+    read(ref),
+    read(heads.dated),
+    read(heads.leaseBound),
+  ]);
+  return projectCurrentCycleWorkingRecord(
+    snapshot.exists ? parseRecord(snapshot.data(), id) : null,
+    currentRenewalWorkspaceState(db, id, dated, leaseBound),
+  );
+}
+
 export async function getRenewalWorkingRecord(
   actor: AuthenticatedUser,
   id: string,
   db: Firestore = getAdminFirestore(),
 ): Promise<RenewalWorkingRecord | null> {
   assertActor(actor);
-  const snapshot = await db
-    .collection(RENEWAL_WORKING_RECORD_COLLECTIONS.head)
-    .doc(renewalWorkingRecordDocId(id))
-    .get();
-  return snapshot.exists ? parseRecord(snapshot.data(), id) : null;
+  return readCurrentCycleWorkingRecord(db, id);
 }
 
-/** Every lease's working record keyed by lease id, for the one bulk desk read. */
+/**
+ * Every lease's stored working record keyed by lease id, for the one bulk desk read. These are
+ * the stored records: a reader of future terms projects each onto its lease's work record
+ * (`projectCurrentCycleWorkingRecord`) first, as the desk does.
+ */
 export async function listRenewalWorkingRecords(
   actor: AuthenticatedUser,
   db: Firestore = getAdminFirestore(),
@@ -206,9 +300,31 @@ export async function saveRenewalWorkingField(
   raw: unknown,
   db: Firestore = getAdminFirestore(),
   fillEmptyRentForCycle?: { readonly cycleId: string; readonly dateIso: string },
+  options: SaveRenewalWorkingFieldOptions = {},
 ): Promise<{ record: RenewalWorkingRecord; duplicate: boolean }> {
   assertActor(actor, true);
   const input = SaveRenewalWorkingFieldSchema.parse(raw);
+  // S263 R-S263-1: the next-day start is saved only as that exact date, and only while the
+  // verified current lease end it came from still stands. The cycle and revision follow below.
+  if (input.dateProposal) {
+    if (
+      input.field !== "terms_effective_date" ||
+      input.value !== nextCalendarDay(input.dateProposal.leaseEndIso)
+    )
+      throw new EditableLayerError(
+        "Only the day after the current lease ends can be saved as this suggestion.",
+        400,
+      );
+    const verified = await options.verifyLeaseEnd?.().catch(() => null);
+    if (
+      verified?.state !== "verified" ||
+      verified.endIso !== input.dateProposal.leaseEndIso
+    )
+      throw new EditableLayerError(
+        "The current lease end changed or could not be verified, so the suggested start was not saved. Verify current lease end, then review the renewal start date.",
+        409,
+      );
+  }
   if (!workingFieldKind(input.field))
     throw new EditableLayerError("This working field is not recognized.", 400);
   let value: WorkingValue | null = null;
@@ -227,6 +343,21 @@ export async function saveRenewalWorkingField(
       "Only a recommendation can fill the empty rent field.",
       400,
     );
+  const scopedField = isCycleScopedWorkingField(input.field) ? input.field : null;
+  const scoped = scopedField !== null;
+  if (!scoped && input.expectedCycleId !== undefined)
+    throw new EditableLayerError(
+      "Only renewal terms are saved for a renewal cycle. This value belongs to the lease.",
+      400,
+    );
+  if (
+    input.recommendationRevision !== undefined &&
+    (input.field !== "terms_rent" || typeof value !== "number")
+  )
+    throw new EditableLayerError(
+      "Use this amount for the offer sets only the working renewal rent.",
+      400,
+    );
   const requestHash = hashExecutionPreview({
     ...(fillEmptyRentForCycle ? { fillEmptyRentForCycle } : {}),
     actorUid: actor.uid,
@@ -239,6 +370,7 @@ export async function saveRenewalWorkingField(
   const event = db
     .collection(RENEWAL_WORKING_RECORD_COLLECTIONS.activity)
     .doc(input.operationId);
+  const refs = renewalWorkspaceHeadRefs(db, input.leaseId);
   const duplicate = await db.runTransaction(async (tx) => {
     const [snapshot, prior] = await Promise.all([tx.get(head), tx.get(event)]);
     if (prior.exists) {
@@ -249,6 +381,26 @@ export async function saveRenewalWorkingField(
         );
       return true;
     }
+    // S262 R-S262-5: a future-term value is saved for the lease's active cycle, read here in the
+    // same transaction. A save the editor made for another cycle, or a retry that arrives after
+    // the cycle changed, is refused. Lease facts keep their lease scope.
+    let workspace: ReturnType<typeof currentRenewalWorkspaceState> = null;
+    if (scoped || fillEmptyRentForCycle) {
+      const [dated, leaseBound] = await Promise.all([
+        tx.get(refs.dated),
+        tx.get(refs.leaseBound),
+      ]);
+      workspace = currentRenewalWorkspaceState(db, input.leaseId, dated, leaseBound);
+    }
+    if (
+      (typeof input.expectedCycleId === "string" &&
+        workspace?.cycleId !== input.expectedCycleId) ||
+      // The editor read no work record: only the lease's first cycle can have begun since.
+      (input.expectedCycleId === null &&
+        workspace !== null &&
+        workspace.previousCycleId !== null)
+    )
+      throw new EditableLayerError(CYCLE_CHANGED, 409);
     const current = snapshot.exists ? parseRecord(snapshot.data(), input.leaseId) : null;
     const entry = current?.fields[input.field] ?? null;
     if ((entry?.revision ?? 0) !== input.expectedRevision)
@@ -256,36 +408,67 @@ export async function saveRenewalWorkingField(
         "Another operator changed this value. Your entry is kept; review the current value before saving again.",
         409,
       );
-    if (fillEmptyRentForCycle) {
-      const refs = renewalWorkspaceHeadRefs(db, input.leaseId);
-      const [dated, leaseBound] = await Promise.all([
-        tx.get(refs.dated),
-        tx.get(refs.leaseBound),
-      ]);
-      const workspace = currentRenewalWorkspaceState(
-        db,
-        input.leaseId,
-        dated,
-        leaseBound,
+    const entryScope =
+      scopedField && entry ? futureTermScope(scopedField, entry, workspace) : "current";
+    // S263 R-S263-3: a saved or unconfirmed start wins over a suggestion; a stale one never replaces it.
+    if (input.dateProposal && entry && entry.value !== null && entryScope !== "earlier")
+      throw new EditableLayerError(
+        "A renewal start date is already saved for this renewal, so the suggestion was not used. The saved date stays.",
+        409,
       );
+    if (fillEmptyRentForCycle) {
+      // S249 under R-S262-5: an earlier cycle's rent leaves this cycle's field empty; an unbound
+      // value is neither current nor empty, so nothing fills it.
       if (
         !workspace ||
         workspace.cycleId !== fillEmptyRentForCycle.cycleId ||
         workBasisDateIso(workspace.basis) !== fillEmptyRentForCycle.dateIso ||
-        (entry !== null && entry.value !== null)
+        (entry !== null && entry.value !== null && entryScope !== "earlier")
       )
         throw new EditableLayerError(
           "The current cycle or working rent changed. Review Rent to recommend.",
           409,
         );
     }
+    if (input.recommendationRevision !== undefined) {
+      // S262: the reviewed Rent to recommend, its working base revision and the cycle together.
+      const recommendation = projectCurrentCycleWorkingRecord(current, workspace)?.fields
+        .recommended_rent;
+      if (
+        !workspace ||
+        !recommendation ||
+        recommendation.revision !== input.recommendationRevision ||
+        recommendation.value !== value
+      )
+        throw new EditableLayerError(
+          "Rent to recommend changed since you reviewed it, so the offer amount was not changed. Review Rent to recommend, then choose Use this amount for the offer again.",
+          409,
+        );
+    }
     if (!entry && value === null)
       throw new EditableLayerError("There is no working value to clear.", 400);
-    if (entry && sameWorkingValue(entry.value, value) && entry.origin === input.origin)
+    if (
+      entry &&
+      sameWorkingValue(entry.value, value) &&
+      entry.origin === input.origin &&
+      entryScope === "current" &&
+      input.recommendationRevision === undefined
+    )
       // Nothing changed: keep the original attribution rather than appending an empty event.
       return true;
+    // S262 R-S262-2: once the working base has its own value, a direct entry keeps it apart from
+    // Rent to recommend, so the recommendation is never read back from the working base.
+    const basis =
+      input.recommendationRevision !== undefined
+        ? {
+            kind: "recommendation" as const,
+            recommendationRevision: input.recommendationRevision,
+          }
+        : input.field === "terms_rent" && entry?.basis && entryScope === "current"
+          ? { kind: "working_entry" as const }
+          : null;
     const now = new Date().toISOString();
-    const nextEntry = {
+    const nextEntry: WorkingFieldEntry = {
       value,
       revision: (entry?.revision ?? 0) + 1,
       eventId: input.operationId,
@@ -297,6 +480,8 @@ export async function saveRenewalWorkingField(
         ? { sourceLabel: input.sourceLabel }
         : {}),
       ...(input.context ? { context: input.context } : {}),
+      ...(scoped ? { cycleId: workspace?.cycleId ?? null } : {}),
+      ...(basis ? { basis } : {}),
     };
     const next = RenewalWorkingRecordSchema.parse({
       schemaVersion: RENEWAL_WORKING_RECORD_SCHEMA_VERSION,
@@ -319,6 +504,10 @@ export async function saveRenewalWorkingField(
       origin: input.origin,
       ...(nextEntry.sourceLabel ? { source_label: nextEntry.sourceLabel } : {}),
       ...(input.context ? { context: input.context } : {}),
+      // S262 R-S262-5: the cycle the value was saved for, and the value it replaced, stay history.
+      ...(scoped ? { cycle_id: nextEntry.cycleId ?? null } : {}),
+      ...(entry?.cycleId !== undefined ? { previous_cycle_id: entry.cycleId } : {}),
+      ...(nextEntry.basis ? { basis: nextEntry.basis } : {}),
     });
     return false;
   });

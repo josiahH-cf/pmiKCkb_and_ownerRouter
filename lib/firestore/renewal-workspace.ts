@@ -21,6 +21,8 @@ import { captureApprovedWorkingTerms } from "@/lib/lease-documents/owner-approva
 import { readChargePolicyIn } from "@/lib/firestore/lease-charge-policy";
 import { readPacketInputsIn } from "@/lib/firestore/lease-packet-inputs";
 import {
+  RENEWAL_WORKING_RECORD_COLLECTIONS,
+  RenewalWorkingRecordSchema,
   parseRenewalWorkingRecord,
   renewalWorkingRecordRef,
 } from "@/lib/firestore/renewal-working-record";
@@ -46,6 +48,18 @@ import {
   type WorkingTermRevisions,
 } from "@/lib/lease-renewal/workspace-state";
 import { currentWorkingTermRevisions } from "@/lib/lease-renewal/tenant-answer-terms";
+import {
+  projectCurrentCycleWorkingRecord,
+  storedWorkingRevision,
+} from "@/lib/lease-renewal/current-cycle-terms";
+import {
+  ApprovedBaseSchema,
+  type ApprovedBase,
+} from "@/lib/lease-renewal/owner-approval-scope";
+import {
+  planApprovedBaseChange,
+  type ApprovedBaseWorkingChange,
+} from "@/lib/lease-renewal/owner-answer-terms";
 
 export const RENEWAL_WORKSPACE_COLLECTIONS = {
   head: "lease_renewal_workspaces",
@@ -73,6 +87,8 @@ const stateSchema = z
     schemaVersion: z.literal("renewal-workspace/v1"),
     leaseId,
     cycleId: z.string().uuid(),
+    // S262 R-S262-5: the cycle this record replaced; null for the lease's first cycle.
+    previousCycleId: z.string().uuid().nullable().optional(),
     basis: CycleBasisSchema,
     revision: z.number().int().nonnegative(),
     termsRevision: z.number().int().nonnegative(),
@@ -89,6 +105,8 @@ const stateSchema = z
         terms: RenewalTermsSchema.optional(),
         approvedWorkingTerms: ApprovedWorkingTermsSchema.optional(),
         approval: OwnerApprovalEvidenceSchema.optional(),
+        // S262 R-S262-1/3: the exact approved amount, the base revision it covers and its scope.
+        approvedBase: ApprovedBaseSchema.optional(),
       })
       .nullable(),
     tenantResponse: staff
@@ -319,8 +337,13 @@ export async function startRenewalCycle(
   const event = db
     .collection(RENEWAL_WORKSPACE_COLLECTIONS.activity)
     .doc(input.operationId);
+  const refs = headRefs(db, input.leaseId);
   await db.runTransaction(async (tx) => {
-    const [snapshot, prior] = await Promise.all([tx.get(head), tx.get(event)]);
+    const [snapshot, leaseBound, prior] = await Promise.all([
+      tx.get(head),
+      tx.get(refs.leaseBound),
+      tx.get(event),
+    ]);
     if (prior.exists) {
       if (prior.get("request_hash") !== requestHash)
         throw new EditableLayerError("The cycle request changed.", 409);
@@ -335,7 +358,13 @@ export async function startRenewalCycle(
         "The current cycle changed. Reload before starting another.",
         409,
       );
-    const next = emptyRenewalWorkspace(input.leaseId, input.operationId, verifiedBasis);
+    // S262 R-S262-5: the new cycle names the one it replaces, so earlier future terms stay history.
+    const replaced =
+      current ?? currentHead(refs, snapshot, leaseBound, input.leaseId)?.state ?? null;
+    const next = {
+      ...emptyRenewalWorkspace(input.leaseId, input.operationId, verifiedBasis),
+      previousCycleId: replaced?.cycleId ?? null,
+    };
     const now = new Date().toISOString();
     tx.set(head, next);
     tx.create(
@@ -483,13 +512,21 @@ export async function saveRenewalWorkspace(
     const establish =
       !current || (!continuesRecord && startsNewCycle(current, sourceBasis));
     const basis = sourceBasis ?? LEASE_BOUND_WORK_BASIS;
+    // S262 R-S262-5: an established cycle names the one it replaces (null for the first).
     const base = establish
-      ? emptyRenewalWorkspace(input.leaseId, randomUUID(), basis)
+      ? {
+          ...emptyRenewalWorkspace(input.leaseId, randomUUID(), basis),
+          previousCycleId: current?.cycleId ?? null,
+        }
       : current;
     const cycleId = base.cycleId;
     // S66 (AC-S66-8): an owner approval covers the exact Working terms and calculated charges
     // current as it is recorded. They are read here, in the same transaction, never from the page.
     let approvedWorkingTerms: ApprovedWorkingTerms | null = null;
+    // S262 R-S262-2 (ARCH-S262-2): an answer with an Amount approved writes the approved working
+    // base, and preserves Rent to recommend, in this same transaction or not at all.
+    let approvedBase: ApprovedBase | null = null;
+    let workingChange: ApprovedBaseWorkingChange | null = null;
     if (
       input.action.kind === "owner_response" &&
       input.action.outcome === "approved_terms"
@@ -499,14 +536,65 @@ export async function saveRenewalWorkspace(
         readPacketInputsIn(tx, db, input.leaseId),
         readChargePolicyIn(tx, db),
       ]);
-      approvedWorkingTerms = captureApprovedWorkingTerms({
-        leaseId: input.leaseId,
-        working: workingSnapshot.exists
-          ? parseRenewalWorkingRecord(workingSnapshot.data(), input.leaseId)
-          : null,
-        inputs: packetInputs,
-        policy: chargePolicy,
-      });
+      const stored = workingSnapshot.exists
+        ? parseRenewalWorkingRecord(workingSnapshot.data(), input.leaseId)
+        : null;
+      // S262 R-S262-5: only the Working terms current for this cycle can be approved.
+      const projected = projectCurrentCycleWorkingRecord(stored, base);
+      const amount = input.action.approvedBase;
+      if (amount) {
+        if (
+          storedWorkingRevision(projected, "terms_rent") !==
+            amount.expectedWorkingRevision ||
+          storedWorkingRevision(projected, "recommended_rent") !==
+            amount.expectedRecommendationRevision
+        )
+          throw new EditableLayerError(
+            "Rent to recommend or the offer amount changed after you reviewed the owner's answer, so the answer was not saved. Your entries are kept; review the answer again.",
+            409,
+          );
+        workingChange = planApprovedBaseChange({
+          leaseId: input.leaseId,
+          stored,
+          projected,
+          cycleId,
+          amount: amount.amount,
+          ownerResponseEventId: input.operationId,
+          actor: { uid: actor.uid, label: actor.email },
+          recordedAt: now,
+          newEventId: randomUUID,
+        });
+        approvedBase = {
+          amount: amount.amount,
+          scope: amount.scope,
+          cycleId,
+          workingRevision: workingChange.workingRevision,
+          recommended: workingChange.recommended,
+        };
+        if (amount.scope === "exact_terms") {
+          // The owner approved the base and the renewal dates as they stand now.
+          approvedWorkingTerms = captureApprovedWorkingTerms({
+            leaseId: input.leaseId,
+            working: projectCurrentCycleWorkingRecord(
+              workingChange.record ?? stored,
+              base,
+            ),
+            inputs: packetInputs,
+            policy: chargePolicy,
+          });
+          if (!approvedWorkingTerms)
+            throw new EditableLayerError(
+              "Save the renewal start and end dates for this renewal before recording that the owner approved them. To record the amount alone, choose Base rent only.",
+              409,
+            );
+        }
+      } else
+        approvedWorkingTerms = captureApprovedWorkingTerms({
+          leaseId: input.leaseId,
+          working: projected,
+          inputs: packetInputs,
+          policy: chargePolicy,
+        });
     }
     // S234 R-S234-5: a tenant answer keeps the Working term revisions it answered, read here in
     // the same transaction, so a later terms save shows it answers earlier terms.
@@ -514,9 +602,12 @@ export async function saveRenewalWorkspace(
     if (input.action.kind === "tenant_response") {
       const workingSnapshot = await tx.get(renewalWorkingRecordRef(db, input.leaseId));
       workingTermRevisions = currentWorkingTermRevisions(
-        workingSnapshot.exists
-          ? parseRenewalWorkingRecord(workingSnapshot.data(), input.leaseId)
-          : null,
+        projectCurrentCycleWorkingRecord(
+          workingSnapshot.exists
+            ? parseRenewalWorkingRecord(workingSnapshot.data(), input.leaseId)
+            : null,
+          base,
+        ),
       );
     }
     let approvalEvidence: OwnerApprovalEvidence | null = null;
@@ -569,6 +660,7 @@ export async function saveRenewalWorkspace(
       approvedWorkingTerms,
       approvalEvidence,
       workingTermRevisions,
+      approvedBase,
     });
     if (
       input.action.kind === "preparation" &&
@@ -657,6 +749,18 @@ export async function saveRenewalWorkspace(
         previous_cycle_id: current?.cycleId ?? null,
         next_state: base,
       });
+    if (workingChange?.record) {
+      // S262 R-S262-2: the approved base and the preserved recommendation, with their activity.
+      tx.set(
+        renewalWorkingRecordRef(db, input.leaseId),
+        RenewalWorkingRecordSchema.parse(workingChange.record),
+      );
+      for (const written of workingChange.events)
+        tx.create(
+          db.collection(RENEWAL_WORKING_RECORD_COLLECTIONS.activity).doc(written.id),
+          { ...written.doc, request_hash: requestHash },
+        );
+    }
     tx.set(target, valid);
     tx.set(db.collection(RENEWAL_WORKSPACE_COLLECTIONS.cycles).doc(cycleId), valid);
     tx.create(event, {
@@ -701,8 +805,12 @@ export async function ensureRenewalWorkRecord(
       tx.get(refs.leaseBound),
     ]);
     if (currentHead(refs, dated, leaseBound, id)) return;
+    // S262 R-S262-5: the lease's first work record; it replaces no earlier cycle.
     const base = parseState(
-      emptyRenewalWorkspace(id, randomUUID(), sourceBasis ?? LEASE_BOUND_WORK_BASIS),
+      {
+        ...emptyRenewalWorkspace(id, randomUUID(), sourceBasis ?? LEASE_BOUND_WORK_BASIS),
+        previousCycleId: null,
+      },
       id,
     );
     tx.create(db.collection(RENEWAL_WORKSPACE_COLLECTIONS.activity).doc(randomUUID()), {

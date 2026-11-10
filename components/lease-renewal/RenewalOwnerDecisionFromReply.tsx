@@ -10,6 +10,18 @@ import type {
 } from "@/lib/lease-renewal/owner-approval-evidence";
 import type { RenewalWorkspaceAction } from "@/lib/lease-renewal/workspace-state";
 import { fetchWithDeadline } from "@/lib/ui/fetch-lifetime";
+import {
+  ApprovedAmountFields,
+  ContinueToTenantOffer,
+  EMPTY_APPROVED_AMOUNT,
+  OwnerAnswerReview,
+  RECORD_OWNER_ANSWER_TITLE,
+  REVIEW_OWNER_ANSWER_LABEL,
+  approvedBaseFromDraft,
+  describeOwnerApprovalInput,
+  type ApprovedAmountDraft,
+} from "./RenewalOwnerAnswer";
+import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
 
 export const OWNER_DECISION_FROM_REPLY_ID = "renewal-owner-decision-from-reply";
 export const OWNER_DECISION_RECORD_LABEL = "Record this decision";
@@ -144,6 +156,11 @@ function OwnerReplyPreview({ reply }: Readonly<{ reply: OwnerReplyChoice }>) {
  * decision" records it through the same staff-record action the Owner response form uses, with
  * the same S234 approval evidence, and the server checks the party and the reply again. An
  * authorized representative or another channel stays on the Owner response form.
+ *
+ * S262 R-S262-1: this is "Record the owner's answer". Choosing the approving reply asks for
+ * Amount approved and what the answer covers before who approved, then "Review the owner's
+ * answer" names the old recommended base, the approved base and the coverage before Save. The
+ * other outcomes record as before and never change the renewal rent.
  */
 export function RenewalOwnerDecisionFromReply({
   choices,
@@ -155,10 +172,19 @@ export function RenewalOwnerDecisionFromReply({
   onRecord: (action: RenewalWorkspaceAction) => Promise<unknown> | void;
 }>) {
   const id = useId();
+  const working = useRenewalWorkingRecord();
+  const record = working?.record ?? null;
   const [decision, setDecision] = useState("");
   const [party, setParty] = useState("");
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
+  // S262 R-S262-1: the approving branch's Amount approved, then its review before Save.
+  const [amount, setAmount] = useState<ApprovedAmountDraft>(EMPTY_APPROVED_AMOUNT);
+  const [review, setReview] = useState<
+    (RenewalWorkspaceAction & { kind: "owner_response" }) | null
+  >(null);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const roster = choices.roster;
   const reply = decision.startsWith(REPLY_PREFIX)
     ? (choices.replies.find(
@@ -167,7 +193,7 @@ export function RenewalOwnerDecisionFromReply({
       ) ?? null)
     : null;
 
-  function action(): RenewalWorkspaceAction | string {
+  function action(): (RenewalWorkspaceAction & { kind: "owner_response" }) | string {
     if (!decision) return "Before recording, choose the owner's decision.";
     if (decision === DECLINE) return { kind: "owner_response", outcome: DECLINE };
     if (decision === REVISION)
@@ -179,6 +205,8 @@ export function RenewalOwnerDecisionFromReply({
     const owner = roster?.find((entry) => entry.sourceRef === party) ?? null;
     if (!reply || !roster || !choices.rosterFingerprint)
       return "The reply or the lease's owner list could not be read, so use Owner response below.";
+    const approvedBase = approvedBaseFromDraft(amount, record);
+    if (typeof approvedBase === "string") return approvedBase;
     if (!owner) return "Before recording Approved, choose who approved.";
     return {
       kind: "owner_response",
@@ -197,6 +225,7 @@ export function RenewalOwnerDecisionFromReply({
         },
         occurredAt: new Date(reply.receivedAt).toISOString(),
       },
+      approvedBase,
     };
   }
 
@@ -207,7 +236,26 @@ export function RenewalOwnerDecisionFromReply({
       return;
     }
     setError("");
-    void onRecord(next);
+    // An approval is reviewed before it is saved; the other outcomes record as chosen.
+    if (next.outcome === "approved_terms") setReview(next);
+    else void Promise.resolve(onRecord(next)).catch(() => undefined);
+  }
+
+  async function saveReviewed() {
+    if (!review) return;
+    setSaving(true);
+    setError("");
+    try {
+      await onRecord(review);
+      setSaved(true);
+      setReview(null);
+    } catch {
+      setError(
+        "The owner's answer was not saved. Your entries are kept; review the current values and save again.",
+      );
+    } finally {
+      setSaving(false);
+    }
   }
 
   const option = (value: string, label: string) => (
@@ -227,6 +275,34 @@ export function RenewalOwnerDecisionFromReply({
     </label>
   );
 
+  if (review?.outcome === "approved_terms" && review.approvedBase && review.approval)
+    return (
+      <fieldset
+        className="ui-stack-tight"
+        data-renewal-field="owner-decision-from-reply"
+        id={OWNER_DECISION_FROM_REPLY_ID}
+        tabIndex={-1}
+      >
+        <legend>{RECORD_OWNER_ANSWER_TITLE}</legend>
+        <OwnerAnswerReview
+          base={review.approvedBase}
+          error={error || null}
+          evidence={describeOwnerApprovalInput(review.approval, () =>
+            reply
+              ? `the reply received ${formatBusinessTimestamp(reply.receivedAt)} in ${reply.senderEmail}`
+              : null,
+          )}
+          onChange={() => {
+            setReview(null);
+            setError("");
+          }}
+          onSave={() => void saveReviewed()}
+          saving={saving}
+          working={record}
+        />
+      </fieldset>
+    );
+
   return (
     <fieldset
       className="ui-stack-tight"
@@ -234,7 +310,7 @@ export function RenewalOwnerDecisionFromReply({
       id={OWNER_DECISION_FROM_REPLY_ID}
       tabIndex={-1}
     >
-      <legend>The owner&apos;s decision</legend>
+      <legend>{RECORD_OWNER_ANSWER_TITLE}</legend>
       {choices.replies[0] ? (
         <OwnerReplyPreview reply={reply ?? choices.replies[0]} />
       ) : null}
@@ -246,6 +322,17 @@ export function RenewalOwnerDecisionFromReply({
       )}
       {option(REVISION, "Asked for a change")}
       {option(DECLINE, "Declined / non-renewal")}
+      {reply ? (
+        <ApprovedAmountFields
+          disabled={disabled}
+          draft={amount}
+          onChange={(next) => {
+            setAmount(next);
+            setError("");
+          }}
+          working={record}
+        />
+      ) : null}
       {reply && roster ? (
         <Field htmlFor={`${id}-party`} label="Who approved in this reply" required>
           <select
@@ -285,10 +372,11 @@ export function RenewalOwnerDecisionFromReply({
       ) : null}
       <div className="ui-row">
         <Button disabled={disabled} onClick={submit} type="button">
-          {OWNER_DECISION_RECORD_LABEL}
+          {reply ? REVIEW_OWNER_ANSWER_LABEL : OWNER_DECISION_RECORD_LABEL}
         </Button>
       </div>
       {error ? <p role="alert">{error}</p> : null}
+      {saved ? <ContinueToTenantOffer working={record} /> : null}
       <p className="muted">
         Owner response below records an authorized representative, another written channel
         or a conversation.

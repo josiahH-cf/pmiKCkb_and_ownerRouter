@@ -3694,33 +3694,59 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         ) as HTMLSelectElement;
         // S234 R-S234-1: an owner approval follows any Working terms it covers and is recorded
         // through who approved, how and when; the conversation names this response's source.
+        // S262 R-S262-1/2: the answer names its Amount approved, which becomes the working base
+        // in the same save. Before any answer, Rent to recommend is the shared working value;
+        // after one, it is its own fact and the new amount is entered only in the answer.
         if (audience === "owner" && outcome === "approved_terms") {
           if (terms) {
             if (terms.effectiveDate)
               change(root.getByLabelText("Working effective date"), terms.effectiveDate);
             if (terms.endDate)
               change(root.getByLabelText("Working term end date"), terms.endDate);
-            // S261: Ask the owner links to the one Rent to recommend editor.
-            fireEvent.click(root.getByRole("link", { name: "Edit rent to recommend" }));
-            expect(recommendedRentEditor()).toHaveFocus();
-            enterRecommendedRent(terms.rent);
-            await waitFor(
-              async () =>
-                expect(
-                  workingEntry(
-                    await getRenewalWorkingRecord(actor, "701", db),
-                    "terms_rent",
-                  )?.value,
-                ).toBe(Number(terms.rent)),
-              { timeout: 10_000 },
+            const ownRecommendation = workingEntry(
+              await getRenewalWorkingRecord(actor, "701", db),
+              "recommended_rent",
             );
+            if (!ownRecommendation) {
+              // S261: Ask the owner links to the one Rent to recommend editor.
+              fireEvent.click(root.getByRole("link", { name: "Edit rent to recommend" }));
+              expect(recommendedRentEditor()).toHaveFocus();
+              enterRecommendedRent(terms.rent);
+              await waitFor(
+                async () =>
+                  expect(
+                    workingEntry(
+                      await getRenewalWorkingRecord(actor, "701", db),
+                      "terms_rent",
+                    )?.value,
+                  ).toBe(Number(terms.rent)),
+                { timeout: 10_000 },
+              );
+            }
             // Reads that start after this mark must carry the saved rent.
             markPhase("owner working rent read back");
           }
           if (control.value !== outcome) change(control, outcome);
           const again = root.queryByRole("button", { name: "Record a new approval" });
           if (again) fireEvent.click(again);
-          recordApprovalThroughForm(root, { participants: source });
+          // The answer covers the base rent and the saved renewal dates; the review reads the
+          // working revisions the page holds once every working save has returned.
+          await settleJourneyRequests();
+          await waitFor(
+            () => root.getByRole("radio", { name: /^Base rent and the renewal dates/ }),
+            { timeout: 10_000 },
+          );
+          const approvedAmount =
+            terms?.rent ??
+            String(
+              workingEntry(await getRenewalWorkingRecord(actor, "701", db), "terms_rent")
+                ?.value,
+            );
+          recordApprovalThroughForm(root, {
+            participants: source,
+            amount: approvedAmount,
+            coversDates: true,
+          });
           await savedAfter(revision);
           await waitFor(
             async () =>
@@ -3729,7 +3755,18 @@ describe("S113 mounted operator journey with persisted backend state", () => {
               ).toMatchObject({
                 outcome,
                 approval: { channel: { kind: "conversation", participants: source } },
+                approvedBase: { amount: Number(approvedAmount), scope: "exact_terms" },
               }),
+            { timeout: 10_000 },
+          );
+          await waitFor(
+            async () =>
+              expect(
+                workingEntry(
+                  await getRenewalWorkingRecord(actor, "701", db),
+                  "terms_rent",
+                )?.value,
+              ).toBe(Number(approvedAmount)),
             { timeout: 10_000 },
           );
           return;

@@ -90,7 +90,9 @@ export type OwnerApprovalState =
   | "not_recorded"
   | "no_working_terms"
   | "terms_changed"
-  | "charges_changed";
+  | "charges_changed"
+  // S262 R-S262-3: the owner approved the base rent only; the packet's exact terms wait.
+  | "amount_only";
 
 export const OWNER_APPROVAL_NOTICES: Readonly<
   Record<Exclude<OwnerApprovalState, "current">, string>
@@ -99,6 +101,8 @@ export const OWNER_APPROVAL_NOTICES: Readonly<
     "Record explicit owner approval of the current renewal terms before packet execution.",
   no_working_terms:
     "The recorded owner approval does not name complete Working renewal terms. Save the Working terms, then record the owner's approval again.",
+  amount_only:
+    "The owner approved the base rent only. Record the owner's approval of the renewal dates and charges before packet execution.",
   terms_changed:
     "The Working renewal terms changed after the owner's approval was recorded. Record the owner's approval of the current terms.",
   charges_changed:

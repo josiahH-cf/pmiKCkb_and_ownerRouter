@@ -55,6 +55,7 @@ import { buildOwnerAcknowledgmentInput } from "./owner-acknowledgment";
 import type { LeaseArtifactCatalog, PacketEvaluationInput } from "./packet-types";
 import type { PacketInputsRecord } from "./packet-inputs";
 import type { RenewalWorkingRecord } from "@/lib/lease-renewal/working-record";
+import { projectCurrentCycleWorkingRecord } from "@/lib/lease-renewal/current-cycle-terms";
 import type { RawLease } from "@/lib/integrations/rentvine/client";
 export const PACKET_SOURCE_COLLECTIONS = {
   catalog: "lease_artifact_catalogs",
@@ -227,9 +228,11 @@ async function resolvePacketInputFromViews(
     );
   let working: RenewalWorkingRecord | null = null;
   try {
-    working = workingDoc.exists
-      ? parseRenewalWorkingRecord(workingDoc.data(), leaseId)
-      : null;
+    // S262 R-S262-5: the packet reads only the Working terms current for this work record.
+    working = projectCurrentCycleWorkingRecord(
+      workingDoc.exists ? parseRenewalWorkingRecord(workingDoc.data(), leaseId) : null,
+      workspace,
+    );
   } catch {
     notices.push("The Working renewal terms for this lease are unreadable.");
   }

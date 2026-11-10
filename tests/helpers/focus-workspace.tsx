@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { SYNTHETIC_APPROVAL_CHOICES } from "./owner-approval-form";
+import { SYNTHETIC_APPROVAL_CHOICES, approvedBaseMeta } from "./owner-approval-form";
 import type { ComponentProps } from "react";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import { expect, vi } from "vitest";
@@ -167,6 +167,8 @@ export function stubRenewalRoutes(
           eventId: operationId,
           actorUid: "fixture-staff",
           recordedAt: "2026-09-30T17:00:00.000Z",
+          // S262: an answer with an Amount approved carries the base the store wrote with it.
+          ...approvedBaseMeta(stored.cycleId, body.action as never),
         });
         replays.set(operationId, { hash, state: stored });
         if (loseResponse) {

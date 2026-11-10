@@ -1135,7 +1135,8 @@ function NowCard({
           <RenewalOwnerDecisionFromReply
             choices={replyDecision}
             disabled={manual.pending}
-            onRecord={(action) => manual.record(action).catch(() => undefined)}
+            // S262: the reviewed answer learns whether its save was confirmed.
+            onRecord={(action) => manual.record(action)}
           />
         ) : null}
         {shown.id === "finish-up" && stage.finishUp.length > 0 ? (

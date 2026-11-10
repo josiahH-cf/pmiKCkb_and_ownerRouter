@@ -17,10 +17,11 @@ import {
   type RenewalWorkspaceState,
 } from "@/lib/lease-renewal/workspace-state";
 import type { RenewalChargeInventory } from "@/lib/lease-renewal/writeback/charge-inventory-model";
+import type { RenewalWorkingRecord } from "@/lib/lease-renewal/working-record";
 import {
-  workingRenewalTerms,
-  type RenewalWorkingRecord,
-} from "@/lib/lease-renewal/working-record";
+  recommendationFact,
+  recommendedRentValue,
+} from "@/lib/lease-renewal/current-cycle-terms";
 
 /** One stored comps lookup for a lease, as the observation store keeps it. */
 export interface KickoffObservationRow {
@@ -166,7 +167,9 @@ export function typedRecommendation(
   working: RenewalWorkingRecord | null | undefined,
   manual: RenewalWorkspaceState | null,
 ): number | null {
-  const workingRent = workingRenewalTerms(working ?? null).rent;
+  // S262 R-S262-2: the shared working value until the working base has its own value, then
+  // Rent to recommend's own fact. An unavailable recommendation never reads the approved rent.
+  const workingRent = recommendedRentValue(working);
   if (workingRent !== null) return workingRent;
   const market = manual?.preparation?.market;
   return market &&
@@ -181,7 +184,8 @@ export function typedRecommendation(
 export function workingRecommendationBasis(
   working: RenewalWorkingRecord | null | undefined,
 ): string | null {
-  const entry = working?.fields.terms_rent;
+  const fact = recommendationFact(working);
+  const entry = fact.kind === "unavailable" ? null : fact.entry;
   return entry?.origin === "adopted_source" && entry.sourceLabel
     ? `Saved working rent from ${entry.sourceLabel}. Later proposals keep this saved amount.`
     : null;

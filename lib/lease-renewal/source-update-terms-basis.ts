@@ -46,6 +46,9 @@ const APPROVAL_COVERAGE: Record<OwnerApprovalCoverage["state"], string> = {
     "Owner approval no longer covers these terms: the calculated charges changed after it was recorded",
   no_working_terms: "The recorded owner approval does not name complete Working terms",
   not_recorded: "No recorded owner approval",
+  // S262 R-S262-3: an amount-only answer never covers the dates or charges a preview carries.
+  amount_only:
+    "Owner approval covers the base rent only, not the renewal dates or charges",
 };
 
 export function projectSourceUpdateTermsBasis(input: {

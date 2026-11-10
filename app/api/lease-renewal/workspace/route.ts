@@ -37,6 +37,7 @@ import {
   CorrectRenewalOutreachSchema,
   correctRenewalOutreach,
 } from "@/lib/firestore/renewal-outreach-records";
+import { getRenewalWorkingRecord } from "@/lib/firestore/renewal-working-record";
 
 const Body = z.discriminatedUnion("operation", [
   z
@@ -186,8 +187,15 @@ export async function POST(request: Request) {
       // S234 R-S234-1: an approval's party is checked against a fresh owner roster.
       { ownerRoster: () => resolveLeaseOwnerRoster(actor, value.leaseId) },
     );
+    // S262 R-S262-2: an answer with an Amount approved changed the working terms in the same
+    // transaction; the response reads them back for the lease's current cycle.
+    const working =
+      value.action.kind === "owner_response" && value.action.approvedBase
+        ? await getRenewalWorkingRecord(actor, value.leaseId).catch(() => undefined)
+        : undefined;
     return NextResponse.json({
       ...result,
+      ...(working !== undefined ? { working } : {}),
       writeback_paused: isOperatingSheetWritebackPaused(),
     });
   } catch (error) {
