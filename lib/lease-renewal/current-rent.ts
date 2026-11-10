@@ -339,14 +339,14 @@ export function currentBaseRent(input: {
       case "none":
         return ready({
           kind: "unconfirmed",
-          leads: true,
+          leads: false,
           sources: [contractSource],
           text: `RentVine lists no current rent charge, so the ${SOURCE_LABELS.contractual} of ${baseMoney(contractual)} is not confirmed by billing. Correct the current base rent if the lease says otherwise.`,
         });
       case "unclear":
         return ready({
           kind: "unconfirmed",
-          leads: true,
+          leads: false,
           sources: [contractSource, ...candidates],
           text: `A possible rent charge (${amountList(amounts)}) is not confirmed as current, so this uses the ${SOURCE_LABELS.contractual} of ${baseMoney(contractual)}. Correct the current base rent if the lease says otherwise.`,
         });

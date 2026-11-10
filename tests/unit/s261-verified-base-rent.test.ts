@@ -226,7 +226,7 @@ describe("S261 one current base rent decision", () => {
     expect(combined.check?.kind).toBe("conflict");
   });
 
-  it("AC-S261-1: zero candidate rent accounts keep the contractual base under its own label and ask for a check", () => {
+  it("AC-S261-1: zero candidate rent accounts keep the contractual base under its own label and note the check without leading", () => {
     const decision = currentBaseRent({
       inventory: fixtureInventory([PET_RENT]),
       contractualRent: 900,
@@ -237,7 +237,7 @@ describe("S261 one current base rent decision", () => {
       basis: "contractual",
       label: "RentVine contractual lease amount",
     });
-    expect(decision.check).toMatchObject({ kind: "unconfirmed", leads: true });
+    expect(decision.check).toMatchObject({ kind: "unconfirmed", leads: false });
     expect(decision.separateCharges.map((charge) => charge.amount)).toEqual([40]);
   });
 
