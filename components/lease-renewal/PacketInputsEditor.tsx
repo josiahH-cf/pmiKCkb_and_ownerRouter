@@ -13,9 +13,10 @@ import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 // acknowledgment's explanation for this lease. The application writes none of that text and
 // offers no value from another lease.
 
-import { useCallback, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 
 import { FilledArtifactPanel } from "@/components/lease-renewal/FilledArtifactPanel";
+import { focusProgrammatically } from "@/components/lease-renewal/RenewalDashboardNavigation";
 import { Button, Field, Notice } from "@/components/ui";
 import {
   SIGNER_ROLES,
@@ -111,6 +112,24 @@ function useSaver(leaseId: string, onSaved: () => Promise<void>) {
   );
 }
 
+/** S268: the request Documents and signatures sends to open this lease's Packet inputs. */
+export const PACKET_INPUTS_REQUEST_EVENT = "renewal:packet-inputs-request";
+
+interface PacketInputsRequest {
+  readonly leaseId: string;
+  /** The fact to focus; null opens the inputs at their heading. */
+  readonly fieldKey: string | null;
+}
+
+/** S268: open this lease's existing Packet inputs at the named fact. It reads; it saves nothing. */
+export function requestPacketInputs(leaseId: string, fieldKey: string | null) {
+  document.dispatchEvent(
+    new CustomEvent<PacketInputsRequest>(PACKET_INPUTS_REQUEST_EVENT, {
+      detail: { leaseId, fieldKey },
+    }),
+  );
+}
+
 export function PacketInputsEditor({
   leaseId,
   canEdit,
@@ -119,6 +138,9 @@ export function PacketInputsEditor({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [opened, setOpened] = useState(false);
+  const section = useRef<HTMLElement | null>(null);
+  // S268: the fact a request asked for, focused once the inputs are shown; undefined when none.
+  const requestedFact = useRef<string | null | undefined>(undefined);
 
   const readView = useCallback(async (): Promise<
     { view: PacketInputsView } | { error: string }
@@ -154,6 +176,48 @@ export function PacketInputsEditor({
 
   const save = useSaver(leaseId, load);
 
+  const focusRequested = useCallback(() => {
+    const root = section.current;
+    const fieldKey = requestedFact.current;
+    if (!root || fieldKey === undefined) return;
+    requestedFact.current = undefined;
+    const row = fieldKey
+      ? [...root.querySelectorAll<HTMLElement>("[data-packet-fact]")].find(
+          (element) => element.dataset.packetFact === fieldKey,
+        )
+      : undefined;
+    const target =
+      row?.querySelector<HTMLElement>("input, select, textarea") ??
+      root.querySelector<HTMLElement>("h4");
+    if (!target) return;
+    focusProgrammatically(target);
+    target.scrollIntoView?.({ block: "center" });
+  }, []);
+
+  // S268: an Editor reaches these inputs directly from Documents and signatures. Opening reads the
+  // current inputs exactly as the Open packet inputs button does; nothing is saved.
+  useEffect(() => {
+    const onRequest = (event: Event) => {
+      const detail = (event as CustomEvent<PacketInputsRequest>).detail;
+      if (detail?.leaseId !== leaseId) return;
+      requestedFact.current = detail.fieldKey ?? null;
+      if (view) {
+        focusRequested();
+        return;
+      }
+      if (!opened) {
+        setOpened(true);
+        setLoading(true);
+        void load();
+      }
+    };
+    document.addEventListener(PACKET_INPUTS_REQUEST_EVENT, onRequest);
+    return () => document.removeEventListener(PACKET_INPUTS_REQUEST_EVENT, onRequest);
+  }, [focusRequested, leaseId, load, opened, view]);
+  useEffect(() => {
+    if (view) focusRequested();
+  }, [focusRequested, view]);
+
   if (!opened)
     return (
       <div className="ui-stack-tight">
@@ -180,9 +244,15 @@ export function PacketInputsEditor({
       </Notice>
     );
   return (
-    <section aria-labelledby={`packet-inputs-${leaseId}`} className="ui-stack">
+    <section
+      aria-labelledby={`packet-inputs-${leaseId}`}
+      className="ui-stack"
+      ref={section}
+    >
       <div className="ui-stack-tight">
-        <h4 id={`packet-inputs-${leaseId}`}>Packet inputs</h4>
+        <h4 id={`packet-inputs-${leaseId}`} tabIndex={-1}>
+          Packet inputs
+        </h4>
         <p className="muted">
           Enter each fact, person and animal once. The packet, filled files and Dotloop
           handoff use these saved values.

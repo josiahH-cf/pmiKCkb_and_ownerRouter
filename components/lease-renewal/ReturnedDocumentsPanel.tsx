@@ -8,6 +8,9 @@ import type { ReturnedStateView } from "@/lib/lease-documents/returned-state-ser
 
 type Doc = ReturnedStateView["documents"][number];
 
+/** S268: the in-page target of the "Record a returned document" link. */
+export const RETURNED_DOCUMENTS_ANCHOR = "renewal-returned-documents";
+
 /**
  * S236: which version of each packet document went out, who has signed, who still must sign and
  * in what capacity, and what each entry rests on. Staff record what they observed; every record
@@ -19,9 +22,15 @@ export function ReturnedDocumentsPanel({
   initialView,
 }: Readonly<{ canRecord: boolean; initialView: ReturnedStateView | null }>) {
   const [view, setView] = useState(initialView);
+  // S268 R-S268-3: "Record a returned document" in Documents and signatures links here.
   if (!view)
     return (
-      <section className="ui-stack-tight" data-renewal-field="returned-documents">
+      <section
+        className="ui-stack-tight"
+        data-renewal-field="returned-documents"
+        id={RETURNED_DOCUMENTS_ANCHOR}
+        tabIndex={-1}
+      >
         <h3>Returned documents and signatures</h3>
         <p className="muted" role="status">
           Returned documents could not be read; nothing was changed. Reload to try again.
@@ -33,6 +42,8 @@ export function ReturnedDocumentsPanel({
       aria-label="Returned documents and signatures"
       className="ui-stack-tight"
       data-renewal-field="returned-documents"
+      id={RETURNED_DOCUMENTS_ANCHOR}
+      tabIndex={-1}
     >
       <h3>Returned documents and signatures</h3>
       {view.manualCompletion ? (

@@ -189,6 +189,7 @@ export function RenewalWorkspace({
   rentvineUpdatesPanel = null,
   operatingSheetPanel = null,
   packetReadinessPanel = null,
+  packetLeadPanel = null,
   returnedDocumentsPanel = null,
   packetShownState = null,
   ownerApprovalChoices,
@@ -249,6 +250,8 @@ export function RenewalWorkspace({
   operatingSheetPanel?: ReactNode;
   /** S235 R-S235-1: the read-only per-family readiness for this lease, when the page read it. */
   packetReadinessPanel?: ReactNode;
+  /** S268 R-S268-1: what Documents and signatures leads with, read with the page. */
+  packetLeadPanel?: ReactNode;
   /** S236: returned documents, who still must sign and the staff records behind each state. */
   returnedDocumentsPanel?: ReactNode;
   /** S235 R-S235-4: the packet state from the current snapshot's recorded events. */
@@ -526,6 +529,7 @@ export function RenewalWorkspace({
       rentSuggestionAvailable={!unavailableKeys.has("rent_suggestion")}
       rentvineUpdatesPanel={rentvineUpdatesPanel}
       packetReadinessPanel={packetReadinessPanel}
+      packetLeadPanel={packetLeadPanel}
       returnedDocumentsPanel={returnedDocumentsPanel}
       packetShownState={packetShownState}
       resolutionDestinations={resolutionDestinations}
@@ -1210,6 +1214,7 @@ function PhaseContent({
   rentSuggestionAvailable,
   rentvineUpdatesPanel,
   packetReadinessPanel,
+  packetLeadPanel,
   returnedDocumentsPanel,
   packetShownState,
   sheetProposalPanel,
@@ -1240,6 +1245,8 @@ function PhaseContent({
   rentSuggestionAvailable: boolean;
   rentvineUpdatesPanel: ReactNode;
   packetReadinessPanel?: ReactNode;
+  /** S268 R-S268-1: the packet's first input, held form, source handoff or signing wait. */
+  packetLeadPanel?: ReactNode;
   returnedDocumentsPanel?: ReactNode;
   packetShownState?: ShownPacketState | null;
   sheetProposalPanel: ReactNode;
@@ -1755,6 +1762,8 @@ function PhaseContent({
           {showWork ? (
             packetStateAvailable ? (
               <>
+                {/* S268 R-S268-1: lead with the one thing this packet needs next. */}
+                {packetLeadPanel}
                 <PacketTruthPanel
                   initialSnapshot={packetSnapshot}
                   leaseId={summary.id}

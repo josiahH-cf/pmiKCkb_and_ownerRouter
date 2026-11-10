@@ -127,8 +127,10 @@ import { resolveFamilyUse } from "@/lib/lease-documents/family-use";
 import {
   projectLeasePacketReadiness,
   projectPacketContextReadiness,
+  projectPacketLead,
   safePacketReadFailure,
 } from "@/lib/lease-documents/lease-packet-readiness";
+import { PacketNextStep } from "@/components/lease-renewal/PacketNextStep";
 import { resolveDisplayedPacketInput } from "@/lib/lease-documents/live-input";
 import { evaluateRenewalPacket } from "@/lib/lease-documents/evaluate-packet";
 import { LeasePacketReadiness } from "@/components/lease-renewal/LeasePacketReadiness";
@@ -386,6 +388,12 @@ export default async function LiveRenewalLeaseWorkspacePage({
   const returnedStateView = await resolveReturnedState(user, leaseId)
     .then(({ view }) => view)
     .catch(() => null);
+  // S268 R-S268-1 / R-S268-3: what Documents and signatures leads with, from the reads above.
+  const packetLead = projectPacketLead({
+    rows: packetFamilyRows,
+    context: packetContextReadiness,
+    returned: returnedStateView,
+  });
   // S235 R-S235-6: the saved Dotloop selection and its last observation (this read never throws).
   const selectionFreshness = await readSelectionFreshness(user, readTimestamp);
   // S234 R-S234-1: an approval names an owner of record from this source read, or a named
@@ -800,6 +808,13 @@ export default async function LiveRenewalLeaseWorkspacePage({
                 context={packetContextReadiness}
                 rows={packetFamilyRows}
                 selection={selectionFreshness}
+              />
+            }
+            packetLeadPanel={
+              <PacketNextStep
+                canEditInputs={hasRenewalRoleAuthority("save_packet_inputs", user.role)}
+                lead={packetLead}
+                leaseId={leaseId}
               />
             }
             packetShownState={returnedStateView?.packetState ?? null}
