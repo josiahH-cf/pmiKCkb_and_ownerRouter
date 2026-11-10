@@ -53,6 +53,12 @@ describe("S113 pending-team resource links", () => {
       recordedAt: "2026-09-10T12:00:00.000Z",
       recordedByUid: "admin",
     };
-    expect(usableRenewalResourceUrl(saved)).toBe(recorded.url);
+    // S265 (deliberate change): the checkbox alone no longer makes a tenant link usable; tenant use
+    // needs its tenant audience check (`tenantResourceUse`). A checked legal-form location keeps
+    // its own purpose and stays usable for it.
+    expect(usableRenewalResourceUrl(saved)).toBeNull();
+    expect(usableRenewalResourceUrl({ ...saved, id: "standard_lease" })).toBe(
+      recorded.url,
+    );
   });
 });

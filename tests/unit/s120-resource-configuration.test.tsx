@@ -34,6 +34,19 @@ function settings() {
         verified: true,
         recordedAt: verifiedAt,
         recordedByUid: "admin",
+        // S265: a tenant link is usable only with its current tenant audience check.
+        tenantAccess: {
+          purpose: "tenant_insurance_flyer",
+          destination: "https://fixture-rental.net/insurance.pdf",
+          documentVersion: "Insurance flyer 2026-09",
+          audience: { kind: "tenant_wide" },
+          method: "signed_out_open",
+          result: "current_document",
+          checkedBy: "Fixture Resource Owner",
+          checkedOn: "2026-09-15",
+          validUntil: "2099-12-31",
+          proof: { id: "d".repeat(32), version: 3 },
+        },
       },
       rbp_flyer: {
         id: "rbp_flyer",
@@ -94,25 +107,33 @@ describe("S120 shared resource configuration", () => {
 
   it("AC-S120-3: the lease summary keeps blank, unverified, checked and unreadable states distinct and never turns an unverified value into a customer link", () => {
     const { unmount } = render(
-      <RenewalResourceLinksSummary canManage settings={settings()} />,
+      <RenewalResourceLinksSummary
+        canManage
+        settings={settings()}
+        todayIso="2026-09-30"
+      />,
     );
     const region = screen.getByRole("region", { name: "Renewal resource links" });
     expect(region).toHaveAttribute("id", "renewal-resource-locations");
     const items = within(region).getAllByRole("listitem");
     expect(items).toHaveLength(RENEWAL_RESOURCE_FIELDS.length);
+    // S265 (deliberate change): the three tenant entries read their tenant use: verified with
+    // its check, or Source pending with the precise reason.
     const insurance = document.getElementById("renewal-resource-insurance_flyer")!;
-    expect(insurance).toHaveTextContent(/checked by staff/i);
+    expect(insurance).toHaveTextContent(/Verified for tenants/);
     expect(
       within(insurance).getByRole("link", { name: "Open checked destination" }),
     ).toHaveAttribute("href", "https://fixture-rental.net/insurance.pdf");
     const rbp = document.getElementById("renewal-resource-rbp_flyer")!;
-    expect(rbp).toHaveTextContent(/needs review/i);
+    expect(rbp).toHaveTextContent(
+      "Source pending. The saved link's destination is not checked yet.",
+    );
     expect(
       within(rbp).queryByRole("link", { name: "Open checked destination" }),
     ).toBeNull();
     expect(rbp.textContent).not.toContain("https://fixture-rental.net/rbp.pdf");
     const form = document.getElementById("renewal-resource-renewal_information_form")!;
-    expect(form).toHaveTextContent(/pending team input/i);
+    expect(form).toHaveTextContent("Source pending. No link is saved yet.");
     for (const field of RENEWAL_RESOURCE_FIELDS) {
       const item = document.getElementById(`renewal-resource-${field.id}`)!;
       expect(within(item).getByRole("link", { name: "Manage" })).toHaveAttribute(
@@ -129,7 +150,13 @@ describe("S120 shared resource configuration", () => {
     expect(within(region).queryByLabelText("Insurance flyer")).toBeNull();
     unmount();
 
-    render(<RenewalResourceLinksSummary canManage={false} settings={null} />);
+    render(
+      <RenewalResourceLinksSummary
+        canManage={false}
+        settings={null}
+        todayIso="2026-09-30"
+      />,
+    );
     expect(screen.getByRole("alert")).toHaveTextContent(/could not be read/i);
     expect(screen.queryByText(/pending team input/i)).toBeNull();
     expect(screen.getAllByText(/unknown saved state/i).length).toBe(
