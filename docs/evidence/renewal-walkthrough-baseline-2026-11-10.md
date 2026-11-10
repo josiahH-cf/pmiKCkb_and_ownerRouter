@@ -38,5 +38,22 @@ fail-first tests before its product change and records the failing reason in its
 
 The rendered probe is `tests/browser/one-path-november-10-baseline-driver.mjs`. It signs in
 with the local demo roles, refuses every write and every off-origin request, and records
-`november-10-baseline.json` in the rehearsal run directory. The results follow the first
-completed run.
+`november-10-baseline.json` in the rehearsal run directory. Both guarded runs served
+`9b3bb69e` with zero attempted writes.
+
+Run `20261110T221145Z-9b3bb69e-named` found no Verify lease numbers group, no Edit rent to
+recommend link, no Amount approved field, no next-day choice, no Return to tenant offer
+route, no Review offer charges, no Admin offer charge mappings, no tenant-audience evidence,
+no Source pending handoff and no Verify forms and signing evidence group. All nine secondary
+Work groups were open on Guided entry. Current base rent rendered twice and Housing assistance
+once. Two of its preservation selectors were wrong: the Work status entry is the summary of
+the header disclosure, and the resource selector also matched the legal-form locations.
+
+Run `20261110T221435Z-9b3bb69e-named` repeated every probe with the corrected selectors. It
+read one Work status entry, one Full view toggle, 13 resource location entries including the
+three tenant resources, and zero audience evidence. Every fail-first reading matched the first
+run. Human verdict: NOT RUN — no human observer.
+
+The versioned S271 matrix and its verdict rules are in
+`tests/browser/one-path-november-10-qualification-verdict.mjs`, with falsification tests in
+`tests/unit/s271-qualification-verdict.test.mjs`.
