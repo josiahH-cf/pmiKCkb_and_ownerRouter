@@ -46,7 +46,10 @@ import {
   standingAuthorityCurrent,
   useRenewalPricingPolicy,
 } from "./RenewalPricingPolicy";
-import { HousingAssistanceField } from "./RenewalHousingAssistance";
+import {
+  HOUSING_ASSISTANCE_TARGETS,
+  HousingAssistanceField,
+} from "./RenewalHousingAssistance";
 import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
 import { housingAssistanceVariant } from "@/lib/lease-renewal/working-record";
 import { nowSlotKey, useRenewalNowCard } from "./RenewalNowCardContext";
@@ -97,6 +100,26 @@ function stepOwning(
     (step) =>
       step.state !== "not_part" &&
       step.controls.some((id) => document.getElementById(id)?.contains(element)),
+  );
+}
+
+/**
+ * S266: controls this view's Now card renders only on their own step, such as the Housing
+ * assistance field on Check the numbers. A request for one chooses that step first.
+ */
+const NOW_CARD_CONTROLS: Partial<Record<RenewalPathStepId, readonly string[]>> = {
+  "check-numbers": [
+    HOUSING_ASSISTANCE_TARGETS.now.field,
+    HOUSING_ASSISTANCE_TARGETS.now.contact,
+  ],
+};
+
+function stepRenderingNowControl(
+  steps: readonly RenewalPathStepView[],
+  id: string,
+): RenewalPathStepView | undefined {
+  return steps.find(
+    (step) => step.state !== "not_part" && NOW_CARD_CONTROLS[step.id]?.includes(id),
   );
 }
 
@@ -593,6 +616,15 @@ export function RenewalGuidedView({
       if (view.view !== "guided") return;
       const id = (event as CustomEvent<{ id: string }>).detail?.id;
       const element = id ? document.getElementById(id) : null;
+      // S266: a Now card control of another step chooses that step; it takes focus once shown.
+      const nowOwner =
+        id && !element ? stepRenderingNowControl(stage.steps, id) : undefined;
+      if (id && nowOwner) {
+        event.preventDefault();
+        pendingFocus.current = id;
+        setChosen(nowOwner.id === stage.currentStepId ? "follow-current" : nowOwner.id);
+        return;
+      }
       if (!id || !element || !element.closest("[data-renewal-focus-hidden]")) return;
       event.preventDefault();
       const owner = stepOwning(stage.steps, element);

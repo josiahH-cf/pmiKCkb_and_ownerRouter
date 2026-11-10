@@ -354,6 +354,24 @@ export function RenewalDashboardNavigation({
  */
 export const RENEWAL_FOCUS_REQUEST_EVENT = "renewal:focus-request";
 
+/**
+ * S266: a request to open the Lease information panel at one of its own controls. A step that
+ * shows a lease fact read-only sends it to reach the fact's one editor there. Opening the panel
+ * and moving focus are presentation only: nothing is saved, recorded or read.
+ */
+export const RENEWAL_LEASE_INFORMATION_REQUEST_EVENT =
+  "renewal:lease-information-request";
+
+/** S266: open Lease information at an exact control; false when no workspace panel answered. */
+export function requestLeaseInformation(targetId: string): boolean {
+  return !document.dispatchEvent(
+    new CustomEvent(RENEWAL_LEASE_INFORMATION_REQUEST_EVENT, {
+      cancelable: true,
+      detail: { targetId },
+    }),
+  );
+}
+
 let programmaticFocusMove = false;
 /**
  * True while this module is moving focus itself (a refresh, a chosen task). An autosave that
