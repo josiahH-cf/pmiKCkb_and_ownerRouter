@@ -4,6 +4,7 @@ import { SYNTHETIC_APPROVAL } from "../helpers/owner-approval";
 import {
   FORM_APPROVAL,
   SYNTHETIC_APPROVAL_CHOICES,
+  approvedBaseMeta,
   recordApprovalThroughForm,
 } from "../helpers/owner-approval-form";
 import {
@@ -182,14 +183,22 @@ describe("S155 autosaved staff records keep focus and input", () => {
       const body = JSON.parse(String(options?.body));
       expect(body.expectedRevision).toBe(before.revision);
       // The form posts the local time it was given, converted in this process's time zone.
+      // S262: the reviewed answer carries its Amount approved beside the S234 evidence.
       expect(body.action).toEqual({
         kind: "owner_response",
         outcome: "approved_terms",
         approval: FORM_APPROVAL,
+        approvedBase: {
+          amount: 1875,
+          scope: "amount_only",
+          expectedWorkingRevision: 0,
+          expectedRecommendationRevision: 0,
+        },
       });
       after = planRenewalWorkspaceAction(before, body.action, {
         ...metadata,
         eventId: body.operationId,
+        ...approvedBaseMeta(before.cycleId, body.action),
       });
       await delayed;
       return Response.json({ state: after, writeback_paused: true });

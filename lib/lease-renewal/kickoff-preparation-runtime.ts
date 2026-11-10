@@ -38,6 +38,10 @@ import {
   workingRenewalTerms,
 } from "@/lib/lease-renewal/working-record";
 import { effectiveRenewalTerms } from "@/lib/lease-renewal/effective-terms";
+import {
+  currentCycleFieldEmpty,
+  storedWorkingRevision,
+} from "@/lib/lease-renewal/current-cycle-terms";
 import { readRenewalPricingForViews } from "@/lib/lease-renewal/pricing-policy-read";
 import { resolveRenewalPricing } from "@/lib/lease-renewal/renewal-pricing-policy";
 import {
@@ -183,9 +187,11 @@ export function kickoffPreparationDeps(
           disposition !== undefined &&
           termReview !== undefined &&
           isRenewalTargetForMonth(target, month ?? defaultRenewalBatchMonth(today)),
+        // S262 R-S262-5: empty for the active cycle. An earlier cycle's rent leaves it empty; an
+        // unbound value is neither current nor empty, so preparation keeps it for staff to confirm.
         rentField: {
-          revision: working.record?.fields.terms_rent?.revision ?? 0,
-          empty: working.record?.fields.terms_rent?.value == null,
+          revision: storedWorkingRevision(working.record, "terms_rent"),
+          empty: currentCycleFieldEmpty(working.record, "terms_rent"),
         },
         draftEligible:
           !progress?.ownerDecision &&

@@ -115,7 +115,8 @@ async function recordOwnerResponse(
     // A later approval supersedes the recorded one through its own "Record a new approval".
     const again = within(form).queryByRole("button", { name: "Record a new approval" });
     if (again) await user.click(again);
-    recordApprovalThroughForm(within(form));
+    // S262: the answer names the amount the owner approved: the fixture's recorded rent.
+    recordApprovalThroughForm(within(form), { amount: "1450" });
   }
   await settle();
 }

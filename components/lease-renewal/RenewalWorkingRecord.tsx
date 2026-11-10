@@ -41,6 +41,7 @@ import {
 } from "@/lib/lease-renewal/standing-agreement";
 import { formatBusinessTimestamp, formatCalendarDate } from "@/lib/date-display";
 import {
+  isCycleScopedWorkingField,
   workingEntry,
   workingFieldLabel,
   type RenewalWorkingRecord,
@@ -48,6 +49,10 @@ import {
   type WorkingValue,
   type WorkingValueOrigin,
 } from "@/lib/lease-renewal/working-record";
+import {
+  heldFutureTerm,
+  storedWorkingRevision,
+} from "@/lib/lease-renewal/current-cycle-terms";
 
 interface SaveOptions {
   readonly origin?: WorkingValueOrigin;
@@ -55,6 +60,11 @@ interface SaveOptions {
   readonly context?: string;
   /** Local acknowledgment only; this value never enters the server request. */
   readonly editorVersion?: number;
+  /**
+   * S262 "Use this amount for the offer": the Rent to recommend revision staff reviewed. The
+   * server applies the amount only while that revision, the working revision and cycle stand.
+   */
+  readonly recommendationRevision?: number;
 }
 
 interface WorkingRecordContextValue {
@@ -271,20 +281,33 @@ export function RenewalWorkingRecordProvider({
       if (!canEdit) return false;
       const automaticDraft =
         options.editorVersion === undefined &&
-        ["current_rent", "terms_rent", "terms_effective_date", "terms_end_date"].includes(
-          field,
-        ) &&
+        [
+          "current_rent",
+          "terms_rent",
+          "recommended_rent",
+          "terms_effective_date",
+          "terms_end_date",
+        ].includes(field) &&
         (value === null || typeof value === "number" || typeof value === "string")
           ? editLocalDraft(field, value === null ? "" : String(value), { value, options })
           : null;
+      // S262 R-S262-5: a future term names the cycle this page read, and the revision check uses
+      // the stored value even when it is held back from that cycle.
+      const cycle = recordRef.current?.cycle;
       const body = {
         leaseId,
         field,
         value,
-        expectedRevision: workingEntry(recordRef.current, field)?.revision ?? 0,
+        expectedRevision: storedWorkingRevision(recordRef.current, field),
         origin: options.origin ?? "staff_entry",
         ...(options.sourceLabel ? { sourceLabel: options.sourceLabel } : {}),
         ...(options.context ? { context: options.context } : {}),
+        ...(cycle && isCycleScopedWorkingField(field)
+          ? { expectedCycleId: cycle.cycleId }
+          : {}),
+        ...(options.recommendationRevision !== undefined
+          ? { recommendationRevision: options.recommendationRevision }
+          : {}),
       };
       const key = JSON.stringify(body);
       const prior = pending.current.get(field);
@@ -334,9 +357,7 @@ export function RenewalWorkingRecordProvider({
   const confirmedVersion = useCallback(
     (fields: readonly string[]) =>
       fields
-        .map(
-          (field) => `${field}:${workingEntry(recordRef.current, field)?.revision ?? 0}`,
-        )
+        .map((field) => `${field}:${storedWorkingRevision(recordRef.current, field)}`)
         .join("|"),
     [],
   );
@@ -440,12 +461,72 @@ function attribution(entry: WorkingFieldEntry | null): string | null {
   if (!entry) return null;
   const when = formatBusinessTimestamp(entry.recordedAt);
   const how =
-    entry.origin === "adopted_source"
-      ? `Taken from ${entry.sourceLabel ?? "the source"} by`
-      : entry.value === null
-        ? "Cleared by"
-        : "Entered by";
+    entry.basis?.kind === "owner_approval"
+      ? "Recorded from the owner's answer by"
+      : entry.basis?.kind === "recommendation"
+        ? "Taken from Rent to recommend by"
+        : entry.origin === "adopted_source"
+          ? `Taken from ${entry.sourceLabel ?? "the source"} by`
+          : entry.value === null
+            ? "Cleared by"
+            : "Entered by";
   return `${how} ${entry.recordedByLabel}, ${when}${entry.context ? `. ${entry.context}` : ""}`;
+}
+
+/** S262 R-S262-5: the one explicit confirmation of a held value, in its own field. */
+export const CONFIRM_FOR_THIS_RENEWAL_LABEL = "Confirm for this renewal";
+
+/**
+ * S262 R-S262-5 (BEH-S262-5): a future-term value that is not current for this renewal. A value
+ * from an earlier renewal stays as history and is never used here. A value saved before renewal
+ * terms were tied to a renewal asks for one deliberate choice in its own field: confirm it for
+ * this renewal, or enter a new one. Until then it is neither current nor empty.
+ */
+export function HeldWorkingValueNote({
+  field,
+  format,
+}: Readonly<{ field: string; format: (value: WorkingValue) => string }>) {
+  const context = useRenewalWorkingRecord();
+  const held = heldFutureTerm(context?.record, field);
+  if (!context || !held || held.entry.value === null) return null;
+  const entry = held.entry;
+  const shown = format(entry.value!);
+  if (held.scope === "earlier")
+    return (
+      <p className="muted" data-working-held="earlier" data-working-held-field={field}>
+        From an earlier renewal: {shown}. It stays in this lease&apos;s history and is not
+        used for this renewal.
+      </p>
+    );
+  return (
+    <div
+      className="ui-stack-tight working-field-held"
+      data-working-held="unverified"
+      data-working-held-field={field}
+    >
+      <p>
+        Not confirmed for this renewal: {shown}. {attribution(entry)}. Confirm it, or
+        enter the value for this renewal.
+      </p>
+      {context.canEdit ? (
+        <p>
+          <Button
+            onClick={() =>
+              void context.save(field, entry.value, {
+                origin: entry.origin,
+                ...(entry.sourceLabel ? { sourceLabel: entry.sourceLabel } : {}),
+                ...(entry.context ? { context: entry.context } : {}),
+              })
+            }
+            size="compact"
+            variant="secondary"
+          >
+            {CONFIRM_FOR_THIS_RENEWAL_LABEL}
+          </Button>
+        </p>
+      ) : null}
+    </div>
+  );
 }
 
 interface WorkingFieldProps {
@@ -486,8 +567,13 @@ export function WorkingMoneyField({ field, label, hint, source }: WorkingFieldPr
   const sourceAmount = typeof source?.value === "number" ? source.value : null;
   const differs = saved !== null && sourceAmount !== null && saved !== sourceAmount;
 
+  // S262 R-S262-5: a held unconfirmed value is not an empty field, so no proposal fills it.
   const prefill =
-    field === "terms_rent" && !entry ? (pricing?.view?.prefill ?? null) : null;
+    field === "terms_rent" &&
+    !entry &&
+    heldFutureTerm(context?.record, field)?.scope !== "unverified"
+      ? (pricing?.view?.prefill ?? null)
+      : null;
   const displayText =
     draft?.text ??
     (editor.shared
@@ -603,6 +689,7 @@ export function WorkingMoneyField({ field, label, hint, source }: WorkingFieldPr
           value={displayText}
         />
       </Field>
+      <HeldWorkingValueNote field={field} format={(value) => USD.format(Number(value))} />
       {prefill && !entry && prefill.standing ? (
         <p className="muted">
           Prefilled from {prefill.standing.name}, rule v{prefill.standing.policyVersion}.{" "}
@@ -747,6 +834,10 @@ export function WorkingDateField({ field, label, hint }: WorkingFieldProps) {
           {attribution(entry)}
         </p>
       ) : null}
+      <HeldWorkingValueNote
+        field={field}
+        format={(value) => formatCalendarDate(String(value))}
+      />
       {context.canEdit && saved !== null ? (
         <div className="working-field-actions">
           <Button

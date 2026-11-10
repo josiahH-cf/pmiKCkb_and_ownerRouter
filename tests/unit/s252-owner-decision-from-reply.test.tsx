@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 // S252 (L36, R-S252-1 inside S248 BEH-S248-2): the owner's decision from an observed reply is
-// recorded on the Now card in at most three deliberate actions, nothing preselected, with the same
-// S234 approval evidence the Owner response form records. Synthetic values only.
+// recorded on the Now card with nothing preselected and the same S234 approval evidence the Owner
+// response form records. S262 R-S262-1: an approval also names its Amount approved and is saved
+// only from an explicit review. Synthetic values only.
 import "@testing-library/jest-dom/vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -71,23 +72,25 @@ describe("S252 L36: the owner's decision from an observed reply", () => {
     ).toBeNull();
   });
 
-  it("records an approval from the reply in three deliberate actions with the S234 evidence", () => {
+  // S262 R-S262-1 supersedes the three-action approval: after the Outcome come Amount approved,
+  // who approved, and an explicit review before Save. The S234 evidence is unchanged.
+  it("records an approval from the reply with its Amount approved, the S234 evidence and an explicit review", async () => {
     const onRecord = renderForm();
-    let actions = 0;
     fireEvent.click(
       screen.getByRole("radio", { name: /^Approved in the reply received/ }),
     );
-    actions += 1;
+    fireEvent.change(screen.getByLabelText(/Amount approved/), {
+      target: { value: "1875" },
+    });
     const party = screen.getByLabelText(/Who approved in this reply/);
     expect(party).toHaveValue("");
     fireEvent.change(party, {
       target: { value: "rentvine:export:portfolio.owners[0].name" },
     });
-    actions += 1;
-    fireEvent.click(screen.getByRole("button", { name: OWNER_DECISION_RECORD_LABEL }));
-    actions += 1;
-    expect(actions).toBeLessThanOrEqual(3);
-    expect(onRecord).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: "Review the owner's answer" }));
+    expect(onRecord).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Save the owner's answer" }));
+    await waitFor(() => expect(onRecord).toHaveBeenCalledTimes(1));
     const action = onRecord.mock.calls[0]![0];
     expect(action).toEqual({
       kind: "owner_response",
@@ -106,6 +109,12 @@ describe("S252 L36: the owner's decision from an observed reply", () => {
         },
         occurredAt: "2026-11-06T16:02:00.000Z",
       },
+      approvedBase: {
+        amount: 1875,
+        scope: "amount_only",
+        expectedWorkingRevision: 0,
+        expectedRecommendationRevision: 0,
+      },
     });
     // The same action the Owner response form records: the route's own schema accepts it.
     expect(RenewalWorkspaceActionSchema.safeParse(action).success).toBe(true);
@@ -116,7 +125,10 @@ describe("S252 L36: the owner's decision from an observed reply", () => {
     fireEvent.click(
       screen.getByRole("radio", { name: /^Approved in the reply received/ }),
     );
-    fireEvent.click(screen.getByRole("button", { name: OWNER_DECISION_RECORD_LABEL }));
+    fireEvent.change(screen.getByLabelText(/Amount approved/), {
+      target: { value: "1875" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Review the owner's answer" }));
     expect(screen.getByRole("alert")).toHaveTextContent(
       "Before recording Approved, choose who approved.",
     );
@@ -158,7 +170,10 @@ describe("S252 L36: the owner's decision from an observed reply", () => {
       screen.getByRole("radio", { name: /^Approved in the reply received/ }),
     );
     expect(screen.getByText(/current owner list could not be read/)).toBeVisible();
-    fireEvent.click(screen.getByRole("button", { name: OWNER_DECISION_RECORD_LABEL }));
+    fireEvent.change(screen.getByLabelText(/Amount approved/), {
+      target: { value: "1875" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Review the owner's answer" }));
     expect(onRecord).not.toHaveBeenCalled();
   });
 });

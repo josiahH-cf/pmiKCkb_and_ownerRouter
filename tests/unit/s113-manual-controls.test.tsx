@@ -4,6 +4,7 @@ import { SYNTHETIC_APPROVAL } from "../helpers/owner-approval";
 import {
   FORM_APPROVAL,
   SYNTHETIC_APPROVAL_CHOICES,
+  approvedBaseMeta,
   recordApprovalThroughForm,
 } from "../helpers/owner-approval-form";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -173,6 +174,8 @@ describe("S113 mounted manual and comp controls", () => {
       state = planRenewalWorkspaceAction(state, body.action, {
         ...META,
         eventId: body.operationId,
+        // S262: the store writes the Amount approved's working base in the same save.
+        ...approvedBaseMeta(state.cycleId, body.action),
       });
       return Response.json({ state });
     });

@@ -16,10 +16,16 @@ export function OwnerApprovalEvidenceForm({
   choices,
   disabled,
   onRecord,
+  submitLabel = "Record approval",
+  validate,
 }: Readonly<{
   choices: OwnerApprovalChoices | undefined;
   disabled: boolean;
   onRecord: (approval: OwnerApprovalInput) => void;
+  /** S262: the owner's answer reviews the evidence with the amount before anything is saved. */
+  submitLabel?: string;
+  /** S262: a missing earlier entry (the amount approved) is named before the evidence is used. */
+  validate?: () => string | null;
 }>) {
   const id = useId();
   const [party, setParty] = useState(""),
@@ -93,6 +99,11 @@ export function OwnerApprovalEvidenceForm({
       !approval.channel && "how they approved",
       !approval.occurredAt && "when they approved",
     ].filter(Boolean);
+    const earlier = validate?.() ?? null;
+    if (earlier) {
+      setError(earlier);
+      return;
+    }
     if (missing.length) {
       setError(`Before recording Approved, add ${missing.join(", ")}.`);
       return;
@@ -238,7 +249,7 @@ export function OwnerApprovalEvidenceForm({
       </Field>
       <div className="ui-row">
         <Button disabled={disabled} onClick={submit} type="button">
-          Record approval
+          {submitLabel}
         </Button>
       </div>
       {error ? <p role="alert">{error}</p> : null}

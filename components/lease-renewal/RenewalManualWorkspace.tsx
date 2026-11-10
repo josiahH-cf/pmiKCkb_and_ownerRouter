@@ -65,7 +65,8 @@ import {
   describeOwnerApproval,
   type OwnerApprovalChoices,
 } from "@/lib/lease-renewal/owner-approval-evidence";
-import { OwnerApprovalEvidenceForm } from "./OwnerApprovalEvidenceForm";
+import { ContinueToTenantOffer, ManualOwnerAnswerApproval } from "./RenewalOwnerAnswer";
+import type { ApprovedBaseInput } from "@/lib/lease-renewal/owner-approval-scope";
 import { SHEET_FIELD_LABELS } from "@/lib/lease-renewal/sheet-writeback/field-intent";
 
 interface ManualContext {
@@ -216,6 +217,12 @@ function ActiveManualProvider({
   useEffect(() => {
     readUnavailableRef.current = readUnavailable;
   }, [readUnavailable]);
+  // S262 R-S262-2: an answer with an Amount approved changed the working terms in the same save.
+  const workingForAnswers = useRenewalWorkingRecord();
+  const reloadWorking = useRef(workingForAnswers?.reload);
+  useEffect(() => {
+    reloadWorking.current = workingForAnswers?.reload;
+  }, [workingForAnswers?.reload]);
   // One save at a time, in the order staff made them, each against the latest saved revision.
   const queue = useRef<Promise<unknown>>(Promise.resolve());
   const outstanding = useRef(new Map<string, { key: string; id: string }>());
@@ -305,6 +312,8 @@ function ActiveManualProvider({
           applyState(result.state);
           setRecordState(key, { phase: "saved" });
           setMessage("Saved. Any listed Sheet update still needs its own confirmation.");
+          if (action.kind === "owner_response" && action.approvedBase)
+            void reloadWorking.current?.();
           scheduleRefresh();
           return;
         }
@@ -1033,19 +1042,25 @@ function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
       })
       .catch(() => undefined);
   }
-  function recordApproval(approval: OwnerApprovalInput) {
-    void context
+  // S262 R-S262-1/2: the reviewed answer with its Amount approved, saved in one transaction.
+  function recordApproval(
+    approval: OwnerApprovalInput,
+    approvedBase: ApprovedBaseInput,
+  ): Promise<boolean> {
+    return context
       .record({
         kind: "owner_response",
         outcome: "approved_terms",
         approval,
+        approvedBase,
         ...(source.trim() ? { source: source.trim() } : {}),
       })
       .then(() => {
         setDirty(false);
         setNewApproval(false);
+        return true;
       })
-      .catch(() => undefined);
+      .catch(() => false);
   }
   const [newApproval, setNewApproval] = useState(false);
   const ownerApproval = audience === "owner" ? state?.ownerResponse : undefined;
@@ -1131,15 +1146,17 @@ function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
             economicsHash={context.ownerApproval?.economicsHash ?? null}
             state={state}
           />
+          {/* S262: the saved answer's offer amount and the way on to the tenant offer. */}
+          <ContinueToTenantOffer working={workingContext?.record ?? null} />
         </>
       ) : null}
       {audience === "owner" &&
       outcome === "approved_terms" &&
       (ownerApproval?.outcome !== "approved_terms" || newApproval) ? (
-        <OwnerApprovalEvidenceForm
+        <ManualOwnerAnswerApproval
           choices={context.ownerApproval}
           disabled={context.pending}
-          onRecord={recordApproval}
+          onSave={recordApproval}
         />
       ) : audience === "owner" && ownerApproval?.outcome === "approved_terms" ? (
         <div className="ui-row">

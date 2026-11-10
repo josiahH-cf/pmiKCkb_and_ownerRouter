@@ -9,6 +9,10 @@ import {
   workspaceMessageBasisFingerprint,
 } from "@/lib/lease-renewal/message-claim-basis";
 import type { RenewalWorkingRecord } from "@/lib/lease-renewal/working-record";
+import {
+  projectCurrentCycleWorkingRecord,
+  type ActiveCycleEvidence,
+} from "@/lib/lease-renewal/current-cycle-terms";
 import { suppliedRenewalPublication } from "./renewal-message-publication";
 import { EditableLayerError } from "./errors";
 import { noticeSafetyMarkerRef } from "./renewal-notice-safety";
@@ -101,17 +105,21 @@ export async function assertCurrentRenewalMessageClaim(
     tx.get(noticeSafetyMarkerRef(db, leaseId)),
     tx.get(renewalWorkingRecordRef(db, leaseId)),
   ]);
+  const message = preparation.data(),
+    head = workspace.exists ? workspace.data() : leaseBound.data();
   // S234 R-S234-2: the Working terms are the renewal terms; an unreadable record refuses.
+  // S262 R-S262-5: they are the terms current for the work record read in this transaction.
   let working: RenewalWorkingRecord | null = null;
   try {
-    working = workingSnapshot.exists
-      ? parseRenewalWorkingRecord(workingSnapshot.data(), leaseId)
-      : null;
+    working = projectCurrentCycleWorkingRecord(
+      workingSnapshot.exists
+        ? parseRenewalWorkingRecord(workingSnapshot.data(), leaseId)
+        : null,
+      (head as ActiveCycleEvidence | undefined) ?? null,
+    );
   } catch {
     fail();
   }
-  const message = preparation.data(),
-    head = workspace.exists ? workspace.data() : leaseBound.data();
   const marker = NoticeSafetyMarkerSchema.safeParse(noticeMarker.data());
   if (
     !head ||

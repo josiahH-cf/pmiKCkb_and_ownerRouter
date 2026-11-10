@@ -22,6 +22,7 @@ import {
   type RenewalWorkingRecord,
   type WorkingSheetRow,
 } from "@/lib/lease-renewal/working-record";
+import { projectCurrentCycleWorkingRecord } from "@/lib/lease-renewal/current-cycle-terms";
 import {
   manualRenewalSummary,
   staffOwnerOutcome,
@@ -2055,9 +2056,13 @@ export async function loadLiveRenewalDesk(
         };
       };
       // S157: the working record is read once for the desk; absent means not attempted.
+      // S262 R-S262-5: the row reads the future terms current for the lease's own work record.
       const working =
         workingByLease && classification.leaseId
-          ? (workingByLease.get(classification.leaseId) ?? null)
+          ? projectCurrentCycleWorkingRecord(
+              workingByLease.get(classification.leaseId) ?? null,
+              manual,
+            )
           : undefined;
       const workStatus = projectDeskWorkStatus(
         workStatusRead,

@@ -50,6 +50,10 @@ import {
   resolveMessageSubjectOverride,
 } from "@/lib/firestore/renewal-message-body-overrides";
 import { getRenewalWorkingRecord } from "@/lib/firestore/renewal-working-record";
+import {
+  recommendationFact,
+  recommendedRentValue,
+} from "@/lib/lease-renewal/current-cycle-terms";
 import { operationalCurrentRent } from "@/lib/lease-renewal/current-rent";
 import { housingAssistanceVariant } from "./working-record";
 import { effectiveRenewalTerms } from "@/lib/lease-renewal/effective-terms";
@@ -747,7 +751,13 @@ export async function currentRenewalMessage(
           db,
         ).catch(() => null)
       : null;
-  const rentEntry = workingRecord?.fields.terms_rent;
+  // S262 R-S262-2: Rent to recommend is the shared working value until the working base has its
+  // own value; then the owner message reads the recommendation's own fact, never the approved base.
+  const recommendation = recommendationFact(workingRecord);
+  const rentEntry =
+    recommendation.kind === "unavailable"
+      ? undefined
+      : (recommendation.entry ?? undefined);
   const workingRuleBasis = rentEntry ? adoptedStandingRule(rentEntry) : null;
   const standingRule = await standingAgreementRule(
     actor,
@@ -779,13 +789,19 @@ export async function currentRenewalMessage(
     notices.push(
       `${STANDING_AGREEMENT_WORDS.earlierRule}: this message keeps the rent from the earlier rule of ${earlierRule.agreement} (${earlierRule.earlier}). The current rule is ${earlierRule.current}. Choose ${STANDING_AGREEMENT_WORDS.rebuild} to use it.`,
     );
+  const ownerOffer =
+    recommendation.kind === "shared" ? terms.rent : recommendedRentValue(workingRecord);
   const marketEvidence = projectMessageMarketEvidence({
     preparation,
     currentBaseRent: currentBaseRent?.value ?? null,
     selectedWorkingOffer:
-      terms.rent !== null && termsSource
-        ? { value: terms.rent, source: termsSource }
-        : null,
+      channel === "owner"
+        ? ownerOffer !== null
+          ? { value: ownerOffer, source: WORKING_TERMS_MESSAGE_SOURCE }
+          : null
+        : terms.rent !== null && termsSource
+          ? { value: terms.rent, source: termsSource }
+          : null,
   });
   if (
     rentToRecommend.value !== null &&
