@@ -39,17 +39,21 @@ const PRIOR_PATH = join(__dirname, "..", "fixtures", "s181-full-view-presentatio
 // S244 R-S244-2 corrects the document handoff's loop sentence (loop creation follows its
 // readiness row), so only the documents section's copy changes in the manual sample cases. The
 // S238 presentation becomes the immediate prior and stays immutable; S244 is recorded separately.
+// S224 then changed the marked-value explanation in the owner, tenant and documents copy.
+// S263 R-S263-4: a missing renewal start and end in the tenant offer now open their own working
+// date fields under their exact fix names. The S224 presentation becomes the immediate prior and
+// stays immutable; S263 is recorded separately.
 const IMMEDIATE_PRIOR_PATH = join(
   __dirname,
   "..",
   "fixtures",
-  "s244-help-copy-full-view-presentation.json",
+  "s224-outgoing-readiness-full-view-presentation.json",
 );
 const BASELINE_PATH = join(
   __dirname,
   "..",
   "fixtures",
-  "s224-outgoing-readiness-full-view-presentation.json",
+  "s263-working-date-fixes-full-view-presentation.json",
 );
 // November3 S238 A-01 updates reviewed draft/Communications guidance; S235 A-03 names the
 // existing connection/selection review accurately. Only owner/tenant/documents copy and the
@@ -58,10 +62,25 @@ const BASELINE_PATH = join(
 // Record the new presentation only in the isolated fixture lane; every earlier fixture is immutable.
 const CONNECTION_LINK_BEFORE = "Open Connections for Dotloop setup -> /connections";
 const CONNECTION_LINK_AFTER = "Review Dotloop connection and selection -> /connections";
-// S224 changes the marked-value explanation in both message sections. Preserve the
-// S253 recording and every unaffected control; the copy change has its own fixture.
-const S253_COPY = ["renewal-section-documents"];
-const S224_COPY = ["renewal-section-owner", "renewal-section-tenant", ...S253_COPY];
+// S263 changes only the tenant section's copy: the offer's two date fixes are named "Enter
+// renewal start date" and "Enter renewal end date", and each opens its own field. The rent keeps
+// "Working renewal terms". Every other region, heading, control, button and link is unchanged.
+const S263_COPY = ["renewal-section-tenant"];
+const WORKING_TERMS_LINK = "Working renewal terms -> #renewal-working-terms";
+const S263_START_LINK = "Enter renewal start date -> #renewal-working-terms-start";
+const S263_END_LINK = "Enter renewal end date -> #renewal-working-terms-end";
+/**
+ * An earlier recording's links with S263's date fixes: each tenant offer listed the rent, start and
+ * end fixes as "Working renewal terms"; the second and third now open the start and end fields.
+ */
+function withS263DateLinks(links: readonly string[]): string[] {
+  let seen = 0;
+  return links.map((entry) => {
+    if (entry !== WORKING_TERMS_LINK) return entry;
+    seen += 1;
+    return seen === 2 ? S263_START_LINK : seen === 3 ? S263_END_LINK : entry;
+  });
+}
 // UX review: the old registration wording implied an unsupported assistance-animal requirement.
 // The new recorded presentation changes only this documented name and the documents copy.
 // Every prior fixture stays immutable; the same controls, counts, sections and links are required.
@@ -359,19 +378,20 @@ describe("S145 preservation with authorized current renewal guidance", () => {
       ] as const) {
         expect(
           signature[field],
-          `${testCase.name}: unchanged ${field} since S238`,
+          `${testCase.name}: unchanged ${field} since S224`,
         ).toEqual(previous[field].map(animalFollowUpName));
       }
-      expect(signature.links, `${testCase.name}: unchanged links since S238`).toEqual(
-        previous.links,
-      );
+      expect(
+        signature.links,
+        `${testCase.name}: only the S263 date fixes changed since S224`,
+      ).toEqual(withS263DateLinks(previous.links));
       const changedCopy = signature.copy
         .filter((entry, index) => entry !== previous.copy[index])
         .map((entry) => entry.split(":")[0]);
       expect(
         changedCopy,
         `${testCase.name}: exact authorized section-copy changes`,
-      ).toEqual(testCase.manual ? S224_COPY : S253_COPY);
+      ).toEqual(testCase.manual ? S263_COPY : []);
       expect(signature.copy).toHaveLength(previous.copy.length);
     }
     const prior = JSON.parse(readFileSync(PRIOR_PATH, "utf8")) as typeof signatures;
@@ -384,9 +404,12 @@ describe("S145 preservation with authorized current renewal guidance", () => {
         const added = additions[field].filter((entry) =>
           signature[field].includes(entry),
         );
+        // S263: the tenant offer's start and end fixes open their own fields.
+        const earlier =
+          field === "links" ? withS263DateLinks(prior[name][field]) : prior[name][field];
         expect([...signature[field]].sort(), `${name}: preserved ${field}`).toEqual(
           [
-            ...prior[name][field]
+            ...earlier
               .map(animalFollowUpName)
               .filter((entry) => !retiredEntry(field, entry, testCase)),
             ...added,

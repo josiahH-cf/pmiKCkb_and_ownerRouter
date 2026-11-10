@@ -34,7 +34,7 @@ const BASELINE = JSON.parse(
       __dirname,
       "..",
       "fixtures",
-      "s224-outgoing-readiness-full-view-presentation.json",
+      "s263-working-date-fixes-full-view-presentation.json",
     ),
     "utf8",
   ),
@@ -46,6 +46,7 @@ const BASELINE = JSON.parse(
 // Working terms the packet reads), so it is recorded separately and the S229 fixture is unchanged.
 // November3 S238/S235 current guidance has its own presentation fixture. S234 and all earlier
 // snapshots remain immutable; the baseline test admits only the exact named copy/link changes.
+// S263's tenant-offer date fixes are recorded the same way; the S224 fixture is unchanged.
 const CYCLE_ID = "b4bc3b81-c402-4f62-a2e2-c605c67867fb";
 const PINNED_NOW = new Date("2026-09-30T17:00:00.000Z");
 
