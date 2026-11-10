@@ -16,6 +16,13 @@ import {
   communicationSendKey,
 } from "./sequence-model";
 import { localDateAt, nextOccurrence } from "./schedule-calendar";
+import { RenewalResourceSettingsSchema } from "@/lib/lease-renewal/resource-locations";
+import { tenantResourceUses } from "@/lib/lease-renewal/tenant-resource-evidence";
+import {
+  authorizedOccurrenceBasis,
+  tenantResourceEffectVerdict,
+} from "@/lib/lease-renewal/tenant-resource-inclusion";
+import { businessDateIso } from "@/lib/lease-renewal/business-calendar";
 import type {
   CommunicationInboundEvidence,
   CommunicationOccurrence,
@@ -477,6 +484,30 @@ export class FirestoreCommunicationSequenceStore implements SequenceStore {
           s.context.entityId,
           prepared.dispositionRevision ?? 0,
         );
+      // S265 (ARCH-S265-4): the atomic recheck of the included tenant resources for this exact
+      // occurrence, against the settings read in this transaction. A change after the dispatch
+      // check admits nothing; the next check pauses the message for review.
+      if (
+        s.context.entityType === "renewal_lease" &&
+        s.context.purpose === "renewal_tenant"
+      ) {
+        const settings = await tx.get(
+          this.db.collection("renewal_resource_locations").doc("current"),
+        );
+        const parsed = RenewalResourceSettingsSchema.safeParse(
+          settings.exists ? settings.data() : { version: 0, entries: {} },
+        );
+        const verdict = tenantResourceEffectVerdict({
+          basis: authorizedOccurrenceBasis(a.resourceBasis, s.confirmedCount),
+          content: (s.confirmedCount === 0 ? a.initial : a.followUp) ?? a.initial,
+          uses: parsed.success
+            ? tenantResourceUses(parsed.data, businessDateIso(nowMs))
+            : null,
+          recipients: [...a.to, ...a.cc],
+          effect: "send",
+        });
+        if (!verdict.ok) return null;
+      }
       const occurrence: CommunicationOccurrence = {
         id: occurrenceId,
         sequenceId: id,

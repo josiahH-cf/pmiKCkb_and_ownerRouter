@@ -4,10 +4,13 @@ import type { ActionExecutionRecord } from "@/lib/execution/types";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
 import {
-  messageResourceFingerprint,
   workingTermsFingerprint,
   workspaceMessageBasisFingerprint,
 } from "@/lib/lease-renewal/message-claim-basis";
+import { RenewalResourceSettingsSchema } from "@/lib/lease-renewal/resource-locations";
+import { tenantResourceUses } from "@/lib/lease-renewal/tenant-resource-evidence";
+import { tenantResourceEffectVerdict } from "@/lib/lease-renewal/tenant-resource-inclusion";
+import { businessDateIso } from "@/lib/lease-renewal/business-calendar";
 import type { RenewalWorkingRecord } from "@/lib/lease-renewal/working-record";
 import { suppliedRenewalPublication } from "./renewal-message-publication";
 import { EditableLayerError } from "./errors";
@@ -29,8 +32,8 @@ import { LEASE_EXPORT_MAX_AGE_MS } from "@/lib/lease-renewal/live-lease-cache";
  *
  * S162: the one attempt is bound to exactly what the person confirmed. The guard re-reads, inside
  * the claim transaction, the exact snapshot (content hash and envelope), the saved message
- * revision, the work record, the Working renewal terms (S234), the resource links, the approved
- * publication and the notice-safety marker. It no longer asks for a review record or for the signature to have been saved by the
+ * revision, the work record, the Working renewal terms (S234), the evidence of the tenant
+ * resources the message includes (S265), the approved publication and the notice-safety marker. It no longer asks for a review record or for the signature to have been saved by the
  * same sender: neither is a prerequisite for an unsent draft of the displayed message. Notice
  * safety, the staff non-renewal decision, the sender identity of the snapshot and the publication
  * keep their full strength.
@@ -128,12 +131,42 @@ export async function assertCurrentRenewalMessageClaim(
     workingTermsFingerprint(working) !== basis.workingTermsFingerprint ||
     !message ||
     message.revision !== basis.preparationRevision ||
-    active.get("executionId") !== execution.id ||
-    messageResourceFingerprint(
-      resources.exists ? resources.data()! : { version: 0, entries: {} },
-    ) !== basis.resourceFingerprint
+    active.get("executionId") !== execution.id
   )
     fail();
+  // S265 (R-S265-4, ARCH-S265-4): only the tenant resources this exact message includes are
+  // rechecked, against this transaction's settings read, the actual draft recipients and today's
+  // date. A resource the message omits is never compared, and neither is the settings version or
+  // a link alone. A snapshot prepared before S265 holds only when its stored text includes one.
+  if (channel === "tenant") {
+    const settings = RenewalResourceSettingsSchema.safeParse(
+      resources.exists ? resources.data() : { version: 0, entries: {} },
+    );
+    const preview = snapshot!.preview as {
+      subject?: unknown;
+      body?: unknown;
+      htmlBody?: unknown;
+      recipient?: { to?: unknown; cc?: unknown };
+    };
+    const recipients = [
+      preview.recipient?.to,
+      ...(Array.isArray(preview.recipient?.cc) ? preview.recipient.cc : []),
+    ].filter((value): value is string => typeof value === "string");
+    const verdict = tenantResourceEffectVerdict({
+      basis: basis.includedResources,
+      content: {
+        subject: typeof preview.subject === "string" ? preview.subject : "",
+        plainText: typeof preview.body === "string" ? preview.body : "",
+        htmlBody: typeof preview.htmlBody === "string" ? preview.htmlBody : null,
+      },
+      uses: settings.success
+        ? tenantResourceUses(settings.data, businessDateIso(Date.now()))
+        : null,
+      recipients,
+      effect: "draft",
+    });
+    if (!verdict.ok) throw new EditableLayerError(verdict.message, 409);
+  }
   const expected = suppliedRenewalPublication(channel);
   const matches = templates.docs
     .map((doc) => doc.data())

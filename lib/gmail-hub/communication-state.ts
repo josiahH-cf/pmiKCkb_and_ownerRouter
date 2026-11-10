@@ -28,6 +28,7 @@ export const SEQUENCE_PAUSE_CAUSE_LABELS: Record<SequencePauseCause, string> = {
   send_unconfirmed: "The send could not be confirmed; checking",
   unexpected_sender:
     "A message arrived from an address not on this conversation, or from an automated sender",
+  resource_changed: "A tenant link in this message changed or needs a new access check",
 };
 
 export const COMMUNICATION_STATUS_LABELS: Record<WorkflowCommunicationStatus, string> = {
