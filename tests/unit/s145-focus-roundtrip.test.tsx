@@ -30,7 +30,12 @@ import { getRenewalLeaseWorkspace } from "@/tests/helpers/sample-desk";
 
 const BASELINE = JSON.parse(
   readFileSync(
-    join(__dirname, "..", "fixtures", "s261-base-rent-full-view-presentation.json"),
+    join(
+      __dirname,
+      "..",
+      "fixtures",
+      "s263-working-date-fixes-full-view-presentation.json",
+    ),
     "utf8",
   ),
 ) as Record<string, ReturnType<typeof fullViewSignature>>;
@@ -41,7 +46,8 @@ const BASELINE = JSON.parse(
 // Working terms the packet reads), so it is recorded separately and the S229 fixture is unchanged.
 // November3 S238/S235 current guidance has its own presentation fixture. S234 and all earlier
 // snapshots remain immutable; the baseline test admits only the exact named copy/link changes.
-// S261 names the first rent fact "Current base rent", recorded in its own presentation fixture.
+// S261 (Current base rent) and S263 (tenant-offer date fixes) are recorded together the same
+// way; the S224 fixture is unchanged.
 const CYCLE_ID = "b4bc3b81-c402-4f62-a2e2-c605c67867fb";
 const PINNED_NOW = new Date("2026-09-30T17:00:00.000Z");
 

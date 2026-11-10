@@ -9,7 +9,16 @@ import { getLeaseTermReview } from "@/lib/firestore/lease-renewal-term-reviews";
 import { businessDateIso } from "@/lib/lease-renewal/business-calendar";
 import { projectLeaseTerm } from "@/lib/lease-renewal/lease-term";
 import { projectRenewalDeskIdentity } from "@/lib/lease-renewal/desk-identity";
-import type { OwnerRosterEntry } from "@/lib/firestore/renewal-workspace";
+import {
+  getRenewalWorkspace,
+  type OwnerRosterEntry,
+} from "@/lib/firestore/renewal-workspace";
+import { getRenewalCycleDateDecision } from "@/lib/firestore/renewal-cycle-date-decisions";
+import { cycleDateDecisionIsCurrent } from "@/lib/lease-renewal/cycle-date-decision";
+import {
+  verifiedLeaseEnd,
+  type VerifiedLeaseEnd,
+} from "@/lib/lease-renewal/renewal-date-proposal";
 import {
   CycleBasisSchema,
   type RenewalCycleBasis,
@@ -62,6 +71,51 @@ export async function resolveCurrentLeaseEndIso(
 ): Promise<string | null> {
   const basis = await resolveRenewalWorkBasis(actor, id);
   return basis?.kind === "lease_end" ? basis.dateIso : null;
+}
+
+/**
+ * S263 R-S263-1/4: the verified current lease end for one lease, from the same current source read
+ * and the work record with its S246 keep-working decision. Anything that cannot be read is not
+ * verified; it never falls back to a raw provider date.
+ */
+export async function resolveVerifiedLeaseEnd(
+  actor: AuthenticatedUser,
+  id: string,
+): Promise<VerifiedLeaseEnd> {
+  const unreadable = verifiedLeaseEnd({ rentvineEndIso: null, sourceReadable: false });
+  const config = buildLiveRentVineConfig();
+  if (!config.ok) return unreadable;
+  let views: Awaited<ReturnType<typeof requireCurrentLeaseViews>>;
+  try {
+    views = await requireCurrentLeaseViews(
+      withRenewalNoticeAdmission(actor, config.rentvineClient),
+      Date.now(),
+    );
+  } catch {
+    return unreadable;
+  }
+  const matches = views.filter((view) => leaseViewId(view) === id);
+  if (matches.length !== 1) return unreadable;
+  const end = leaseEndDateIso(matches[0]) ?? null;
+  const [workspace, decision] = await Promise.all([
+    getRenewalWorkspace(actor, id),
+    getRenewalCycleDateDecision(actor, id).catch(() => null),
+  ]);
+  // An open cycle's recorded end is contrary evidence; a completed cycle is history.
+  const recorded =
+    workspace?.basis.kind === "lease_end" && !workspace.completion
+      ? workspace.basis.dateIso
+      : null;
+  return verifiedLeaseEnd({
+    rentvineEndIso: end,
+    sourceReadable: true,
+    recordedLeaseEndIso: recorded,
+    keptRecordedCycle: cycleDateDecisionIsCurrent(decision, {
+      cycleId: workspace?.cycleId,
+      recordedDateIso: recorded,
+      sourceDateIso: end,
+    }),
+  });
 }
 
 export async function resolveRenewalCycleBasis(

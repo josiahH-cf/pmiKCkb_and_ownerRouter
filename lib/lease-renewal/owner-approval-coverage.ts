@@ -11,12 +11,22 @@ import {
   type RenewalWorkingRecord,
 } from "./working-record";
 import type { ApprovedWorkingTerms, RenewalWorkspaceState } from "./workspace-state";
+import { approvalCoversWorkingBase, ownerApprovalScope } from "./owner-approval-scope";
 
 export type ApprovalTermChange = "rent" | "effective_date" | "end_date";
 
 export type OwnerApprovalCoverage =
   | { readonly state: "not_recorded" }
   | { readonly state: "no_working_terms" }
+  /**
+   * S262 R-S262-3: the owner approved the base rent only. It covers that exact working base
+   * revision while it stands (`rentCurrent`); the renewal dates and charges are never covered.
+   */
+  | {
+      readonly state: "amount_only";
+      readonly binding: { readonly rent: number; readonly rentRevision: number };
+      readonly rentCurrent: boolean;
+    }
   | {
       readonly state: "terms_changed";
       readonly binding: ApprovedWorkingTerms;
@@ -69,6 +79,13 @@ export function ownerApprovalCoverage(input: {
 }): OwnerApprovalCoverage {
   const response = input.workspace?.ownerResponse;
   if (response?.outcome !== "approved_terms") return { state: "not_recorded" };
+  const scope = ownerApprovalScope(input.workspace);
+  if (scope?.kind === "amount_only")
+    return {
+      state: "amount_only",
+      binding: { rent: scope.rent, rentRevision: scope.rentRevision },
+      rentCurrent: approvalCoversWorkingBase(scope, input.working),
+    };
   const binding = response.approvedWorkingTerms;
   if (!binding) return { state: "no_working_terms" };
   const changed = TERM_FIELDS.filter(({ field, value, revision }) => {
@@ -122,6 +139,10 @@ export function describeOwnerApprovalCoverage(
       return "No recorded owner approval.";
     case "no_working_terms":
       return "The recorded owner approval does not name complete Working terms. Save the Working terms, then record the owner's approval again.";
+    case "amount_only":
+      return coverage.rentCurrent
+        ? `Owner approval covers the base rent only: ${format.money(coverage.binding.rent)} per month (Working revision ${coverage.binding.rentRevision}). The renewal dates and other charges are not covered.`
+        : `Owner approval no longer covers the offer amount: the base rent changed after the owner approved ${format.money(coverage.binding.rent)}. Record the owner's answer for the current amount.`;
     case "terms_changed":
       return `Owner approval no longer covers: ${describeApprovalChanges(coverage.changed)} changed. Record the owner's approval of the current terms.`;
     case "charges_changed":
@@ -147,6 +168,10 @@ export function describeOwnerApprovalCoverageShort(
       return null;
     case "no_working_terms":
       return "Owner approval names no complete Working terms.";
+    case "amount_only":
+      return coverage.rentCurrent
+        ? `Owner approval covers the base rent only: ${format.money(coverage.binding.rent)}.`
+        : "Owner approval no longer covers: rent changed.";
     case "terms_changed":
       return `Owner approval no longer covers: ${describeApprovalChanges(coverage.changed)} changed.`;
     case "charges_changed":

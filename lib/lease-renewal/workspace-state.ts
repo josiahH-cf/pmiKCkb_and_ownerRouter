@@ -7,6 +7,10 @@ import {
   type SheetEditableField,
 } from "@/lib/lease-renewal/sheet-writeback/field-intent";
 import type { RenewalMarketBasis } from "@/lib/lease-renewal/renewal-progress";
+import {
+  ApprovedBaseInputSchema,
+  type ApprovedBase,
+} from "@/lib/lease-renewal/owner-approval-scope";
 
 const text = z.string().trim().min(1).max(500);
 export const renewalDate = z
@@ -285,6 +289,8 @@ export const RenewalWorkspaceActionSchema = z.discriminatedUnion("kind", [
       ]),
       terms: RenewalTermsSchema.optional(),
       approval: OwnerApprovalInputSchema.optional(),
+      // S262 R-S262-1: the exact Amount approved and what the answer covers, approving branch only.
+      approvedBase: ApprovedBaseInputSchema.optional(),
       ...common,
     })
     .strict(),
@@ -378,6 +384,11 @@ export interface RenewalWorkspaceState {
   schemaVersion: "renewal-workspace/v1";
   leaseId: string;
   cycleId: string;
+  /**
+   * S262 R-S262-5: the cycle this work record replaced when it was established; null for the
+   * lease's first cycle. Absent on records established before cycles bound future terms.
+   */
+  previousCycleId?: string | null;
   basis: RenewalWorkBasis;
   revision: number;
   termsRevision: number;
@@ -393,6 +404,11 @@ export interface RenewalWorkspaceState {
         approvedWorkingTerms?: ApprovedWorkingTerms;
         /** S234 R-S234-1: who approved, how and when; absent on records made before S234. */
         approval?: OwnerApprovalEvidence;
+        /**
+         * S262 R-S262-1/3: the exact amount the owner approved, the working base revision it
+         * covers and its scope. Absent on answers recorded without an amount, and never backfilled.
+         */
+        approvedBase?: ApprovedBase;
       })
     | null;
   tenantResponse:
@@ -855,6 +871,8 @@ export function planRenewalWorkspaceAction(
     approvedWorkingTerms?: ApprovedWorkingTerms | null;
     /** S234 R-S234-1: the approval evidence the store verified for this exact approval. */
     approvalEvidence?: OwnerApprovalEvidence | null;
+    /** S262 R-S262-2: the approved base the store wrote in the same transaction. */
+    approvedBase?: ApprovedBase | null;
   },
 ): RenewalWorkspaceState {
   const action = RenewalWorkspaceActionSchema.parse(raw);
@@ -871,6 +889,7 @@ export function planRenewalWorkspaceAction(
     approvedWorkingTerms: capturedTerms,
     approvalEvidence,
     workingTermRevisions,
+    approvedBase: writtenBase,
     ...recordMeta
   } = meta;
   let record: StaffRecord = {
@@ -907,6 +926,18 @@ export function planRenewalWorkspaceAction(
     // S234 R-S234-1: an approval names who approved, how and when; nothing else carries them.
     if (action.outcome !== "approved_terms" && action.approval)
       throw new EditableLayerError("Only an approval records who approved and how.", 400);
+    // S262 R-S262-1: only the approving branch records an Amount approved. A decline, a requested
+    // change and no response keep their outcome without changing the renewal rent.
+    if (action.outcome !== "approved_terms" && action.approvedBase)
+      throw new EditableLayerError(
+        "Only an approval records an amount approved. Choose Approved, or record this outcome without an amount.",
+        400,
+      );
+    if (action.approvedBase && !writtenBase)
+      throw new EditableLayerError(
+        "The approved amount could not be saved with this answer. Reload and record it again.",
+        409,
+      );
     let approval: OwnerApprovalEvidence | null = null;
     if (action.outcome === "approved_terms") {
       const missing = missingOwnerApprovalItems(action.approval);
@@ -941,6 +972,10 @@ export function planRenewalWorkspaceAction(
     // S66: an approval covers the Working terms and charges the server captured as it was
     // recorded. Approving different terms or charges is a terms change like any other.
     const binding = action.outcome === "approved_terms" ? (capturedTerms ?? null) : null;
+    const approvedBase =
+      action.outcome === "approved_terms" && action.approvedBase
+        ? (writtenBase ?? null)
+        : null;
     const covered = (value: ApprovedWorkingTerms | null | undefined) =>
       value
         ? JSON.stringify([
@@ -950,11 +985,24 @@ export function planRenewalWorkspaceAction(
             value.economicsHash,
           ])
         : null;
+    // S262: like the captured terms, the approved base counts by value. An answer re-recorded
+    // with the rent the earlier answer covered keeps the terms revision; a different amount, or
+    // an answer that no longer names one, is a terms change.
+    const prior = current.ownerResponse;
+    const priorRent =
+      prior?.approvedBase?.amount ??
+      prior?.approvedWorkingTerms?.rent ??
+      prior?.terms?.rent ??
+      null;
+    const baseChanged = approvedBase
+      ? priorRent === null || Math.abs(priorRent - approvedBase.amount) >= 0.005
+      : action.outcome === "approved_terms" && prior?.approvedBase !== undefined;
     const changed =
       JSON.stringify(current.ownerResponse?.terms ?? null) !==
         JSON.stringify(terms ?? null) ||
       current.ownerResponse?.outcome !== action.outcome ||
-      covered(current.ownerResponse?.approvedWorkingTerms) !== covered(binding);
+      covered(current.ownerResponse?.approvedWorkingTerms) !== covered(binding) ||
+      baseChanged;
     if (changed) {
       next.termsRevision++;
       for (const activity of TERMS_DEPENDENT_MANUAL) {
@@ -972,6 +1020,7 @@ export function planRenewalWorkspaceAction(
       ...(terms ? { terms } : {}),
       ...(binding ? { approvedWorkingTerms: binding } : {}),
       ...(approval ? { approval } : {}),
+      ...(approvedBase ? { approvedBase } : {}),
     };
   } else if (action.kind === "tenant_response") {
     next.tenantResponse = {

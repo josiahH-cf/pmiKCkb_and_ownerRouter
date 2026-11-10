@@ -57,9 +57,11 @@ import {
 } from "@/lib/lease-renewal/renewal-message-content";
 import {
   MESSAGE_CONTROL_IDS,
+  OFFER_DATE_FIX_FIELDS,
   projectMessageReadiness,
   type MessageMissingInput,
 } from "@/lib/lease-renewal/message-readiness";
+import { startDateFixFromOffer } from "./RenewalDateProposal";
 import {
   emptyMessagePreparationInputs,
   RecommendationReasonSchema,
@@ -1100,7 +1102,14 @@ function MessagePreparationEditor({
         })
       : null;
   function openMissingInput(item: MessageMissingInput) {
-    if (item.target.kind === "control") focusRenewalDashboardControl(item.target.id);
+    if (item.target.kind !== "control") return;
+    // S263 R-S263-4: a date fix opened from the tenant offer can return to this same offer.
+    if (
+      channel === "tenant" &&
+      (OFFER_DATE_FIX_FIELDS as readonly string[]).includes(item.field)
+    )
+      startDateFixFromOffer(item.field, MESSAGE_CONTROL_IDS.readiness(channel));
+    focusRenewalDashboardControl(item.target.id);
   }
   /** S162 (R-S162-1/2/3): copy is exactly what is on screen, whatever the save is doing. */
   async function copy(kind: "subject" | "plain" | "formatted" | "recipients") {

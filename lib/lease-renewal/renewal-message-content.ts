@@ -544,10 +544,11 @@ export function composeRenewalMessage(
     const end = day(terms?.endDate);
     if (terms && (rent || start || end)) sourced(terms.source);
     if (!rent) note("ownerTerms", "The renewal rent is not entered yet.");
-    if (!start) note("ownerTerms", "The renewal start date is not entered yet.");
-    if (!end) note("ownerTerms", "The renewal end date is not entered yet.");
+    // S263: each working date names its own exact field, the start before the end.
+    if (!start) note("renewalStartDate", "The renewal start date is not entered yet.");
+    if (!end) note("renewalEndDate", "The renewal end date is not entered yet.");
     if (start && end && terms!.endDate! <= terms!.effectiveDate!)
-      note("ownerTerms", "The renewal end date is not after the start date.");
+      note("renewalEndDate", "The renewal end date is not after the start date.");
     add(
       fillSuppliedCopy(SUPPLIED_RENEWAL_COPY.tenant.terms, {
         rent: rent ?? missingValueMarker("renewal rent"),

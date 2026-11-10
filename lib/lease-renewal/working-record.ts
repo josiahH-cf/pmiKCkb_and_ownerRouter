@@ -10,7 +10,13 @@ import { SHEET_FIELD_LABELS } from "@/lib/lease-renewal/sheet-writeback/field-in
 
 export const RENEWAL_WORKING_RECORD_SCHEMA_VERSION = "renewal-working-record/v1";
 
-const OWNER_MESSAGE_WORKING_FIELDS = ["current_rent", "terms_rent"] as const;
+// S262: the owner message reads Rent to recommend, which is its own fact once it differs from the
+// working renewal base.
+const OWNER_MESSAGE_WORKING_FIELDS = [
+  "current_rent",
+  "terms_rent",
+  "recommended_rent",
+] as const;
 const TENANT_MESSAGE_WORKING_FIELDS = [
   "terms_rent",
   "terms_effective_date",
@@ -98,12 +104,34 @@ export type WorkingFieldKind =
 export const WORKING_FIELDS = {
   current_rent: { label: "Working current rent", kind: "money" },
   terms_rent: { label: "Working renewal rent", kind: "money" },
+  // S262 R-S262-2: the recommendation as its own fact once a recorded owner answer or a deliberate
+  // adoption gives the working renewal base its own value. Compare market rent is its one editor.
+  recommended_rent: { label: "Rent to recommend", kind: "money" },
   terms_effective_date: { label: "Working renewal effective date", kind: "date" },
   terms_end_date: { label: "Working renewal end date", kind: "date" },
   sheet_row: { label: "Selected operating Sheet row", kind: "sheet_row" },
   housing_assistance: { label: "Housing assistance", kind: "housing_assistance" },
 } as const satisfies Record<string, { label: string; kind: WorkingFieldKind }>;
 export type FixedWorkingField = keyof typeof WORKING_FIELDS;
+
+/**
+ * S262 R-S262-5: the future renewal terms. Each is saved for the lease's active renewal cycle and
+ * reads as current only for that cycle. The current rent, current lease facts and housing
+ * assistance keep their lease scope.
+ */
+export const CYCLE_SCOPED_WORKING_FIELDS = [
+  "recommended_rent",
+  "terms_rent",
+  "terms_effective_date",
+  "terms_end_date",
+] as const;
+export type CycleScopedWorkingField = (typeof CYCLE_SCOPED_WORKING_FIELDS)[number];
+
+export function isCycleScopedWorkingField(
+  field: string,
+): field is CycleScopedWorkingField {
+  return (CYCLE_SCOPED_WORKING_FIELDS as readonly string[]).includes(field);
+}
 
 export const SHEET_CELL_FIELD_PREFIX = "sheet_cell.";
 
@@ -179,6 +207,17 @@ export function parseWorkingFieldValue(
 export const WORKING_VALUE_ORIGINS = ["staff_entry", "adopted_source"] as const;
 export type WorkingValueOrigin = (typeof WORKING_VALUE_ORIGINS)[number];
 
+/**
+ * S262: how a working renewal base was set when it is not an ordinary shared entry: the recorded
+ * owner answer that approved it, the exact Rent to recommend revision staff chose to use for the
+ * offer, or a direct entry in the working base after it already had its own value. None confers
+ * more than that, and the recommendation is never read back from the working base once it has one.
+ */
+export type WorkingBaseBasis =
+  | { readonly kind: "owner_approval"; readonly ownerResponseEventId: string }
+  | { readonly kind: "recommendation"; readonly recommendationRevision: number }
+  | { readonly kind: "working_entry" };
+
 export interface WorkingFieldEntry {
   /** Null after staff deliberately cleared the working value. */
   value: WorkingValue | null;
@@ -192,6 +231,33 @@ export interface WorkingFieldEntry {
   sourceLabel?: string;
   /** Optional staff context, such as a call. Never required and never inferred. */
   context?: string;
+  /**
+   * S262 R-S262-5: the renewal cycle a future-term value was saved for; null when the lease had no
+   * work record yet, so the value belongs to its first cycle. Absent on lease facts and on values
+   * saved before cycles were bound.
+   */
+  cycleId?: string | null;
+  /** S262: what set this working renewal base, when it was not an ordinary entry. */
+  basis?: WorkingBaseBasis;
+  /**
+   * S262 R-S262-2: Rent to recommend preserved from the shared working value, with its original
+   * attribution, when a recorded owner answer set a working base of its own.
+   */
+  preservedFrom?: { field: "terms_rent"; revision: number; eventId: string };
+}
+
+/** S262 R-S262-5: a future-term value that does not read as current for the active cycle. */
+export interface HeldFutureTerm {
+  readonly entry: WorkingFieldEntry;
+  /** "earlier": saved for another cycle. "unverified": no evidence binds it to this cycle. */
+  readonly scope: "earlier" | "unverified";
+}
+
+/** S262 R-S262-5: the active cycle a record was read for, and the values held back from it. */
+export interface WorkingRecordCycleScope {
+  /** The active work record's cycle; null when the lease has no work record yet. */
+  readonly cycleId: string | null;
+  readonly held: Readonly<Partial<Record<CycleScopedWorkingField, HeldFutureTerm>>>;
 }
 
 export interface RenewalWorkingRecord {
@@ -199,6 +265,11 @@ export interface RenewalWorkingRecord {
   leaseId: string;
   revision: number;
   fields: Record<string, WorkingFieldEntry>;
+  /**
+   * S262 R-S262-5: present on a record read through the current-cycle projection. Its `fields`
+   * then hold only lease facts and the future terms current for that cycle. Never stored.
+   */
+  cycle?: WorkingRecordCycleScope;
 }
 
 export interface RenewalWorkingActivity {
