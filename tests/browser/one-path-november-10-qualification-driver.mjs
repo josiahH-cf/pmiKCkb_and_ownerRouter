@@ -276,6 +276,7 @@ try {
         LEASE + "working-record",
         LEASE + "workspace",
         LEASE + "refresh",
+        LEASE + "rentvine-writeback",
         "/api/gmail-hub/sequences",
       ],
       failFirst: [
