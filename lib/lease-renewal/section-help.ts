@@ -172,7 +172,7 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
   "rent-and-charges": {
     label: "Rent and charges",
     purpose:
-      "The one working area for rent and charge facts. Current rent is what the tenant is billed: your working value if you entered one, otherwise the single current rent-account charge, otherwise the contractual lease rent, each labelled with where it came from. Contractual lease rent, Lease total (RentVine) and Unit listed rent keep their own meanings and are never added to the rent. Each recurring charge is listed with its account classification and billing period; charges outside the current schedule sit behind a disclosure.",
+      "The one working area for rent and charge facts. Current base rent is your working correction if you entered one; otherwise the single current rent-account charge, unless the contractual base rent differs from it; otherwise the contractual base rent, each labelled with where it came from. When RentVine's sources disagree or no base rent is recorded, it reads Needs verification until you correct it. Lease total (RentVine) and Unit listed rent keep their own meanings and are never added to the rent, and a separate recurring charge such as pet rent is listed apart from the base. Each recurring charge is listed with its account classification and billing period; charges outside the current schedule sit behind a disclosure.",
     steps: [
       "Enter the working current rent when you know a different amount; it saves on its own and stays until you change it. The source values and any difference stay visible beside it.",
       "Prepare RentVine rent charge update beside the working value when the one current rent charge differs from it, then review and confirm the exact effect under Review RentVine updates.",
@@ -364,9 +364,9 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
   "owner-response": {
     label: "Owner response",
     purpose:
-      "Records what the owner actually answered. Choosing Approved asks who approved, how and when, and Record approval saves it; any other answer saves when you choose it.",
+      "Records what the owner actually answered. Choose the outcome first. For an approval, enter Amount approved and what the answer covers, name who approved, how and when, then choose Review the owner's answer and Save the owner's answer; any other answer saves when you choose it.",
     saves:
-      "The response is stored with this lease's recorded work. Working renewal terms are kept separately below and stay whatever the owner has answered.",
+      "The response is stored with this lease's recorded work. A saved approval makes Amount approved the offer amount for this renewal and never replaces Rent to recommend. The renewal dates stay in Working renewal terms, its own section.",
     notDone:
       "Saving approves nothing on the owner's behalf and writes nothing to RentVine or the Sheet.",
   },

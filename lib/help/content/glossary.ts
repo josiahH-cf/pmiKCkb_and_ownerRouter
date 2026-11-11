@@ -25,11 +25,25 @@ export const HELP_GLOSSARY: readonly HelpGlossaryTerm[] = [
     relatedGuides: ["work-a-renewal", "update-sources"],
   },
   {
+    id: "amount-approved",
+    term: "Amount approved",
+    definition:
+      "The monthly base rent the owner approved, entered exactly as the owner gave it when you record the owner's answer. Once saved it is the offer amount for this renewal; the staff recommendation stays as it was.",
+    relatedGuides: ["owner-message", "work-a-renewal"],
+  },
+  {
     id: "approval-queue",
     term: "Approval Queue",
     definition:
       "The list of items waiting for an Approver or Admin decision. Each item shows what it asks for, and your Approve or Deny decision is recorded with it.",
     relatedGuides: ["approve-or-deny"],
+  },
+  {
+    id: "current-base-rent",
+    term: "Current base rent",
+    definition:
+      "The lease's monthly base rent today, with where it comes from: your working current rent, the one RentVine rent charge or the contractual lease rent. A separate recurring charge such as pet rent is named apart and never added to it.",
+    relatedGuides: ["work-a-renewal", "update-sources"],
   },
   {
     id: "exact-confirmation",
@@ -63,8 +77,15 @@ export const HELP_GLOSSARY: readonly HelpGlossaryTerm[] = [
     id: "now-card",
     term: "Now card",
     definition:
-      "The card in Guided view that holds the step you are working, with its one primary action, such as Review and send, and the step's own controls shown in place.",
+      "The card in Guided view that holds the step you are working. It leads with the one field or fix the step needs now, such as Review owner message, and shows the step's own controls in place, with optional work and the Verification group below.",
     relatedGuides: ["work-a-renewal", "owner-message"],
+  },
+  {
+    id: "offer-charge-mapping",
+    term: "Offer charge mapping",
+    definition:
+      "An Admin's record of what one RentVine account means in a tenant offer: its verified label, offer family, cadence and when it applies, with who approved that meaning. It gives meaning only; each lease's amounts and whether a charge applies are decided in Review offer charges.",
+    relatedGuides: ["tenant-offer", "admin-tasks"],
   },
   {
     id: "operating-sheet",
@@ -91,7 +112,7 @@ export const HELP_GLOSSARY: readonly HelpGlossaryTerm[] = [
     id: "ready-for-your-review",
     term: "Ready for your review",
     definition:
-      "Leases with a prepared comparison and owner message, so the owner step offers Review and send and its confirmation.",
+      "Leases with a prepared comparison and owner message, so the owner step offers Review owner message and its confirmation.",
     relatedGuides: ["work-a-renewal"],
   },
   {
@@ -107,6 +128,13 @@ export const HELP_GLOSSARY: readonly HelpGlossaryTerm[] = [
     definition:
       "The strip of steps in Guided view, from Check the numbers to Complete, each marked Done, Now, Open, Waiting or Covered. Any step can be chosen and worked at any time.",
     relatedGuides: ["work-a-renewal"],
+  },
+  {
+    id: "rent-to-recommend",
+    term: "Rent to recommend",
+    definition:
+      "The renewal rent staff recommend to the owner, set on Compare market rent with its basis in words. It is a staff recommendation: the owner's answer is recorded separately and never replaces it. Until a saved owner's answer sets the amount approved, the offer uses the same amount.",
+    relatedGuides: ["compare-rent", "train-and-review"],
   },
   {
     id: "retained-history",
@@ -136,11 +164,32 @@ export const HELP_GLOSSARY: readonly HelpGlossaryTerm[] = [
     relatedGuides: ["work-a-renewal"],
   },
   {
+    id: "tenant-audience-check",
+    term: "Tenant audience check",
+    definition:
+      "An Admin's record, in Connections, that tenants can open a shared flyer or the renewal information form: who can open it, how and when it was checked, what opened and how long the check stays valid. Only a resource verified for tenants reaches a tenant offer.",
+    relatedGuides: ["manage-connections", "tenant-offer"],
+  },
+  {
     id: "unsent-draft",
     term: "Unsent draft",
     definition:
       "Message text the app prepares for you to review. Nothing is sent until you choose Send or Schedule in Communications; you can also copy it and send it yourself.",
     relatedGuides: ["owner-message", "tenant-offer"],
+  },
+  {
+    id: "verification-group",
+    term: "Verification group",
+    definition:
+      "The read-only evidence for one step, such as Verify lease numbers, closed when you arrive and opened when you want to see where a value comes from. Guided and Full view show the same group under the same name.",
+    relatedGuides: ["work-a-renewal", "train-and-review"],
+  },
+  {
+    id: "work-status",
+    term: "Work status",
+    definition:
+      "The lease's one staff status and note history, opened from the lease header. A note saves with your name and time; it does not assign the lease, record an approval or mark a message delivered.",
+    relatedGuides: ["train-and-review", "work-a-renewal"],
   },
   {
     id: "working-batch",
@@ -153,14 +202,14 @@ export const HELP_GLOSSARY: readonly HelpGlossaryTerm[] = [
     id: "working-renewal-terms",
     term: "Working renewal terms",
     definition:
-      "The renewal rent and dates you are working with for one lease. Messages and update previews read them, and they change only when you edit them.",
+      "The renewal base rent and dates you are working with for one lease. Messages and update previews read them. The base rent follows Rent to recommend until a saved owner's answer sets the amount approved, and the dates are entered in Working renewal terms.",
     relatedGuides: ["compare-rent", "owner-message"],
   },
   {
     id: "working-value",
     term: "Working value",
     definition:
-      "A value you enter in the app for one lease, such as the current rent you confirmed on a call. It is saved in the app beside the RentVine and Sheet values, and it changes neither until you confirm an exact update.",
+      "A value you enter in the app for one lease, such as the current base rent you confirmed on a call. It is saved in the app beside the RentVine and Sheet values, and it changes neither until you confirm an exact update.",
     relatedGuides: ["update-sources"],
   },
 ];

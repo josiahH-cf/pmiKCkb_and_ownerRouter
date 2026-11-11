@@ -710,15 +710,17 @@
     "kind": "inline",
     "location": "components/lease-renewal/RenewalMessagePreparation.tsx",
     "text": "Verified current charge · comparison remains staff-recorded.",
-    "describes": "Filling a message charge from a current RentVine charge",
-    "disposition": "keep"
+    "describes": "Filling a message charge from a current RentVine charge; the per-family optional picker is gone and Review offer charges decides each line",
+    "disposition": "remove",
+    "contradicts": ["S264"]
   },
   {
     "kind": "inline",
     "location": "components/lease-renewal/RenewalMessagePreparation.tsx",
     "text": "Filled from RentVine recurring charge …. Change anything that differs for the renewal.",
-    "describes": "Message charge filled from a RentVine recurring charge",
-    "disposition": "keep"
+    "describes": "Message charge filled from a RentVine recurring charge; the per-family optional picker is gone and Review offer charges decides each line",
+    "disposition": "remove",
+    "contradicts": ["S264"]
   },
   {
     "kind": "inline",

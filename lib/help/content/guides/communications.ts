@@ -3,6 +3,14 @@ import type { HelpGuide } from "@/lib/help/types";
 const WORKSPACE = "/lease-renewal/live/desk/lease/[leaseId]";
 const COMMUNICATIONS = "/gmail-hub";
 const FULL_VIEW = ["click-button:Full view"] as const;
+const OWNER_OPTIONS = [
+  ...FULL_VIEW,
+  "open-summary:Owner message options and outreach record",
+];
+const TENANT_OPTIONS = [
+  ...FULL_VIEW,
+  "open-summary:Tenant offer options and record of contact",
+];
 const PREPARED_MESSAGE = ["components/lease-renewal/RenewalPreparedMessage.tsx"];
 const KICKOFF = ["lib/lease-renewal/renewal-preparation.ts"];
 
@@ -13,7 +21,7 @@ export const COMMUNICATIONS_GUIDES: readonly HelpGuide[] = [
     title: "Prepare, send or schedule an owner message and record the answer",
     audience: "Renewal staff",
     purpose:
-      "Read the owner renewal message the app prepared on the lease's Now card, send or schedule it yourself with Review and send, a Gmail draft, Communications or your own channel, follow what happened to the message, and record the owner's actual answer, with who approved, how and when for an approval.",
+      "Read the owner renewal message the app prepared on the lease's Now card, send or schedule it yourself with Review owner message, a Gmail draft, Communications or your own channel, follow what happened to the message, and record the owner's actual answer: for an approval, the amount the owner approved, what it covers and who approved, how and when.",
     prerequisites: [
       "You are signed in with edit access to Renewals.",
       "The lease is open from the working batch.",
@@ -34,14 +42,14 @@ export const COMMUNICATIONS_GUIDES: readonly HelpGuide[] = [
         route: WORKSPACE,
         where: "Lease page, Guided view, Renewal path",
         result:
-          "The Now card shows the owner message prepared from the saved numbers and the working terms, with What sending needs and the delivery actions. In Full view, Owner approval holds Owner message preparation, then Work recorded by staff with Owner outreach, Owner response and Working renewal terms.",
+          "The Now card shows the owner message prepared from the saved numbers and the working terms, with What sending needs and the delivery actions. Owner approval shows Current base rent and Rent to recommend, then Owner message preparation with the message, Working renewal terms and Owner message options and outreach record, which holds the delivery options and Work recorded by staff with Owner outreach and Owner response.",
         effect: "reads",
         note: "About Owner approval, beside the Full view section heading, gives the order of the work: prepare the message, get the owner's actual answer, then record that answer. On a lease under a standing agreement, Ask the owner reads Covered by the agreement: no owner message needed.",
       },
       {
         id: "review-and-send-owner-message",
         action:
-          "On the Now card, read the message preview, choose Review and send, read the exact message, recipients and sender, then choose Send this message.",
+          "On the Now card, read the message preview, choose Review owner message, read the exact message, recipients and sender, then choose Send this message.",
         control: {
           label: "Send this message",
           role: "button",
@@ -54,7 +62,7 @@ export const COMMUNICATIONS_GUIDES: readonly HelpGuide[] = [
         result:
           "Once Gmail accepts the message, the lease reads Waiting on owner response on its page and its desk row with nothing more to enter. A send Gmail has not confirmed reads Check whether the message went out, and a failed delivery reads Delivery failed with Check the address and send again.",
         effect: "explicit-send",
-        note: "Review and send stays the Now card's primary action while the message is ready. When an input is missing, What sending needs names it with its fix, for example Set up your signature.",
+        note: "Review owner message stays the Now card's primary action while the message is ready, and Full view opens the same review from Review and send. When an input is missing, What sending needs names it with its fix, for example Set up your signature.",
       },
       {
         id: "schedule-owner-message",
@@ -94,17 +102,18 @@ export const COMMUNICATIONS_GUIDES: readonly HelpGuide[] = [
       {
         id: "read-owner-decision",
         action:
-          "Open Prior owner decision and provider evidence to read the owner email facts and their sources before you write to the owner.",
+          "Open Verify owner terms and outreach, then Prior owner decision and provider evidence, to read the owner email facts and their sources before you write to the owner.",
         control: {
           label: "Prior owner decision and provider evidence",
           role: "summary",
           region: "region:Owner approval",
           availability: "required",
           source: ["components/lease-renewal/RenewalWorkspace.tsx"],
-          actions: [...FULL_VIEW, "open-summary:Verify ask the owner"],
+          actions: [...FULL_VIEW, "open-summary:Verify owner terms and outreach"],
         },
         route: WORKSPACE,
-        where: "Owner approval, at the end of the section",
+        where:
+          "Owner approval, Verify owner terms and outreach, at the end of the section",
         result:
           "Property, Current rent and the comparison facts show with their sources, followed by an owner email subject and body built from them. Current rent proposals are chosen under Recommendation and working offer in Market rent comparison, not here.",
         effect: "reads",
@@ -141,10 +150,10 @@ export const COMMUNICATIONS_GUIDES: readonly HelpGuide[] = [
           region: "region:Owner message preparation",
           availability: "conditional",
           source: ["components/lease-renewal/RenewalMessagePreparation.tsx"],
-          actions: FULL_VIEW,
+          actions: OWNER_OPTIONS,
         },
         route: WORKSPACE,
-        where: "Owner message preparation, Copy the message",
+        where: "Owner message options and outreach record, Copy the message",
         result:
           "The clipboard holds the subject, body or recipients exactly as shown, including any Needs Verification marker. Copy recipients stays unavailable until the owner email address is verified.",
         effect: "copies",
@@ -160,10 +169,10 @@ export const COMMUNICATIONS_GUIDES: readonly HelpGuide[] = [
           region: "region:Owner message preparation",
           availability: "conditional",
           source: ["components/lease-renewal/RenewalMessagePreparation.tsx"],
-          actions: FULL_VIEW,
+          actions: OWNER_OPTIONS,
         },
         route: WORKSPACE,
-        where: "Owner message preparation, Unsent Gmail draft",
+        where: "Owner message options and outreach record, Unsent Gmail draft",
         result:
           "An unsent draft with the exact recipients and wording waits in the Drafts folder of your managed Gmail mailbox, and Open the Drafts folder to find this draft opens it. Nothing is sent.",
         effect: "unsent-draft",
@@ -220,10 +229,11 @@ export const COMMUNICATIONS_GUIDES: readonly HelpGuide[] = [
             "lib/lease-renewal/workspace-state.ts",
           ],
           sourceText: "${definition.label} outcome",
-          actions: FULL_VIEW,
+          actions: OWNER_OPTIONS,
         },
         route: WORKSPACE,
-        where: "Owner approval, Work recorded by staff, Owner outreach",
+        where:
+          "Owner approval, Owner message options and outreach record, Work recorded by staff, Owner outreach",
         result:
           "The outcome saves at once with who recorded it and when. Source or channel (optional), Comment (optional) and When the work happened (optional) save when you leave each box.",
         effect: "saves-in-app",
@@ -258,10 +268,11 @@ export const COMMUNICATIONS_GUIDES: readonly HelpGuide[] = [
           availability: "conditional",
           source: ["lib/lease-renewal/section-help.ts"],
           aboutId: "waiting-follow-up",
-          actions: FULL_VIEW,
+          actions: TENANT_OPTIONS,
         },
         route: WORKSPACE,
-        where: "Tenant offer and response, Waiting and follow-up card",
+        where:
+          "Tenant offer and response, Tenant offer options and record of contact, Waiting and follow-up card",
         result:
           "The card shows who the renewal is waiting on, the last verified contact and when follow-up is due. A linked thread or a dismissed due item is stored with this lease for staff.",
         effect: "saves-in-app",
@@ -288,21 +299,22 @@ export const COMMUNICATIONS_GUIDES: readonly HelpGuide[] = [
       {
         id: "record-owner-answer",
         action:
-          "When the owner answers, choose the answer in Owner response; for Approved, fill Who approved, How they approved and When they approved, then choose Record approval.",
+          "When the owner answers, choose the answer in Owner response. For Approved, enter Amount approved exactly as the owner gave it, choose What the owner's answer covers, fill Who approved, How they approved and When they approved, choose Review the owner's answer, check the review and choose Save the owner's answer.",
         control: {
           label: "Owner response",
           role: "label",
           region: "region:Owner approval",
           availability: "conditional",
           source: ["components/lease-renewal/RenewalManualWorkspace.tsx"],
-          actions: FULL_VIEW,
+          actions: OWNER_OPTIONS,
         },
         route: WORKSPACE,
-        where: "Owner approval, Work recorded by staff, Owner response",
+        where:
+          "Owner approval, Owner message options and outreach record, Work recorded by staff, Owner response",
         result:
-          "No response, Revision requested and Declined / non-renewal save when you choose them. Approved saves only through Record approval, and the recorded approval then reads who approved, how and when, with a line naming the Working terms it covers.",
+          "No response, Revision requested and Declined / non-renewal save when you choose them. Approved saves only through Save the owner's answer: the recorded approval then reads who approved, how and when, with a line naming what it covers, Amount approved becomes the offer amount for this renewal, and Continue to Offer the tenant appears.",
         effect: "saves-in-app",
-        note: "After an owner reply, the Now card on Ask the owner records the decision from that reply: choose it in The owner's decision, choose Who approved in this reply for an approval, then Record this decision. Owner response here covers an authorized representative, another written channel or a conversation. How they approved offers Reply in this lease's renewal thread when a linked reply exists, Another written channel or Conversation. If the Working terms or charges change later, the line reads Owner approval no longer covers and names what changed; ask the owner again, then choose Record a new approval. Revision requested also asks What the owner asked to change.",
+        note: "What the owner's answer covers is Base rent only, or Base rent and the renewal dates once both dates are saved in Working renewal terms; other charges are reviewed with the tenant offer. When the reviewed tenant offer lists charges, Approved also shows The owner approved these exact offer charges with those charges; check it only when the owner approved them as listed. It counts with Base rent and the renewal dates, and the saved approval then reads The owner's approval covers the current offer, charges included; without it, the approval covers the base and dates, not the offer's charges. The review shows Recommended base rent beside Amount approved, with Change the answer to go back. Rent to recommend stays your recommendation and is never replaced by the approved amount. After an owner reply, the Now card on Ask the owner leads with Record the owner's answer: choose the Approved in the reply received option, enter the amount and coverage and Who approved in this reply, then review and save; Asked for a change and Declined / non-renewal use Record this decision. Owner response here covers an authorized representative, another written channel or a conversation. How they approved offers Reply in this lease's renewal thread when a linked reply exists, Another written channel or Conversation. If the amount, the dates or the charges change later, the line reads Owner approval no longer covers and names what changed; ask the owner again, then choose Record a new approval. Revision requested also asks What the owner asked to change.",
       },
     ],
     result:
@@ -312,12 +324,13 @@ export const COMMUNICATIONS_GUIDES: readonly HelpGuide[] = [
       "An owner reply records no answer by itself; the answer is recorded only when you choose it.",
       "Copying the message, saving a draft or creating an unsent Gmail draft sends nothing and records no delivery.",
       "Recording an owner response approves nothing on the owner's behalf and writes nothing to RentVine or the Sheet.",
-      "A recorded approval covers only the Working terms and charges it names; after they change, the owner's approval needs recording again.",
+      "A recorded approval covers only what it names: the base rent alone, the base rent and the renewal dates, or with The owner approved these exact offer charges, that exact offer's charges as well. An approval of an earlier offer never covers the current offer's charges, and after a covered value changes the owner's approval needs recording again.",
+      "Rent to recommend is a staff recommendation, not the owner's approval; saving the owner's answer sets the offer amount to Amount approved.",
       "Follow-up timing sets no reminder or deadline, and paused follow-ups send nothing until a fresh review and Resume reviewed sequence.",
     ],
     relatedGuides: ["compare-rent", "tenant-offer", "work-a-renewal"],
     relatedScreens: ["communications"],
-    lastUpdated: "2026-11-06",
+    lastUpdated: "2026-11-10",
     navItems: ["communications"],
   },
 ];

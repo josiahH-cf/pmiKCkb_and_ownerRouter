@@ -10,7 +10,7 @@ export const ADMIN_GUIDES: readonly HelpGuide[] = [
     audience: "Admin",
     adminOnly: true,
     purpose:
-      "Open the Admin task that matches your work: people and access, the shared notice timing basis, form family use and the renewal charge policy, operational pages, the re-index handoff, presentation, team work, migration readiness, Gmail settings and Space requests.",
+      "Open the Admin task that matches your work: people and access, the shared notice timing basis, form family use, the renewal charge policy and offer charge mappings, operational pages, the re-index handoff, presentation, team work, migration readiness, Gmail settings and Space requests.",
     prerequisites: [
       "You are signed in with the Admin role. Every other role opens My access and requests from the Admin item instead of this page.",
       "Find an Admin task, at the top of Admin, groups the links into People and access, Operational safety, Renewal policy, Connected services and migration, and Content and publishing. The links only open pages; they change no role, connection or action authority.",
@@ -104,6 +104,24 @@ export const ADMIN_GUIDES: readonly HelpGuide[] = [
           "The status line reads Published charge policy version with its number, and renewal packets calculate their charges from that version. Earlier versions stay as they were.",
         effect: "saves-in-app",
         note: "Leave Resident Benefit Package, monthly or Insurance program, monthly empty when the company does not offer it. The Pet processing fee is one amount for an ordinary pet, separate from any deposit, and needs where the amount comes from; leave it empty when no fee is published. A lease with a pet shows the fee, the deposit and their sum before anything is prepared. Animal charges use published tiers opens the tier rows. These amounts are company policy you enter; they are never read from a form.",
+      },
+      {
+        id: "map-offer-charges",
+        action:
+          "Under Offer charge mappings, select Open offer charge mappings. Select Add a mapping, fill RentVine account ID, RentVine account name, Verified display label, Offer family, Supported cadence, Applicability scope, Approval evidence and Approved on, then select Review the mapping changes and Save offer charge mappings.",
+        control: {
+          label: "Open offer charge mappings",
+          role: "button",
+          region: "article:Renewal packet configuration",
+          availability: "required",
+          source: ["components/admin/OfferChargeMappingsEditor.tsx"],
+        },
+        route: "/admin?task=renewal",
+        where: "Admin, Renewal packet configuration, Offer charge mappings",
+        result:
+          "The status line reads Saved version with its number and how many mappings it read back. Tenant offers that use a changed mapping ask staff to review those lines again.",
+        effect: "saves-in-app",
+        note: "A mapping says what a RentVine account means in a tenant offer, with who approved that meaning. It gives meaning only: each lease's amounts and whether a charge applies still need their own evidence, and a mapping sets no fee or default. When an account does not tell the charge type apart, leave it unmapped; staff then decide that line for the lease in Review offer charges. Remove this mapping takes a row out before you save.",
       },
       {
         id: "build-operational-page",
@@ -233,13 +251,14 @@ export const ADMIN_GUIDES: readonly HelpGuide[] = [
       },
     ],
     result:
-      "Each Admin change is saved in the app with its version or receipt: a role, the notice timing basis, family use, the charge policy, a published operational page, a re-index or Space request, the display name and a team task. No provider record changes.",
+      "Each Admin change is saved in the app with its version or receipt: a role, the notice timing basis, family use, the charge policy, the offer charge mappings, a published operational page, a re-index or Space request, the display name and a team task. No provider record changes.",
     doesNotDo: [
       "Admin pages never send a message, sign a document or change RentVine, the operating Sheet or Dotloop.",
       "No role, Space or task index link grants action authority; closed actions, provider readiness and exact confirmation stay separate checks.",
       "The re-index handoff imports nothing: for an existing Space the plan shows no command, and the re-index runs outside the app.",
       "Request a Space records the request and its fixed plan only; nothing is provisioned from the page.",
       "Family use and the charge policy do not approve a form file or change a lease's saved inputs.",
+      "Offer charge mappings give an account its meaning only; they set no amount, fee or default and change no lease.",
       "The notice timing basis creates no message, schedule or provider record.",
       "Team work records internal tasks and time only; employment decisions stay with people.",
       "Migration readiness and Communication governance only read; they change no setting.",

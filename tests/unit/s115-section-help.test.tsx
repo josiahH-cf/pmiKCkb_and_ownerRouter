@@ -232,9 +232,16 @@ describe("S115 plain-language section help", () => {
     expect(SECTION_HELP["working-terms"].saves).toContain(
       "the document packet reads the Working terms the recorded owner approval covers",
     );
-    // Owner response: Approved asks who approved, how and when; any other answer saves at once.
+    // Owner response (S262): the outcome first; an approval names the amount approved, what the
+    // answer covers and who approved, how and when, then the review and save; any other answer
+    // saves at once.
     expect(SECTION_HELP["owner-response"].purpose).toContain(
-      "Choosing Approved asks who approved, how and when, and Record approval saves it; any other answer saves when you choose it.",
+      "Choose the outcome first. For an approval, enter Amount approved and what the answer covers, name who approved, how and when, then choose Review the owner's answer and Save the owner's answer; any other answer saves when you choose it.",
+    );
+    expect(SECTION_HELP["owner-response"].saves).not.toContain("below");
+    // Rent and charges (S261): the one current base rent rule, with Needs verification on a conflict.
+    expect(SECTION_HELP["rent-and-charges"].purpose).toContain(
+      "When RentVine's sources disagree or no base rent is recorded, it reads Needs verification until you correct it.",
     );
     // Tenant: only an explicit Send or Schedule in Communications sends.
     expect(SECTION_HELP["section-tenant"].notDone).toContain(

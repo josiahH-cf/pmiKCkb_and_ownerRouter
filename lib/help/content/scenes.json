@@ -1,5 +1,5 @@
 {
-  "version": "V3.0",
+  "version": "V4.0",
   "routeParameters": {
     "leaseId": "4821",
     "propertyKey": "4821",
@@ -20,7 +20,7 @@
     },
     "guide work-a-renewal#send-the-message": {
       "route": "/lease-renewal/live/desk/lease/5001",
-      "actions": ["click-button:Review and send"]
+      "actions": ["click-button:Review owner message"]
     }
   },
   "outlineRoutes": [
@@ -148,9 +148,9 @@
       },
       "region": "region:Guided view",
       "frame": "viewport",
-      "actions": ["wait-text:Review and send"],
+      "actions": ["wait-text:Review owner message"],
       "source": "rehearsal",
-      "alt": "Guided view: the stage line, the Renewal path from Check the numbers to Complete with Ask the owner as the current step, and the Now card below it with Review and send.",
+      "alt": "Guided view: the stage line, the Renewal path from Check the numbers to Complete with Ask the owner as the current step, and the Now card below it with Review owner message.",
       "caption": "A lease opens in Guided view with the Renewal path and one Now card."
     },
     {
@@ -177,14 +177,17 @@
       "step": "review-and-send",
       "route": "/lease-renewal/live/desk/lease/5001",
       "role": "Editor",
-      "fixture": "Synthetic December lease prepared ahead: a stored comparison, published templates, the Editor's signature and a verified example.invalid owner address, Review and send chosen",
+      "fixture": "Synthetic December lease prepared ahead: a stored comparison, published templates, the Editor's signature and a verified example.invalid owner address, Review owner message chosen",
       "viewport": {
         "width": 1280,
         "height": 800
       },
       "region": "dialog:Review and send",
       "frame": "region",
-      "actions": ["click-button:Review and send", "scroll-to:heading:Review and send"],
+      "actions": [
+        "click-button:Review owner message",
+        "scroll-to:heading:Review and send"
+      ],
       "source": "rehearsal",
       "alt": "Review and send for the prepared lease: From the Editor's address to the verified example owner address, the subject and the start of the exact message with the stored comparison.",
       "caption": "Review and send shows the exact message with its sender and recipient; Send this message at its end is the one action that sends it."
@@ -308,7 +311,7 @@
       },
       "region": "region:Update status by destination",
       "frame": "viewport",
-      "actions": ["click-button:Full view", "open-summary:Verify check the numbers"],
+      "actions": ["click-button:Full view", "open-summary:Verify lease numbers"],
       "source": "rehearsal",
       "alt": "Update status by destination in Rent and charges, one row per destination.",
       "caption": "Update status by destination shows what is saved, prepared and applied."
@@ -329,7 +332,7 @@
       "align": "center",
       "actions": [
         "click-button:Full view",
-        "open-summary:Edit owner message and manage delivery options",
+        "open-summary:Owner message options and outreach record",
         "wait-text:Copy the message"
       ],
       "source": "rehearsal",
@@ -367,10 +370,7 @@
       },
       "region": "region:Document preparation and signature handoff",
       "frame": "viewport",
-      "actions": [
-        "click-button:Full view",
-        "open-summary:Prepare or record document work"
-      ],
+      "actions": ["click-button:Full view"],
       "source": "rehearsal",
       "alt": "Document preparation and signature handoff with the Dotloop line and the readiness rows.",
       "caption": "The readiness rows say which packet actions are available."
