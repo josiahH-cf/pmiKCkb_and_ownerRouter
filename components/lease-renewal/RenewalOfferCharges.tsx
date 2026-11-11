@@ -48,6 +48,9 @@ const STATUS_WORDS: Record<OfferChargeRow["status"], string> = {
   separate: "Separate requirement, not an offer charge",
 };
 
+/** The recurring families a line no mapping names may be classified as, for one lease. */
+const CLASSIFICATION_FAMILIES = ["pet", "utilities", "rbp", "insurance"] as const;
+
 const INSPECT_ONLY: ReadonlySet<OfferChargeRow["status"]> = new Set([
   "historical",
   "future",
@@ -222,10 +225,12 @@ export function RenewalOfferCharges({
     const entry = caseFor(row);
     const id = offerChargeRowControlId(row.rowKey);
     const proposed = row.status === "selected" && !decision && row.origin === "rentvine";
+    // The reason stays visible once entered, so typing it never removes its own field.
     const needsReason =
       decision?.choice === "exclude" ||
       (decision?.choice === "include" &&
-        row.gaps.some((gap) => gap.startsWith("Say why this line applies")));
+        (decision.reason !== null ||
+          row.gaps.some((gap) => gap.startsWith("Say why this line applies"))));
     return (
       <li
         data-offer-charge-row={row.rowKey}
@@ -294,6 +299,37 @@ export function RenewalOfferCharges({
                 patchDecision(row, { reason: evidence(event.target.value) })
               }
             />
+          </Field>
+        ) : null}
+        {decision?.choice === "include" &&
+        row.origin === "rentvine" &&
+        row.mappingEntryId === null ? (
+          <Field
+            htmlFor={`${base}-${id}-classification`}
+            label="What this charge is for this lease"
+            hint="For this lease only. A shared meaning is an Admin's offer charge mapping."
+          >
+            <select
+              disabled={!canEdit}
+              id={`${base}-${id}-classification`}
+              value={decision.classification ?? ""}
+              onChange={(event) => {
+                patchDecision(row, {
+                  classification:
+                    (event.target.value as NonNullable<
+                      OfferChargeDecision["classification"]
+                    >) || null,
+                });
+                onCommit();
+              }}
+            >
+              <option value="">Choose what it is</option>
+              {CLASSIFICATION_FAMILIES.map((family) => (
+                <option key={family} value={family}>
+                  {MESSAGE_CHARGES[family]}
+                </option>
+              ))}
+            </select>
           </Field>
         ) : null}
         {decision?.choice === "include" && row.origin === "rentvine" ? (

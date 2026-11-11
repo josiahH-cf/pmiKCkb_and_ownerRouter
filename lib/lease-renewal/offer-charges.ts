@@ -134,6 +134,14 @@ export const OfferChargeDecisionSchema = z
     effectiveDate: calendarDate.nullable(),
     /** The source of a corrected amount or date. */
     correctionSource: evidenceText.nullable(),
+    /**
+     * For a line no approved mapping names: what the line is for this lease only, decided with
+     * its case source (the reason). It never publishes a shared mapping.
+     */
+    classification: z
+      .enum(["pet", "utilities", "rbp", "insurance"])
+      .nullable()
+      .optional(),
     /** What the decision was made against; a later change asks for review again. */
     reviewed: z
       .object({
@@ -627,7 +635,7 @@ export function projectOfferCharges(
       problems.push(
         line.classification === "unknown"
           ? "RentVine does not say whether this account is rent, and no approved offer mapping names it."
-          : `No approved offer mapping names RentVine account ${line.accountId}. An Admin adds one in Offer charge mappings, or leave the line out with its reason.`,
+          : `No approved offer mapping names RentVine account ${line.accountId}. An Admin adds one in Offer charge mappings, or decide it for this lease: say what it is and why it applies, or leave it out with its reason.`,
       );
     if (sourceAmountCents === null)
       problems.push("The RentVine amount for this line is not a valid amount.");
@@ -649,8 +657,13 @@ export function projectOfferCharges(
       (seen.get(line.chargeId) ?? 0) > 1 ||
       !input.mappings.readable ||
       mapping === "conflict";
+    // An unmapped line may be classified for this lease only, with its case source.
+    const classifiable = !refused && mapping === null;
     const includable =
-      !refused && mapped && sourceAmountCents !== null && sourceCadence !== null;
+      !refused &&
+      (mapped || classifiable) &&
+      sourceAmountCents !== null &&
+      sourceCadence !== null;
     const choices: ("include" | "exclude")[] = includable
       ? ["include", "exclude"]
       : ["exclude"];
@@ -700,6 +713,9 @@ export function projectOfferCharges(
       const redated =
         decision.effectiveDate !== null && decision.effectiveDate !== renewalDate;
       const gaps: string[] = [];
+      const classification = mapped ? null : (decision.classification ?? null);
+      if (!mapped && !classification)
+        gaps.push("Choose what this charge is for this lease.");
       if (unclear && !decision.reason)
         gaps.push("Say why this line applies to the renewal, with its source.");
       if ((corrected || redated) && !decision.correctionSource)
@@ -709,6 +725,9 @@ export function projectOfferCharges(
       push(
         {
           ...blank,
+          ...(classification
+            ? { family: classification, label: MESSAGE_CHARGES[classification] }
+            : {}),
           amountCents: corrected ? decision.renewalAmountCents : sourceAmountCents,
           effectiveFrom: decision.effectiveDate ?? renewalDate,
           comparison: corrected || redated ? "changed" : "unchanged",
@@ -938,9 +957,8 @@ export function projectOfferCharges(
     else if (row.cadence.kind === "one_time") oneTimeLines.push(line);
     else otherRecurring.push({ ...line, months: row.cadence.months });
   }
-  const pendingNeeded = rows.some(
-    (row) => row.status === "needs_decision" || row.status === "needs_review",
-  );
+  // A line still waiting for a decision or for its evidence keeps every total incomplete.
+  const pendingNeeded = unresolved.length > 0;
   if (pendingNeeded)
     totalGaps.push("A charge line still needs a decision, so the totals may change.");
   if (input.source.state === "unavailable")

@@ -153,7 +153,7 @@ describe("S264 AC-S264-1 inventory and projection matrix", () => {
     expect(row(review, "rentvine:502")?.status).toBe("historical");
     expect(row(review, "rentvine:503")).toMatchObject({
       status: "needs_decision",
-      choices: ["exclude"],
+      choices: ["include", "exclude"],
     });
     expect(row(review, "rentvine:503")?.gaps[0]).toMatch(
       /No approved offer mapping names RentVine account 9555/,
@@ -490,6 +490,68 @@ describe("S264 AC-S264-3 exact totals in integer cents", () => {
     expect(moneyToCents("-4")).toBeNull();
     expect(moneyToCents("abc")).toBeNull();
     expect(moneyToCents(Number.NaN)).toBeNull();
+  });
+});
+
+describe("S264 AC-S264-1 a line no mapping names, decided for this lease only", () => {
+  const unmapped = line({ chargeId: "1901", accountId: "9777", amount: "35.00" });
+  const include = (classification?: "pet" | "utilities" | "rbp" | "insurance") =>
+    project({
+      lines: [unmapped],
+      selection: {
+        ...emptyOfferChargeSelection(),
+        decisions: [
+          {
+            rowKey: "rentvine:1901",
+            choice: "include",
+            reason: "Synthetic signed pet addendum for this lease",
+            renewalAmountCents: null,
+            effectiveDate: null,
+            correctionSource: null,
+            reviewed: {
+              sourceVersion: "v-1901",
+              renewalDate: RENEWAL,
+              mappingVersion: 3,
+            },
+            ...(classification ? { classification } : {}),
+          },
+        ],
+      },
+    });
+
+  it("counts only once it says what the charge is, with its case source, and publishes no mapping", () => {
+    const unnamed = include();
+    expect(row(unnamed, "rentvine:1901")).toMatchObject({
+      status: "selected",
+      family: null,
+      gaps: ["Choose what this charge is for this lease."],
+    });
+    expect(unnamed.totals.monthlyComplete).toBe(false);
+    expect(unnamed.holds[0]).toMatch(/Choose what this charge is for this lease/);
+    const named = include("pet");
+    expect(row(named, "rentvine:1901")).toMatchObject({
+      status: "selected",
+      family: "pet",
+      label: "Pet rent",
+      amountCents: 3500,
+      gaps: [],
+      mappingEntryId: null,
+    });
+    expect(named.totals).toMatchObject({
+      monthlyKnownCents: 95500,
+      monthlyComplete: true,
+    });
+    expect(named.holds).toEqual([]);
+    // A later Admin mapping of the same account is a mapping change: the decision is reviewed again.
+    const remapped = project({
+      lines: [unmapped],
+      mappingsRead: mappings([PET, CREDIT, mapping({ accountId: "9777" })], 4),
+      selection: {
+        ...emptyOfferChargeSelection(),
+        decisions: [row(named, "rentvine:1901")!.decision!],
+      },
+    });
+    expect(row(remapped, "rentvine:1901")?.status).toBe("needs_review");
   });
 });
 

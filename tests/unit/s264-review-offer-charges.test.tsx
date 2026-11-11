@@ -147,13 +147,13 @@ describe("S264 AC-S264-2/3 Review offer charges", () => {
       "Known monthly subtotal: $978.00. Not complete yet.",
     );
     expect(total("monthly").getAttribute("data-offer-charge-complete")).toBe("false");
-    // An unmapped line can only be left out, and only with its evidence.
+    // An unmapped line is decided for this lease: leaving it out needs its evidence.
     const choice = screen.getByLabelText(
       "Does Synthetic account 9555 apply to this offer?",
     );
     expect(
       [...(choice as HTMLSelectElement).options].map((option) => option.value),
-    ).toEqual(["", "exclude"]);
+    ).toEqual(["", "include", "exclude"]);
     fireEvent.change(choice, { target: { value: "exclude" } });
     expect(row("rentvine:103").getAttribute("data-offer-charge-status")).toBe(
       "needs_decision",
@@ -203,6 +203,25 @@ describe("S264 AC-S264-2/3 Review offer charges", () => {
     expect(commits.length).toBeGreaterThan(0);
     for (const saved of commits)
       expect(OfferChargeSelectionSchema.safeParse(saved).success).toBe(true);
+  });
+
+  it("a line no mapping names is decided for this lease: what it is and why it applies", () => {
+    render(<Harness lines={[line("103", "9555", "40.00")]} onCommit={() => undefined} />);
+    fireEvent.change(
+      screen.getByLabelText("Does Synthetic account 9555 apply to this offer?"),
+      { target: { value: "include" } },
+    );
+    const reason = screen.getByLabelText("Why it applies (its source)");
+    fireEvent.change(reason, { target: { value: "Synthetic signed pet addendum" } });
+    // The reason's own field stays while it is typed.
+    expect(screen.getByLabelText("Why it applies (its source)")).toBe(reason);
+    expect(total("monthly").getAttribute("data-offer-charge-complete")).toBe("false");
+    fireEvent.change(screen.getByLabelText("What this charge is for this lease"), {
+      target: { value: "pet" },
+    });
+    expect(row("rentvine:103").querySelector("strong")!.textContent).toBe("Pet rent");
+    expect(row("rentvine:103").getAttribute("data-offer-charge-status")).toBe("selected");
+    expect(total("monthly").textContent).toBe("Monthly total: $960.00");
   });
 
   it("a legacy family-only entry stays inspectable and counts only after a deliberate disposition", () => {
