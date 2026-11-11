@@ -212,7 +212,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "An owner reply shows here as Owner replied with its date and the reply, and Record the owner's answer becomes the next step. A message Gmail has not confirmed reads Check whether the message went out, and a failed delivery reads Delivery failed with Check the address and send again.",
         effect: "reads",
-        note: "Record what happened, Send again and Work a later step now stay available while the lease waits. This was not the renewal outreach asks for a reason. Remove the derived record reopens the step and brings focus to Now. Keep it returns to the correction action.",
+        note: "Record what happened, Send again and Work a later step now stay available while the lease waits. While Gmail has not confirmed a message, Check whether the message went out comes first, ahead of an owner reply, and Send again appears once that check settles; Owner response in Full view still records the reply. This was not the renewal outreach asks for a reason. Remove the derived record reopens the step and brings focus to Now. Keep it returns to the correction action.",
       },
       {
         id: "record-the-owner-decision",
