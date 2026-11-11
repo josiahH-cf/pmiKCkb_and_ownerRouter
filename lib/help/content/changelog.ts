@@ -23,7 +23,7 @@ export const HELP_CHANGELOG: readonly HelpChangelogEntry[] = [
       "manage-connections",
       "admin-tasks",
     ],
-    contentDigest: "f9a363fea2c832c7129fb32a3220c6248401568da454230f22be5188cce3dc72",
+    contentDigest: "d2739725501d25c8d1ba471eeb98a4bb68abffa7e92554b3c161491cf943910f",
   },
   {
     version: "V3.0",

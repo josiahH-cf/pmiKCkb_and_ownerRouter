@@ -763,7 +763,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "Every role reads the shared links and their state; only an Admin changes them. Offer charge mappings opens for an Admin only.",
         effect: "reads",
-        note: "Who owns the Owner Renewal Outreach process and who receives its work by default is a team decision that is still open, so the process names no staff routing. Hand work to a person directly and note it in Work status; do not start a process run to find out who is assigned.",
+        note: "Who owns the Owner Renewal Outreach process and who receives its work by default is a team decision that is still open. While the published process keeps placeholder owner and approver assignments, Start run creates no run and says so. Hand work to a person directly and note it in Work status; an Admin records the responsible staff on the process only after the team names them.",
       },
     ],
     result:

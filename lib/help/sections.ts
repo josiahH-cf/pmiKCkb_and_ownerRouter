@@ -16,7 +16,7 @@ export const HELP_SECTIONS: readonly HelpSection[] = [
     id: "lease-renewals",
     title: "Lease renewals",
     summary:
-      "Work a renewal from the desk, compare rent, prepare the tenant offer and update RentVine and the operating Sheet.",
+      "Work a renewal from the desk, prepare it as a teammate and review it as the lead, compare rent, prepare the tenant offer and update RentVine and the operating Sheet.",
   },
   {
     id: "communications",
