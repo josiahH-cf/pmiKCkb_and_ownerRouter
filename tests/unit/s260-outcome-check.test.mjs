@@ -1,5 +1,9 @@
-import { describe, expect, it } from "vitest";
-import { outcomeFaults } from "../browser/one-path-november-9-outcome-check.mjs";
+// @vitest-environment jsdom
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  inspectOutcome,
+  outcomeFaults,
+} from "../browser/one-path-november-9-outcome-check.mjs";
 import { novemberNineMatrixVerdict } from "../browser/one-path-november-9-qualification-verdict.mjs";
 
 const focused = {
@@ -28,6 +32,55 @@ describe("N09-10 rendered outcome contract", () => {
     [{ evidenceOpen: true }, "evidence initially open"],
   ])("rejects a reachable Full section with %o", (defect, reason) => {
     expect(outcomeFaults({ ...focused, ...defect })).toContain(reason);
+  });
+});
+
+// November 10 (S269): Guided names its send entries "Review owner message" and "Review tenant
+// offer"; Full keeps "Review and send". The rendered check must still read each as a send that
+// competes with reconciliation.
+describe("N09-10 rendered send detection", () => {
+  let rects;
+  beforeEach(() => {
+    // jsdom lays nothing out: give every element one box so the inspector reads it as shown.
+    rects = vi.spyOn(Element.prototype, "getClientRects").mockReturnValue([{}]);
+  });
+  afterEach(() => {
+    rects.mockRestore();
+    document.body.innerHTML = "";
+  });
+  const outcome = (state, extra) => {
+    document.body.innerHTML = `
+      <section data-renewal-outcome="offer-tenant" data-renewal-work-state="${state}">
+        <h3>Offer the tenant</h3>
+        <div data-renewal-work>
+          <button data-renewal-work-primary>Check whether the message went out</button>
+          ${extra}
+        </div>
+        <details data-renewal-verification><summary>Verify tenant offer</summary></details>
+      </section>`;
+    return inspectOutcome(document.querySelector("section"));
+  };
+
+  it("accepts reconciliation as the one action", () => {
+    expect(outcomeFaults(outcome("reconcile", ""))).toEqual([]);
+  });
+
+  it.each([
+    "Review tenant offer",
+    "Review owner message",
+    "Review and send",
+    "Send this message",
+    "Schedule",
+  ])("rejects %s beside reconciliation", (label) => {
+    expect(outcomeFaults(outcome("reconcile", `<button>${label}</button>`))).toContain(
+      "send competes with reconciliation",
+    );
+  });
+
+  it("leaves a send on an outcome that is not reconciling alone", () => {
+    expect(outcome("current", "<button>Review tenant offer</button>").competingSend).toBe(
+      false,
+    );
   });
 });
 
