@@ -60,6 +60,7 @@ import {
 } from "@/components/lease-renewal/RenewalGuidedView";
 import type { RenewalPathStepId } from "@/lib/lease-renewal/renewal-path";
 import { GUIDED_SECONDARY_WORK_LABELS } from "@/lib/lease-renewal/guided-priority";
+import { RenewalWorkingTermsReveal } from "@/components/lease-renewal/RenewalWorkingTermsReveal";
 import { formatMoneyReference } from "@/lib/lease-renewal/current-rent-display";
 import { RenewalNowCardProvider } from "@/components/lease-renewal/RenewalNowCardContext";
 import type { FinishUpPreparation } from "@/lib/lease-renewal/finish-up-preparation";
@@ -868,9 +869,19 @@ export function RenewalWorkspace({
                                             <RenewalManualSection
                                               section={section.id}
                                               currentRent={workspace.currentRent}
+                                              workingTermsApart={section.id === "owner"}
                                             />
                                             {renderPhase(section.steps[0], "work")}
                                           </div>
+                                        ) : undefined
+                                      }
+                                      // S270: the one Working renewal terms editor, its own
+                                      // named reveal in Ask the owner's Work.
+                                      workingTerms={
+                                        separated &&
+                                        section.steps[0] &&
+                                        section.id === "owner" ? (
+                                          <RenewalWorkingTermsReveal />
                                         ) : undefined
                                       }
                                     />

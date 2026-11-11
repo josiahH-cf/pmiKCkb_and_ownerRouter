@@ -605,6 +605,49 @@ export function RenewalSecondaryWork({
 }>) {
   const view = useRenewalFocusView();
   const ref = useRef<HTMLDetailsElement | null>(null);
+  const promoted = useNamedDisclosure(ref, { stepId });
+  // The place the Guided Now card fills with an optional editor registers itself.
+  const setGroupHost = view?.setGroupHost;
+  const hostRef = useCallback(
+    (element: HTMLDivElement | null) => {
+      if (stepId) setGroupHost?.(stepId, element);
+    },
+    [setGroupHost, stepId],
+  );
+  if (!view?.outcomeLayout) return <>{children}</>;
+  return (
+    <details
+      className="renewal-secondary-work"
+      data-renewal-group={stepId ? label : undefined}
+      data-renewal-group-step={stepId}
+      data-renewal-promoted={promoted ?? undefined}
+      data-renewal-secondary-work
+      ref={ref}
+    >
+      <summary>{label}</summary>
+      <div className="ui-stack">
+        {optionalHost && stepId ? (
+          <div data-renewal-group-host={stepId} ref={hostRef} />
+        ) : null}
+        {children}
+      </div>
+    </details>
+  );
+}
+
+/**
+ * S270: the shared rules of a named disclosure (an outcome's group, or the Working renewal terms
+ * reveal). It starts closed and closes again on a view switch or another outcome, unless it holds
+ * current work: a failed or pending save, an invalid field, a marked governing note, the shown
+ * Guided outcome's lead (its current required field) or `held` (a reason its owner gives). Current
+ * work opens it and keeps it open through a switch. Closing it with focus inside returns focus to
+ * its summary. Returns why it holds current work, for `data-renewal-promoted`.
+ */
+export function useNamedDisclosure(
+  ref: React.RefObject<HTMLDetailsElement | null>,
+  { stepId, held = null }: Readonly<{ stepId?: RenewalPathStepId; held?: string | null }>,
+): string | null {
+  const view = useRenewalFocusView();
   const viewName = view?.view ?? null;
   const shownStep =
     viewName === "guided" ? (view?.nowPresentation?.stepId ?? null) : null;
@@ -614,9 +657,9 @@ export function RenewalSecondaryWork({
       : null;
   const [promoted, setPromoted] = useState<string | null>(null);
   const evaluate = useCallback(() => {
-    const next = ref.current ? groupPromotion(ref.current, leadTarget) : null;
+    const next = ref.current ? (held ?? groupPromotion(ref.current, leadTarget)) : null;
     setPromoted((current) => (current === next ? current : next));
-  }, [leadTarget]);
+  }, [ref, held, leadTarget]);
   useLayoutEffect(() => {
     evaluate();
   });
@@ -632,7 +675,7 @@ export function RenewalSecondaryWork({
       subtree: true,
     });
     return () => observer.disconnect();
-  }, [evaluate]);
+  }, [ref, evaluate]);
   const seen = useRef({ viewName, shownStep });
   const openedFor = useRef<string | null>(null);
   useLayoutEffect(() => {
@@ -641,7 +684,7 @@ export function RenewalSecondaryWork({
     const before = seen.current;
     seen.current = { viewName, shownStep };
     const switched = before.viewName !== viewName || before.shownStep !== shownStep;
-    const current = groupPromotion(details, leadTarget);
+    const current = held ?? groupPromotion(details, leadTarget);
     if (current) {
       // Current work opens with the group and stays open through a switch.
       if (switched || openedFor.current !== current) details.open = true;
@@ -654,15 +697,7 @@ export function RenewalSecondaryWork({
     if (viewName === "guided" && details.hasAttribute(FOCUS_OPENED_ATTRIBUTE)) return;
     details.open = false;
   });
-  // The place the Guided Now card fills with an optional editor registers itself.
-  const setGroupHost = view?.setGroupHost;
-  const hostRef = useCallback(
-    (element: HTMLDivElement | null) => {
-      if (stepId) setGroupHost?.(stepId, element);
-    },
-    [setGroupHost, stepId],
-  );
-  // Closing the group while focus is inside returns focus to its summary.
+  // Closing the disclosure while focus is inside returns focus to its summary.
   const layout = view?.outcomeLayout ?? false;
   useEffect(() => {
     const details = ref.current;
@@ -697,26 +732,8 @@ export function RenewalSecondaryWork({
       details.removeEventListener("focusout", onFocusOut);
       details.removeEventListener("toggle", onToggle);
     };
-  }, [layout]);
-  if (!layout) return <>{children}</>;
-  return (
-    <details
-      className="renewal-secondary-work"
-      data-renewal-group={stepId ? label : undefined}
-      data-renewal-group-step={stepId}
-      data-renewal-promoted={promoted ?? undefined}
-      data-renewal-secondary-work
-      ref={ref}
-    >
-      <summary>{label}</summary>
-      <div className="ui-stack">
-        {optionalHost && stepId ? (
-          <div data-renewal-group-host={stepId} ref={hostRef} />
-        ) : null}
-        {children}
-      </div>
-    </details>
-  );
+  }, [ref, layout]);
+  return promoted;
 }
 
 export function RenewalGuidedView({
@@ -1352,6 +1369,23 @@ function NowCard({
   const shownIndex = stage.steps.findIndex((step) => step.id === shown.id);
   const nextApplicable =
     stage.steps.slice(shownIndex + 1).find((step) => step.state !== "not_part") ?? null;
+  // S265: the offer's first required resource fix, given by the one message editor, unless a
+  // caller already supplies the slot.
+  const resourceLead =
+    shown.id === "offer-tenant" ? (nowCard?.resourceLeads["offer-tenant"] ?? null) : null;
+  const leadExtensions: GuidedPriorityExtensions | undefined =
+    resourceLead && !extensions?.includedResource
+      ? {
+          ...extensions,
+          includedResource: {
+            label: resourceLead.label,
+            target: resourceLead.href,
+            owner: "offer-tenant",
+            reason: resourceLead.reason,
+            transitionsReady: resourceLead.transitionsReady,
+          },
+        }
+      : extensions;
   const priority = projectGuidedPriority({
     stage,
     shown,
@@ -1392,14 +1426,22 @@ function NowCard({
     standingCovered: stage.steps.some(
       (step) => step.id === "ask-owner" && step.state === "covered",
     ),
-    extensions,
+    extensions: leadExtensions,
   });
   const lead = priority.lead;
   // S270 R-S270-2: a current required field or a save to recover opens the named group holding it.
   const setGuidedLead = focusView?.setGuidedLead;
+  // A message whose first fix is a renewal date names that date field, so the Working renewal
+  // terms reveal (not the whole options group) opens for it.
   const groupLead =
     lead && (priority.state === "missing" || priority.state === "recover")
-      ? lead.target
+      ? lead.key === "message-fix" &&
+        lead.label === GUIDED_PRIORITY_WORDS.enterRenewalStart
+        ? WORKING_START_FIELD_ID
+        : lead.key === "message-fix" &&
+            lead.label === GUIDED_PRIORITY_WORDS.enterRenewalEnd
+          ? WORKING_END_FIELD_ID
+          : lead.target
       : null;
   useLayoutEffect(() => {
     setGuidedLead?.(groupLead ? { stepId: shown.id, target: groupLead } : null);
@@ -1449,6 +1491,13 @@ function NowCard({
         lead.key === "current-base-rent"
       )
         return null;
+      // S265: the resource fix is its one Connections entry, a page of its own.
+      if (lead.key === "included-resource")
+        return {
+          label: lead.label,
+          target: lead.target,
+          run: () => router.push(lead.target),
+        };
       return { label: lead.label, target: lead.target, run: () => follow(lead) };
     }
     if (lead.key === "rent-to-recommend" && nextApplicable)

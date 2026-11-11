@@ -29,6 +29,21 @@ export interface NowCardPrimary {
   readonly reason?: string | null;
 }
 
+/**
+ * S265 into S269: the first required tenant resource the exact offer content still needs, with
+ * its exact Connections entry. The message editor gives it from the one inclusion projection.
+ */
+export interface NowCardResourceLead {
+  /** The exact resource, as its readiness fix names it ("Shared resource link: ..."). */
+  readonly label: string;
+  /** Its one Connections entry (`/connections#renewal-resource-entry-<id>`). */
+  readonly href: string;
+  /** The problem, with the Admin handoff for a role that does not maintain the links. */
+  readonly reason: string;
+  /** False while an applicable transition decision is still open (the review stays held). */
+  readonly transitionsReady: boolean;
+}
+
 interface NowCardContextValue {
   /** The slot elements the shown Now card rendered, keyed by step and slot. */
   readonly slots: Readonly<Record<string, HTMLElement | null>>;
@@ -36,6 +51,13 @@ interface NowCardContextValue {
   readonly slotRef: (element: HTMLElement | null) => void | (() => void);
   readonly primaries: Readonly<Partial<Record<RenewalPathStepId, NowCardPrimary>>>;
   readonly setPrimary: (step: RenewalPathStepId, primary: NowCardPrimary | null) => void;
+  readonly resourceLeads: Readonly<
+    Partial<Record<RenewalPathStepId, NowCardResourceLead>>
+  >;
+  readonly setResourceLead: (
+    step: RenewalPathStepId,
+    lead: NowCardResourceLead | null,
+  ) => void;
   /** The one preparation projection the lease page was given (ARCH-S249-1). */
   readonly preparation: RenewalPreparation | null;
   /** R-S249-14: Finish up's assembled source update previews; null where not assembled. */
@@ -103,9 +125,52 @@ export function RenewalNowCardProvider({
       }),
     [],
   );
+  const [resourceLeads, setResourceLeads] = useState<
+    Partial<Record<RenewalPathStepId, NowCardResourceLead>>
+  >({});
+  const setResourceLead = useCallback(
+    (step: RenewalPathStepId, lead: NowCardResourceLead | null) =>
+      setResourceLeads((previous) => {
+        const prior = previous[step];
+        if (!lead) {
+          if (!prior) return previous;
+          const next = { ...previous };
+          delete next[step];
+          return next;
+        }
+        if (
+          prior &&
+          prior.label === lead.label &&
+          prior.href === lead.href &&
+          prior.reason === lead.reason &&
+          prior.transitionsReady === lead.transitionsReady
+        )
+          return previous;
+        return { ...previous, [step]: lead };
+      }),
+    [],
+  );
   const value = useMemo(
-    () => ({ slots, slotRef, primaries, setPrimary, preparation, finishUp }),
-    [slots, slotRef, primaries, setPrimary, preparation, finishUp],
+    () => ({
+      slots,
+      slotRef,
+      primaries,
+      setPrimary,
+      resourceLeads,
+      setResourceLead,
+      preparation,
+      finishUp,
+    }),
+    [
+      slots,
+      slotRef,
+      primaries,
+      setPrimary,
+      resourceLeads,
+      setResourceLead,
+      preparation,
+      finishUp,
+    ],
   );
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
