@@ -47,7 +47,10 @@ export const OFFER_MAPPING_FAMILY_LABELS: Readonly<Record<OfferMappingFamily, st
   separate_requirement: "Separate requirement, not part of the offer",
 };
 
-export const OFFER_MAPPING_APPLICABILITY = ["active_on_renewal_date", "staff_decide"] as const;
+export const OFFER_MAPPING_APPLICABILITY = [
+  "active_on_renewal_date",
+  "staff_decide",
+] as const;
 export type OfferMappingApplicability = (typeof OFFER_MAPPING_APPLICABILITY)[number];
 export const OFFER_MAPPING_APPLICABILITY_LABELS: Readonly<
   Record<OfferMappingApplicability, string>
@@ -71,7 +74,10 @@ const plain = (max: number, min = 1) =>
     .trim()
     .min(min)
     .max(max)
-    .refine((value) => !PLAIN_TEXT.test(value), "Use plain text without links or tokens.");
+    .refine(
+      (value) => !PLAIN_TEXT.test(value),
+      "Use plain text without links or tokens.",
+    );
 
 /** A real calendar day. */
 const calendarDate = z
@@ -86,7 +92,9 @@ export const OfferChargeMappingEntrySchema = z
   .object({
     entryId: z.string().uuid(),
     /** The stable RentVine account id; the account itself must distinguish the charge type. */
-    accountId: z.string().regex(/^[1-9]\d{0,18}$/, "Enter the RentVine account ID (digits)."),
+    accountId: z
+      .string()
+      .regex(/^[1-9]\d{0,18}$/, "Enter the RentVine account ID (digits)."),
     /** The account's name in RentVine when it was approved, for staff to recognize it. */
     accountName: plain(120),
     /** The verified label staff and the tenant offer show. Amounts and dates stay out of it. */
@@ -101,9 +109,7 @@ export const OfferChargeMappingEntrySchema = z
     /** For a separate requirement only: what the separate obligation is. */
     requirement: plain(240, 3).nullable(),
     /** Who approved this mapping, where and when. */
-    approval: z
-      .object({ reference: plain(300, 3), approvedOn: calendarDate })
-      .strict(),
+    approval: z.object({ reference: plain(300, 3), approvedOn: calendarDate }).strict(),
   })
   .strict()
   .superRefine((entry, ctx) => {
@@ -131,7 +137,10 @@ export const OfferChargeMappingEntrySchema = z
   });
 export type OfferChargeMappingEntry = z.infer<typeof OfferChargeMappingEntrySchema>;
 
-function uniqueEntries(entries: readonly OfferChargeMappingEntry[], ctx: z.RefinementCtx) {
+function uniqueEntries(
+  entries: readonly OfferChargeMappingEntry[],
+  ctx: z.RefinementCtx,
+) {
   const accounts = new Set<string>();
   const ids = new Set<string>();
   entries.forEach((entry, index) => {
@@ -226,7 +235,9 @@ export function diffOfferChargeMappings(
     added: after.filter((entry) => !prior.has(entry.entryId)),
     changed: after.flatMap((entry) => {
       const earlier = prior.get(entry.entryId);
-      return earlier && !sameEntry(earlier, entry) ? [{ before: earlier, after: entry }] : [];
+      return earlier && !sameEntry(earlier, entry)
+        ? [{ before: earlier, after: entry }]
+        : [];
     }),
     removed: before.filter((entry) => !next.has(entry.entryId)),
   };
