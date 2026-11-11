@@ -312,7 +312,14 @@ export async function journeyN1010(ctx, page) {
   });
   if (await preview.count()) assert.equal(await preview.isEnabled(), false);
   observed.bothExactKeyRefusals = true;
-  const manual = page.getByLabel("Required documents prepared outcome", { exact: true });
+  // The manual outcome is its own disclosure inside a named group: its exact link opens the group.
+  await kit.open(page, kit.href(leaseId, "?view=full#renewal-manual-documents"));
+  const manualForm = page.locator("details#renewal-manual-documents");
+  await manualForm.waitFor({ state: "attached" });
+  await kit.toggleDisclosure(page, manualForm, true);
+  const manual = manualForm.getByLabel("Required documents prepared outcome", {
+    exact: true,
+  });
   await manual.waitFor();
   const recorded = page.waitForResponse(
     (response) =>
@@ -458,9 +465,24 @@ export async function journeyN1010(ctx, page) {
     effects.length + (handoff.attempts?.length ?? 0) + (handoff.association ? 1 : 0);
   assert.equal(observed.providerEffects, 0);
 
+  // R-S264-6 with S268: packet parity compares each form whose reviewed map reads a shared charge
+  // with the offer the tenant's recorded acceptance answers (offer-packet-parity.ts). It needs a
+  // reviewed map that reads one to compare anything.
+  const sharedFacts = [
+    "animal.monthly_charge",
+    "charges.resident_benefit_package.monthly",
+    "charges.insurance.monthly",
+  ];
+  const sharedForms = (await kit.listDocuments("lease_artifact_intake"))
+    .filter((doc) =>
+      sharedFacts.some((fact) => JSON.stringify(doc.fields ?? {}).includes(`"${fact}"`)),
+    )
+    .map((doc) => doc.name.split("/").pop());
+  record({ id: "N10-10", check: "shared-charge-forms", sharedForms });
   observed.sharedChargeDiscrepancyHeld = false;
-  observed.missing =
-    "Packet parity with the offer's shared charges (offerComparisons) is not on this build, so a disagreeing shared charge cannot be shown held.";
+  observed.missing = sharedForms.length
+    ? `Reviewed maps read a shared charge (${sharedForms.join(", ")}); this driver does not yet read back their held form.`
+    : "No reviewed form map in the rehearsal reads a shared charge (animal.monthly_charge, or the package or insurance monthly amount), so packet parity has nothing to compare and no form can be shown held. The S253 forms seed would need a reviewed field for one.";
   if (!observed.syntheticPdfInputs)
     observed.missing += " The snapshot was not ready for a filled extension PDF.";
   if (!observed.signedEvidenceSeparate)

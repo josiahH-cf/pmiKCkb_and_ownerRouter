@@ -158,12 +158,23 @@ async function journey(id, { role = "Editor", allow = [], failFirst = [] }, chec
   page.setDefaultNavigationTimeout(120_000);
   const mutations = [];
   const refusals = [];
+  // Page errors are kept with the row; a development server's overlay also asks itself for the
+  // original stack frames of an error it shows, which is tooling, not an app mutation.
+  const consoleErrors = [];
+  page.on("pageerror", (error) =>
+    consoleErrors.push("pageerror: " + String(error).slice(0, 300)),
+  );
+  page.on("console", (message) => {
+    if (message.type() === "error") consoleErrors.push(message.text().slice(0, 300));
+  });
   await context.route("**/*", (route) => {
     const request = route.request();
     const url = new URL(request.url());
     if (url.origin !== origin) return route.abort("blockedbyclient");
     if (["GET", "HEAD", "OPTIONS"].includes(request.method())) return route.continue();
     if (url.pathname === "/api/auth/demo") return route.continue();
+    if (!rehearsal.compiled && url.pathname === "/__nextjs_original-stack-frames")
+      return route.continue();
     mutations.push(url.pathname);
     if (allow.includes(url.pathname)) return route.continue();
     refusals.push(url.pathname);
@@ -187,6 +198,7 @@ async function journey(id, { role = "Editor", allow = [], failFirst = [] }, chec
       observed,
       ...(claims.length ? { failFirst: claims } : {}),
       mutations: [...new Set(mutations)],
+      ...(consoleErrors.length ? { consoleErrors: consoleErrors.slice(0, 10) } : {}),
       seconds: Math.round((Date.now() - started) / 1000),
     };
     results.push(row);
@@ -207,6 +219,7 @@ async function journey(id, { role = "Editor", allow = [], failFirst = [] }, chec
               .map((line) => line.trim())
           : undefined,
       refusals,
+      ...(consoleErrors.length ? { consoleErrors: consoleErrors.slice(0, 10) } : {}),
       seconds: Math.round((Date.now() - started) / 1000),
     };
     results.push(row);

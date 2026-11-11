@@ -21,6 +21,7 @@ import {
 } from "./one-path-november-10-kit.mjs";
 
 const PREPARATION = "/api/lease-renewal/message-preparation";
+const WORKSPACE = "/api/lease-renewal/workspace";
 const SEQUENCES = "/api/gmail-hub/sequences";
 const MAPPINGS = "/api/admin/offer-charge-mappings";
 const RESOURCES = "/api/lease-renewal/resource-locations";
@@ -476,9 +477,197 @@ export async function journeyN1004(ctx, page) {
   record({ id: "N10-04", check: "transition-branches", branches });
   observed.materialTransitionBranches = true;
 
-  observed.decisionsDoNotCoverChangedCharge = false;
-  observed.missing =
-    "The owner offer snapshot scope and tenant-acceptance attribution are not on this build, so a charge-only change cannot yet be shown uncovered by both answers.";
+  // R-S264-6 (AC-S264-6): an exact owner decision and a tenant acceptance each cover only the
+  // offer they answered. A change to one selected charge leaves neither covering the changed
+  // offer, each record stays exactly as recorded, and an amount-only answer covers no charges.
+  if (!kit.mailAvailable) {
+    observed.decisionsDoNotCoverChangedCharge = false;
+    observed.missing =
+      "A tenant acceptance of an exact offer needs a confirmed send (the compiled synthetic mail build or the development mail adapter).";
+    return observed;
+  }
+  await transitions("does_not_apply", "unchanged");
+  composition = await reads.composition();
+  assert.deepEqual(composition.target.blockers ?? [], [], "The offer is ready to send");
+  const reviewedOffer = (await reads.tenant()).offerAnswers?.current;
+  assert.ok(reviewedOffer?.charged, "The current offer carries charges");
+  const ownerAnswer = async (extra = {}) => {
+    const state = (await reads.workspace()).state;
+    return kit.post(page, WORKSPACE, {
+      operation: "record",
+      leaseId,
+      cycleId: state.cycleId,
+      expectedRevision: state.revision,
+      operationId: uuid(),
+      action: {
+        kind: "owner_response",
+        outcome: "approved_terms",
+        approval: {
+          party: {
+            kind: "representative",
+            name: "Synthetic owner representative",
+            capacity: "Fixture approval",
+          },
+          channel: {
+            kind: "conversation",
+            participants: "Fixture owner and renewal staff",
+          },
+          occurredAt: new Date(Date.now() - 60_000).toISOString(),
+        },
+        ...extra,
+      },
+      offer: {
+        kind: "owner_reviewed_offer",
+        snapshotId: reviewedOffer.snapshotId,
+        snapshotHash: reviewedOffer.snapshotHash,
+      },
+    });
+  };
+  const rent = (await reads.working()).record?.fields?.terms_rent;
+  const amountOnly = await ownerAnswer({
+    approvedBase: {
+      amount: rent?.value ?? 1500,
+      scope: "amount_only",
+      expectedWorkingRevision: rent?.revision ?? 0,
+      expectedRecommendationRevision: 0,
+    },
+  });
+  assert.equal(amountOnly.status, 400, JSON.stringify(amountOnly.body));
+  const owner = await ownerAnswer();
+  assert.equal(owner.status, 200, JSON.stringify(owner.body));
+  assert.equal(owner.body.offerAnswer?.attribution?.kind, "owner_reviewed_offer");
+  const ownerEvent = owner.body.offerAnswer.eventId;
+
+  // A confirmed send carries the offer; the tenant's acceptance names it in the response editor.
+  composition = await reads.composition();
+  const sentBefore = (await kit.sentMail()).length;
+  const delivered = await authorizeTenantOffer(kit, page, composition, "send");
+  assert.equal(
+    delivered.authorized.status,
+    200,
+    JSON.stringify(delivered.authorized.body),
+  );
+  assert.equal((await kit.sentMail()).length, sentBefore + 1);
+  const sent = (await reads.tenant()).offerAnswers.candidates.find(
+    (candidate) =>
+      candidate.kind === "linked_communication" &&
+      candidate.sequenceId === delivered.staged.id,
+  );
+  assert.ok(sent?.current, "The confirmed send carried the current offer");
+  await kit.open(page, kit.href(leaseId, "?view=full#renewal-manual-tenant_response"));
+  const form = page.locator("#renewal-manual-tenant_response");
+  await form.waitFor();
+  const workspaceSave = (response) =>
+    new URL(response.url()).pathname === WORKSPACE &&
+    response.request().method() === "POST";
+  const [decided] = await Promise.all([
+    page.waitForResponse(workspaceSave),
+    form.getByLabel("Tenant response", { exact: true }).selectOption("accepted"),
+  ]);
+  assert.equal(decided.status(), 200, await decided.text());
+  const answer = form.locator('[data-renewal-offer-answer="tenant"]');
+  const which = answer.getByLabel("Which offer does this answer respond to?", {
+    exact: true,
+  });
+  await which.waitFor();
+  const choice = "sent:" + sent.sequenceId + ":" + sent.occurrenceId;
+  assert.match(
+    await which.locator(`option[value="${choice}"]`).innerText(),
+    /^Sent .+: .+ \(the current offer\)$/,
+  );
+  await which.selectOption(choice);
+  const [linked] = await Promise.all([
+    page.waitForResponse(workspaceSave),
+    answer
+      .getByRole("button", { name: "Record the offer this answers", exact: true })
+      .click(),
+  ]);
+  assert.equal(linked.status(), 200, await linked.text());
+  const linkedAnswer = (await linked.json()).offerAnswer;
+  assert.equal(linkedAnswer?.attribution?.kind, "linked_communication");
+  const tenantEvent = linkedAnswer.eventId;
+  await answer
+    .locator('[data-offer-answer-line="tenant"]')
+    .filter({ hasText: "This acceptance answers the current offer." })
+    .waitFor();
+  let answers = (await reads.tenant()).offerAnswers;
+  assert.equal(answers.tenant.coverage, "covers");
+  assert.equal(answers.owner.coverage, "covers");
+  assert.equal(answers.owner.scope, "offer_snapshot");
+  const recorded = {
+    tenant: await kit.readDocument("renewal_offer_answers/" + tenantEvent),
+    owner: await kit.readDocument("renewal_offer_answers/" + ownerEvent),
+  };
+
+  // Change only one selected charge: the corrected pet line, $45.00 to $50.00.
+  await kit.open(page, kit.href(leaseId, "?step=offer-tenant"));
+  const changed = review
+    .locator("#renewal-offer-charge-rentvine-61011")
+    .locator("details")
+    .filter({ hasText: "Correct the renewal amount or date" });
+  await kit.toggleDisclosure(page, changed, true);
+  await fill(
+    changed.getByLabel("Renewal amount if it differs ($)", { exact: true }),
+    "50",
+  );
+  answers = (await reads.tenant()).offerAnswers;
+  record({
+    id: "N10-04",
+    check: "answers-after-one-charge",
+    current: answers.current?.summary,
+    tenant: answers.tenant,
+    owner: answers.owner,
+  });
+  const onlyPetRent = /Pet rent changed \(\$45\.00 to \$50\.00\)\./;
+  const termsMoved = /renewal base changed|renewal dates changed|renewal cycle changed/i;
+  assert.equal(answers.tenant.coverage, "earlier_offer");
+  assert.match(
+    answers.tenant.line,
+    /^Current acceptance needs verification: it answers an earlier offer\. /,
+  );
+  assert.equal(answers.owner.coverage, "earlier_offer");
+  assert.match(
+    answers.owner.line,
+    /^The owner approved an earlier offer, so the current offer's charges are not covered\. /,
+  );
+  for (const line of [answers.tenant.line, answers.owner.line]) {
+    assert.match(line, onlyPetRent);
+    assert.doesNotMatch(line, termsMoved);
+  }
+  assert.deepEqual(
+    await kit.readDocument("renewal_offer_answers/" + tenantEvent),
+    recorded.tenant,
+  );
+  assert.deepEqual(
+    await kit.readDocument("renewal_offer_answers/" + ownerEvent),
+    recorded.owner,
+  );
+  await kit.open(page, kit.href(leaseId, "?view=full#renewal-manual-tenant_response"));
+  const shown = page.locator('[data-renewal-offer-answer="tenant"]').first();
+  await shown
+    .locator('[data-offer-answer-line="tenant"]')
+    .filter({ hasText: /^Current acceptance needs verification: / })
+    .waitFor();
+  assert.equal(await shown.getAttribute("data-offer-answer-coverage"), "earlier_offer");
+  observed.decisionsDoNotCoverChangedCharge = true;
+  observed.acceptedOfferEvent = tenantEvent;
+
+  // N10-05 sends this lease's offer again: the lease goes back to awaiting the tenant, and the
+  // accepted answer's record stays as recorded.
+  const state = (await reads.workspace()).state;
+  const awaiting = await kit.post(page, WORKSPACE, {
+    operation: "record",
+    leaseId,
+    cycleId: state.cycleId,
+    expectedRevision: state.revision,
+    operationId: uuid(),
+    action: { kind: "tenant_response", outcome: "awaiting_response" },
+  });
+  assert.equal(awaiting.status, 200, JSON.stringify(awaiting.body));
+  assert.deepEqual(
+    await kit.readDocument("renewal_offer_answers/" + tenantEvent),
+    recorded.tenant,
+  );
   return observed;
 }
 
@@ -600,13 +789,25 @@ export async function journeyN1005(ctx, page) {
     assert.equal(pending.authorized.status, 409, JSON.stringify(pending.authorized.body));
     assert.equal((await kit.sentMail()).length, sentBefore);
     await kit.open(page, kit.href(leaseId, "?step=offer-tenant"));
-    const fix = page.getByRole("link", { name: /^Shared resource link: / }).first();
+    // S265: the Guided lead is the resource's one Connections entry, a button that opens it.
+    const fix = kit
+      .now(page)
+      .getByRole("button", { name: /^Shared resource link: / })
+      .first();
     await fix.waitFor();
-    const target = new URL(await fix.getAttribute("href"), ctx.origin);
-    assert.equal(target.pathname, "/connections");
-    assert.match(target.hash, /^#renewal-resource-entry-(?:insurance_flyer|rbp_flyer)$/);
+    assert.equal(
+      await kit
+        .now(page)
+        .locator("[data-renewal-priority-lead]")
+        .first()
+        .getAttribute("data-renewal-priority-lead"),
+      "included-resource",
+    );
+    record({ id: "N10-05", check: "resource-lead", label: await fix.innerText() });
     await fix.click();
     await page.waitForURL((url) => url.pathname === "/connections");
+    const target = new URL(page.url());
+    assert.match(target.hash, /^#renewal-resource-entry-(?:insurance_flyer|rbp_flyer)$/);
     const entry = page.locator(target.hash);
     await entry.waitFor();
     await entry

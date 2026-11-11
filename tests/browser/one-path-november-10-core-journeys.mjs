@@ -45,6 +45,31 @@ export function leaseReads(kit, page, leaseId) {
   };
 }
 
+const NOTICE_GENERATION = /source generations conflict/;
+
+/**
+ * A message read can advance the lease's notice-safety marker, and only a RentVine read begun
+ * after it admits the lease again (lib/firestore/renewal-notice-safety.ts). As the reason tells
+ * staff, refresh the lease source and review again; the owner composition then reads clean.
+ */
+async function admitNoticeSource(kit, page, leaseId, purpose = "renewal_owner") {
+  const path = "/api/gmail-hub/composition?purpose=" + purpose + "&lease=" + leaseId;
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const composition = await kit.read(page, path);
+    if (
+      !(composition.target?.blockers ?? []).some((reason) =>
+        NOTICE_GENERATION.test(reason),
+      )
+    )
+      return composition;
+    assert.ok(
+      (await forceSourceRefresh(page)).body?.refreshed,
+      "Refresh the lease source",
+    );
+  }
+  assert.fail("The lease source was not admitted for notice safety after four reads");
+}
+
 async function saveWorking(kit, page, leaseId, field, value, extra = {}) {
   const current = (await kit.read(page, WORKING + "?leaseId=" + leaseId)).record;
   const entry = current?.fields?.[field] ?? current?.cycle?.held?.[field]?.entry;
@@ -383,14 +408,19 @@ export async function journeyN1003(ctx, page) {
   });
   assert.equal(scheduled.status, 200, JSON.stringify(scheduled.body));
   const sequence = scheduled.body.sequence;
+  // The source must change to a date staff have not already resolved: `later` is the RentVine
+  // date the keep-working choice above covers, so it leaves the offer's facts as they were.
+  const changedAgain = addYears(end, 2);
   try {
-    setSourceCycleDate(rehearsal, lease.leaseId, later);
+    setSourceCycleDate(rehearsal, lease.leaseId, changedAgain);
     assert.ok((await forceSourceRefresh(page)).body?.refreshed);
+    assert.equal((await reads.tenant()).facts.leaseEndDate, null);
     await kit.dispatchDue(page, sequence);
     const held = (await kit.read(page, SEQUENCES + "?id=" + sequence.id)).sequence;
     record({
       id: "N10-03",
       check: "scheduled-recheck",
+      sourceDate: changedAgain,
       state: held.state,
       pause: held.pause,
     });
@@ -454,6 +484,7 @@ export async function journeyN1002(ctx, page) {
   });
   assert.equal(recommended.status, 200, JSON.stringify(recommended.body));
 
+  await admitNoticeSource(kit, page, leaseId);
   const sentBefore = (await kit.sentMail()).length;
   await setNextSend(rehearsal, "unconfirmed");
   const message = await sendOwnerMessage(page, leaseId);
@@ -883,8 +914,16 @@ export async function journeyN1001(ctx, page, mutations) {
 
     // The saved comparison and owner draft come back as they were.
     await kit.open(page, kit.href(leaseId, "?step=compare-market"));
-    const comparison = kit.now(page).locator("[data-renewal-comparison]");
+    // The Now card can hold the revealed Market rent comparison region beside its own summary;
+    // the shown stored comparison is the visible one.
+    const comparison = kit.now(page).locator("[data-renewal-comparison]:visible").first();
     await comparison.waitFor();
+    record({
+      id: "N10-01",
+      check: "stored-comparison",
+      inNow: await kit.now(page).locator("[data-renewal-comparison]").count(),
+      visible: await kit.now(page).locator("[data-renewal-comparison]:visible").count(),
+    });
     assert.match(
       await comparison.locator('[data-renewal-field="comparison-line"]').innerText(),
       /range \$[\d,]+ to \$[\d,]+ from \d+ comparable/,
