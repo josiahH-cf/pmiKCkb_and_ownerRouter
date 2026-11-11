@@ -1212,7 +1212,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         route: LEASE,
         where: "Tenant offer and response, Tenant response, under the answer",
         result:
-          "The answer is recorded again with the exact offer it answers, with your name and time. Answers the offer names that offer's rent and charges, and the line above it reads This acceptance answers the current offer, or Current acceptance needs verification with the reason.",
+          "The answer is recorded again with the exact offer it answers, with your name and time. Answers the offer names that offer's rent and charges. The line above it reads This acceptance answers the current offer, or Current acceptance needs verification with the reason; for a counter or a decline it reads This answer responds to the current offer, or This answer needs verification.",
         effect: "saves-in-app",
         note: "The list starts on Choose the offer, so no offer is chosen for you. A confirmed send reads Sent with its date. A Gmail draft prepared here and sent from Gmail by a person reads Gmail draft prepared with its date, sent from Gmail; for it, also enter Where you verified it was sent, such as the Gmail Sent folder entry and its date. Choose Not one exact offer (record the answer as it is) when the answer cannot be tied to one offer. An answer to an earlier offer never covers the current one, even when only one charge changed: the line reads Current acceptance needs verification: it answers an earlier offer, and names what changed. If the offers cannot be read, the section says so; reload the page to review them.",
       },
