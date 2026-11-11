@@ -1,8 +1,15 @@
 # Loop state
 
-Last updated: 2026-11-09 (UTC). Read AGENTS.md and docs/facts.md first.
+Last updated: 2026-11-11 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current execution
+
+Intakes 139–149 (S261–S271) passed exact local qualification on
+`c0f6490e8659a3aa684099590efbbbcbef7c6deb`, build `EvsdEv_bUWl9gRTP0vv6O`. S271 engineering
+is Yes across nine N10 cases, with a separate Thursday Yes. The S260 replay is Yes across ten
+journeys. Full verification, Core E2E, rendered Help and the deliberate Help drift passed.
+Human verdict: NOT RUN — no human observer. Exact-main CI, fresh prerequisites and locked GO
+govern the native release. [Qualification](evidence/renewal-walkthrough-qualification-2026-11-10.md)
 
 Production serves `0afd020671ea9fbb1f0ee75484943c60e331b91a` / `pmi-kc-app-rmw9w581k-2489abae9071` at 100% canonical traffic.
 Run `b61162cf-8646-4f9c-803e-3b24824c6e34` consumed its permit after one successful application build `1f42ae31-629b-418d-807a-e12fe229a9c1`.
@@ -63,7 +70,19 @@ The owner resolved the Gmail profile scope on November 8 for the existing guarde
 
 ## Awaiting release
 
-None. The November 9 intakes cleared after full observation and independent final readbacks.
+The eleven qualified intakes ride one cumulative candidate.
+
+1. 139 S261 verified base rent and owner pricing `c0f6490e8659a3aa684099590efbbbcbef7c6deb`
+2. 140 S262 owner response with the approved base rent `c0f6490e8659a3aa684099590efbbbcbef7c6deb`
+3. 141 S263 working renewal date proposals `c0f6490e8659a3aa684099590efbbbcbef7c6deb`
+4. 142 S264 tenant offer charges, totals and answers `c0f6490e8659a3aa684099590efbbbcbef7c6deb`
+5. 143 S265 tenant resource audience checks `c0f6490e8659a3aa684099590efbbbcbef7c6deb`
+6. 144 S266 housing assistance program source readiness `c0f6490e8659a3aa684099590efbbbcbef7c6deb`
+7. 145 S267 staff training and internal review `c0f6490e8659a3aa684099590efbbbcbef7c6deb`
+8. 146 S268 first Dotloop packet mapping review `c0f6490e8659a3aa684099590efbbbcbef7c6deb`
+9. 147 S269 Guided priority fields and exact resume `c0f6490e8659a3aa684099590efbbbcbef7c6deb`
+10. 148 S270 Guided disclosures for supporting details `c0f6490e8659a3aa684099590efbbbcbef7c6deb`
+11. 149 S271 November 10 walkthrough qualification `c0f6490e8659a3aa684099590efbbbcbef7c6deb`
 
 ## Continuation contract
 

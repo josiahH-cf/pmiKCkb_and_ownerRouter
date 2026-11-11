@@ -1,9 +1,21 @@
 # PMI KC facts
 
-Last reconciled: 2026-11-09 (exact production delivery and independent final readbacks).
+Last reconciled: 2026-11-11 (exact local qualification of intakes 139–149).
 
 This ledger contains present truth. Historical detail is recoverable in Git and immutable run
 evidence; an earlier receipt never authorizes a new attempt.
+
+## November 10 renewal walkthrough qualification
+
+The eleven November 10 authoring files matched the transfer at intake base
+`9b3bb69e2694d72c8312c4c8a5e42cb984f895aa`. S271 passed nine N10 cases on
+`c0f6490e8659a3aa684099590efbbbcbef7c6deb`, build `EvsdEv_bUWl9gRTP0vv6O`, with zero refused
+connections and a separate Thursday Yes. The S260 replay passed all ten journeys on the same
+source. Full verification, Core E2E, rendered Help and the deliberate Help drift passed. Both
+Dotloop write keys remain closed and signing stays human. Fees, tenant links, Dotloop maps and
+the program source remain source pending in their owners. Human verdict: NOT RUN — no human
+observer. The serving revision remains the verified November 9 release pending admission and
+delivery of the qualified batch. [Exact qualification](evidence/renewal-walkthrough-qualification-2026-11-10.md)
 
 ## November 9 renewal simplification delivery
 

@@ -1,6 +1,17 @@
 # Current status
 
-Updated: 2026-11-09 (UTC).
+Updated: 2026-11-11 (UTC).
+
+## November 10 renewal walkthrough qualification
+
+Intakes 139–149 (S261–S271) passed exact local qualification on
+`c0f6490e8659a3aa684099590efbbbcbef7c6deb`, build `EvsdEv_bUWl9gRTP0vv6O`. S271 engineering
+is Yes across nine N10 cases, with a separate Thursday Yes, and the S260 replay is Yes
+across ten journeys. Full verification, Core E2E, rendered Help and the deliberate Help
+drift passed. The approved WSL CLI and ADC refreshed after the owner's re-enrollment.
+Human verdict: NOT RUN — no human observer. The Thursday checkpoint and the Friday staff
+review stay separate from cumulative admission. The queue is ready for exact-main CI and
+native admission. [Qualification](evidence/renewal-walkthrough-qualification-2026-11-10.md)
 
 ## November 9 renewal simplification delivery
 

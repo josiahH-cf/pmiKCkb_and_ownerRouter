@@ -1,6 +1,18 @@
 # Current plan
 
-Updated: 2026-11-09 (UTC).
+Updated: 2026-11-11 (UTC).
+
+## November 10 authorized batch
+
+The owner authorized intakes 139–149 through exact qualification, mainline integration
+and native Cloud Run delivery. The November 10 specifications govern the batch.
+[Suite registry](feature-suites/README.md#november-10-renewal-walkthrough-and-guided-journey)
+
+S271 passed on `c0f6490e8659a3aa684099590efbbbcbef7c6deb`, with the S260 replay and a
+separate Thursday verdict. The cumulative queue binds all eleven intakes to that source.
+Require exact-main CI, fresh prerequisites and one watcher on locked GO. Capture the
+predecessor and tag bindings, promote using the candidate receipt and clear the queue after
+observation and independent readback. [Exact qualification](evidence/renewal-walkthrough-qualification-2026-11-10.md)
 
 ## Completed November 9 batch
 
