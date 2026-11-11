@@ -846,10 +846,42 @@ async function acceptanceHoldAtConsumers(kit, page, leaseId, { line, changedAt, 
       const previewHash = proposed.body.proposal.preview_hash;
       assert.equal(proposed.body.proposal.effects.length, 1);
       const [effect] = proposed.body.proposal.effects;
+      // The panel renders the saved proposal on the server, then reads each effect's durable
+      // status from this route after hydration (through the same seam). Wait for that read,
+      // and name what the panel shows when it never settles.
+      const statusRead = page.waitForResponse(
+        (response) =>
+          new URL(response.url()).pathname === WRITEBACK &&
+          response.request().method() === "GET",
+        { timeout: 60_000 },
+      );
       await kit.open(page, kit.href(leaseId, "?view=full#renewal-rent-and-charges"));
+      const panelStatus = await statusRead.then(
+        (response) => response.status(),
+        () => null,
+      );
       const panel = page.locator('article[aria-labelledby="rentvine-updates-title"]');
-      const item = panel.locator("li").filter({ hasText: "Ready to confirm" }).first();
-      await item.waitFor({ state: "attached" });
+      const item = panel
+        .locator("li")
+        .filter({ hasText: "Update lease renewal dates" })
+        .filter({ hasText: "Ready to confirm" })
+        .first();
+      try {
+        await item.waitFor({ state: "attached", timeout: 60_000 });
+      } catch (error) {
+        const area = page.locator("#renewal-rent-and-charges");
+        const seen = (await panel.count())
+          ? await panel.first().innerText()
+          : (await area.count())
+            ? "no RentVine updates panel; working area: " +
+              (await area.first().innerText())
+            : "no Rent and charges working area";
+        throw new Error(
+          `The RentVine preview never read Ready to confirm (panel status read ${panelStatus}): ` +
+            seen.replace(/\s+/g, " ").slice(0, 1500),
+          { cause: error },
+        );
+      }
       const row = item.locator('[data-renewal-field="acceptance-hold"]');
       assert.equal(await squash(row.locator("dt")), "Tenant acceptance");
       assert.equal(await squash(row.locator("dd")), `${line} ${words.update}`);
