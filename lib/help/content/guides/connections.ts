@@ -202,9 +202,28 @@ export const CONNECTIONS_GUIDES: readonly HelpGuide[] = [
         route: "/connections#renewal-resource-locations",
         where: "Connections, Renewal resource links",
         result:
-          "The line under the box changes from Pending team input to Destination needs review, and to Destination checked by staff once the box is ticked.",
+          "For an approved form location, the line under the box changes from Pending team input to Destination needs review, and to Destination checked by staff once the box is ticked. For the insurance flyer, the resident benefits package flyer and the renewal information form, the line reads Source pending with its reason until the tenant audience check is complete.",
         effect: "reads",
         note: "The boxes are shared by every lease: Insurance flyer, Resident benefits package flyer, Renewal information form and the approved legal-form locations, from Approved standard lease location to Approved insurance program addendum location. Every role reads them; only an Admin edits them.",
+      },
+      {
+        id: "record-tenant-audience-check",
+        action:
+          "For the insurance flyer, the resident benefits package flyer or the renewal information form, fill its Tenant audience check: Document version, Audience, Covered recipients when only the named recipients can open it, How it was checked, What opened, Checked by, Checked on and Check valid until.",
+        control: {
+          label: "Document version",
+          role: "label",
+          region: "region:Renewal resource links",
+          availability: "conditional",
+          source: ["components/lease-renewal/RenewalResourceLocations.tsx"],
+          actions: ["open-summary:Renewal resource links"],
+        },
+        route: "/connections#renewal-resource-locations",
+        where: "Renewal resource links, under each tenant resource box",
+        result:
+          "After you save the box, its line reads Verified for tenants with the audience, who checked it and when, the date it stays valid until and the document version. Only a resource verified for tenants reaches a tenant offer, and creating a Gmail draft, Send and a scheduled send each check it again.",
+        effect: "saves-in-app",
+        note: "A link anyone may open needs a check made while signed out; a check made while signed in as staff does not show that tenants can open it. Only the named recipients covers the email addresses listed, one per line. Replacing the link clears its checks, and Clear audience check empties the fields. Complete every field or clear them: a partial check is not saved. A renewal information form link that is not verified is left out of the offer, and an offer that needs a flyer waits for it.",
       },
       {
         id: "save-resource-link",
@@ -220,7 +239,7 @@ export const CONNECTIONS_GUIDES: readonly HelpGuide[] = [
         route: "/connections#renewal-resource-locations",
         where: "Renewal resource links, below each box",
         result:
-          "A status line confirms the link was saved and read back, and every lease reads the saved location; only a link checked by staff reaches a tenant message or packet. A blank box saves as pending team input and reads Pending team input, which is not an error.",
+          "A status line confirms the link was saved and read back, and every lease reads the saved location; only a checked link reaches a packet, and only a tenant resource verified for tenants reaches a tenant message. A blank form location saves as pending team input and reads Pending team input, which is not an error.",
         effect: "saves-in-app",
         note: "A saved location is not approved legal content, a mapping or a signature.",
       },

@@ -824,5 +824,40 @@
     "text": "No standing agreement is recorded yet.",
     "describes": "Admin standing agreements list with none recorded (S250)",
     "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/OfferChargeMappingsEditor.tsx",
+    "text": "What each RentVine account means in a tenant offer: its verified label, offer family, cadence and when it applies, with who approved it. A mapping gives meaning only. Each lease&apos;s amounts and whether a charge applies still need their own evidence, and nothing here sets a fee or a default.",
+    "describes": "Offer charge mappings purpose: a mapping gives an account its offer meaning only, never an amount, fee or default (S264)",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/OfferChargeMappingsEditor.tsx",
+    "text": "The exact, stable account. When the account does not tell the charge type apart, leave it unmapped.",
+    "describes": "Offer charge mapping account field (S264)",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/OfferChargeMappingsEditor.tsx",
+    "text": "What staff and the tenant offer show. No amounts or dates.",
+    "describes": "Offer charge mapping verified label field (S264)",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/OfferChargeMappingsEditor.tsx",
+    "text": "Who approved this meaning, and where it is recorded.",
+    "describes": "Offer charge mapping approval source field (S264)",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/OfferChargeMappingsEditor.tsx",
+    "text": "Tenant offers that use a changed mapping ask staff to review those lines again.",
+    "describes": "Review the mapping changes: offers that use a changed mapping ask staff to review those lines again (S264)",
+    "disposition": "keep"
   }
 ]

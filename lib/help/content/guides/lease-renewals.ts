@@ -6,36 +6,35 @@ import type { HelpGuide } from "@/lib/help/types";
 // Sheet and RentVine updates through the exact preview and confirmation; no second person approves
 // them. The desk opens on the working batch and a lease opens in Guided view (S246, S247); the
 // first steps of "Work a renewal" are the kickoff of a prepared lease, in order, up to its Send.
+// S269 and S270 (help V4.0): each outcome leads with the one field or fix it needs now, and its
+// optional work and read-only verification sit in named groups, closed on arrival, with the same
+// names in Guided and Full view (lib/lease-renewal/guided-priority.ts).
 
 const DESK = "/lease-renewal/live/desk";
 const LEASE = "/lease-renewal/live/desk/lease/[leaseId]";
 const FULL_VIEW = ["click-button:Full view"];
-const FULL_CORRECTIONS = [
-  ...FULL_VIEW,
-  "open-summary:Correct lease facts and review source updates",
-];
-const FULL_NUMBERS_EVIDENCE = [...FULL_VIEW, "open-summary:Verify check the numbers"];
+const FULL_CORRECTIONS = [...FULL_VIEW, "open-summary:Correct other lease facts"];
+const FULL_NUMBERS_EVIDENCE = [...FULL_VIEW, "open-summary:Verify lease numbers"];
 const FULL_COMPARISON_INPUTS = [
   ...FULL_VIEW,
   "open-summary:Comparison inputs and deliberate rerun",
 ];
-const FULL_OWNER_RECORD = [
+const FULL_OWNER_OPTIONS = [
   ...FULL_VIEW,
-  "open-summary:Record owner outreach or decision",
+  "open-summary:Owner message options and outreach record",
 ];
-const FULL_TENANT_RECORD = [
+const FULL_TENANT_OPTIONS = [
   ...FULL_VIEW,
-  "open-summary:Record tenant contact or response",
+  "open-summary:Tenant offer options and record of contact",
 ];
-const FULL_TENANT_EDIT = [
+const FULL_FOLLOW_UP_EVIDENCE = [
   ...FULL_VIEW,
-  "open-summary:Edit tenant message and manage delivery options",
-];
-const FULL_FINISH_UP = [
-  ...FULL_VIEW,
-  "open-summary:Work remaining follow-ups and source updates",
+  "open-summary:Verify follow-up and source updates",
 ];
 const ALL_LEASES = ["click-link:All leases and filters"];
+const GUIDED_PRIORITY = ["lib/lease-renewal/guided-priority.ts"];
+const OWNER_ANSWER = ["components/lease-renewal/RenewalOwnerAnswer.tsx"];
+const OFFER_CHARGES = ["components/lease-renewal/RenewalOfferCharges.tsx"];
 
 const SECTIONS = ["lib/lease-renewal/dashboard-sections.ts"];
 const BATCH = ["components/lease-renewal/RenewalWorkingBatch.tsx"];
@@ -63,7 +62,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
     title: "Work a renewal from the desk to a recorded outcome",
     audience: "Renewal staff",
     purpose:
-      "Open the working batch, take a lease along its guided path from Check the numbers to Complete on the Now card, and record what happened as it happens. A prepared lease starts in three actions: open it, Review and send, and confirm. Use Full view for the lease's detailed sections and return to Guided for the current step.",
+      "Open the working batch, take a lease along its guided path from Check the numbers to Complete on the Now card, and record what happened as it happens. A prepared lease starts in three actions: open it, Review owner message, and confirm. Each step leads with the one field or fix it needs now. Use Full view for the lease's detailed sections and return to Guided for the current step.",
     prerequisites: [
       "You are signed in with access to the Renewals Space.",
       "Anyone with Renewals access can read the desk and a lease. Recording work and sending a message need Editor access or higher.",
@@ -121,13 +120,32 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "On a prepared lease Check the numbers and Compare market rent read Done and the Now card is on Ask the owner. Choosing a step shows it in the Now card, and any step can be worked while an earlier one is open. Choosing a step saves nothing. While you inspect another step, Next step names the current work and Show current step takes you there.",
         effect: "reads",
-        note: "Check the numbers states Numbers agree on RentVine, or names the one difference to settle with its fix; an operating Sheet value shows there only when it differs.",
+        note: "Each step leads with the one field or exact fix it needs now, such as Correct the current base rent, Verify current lease end, Rent to recommend, Record the owner's answer, Set renewal base rent, Enter renewal start date or Review offer charges, and the field it names is the one that takes focus. A fix that belongs to another step opens there and offers the way back, such as Return to tenant offer. Check the numbers shows Current base rent, the monthly base rent with where it comes from, and names a separate charge such as pet rent apart from it. It states Numbers agree on RentVine, or names the one difference to settle with its fix; an operating Sheet value shows there only when it differs.",
+      },
+      {
+        id: "open-verification",
+        action:
+          "To see where a step's numbers come from, open its Verification group below the work, such as Verify lease numbers on Check the numbers.",
+        control: {
+          label: "Verify lease numbers",
+          role: "summary",
+          region: "region:Lease details",
+          availability: "required",
+          source: GUIDED_PRIORITY,
+          actions: ["click-button:Check the numbers"],
+        },
+        route: LEASE,
+        where: "Guided view, under each step's work; Full view, under each section",
+        result:
+          "The group opens in place with the step's read-only evidence, such as the lease term, the rent and charge evidence, Update status by destination and Data check with a link to each source record. Reading it saves nothing, and the work above it stays as you left it.",
+        effect: "reads",
+        note: "Every step has one Verification group, closed when you arrive: Verify lease numbers, Verify market comparison, Verify owner terms and outreach, Verify offer facts and delivery, Verify forms and signing evidence, Verify follow-up and source updates and Verify completion. Optional work has its own named group beside it, such as Correct other lease facts or Owner message options and outreach record. A group opens by itself when it holds a failed or waiting save, an entry to fix, a note that governs the step or the step's current lead. Full view shows the same groups with the same names under its sections.",
       },
       {
         id: "read-the-prepared-message",
         scene: "lease-now-card",
         action:
-          "Read the Now card: the stored comparison with its range, comparables and age, Rent to recommend with its basis in words, Reason to include and the owner message preview.",
+          "Read the Now card: Reason to include, What sending needs and the owner message preview with the stored comparison. Under it, Owner approval shows Current base rent and Rent to recommend, your recommendation to the owner, with Edit rent to recommend.",
         control: {
           label: "Owner message",
           role: "region",
@@ -140,24 +158,25 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "The preview is the message exactly as the owner receives it, and What sending needs lists each input as Ready or names what is missing with its fix. A stored comparison is reused, so reaching the message needs no second comparison.",
         effect: "reads",
-        note: "Changing Rent to recommend or Reason to include is optional and updates the same preview. Rent to recommend shows its save state and offers Try again after a failed save. Retry keeps keyboard focus while saving and becomes available again if saving fails. Review, Schedule, Create Gmail draft instead and Open in Communications wait for their entered working figures to save. A failure keeps the entry and brings its field and nearby retry into view; its refusal clears when that field is confirmed. A Gmail preview that needs an entered figure closes its empty dialog before returning focus to that field. A loading preview keeps focus inside its dialog. A long review opens at its message details. Cancel or Escape closes a ready review and returns focus to its action. If figures change while Review loads, choose Review and send again to review the current message. Copy keeps the displayed bytes and says when working figures were unconfirmed. A lease with no rent to recommend asks for one here before Send. A missing owner recipient's fix shows its reasons and source record links; when only the lease record is available, open its owner record there and refresh this lease after saving. A missing template's fix shows its publication status for the Approver handoff. Set up your signature opens your own signature form. Its fields are optional. Save blank signature completes setup without adding signature text. Full view keeps the same setup and message editor.",
+        note: "Rent to recommend is your recommendation, not the owner's answer. Edit rent to recommend opens its one editor on Compare market rent, and changing it or Reason to include is optional and updates the same preview. Rent to recommend shows its save state and offers Try again after a failed save. Retry keeps keyboard focus while saving and becomes available again if saving fails. Review, Schedule, Create Gmail draft instead and Open in Communications wait for their entered working figures to save. A failure keeps the entry and brings its field and nearby retry into view; its refusal clears when that field is confirmed. A Gmail preview that needs an entered figure closes its empty dialog before returning focus to that field. A loading preview keeps focus inside its dialog. A long review opens at its message details. Cancel or Escape closes a ready review and returns focus to its action. If figures change while the review loads, your entries are kept; open the review again to see the current message. Copy keeps the displayed bytes and says when working figures were unconfirmed. A lease with no rent to recommend leads with Rent to recommend before Send. A missing owner recipient's fix shows its reasons and source record links; when only the lease record is available, open its owner record there and refresh this lease after saving. A missing template's fix shows its publication status for the Approver handoff. Set up your signature opens your own signature form. Its fields are optional. Save blank signature completes setup without adding signature text. Full view keeps the same setup and message editor.",
       },
       {
         id: "review-and-send",
         scene: "lease-review-and-send",
-        action: "Choose Review and send.",
+        action: "Choose Review owner message.",
         control: {
-          label: "Review and send",
+          label: "Review owner message",
           role: "button",
           region: "region:Now",
           availability: "conditional",
-          source: KICKOFF,
+          source: GUIDED_PRIORITY,
         },
         route: LEASE,
         where: "Guided view, the Now card's primary action",
         result:
           "Review and send opens with the exact message, the recipients and the sender. Nothing is sent until you confirm.",
         effect: "reads",
+        note: "Full view opens the same review from Review and send under Owner message preparation. When something is missing, the primary action names the fix instead, such as Set up your signature or Review the marked values.",
       },
       {
         id: "send-the-message",
@@ -190,32 +209,32 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         route: LEASE,
         where: "Guided view, the Now card",
         result:
-          "An owner reply shows here as Owner replied with its date and the reply, and Record the owner's decision becomes the next step. A message Gmail has not confirmed reads Check whether the message went out, and a failed delivery reads Delivery failed with Check the address and send again.",
+          "An owner reply shows here as Owner replied with its date and the reply, and Record the owner's answer becomes the next step. A message Gmail has not confirmed reads Check whether the message went out, and a failed delivery reads Delivery failed with Check the address and send again.",
         effect: "reads",
         note: "Record what happened, Send again and Work a later step now stay available while the lease waits. This was not the renewal outreach asks for a reason. Remove the derived record reopens the step and brings focus to Now. Keep it returns to the correction action.",
       },
       {
         id: "record-the-owner-decision",
         action:
-          "Choose Record the owner's decision and read Owner reply. In The owner's decision, choose the Approved option that names the reply's time and mailbox, Asked for a change or Declined / non-renewal. For Approved, choose Who approved in this reply; for a change, you can add What the owner asked to change. Then choose Record this decision.",
+          "Choose Record the owner's answer and read Owner reply. Choose the Approved in the reply received option that names the reply's time and mailbox, Asked for a change or Declined / non-renewal. For an approval, enter Amount approved exactly as the owner gave it, choose what the answer covers and Who approved in this reply, then choose Review the owner's answer, check it and choose Save the owner's answer. For a change or a decline, choose Record this decision.",
         control: {
-          label: "Record this decision",
+          label: "Review the owner's answer",
           role: "button",
           region: "region:Now",
           availability: "conditional",
-          source: ["components/lease-renewal/RenewalOwnerDecisionFromReply.tsx"],
+          source: OWNER_ANSWER,
         },
         route: LEASE,
         where: "Guided view, the Now card on Ask the owner, once the owner replies",
         result:
-          "The decision saves with your name and time, and the path moves on to Offer the tenant. An approval records who approved, the reply it came in and the time that reply was received. The owner's decision starts with no choice made, and a reply records a decision only when you choose one.",
+          "The answer saves with your name and time. An approval records Amount approved as the offer amount for this renewal, what the answer covers, who approved, the reply it came in and the time that reply was received, and Continue to Offer the tenant appears. Record the owner's answer starts with no choice made, and a reply records an answer only when you choose one.",
         effect: "saves-in-app",
-        note: "Owner reply reads the observed message from the linked conversation. A failed read offers Try again and keeps your entries. Retry keeps keyboard focus while reading and leads into the reply when ready. If you already moved to a decision, focus stays there. A partial reply says to read the full conversation. Owner response in Full view records an approval from an authorized representative, another written channel or a conversation, with Who approved, How they approved and When they approved, then Record approval.",
+        note: "What the owner's answer covers is Base rent only, or Base rent and the renewal dates once both dates are saved; other charges are reviewed with the tenant offer. The review lists Recommended base rent beside Amount approved, and Change the answer returns to your entries. Rent to recommend stays your recommendation: the approved amount never replaces it, and when no earlier recommendation exists the lease says so. Owner reply reads the observed message from the linked conversation. A failed read offers Try again and keeps your entries. Retry keeps keyboard focus while reading and leads into the reply when ready. If you already moved to an answer, focus stays there. A partial reply says to read the full conversation. Owner response in Full view records an approval from an authorized representative, another written channel or a conversation: choose Approved, enter Amount approved and what it covers, then Who approved, How they approved and When they approved, and choose Review the owner's answer and Save the owner's answer. Record a new approval starts a new answer after one is saved.",
       },
       {
         id: "offer-the-tenant",
         action:
-          "On Offer the tenant, read the tenant offer prepared from the working terms, choose Review and send, read the exact review and choose Send this message.",
+          "On Offer the tenant, settle what the Now card leads with, such as Set renewal base rent, Enter renewal start date or Review offer charges, read the tenant offer prepared from the working terms, choose Review tenant offer, read the exact review and choose Send this message.",
         control: {
           label: "Send this message",
           role: "button",
@@ -227,7 +246,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         where: "Guided view, the Now card on Offer the tenant",
         result:
           "Once Gmail accepts the offer, the lease reads Waiting on tenant response. Prepare the tenant offer and record the response covers copying the offer, a Gmail draft and Communications.",
-        note: "In the exact review, you can authorize follow-ups after the tenant offer. Enter their wording, interval, time, timezone and stopping bound. The next follow-up is due after confirmed acceptance. A verified tenant reply pauses unsent follow-ups. Record the decision separately.",
+        note: "Review offer charges lists each charge line for this offer with its source and the exact totals; Prepare the tenant offer and record the response explains each choice. When the offer needs a shared flyer or form that is not ready for tenants, the Now card leads with Shared resource link and the resource's name. In the exact review, you can authorize follow-ups after the tenant offer. Enter their wording, interval, time, timezone and stopping bound. The next follow-up is due after confirmed acceptance. A verified tenant reply pauses unsent follow-ups. Record the decision separately.",
         effect: "explicit-send",
       },
       {
@@ -262,6 +281,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "The document packet controls for this lease show under the Now card. Signing happens in Dotloop, and you record the documents, their delivery and the signatures as staff work.",
         effect: "reads",
+        note: "Next for this packet names the one thing the packet needs first: a packet input with Enter it in Packet inputs, a form that waits on a named difference, a form whose source is pending with what is missing and who supplies it, or the signatures still awaited. Each other form keeps its own readiness, and the manual handoff stays available.",
       },
       {
         id: "finish-up",
@@ -279,6 +299,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "Each item reads as recorded by staff or as verified by its receipt. Showing a preview changes nothing; each update applies only after its own exact confirmation, as Update RentVine and the operating Sheet describes.",
         effect: "reads",
+        note: "Finish up shows the first open follow-up when you arrive, and it stays in place while you record it, with anything you typed. The next one takes its place when you come back to Finish up; the rest wait in Other follow-ups.",
       },
       {
         id: "record-staff-completion",
@@ -290,10 +311,10 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           region: "region:Documents and completion",
           availability: "conditional",
           source: MANUAL,
-          actions: [...FULL_VIEW, "open-summary:Record completion or non-renewal"],
+          actions: FULL_VIEW,
         },
         route: LEASE,
-        where: "Complete, or Documents and completion, Staff completion",
+        where: "Complete, or Documents and completion, Completion recorded by staff",
         result:
           "The completion saves with your name and time, and the button changes to Reopen recorded completion for when work resumes.",
         effect: "saves-in-app",
@@ -321,7 +342,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
       {
         id: "work-an-assisted-lease",
         action:
-          "On Check the numbers, set Housing assistance to Yes and enter the Program name when a housing program pays part of the rent.",
+          "On Check the numbers, set Housing assistance to Yes and enter the Program name when a housing program pays part of the rent. Add Program contact (optional) when you have it.",
         control: {
           label: "Housing assistance",
           role: "group",
@@ -334,7 +355,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "Once the numbers agree, Continue names and opens the program-contact step. The path asks you to contact the named program about the renewal process, then Ask the owner whether to renew this tenant (Renew, Do not renew or No answer yet), then Rent for this renewal (Keep the current rent or Propose a change), with nothing chosen for you. Keep the current rent leaves the comparison and the owner's rent decision out of the path, Propose a change brings them in, and Do not renew moves the lease to the non-renewal handoff.",
         effect: "saves-in-app",
-        note: "After Yes is chosen, Program name is required. An empty name shows what to enter, and the choice saves when the name is complete. Saving is visible; a failed save keeps your entry and offers Try again. Newer typing stays in its field while an earlier save finishes. The desk row carries the Housing assistance tag. Animal follow-up records the outside work staff actually did. Animal charges and agreement in Readiness opens Packet inputs. Charges and agreements for an assistance animal wait for the approved rule. When RentVine wording mentions housing assistance and the field is unset, the lease reads RentVine mentions housing assistance. Set the field? and nothing changes until you set it.",
+        note: "The program-contact step names the program and its saved contact, or says no program contact is saved yet, with Enter the program contact or Edit the program contact. Either one takes you to the contact box in Housing assistance, the one place the contact is edited: on Check the numbers in Guided view, or in Lease information in Full view. After Yes is chosen, Program name is required. An empty name shows what to enter, and the choice saves when the name is complete. Saving is visible; a failed save keeps your entry and offers Try again. Newer typing stays in its field while an earlier save finishes. The desk row carries the Housing assistance tag. Animal follow-up records the outside work staff actually did. Animal charges and agreement in Readiness opens Packet inputs. Charges and agreements for an assistance animal wait for the approved rule. When RentVine wording mentions housing assistance and the field is unset, the lease reads RentVine mentions housing assistance. Set the field? and nothing changes until you set it.",
       },
       {
         id: "choose-full-view",
@@ -459,10 +480,11 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           availability: "conditional",
           source: ACTIVITIES,
           sourceText: "{definition.label} outcome",
-          actions: FULL_OWNER_RECORD,
+          actions: FULL_OWNER_OPTIONS,
         },
         route: LEASE,
-        where: "Owner approval, Work recorded by staff",
+        where:
+          "Owner approval, Owner message options and outreach record, Work recorded by staff",
         result:
           "The entry saves at once with your name and time, and the first entry starts the work record. Recorded renewal work at the top of the lease shows the summary and the suggested next activity.",
         effect: "saves-in-app",
@@ -550,6 +572,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
       "No step is locked by the suggested next step, and the app approves and signs nothing for you.",
     ],
     relatedGuides: [
+      "train-and-review",
       "compare-rent",
       "owner-message",
       "tenant-offer",
@@ -557,7 +580,210 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
       "prepare-documents",
     ],
     relatedScreens: ["renewal-desk", "lease-workspace", "live-renewal-review"],
-    lastUpdated: "2026-11-09",
+    lastUpdated: "2026-11-10",
+    navItems: ["lease-renewal"],
+    spaces: ["lease-renewals"],
+  },
+  {
+    // S267 R-S267-1..3: the staff training and internal review path on existing roles and scoped
+    // surfaces. It grants nothing and adds no recipient, routing or approval step.
+    id: "train-and-review",
+    section: "lease-renewals",
+    title: "Prepare a renewal as a teammate and review it as the lead",
+    audience: "Renewal staff",
+    purpose:
+      "Learn the renewal work your role allows on the Guided path, hand off what is not yours, and let the lead follow and review the work inside the app. A staff recommendation, the team's own review, the owner's verified answer, the tenant offer you confirm, the tenant's response and the signatures stay separate records.",
+    prerequisites: [
+      "You use your own managed sign-in and your current Renewals access. This guide grants no role, Space, member or recipient; when your work needs more access, ask in My access and requests.",
+      "Who does what: anyone with Renewals access reads the desk, a lease, its Verification groups and its Work status history. An Editor or higher also saves working values and notes, records the owner's and tenant's answers, and sends a message through its exact review. An Admin keeps the shared settings in Admin and Connections.",
+      "The pictures in these guides come from synthetic rehearsal leases. Practice on the lease your lead chooses for you.",
+    ],
+    steps: [
+      {
+        id: "find-the-work",
+        action:
+          "Open Lease Renewal and find the lease in Monthly renewals, or choose All leases and filters to search the full table. Choose the address to open it.",
+        control: {
+          label: "Monthly renewals",
+          role: "region",
+          availability: "required",
+          source: BATCH,
+        },
+        route: DESK,
+        where: "Renewals desk, Monthly renewals",
+        result:
+          "The lease opens in Guided view at its current step. The stage line says who the lease waits on and since when, and the Renewal path marks each step Done, Now, Open, Waiting or Covered.",
+        effect: "reads",
+        note: "The desk lists only the leases your access covers. A teammate without Renewals access cannot open a lease link you share.",
+      },
+      {
+        id: "work-the-lead",
+        action:
+          "Work what the Now card leads with: the one field or exact fix the step needs now, such as Correct the current base rent, Rent to recommend or Record the owner's answer. Choosing its action takes you to that field.",
+        control: {
+          label: "Now",
+          role: "region",
+          region: "region:Guided view",
+          availability: "required",
+          source: GUIDED,
+        },
+        route: LEASE,
+        where: "Guided view, the Now card",
+        result:
+          "Each field saves on its own and shows its save state. When the step is settled, the Now card leads with the next field or the step's primary action, and Show current step returns you to the current work from any other step.",
+        effect: "saves-in-app",
+        note: "A fix that belongs to another step opens there and offers the way back, such as Return to tenant offer. When a control is unavailable to your role, the card says who does it, for example An Editor enters it in Packet inputs, or An Admin records the tenant audience check in Connections.",
+      },
+      {
+        id: "explain-the-source",
+        action:
+          "To explain where a number comes from, open the step's Verification group, such as Verify lease numbers, read its sources, then close it to return to the same work. Turn on Full view to see the same group under its section.",
+        control: {
+          label: "Verify lease numbers",
+          role: "summary",
+          region: "region:Lease details",
+          availability: "required",
+          source: GUIDED_PRIORITY,
+          actions: ["click-button:Check the numbers"],
+        },
+        route: LEASE,
+        where: "Guided view, under the step's work; Full view, under each section",
+        result:
+          "The group shows the read-only evidence with a link to each source record. Opening and closing it saves nothing, and turning Full view off returns to the Guided step you left.",
+        effect: "reads",
+        note: "A missing source reads Needs verification or Source pending with its reason; it is a fact to check or hand off, not a step to skip.",
+      },
+      {
+        id: "prepare-the-recommendation",
+        action:
+          "On Compare market rent, read the stored comparison and set Rent to recommend, the rent you recommend to the owner, with its basis in words.",
+        control: {
+          label: "Rent to recommend",
+          role: "label",
+          region: "region:Now",
+          availability: "conditional",
+          source: KICKOFF,
+          actions: ["click-button:Compare market rent"],
+        },
+        route: LEASE,
+        where: "Guided view, the Now card on Compare market rent",
+        result:
+          "The amount saves as your recommendation and fills the owner message on Ask the owner. It stays a staff recommendation: the owner's answer is recorded separately and never replaces it.",
+        effect: "saves-in-app",
+      },
+      {
+        id: "leave-a-note-for-the-lead",
+        action:
+          "Open Work status in the lease header and use Add a note to tell the lead what you prepared and what is waiting.",
+        control: {
+          label: "Add a note",
+          role: "label",
+          region: "region:Staff status and Status log",
+          availability: "required",
+          source: ["lib/lease-renewal/work-status-notes.ts"],
+          actions: ["open-summary:Work status"],
+        },
+        route: LEASE,
+        where: "Lease header, Work status",
+        result:
+          "The note saves with your name and time in History, on this lease's one Work status entry. The stage beside the address still follows the recorded work and evidence.",
+        effect: "saves-in-app",
+        note: "A note or a staff status does not assign the lease, record an approval or mark a message delivered.",
+      },
+      {
+        id: "lead-reviews-progress",
+        action:
+          "As the lead, open the same lease from the desk, from Shared lease collections, or from the lease link your teammate shares. Open Work status and read the staff status, the notes and History.",
+        control: {
+          label: "Work status",
+          role: "summary",
+          region: "group:Lease workspace panels",
+          availability: "required",
+          source: ["components/lease-renewal/RenewalWorkStatusControl.tsx"],
+        },
+        route: LEASE,
+        where: "Lease header, beside Lease information",
+        result:
+          "You see the current stage, what was recorded and by whom, and the notes in order. Reply with your own note. Reading changes nothing, and the lease link opens only for people whose access covers the lease.",
+        effect: "reads",
+        note: "Lease follow-up tasks creates a task in your own My Work. To keep a group of leases together for the team, choose All leases and filters, then Save reviewed leases as a shared collection.",
+      },
+      {
+        id: "lead-reviews-the-work",
+        action:
+          "Review the prepared work with your teammate: Rent to recommend and its basis, the owner message preview with What sending needs, and the Verification groups. Choose Review owner message to read the exact message, the recipients and the sender.",
+        control: {
+          label: "Owner message",
+          role: "region",
+          region: "region:Now",
+          availability: "conditional",
+          source: PREPARED_MESSAGE,
+          actions: ["click-button:Ask the owner"],
+        },
+        route: LEASE,
+        where: "Guided view, the Now card on Ask the owner",
+        result:
+          "The review shows the exact recipients and the responsible sender, with no added copy recipient. Reading it sends nothing: only Send this message in the exact review sends, and Cancel closes it.",
+        effect: "reads",
+        note: "The team's own review happens here and in your conversation; the app records no separate review or approval step for it. Whoever sends uses the same exact review, which names that person's own managed mailbox as the sender.",
+      },
+      {
+        id: "keep-decisions-apart",
+        action:
+          "Read Owner approval and Tenant offer and response in Full view to tell each decision apart: Rent to recommend, the owner's answer with Amount approved and what it covers, the tenant offer you confirm, the Tenant response and the signatures.",
+        control: {
+          label: "Owner approval",
+          role: "link",
+          region: "navigation:Renewal dashboard sections",
+          availability: "required",
+          source: ["lib/lease-renewal/dashboard-sections.ts"],
+          actions: FULL_VIEW,
+        },
+        route: LEASE,
+        where: "Full view, section links",
+        result:
+          "Rent to recommend is the staff recommendation. Record the owner's answer saves the owner's verified answer: Amount approved, Base rent only or Base rent and the renewal dates, and who approved, how and when. Send this message in the exact review sends the tenant offer, Tenant response records what the tenant said, and signatures happen in Dotloop by hand.",
+        effect: "reads",
+        note: "Each record keeps its own meaning: a recommendation is not the owner's approval, an approval covers only what it names, a sent offer is not the tenant's acceptance, and a recorded signature is staff evidence, not a Dotloop receipt.",
+      },
+      {
+        id: "find-the-shared-settings",
+        action:
+          "When a fix needs a shared setting, find where it lives and hand it to an Admin: Connections, Renewal resource links, for the shared flyers, the information form and the form locations; Admin, Renewal packet configuration, Offer charge mappings, for what each RentVine account means in a tenant offer.",
+        control: {
+          label: "Insurance flyer",
+          role: "label",
+          region: "region:Renewal resource links",
+          availability: "required",
+          source: ["lib/lease-renewal/resource-locations.ts"],
+          actions: ["open-summary:Renewal resource links"],
+        },
+        route: "/connections#renewal-resource-locations",
+        where: "Connections, Renewal resource links",
+        result:
+          "Every role reads the shared links and their state; only an Admin changes them. Offer charge mappings opens for an Admin only.",
+        effect: "reads",
+        note: "Who owns the Owner Renewal Outreach process and who receives its work by default is a team decision that is still open, so the process names no staff routing. Hand work to a person directly and note it in Work status; do not start a process run to find out who is assigned.",
+      },
+    ],
+    result:
+      "The teammate prepared the work their role allows, explained its sources and handed off the rest; the lead followed the lease's Work status and reviewed the work inside the app. The owner's answer, the tenant offer, the tenant's response and the signatures stay separate, each recorded or sent only by its own action.",
+    doesNotDo: [
+      "This guide grants no role, Space, member or recipient, and changes no routing, approval rule or provider action.",
+      "A note, a staff status or a team review is not the owner's approval, a sent message or a signature.",
+      "Sharing a lease link gives no access; the lease opens only for people whose access covers it.",
+      "Opening a Verification group, Full view or the exact review saves and sends nothing.",
+    ],
+    relatedGuides: [
+      "work-a-renewal",
+      "compare-rent",
+      "owner-message",
+      "tenant-offer",
+      "prepare-documents",
+      "my-work-and-profile",
+    ],
+    relatedScreens: ["renewal-desk", "lease-workspace"],
+    lastUpdated: "2026-11-10",
     navItems: ["lease-renewal"],
     spaces: ["lease-renewals"],
   },
@@ -718,26 +944,26 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "The amount saves in the app. Ask the owner shows this same amount and links back to its editor.",
         effect: "saves-in-app",
-        note: "Preparation can fill an empty amount using a verified basis. Your saved amount takes precedence.",
+        note: "Preparation can fill an empty amount using a verified basis. Your saved amount takes precedence. Rent to recommend stays your recommendation to the owner: the amount the owner approves is recorded with the owner's answer and never replaces it.",
       },
       {
         id: "enter-working-terms",
         action:
-          "Under Owner approval, open Record owner outreach or decision, then enter Working effective date and Working term end date.",
+          "Under Owner approval, open Working renewal terms, then enter Working effective date and Working term end date, or choose Use the day after the current lease ends for the start.",
         control: {
           label: "Working effective date",
           role: "label",
           region: "region:Owner approval",
           availability: "required",
           source: MANUAL,
-          actions: FULL_OWNER_RECORD,
+          actions: [...FULL_VIEW, "open-summary:Working renewal terms"],
         },
         route: LEASE,
-        where: "Owner approval, Record owner outreach or decision",
+        where: "Owner approval, Working renewal terms",
         result:
           "Each value saves on its own with your name and time and stays until you change it. Tenant messages, the RentVine renewal rent preview and the Sheet and RentVine update previews use the saved values.",
         effect: "saves-in-app",
-        note: "Record the owner's actual answer separately in Owner response; working terms are the rent and dates you are working with.",
+        note: "Working renewal terms is its own group on Ask the owner, closed until the dates are the current work; Enter renewal start date or Enter renewal end date opens it at that field. Current lease ends shows the verified lease end. When it is verified and no start is saved, Use the day after the current lease ends saves that date as the Working effective date with its basis. The end date is always yours to enter, and an end that is not after the start is shown for review. A date fix that began on Offer the tenant offers Return to tenant offer. Record the owner's actual answer separately in Owner response; working terms are the rent and dates you are working with.",
       },
     ],
     result:
@@ -759,7 +985,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
     title: "Prepare the tenant offer and record the response",
     audience: "Renewal staff",
     purpose:
-      "Prepare the tenant renewal offer from the working renewal terms, deliver the offer with Review and send on the Now card, by copy, an unsent Gmail draft or your own Send or Schedule in Communications, and record delivery and the tenant's actual response.",
+      "Prepare the tenant renewal offer from the working renewal terms, decide which charges apply in Review offer charges, deliver the offer with Review tenant offer on the Now card, by copy, an unsent Gmail draft or your own Send or Schedule in Communications, and record delivery and the tenant's actual response.",
     prerequisites: [
       "The working renewal terms are entered, because the tenant message is built from them.",
       "The lease is open from the working batch. Offer the tenant on the Now card holds the prepared offer; the steps that name a section use Full view.",
@@ -769,7 +995,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
       {
         id: "open-offer-the-tenant",
         action:
-          "Choose Offer the tenant in the Renewal path, read the tenant offer prepared from the working terms, then choose Review and send and Send this message when it is ready.",
+          "Choose Offer the tenant in the Renewal path, read the tenant offer prepared from the working terms, then choose Review tenant offer and Send this message when it is ready.",
         control: {
           label: "Offer the tenant",
           role: "button",
@@ -782,7 +1008,27 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "The Now card shows the tenant offer, What sending needs and the same delivery actions as the owner message. Once Gmail accepts the offer, the lease reads Waiting on tenant response with nothing more to enter.",
         effect: "explicit-send",
-        note: "Choosing the step saves nothing. When a value is missing, Review and send brings you to Marked values and its links. A missing Renewal information form link opens its existing shared setting in Connections. An Admin checks and saves shared links. Send this message in the exact review is the one action that sends the offer.",
+        note: "Choosing the step saves nothing. When a value is missing, the Now card leads with its fix, such as Set renewal base rent, Enter renewal start date or Review offer charges, and Review the marked values opens Marked values and its links. When the offer needs the insurance flyer or the resident benefits package flyer and that link is not verified for tenants, the Now card leads with Shared resource link and the flyer's name, which opens its entry in Connections; a role that does not keep the links also reads that an Admin records the tenant audience check there. A renewal information form link that is not verified for tenants is left out of the offer with no placeholder. Send this message in the exact review is the one action that sends the offer, and the review shows the exact recipients and the sender.",
+      },
+      {
+        id: "review-offer-charges",
+        action:
+          "In Review offer charges, decide each charge line. For each Does it apply to this offer question, choose Include in this offer or Leave out of this offer and give Why it applies (its source) or Why it does not apply (its evidence). Open Correct the renewal amount or date when a line's renewal amount or date differs, with Source of the correction, and answer the insurance and Resident Benefits Package questions with their sources.",
+        control: {
+          label: "Review offer charges",
+          role: "region",
+          region: "region:Now",
+          availability: "conditional",
+          source: OFFER_CHARGES,
+          actions: ["click-button:Offer the tenant"],
+        },
+        route: LEASE,
+        where:
+          "Offer the tenant, Review offer charges, on the Now card or under Tenant message preparation in Full view",
+        result:
+          "Each choice saves with the tenant message, and the totals show Renewal base rent, Monthly and One time. What the totals still need names each missing amount, date or source, and First names the line to settle next until every line is decided.",
+        effect: "saves-in-app",
+        note: "Each RentVine line and each case entry is its own row with its source. A line no mapping names is decided for this lease with What this charge is for this lease and its source. Confirm this line again appears when the meaning or source of a decided line changed. Lines that ended before the renewal, start after it, belong to the rent account or are a separate requirement are listed under Charge lines that do not apply, for review only. Add a charge for this lease only, in Tenant offer options and record of contact, adds a charge with its amount, date, trigger and Authorized case source or approved policy, and Remove this charge takes it out. No one-time fee is selected unless its approved policy or an authorized case source supports it. An Admin keeps the shared meaning of each RentVine account in Offer charge mappings.",
       },
       {
         id: "open-tenant-section",
@@ -812,14 +1058,14 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           region: "region:Tenant message preparation",
           availability: "conditional",
           source: MESSAGE,
-          actions: FULL_TENANT_EDIT,
+          actions: FULL_TENANT_OPTIONS,
         },
         route: LEASE,
         where: "Tenant offer and response, Tenant message preparation",
         result:
           "Your edits save by themselves with this lease, and the formatted preview shows the message as the tenant reads it.",
         effect: "saves-in-app",
-        note: "Response request (optional wording edit) replaces one named paragraph; a blank box keeps the approved wording. On the Now card, Check tenant email addresses in RentVine opens the recipient reasons and the existing lease record link. Ask an Approver to publish the tenant template shows its publication status for that handoff.",
+        note: "Response request (optional wording edit) replaces one named paragraph; a blank box keeps the approved wording. Lease origin (optional detail) records Current lease origin. On the Now card, Check tenant email addresses in RentVine opens the recipient reasons and the existing lease record link. Ask an Approver to publish the tenant template shows its publication status for that handoff.",
       },
       {
         id: "resolve-marked-values",
@@ -831,7 +1077,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           region: "region:Tenant message preparation",
           availability: "conditional",
           source: MESSAGE,
-          actions: FULL_TENANT_EDIT,
+          actions: FULL_TENANT_OPTIONS,
         },
         route: LEASE,
         where: "Tenant message preparation, below the message",
@@ -849,7 +1095,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           region: "region:Tenant message preparation",
           availability: "conditional",
           source: MESSAGE,
-          actions: FULL_TENANT_EDIT,
+          actions: FULL_TENANT_OPTIONS,
         },
         route: LEASE,
         where: "Tenant message preparation, Copy the message",
@@ -867,7 +1113,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           region: "region:Tenant message preparation",
           availability: "conditional",
           source: MESSAGE,
-          actions: [...FULL_VIEW, "open-summary:Verify offer the tenant"],
+          actions: FULL_TENANT_OPTIONS,
         },
         route: LEASE,
         where: "Tenant message preparation, Unsent Gmail draft",
@@ -887,7 +1133,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           availability: "required",
           source: MESSAGE,
           sourceText: "Compose {channel} message in Communications",
-          actions: FULL_TENANT_EDIT,
+          actions: FULL_TENANT_OPTIONS,
         },
         route: LEASE,
         where: "Tenant message preparation, at the top",
@@ -924,7 +1170,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           availability: "conditional",
           source: ACTIVITIES,
           sourceText: "{definition.label} outcome",
-          actions: FULL_TENANT_RECORD,
+          actions: FULL_TENANT_OPTIONS,
         },
         route: LEASE,
         where: "Tenant offer and response, Work recorded by staff",
@@ -942,7 +1188,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           region: "region:Tenant offer and response",
           availability: "conditional",
           source: MANUAL,
-          actions: FULL_TENANT_RECORD,
+          actions: FULL_TENANT_OPTIONS,
         },
         route: LEASE,
         where: "Tenant offer and response, Tenant response",
@@ -953,17 +1199,17 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
       {
         id: "read-notice-timing",
         action:
-          "Read the Notice timing card in Documents and completion: each notice date the app derived, with where it came from.",
+          "Open Verify follow-up and source updates on Finish up and read the Notice timing card: each notice date the app derived, with where it came from.",
         control: {
           label: "Notice timing",
           role: "heading",
           region: "region:Documents and completion",
           availability: "conditional",
           source: WORKSPACE,
-          actions: [...FULL_VIEW, "open-summary:Verify finish up"],
+          actions: FULL_FOLLOW_UP_EVIDENCE,
         },
         route: LEASE,
-        where: "Documents and completion, Notice timing",
+        where: "Finish up, Verify follow-up and source updates, Notice timing",
         result:
           "A Needs Verification line means a source did not confirm that date. The card only reads, and the app sets no reminder or deadline from it.",
         effect: "reads",
@@ -976,6 +1222,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
       "Copying, drafting and recording deliver nothing and accept nothing for the tenant.",
       "An unsent Gmail draft is not delivery, and a recorded delivery or response is staff evidence, not a provider receipt.",
       "Recording the tenant response does not write to RentVine or the Sheet.",
+      "Review offer charges decides the offer's lines only; no RentVine charge changes, and a mapping or a policy sets no fee for a lease.",
     ],
     relatedGuides: [
       "compare-rent",
@@ -1001,7 +1248,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
       {
         id: "enter-working-rent",
         action:
-          "In Rent and charges, type the amount the tenant is billed today in Working current rent when it differs from what the sources show.",
+          "In Rent and charges, type the current monthly base rent in Working current rent when it differs from what the sources show. Correct the current base rent on Check the numbers brings you here.",
         control: {
           label: "Working current rent",
           role: "label",
@@ -1015,7 +1262,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "The working value saves on its own and stays until you change it. Each source value and any difference stay visible beside it.",
         effect: "saves-in-app",
-        note: "Contractual lease rent, Lease total (RentVine) and Unit listed rent keep their own meanings and are never added to the rent.",
+        note: "Current base rent, on Check the numbers and Ask the owner, reads this same value once it is saved. A separate recurring charge such as pet rent is named apart from the base rent. Contractual lease rent, Lease total (RentVine) and Unit listed rent keep their own meanings and are never added to the rent.",
       },
       {
         id: "prepare-rent-charge-update",
@@ -1173,7 +1420,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           region: "region:Documents and completion",
           availability: "required",
           source: MANUAL,
-          actions: FULL_FINISH_UP,
+          actions: FULL_VIEW,
         },
         route: LEASE,
         where: "Documents and completion, Source updates",

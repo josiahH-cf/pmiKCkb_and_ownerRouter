@@ -659,5 +659,61 @@
     "text": "Each field is optional. A saved blank adds no signature to your message.",
     "describes": "Sender setup permits an explicit blank signature",
     "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/PacketNextStep.tsx",
+    "text": "…Each other form keeps its own readiness, and the manual handoff stays available.",
+    "describes": "Next for this packet: one form waiting on a source leads, and the other forms and the manual handoff stay as they are (S268)",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalKickoffFields.tsx",
+    "text": "The earlier recommendation is not available. The offer amount is the amount recorded from the owner&apos;s answer.",
+    "describes": "Rent to recommend when no earlier staff recommendation exists: the owner's recorded answer sets the offer amount and is never copied back as the recommendation (S262)",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalOwnerAnswer.tsx",
+    "text": "The monthly base rent the owner approved, exactly as the owner gave it.",
+    "describes": "Amount approved field in Record the owner's answer (S262)",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalOwnerAnswer.tsx",
+    "text": "Saving records this answer and makes …the offer amount for this renewal. Nothing is sent.",
+    "describes": "Review the owner's answer: saving records it and sets the offer amount, and no message goes out (S262)",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalWorkingRecord.tsx",
+    "text": "From an earlier renewal: …. It stays in this lease&apos;s history and is not used for this renewal.",
+    "describes": "A value held from an earlier renewal cycle stays in the history and is not used for the current renewal (S263)",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalOfferCharges.tsx",
+    "text": "For this lease only. A shared meaning is an Admin's offer charge mapping.",
+    "describes": "Add a charge for this lease only: a lease-only line, while shared meanings live in the Admin offer charge mappings (S264)",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalOfferCharges.tsx",
+    "text": "RentVine charges are not read here. A charge for this lease only is added with its case source.",
+    "describes": "Review offer charges when no RentVine charges are read: a lease-only charge needs its case source (S264)",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalOfferCharges.tsx",
+    "text": "No one-time fee is selected. A fee applies only with its approved policy or an authorized case source.",
+    "describes": "Review offer charges one-time fees: none selected, and a fee needs its approved policy or an authorized case source (S264)",
+    "disposition": "keep"
   }
 ]

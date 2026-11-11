@@ -26,6 +26,8 @@ import { findCustomerIdentifiers } from "@/lib/lease-renewal/meeting-walkthrough
 const R_S243_1 = [
   ["home-and-ask", "Sign in and find your way around"],
   ["lease-renewals", "Work a renewal from the desk to a recorded outcome"],
+  // S267 R-S267-1: the staff training and internal review guide.
+  ["lease-renewals", "Prepare a renewal as a teammate and review it as the lead"],
   ["lease-renewals", "Compare rent and record market evidence"],
   ["communications", "Prepare, send or schedule an owner message and record the answer"],
   ["lease-renewals", "Prepare the tenant offer and record the response"],
@@ -143,7 +145,7 @@ describe("S243 R-S243-2 / R-S243-3: references, glossary and What changed", () =
     };
     for (let index = 1; index < versions.length; index += 1)
       expect(rank(versions[index - 1])).toBeGreaterThan(rank(versions[index]));
-    expect(versions).toEqual(["V3.0", "V2.2", "V2.1", "V2.0", "V1.1", "V1.0"]);
+    expect(versions).toEqual(["V4.0", "V3.0", "V2.2", "V2.1", "V2.0", "V1.1", "V1.0"]);
   });
 });
 
@@ -242,7 +244,7 @@ describe("S243 R-S243-7 / BEH-S243-4 / AC-S243-7: consolidation", () => {
     // S252: the 70 rows of the starting map are kept by step id (tests/unit/s252-control-map-
     // continuity.test.ts), and the working batch and Guided view add their own rows.
     expect(renewalControlMap.length).toBeGreaterThanOrEqual(70);
-    expect(renewalControlMap.length).toBe(97);
+    expect(renewalControlMap.length).toBe(122);
     expect(
       renewalControlMap.filter((row) => row.availability === "required").length,
     ).toBeGreaterThanOrEqual(41);

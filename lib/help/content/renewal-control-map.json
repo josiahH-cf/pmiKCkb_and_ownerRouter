@@ -143,7 +143,7 @@
     "availability": "conditional",
     "expectation": "The exact lease record on the configured RentVine host, independent of any Sheet link.",
     "source": ["components/lease-renewal/RenewalWorkspace.tsx"],
-    "actions": ["click-button:Full view", "open-summary:Verify check the numbers"]
+    "actions": ["click-button:Full view", "open-summary:Verify lease numbers"]
   },
   {
     "step": "13",
@@ -154,7 +154,7 @@
     "availability": "conditional",
     "expectation": "The configured source Sheet.",
     "source": ["components/lease-renewal/RenewalWorkspace.tsx"],
-    "actions": ["click-button:Full view", "open-summary:Verify check the numbers"]
+    "actions": ["click-button:Full view", "open-summary:Verify lease numbers"]
   },
   {
     "step": "14",
@@ -165,10 +165,7 @@
     "availability": "required",
     "expectation": "Choose a supported business fact.",
     "source": ["components/lease-renewal/RenewalCorrections.tsx"],
-    "actions": [
-      "click-button:Full view",
-      "open-summary:Correct lease facts and review source updates"
-    ]
+    "actions": ["click-button:Full view", "open-summary:Correct other lease facts"]
   },
   {
     "step": "15",
@@ -182,10 +179,7 @@
       "components/lease-renewal/RenewalCorrections.tsx",
       "components/lease-renewal/RentvineUpdatesPanel.tsx"
     ],
-    "actions": [
-      "click-button:Full view",
-      "open-summary:Correct lease facts and review source updates"
-    ]
+    "actions": ["click-button:Full view", "open-summary:Correct other lease facts"]
   },
   {
     "step": "16",
@@ -199,10 +193,7 @@
       "components/lease-renewal/RenewalCorrections.tsx",
       "components/lease-renewal/RenewalDeskTable.tsx"
     ],
-    "actions": [
-      "click-button:Full view",
-      "open-summary:Correct lease facts and review source updates"
-    ]
+    "actions": ["click-button:Full view", "open-summary:Correct other lease facts"]
   },
   {
     "step": "17",
@@ -216,10 +207,7 @@
       "components/lease-renewal/AutosaveStatus.tsx",
       "components/lease-renewal/RenewalCurrentRent.tsx"
     ],
-    "actions": [
-      "click-button:Full view",
-      "open-summary:Correct lease facts and review source updates"
-    ]
+    "actions": ["click-button:Full view", "open-summary:Correct other lease facts"]
   },
   {
     "step": "18",
@@ -230,10 +218,7 @@
     "availability": "conditional",
     "expectation": "Applies the one reviewed Sheet change once; this is its exact confirmation, followed by readback and a receipt.",
     "source": ["components/lease-renewal/OperatingSheetPanel.tsx"],
-    "actions": [
-      "click-button:Full view",
-      "open-summary:Correct lease facts and review source updates"
-    ]
+    "actions": ["click-button:Full view", "open-summary:Correct other lease facts"]
   },
   {
     "step": "19",
@@ -244,10 +229,7 @@
     "availability": "conditional",
     "expectation": "Recover an uncertain Sheet attempt by reading fresh Sheet state; nothing is retried.",
     "source": ["components/lease-renewal/OperatingSheetPanel.tsx"],
-    "actions": [
-      "click-button:Full view",
-      "open-summary:Correct lease facts and review source updates"
-    ]
+    "actions": ["click-button:Full view", "open-summary:Correct other lease facts"]
   },
   {
     "step": "20",
@@ -261,10 +243,7 @@
       "components/lease-renewal/RentvineUpdatesPanel.tsx",
       "components/maintenance/RentvineWorkOrderPanel.tsx"
     ],
-    "actions": [
-      "click-button:Full view",
-      "open-summary:Correct lease facts and review source updates"
-    ]
+    "actions": ["click-button:Full view", "open-summary:Correct other lease facts"]
   },
   {
     "step": "21",
@@ -277,7 +256,7 @@
     "source": ["components/lease-renewal/RenewalMessagePreparation.tsx"],
     "actions": [
       "click-button:Full view",
-      "open-summary:Edit owner message and manage delivery options"
+      "open-summary:Owner message options and outreach record"
     ]
   },
   {
@@ -291,7 +270,7 @@
     "source": ["components/lease-renewal/RenewalMessagePreparation.tsx"],
     "actions": [
       "click-button:Full view",
-      "open-summary:Edit owner message and manage delivery options"
+      "open-summary:Owner message options and outreach record"
     ]
   },
   {
@@ -308,7 +287,7 @@
     ],
     "actions": [
       "click-button:Full view",
-      "open-summary:Record owner outreach or decision"
+      "open-summary:Owner message options and outreach record"
     ]
   },
   {
@@ -322,7 +301,7 @@
     "source": ["components/lease-renewal/RenewalMessagePreparation.tsx"],
     "actions": [
       "click-button:Full view",
-      "open-summary:Edit tenant message and manage delivery options"
+      "open-summary:Tenant offer options and record of contact"
     ]
   },
   {
@@ -339,7 +318,7 @@
     ],
     "actions": [
       "click-button:Full view",
-      "open-summary:Record tenant contact or response"
+      "open-summary:Tenant offer options and record of contact"
     ]
   },
   {
@@ -379,7 +358,7 @@
     "availability": "required",
     "expectation": "Current gates and saved exact attempts.",
     "source": ["components/lease-renewal/RenewalDocumentHandoff.tsx"],
-    "actions": ["click-button:Full view", "open-summary:Prepare or record document work"]
+    "actions": ["click-button:Full view"]
   },
   {
     "step": "29",
@@ -390,7 +369,7 @@
     "availability": "conditional",
     "expectation": "Exact preview only when document gates pass.",
     "source": ["components/lease-renewal/RenewalDocumentHandoff.tsx"],
-    "actions": ["click-button:Full view", "open-summary:Prepare or record document work"]
+    "actions": ["click-button:Full view"]
   },
   {
     "step": "30",
@@ -404,7 +383,7 @@
       "components/lease-renewal/RenewalDashboardNavigation.tsx",
       "components/lease-renewal/RenewalLeaseFollowUps.tsx"
     ],
-    "actions": ["click-button:Full view", "open-summary:Record completion or non-renewal"]
+    "actions": ["click-button:Full view"]
   },
   {
     "step": "32",
@@ -594,10 +573,7 @@
     "expectation": "Help explains what recording a term changes in the app and that RentVine is not edited.",
     "source": ["lib/lease-renewal/section-help.ts"],
     "aboutId": "lease-term",
-    "actions": [
-      "click-button:Full view",
-      "open-summary:Correct lease facts and review source updates"
-    ]
+    "actions": ["click-button:Full view", "open-summary:Correct other lease facts"]
   },
   {
     "step": "49",
@@ -609,10 +585,7 @@
     "expectation": "Help names the input, the destination and the separate confirmation.",
     "source": ["lib/lease-renewal/section-help.ts"],
     "aboutId": "correct-a-fact",
-    "actions": [
-      "click-button:Full view",
-      "open-summary:Correct lease facts and review source updates"
-    ]
+    "actions": ["click-button:Full view", "open-summary:Correct other lease facts"]
   },
   {
     "step": "50",
@@ -647,7 +620,7 @@
     "source": ["components/lease-renewal/RenewalMessagePreparation.tsx"],
     "actions": [
       "click-button:Full view",
-      "open-summary:Edit owner message and manage delivery options"
+      "open-summary:Owner message options and outreach record"
     ]
   },
   {
@@ -660,10 +633,7 @@
     "expectation": "Prepare the complete owner address set from RentVine into the Owner emails column.",
     "source": ["components/lease-renewal/OperatingSheetPanel.tsx"],
     "sourceText": "Preview {view.label} update",
-    "actions": [
-      "click-button:Full view",
-      "open-summary:Correct lease facts and review source updates"
-    ]
+    "actions": ["click-button:Full view", "open-summary:Correct other lease facts"]
   },
   {
     "step": "54",
@@ -675,10 +645,7 @@
     "expectation": "Prepare the complete tenant address set from RentVine into the Tenant emails column.",
     "source": ["components/lease-renewal/OperatingSheetPanel.tsx"],
     "sourceText": "Preview {view.label} update",
-    "actions": [
-      "click-button:Full view",
-      "open-summary:Correct lease facts and review source updates"
-    ]
+    "actions": ["click-button:Full view", "open-summary:Correct other lease facts"]
   },
   {
     "step": "55",
@@ -689,10 +656,7 @@
     "availability": "required",
     "expectation": "The one working area: values, charges, intents and destination status.",
     "source": ["components/lease-renewal/RenewalWorkspace.tsx"],
-    "actions": [
-      "click-button:Full view",
-      "open-summary:Correct lease facts and review source updates"
-    ]
+    "actions": ["click-button:Full view", "open-summary:Correct other lease facts"]
   },
   {
     "step": "56",
@@ -703,10 +667,7 @@
     "availability": "required",
     "expectation": "Jumps to the working current rent for a value that is wrong today.",
     "source": ["components/lease-renewal/RentAndCharges.tsx"],
-    "actions": [
-      "click-button:Full view",
-      "open-summary:Correct lease facts and review source updates"
-    ]
+    "actions": ["click-button:Full view", "open-summary:Correct other lease facts"]
   },
   {
     "step": "57",
@@ -720,10 +681,7 @@
       "components/lease-renewal/RenewalFutureRent.tsx",
       "components/lease-renewal/RentAndCharges.tsx"
     ],
-    "actions": [
-      "click-button:Full view",
-      "open-summary:Correct lease facts and review source updates"
-    ]
+    "actions": ["click-button:Full view", "open-summary:Correct other lease facts"]
   },
   {
     "step": "58",
@@ -734,7 +692,7 @@
     "availability": "required",
     "expectation": "Per-destination saved, prepared, applied, read-back or mismatch state.",
     "source": ["components/lease-renewal/RenewalCurrentRent.tsx"],
-    "actions": ["click-button:Full view", "open-summary:Verify check the numbers"]
+    "actions": ["click-button:Full view", "open-summary:Verify lease numbers"]
   },
   {
     "step": "59",
@@ -745,10 +703,7 @@
     "availability": "conditional",
     "expectation": "Only with working renewal terms and a reviewed schedule.",
     "source": ["components/lease-renewal/RenewalFutureRent.tsx"],
-    "actions": [
-      "click-button:Full view",
-      "open-summary:Correct lease facts and review source updates"
-    ]
+    "actions": ["click-button:Full view", "open-summary:Correct other lease facts"]
   },
   {
     "step": "60",
@@ -759,10 +714,7 @@
     "availability": "conditional",
     "expectation": "Applies the one reviewed RentVine change once; this is its exact confirmation, followed by readback and a receipt.",
     "source": ["components/lease-renewal/RentvineUpdatesPanel.tsx"],
-    "actions": [
-      "click-button:Full view",
-      "open-summary:Correct lease facts and review source updates"
-    ]
+    "actions": ["click-button:Full view", "open-summary:Correct other lease facts"]
   },
   {
     "step": "61",
@@ -773,10 +725,7 @@
     "availability": "conditional",
     "expectation": "Read the current state of each prepared RentVine effect again; nothing is applied.",
     "source": ["components/lease-renewal/RentvineUpdatesPanel.tsx"],
-    "actions": [
-      "click-button:Full view",
-      "open-summary:Correct lease facts and review source updates"
-    ]
+    "actions": ["click-button:Full view", "open-summary:Correct other lease facts"]
   },
   {
     "step": "62",
@@ -832,7 +781,10 @@
     "step": "66",
     "page": "workspace:verify-renewal",
     "control": "History",
-    "formerly": { "control": "Status log", "role": "summary" },
+    "formerly": {
+      "control": "Status log",
+      "role": "summary"
+    },
     "role": "summary",
     "scope": "region:Staff status and Status log",
     "availability": "conditional",
@@ -864,7 +816,7 @@
     "who": "Admin",
     "expectation": "The lease shows each shared entry's current state and opens its exact Connections entry; no edit form is repeated per lease.",
     "source": ["components/lease-renewal/RenewalResourceLinksSummary.tsx"],
-    "actions": ["click-button:Full view", "open-summary:Prepare or record document work"]
+    "actions": ["click-button:Full view", "open-summary:Other packet and handoff work"]
   },
   {
     "step": "69",
@@ -877,7 +829,7 @@
     "source": ["components/lease-renewal/RenewalMessagePreparation.tsx"],
     "actions": [
       "click-button:Full view",
-      "open-summary:Edit owner message and manage delivery options"
+      "open-summary:Owner message options and outreach record"
     ]
   },
   {
@@ -891,7 +843,7 @@
     "source": ["components/lease-renewal/RenewalMessagePreparation.tsx"],
     "actions": [
       "click-button:Full view",
-      "open-summary:Edit tenant message and manage delivery options"
+      "open-summary:Tenant offer options and record of contact"
     ]
   },
   {
@@ -903,7 +855,7 @@
     "availability": "required",
     "expectation": "Property, parties, lease end, approved terms and pending source updates with their origin and links; nothing is filled into a PDF or Dotloop.",
     "source": ["components/lease-renewal/RenewalDocumentHandoff.tsx"],
-    "actions": ["click-button:Full view", "open-summary:Prepare or record document work"]
+    "actions": ["click-button:Full view"]
   },
   {
     "step": "72",
@@ -930,7 +882,10 @@
     "step": "74",
     "page": "/lease-renewal",
     "control": "Monthly renewals",
-    "formerly": { "control": "This batch", "role": "region" },
+    "formerly": {
+      "control": "This batch",
+      "role": "region"
+    },
     "role": "region",
     "scope": "region:Working batch",
     "availability": "required",
@@ -961,7 +916,10 @@
     "step": "77",
     "page": "/lease-renewal",
     "control": "Prepare December 2026 leases",
-    "formerly": { "control": "Prepare this batch", "role": "button" },
+    "formerly": {
+      "control": "Prepare this batch",
+      "role": "button"
+    },
     "role": "button",
     "scope": "region:Batch preparation",
     "availability": "conditional",
@@ -973,7 +931,10 @@
     "step": "78",
     "page": "workspace:verify-renewal",
     "control": "Work status",
-    "formerly": { "control": "Guided view", "role": "button" },
+    "formerly": {
+      "control": "Guided view",
+      "role": "button"
+    },
     "role": "summary",
     "scope": "group:Lease workspace panels",
     "availability": "required",
@@ -1018,7 +979,10 @@
     "step": "82",
     "page": "workspace:verify-renewal",
     "control": "Add a note",
-    "formerly": { "control": "Add a note", "role": "button" },
+    "formerly": {
+      "control": "Add a note",
+      "role": "button"
+    },
     "role": "label",
     "scope": "region:Staff status and Status log",
     "availability": "required",
@@ -1051,13 +1015,17 @@
   {
     "step": "85",
     "page": "workspace:owner-decision",
-    "control": "Review and send",
+    "control": "Review owner message",
     "role": "button",
     "scope": "region:Now",
     "availability": "conditional",
-    "expectation": "Opens the exact review of the prepared owner message; nothing is sent until Send this message.",
-    "source": ["lib/lease-renewal/renewal-preparation.ts"],
-    "actions": ["click-button:Ask the owner"]
+    "expectation": "The Now card's primary action when the owner message is ready. It opens Review and send with the exact message, the recipients and the sender; nothing is sent until Send this message.",
+    "source": ["lib/lease-renewal/guided-priority.ts"],
+    "actions": ["click-button:Ask the owner"],
+    "formerly": {
+      "control": "Review and send",
+      "role": "button"
+    }
   },
   {
     "step": "86",
@@ -1099,10 +1067,7 @@
       "control": "Pet registration follow-up outcome",
       "role": "label"
     },
-    "actions": [
-      "click-button:Full view",
-      "open-summary:Work remaining follow-ups and source updates"
-    ]
+    "actions": ["click-button:Full view", "open-summary:Other follow-ups"]
   },
   {
     "step": "89",
@@ -1230,5 +1195,289 @@
     "expectation": "Returns from another step to the current next step in the same tab and follows that step's progress. Choosing a step saves nothing.",
     "source": ["components/lease-renewal/RenewalGuidedView.tsx"],
     "actions": []
+  },
+  {
+    "step": "100",
+    "page": "workspace:tenant-offer",
+    "control": "Review tenant offer",
+    "role": "button",
+    "scope": "region:Now",
+    "availability": "conditional",
+    "expectation": "The Now card's primary action when the tenant offer is ready. It opens Review and send with the exact offer, the recipients and the sender; nothing is sent until Send this message.",
+    "source": ["lib/lease-renewal/guided-priority.ts"],
+    "actions": ["click-button:Offer the tenant"]
+  },
+  {
+    "step": "101",
+    "page": "workspace:verify-renewal",
+    "control": "Current base rent",
+    "role": "region",
+    "scope": "region:Now",
+    "availability": "required",
+    "expectation": "Leads Check the numbers with the verified current base rent and its source. A separate charge such as pet rent is named apart from the base, and a missing or contradicted base reads Needs verification.",
+    "source": ["lib/lease-renewal/current-rent.ts"],
+    "actions": ["click-button:Check the numbers"]
+  },
+  {
+    "step": "102",
+    "page": "workspace:verify-renewal",
+    "control": "Correct the current base rent",
+    "role": "button",
+    "scope": "region:Now",
+    "availability": "conditional",
+    "expectation": "Shown when the base is missing, contradicted or not confirmed by billing. It moves to Working current rent in Correct other lease facts; nothing changes RentVine or the Sheet.",
+    "source": ["components/lease-renewal/RenewalCurrentBaseRent.tsx"],
+    "actions": ["click-button:Check the numbers"]
+  },
+  {
+    "step": "103",
+    "page": "workspace:owner-decision",
+    "control": "Edit rent to recommend",
+    "role": "link",
+    "scope": "region:Owner approval",
+    "availability": "required",
+    "expectation": "Ask the owner shows the current base rent and Rent to recommend read only. This link opens the one Rent to recommend editor in Compare market rent; a person without Editor access sees View rent to recommend.",
+    "source": ["components/lease-renewal/RenewalKickoffFields.tsx"],
+    "actions": ["click-button:Ask the owner"]
+  },
+  {
+    "step": "105",
+    "page": "workspace:owner-decision",
+    "control": "Amount approved",
+    "role": "label",
+    "scope": "region:Owner approval",
+    "availability": "conditional",
+    "expectation": "The monthly base rent exactly as the owner approved it, typed by staff. Nothing fills it from the recommendation or the reply.",
+    "source": ["components/lease-renewal/RenewalOwnerAnswer.tsx"],
+    "actions": [
+      "click-button:Full view",
+      "open-summary:Owner message options and outreach record"
+    ]
+  },
+  {
+    "step": "107",
+    "page": "workspace:owner-decision",
+    "control": "Review the owner's answer",
+    "role": "button",
+    "scope": "region:Owner approval",
+    "availability": "conditional",
+    "expectation": "Shows the recommended base rent, the amount approved, what the answer covers and the evidence before anything saves.",
+    "source": ["components/lease-renewal/RenewalOwnerAnswer.tsx"],
+    "actions": [
+      "click-button:Full view",
+      "open-summary:Owner message options and outreach record"
+    ]
+  },
+  {
+    "step": "108",
+    "page": "workspace:owner-decision",
+    "control": "Use the day after the current lease ends",
+    "role": "button",
+    "scope": "region:Owner approval",
+    "availability": "conditional",
+    "expectation": "Ask the owner's Working renewal terms: save the day after the verified current lease end as the Working effective date, with that basis; the end date stays a manual entry.",
+    "source": ["lib/lease-renewal/renewal-date-proposal.ts"],
+    "actions": ["click-button:Full view", "open-summary:Working renewal terms"]
+  },
+  {
+    "step": "109",
+    "page": "workspace:verify-renewal",
+    "control": "Correct other lease facts",
+    "role": "summary",
+    "scope": "region:Lease details",
+    "availability": "required",
+    "expectation": "Check the numbers' named Work group: Lease term, Rent and charges, Correct a lease fact and the RentVine and Sheet update reviews. It starts closed unless it holds the current work.",
+    "source": ["lib/lease-renewal/guided-priority.ts"],
+    "actions": ["click-button:Full view"]
+  },
+  {
+    "step": "110",
+    "page": "workspace:verify-renewal",
+    "control": "Verify lease numbers",
+    "role": "summary",
+    "scope": "region:Lease details",
+    "availability": "required",
+    "expectation": "Check the numbers' read-only Verification: the lease term facts, rent and charge evidence, Update status by destination and Data check with its source links.",
+    "source": ["lib/lease-renewal/guided-priority.ts"],
+    "actions": ["click-button:Full view"]
+  },
+  {
+    "step": "111",
+    "page": "workspace:verify-renewal",
+    "control": "Comparison inputs and deliberate rerun",
+    "role": "summary",
+    "scope": "region:Market rent comparison",
+    "availability": "required",
+    "expectation": "Compare market rent's named Work group: Market evidence with the search radius, your own sourced figures and the one deliberate lookup.",
+    "source": ["lib/lease-renewal/guided-priority.ts"],
+    "actions": ["click-button:Full view"]
+  },
+  {
+    "step": "112",
+    "page": "workspace:verify-renewal",
+    "control": "Verify market comparison",
+    "role": "summary",
+    "scope": "region:Market rent comparison",
+    "availability": "required",
+    "expectation": "Compare market rent's read-only Verification: the stored comparison with its comparable rows and when it was recorded.",
+    "source": ["lib/lease-renewal/guided-priority.ts"],
+    "actions": ["click-button:Full view"]
+  },
+  {
+    "step": "113",
+    "page": "workspace:owner-decision",
+    "control": "Owner message options and outreach record",
+    "role": "summary",
+    "scope": "region:Owner approval",
+    "availability": "required",
+    "expectation": "Ask the owner's named Work group: Compose owner message in Communications, Copy the message, the unsent Gmail draft, Marked values, Work recorded by staff and Owner response.",
+    "source": ["lib/lease-renewal/guided-priority.ts"],
+    "actions": ["click-button:Full view"]
+  },
+  {
+    "step": "114",
+    "page": "workspace:owner-decision",
+    "control": "Verify owner terms and outreach",
+    "role": "summary",
+    "scope": "region:Owner approval",
+    "availability": "required",
+    "expectation": "Ask the owner's read-only Verification: Prior owner decision and provider evidence and the outreach facts.",
+    "source": ["lib/lease-renewal/guided-priority.ts"],
+    "actions": ["click-button:Full view"]
+  },
+  {
+    "step": "115",
+    "page": "workspace:tenant-decision",
+    "control": "Tenant offer options and record of contact",
+    "role": "summary",
+    "scope": "region:Tenant offer and response",
+    "availability": "required",
+    "expectation": "Offer the tenant's named Work group: Compose tenant message in Communications, Copy the message, the unsent Gmail draft, the charge and response options, Work recorded by staff, Tenant response and Waiting and follow-up.",
+    "source": ["lib/lease-renewal/guided-priority.ts"],
+    "actions": ["click-button:Full view"]
+  },
+  {
+    "step": "116",
+    "page": "workspace:tenant-decision",
+    "control": "Verify offer facts and delivery",
+    "role": "summary",
+    "scope": "region:Tenant offer and response",
+    "availability": "required",
+    "expectation": "Offer the tenant's read-only Verification: Earlier tenant offer evidence, kept as evidence while the current message preparation governs.",
+    "source": ["lib/lease-renewal/guided-priority.ts"],
+    "actions": ["click-button:Full view"]
+  },
+  {
+    "step": "117",
+    "page": "workspace:document-packet",
+    "control": "Other packet and handoff work",
+    "role": "summary",
+    "scope": "region:Documents and completion",
+    "availability": "required",
+    "expectation": "Documents and signatures' named Work group: Renewal resource links and the policy content. The packet work above it stays open.",
+    "source": ["lib/lease-renewal/guided-priority.ts"],
+    "actions": ["click-button:Full view"]
+  },
+  {
+    "step": "118",
+    "page": "workspace:document-packet",
+    "control": "Verify forms and signing evidence",
+    "role": "summary",
+    "scope": "region:Documents and completion",
+    "availability": "required",
+    "expectation": "Documents and signatures' read-only Verification: Document readiness evidence.",
+    "source": ["lib/lease-renewal/guided-priority.ts"],
+    "actions": ["click-button:Full view"]
+  },
+  {
+    "step": "119",
+    "page": "workspace:compliance-close",
+    "control": "Other follow-ups",
+    "role": "summary",
+    "scope": "region:Documents and completion",
+    "availability": "required",
+    "expectation": "Finish up's named Work group: the other follow-ups. The follow-up shown above it is the first open one when you arrive and stays there while you work it, with your typed entries; the next one moves up at your next arrival. Source updates stays above the group.",
+    "source": ["lib/lease-renewal/guided-priority.ts"],
+    "actions": ["click-button:Full view"]
+  },
+  {
+    "step": "120",
+    "page": "workspace:compliance-close",
+    "control": "Verify follow-up and source updates",
+    "role": "summary",
+    "scope": "region:Documents and completion",
+    "availability": "required",
+    "expectation": "Finish up's read-only Verification: Notice timing.",
+    "source": ["lib/lease-renewal/guided-priority.ts"],
+    "actions": ["click-button:Full view"]
+  },
+  {
+    "step": "121",
+    "page": "workspace:compliance-close",
+    "control": "Verify completion",
+    "role": "summary",
+    "scope": "region:Documents and completion",
+    "availability": "required",
+    "expectation": "Complete's read-only Verification: Completion checks. Complete has no Work group.",
+    "source": ["lib/lease-renewal/guided-priority.ts"],
+    "actions": ["click-button:Full view"]
+  },
+  {
+    "step": "122",
+    "page": "workspace:document-packet",
+    "control": "Next for this packet",
+    "role": "region",
+    "scope": "region:Documents and completion",
+    "availability": "conditional",
+    "expectation": "Leads Documents and signatures with one thing: the first packet input, a form held on a named difference, the Source pending handoff with the missing evidence and responsible role, or the signing wait.",
+    "source": ["components/lease-renewal/PacketNextStep.tsx"],
+    "actions": ["click-button:Full view"]
+  },
+  {
+    "step": "123",
+    "page": "workspace:document-packet",
+    "control": "Enter it in Packet inputs",
+    "role": "button",
+    "scope": "region:Next for this packet",
+    "availability": "conditional",
+    "expectation": "Opens Packet inputs at the named fact for an Editor; it saves nothing. Other people read An Editor enters it in Packet inputs.",
+    "source": ["components/lease-renewal/PacketNextStep.tsx"],
+    "actions": ["click-button:Full view"]
+  },
+  {
+    "step": "124",
+    "page": "workspace:owner-decision",
+    "control": "Working renewal terms",
+    "role": "summary",
+    "scope": "region:Owner approval",
+    "availability": "required",
+    "expectation": "Ask the owner's one Working renewal terms editor, its own named reveal: the verified current lease end, Working effective date and Working term end date.",
+    "source": ["components/lease-renewal/RenewalWorkingTermsReveal.tsx"],
+    "actions": ["click-button:Full view"]
+  },
+  {
+    "step": "125",
+    "page": "workspace:tenant-offer",
+    "control": "Review offer charges",
+    "role": "region",
+    "scope": "region:Now",
+    "availability": "conditional",
+    "expectation": "Offer the tenant's charge review: each charge line with its source, include or leave out with a reason, corrections with their source, the transitions and exact totals.",
+    "source": ["components/lease-renewal/RenewalOfferCharges.tsx"],
+    "actions": ["click-button:Offer the tenant"]
+  },
+  {
+    "step": "126",
+    "page": "workspace:tenant-decision",
+    "control": "Add a charge for this lease only",
+    "role": "label",
+    "scope": "region:Tenant offer and response",
+    "availability": "conditional",
+    "expectation": "An optional charge for this lease only, added with its case source; it joins Review offer charges and saves with the tenant message.",
+    "source": ["components/lease-renewal/RenewalOfferCharges.tsx"],
+    "actions": [
+      "click-button:Full view",
+      "open-summary:Tenant offer options and record of contact"
+    ]
   }
 ]

@@ -32,9 +32,28 @@ export const DOCUMENTS_AND_DOTLOOP_GUIDES: readonly HelpGuide[] = [
         route: WORKSPACE,
         where: "Lease workspace, Full view, section links under the view switch",
         result:
-          "The page moves to Documents and completion: Work recorded by staff, Renewal resource links, Document preparation, Notice timing and Completion checks.",
+          "The page moves to Documents and completion: Documents and signatures with Next for this packet, Document preparation and Work recorded by staff, then Finish up and Complete. Other packet and handoff work holds Renewal resource links, and each part has its Verification group, such as Verify forms and signing evidence.",
         effect: "reads",
         note: "About Documents and completion, beside the section heading, gives the order: confirm the resource links and packet truth, prepare or hand off the packet, then record documents, signatures and completion as staff work.",
+      },
+      {
+        id: "read-packet-next-step",
+        action:
+          "Read Next for this packet: the one thing this packet needs first, with its action when there is one.",
+        control: {
+          label: "Next for this packet",
+          role: "region",
+          region: "region:Documents and completion",
+          availability: "conditional",
+          source: ["components/lease-renewal/PacketNextStep.tsx"],
+          actions: FULL_VIEW,
+        },
+        route: WORKSPACE,
+        where: "Documents and completion, Documents and signatures, at the top",
+        result:
+          "It names a packet input with Enter it in Packet inputs, a form that waits on a named difference, a form whose source is pending with what is missing and who supplies it, or the signatures still awaited with Record a returned document. When every form that applies has its approved original, map and inputs, it says so. Reading it saves nothing.",
+        effect: "reads",
+        note: "Each other form keeps its own readiness, and the manual handoff stays available. A role that cannot save packet inputs reads that an Editor enters it in Packet inputs.",
       },
       {
         id: "read-document-preparation",
@@ -47,7 +66,7 @@ export const DOCUMENTS_AND_DOTLOOP_GUIDES: readonly HelpGuide[] = [
           availability: "required",
           source: ["lib/lease-renewal/section-help.ts"],
           aboutId: "document-preparation",
-          actions: [...FULL_VIEW, "open-summary:Prepare or record document work"],
+          actions: FULL_VIEW,
         },
         route: WORKSPACE,
         where: "Documents and completion, Document preparation",
@@ -58,7 +77,7 @@ export const DOCUMENTS_AND_DOTLOOP_GUIDES: readonly HelpGuide[] = [
       {
         id: "check-resource-links",
         action:
-          "Check Renewal resource links, with About Renewal resource links for what the entries mean: each shared flyer, information form and approved form location reads Checked by staff, Pending team input or Destination needs review.",
+          "Open Other packet and handoff work and check Renewal resource links, with About Renewal resource links for what the entries mean: each tenant flyer and the information form reads verified for tenants or Source pending with the reason, and each approved form location reads Checked by staff, Pending team input or Destination needs review.",
         control: {
           label: "About Renewal resource links",
           role: "button",
@@ -66,12 +85,13 @@ export const DOCUMENTS_AND_DOTLOOP_GUIDES: readonly HelpGuide[] = [
           availability: "required",
           source: ["lib/lease-renewal/section-help.ts"],
           aboutId: "resource-links",
-          actions: [...FULL_VIEW, "open-summary:Prepare or record document work"],
+          actions: [...FULL_VIEW, "open-summary:Other packet and handoff work"],
         },
         route: WORKSPACE,
-        where: "Documents and completion, Renewal resource links",
+        where:
+          "Documents and completion, Other packet and handoff work, Renewal resource links",
         result:
-          "Only staff-verified entries are usable, and a checked entry offers Open checked destination. A blank entry reads Pending team input; it is waiting for the team, not an error.",
+          "Only verified entries are usable: a tenant flyer or the information form needs its tenant audience check, and an approved form location needs its staff check. A checked entry offers Open checked destination. A blank form location reads Pending team input and a blank tenant entry reads Source pending; either one is waiting for the team, not an error.",
         effect: "reads",
         note: "An Admin sees Manage shared resource links in Connections and Manage beside each entry. Other staff see View setting and ask an Admin to change a link.",
       },
@@ -85,7 +105,7 @@ export const DOCUMENTS_AND_DOTLOOP_GUIDES: readonly HelpGuide[] = [
           region: "region:Documents and completion",
           availability: "required",
           source: ["components/lease-renewal/PacketInputsEditor.tsx"],
-          actions: [...FULL_VIEW, "open-summary:Prepare or record document work"],
+          actions: FULL_VIEW,
         },
         route: WORKSPACE,
         where: "Document preparation, Document packet truth, Packet inputs",
@@ -123,7 +143,7 @@ export const DOCUMENTS_AND_DOTLOOP_GUIDES: readonly HelpGuide[] = [
           region: "region:Documents and completion",
           availability: "required",
           source: ["components/lease-renewal/LeasePacketReadiness.tsx"],
-          actions: [...FULL_VIEW, "open-summary:Prepare or record document work"],
+          actions: FULL_VIEW,
         },
         route: WORKSPACE,
         where: "Document preparation, below Document packet truth",
@@ -143,7 +163,7 @@ export const DOCUMENTS_AND_DOTLOOP_GUIDES: readonly HelpGuide[] = [
           region: HANDOFF,
           availability: "required",
           source: ["components/lease-renewal/RenewalDocumentHandoff.tsx"],
-          actions: [...FULL_VIEW, "open-summary:Prepare or record document work"],
+          actions: FULL_VIEW,
         },
         route: WORKSPACE,
         where: "Document preparation, Document preparation and signature handoff",
@@ -201,7 +221,7 @@ export const DOCUMENTS_AND_DOTLOOP_GUIDES: readonly HelpGuide[] = [
           availability: "required",
           source: ["lib/lease-renewal/section-help.ts"],
           aboutId: "staff-work-documents",
-          actions: [...FULL_VIEW, "open-summary:Prepare or record document work"],
+          actions: FULL_VIEW,
         },
         route: WORKSPACE,
         where:
@@ -223,7 +243,7 @@ export const DOCUMENTS_AND_DOTLOOP_GUIDES: readonly HelpGuide[] = [
           actions: FULL_VIEW,
         },
         route: WORKSPACE,
-        where: "Documents and completion, Work recorded by staff, below the follow-ups",
+        where: "Documents and completion, Complete, Completion recorded by staff",
         result:
           "The renewal reads as recorded complete by staff, with who recorded it and when, separately from verified completion in RentVine, Gmail or Dotloop. Reopen recorded completion reopens it when work resumes.",
         effect: "saves-in-app",
@@ -232,7 +252,7 @@ export const DOCUMENTS_AND_DOTLOOP_GUIDES: readonly HelpGuide[] = [
       {
         id: "read-completion-checks",
         action:
-          "Read Completion checks, with About Completion checks, for whether provider-verified document completion exists for this lease.",
+          "Open Verify completion and read Completion checks, with About Completion checks, for whether provider-verified document completion exists for this lease.",
         control: {
           label: "About Completion checks",
           role: "button",
@@ -240,10 +260,10 @@ export const DOCUMENTS_AND_DOTLOOP_GUIDES: readonly HelpGuide[] = [
           availability: "required",
           source: ["lib/lease-renewal/section-help.ts"],
           aboutId: "completion-checks",
-          actions: [...FULL_VIEW, "open-summary:Verify complete"],
+          actions: [...FULL_VIEW, "open-summary:Verify completion"],
         },
         route: WORKSPACE,
-        where: "Documents and completion, Completion checks, at the end of the section",
+        where: "Documents and completion, Complete, Verify completion",
         result:
           "The card reads Provider-verified document completion: not established. Staff completion shows under Work recorded by staff, as staff evidence separate from provider completion.",
         effect: "reads",
