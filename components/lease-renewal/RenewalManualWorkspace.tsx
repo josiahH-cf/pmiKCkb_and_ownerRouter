@@ -127,6 +127,45 @@ const Context = createContext<ManualContext | null>(null);
 export function useRenewalManualWorkspace() {
   return useContext(Context);
 }
+
+/** The first follow-up with no done or not applicable record, in the outcome's order. */
+function firstOpenFollowUp(
+  state: RenewalWorkspaceState | null,
+  activities: readonly ManualActivity[],
+): ManualActivity | null {
+  return (
+    activities.find((key) => {
+      const outcome = state ? currentStaffActivity(state, key)?.outcome : undefined;
+      return outcome !== "done" && outcome !== "not_applicable";
+    }) ?? null
+  );
+}
+
+const FINISH_UP_ACTIVITIES = (Object.keys(MANUAL_ACTIVITIES) as ManualActivity[]).filter(
+  (key) =>
+    MANUAL_ACTIVITIES[key].section === "documents" &&
+    STEP_FOR_ACTIVITY[key] === "finish-up",
+);
+
+/**
+ * S270 / R-S269-3: the follow-up Finish up's Work holds. It is the first open follow-up when the
+ * person arrives (the page opens, the view switches or the Guided outcome changes) and stays the
+ * same while they work there, so recording it never moves its form, its focus or its typed
+ * entries under them. The next one takes its place at the next arrival. Presentation only.
+ */
+export function useFinishUpLead(): ManualActivity | null {
+  const state = useRenewalManualWorkspace()?.state ?? null;
+  const view = useRenewalFocusView();
+  const first = firstOpenFollowUp(state, FINISH_UP_ACTIVITIES);
+  const arrival = `${view?.view ?? ""}:${view?.nowPresentation?.stepId ?? ""}`;
+  const [kept, setKept] = useState<{
+    readonly arrival: string;
+    readonly lead: ManualActivity | null;
+  } | null>(null);
+  // Until the staff record is read, the lead follows it.
+  if (state && (!kept || kept.arrival !== arrival)) setKept({ arrival, lead: first });
+  return state && kept && kept.arrival === arrival ? kept.lead : first;
+}
 interface ManualProviderProps {
   writebackPaused?: boolean;
   unavailable?: boolean;
@@ -626,12 +665,15 @@ export function RenewalManualSection({
   currentRent = null,
   part,
   workingTermsApart = false,
+  leadActivity,
 }: {
   /**
    * S270: Ask the owner's outcome layout shows the one Working renewal terms editor as its own
    * named reveal (RenewalWorkingTermsReveal) instead of inside the owner's response.
    */
   workingTermsApart?: boolean;
+  /** S270: the follow-up Finish up's Work holds (useFinishUpLead), shared by both parts. */
+  leadActivity?: ManualActivity | null;
   section: "owner" | "tenant" | "documents";
   documentOutcome?: "documents" | "finish-up" | "complete";
   /**
@@ -690,10 +732,9 @@ export function RenewalManualSection({
   // S270: the first follow-up without a done or not applicable record leads Finish up.
   const leadFollowUp =
     part && documentOutcome === "finish-up"
-      ? (activities.find((key) => {
-          const outcome = state ? currentStaffActivity(state, key)?.outcome : undefined;
-          return outcome !== "done" && outcome !== "not_applicable";
-        }) ?? null)
+      ? leadActivity !== undefined
+        ? leadActivity
+        : firstOpenFollowUp(state, activities)
       : null;
   const partActivities =
     part === "lead"

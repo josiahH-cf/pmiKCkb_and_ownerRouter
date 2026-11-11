@@ -453,25 +453,42 @@ describe("S270 named Guided disclosures", { timeout: 120_000 }, () => {
     expect(fake.writes()).toEqual([]);
   });
 
-  it("R-S269-3: a typed, unsaved entry in the next follow-up stays when it moves from Other follow-ups into Finish up's Work", async () => {
+  it("R-S269-3: recording the lead follow-up moves no form; at the next arrival the next one leads Work with its typed, unsaved entry", async () => {
     const fake = await open();
     await choose("finish-up");
     const rest = visibleGroups(nowCard())[0]!;
     expect(summaryText(rest)).toBe("Other follow-ups");
     const rhino = () => document.getElementById("renewal-manual-rhino")!;
-    expect(rest.contains(rhino())).toBe(true);
+    const insurance = document.getElementById("renewal-manual-insurance")!;
+    const typedRhino = rhino();
+    expect(rest.contains(typedRhino)).toBe(true);
+    expect(rest.contains(insurance)).toBe(false);
     // Typed, not saved: fireEvent keeps focus where it is, so no blur saves the entry.
-    fireEvent.change(within(rhino()).getByLabelText("Comment (optional)"), {
+    fireEvent.change(within(typedRhino).getByLabelText("Comment (optional)"), {
       target: { value: "Left a voicemail for the tenant" },
     });
-    // The lead follow-up is recorded; the next one moves into Work.
-    const insurance = document.getElementById("renewal-manual-insurance")!;
-    expect(rest.contains(insurance)).toBe(false);
+    // Recording the lead follow-up keeps every form where it is, still labelled and usable
+    // (the mounted operator journey records each one's source after its outcome).
     fireEvent.change(within(insurance).getByRole("combobox"), {
       target: { value: "done" },
     });
-    await waitFor(() => expect(rest.contains(rhino())).toBe(false));
+    await waitFor(() => expect(JSON.stringify(fake.writes())).toContain("insurance"));
     await settle();
+    expect(document.getElementById("renewal-manual-insurance")).toBe(insurance);
+    expect(rest.contains(insurance)).toBe(false);
+    expect(
+      within(insurance).getByLabelText("Source or channel (optional)"),
+    ).toBeEnabled();
+    expect(rhino()).toBe(typedRhino);
+    // At the next arrival the next open follow-up leads Work and keeps what was typed.
+    await choose("documents");
+    await choose("finish-up");
+    expect(visibleGroups(nowCard())[0]!.contains(rhino())).toBe(false);
+    expect(
+      visibleGroups(nowCard())[0]!.contains(
+        document.getElementById("renewal-manual-insurance"),
+      ),
+    ).toBe(true);
     expect(within(rhino()).getByLabelText("Comment (optional)")).toHaveValue(
       "Left a voicemail for the tenant",
     );
