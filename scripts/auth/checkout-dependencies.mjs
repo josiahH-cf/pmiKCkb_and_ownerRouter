@@ -1,8 +1,9 @@
-// Auth commands load this checkout's installed packages (google-auth-library). A checkout without
-// them, such as a Windows worktree read through /mnt/c or a checkout whose node_modules was emptied,
-// runs the same command from the registered WSL release checkout that the pmi-auth operator command
-// already uses. This module reads only package locations and that checkout registration; it never
-// reads, copies or changes a credential, store, identity or policy.
+// Auth commands load this checkout's installed packages (google-auth-library) and check its local
+// configuration (.env.local). A checkout without them, such as a Windows worktree read through /mnt/c
+// or a checkout whose node_modules was emptied, runs the same command from the registered WSL release
+// checkout that the pmi-auth operator command already uses. This module reads only package
+// locations, whether .env.local exists, and that checkout registration; it never reads, copies or
+// changes a credential, configuration value, store, identity or policy.
 
 import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -46,25 +47,38 @@ export function registeredCheckout(home = homedir()) {
   }
 }
 
+/** True when `root` has its own local configuration file. Its values are never read here. */
+export function localConfigurationPresent(root) {
+  return existsSync(join(root, ".env.local"));
+}
+
 /**
- * The checkout an auth command runs from: this one when its packages resolve, otherwise the
- * registered checkout when it has its own auth scripts and packages. Null when neither can run.
+ * The checkout an auth command runs from. A checkout with its packages and its own .env.local runs
+ * itself; otherwise the registered checkout runs when it has both. Failing that, whichever checkout
+ * can at least load the checks runs, so a missing file is reported rather than hidden. `reason`
+ * names what this checkout lacked when it hands off. Null when neither can load the checks.
  */
 export function selectAuthCheckout({
   root = ROOT,
   home = homedir(),
   installed = authPackagesInstalled,
+  configured = localConfigurationPresent,
 } = {}) {
   const here = realpathSync(root);
-  if (installed(here)) return { root: here, handoff: false };
+  const hereInstalled = installed(here);
+  if (hereInstalled && configured(here)) return { root: here, handoff: false };
   const registered = registeredCheckout(home);
-  if (
+  const other =
     registered &&
     registered !== here &&
     existsSync(join(registered, "scripts", "auth", "ensure.mjs")) &&
     installed(registered)
-  )
-    return { root: registered, handoff: true };
+      ? registered
+      : null;
+  const reason = hereInstalled ? "configuration" : "packages";
+  if (other && configured(other)) return { root: other, handoff: true, reason };
+  if (hereInstalled) return { root: here, handoff: false };
+  if (other) return { root: other, handoff: true, reason };
   return null;
 }
 
