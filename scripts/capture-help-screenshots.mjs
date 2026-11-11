@@ -68,6 +68,15 @@ const WORKSPACE_FRAME_PHASES = new Map([
   ["document-handoff", 0],
 ]);
 
+// The Full view click leaves the pointer and focus where the toggle was. After the frame scroll
+// either can rest on a section's info button, which inverts while hovered or focused, so one
+// capture differed from the next (document-handoff, November 11). Release both before each frame
+// so every capture shows the settled default state. A string keeps tsx helpers out of the page.
+const RELEASE_INFO_FOCUS = `(() => {
+  const active = document.activeElement;
+  if (active instanceof HTMLElement && active.matches(".info-tip-trigger")) active.blur();
+})()`;
+
 // Align the settled Full section below its own toolbar. A fixed phase moves the
 // normal-flow margin by at most half a CSS pixel and holds the scroll anchor for the capture.
 const FRAME_WORKSPACE_SECTION = new Function(
@@ -566,15 +575,6 @@ async function captureScene(scene) {
     await context.close();
   }
 }
-
-// The Full view click leaves the pointer and focus where the toggle was. After the frame scroll
-// either can rest on a section's info button, which inverts while hovered or focused, so one
-// capture differed from the next (document-handoff, November 11). Release both before each frame
-// so every capture shows the settled default state. A string keeps tsx helpers out of the page.
-const RELEASE_INFO_FOCUS = `(() => {
-  const active = document.activeElement;
-  if (active instanceof HTMLElement && active.matches(".info-tip-trigger")) active.blur();
-})()`;
 
 // The first screenshot commits the pending layout. If an upstream read moved the heading
 // during that paint, reframe it before accepting an image of the settled section.
