@@ -112,6 +112,8 @@ export interface RentvineStandInFlags {
   unavailableLeaseId?: number | string | null;
   sourceCycleDate?: { leaseId: string; endDate: string } | null;
   statusUnreadable?: Record<string, string>;
+  /** S271: synthetic `{recurringCharge, account}` envelopes by lease id; none by default. */
+  recurringCharges?: Record<string, unknown[]>;
 }
 
 export const NOVEMBER_5_MIX_PATH: string;

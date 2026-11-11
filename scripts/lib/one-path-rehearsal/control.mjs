@@ -153,6 +153,33 @@ export function setSourceCycleDate(rehearsal, leaseId, endDate) {
   });
 }
 
+/**
+ * S271: serve these synthetic recurring charges for one existing fixture lease, as RentVine's
+ * `{recurringCharge, account}` envelopes (scripts/lib/one-path-rehearsal/synthetic-charges.mjs
+ * builds them), or none again with null. The app reads them on its next charge read.
+ */
+export function setRecurringCharges(rehearsal, leaseId, charges) {
+  if (!Object.values(rehearsal.groups).flat().includes(Number(leaseId)))
+    throw new Error("Choose an existing fixture lease.");
+  if (
+    charges !== null &&
+    (!Array.isArray(charges) ||
+      charges.some(
+        (entry) =>
+          String(entry?.recurringCharge?.leaseID) !== String(leaseId) ||
+          !/^[1-9]\d*$/.test(String(entry?.recurringCharge?.leaseRecurringChargeID)),
+      ))
+  )
+    throw new Error(
+      "Give this lease's own synthetic recurring charge envelopes, or null.",
+    );
+  const flags = readFlags(rehearsal);
+  const recurringCharges = { ...(flags.recurringCharges ?? {}) };
+  if (charges === null) delete recurringCharges[String(leaseId)];
+  else recurringCharges[String(leaseId)] = charges;
+  return writeFlags(rehearsal, { ...flags, recurringCharges });
+}
+
 /** S252: every RentVine control flag off, as the rehearsal starts (reset.mjs). */
 export function clearRentvineFlags(rehearsal) {
   return writeFlags(rehearsal, {});

@@ -37,6 +37,13 @@ import {
   createRehearsalStandInGmailClient,
   createRehearsalStandInGmailTransport,
 } from "@/lib/gmail-runtime/rehearsal-stand-in-client";
+import {
+  COMPILED_MAIL_DRIVERS,
+  S260_DRIVER,
+  S271_DRIVER,
+  compiledMailAdmits,
+} from "@/scripts/lib/one-path-rehearsal/compiled-mail.mjs";
+import { resolveRehearsalStandIn as resolveCompiledDraftStandIn } from "@/tests/browser/fixtures/s271-compiled-stand-in";
 
 // S254 R-S254-4 / AC-S254-5: the rehearsal's mail stand-in is a Demo-owned adapter that can never
 // produce a live effect. It exists only when the descriptor is explicitly Demo with Demo data AND
@@ -312,6 +319,99 @@ describe("S254 fence: the Gmail effect boundary", () => {
     // Nothing in that file reaches the Live fence or the real constructor around the shared one.
     expect(source).not.toContain("assertLiveProviderActionAllowed");
     expect(source).not.toContain("new GmailRuntimeClient");
+  });
+});
+
+describe("S260/S271 fence: the compiled synthetic mail admits two exact drivers only", () => {
+  const cwd = "/tmp/pmi-kc-one-path-rehearsal-Ab12Cd/worktree";
+  const sha = "a".repeat(40);
+  const clean = {
+    cwd,
+    driver: `${cwd}/${S260_DRIVER}`,
+    compiled: true,
+    mailAdapter: true,
+    overlay: false,
+    namedCommit: false,
+    servedSha: sha,
+    harnessSha: sha,
+  };
+
+  it("names exactly the S260 and S271 qualification drivers", () => {
+    expect(S260_DRIVER).toBe(
+      "tests/browser/one-path-november-9-qualification-driver.mjs",
+    );
+    expect(S271_DRIVER).toBe(
+      "tests/browser/one-path-november-10-qualification-driver.mjs",
+    );
+    expect([...COMPILED_MAIL_DRIVERS]).toEqual([S260_DRIVER, S271_DRIVER]);
+  });
+
+  it.each([S260_DRIVER, S271_DRIVER])(
+    "admits %s from a clean compiled commit in its disposable worktree",
+    (driver) => {
+      expect(compiledMailAdmits({ ...clean, driver: `${cwd}/${driver}` })).toBe(true);
+    },
+  );
+
+  it.each([
+    "tests/browser/one-path-november-10-baseline-driver.mjs",
+    "tests/browser/one-path-smoke-driver.mjs",
+    "tests/browser/one-path-stand-in-proof-driver.mjs",
+    "tests/browser/one-path-november-10-qualification-driver.mjs.bak",
+    "tests/browser/../browser/one-path-november-10-qualification-driver.mjs",
+    "scripts/one-path-november-10-qualification-driver.mjs",
+  ])("refuses any other driver (%s)", (driver) => {
+    expect(compiledMailAdmits({ ...clean, driver: `${cwd}/${driver}` })).toBe(false);
+  });
+
+  it("refuses an exact driver from another checkout or with no driver", () => {
+    expect(
+      compiledMailAdmits({ ...clean, driver: `/tmp/elsewhere/worktree/${S271_DRIVER}` }),
+    ).toBe(false);
+    expect(compiledMailAdmits({ ...clean, driver: null })).toBe(false);
+    expect(
+      compiledMailAdmits({
+        ...clean,
+        cwd: "/home/user/checkout",
+        driver: `/home/user/checkout/${S271_DRIVER}`,
+      }),
+    ).toBe(false);
+  });
+
+  it.each([
+    [{ compiled: false }],
+    [{ mailAdapter: false }],
+    [{ overlay: true }],
+    [{ namedCommit: true }],
+    [{ harnessSha: "b".repeat(40) }],
+    [{ servedSha: "not-a-sha", harnessSha: "not-a-sha" }],
+  ])("refuses either exact driver when %o", (change) => {
+    for (const driver of COMPILED_MAIL_DRIVERS)
+      expect(
+        compiledMailAdmits({ ...clean, driver: `${cwd}/${driver}`, ...change }),
+      ).toBe(false);
+  });
+
+  it("aliases the draft stand-in only to a resolver that is null outside the compiled build", () => {
+    const fence = readFileSync(
+      join(process.cwd(), "scripts/lib/one-path-rehearsal/compiled-mail.mjs"),
+      "utf8",
+    );
+    expect(fence).toContain(
+      '"@/lib/environment/rehearsal-stand-in": "./\' + DRAFT_STAND_IN + \'",',
+    );
+    // Outside the isolated production compile (here: the Demo rehearsal environment in a
+    // test process), the substituted resolver answers nothing, whatever record is passed.
+    expect(resolveCompiledDraftStandIn(REHEARSAL)).toBeNull();
+    vi.stubEnv("REHEARSAL_STAND_IN_ORIGIN", ORIGIN);
+    expect(resolveCompiledDraftStandIn()).toBeNull();
+    const fixture = readFileSync(
+      join(process.cwd(), "tests/browser/fixtures/s271-compiled-stand-in.ts"),
+      "utf8",
+    );
+    expect(fixture).toContain("return resolveRehearsalMail(env);");
+    const gcloudignore = readFileSync(join(process.cwd(), ".gcloudignore"), "utf8");
+    expect(gcloudignore).toContain("tests/browser/fixtures/s271-compiled-stand-in.ts");
   });
 });
 

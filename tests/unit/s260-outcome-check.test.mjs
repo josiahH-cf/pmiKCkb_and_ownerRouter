@@ -49,6 +49,7 @@ describe("S260 exact matrix verdict", () => {
     linkedScreenAndControl: true,
     helpSource: source,
     helpSourceManifest: "b".repeat(64),
+    helpVersion: "V3.0",
     matchedScenes: 27,
     checkedControls: 831,
     missingRequiredControls: 0,
@@ -185,6 +186,7 @@ describe("S260 exact matrix verdict", () => {
     results: rows,
     networkRefusals: [],
     tenantSendProof: false,
+    servedHelp: { version: "V3.0", scenes: 27, controls: 831 },
   };
 
   it("records a matrix pass separately from the other gates and human verdict", () => {
@@ -215,6 +217,12 @@ describe("S260 exact matrix verdict", () => {
     },
     { results: [{ ...rows[0], observed: { missing: "readback" } }, ...rows.slice(1)] },
     { networkRefusals: [{}] },
+    // The Help pins follow the served commit's own inventory and never a missing or other one.
+    { servedHelp: null },
+    { servedHelp: { version: "V3.0", scenes: 28, controls: 831 } },
+    { servedHelp: { version: "V3.0", scenes: 27, controls: 832 } },
+    { servedHelp: { version: "V3.1", scenes: 27, controls: 831 } },
+    { servedHelp: { version: "V3.0", scenes: 0, controls: 0 } },
   ])("refuses a stale, mixed, missing, duplicate or unsupported report %o", (bad) => {
     expect(novemberNineMatrixVerdict({ ...input, ...bad }).verdict).toBe("No");
   });
@@ -244,6 +252,23 @@ describe("S260 exact matrix verdict", () => {
         compiled: { ...input.compiled, compiledMail: adapter },
       }).verdict,
     ).toBe("Yes");
+  });
+
+  it("follows a later Help release by its own served version, scenes and controls", () => {
+    const bumped = { helpVersion: "V3.1", matchedScenes: 30, checkedControls: 900 };
+    const results = rows.map((row) =>
+      row.id.startsWith("N09-09-")
+        ? { ...row, observed: { ...row.observed, ...bumped } }
+        : row,
+    );
+    expect(
+      novemberNineMatrixVerdict({
+        ...input,
+        results,
+        servedHelp: { version: "V3.1", scenes: 30, controls: 900 },
+      }).verdict,
+    ).toBe("Yes");
+    expect(novemberNineMatrixVerdict({ ...input, results }).verdict).toBe("No");
   });
 
   it("keeps a complete exact matrix unverified when a required observation is held", () => {

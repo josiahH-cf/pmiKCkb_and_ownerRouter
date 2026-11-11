@@ -1,10 +1,12 @@
 import { readFileSync } from "node:fs";
 import { Socket } from "node:net";
 import { timingSafeEqual } from "node:crypto";
+// A relative import: in the isolated compile the "@/lib/environment/rehearsal-stand-in"
+// specifier resolves to tests/browser/fixtures/s271-compiled-stand-in.ts, which imports this file.
 import {
   loopbackStandInOrigin,
   type RehearsalStandIn,
-} from "@/lib/environment/rehearsal-stand-in";
+} from "../../../lib/environment/rehearsal-stand-in";
 
 const PROJECT = "pmi-kc-kb-one-path-rehearsal-test";
 const LOCAL_PORT = /^127\.0\.0\.1:[1-9]\d{0,4}$/;

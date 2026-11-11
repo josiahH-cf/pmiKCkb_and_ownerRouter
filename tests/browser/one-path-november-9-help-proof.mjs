@@ -1,8 +1,73 @@
 import assert from "node:assert/strict";
-import { readFileSync, realpathSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, readFileSync, realpathSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 
-export function readExactHelpProof(argv, source) {
+const PRELOAD = "tests/browser/renewal-novdec-journey-network.mjs";
+
+/**
+ * The served commit's own Help inventory: its version, its scene manifest and the controls its
+ * manual names (the same collectHelpControls the rendered gate checks), read from the served
+ * worktree. A later Help release changes these numbers with its own content, never this proof.
+ */
+export function servedHelpInventory(cwd = process.cwd()) {
+  const version = /export const HELP_VERSION = "(V[1-9]\d*\.\d+)";/.exec(
+    readFileSync(join(cwd, "lib/help/version.ts"), "utf8"),
+  )?.[1];
+  assert.ok(version, "Read the served Help version");
+  const manifest = JSON.parse(
+    readFileSync(join(cwd, "lib/help/content/scenes.json"), "utf8"),
+  );
+  assert.equal(
+    manifest.version,
+    version,
+    "The scene manifest is the served Help version",
+  );
+  assert.ok(Array.isArray(manifest.scenes) && manifest.scenes.length > 0);
+  const dir = mkdtempSync(join(tmpdir(), "s260-help-controls-"));
+  const file = join(dir, "controls.json");
+  try {
+    try {
+      // The source gate's own problems are reported by that gate; the emitted list is the count.
+      execFileSync(
+        process.execPath,
+        [
+          join(cwd, "node_modules/tsx/dist/cli.mjs"),
+          "scripts/check-help-controls.mjs",
+          "--emit",
+          file,
+        ],
+        {
+          cwd,
+          stdio: ["ignore", "ignore", "ignore"],
+          env: {
+            PATH: process.env.PATH,
+            HOME: process.env.HOME,
+            TMPDIR: process.env.TMPDIR ?? "/tmp",
+            LANG: "en_US.UTF-8",
+            NODE_OPTIONS: `--import ${join(cwd, PRELOAD)}`,
+            ...(process.env.NOVDEC_JOURNEY_NETWORK_LOG
+              ? { NOVDEC_JOURNEY_NETWORK_LOG: process.env.NOVDEC_JOURNEY_NETWORK_LOG }
+              : {}),
+          },
+        },
+      );
+    } catch {
+      // A failed source gate still emitted its list before it reported.
+    }
+    const { controls } = JSON.parse(readFileSync(file, "utf8"));
+    assert.ok(
+      Array.isArray(controls) && controls.length > 0,
+      "Read the served Help controls",
+    );
+    return { version, scenes: manifest.scenes.length, controls: controls.length };
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+export function readExactHelpProof(argv, source, inventory = servedHelpInventory) {
   const positiveAt = argv.indexOf("--rendered-help");
   const negativeAt = argv.indexOf("--rendered-help-drift");
   if (positiveAt === -1 && negativeAt === -1) return null;
@@ -10,6 +75,7 @@ export function readExactHelpProof(argv, source) {
     positiveAt >= 0 && negativeAt >= 0,
     "Both rendered Help records are required",
   );
+  const served = typeof inventory === "function" ? inventory() : inventory;
   const root = realpathSync(join(process.env.HOME, ".local/state/pmi-kc-help-rehearsal"));
   const evidenceDir = (arg) => {
     const path = realpathSync(arg);
@@ -34,11 +100,12 @@ export function readExactHelpProof(argv, source) {
   assert.equal(sceneReport.sourceSha, source);
   assert.equal(sceneReport.servedCommit, source);
   assert.equal(sceneReport.overlay, false);
-  assert.equal(sceneReport.helpVersion, "V3.0");
-  assert.equal(sceneReport.scenes.length, 27);
+  // The served commit's own Help: its version, every scene and every control its manual names.
+  assert.equal(sceneReport.helpVersion, served.version);
+  assert.equal(sceneReport.scenes.length, served.scenes);
   assert.deepEqual(sceneReport.drift, []);
   assert.deepEqual(sceneReport.uncaptured, []);
-  assert.equal(checks.length, 831);
+  assert.equal(checks.length, served.controls);
   assert.ok(
     checks.every(
       ({ state, availability }) =>
@@ -60,6 +127,7 @@ export function readExactHelpProof(argv, source) {
   return {
     helpSource: source,
     helpSourceManifest: receipt.sourceManifestSha256,
+    helpVersion: served.version,
     matchedScenes: sceneReport.scenes.length,
     checkedControls: checks.length,
     missingRequiredControls: 0,
