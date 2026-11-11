@@ -14,6 +14,7 @@ import {
 } from "./one-path-november-10-core-journeys.mjs";
 import {
   centralDate,
+  compositionText,
   firestoreValue,
   sequencePayloadHash,
   uuid,
@@ -408,13 +409,27 @@ export async function journeyN1004(ctx, page) {
   tenant = await reads.tenant();
   assert.ok(tenant.offerCharges.review.rows.some((row) => row.status === "needs_review"));
   await kit.open(page, kit.href(leaseId, "?step=offer-tenant"));
-  for (const button of await review
-    .getByRole("button", { name: "Confirm this line again" })
-    .all()) {
-    const saved = page.waitForResponse((response) => prepared(response));
-    await button.click();
-    await saved;
+  // Each confirmed line leaves the list, so confirm the first remaining one until none is left.
+  const confirmAgain = review.getByRole("button", { name: "Confirm this line again" });
+  const reviewed = [];
+  for (let remaining = await confirmAgain.count(); remaining > 0; ) {
+    assert.ok(reviewed.length < 20, "Each line needing review is confirmed once");
+    const row = await confirmAgain
+      .first()
+      .evaluate((node) => node.closest("[id^='renewal-offer-charge-']")?.id ?? null);
+    const [saved] = await Promise.all([
+      page.waitForResponse((response) => prepared(response)),
+      confirmAgain.first().click(),
+    ]);
+    assert.equal(saved.status(), 200);
+    reviewed.push(row);
+    for (let wait = 0; wait < 100 && (await confirmAgain.count()) >= remaining; wait++)
+      await page.waitForTimeout(100);
+    const left = await confirmAgain.count();
+    assert.ok(left < remaining, "A confirmed line leaves the review list");
+    remaining = left;
   }
+  record({ id: "N10-04", check: "confirmed-again", reviewed });
   tenant = await reads.tenant();
   assert.ok(
     !tenant.offerCharges.review.rows.some((row) => row.status === "needs_review"),
@@ -641,7 +656,7 @@ export async function journeyN1005(ctx, page) {
     composition = await reads.composition();
     assert.deepEqual(composition.target.blockers ?? [], []);
     assert.match(
-      composition.initial.plainText,
+      compositionText(composition),
       new RegExp(urls.rbp_flyer.replace(/[.]/g, "\\.")),
     );
 

@@ -135,6 +135,14 @@ const browser = await chromium.launch({
   headless: true,
 });
 const results = [];
+// A journey that fails mid-step can leave a response wait behind. Its later rejection belongs to
+// the failed row already recorded; it is noted in the run dir and never ends the matrix.
+process.on("unhandledRejection", (error) => {
+  appendFileSync(
+    join(runDir, "s271-driver-notes.log"),
+    new Date().toISOString() + " late rejection: " + String(error).slice(0, 400) + "\n",
+  );
+});
 
 async function journey(id, { role = "Editor", allow = [], failFirst = [] }, check) {
   if (only && !only.includes(id)) return;

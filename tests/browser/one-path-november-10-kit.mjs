@@ -282,6 +282,20 @@ export function sequencePayloadHash(value) {
   return sha256(JSON.stringify(canonical(value)));
 }
 
+/**
+ * The text a composition read (`/api/gmail-hub/composition`) prepares: its `initial` message is
+ * paragraphs of runs, not a rendered body. Each linked run keeps its link target beside its text.
+ */
+export function compositionText(composition) {
+  const paragraphs = composition?.initial?.paragraphs;
+  if (!Array.isArray(paragraphs)) return "";
+  return paragraphs
+    .map((runs) =>
+      runs.map((run) => run.text + (run.href ? " <" + run.href + ">" : "")).join(""),
+    )
+    .join("\n\n");
+}
+
 /** The Central calendar date `days` from now, written YYYY-MM-DD. */
 export function centralDate(days = 0) {
   return new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Chicago" }).format(

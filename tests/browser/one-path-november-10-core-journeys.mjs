@@ -16,6 +16,7 @@ import {
   addDays,
   addYears,
   centralDate,
+  compositionText,
   firestoreValue,
   sha256,
   uuid,
@@ -63,14 +64,15 @@ async function saveWorking(kit, page, leaseId, field, value, extra = {}) {
  */
 export async function recordOwnerApproval(kit, page, leaseId, approvedBase = undefined) {
   const reads = leaseReads(kit, page, leaseId);
+  // A lease without a work record gets one from its first record (S154: cycleId null).
   let state = (await reads.workspace()).state;
-  if (state.ownerResponse?.outcome === "approved_terms" && !approvedBase) return state;
-  if (state.activities?.owner_outreach?.outcome !== "done") {
+  if (state?.ownerResponse?.outcome === "approved_terms" && !approvedBase) return state;
+  if (state?.activities?.owner_outreach?.outcome !== "done") {
     const outreach = await kit.post(page, WORKSPACE, {
       operation: "record",
       leaseId: String(leaseId),
-      cycleId: state.cycleId,
-      expectedRevision: state.revision,
+      cycleId: state?.cycleId ?? null,
+      expectedRevision: state?.revision ?? 0,
       operationId: uuid(),
       action: {
         kind: "activity",
@@ -324,10 +326,7 @@ export async function journeyN1003(ctx, page) {
     const resolved = await reads.tenant();
     assert.equal(resolved.facts.leaseEndDate, end);
     const resolvedComposition = await reads.composition();
-    for (const text of [
-      resolved.content.plainText,
-      resolvedComposition.initial.plainText,
-    ])
+    for (const text of [resolved.content.plainText, compositionText(resolvedComposition)])
       assert.match(text, new RegExp(usDate(end)));
     await kit.open(page, kit.href(lease.leaseId, "?view=full#renewal-working-terms"));
     await page

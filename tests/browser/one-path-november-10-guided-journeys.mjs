@@ -11,6 +11,15 @@ import {
 import { NARROW, STEPS, WIDE, uuid } from "./one-path-november-10-kit.mjs";
 
 const WORKING = "/api/lease-renewal/working-record";
+/** S270 useNamedDisclosure: why a named disclosure holds current work (data-renewal-promoted). */
+const PROMOTED_REASONS = [
+  "save-failed",
+  "save-saving",
+  "invalid",
+  "governing",
+  "lead",
+  "date-fix-return",
+];
 export const GROUP_NAMES = {
   "check-numbers": ["Correct other lease facts", "Verify lease numbers"],
   "compare-market": [
@@ -350,11 +359,45 @@ export async function journeyN1008(ctx, page, mutations) {
   // The baseline's own probe on Guided entry: no secondary group stays open unless promoted.
   await kit.open(page, kit.href(lease));
   await page.getByRole("region", { name: "Current renewal stage" }).waitFor();
-  const openOnEntry = await page
+  // An open group on entry (a named secondary Work group or the Working renewal terms reveal) must
+  // name why it is current work (data-renewal-promoted) or be held open in place by the exact
+  // reveal; any other open group is an old open stack.
+  const entryGroups = await page
     .locator(
-      "details[data-renewal-secondary-work][open]:not([data-renewal-focus-opened]):not([data-renewal-promoted])",
+      "details[data-renewal-secondary-work][open], details[data-renewal-working-terms][open]",
     )
-    .count();
+    .evaluateAll((nodes) =>
+      nodes.map((node) => ({
+        group:
+          node.getAttribute("data-renewal-group") ??
+          (node.hasAttribute("data-renewal-working-terms")
+            ? "Working renewal terms"
+            : null),
+        promoted: node.getAttribute("data-renewal-promoted"),
+        held: node.hasAttribute("data-renewal-focus-opened"),
+        // A group the reveal holds open must hold a control the Guided view shows.
+        revealed: [
+          ...node.querySelectorAll("button, input, select, textarea, a[href]"),
+        ].some(
+          (control) =>
+            !control.closest("[data-renewal-focus-hidden]") &&
+            control.getClientRects().length > 0,
+        ),
+      })),
+    );
+  const shownStep = await kit
+    .now(page)
+    .locator("[data-renewal-work][data-renewal-outcome]")
+    .first()
+    .getAttribute("data-renewal-outcome");
+  record({ id: "N10-08", check: "open-on-entry", shownStep, entryGroups });
+  const openOnEntry = entryGroups.filter(
+    ({ promoted, held, revealed }) =>
+      !(held && revealed) && !PROMOTED_REASONS.includes(promoted ?? ""),
+  ).length;
+  observed.openOnEntryReasons = entryGroups.map(({ promoted, held }) =>
+    held ? "held" : (promoted ?? "none"),
+  );
   const named = [];
   for (const step of STEPS) {
     const check = await guidedCheck(ctx, page, lease, step);
@@ -377,14 +420,35 @@ export async function journeyN1008(ctx, page, mutations) {
   observed.openOnEntry = openOnEntry;
   assert.deepEqual(mutations, []);
 
-  // Keyboard and mouse open and close one named group; Tab skips its closed content.
-  await kit.open(page, kit.href(lease, "?step=check-numbers"));
-  const group = kit
-    .now(page)
-    .locator('details[data-renewal-group="Correct other lease facts"]')
-    .first();
+  // Keyboard and mouse open and close one named group; Tab skips its closed content. The group is
+  // the first shown outcome's own group that is closed on entry: a group holding current work
+  // (such as the Guided lead) stays open by design.
+  let group = null;
+  for (const step of STEPS) {
+    const name = GROUP_NAMES[step][0];
+    if (!name) continue;
+    await kit.open(page, kit.href(lease, "?step=" + step));
+    await kit
+      .now(page)
+      .locator(`[data-renewal-work][data-renewal-outcome="${step}"]`)
+      .waitFor();
+    const candidate = kit
+      .now(page)
+      .locator(`details[data-renewal-group="${name}"]`)
+      .first();
+    if (!(await candidate.count())) continue;
+    await candidate.locator(":scope > summary").waitFor();
+    const closed = await candidate.evaluate(
+      (node) => !node.open && !node.hasAttribute("data-renewal-promoted"),
+    );
+    if (closed) {
+      group = candidate;
+      record({ id: "N10-08", check: "disclosure-group", step, group: name });
+      break;
+    }
+  }
+  assert.ok(group, "A shown outcome has its named group closed on entry");
   const summary = group.locator(":scope > summary");
-  await summary.waitFor();
   const isOpen = async () => (await group.getAttribute("open")) !== null;
   assert.equal(await isOpen(), false);
   await summary.focus();

@@ -9,6 +9,7 @@ import { centralDate, uuid } from "./one-path-november-10-kit.mjs";
 const WORKING = "/api/lease-renewal/working-record";
 const WORKSPACE = "/api/lease-renewal/workspace";
 const STATUS = "/api/lease-renewal/work-status";
+const RETURNED = "/api/lease-renewal/returned-state";
 
 const recipients = (composition) => ({
   to: [...(composition.target?.to ?? [])].sort(),
@@ -106,12 +107,13 @@ export async function journeyN1009(ctx, page, mutations) {
   );
   observed.verifiedProgramContactRecorded = true;
 
+  // The first record on a lease without a work record establishes it (S154: cycleId null).
   const workspace = (await reads.workspace()).state;
   const contacted = await kit.post(page, WORKSPACE, {
     operation: "record",
     leaseId: assisted,
-    cycleId: workspace.cycleId,
-    expectedRevision: workspace.revision,
+    cycleId: workspace?.cycleId ?? null,
+    expectedRevision: workspace?.revision ?? 0,
     operationId: uuid(),
     action: {
       kind: "activity",
@@ -386,17 +388,68 @@ export async function journeyN1010(ctx, page) {
     observed.protectedFieldsPreserved = false;
   }
 
-  // Signed evidence stays separate from staff-recorded document work.
-  const returned = await kit
-    .read(page, "/api/lease-renewal/returned-state?leaseId=" + leaseId)
-    .catch(() => null);
-  assert.equal((await reads.workspace()).state.activities.signatures, undefined);
+  // Signed evidence stays separate (S236, R-S268-3): the prepared bytes and the manual documents
+  // outcome imply no signature, and a staff "Sent for signature" record changes only its own
+  // returned-document record, never the signatures activity or the documents outcome.
+  const readReturned = async () =>
+    (await kit.read(page, RETURNED + "?leaseId=" + leaseId)).view;
+  const returned = await readReturned();
+  const shown = (view) =>
+    view.documents.map(({ kind, state, revision, attestation }) => ({
+      kind,
+      state,
+      revision,
+      attestation,
+    }));
   record({
     id: "N10-10",
     check: "returned",
-    returned: returned ? Object.keys(returned) : null,
+    unavailable: returned.unavailable,
+    overall: returned.overall,
+    documents: shown(returned),
   });
-  observed.signedEvidenceSeparate = true;
+  const signedStates = ["Partially signed", "Fully executed"];
+  assert.equal(returned.signaturesComplete, false);
+  assert.ok(returned.documents.every(({ state }) => !signedStates.includes(state)));
+  const tracked =
+    returned.documents.find(({ kind }) => kind === "renewal_extension") ??
+    returned.documents[0];
+  if (returned.unavailable || !tracked) {
+    observed.signedEvidenceSeparate = false;
+    observed.returnedUnavailable = returned.unavailable;
+  } else {
+    const sentBody = {
+      leaseId,
+      cycleId: returned.cycleId,
+      snapshotId: returned.snapshotId,
+      kind: tracked.kind,
+      documentContentHash: tracked.contentHash,
+      expectedRevision: tracked.revision,
+      operationId: uuid(),
+      change: {
+        kind: "sent_for_signature",
+        at: new Date().toISOString(),
+        how: "SYNTHETIC rehearsal: handed over in person",
+      },
+    };
+    const sent = await kit.post(page, RETURNED, sentBody);
+    assert.equal(sent.status, 200, JSON.stringify(sent.body));
+    const replay = await kit.post(page, RETURNED, sentBody);
+    assert.equal(replay.status, 200, JSON.stringify(replay.body));
+    assert.equal(replay.body.duplicate, true);
+    const stale = await kit.post(page, RETURNED, { ...sentBody, operationId: uuid() });
+    assert.equal(stale.status, 409, JSON.stringify(stale.body));
+    const after = await readReturned();
+    const recorded = after.documents.find(({ kind }) => kind === tracked.kind);
+    record({ id: "N10-10", check: "sent-for-signature", documents: shown(after) });
+    assert.equal(recorded.revision, tracked.revision + 1);
+    assert.ok(!signedStates.includes(recorded.state));
+    assert.equal(after.signaturesComplete, false);
+    const activities = (await reads.workspace()).state.activities;
+    assert.equal(activities.signatures, undefined);
+    assert.equal(activities.documents.outcome, "waiting");
+    observed.signedEvidenceSeparate = true;
+  }
 
   const effects = refusedConnections(rehearsal)
     .slice(refusalsBefore)
@@ -410,5 +463,7 @@ export async function journeyN1010(ctx, page) {
     "Packet parity with the offer's shared charges (offerComparisons) is not on this build, so a disagreeing shared charge cannot be shown held.";
   if (!observed.syntheticPdfInputs)
     observed.missing += " The snapshot was not ready for a filled extension PDF.";
+  if (!observed.signedEvidenceSeparate)
+    observed.missing += ` Returned documents were unavailable: ${observed.returnedUnavailable ?? "no tracked document"}.`;
   return observed;
 }
