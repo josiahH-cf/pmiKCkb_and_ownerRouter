@@ -30,6 +30,7 @@ import {
   manualNonRenewalReason,
 } from "@/lib/lease-renewal/notice-safety";
 import { assertSenderSignatureChoice } from "./renewal-sender-signature-choice";
+import { offerChargeMappingVersionIn } from "./renewal-offer-charge-mappings";
 import { assertRenewalDispositionVersion } from "./renewal-cycle-disposition-read";
 import { LEASE_EXPORT_MAX_AGE_MS } from "@/lib/lease-renewal/live-lease-cache";
 /**
@@ -178,6 +179,18 @@ export async function assertCurrentRenewalMessageClaim(
       effect: "draft",
     });
     if (!verdict.ok) throw new EditableLayerError(verdict.message, 409);
+    // S264 (R-S264-4, AC-S264-4): the offer's charge rows were resolved from one mapping version.
+    // A mapping revision after this preview refuses the draft even when every amount matches; the
+    // charge review itself moves the message revision checked above.
+    const offer = basis.offerCharges;
+    if (offer && offer.snapshot.sourceLines > 0) {
+      const mappingVersion = await offerChargeMappingVersionIn(tx, db);
+      if (mappingVersion === null || mappingVersion !== offer.mappingVersion)
+        throw new EditableLayerError(
+          "The offer charge mappings changed after this preview, so the charge lines need review again. No Gmail draft was created. Review offer charges and preview the message again.",
+          409,
+        );
+    }
   }
   const expected = suppliedRenewalPublication(channel);
   const matches = templates.docs

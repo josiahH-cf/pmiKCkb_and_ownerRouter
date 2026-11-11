@@ -16,7 +16,7 @@ import { describeNextDue } from "@/lib/gmail-hub/schedule-calendar";
 import { workflowComposerHref } from "@/lib/gmail-hub/composer-navigation";
 import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import { boundedLocalWait, LocalWaitError } from "@/lib/ui/local-lifetime";
-import { formatBusinessTimestamp, formatSourceCalendarDate } from "@/lib/date-display";
+import { formatBusinessTimestamp } from "@/lib/date-display";
 
 import { renewalCardTitle } from "@/components/lease-renewal/RenewalSectionHeading";
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
@@ -52,7 +52,6 @@ import {
   MessageChargeSchema,
   RenewalMessageEditsSchema,
   responseRequestParagraph,
-  type MessageCharge,
   type RenewalMessageFacts,
 } from "@/lib/lease-renewal/renewal-message-content";
 import {
@@ -62,6 +61,24 @@ import {
   type MessageMissingInput,
 } from "@/lib/lease-renewal/message-readiness";
 import { startDateFixFromOffer } from "./RenewalDateProposal";
+import {
+  OfferCaseEntrySchema,
+  OfferChargeDecisionSchema,
+  OfferChargeSelectionSchema,
+  emptyOfferChargeSelection,
+  projectOfferCharges,
+  type OfferChargeReview,
+  type OfferChargeSelection,
+  type OfferChargeSource,
+} from "@/lib/lease-renewal/offer-charges";
+import type { OfferChargeMappingsRead } from "@/lib/lease-renewal/offer-charge-mapping";
+import {
+  RenewalOfferChargeAdd,
+  RenewalOfferCharges,
+  useOfferChargeEvidenceHost,
+} from "./RenewalOfferCharges";
+import { offerChargesPriority } from "@/lib/lease-renewal/offer-charges-priority";
+import { useRenewalFocusView } from "./RenewalFocusViewContext";
 import {
   emptyMessagePreparationInputs,
   RecommendationReasonSchema,
@@ -204,6 +221,19 @@ interface Preparation {
   retainedSignature?: MessagePreparationInputs["signature"] | null;
   /** S120: current non-rent recurring charges a person may deliberately fill a charge from. */
   chargeInventory?: ChargeInventoryLine[] | null;
+  /**
+   * S264: what the tenant offer's charge review is resolved from (the RentVine lines and the
+   * approved mappings), the review saved with this revision, the server's projection and the
+   * exact offer snapshot's identity. Absent for the owner message.
+   */
+  offerCharges?: {
+    source: OfferChargeSource;
+    mappings: OfferChargeMappingsRead;
+    saved: OfferChargeSelection | null;
+    review: OfferChargeReview;
+    snapshotId: string;
+    snapshotHash: string;
+  } | null;
   publication: { status: string; ref?: string; reason?: string };
   /** S139/S161: the saved authored body and whether the facts changed after it was written. */
   bodyOverride?: RefinedBodyState | null;
@@ -407,10 +437,6 @@ function savedOverride(saved: RefinedBodyState | null): {
   };
 }
 
-function chargeFillSource(line: ChargeInventoryLine) {
-  return `RentVine recurring charge: ${line.label} (${line.id})`;
-}
-
 function externalLink(destination: ExternalDeskDestination, text: string) {
   return (
     <a
@@ -531,6 +557,44 @@ interface LocalMessage {
   inputs: MessagePreparationInputs;
   override: RefinedBody | null;
   subjectText: string | null;
+  /** S264: the tenant offer's charge review as entered here; null for the owner message. */
+  offerCharges?: OfferChargeSelection | null;
+}
+
+/**
+ * S264: the charge review as it would be saved now. A finished entry is taken as entered; an
+ * unfinished one (a reason or source too short to keep) falls back to its saved value and is
+ * named, so one half-typed field never holds back the rest of the review.
+ */
+function savableOfferCharges(
+  raw: OfferChargeSelection,
+  saved: OfferChargeSelection,
+): { selection: OfferChargeSelection; unfinished: boolean } {
+  let unfinished = false;
+  const decisions = raw.decisions.flatMap((decision) => {
+    const parsed = OfferChargeDecisionSchema.safeParse(decision);
+    if (parsed.success) return [parsed.data];
+    unfinished = true;
+    return saved.decisions.filter((entry) => entry.rowKey === decision.rowKey);
+  });
+  const caseEntries = raw.caseEntries.flatMap((entry) => {
+    const parsed = OfferCaseEntrySchema.safeParse(entry);
+    if (parsed.success) return [parsed.data];
+    unfinished = true;
+    return saved.caseEntries.filter((value) => value.id === entry.id);
+  });
+  const transitions = OfferChargeSelectionSchema.shape.transitions.safeParse(
+    raw.transitions,
+  );
+  if (!transitions.success) unfinished = true;
+  const selection = OfferChargeSelectionSchema.safeParse({
+    decisions,
+    caseEntries,
+    transitions: transitions.success ? transitions.data : saved.transitions,
+  });
+  return selection.success
+    ? { selection: selection.data, unfinished }
+    : { selection: saved, unfinished: true };
 }
 
 /** What one save would store for the local message, and what is still unfinished in it. */
@@ -542,6 +606,14 @@ function savePayload(
 ) {
   const effective = savableInputs(local.inputs, server.inputs);
   const unfinished = [...effective.unfinished];
+  // S264: the charge review saves with the tenant message through this same save.
+  const offer = server.offerCharges
+    ? savableOfferCharges(
+        local.offerCharges ?? server.offerCharges.saved ?? emptyOfferChargeSelection(),
+        server.offerCharges.saved ?? emptyOfferChargeSelection(),
+      )
+    : null;
+  if (offer?.unfinished) unfinished.push("Review offer charges");
   const savedBody = savedOverride(server.bodyOverride ?? null).override;
   // Blank wording is not authored wording: the text then follows the standard wording.
   const body = local.override?.text.trim()
@@ -555,6 +627,9 @@ function savePayload(
   return {
     effective: effective.inputs,
     unfinished,
+    /** S264: the charge review as it would be saved now, and whether part of it is unfinished. */
+    offerCharges: offer?.selection ?? null,
+    offerChargesUnfinished: Boolean(offer?.unfinished),
     /** The wording itself cannot be stored as typed, so a draft of it is not prepared yet. */
     wordingUnfinished: Boolean((body && !body.success) || (subject && !subject.success)),
     value: {
@@ -566,6 +641,7 @@ function savePayload(
           : (server.subjectOverride ?? null)
         : null,
       ruleBasis,
+      ...(offer ? { offerCharges: offer.selection } : {}),
     },
   };
 }
@@ -578,25 +654,59 @@ function savedPayload(server: Preparation): string {
         inputs: server.inputs,
         override: savedOverride(server.bodyOverride ?? null).override,
         subjectText: server.subjectOverride ?? null,
+        offerCharges: server.offerCharges?.saved ?? null,
       },
       server,
     ).value,
   );
 }
 
+/**
+ * The message as entered here. S264: the charge review the editor shows is the server's source
+ * lines and mappings with the review as entered here, through the same projection the server uses.
+ */
 function composedPreparation(
   current: Preparation,
-  { inputs, override, subjectText }: LocalMessage,
+  { inputs, override, subjectText, offerCharges }: LocalMessage,
+  leaseId?: string,
 ) {
   const payload = current
-    ? savePayload({ inputs, override, subjectText }, current)
+    ? savePayload({ inputs, override, subjectText, offerCharges }, current)
     : null;
   let content: ReturnType<typeof composeRenewalMessage> | null = null;
+  let offerReview: OfferChargeReview | null = null;
+  let facts: RenewalMessageFacts | null = null;
   if (current && payload) {
     const effective = payload.effective;
+    offerReview = current.offerCharges
+      ? projectOfferCharges({
+          leaseId: leaseId ?? "",
+          source: current.offerCharges.source,
+          mappings: current.offerCharges.mappings,
+          selection: payload.offerCharges,
+          terms: current.facts.ownerTerms
+            ? {
+                rent: current.facts.ownerTerms.rent,
+                effectiveDate: current.facts.ownerTerms.effectiveDate,
+              }
+            : null,
+          legacyCharges: effective.charges,
+          legacyInsuranceTransition: effective.insuranceTransition,
+          legacyOtherChargesComparison: effective.otherChargesComparison,
+        })
+      : null;
+    facts = {
+      ...current.facts,
+      ...(offerReview
+        ? {
+            offerCharges: offerReview.composition,
+            resourceDecisions: offerReview.decisions,
+          }
+        : {}),
+    };
     content = composeRenewalMessage(
       {
-        ...current.facts,
+        ...facts,
         attachments:
           inputs.compScreenshotReceiptId &&
           inputs.compScreenshotReceiptId === current.availableCompScreenshot?.receiptId
@@ -649,14 +759,16 @@ function composedPreparation(
   if (shownContent && authoredSubject)
     shownContent = applyAuthoredSubject(shownContent, authoredSubject);
   // S265 (R-S265-2): the same inclusion projection the server applies to the exact final content,
-  // so an authored resource clause or link shows its own fix here too.
+  // so an authored resource clause or link shows its own fix here too. S264: with this review's
+  // transition decisions. S265 into S269: the inclusion also gives the Guided offer its first
+  // required resource fix.
   let inclusion: TenantResourceInclusion | null = null;
   if (shownContent && current) {
-    const applied = applyTenantResourceInclusion(shownContent, current.facts);
+    const applied = applyTenantResourceInclusion(shownContent, facts ?? current.facts);
     shownContent = applied.content;
     inclusion = applied.inclusion;
   }
-  return { payload, content, shownContent, inclusion };
+  return { payload, content, shownContent, offerReview, inclusion };
 }
 
 function MessagePreparationEditor({
@@ -701,6 +813,8 @@ function MessagePreparationEditor({
     RefinedBody | null | undefined
   >(undefined);
   const [subjectText, setSubjectText] = useState<string | null>(null);
+  // S264: the tenant offer's charge review as entered here; it saves with the message.
+  const [offerSelection, setOfferSelection] = useState<OfferChargeSelection | null>(null);
   const [copying, setCopying] = useState(false);
   const [autosave, setAutosave] = useState<AutosaveState>(AUTOSAVE_IDLE);
   const [commitTick, setCommitTick] = useState(0);
@@ -740,7 +854,12 @@ function MessagePreparationEditor({
   const currentRef = useRef<Preparation | null>(null);
   // S250 R-S250-7: "Rebuild with the current rule" saves the message on the current rule.
   const ruleOverride = useRef<MessageRuleBasis | null>(null);
-  const localRef = useRef<LocalMessage>({ inputs, override, subjectText });
+  const localRef = useRef<LocalMessage>({
+    inputs,
+    override,
+    subjectText,
+    offerCharges: offerSelection,
+  });
   const lastSavedRef = useRef("");
   const outstanding = useRef<{ payload: string; id: string } | null>(null);
   const saving = useRef<Promise<void> | null>(null);
@@ -778,21 +897,26 @@ function MessagePreparationEditor({
     ),
   ];
   useEffect(() => {
-    localRef.current = { inputs, override, subjectText };
+    localRef.current = { inputs, override, subjectText, offerCharges: offerSelection };
   });
   /** Take the server's message as the local one. Only used while nothing local is unconfirmed. */
   const adopt = useCallback((result: Preparation) => {
     setInputs(result.inputs);
     const saved = savedOverride(result.bodyOverride ?? null);
+    const savedSelection = result.offerCharges
+      ? (result.offerCharges.saved ?? null)
+      : null;
     localRef.current = {
       inputs: result.inputs,
       override: saved.override,
       subjectText: result.subjectOverride ?? null,
+      offerCharges: savedSelection,
     };
     setOverride(saved.override);
     setOverrideState(saved.state);
     setPreviousOverride(undefined);
     setSubjectText(result.subjectOverride ?? null);
+    setOfferSelection(savedSelection);
   }, []);
   const load = useCallback(() => {
     const sequence = ++loadSequence.current;
@@ -1069,27 +1193,6 @@ function MessagePreparationEditor({
     setPreviousOverride(undefined);
     commit();
   }
-  function chargeChange(id: MessageCharge["id"], changeValue: Partial<MessageCharge>) {
-    change({
-      ...inputs,
-      charges: inputs.charges.map((value) =>
-        value.id === id ? { ...value, ...changeValue } : value,
-      ),
-    });
-  }
-  function fillChargeFromInventory(id: MessageCharge["id"], lineId: string) {
-    const line = current?.chargeInventory?.find((value) => value.id === lineId);
-    if (!line) return;
-    // A deliberate fill from one named current charge. The comparison with the outgoing lease
-    // stays a human judgment, so it remains open until a person records it.
-    chargeChange(id, {
-      applicable: true,
-      amount: line.amount,
-      cadence: line.frequency === 1 ? "monthly" : null,
-      effectiveDate: line.startDate,
-      source: chargeFillSource(line),
-    });
-  }
   const signature = inputs.signature;
   function signatureChange(
     field: "name" | "role" | "phone" | "hours" | "source",
@@ -1112,11 +1215,21 @@ function MessagePreparationEditor({
   // The message is composed from what would be saved now, so what is shown, copied and drafted is
   // one and the same text. Composition never refuses: a gap is a named marker and a callout line.
   const composed = current
-    ? composedPreparation(current, { inputs, override, subjectText })
+    ? composedPreparation(
+        current,
+        { inputs, override, subjectText, offerCharges: offerSelection },
+        leaseId,
+      )
     : null;
   const payload = composed?.payload ?? null;
   const content = composed?.content ?? null;
   const shownContent = composed?.shownContent ?? null;
+  // S264: the charge review as entered here, through the server's own projection.
+  const offerReview = composed?.offerReview ?? null;
+  function offerChange(next: OfferChargeSelection) {
+    setOfferSelection(next);
+    touch();
+  }
   const authoredBody = override && override.text.trim() ? override.text : null;
   const wordingChangedSince = Boolean(authoredBody && overrideState === "stale");
   const refineDisabledReason = !canEdit
@@ -1314,7 +1427,7 @@ function MessagePreparationEditor({
         await saving.current?.catch(() => undefined);
         const server = currentRef.current;
         const shown = server
-          ? composedPreparation(server, localRef.current).shownContent
+          ? composedPreparation(server, localRef.current, leaseId).shownContent
           : null;
         if (!server || !shown) return;
         const state = savePayload(localRef.current, server);
@@ -1630,6 +1743,45 @@ function MessagePreparationEditor({
       nowSlotKey(channel === "owner" ? "ask-owner" : "offer-tenant", "message-preview")
     ],
   );
+  // S264 (R-S264-2): Review offer charges is one control with one saved record. The prepared
+  // tenant offer shows it where it is shown (the Now card in Guided, the section in Full);
+  // otherwise it leads this card's own work.
+  const focusView = useRenewalFocusView();
+  const preparedHostsCharges =
+    preparedPreviewInNow ||
+    Boolean(preparedData && compact && focusView?.view === "full");
+  const evidenceHost = useOfferChargeEvidenceHost(
+    channel === "tenant" && Boolean(offerReview),
+  );
+  // S264 with S269: the first open charge row or transition choice leads Offer the tenant in
+  // Guided, after the working terms; this editor names its own control and keeps its one save.
+  const offerPriority = channel === "tenant" ? offerChargesPriority(offerReview) : null;
+  const offerPriorityTarget = offerPriority?.target ?? null;
+  const offerPriorityReady = offerPriority?.transitionsReady ?? true;
+  const setOfferChargesLead = nowCard?.setOfferCharges;
+  useEffect(() => {
+    if (channel !== "tenant" || !setOfferChargesLead) return;
+    setOfferChargesLead(
+      offerPriorityTarget
+        ? { target: offerPriorityTarget, transitionsReady: offerPriorityReady }
+        : null,
+    );
+    return () => setOfferChargesLead(null);
+  }, [channel, setOfferChargesLead, offerPriorityTarget, offerPriorityReady]);
+  const offerSelectionNow =
+    offerSelection ?? current?.offerCharges?.saved ?? emptyOfferChargeSelection();
+  const chargeReview =
+    channel === "tenant" && offerReview ? (
+      <RenewalOfferCharges
+        canEdit={canEdit}
+        evidenceHost={evidenceHost}
+        onChange={offerChange}
+        onCommit={commit}
+        review={offerReview}
+        selection={offerSelectionNow}
+        unfinished={payload?.offerChargesUnfinished}
+      />
+    ) : null;
   return (
     <Card
       title={renewalCardTitle(
@@ -1664,6 +1816,7 @@ function MessagePreparationEditor({
           data={preparedData}
           compactFull={compact}
           deliveryHeld={deliveryHeld}
+          chargeReview={preparedHostsCharges ? chargeReview : null}
           onCopy={() => copy("formatted")}
           onDraftCreate={async () => {
             await draft("create");
@@ -1685,6 +1838,7 @@ function MessagePreparationEditor({
           }
         />
       ) : null}
+      {chargeReview && !preparedHostsCharges ? chargeReview : null}
       {workingTerms}
       <RenewalSecondaryWork
         // S270: one named group per outcome: the message options, then the outcome's records.
@@ -1715,6 +1869,16 @@ function MessagePreparationEditor({
         >
           Compose {channel} message in Communications
         </a>
+        {channel === "tenant" && offerReview ? (
+          // S270: an authorized case charge is an optional choice of this offer; it joins the
+          // same charge review and saves with the message.
+          <RenewalOfferChargeAdd
+            canEdit={canEdit}
+            onChange={offerChange}
+            onCommit={commit}
+            selection={offerSelectionNow}
+          />
+        ) : null}
         <p className="muted">
           Edits save in the app. In Communications, review the exact message and use Send
           or Schedule when its current checks pass. Resume requires a fresh review. You
@@ -2159,7 +2323,7 @@ function MessagePreparationEditor({
               {channel === "tenant" ? (
                 <>
                   <details>
-                    <summary>Lease origin and charges (optional details)</summary>
+                    <summary>Lease origin (optional detail)</summary>
                     <div className="ui-stack">
                       <Field
                         htmlFor={MESSAGE_CONTROL_IDS.origin(channel)}
@@ -2205,286 +2369,8 @@ function MessagePreparationEditor({
                           />
                         </Field>
                       ) : null}
-                      {inputs.charges.map((charge) => {
-                        const filledFrom = current.chargeInventory?.find(
-                          (line) => chargeFillSource(line) === charge.source,
-                        );
-                        return (
-                          <details
-                            key={charge.id}
-                            id={MESSAGE_CONTROL_IDS.charge(channel, charge.id)}
-                          >
-                            <summary>
-                              {MESSAGE_CHARGES[charge.id]} ·{" "}
-                              {charge.applicable === null
-                                ? "Not entered"
-                                : charge.applicable
-                                  ? "Applies"
-                                  : "Does not apply"}
-                            </summary>
-                            <div className="ui-stack">
-                              {current.chargeInventory?.length ? (
-                                <Field
-                                  htmlFor={`${base}-${charge.id}-fill`}
-                                  label="Fill from a current RentVine charge"
-                                  hint="Verified current charge · comparison remains staff-recorded."
-                                >
-                                  <select
-                                    id={`${base}-${charge.id}-fill`}
-                                    value={filledFrom?.id ?? ""}
-                                    onChange={(event) =>
-                                      fillChargeFromInventory(
-                                        charge.id,
-                                        event.target.value,
-                                      )
-                                    }
-                                  >
-                                    <option value="">Choose a current charge</option>
-                                    {current.chargeInventory.map((line) => (
-                                      <option key={line.id} value={line.id}>
-                                        {line.label}: ${line.amount.toFixed(2)}
-                                        {line.frequency === 1
-                                          ? " per month"
-                                          : ` every ${line.frequency} months`}
-                                        {line.startDate
-                                          ? ` from ${formatSourceCalendarDate(line.startDate)}`
-                                          : ""}
-                                        {line.current === false ? " (not current)" : ""}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </Field>
-                              ) : null}
-                              {filledFrom ? (
-                                <p
-                                  className="muted"
-                                  data-testid={`renewal-message-charge-origin-${charge.id}`}
-                                >
-                                  Filled from RentVine recurring charge {filledFrom.label}
-                                  . Change anything that differs for the renewal.
-                                </p>
-                              ) : null}
-                              <Field
-                                htmlFor={`${base}-${charge.id}-applies`}
-                                label="Does this charge apply?"
-                              >
-                                <select
-                                  id={`${base}-${charge.id}-applies`}
-                                  value={
-                                    charge.applicable === null
-                                      ? ""
-                                      : String(charge.applicable)
-                                  }
-                                  onChange={(event) =>
-                                    chargeChange(charge.id, {
-                                      applicable:
-                                        event.target.value === ""
-                                          ? null
-                                          : event.target.value === "true",
-                                    })
-                                  }
-                                >
-                                  <option value="">Not entered</option>
-                                  <option value="true">Applies</option>
-                                  <option value="false">Does not apply</option>
-                                </select>
-                              </Field>
-                              {charge.applicable ? (
-                                <>
-                                  <Field
-                                    htmlFor={`${base}-${charge.id}-amount`}
-                                    label="Charge amount ($)"
-                                  >
-                                    <input
-                                      id={`${base}-${charge.id}-amount`}
-                                      type="number"
-                                      min="0"
-                                      step="0.01"
-                                      value={charge.amount ?? ""}
-                                      onChange={(event) =>
-                                        chargeChange(charge.id, {
-                                          amount:
-                                            event.target.value === ""
-                                              ? null
-                                              : Number(event.target.value),
-                                        })
-                                      }
-                                    />
-                                  </Field>
-                                  <Field
-                                    htmlFor={`${base}-${charge.id}-cadence`}
-                                    label="How often is it charged?"
-                                  >
-                                    <select
-                                      id={`${base}-${charge.id}-cadence`}
-                                      value={charge.cadence ?? ""}
-                                      onChange={(event) =>
-                                        chargeChange(charge.id, {
-                                          cadence: (event.target.value ||
-                                            null) as MessageCharge["cadence"],
-                                        })
-                                      }
-                                    >
-                                      <option value="">Not entered</option>
-                                      <option value="monthly">Monthly</option>
-                                      <option value="one_time">One time</option>
-                                    </select>
-                                  </Field>
-                                  <Field
-                                    htmlFor={`${base}-${charge.id}-date`}
-                                    label="Charge start date"
-                                  >
-                                    <input
-                                      id={`${base}-${charge.id}-date`}
-                                      type="date"
-                                      value={charge.effectiveDate ?? ""}
-                                      onChange={(event) =>
-                                        chargeChange(charge.id, {
-                                          effectiveDate: event.target.value || null,
-                                        })
-                                      }
-                                    />
-                                  </Field>
-                                  <Field
-                                    htmlFor={`${base}-${charge.id}-comparison`}
-                                    label="Compared with current charges"
-                                  >
-                                    <select
-                                      id={`${base}-${charge.id}-comparison`}
-                                      value={charge.comparison}
-                                      onChange={(event) =>
-                                        chargeChange(charge.id, {
-                                          comparison: event.target
-                                            .value as MessageCharge["comparison"],
-                                        })
-                                      }
-                                    >
-                                      <option value="unverified">Not compared</option>
-                                      <option value="unchanged">Unchanged</option>
-                                      <option value="changed">Changed</option>
-                                      <option value="new">New</option>
-                                    </select>
-                                  </Field>
-                                </>
-                              ) : null}
-                              <Field
-                                htmlFor={`${base}-${charge.id}-source`}
-                                label="Charge source (optional)"
-                              >
-                                <input
-                                  id={`${base}-${charge.id}-source`}
-                                  value={charge.source ?? ""}
-                                  onChange={(event) =>
-                                    chargeChange(charge.id, {
-                                      source: event.target.value || null,
-                                    })
-                                  }
-                                />
-                              </Field>
-                            </div>
-                          </details>
-                        );
-                      })}
-                      <Field
-                        htmlFor={MESSAGE_CONTROL_IDS.insurance(channel)}
-                        label="Does the supplied insurance transition apply?"
-                      >
-                        <select
-                          id={MESSAGE_CONTROL_IDS.insurance(channel)}
-                          value={
-                            inputs.insuranceTransition === null
-                              ? ""
-                              : String(inputs.insuranceTransition.applicable)
-                          }
-                          onChange={(event) =>
-                            change({
-                              ...inputs,
-                              insuranceTransition:
-                                event.target.value === ""
-                                  ? null
-                                  : {
-                                      applicable: event.target.value === "true",
-                                      source: inputs.insuranceTransition?.source ?? "",
-                                    },
-                            })
-                          }
-                        >
-                          <option value="">Not entered</option>
-                          <option value="true">Applies</option>
-                          <option value="false">Does not apply</option>
-                        </select>
-                      </Field>
-                      {inputs.insuranceTransition ? (
-                        <Field
-                          htmlFor={`${base}-insurance-source`}
-                          label="Insurance policy source (optional)"
-                        >
-                          <input
-                            id={`${base}-insurance-source`}
-                            value={inputs.insuranceTransition.source}
-                            onChange={(event) =>
-                              change({
-                                ...inputs,
-                                insuranceTransition: {
-                                  ...inputs.insuranceTransition!,
-                                  source: event.target.value,
-                                },
-                              })
-                            }
-                          />
-                        </Field>
-                      ) : null}
-                      <Field
-                        htmlFor={`${base}-unchanged`}
-                        label="Are all remaining charges unchanged after comparison?"
-                      >
-                        <select
-                          id={`${base}-unchanged`}
-                          value={
-                            inputs.otherChargesComparison === null
-                              ? ""
-                              : String(inputs.otherChargesComparison.unchanged)
-                          }
-                          onChange={(event) =>
-                            change({
-                              ...inputs,
-                              otherChargesComparison:
-                                event.target.value === ""
-                                  ? null
-                                  : {
-                                      unchanged: event.target.value === "true",
-                                      source: inputs.otherChargesComparison?.source ?? "",
-                                    },
-                            })
-                          }
-                        >
-                          <option value="">
-                            Do not include an unchanged-charges statement
-                          </option>
-                          <option value="true">Compared: unchanged</option>
-                          <option value="false">Compared: changes apply</option>
-                        </select>
-                      </Field>
-                      {inputs.otherChargesComparison ? (
-                        <Field
-                          htmlFor={`${base}-comparison-source`}
-                          label="Remaining-charges comparison source (optional)"
-                        >
-                          <input
-                            id={`${base}-comparison-source`}
-                            value={inputs.otherChargesComparison.source}
-                            onChange={(event) =>
-                              change({
-                                ...inputs,
-                                otherChargesComparison: {
-                                  ...inputs.otherChargesComparison!,
-                                  source: event.target.value,
-                                },
-                              })
-                            }
-                          />
-                        </Field>
-                      ) : null}
+                      {/* S264 R-S264-2: charges, the insurance transition and the unchanged
+                        statement are decided in Review offer charges, their one editor. */}
                     </div>
                   </details>
                 </>

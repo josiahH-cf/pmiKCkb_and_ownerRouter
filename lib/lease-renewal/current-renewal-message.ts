@@ -50,8 +50,22 @@ import { getRenewalWorkspace } from "@/lib/firestore/renewal-workspace";
 import {
   getMessagePreparation,
   getMessageRuleBasis,
+  getOfferChargeSelection,
   workspaceMessageBasisFingerprint,
+  type OfferChargeSelectionRead,
 } from "@/lib/firestore/renewal-message-preparations";
+import { readOfferChargeMappings } from "@/lib/firestore/renewal-offer-charge-mappings";
+import {
+  projectOfferCharges,
+  type OfferChargeReview,
+  type OfferChargeSource,
+} from "./offer-charges";
+import type { OfferChargeMappingsRead } from "./offer-charge-mapping";
+import {
+  buildOfferSnapshot,
+  offerChargeSource,
+  type FrozenOfferSnapshot,
+} from "./offer-snapshot";
 import {
   STANDING_AGREEMENT_WORDS,
   adoptedStandingRule,
@@ -191,6 +205,19 @@ export type MessageSignatureOrigin =
   | { kind: "saved" }
   | { kind: "retained_sender"; recordedAt: string }
   | { kind: "business_profile"; recordedAt: string; version: number };
+
+/**
+ * S264: the tenant offer's charge review as one read resolves it. The editor projects the same
+ * review from `source`, `mappings` and its own unsaved selection; the server's snapshot is the one
+ * the exact claims bind.
+ */
+export interface CurrentOfferCharges {
+  readonly source: OfferChargeSource;
+  readonly mappings: OfferChargeMappingsRead;
+  readonly saved: import("./offer-charges").OfferChargeSelection | null;
+  readonly review: OfferChargeReview;
+  readonly snapshot: FrozenOfferSnapshot;
+}
 
 /** S120 (R120.2): a current non-rent recurring charge a person may deliberately fill a charge from. */
 export interface MessageChargeInventoryLine {
@@ -764,6 +791,48 @@ export async function currentRenewalMessage(
   const termsKnown =
     terms.rent !== null || terms.effectiveDate !== null || terms.endDate !== null;
   const termsSource = termsKnown ? WORKING_TERMS_MESSAGE_SOURCE : null;
+  // S264 (R-S264-1/2/7): the one tenant charge projection, from the approved mappings, the dated
+  // RentVine lines read above, the charge review saved with this revision and the current-cycle
+  // working terms (S262). Its composition, holds and transition decisions feed the message, the
+  // S265 resource requirements and every outgoing check.
+  let offer: CurrentOfferCharges | null = null;
+  if (channel === "tenant") {
+    const [mappings, savedSelection] = await Promise.all([
+      readOfferChargeMappings(db),
+      saved && workspace
+        ? getOfferChargeSelection(actor, leaseId, workspace.cycleId, saved.revision, db)
+        : Promise.resolve<OfferChargeSelectionRead>({ state: "none" }),
+    ]);
+    const source = offerChargeSource(inventory);
+    const review = projectOfferCharges({
+      leaseId,
+      source,
+      mappings,
+      selection: savedSelection.state === "saved" ? savedSelection.selection : null,
+      selectionUnreadable: savedSelection.state === "unreadable",
+      terms: { rent: terms.rent, effectiveDate: terms.effectiveDate },
+      legacyCharges: inputs.charges,
+      legacyInsuranceTransition: inputs.insuranceTransition,
+      legacyOtherChargesComparison: inputs.otherChargesComparison,
+    });
+    if (!mappings.readable)
+      notices.push(
+        "The offer charge mappings could not be read. RentVine charge lines wait for review until they read back.",
+      );
+    offer = {
+      source,
+      mappings,
+      saved: savedSelection.state === "saved" ? savedSelection.selection : null,
+      review,
+      snapshot: buildOfferSnapshot({
+        leaseId,
+        cycleId: workspace?.cycleId ?? null,
+        working: workingRecord,
+        review,
+        source,
+      }),
+    };
+  }
   // S249 R-S249-2: a stored comparison for this cycle reaches the message with no second run. The
   // staff record's saved preparation comes first; else the newest stored lookup for the cycle.
   const observations =
@@ -948,6 +1017,12 @@ export async function currentRenewalMessage(
     insuranceTransition: inputs.insuranceTransition,
     leaseOrigin: inputs.leaseOrigin,
     otherChargesComparison: inputs.otherChargesComparison,
+    ...(offer
+      ? {
+          offerCharges: offer.review.composition,
+          resourceDecisions: offer.review.decisions,
+        }
+      : {}),
     insuranceFlyer: link("insurance_flyer"),
     informationForm: link("renewal_information_form"),
     rbpFlyer: link("rbp_flyer"),
@@ -1056,6 +1131,8 @@ export async function currentRenewalMessage(
     workingTermsFingerprint: workingTermsFingerprint(workingRecord),
     // S261 ARCH-S261-2: the base correction the owner message's base was calculated from.
     workingBaseFingerprint: workingBaseFingerprint(workingRecord),
+    // S264 R-S264-6: the exact offer snapshot this tenant message states; null for the owner.
+    offerSnapshot: offer?.snapshot ?? null,
   };
   const signatureMatchesActor = Boolean(senderChoice || savedOwn);
   // S261 R-S261-2 / ARCH-S261-2: saved owner wording kept exactly as written (S161) qualifies for
@@ -1133,6 +1210,11 @@ export async function currentRenewalMessage(
     tenantResources,
     /** S265: the resources this offer's decisions require, for the exact-content check at Send. */
     tenantResourceRequired: inclusion.required,
+    /**
+     * S264: the tenant offer's charge review: the source lines and mappings it was resolved from,
+     * the review saved with this revision, the projection and the exact offer snapshot.
+     */
+    offerCharges: offer,
     destinations: {
       gmailDrafts: buildManagedGmailDraftsDestination(actor.email),
       lease: buildRentvineRecordDestination({

@@ -3991,9 +3991,12 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         fireEvent.click(signature.getByRole("button", { name: "Save my signature" }));
         await message.findByRole("button", { name: /^Edit signature$/ });
         // S161/S155: message entries save by themselves (a choice on change, text on blur).
+        // S264: the offer's charges belong to Review offer charges. This journey reads no RentVine
+        // charge source, so no charge line waits for a decision before the draft.
         change(message.getByLabelText("Current lease origin"), "pmi");
-        for (const control of message.getAllByLabelText("Does this charge apply?"))
-          change(control, "false");
+        expect(
+          message.getByRole("region", { name: "Review offer charges" }),
+        ).toHaveAttribute("data-offer-charges-source", "not_read");
         change(
           message.getByLabelText("Response request (optional wording edit)"),
           "Please share your preferred next step.",

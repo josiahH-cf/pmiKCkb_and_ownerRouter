@@ -160,6 +160,9 @@ const EXPECTED_LIVE_CONFIG_CALLS = [
   // S234 R-S234-1: the current owner roster read when an approval is recorded (read-only).
   "lib/lease-renewal/workspace-cycle-context.ts:resolveDispositionSourceBasis:buildLiveRentVineConfig",
   "lib/lease-renewal/workspace-cycle-context.ts:resolveLeaseOwnerRoster:buildLiveRentVineConfig",
+  // S263 R-S263-4: the verified current lease end for the date proposal and offer basis
+  // (the existing admitted current-lease read; read-only, no provider mutation).
+  "lib/lease-renewal/workspace-cycle-context.ts:resolveVerifiedLeaseEnd:buildLiveRentVineConfig",
   "app/api/ask/live-target/route.ts:POST:buildLiveRentVineConfig",
   // S58: the demand-driven refresh route (read-only; forces/revalidates the shared lease read).
   "app/api/lease-renewal/notice-review/route.ts:source:buildLiveRentVineConfig",

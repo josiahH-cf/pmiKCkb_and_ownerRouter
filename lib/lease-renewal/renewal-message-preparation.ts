@@ -10,6 +10,7 @@ import {
   AuthoredSubjectSchema,
   RefinedBodySchema,
 } from "@/lib/lease-renewal/refined-message";
+import { OfferChargeSelectionSchema } from "@/lib/lease-renewal/offer-charges";
 
 const source = z.string().trim().min(1).max(240);
 /** S249 (H): the refusal a reason that carries an amount, a date, a link or a contact reads. */
@@ -135,6 +136,12 @@ export const SaveMessagePreparationSchema = z
      * records nothing, and the message then follows the current rule.
      */
     ruleBasis: MessageRuleBasisSchema.nullable().optional(),
+    /**
+     * S264 R-S264-2: the tenant offer's charge review (each line's decision, the case entries and
+     * the transition choices), saved beside the record for this revision. Absent keeps the review
+     * the previous revision saved.
+     */
+    offerCharges: OfferChargeSelectionSchema.optional(),
   })
   .strict();
 export const MessagePreparationRecordSchema = z

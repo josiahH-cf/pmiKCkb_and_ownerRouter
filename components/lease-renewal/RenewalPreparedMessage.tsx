@@ -15,7 +15,15 @@ import { RenewalSenderSignatureForm } from "./RenewalSenderSignatureForm";
 // Gmail draft without that review and that confirmation.
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { createPortal } from "react-dom";
 
 import { Button, ConfirmationDialog, Field } from "@/components/ui";
@@ -298,6 +306,7 @@ export function PreparedMessageSlot({
   data,
   compactFull = false,
   deliveryHeld = false,
+  chargeReview = null,
   onSaveSignature,
   onSignatureSetupSaved,
   onReasonChange,
@@ -316,6 +325,8 @@ export function PreparedMessageSlot({
     data: PreparedMessageData;
     compactFull?: boolean;
     deliveryHeld?: boolean;
+    /** S264: Review offer charges for the tenant offer, shown after its working terms. */
+    chargeReview?: ReactNode;
   } & PreparedMessageHandlers
 >) {
   const nowCard = useRenewalNowCard();
@@ -352,6 +363,7 @@ export function PreparedMessageSlot({
     <PreparedMessageBlock
       actionsSlot={actions}
       api={api}
+      chargeReview={chargeReview}
       full={full}
       deliveryHeld={deliveryHeld}
       preparation={nowCard?.preparation ?? null}
@@ -364,6 +376,7 @@ export function PreparedMessageSlot({
 
 function PreparedMessageBlock({
   api,
+  chargeReview,
   preparation,
   previewSlot,
   actionsSlot,
@@ -373,6 +386,7 @@ function PreparedMessageBlock({
   step,
 }: Readonly<{
   api: PreparedMessageApi;
+  chargeReview: ReactNode;
   preparation: RenewalPreparation | null;
   previewSlot: HTMLElement | null;
   actionsSlot: HTMLElement | null;
@@ -997,6 +1011,9 @@ function PreparedMessageBlock({
           ) : null}
         </div>
       ) : null}
+      {/* S264 R-S264-2: Review offer charges follows the working terms and leads the offer's
+        own work, before the readiness list and the preview. */}
+      {api.channel === "tenant" ? chargeReview : null}
       <ul aria-label="What sending needs" className="renewal-now-readiness">
         {needs.map((item) => (
           <li data-renewal-ready={item.ready ? "ready" : "missing"} key={item.key}>

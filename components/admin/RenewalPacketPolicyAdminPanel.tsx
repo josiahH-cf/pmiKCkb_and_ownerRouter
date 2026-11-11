@@ -9,6 +9,7 @@ import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import { useState } from "react";
 
 import { Button, Field } from "@/components/ui";
+import { OfferChargeMappingsEditor } from "@/components/admin/OfferChargeMappingsEditor";
 import { familyLabel } from "@/lib/lease-documents/artifact-catalog";
 import type {
   ChargePolicyContent,
@@ -68,6 +69,8 @@ export function RenewalPacketPolicyAdminPanel({
       </p>
       <FamilyUseEditor initial={initial.familyUse} />
       <ChargePolicyEditor initial={initial.chargePolicy} />
+      {/* S264: the tenant offer's charge meanings, versioned apart from the packet policy. */}
+      <OfferChargeMappingsEditor />
       <OwnerExplanationStartingTextEditor />
       <OpenFormQuestions />
     </article>

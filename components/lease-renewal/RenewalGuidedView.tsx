@@ -556,6 +556,13 @@ export function RenewalFullOutcome({
             <p>{stage.evidenceLine}</p>
           ) : null}
           {evidence ?? <p>{RENEWAL_PATH_DEFINITION[stepId].ready}</p>}
+          {/* S264: Review offer charges shows its ended and unrelated lines here, read only. */}
+          {stepId === "offer-tenant" ? (
+            <div
+              data-renewal-offer-charge-evidence-host
+              id="renewal-offer-charge-evidence"
+            />
+          ) : null}
         </details>
       </div>
     </section>
@@ -1426,7 +1433,14 @@ function NowCard({
     standingCovered: stage.steps.some(
       (step) => step.id === "ask-owner" && step.state === "covered",
     ),
-    extensions: leadExtensions,
+    extensions: {
+      // S265: with the offer's required resource fix (leadExtensions).
+      ...leadExtensions,
+      // S264: the one Review offer charges editor names its first open row or choice.
+      ...(extensions?.offerCharges === undefined && nowCard?.offerCharges
+        ? { offerCharges: nowCard.offerCharges }
+        : {}),
+    },
   });
   const lead = priority.lead;
   // S270 R-S270-2: a current required field or a save to recover opens the named group holding it.
