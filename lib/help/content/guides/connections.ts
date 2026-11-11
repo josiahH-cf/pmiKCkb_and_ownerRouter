@@ -216,7 +216,6 @@ export const CONNECTIONS_GUIDES: readonly HelpGuide[] = [
           region: "region:Renewal resource links",
           availability: "conditional",
           source: ["components/lease-renewal/RenewalResourceLocations.tsx"],
-          actions: ["open-summary:Renewal resource links"],
         },
         route: "/connections#renewal-resource-locations",
         where: "Renewal resource links, under each tenant resource box",

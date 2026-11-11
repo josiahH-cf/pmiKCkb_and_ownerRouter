@@ -475,7 +475,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         region: "region:Now",
         availability: "conditional",
         source: ["components/lease-renewal/RenewalHousingAssistance.tsx"],
-        does: "Records whether a housing program pays part of the rent, with the Program name; Yes puts the program contact and the owner's renewal answer before the rent choice.",
+        does: "Records whether a housing program pays part of the rent, with the Program name and Program contact (optional), the one place the contact is edited; Yes puts the program contact and the owner's renewal answer before the rent choice.",
         who: "Renewal staff",
         route: LEASE,
         actions: ["click-button:Check the numbers"],

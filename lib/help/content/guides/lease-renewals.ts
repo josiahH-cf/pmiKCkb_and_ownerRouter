@@ -614,7 +614,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "The lease opens in Guided view at its current step. The stage line says who the lease waits on and since when, and the Renewal path marks each step Done, Now, Open, Waiting or Covered.",
         effect: "reads",
-        note: "The desk lists only the leases your access covers. A teammate without Renewals access cannot open a lease link you share.",
+        note: "The desk and every lease open only with Renewals access, so a teammate without it cannot open a lease link you share.",
       },
       {
         id: "work-the-lead",
@@ -704,7 +704,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         route: LEASE,
         where: "Lease header, beside Lease information",
         result:
-          "You see the current stage, what was recorded and by whom, and the notes in order. Reply with your own note. Reading changes nothing, and the lease link opens only for people whose access covers the lease.",
+          "You see the current stage, what was recorded and by whom, and the notes in order. Reply with your own note. Reading changes nothing, and the lease link opens only for people with Renewals access.",
         effect: "reads",
         note: "Lease follow-up tasks creates a task in your own My Work. To keep a group of leases together for the team, choose All leases and filters, then Save reviewed leases as a shared collection.",
       },
@@ -756,7 +756,6 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           region: "region:Renewal resource links",
           availability: "required",
           source: ["lib/lease-renewal/resource-locations.ts"],
-          actions: ["open-summary:Renewal resource links"],
         },
         route: "/connections#renewal-resource-locations",
         where: "Connections, Renewal resource links",
@@ -771,7 +770,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
     doesNotDo: [
       "This guide grants no role, Space, member or recipient, and changes no routing, approval rule or provider action.",
       "A note, a staff status or a team review is not the owner's approval, a sent message or a signature.",
-      "Sharing a lease link gives no access; the lease opens only for people whose access covers it.",
+      "Sharing a lease link gives no access; the lease opens only for people with Renewals access.",
       "Opening a Verification group, Full view or the exact review saves and sends nothing.",
     ],
     relatedGuides: [
@@ -1013,7 +1012,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
       {
         id: "review-offer-charges",
         action:
-          "In Review offer charges, decide each charge line. For each Does it apply to this offer question, choose Include in this offer or Leave out of this offer and give Why it applies (its source) or Why it does not apply (its evidence). Open Correct the renewal amount or date when a line's renewal amount or date differs, with Source of the correction, and answer the insurance and Resident Benefits Package questions with their sources.",
+          "In Review offer charges, decide each charge line: answer its question, such as Does pet rent apply to this offer?, with Include in this offer or Leave out of this offer, and give Why it applies (its source) or Why it does not apply (its evidence). Open Correct the renewal amount or date when a line's renewal amount or date differs, with Source of the correction, and answer the insurance and Resident Benefits Package questions with their sources.",
         control: {
           label: "Review offer charges",
           role: "region",
