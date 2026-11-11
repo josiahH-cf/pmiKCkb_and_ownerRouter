@@ -68,6 +68,21 @@ const CONNECTION_LINK_AFTER = "Review Dotloop connection and selection -> /conne
 // "Working renewal terms". Every other region, heading, control, button and link is unchanged.
 const S261_COPY = ["renewal-section-lease-details"];
 const S263_COPY = ["renewal-section-tenant"];
+// S264 retires the tenant message's family-only charge picker, recorded together with S261 and
+// S263 in the same presentation. "Review offer charges" owns the offer's charges; these sample
+// cases read no RentVine charge source, so it is not mounted here, and only these picker controls
+// (six charge rows, the insurance transition and the remaining-charges comparison) leave the Full
+// view. The tenant section's copy changes with them ("Lease origin (optional detail)").
+const S264_RETIRED_CONTROLS = [
+  "select::Does this charge apply?",
+  "input::Charge source (optional)",
+  "select::Does the supplied insurance transition apply?",
+  "select::Are all remaining charges unchanged after comparison?",
+];
+const withoutS264Picker = (controls: readonly string[], testCase: BaselineCase) =>
+  testCase.manual
+    ? controls.filter((entry) => !S264_RETIRED_CONTROLS.includes(entry))
+    : [...controls];
 const WORKING_TERMS_LINK = "Working renewal terms -> #renewal-working-terms";
 const S263_START_LINK = "Enter renewal start date -> #renewal-working-terms-start";
 const S263_END_LINK = "Enter renewal end date -> #renewal-working-terms-end";
@@ -132,6 +147,8 @@ function retiredLinks(testCase: BaselineCase) {
 }
 // Preserve the draft regions restored by the bounded S229 repair; only the named old links retire.
 function retiredEntry(field: string, entry: string, testCase: BaselineCase) {
+  if (field === "controls")
+    return testCase.manual && S264_RETIRED_CONTROLS.includes(entry);
   return field === "links" ? retiredLinks(testCase).includes(entry) : false;
 }
 const CYCLE_ID = "b4bc3b81-c402-4f62-a2e2-c605c67867fb";
@@ -378,10 +395,13 @@ describe("S145 preservation with authorized current renewal guidance", () => {
         "controls",
         "buttons",
       ] as const) {
+        const expected = previous[field].map(animalFollowUpName);
         expect(
           signature[field],
-          `${testCase.name}: unchanged ${field} since S224`,
-        ).toEqual(previous[field].map(animalFollowUpName));
+          `${testCase.name}: unchanged ${field} since S224, less the S264 picker`,
+        ).toEqual(
+          field === "controls" ? withoutS264Picker(expected, testCase) : expected,
+        );
       }
       expect(
         signature.links,
@@ -395,6 +415,14 @@ describe("S145 preservation with authorized current renewal guidance", () => {
         `${testCase.name}: exact authorized section-copy changes`,
       ).toEqual(testCase.manual ? [...S261_COPY, ...S263_COPY] : S261_COPY);
       expect(signature.copy).toHaveLength(previous.copy.length);
+      if (testCase.manual)
+        for (const retired of S264_RETIRED_CONTROLS) {
+          expect(
+            previous.controls,
+            `${testCase.name}: ${retired} was recorded`,
+          ).toContain(retired);
+          expect(signature.controls).not.toContain(retired);
+        }
     }
     const prior = JSON.parse(readFileSync(PRIOR_PATH, "utf8")) as typeof signatures;
     for (const [name, signature] of Object.entries(signatures)) {

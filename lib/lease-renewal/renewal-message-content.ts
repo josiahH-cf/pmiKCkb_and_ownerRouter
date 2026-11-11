@@ -422,7 +422,8 @@ export function composeRenewalMessage(
       const effective = day(entry.effectiveDate);
       const field = `offerCharge.${entry.rowKey}`;
       if (!amount) note(field, `${name}: the amount is not entered yet.`);
-      if (!effective) note(field, `${name}: the date it applies from is not entered yet.`);
+      if (!effective)
+        note(field, `${name}: the date it applies from is not entered yet.`);
       sourced(entry.source);
       add(
         fillSuppliedCopy(SUPPLIED_RENEWAL_COPY.tenant.chargeLine, {

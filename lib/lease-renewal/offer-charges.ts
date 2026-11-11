@@ -118,7 +118,8 @@ const calendarDate = z
   });
 const cents = z.number().int().nonnegative().max(10_000_000);
 
-const ROW_KEY = /^(rentvine:[1-9]\d{0,18}|legacy:(rbp|insurance|pet|utilities|renewal_processing|pet_processing))$/;
+const ROW_KEY =
+  /^(rentvine:[1-9]\d{0,18}|legacy:(rbp|insurance|pet|utilities|renewal_processing|pet_processing))$/;
 
 export const OfferChargeDecisionSchema = z
   .object({
@@ -165,12 +166,19 @@ export const OfferChargeSelectionSchema = z
     caseEntries: z.array(OfferCaseEntrySchema).max(12),
     transitions: z
       .object({
+        /** The case choice counts only with its source; a choice without one is pending. */
         insurance: z
-          .object({ choice: z.enum(["applies", "does_not_apply"]), source: evidenceText })
+          .object({
+            choice: z.enum(["applies", "does_not_apply"]),
+            source: evidenceText.nullable(),
+          })
           .strict()
           .nullable(),
         rbp: z
-          .object({ choice: z.enum(["unchanged", "new", "changed"]), source: evidenceText })
+          .object({
+            choice: z.enum(["unchanged", "new", "changed"]),
+            source: evidenceText.nullable(),
+          })
           .strict()
           .nullable(),
       })
@@ -416,7 +424,11 @@ function cadenceFromFrequency(frequency: string): OfferCadence | null {
 }
 
 function cadenceMonths(cadence: OfferCadence): number | null {
-  return cadence.kind === "monthly" ? 1 : cadence.kind === "every_months" ? cadence.months : null;
+  return cadence.kind === "monthly"
+    ? 1
+    : cadence.kind === "every_months"
+      ? cadence.months
+      : null;
 }
 
 function rentvineRef(leaseId: string, chargeId: string) {
@@ -424,7 +436,9 @@ function rentvineRef(leaseId: string, chargeId: string) {
 }
 
 function lineSourceLabel(line: OfferSourceLine): string {
-  const account = line.accountName ? `account ${line.accountName}` : `account ${line.accountId}`;
+  const account = line.accountName
+    ? `account ${line.accountName}`
+    : `account ${line.accountId}`;
   return `RentVine recurring charge ${line.chargeId}, ${account}${line.description ? ` (${line.description})` : ""}`;
 }
 
@@ -436,9 +450,15 @@ type DateRelation =
 
 function dateRelation(line: OfferSourceLine, renewalDate: string | null): DateRelation {
   if (!line.startDate)
-    return { kind: "unknown", why: "RentVine's start date for this line is not a real date." };
+    return {
+      kind: "unknown",
+      why: "RentVine's start date for this line is not a real date.",
+    };
   if (line.endDateRaw !== null && line.endDate === null)
-    return { kind: "unknown", why: "RentVine's end date for this line is not a real date." };
+    return {
+      kind: "unknown",
+      why: "RentVine's end date for this line is not a real date.",
+    };
   if (!renewalDate)
     return {
       kind: "unknown",
@@ -461,7 +481,11 @@ function dateRelation(line: OfferSourceLine, renewalDate: string | null): DateRe
 
 function staleReason(
   decision: OfferChargeDecision,
-  current: { sourceVersion: string | null; renewalDate: string | null; mappingVersion: number | null },
+  current: {
+    sourceVersion: string | null;
+    renewalDate: string | null;
+    mappingVersion: number | null;
+  },
   mapped: boolean,
 ): string | null {
   if (decision.reviewed.sourceVersion !== current.sourceVersion)
@@ -479,7 +503,9 @@ interface RowDraft {
 }
 
 /** The one projection every consumer reads. */
-export function projectOfferCharges(input: OfferChargeProjectionInput): OfferChargeReview {
+export function projectOfferCharges(
+  input: OfferChargeProjectionInput,
+): OfferChargeReview {
   const selection = input.selection ?? emptyOfferChargeSelection();
   const renewalDate = input.terms?.effectiveDate ?? null;
   const mappingVersion = offerMappingVersion(input.mappings);
@@ -493,7 +519,11 @@ export function projectOfferCharges(input: OfferChargeProjectionInput): OfferCha
   const lines = input.source.state === "read" ? input.source.lines : [];
   const seen = new Map<string, number>();
   for (const line of lines) seen.set(line.chargeId, (seen.get(line.chargeId) ?? 0) + 1);
+  // A repeated identity is one refused row: each row keeps one identity end to end.
+  const emitted = new Set<string>();
   for (const line of lines) {
+    if (emitted.has(line.chargeId)) continue;
+    emitted.add(line.chargeId);
     const rowKey = `rentvine:${line.chargeId}`;
     const sourceAmountCents = moneyToCents(line.amount);
     const sourceCadence = cadenceFromFrequency(line.frequency);
@@ -509,7 +539,8 @@ export function projectOfferCharges(input: OfferChargeProjectionInput): OfferCha
       trigger: null,
       requirement: null,
     };
-    const fallbackLabel = line.accountName ?? line.description ?? `Account ${line.accountId}`;
+    const fallbackLabel =
+      line.accountName ?? line.description ?? `Account ${line.accountId}`;
     if (line.classification === "rent") {
       push(
         {
@@ -535,7 +566,8 @@ export function projectOfferCharges(input: OfferChargeProjectionInput): OfferCha
     const relation = dateRelation(line, renewalDate);
     const mapping = mappingForAccount(input.mappings, line.accountId);
     const mapped = mapping !== null && mapping !== "conflict";
-    const family = mapped && mapping.family !== "separate_requirement" ? mapping.family : null;
+    const family =
+      mapped && mapping.family !== "separate_requirement" ? mapping.family : null;
     const label = mapped ? mapping.displayLabel : fallbackLabel;
     const common = {
       ...base,
@@ -582,11 +614,15 @@ export function projectOfferCharges(input: OfferChargeProjectionInput): OfferCha
     // What keeps this line from being proposed, before any staff decision.
     const problems: string[] = [];
     if ((seen.get(line.chargeId) ?? 0) > 1)
-      problems.push("RentVine lists this charge more than once, so neither copy is counted.");
+      problems.push("RentVine lists this charge more than once, so no copy is counted.");
     if (!input.mappings.readable)
-      problems.push("The offer charge mappings could not be read. Reload before deciding this line.");
+      problems.push(
+        "The offer charge mappings could not be read. Reload before deciding this line.",
+      );
     else if (mapping === "conflict")
-      problems.push("Two mappings name this account. An Admin keeps one in Offer charge mappings.");
+      problems.push(
+        "Two mappings name this account. An Admin keeps one in Offer charge mappings.",
+      );
     else if (!mapping)
       problems.push(
         line.classification === "unknown"
@@ -603,15 +639,21 @@ export function projectOfferCharges(input: OfferChargeProjectionInput): OfferCha
       );
     if (relation.kind === "unknown") problems.push(relation.why);
     if (mapped && mapping.applicability === "staff_decide" && problems.length === 0)
-      problems.push("The mapping leaves this line to staff. Choose whether it applies to this renewal.");
+      problems.push(
+        "The mapping leaves this line to staff. Choose whether it applies to this renewal.",
+      );
     const current = { sourceVersion: line.version, renewalDate, mappingVersion };
     const stale = decision ? staleReason(decision, current, mapped) : null;
     // A refused line (repeated identity, unreadable mappings) can only be left out.
     const refused =
-      (seen.get(line.chargeId) ?? 0) > 1 || !input.mappings.readable || mapping === "conflict";
+      (seen.get(line.chargeId) ?? 0) > 1 ||
+      !input.mappings.readable ||
+      mapping === "conflict";
     const includable =
       !refused && mapped && sourceAmountCents !== null && sourceCadence !== null;
-    const choices: ("include" | "exclude")[] = includable ? ["include", "exclude"] : ["exclude"];
+    const choices: ("include" | "exclude")[] = includable
+      ? ["include", "exclude"]
+      : ["exclude"];
     const proposed = includable && problems.length === 0;
     const blank = {
       ...common,
@@ -639,7 +681,9 @@ export function projectOfferCharges(input: OfferChargeProjectionInput): OfferCha
           ...blank,
           comparison: null,
           status: decision.reason ? "excluded" : "needs_decision",
-          gaps: decision.reason ? [] : ["Say why this line does not apply to the renewal."],
+          gaps: decision.reason
+            ? []
+            : ["Say why this line does not apply to the renewal."],
           decision,
           material: !decision.reason,
         },
@@ -651,8 +695,10 @@ export function projectOfferCharges(input: OfferChargeProjectionInput): OfferCha
       // An unclear line counts only with the staff's reason that it applies.
       const unclear = !proposed;
       const corrected =
-        decision.renewalAmountCents !== null && decision.renewalAmountCents !== sourceAmountCents;
-      const redated = decision.effectiveDate !== null && decision.effectiveDate !== renewalDate;
+        decision.renewalAmountCents !== null &&
+        decision.renewalAmountCents !== sourceAmountCents;
+      const redated =
+        decision.effectiveDate !== null && decision.effectiveDate !== renewalDate;
       const gaps: string[] = [];
       if (unclear && !decision.reason)
         gaps.push("Say why this line applies to the renewal, with its source.");
@@ -738,12 +784,15 @@ export function projectOfferCharges(input: OfferChargeProjectionInput): OfferCha
       const gaps: string[] = [];
       if (amountCents === null) gaps.push(`${label}: the amount is not entered yet.`);
       if (!cadence) gaps.push(`${label}: monthly or one time is not chosen yet.`);
-      if (!legacy.effectiveDate) gaps.push(`${label}: the start date is not entered yet.`);
+      if (!legacy.effectiveDate)
+        gaps.push(`${label}: the start date is not entered yet.`);
       push(
         {
           ...base,
           comparison:
-            legacy.comparison === "unverified" ? null : (legacy.comparison as "new" | "changed" | "unchanged"),
+            legacy.comparison === "unverified"
+              ? null
+              : (legacy.comparison as "new" | "changed" | "unchanged"),
           status: "selected",
           gaps,
           decision,
@@ -753,7 +802,14 @@ export function projectOfferCharges(input: OfferChargeProjectionInput): OfferCha
       );
     } else if (decision?.choice === "exclude" && decision.reason) {
       push(
-        { ...base, comparison: null, status: "excluded", gaps: [], decision, material: false },
+        {
+          ...base,
+          comparison: null,
+          status: "excluded",
+          gaps: [],
+          decision,
+          material: false,
+        },
         70,
       );
     } else {
@@ -797,7 +853,9 @@ export function projectOfferCharges(input: OfferChargeProjectionInput): OfferCha
         origin: "case",
         family: entry.family,
         label,
-        sourceLabel: entry.source ? `Case entry: ${entry.source}` : "Case entry without a source yet",
+        sourceLabel: entry.source
+          ? `Case entry: ${entry.source}`
+          : "Case entry without a source yet",
         sourceRef: entry.source ?? "Case entry",
         sourceVersion: null,
         amountCents: entry.amountCents,
@@ -839,16 +897,26 @@ export function projectOfferCharges(input: OfferChargeProjectionInput): OfferCha
       (row) =>
         row.origin === "rentvine" &&
         row.family === "insurance" &&
-        (row.status === "selected" || row.status === "excluded" || row.status === "needs_decision" || row.status === "needs_review"),
+        (row.status === "selected" ||
+          row.status === "excluded" ||
+          row.status === "needs_decision" ||
+          row.status === "needs_review"),
     );
   const rbpRelevant = selected.some((row) => row.family === "rbp");
-  const insuranceChoice = insuranceRelevant ? (selection.transitions.insurance ?? null) : null;
+  const insuranceChoice = insuranceRelevant
+    ? (selection.transitions.insurance ?? null)
+    : null;
   const rbpChoice = rbpRelevant ? (selection.transitions.rbp ?? null) : null;
+  // A choice without its source stays unknown: source pending holds the review.
   const insuranceDecision: InsuranceTransitionDecision | null = insuranceRelevant
-    ? (insuranceChoice?.choice ?? "unknown")
+    ? insuranceChoice?.source
+      ? insuranceChoice.choice
+      : "unknown"
     : null;
   const rbpDecision: RbpChangeDecision | null = rbpRelevant
-    ? (rbpChoice?.choice ?? "unknown")
+    ? rbpChoice?.source
+      ? rbpChoice.choice
+      : "unknown"
     : null;
 
   // Totals in exact cents (R-S264-3).
@@ -863,7 +931,8 @@ export function projectOfferCharges(input: OfferChargeProjectionInput): OfferCha
   const oneTimeLines: OfferTotalLine[] = [];
   for (const row of selected) {
     const line = { rowKey: row.rowKey, label: row.label, amountCents: row.amountCents };
-    if (row.amountCents === null) totalGaps.push(`${row.label}: the amount is not known yet.`);
+    if (row.amountCents === null)
+      totalGaps.push(`${row.label}: the amount is not known yet.`);
     if (!row.cadence) totalGaps.push(`${row.label}: its cadence is not known yet.`);
     else if (row.cadence.kind === "monthly") monthlyLines.push(line);
     else if (row.cadence.kind === "one_time") oneTimeLines.push(line);
@@ -875,7 +944,9 @@ export function projectOfferCharges(input: OfferChargeProjectionInput): OfferCha
   if (pendingNeeded)
     totalGaps.push("A charge line still needs a decision, so the totals may change.");
   if (input.source.state === "unavailable")
-    totalGaps.push("The RentVine charges could not be read, so other charges are not known.");
+    totalGaps.push(
+      "The RentVine charges could not be read, so other charges are not known.",
+    );
   const known = (values: readonly OfferTotalLine[]) =>
     values.reduce((sum, value) => sum + (value.amountCents ?? 0), 0);
   const cadenceMissing = selected.some((row) => !row.cadence);
@@ -930,7 +1001,9 @@ export function projectOfferCharges(input: OfferChargeProjectionInput): OfferCha
       `Review offer charges: ${row.label}. ${row.gaps[0] ?? "Choose whether it applies."}`,
     );
 
-  // The unchanged statement (R-S264-4): only when every current line was compared and continues.
+  // The unchanged statement (R-S264-4): only when every current line was compared and continues,
+  // so the lines the offer itemizes are the only changes. A line left out, a line still pending
+  // or a line that starts during the renewal means some charge does not stay the same.
   const currentRentvine = rows.filter(
     (row) =>
       row.origin === "rentvine" &&
@@ -945,8 +1018,9 @@ export function projectOfferCharges(input: OfferChargeProjectionInput): OfferCha
     !input.selectionUnreadable &&
     currentRentvine.length > 0 &&
     currentRentvine.every(
-      (row) => row.status === "selected" && row.comparison === "unchanged",
+      (row) => row.status === "selected" && row.comparison !== null,
     ) &&
+    !rows.some((row) => row.status === "future") &&
     selected.every((row) => row.cadence !== null);
   const itemized = selected.filter(
     (row) =>
@@ -1020,10 +1094,14 @@ export function projectOfferCharges(input: OfferChargeProjectionInput): OfferCha
     holds: [
       ...holds,
       ...(insuranceDecision === "unknown"
-        ? ["Choose whether the insurance transition applies to this renewal, with its source, before releasing this offer."]
+        ? [
+            "Choose whether the insurance transition applies to this renewal, with its source, before releasing this offer.",
+          ]
         : []),
       ...(rbpDecision === "unknown"
-        ? ["Choose whether the Resident Benefits Package is new, changed or unchanged, with its source, before releasing this offer."]
+        ? [
+            "Choose whether the Resident Benefits Package is new, changed or unchanged, with its source, before releasing this offer.",
+          ]
         : []),
     ],
     legacyNotes,

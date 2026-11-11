@@ -452,19 +452,25 @@ describe("S265 AC-S265-4: the real tenant target through authorization and sched
         inputs: {
           ...inputs,
           leaseOrigin: { kind: "pmi", source: "Synthetic original lease" },
-          charges: inputs.charges.map((charge) =>
-            charge.id === "rbp"
-              ? {
-                  ...charge,
-                  applicable: true,
-                  amount: 30,
-                  cadence: "monthly",
-                  effectiveDate: "2027-02-01",
-                  source: "Synthetic reviewed package change",
-                  comparison: "changed",
-                }
-              : { ...charge, applicable: false, source: "Synthetic reviewed charges" },
-          ),
+        },
+        // S264: the changed package is a reviewed charge row with its transition decided and
+        // sourced in Review offer charges (this test reads no RentVine charge source).
+        offerCharges: {
+          decisions: [],
+          caseEntries: [
+            {
+              id: "00000000-0000-4000-8000-000000009765",
+              family: "rbp",
+              amountCents: 3000,
+              effectiveDate: "2027-02-01",
+              trigger: null,
+              source: "Synthetic reviewed package change",
+            },
+          ],
+          transitions: {
+            insurance: null,
+            rbp: { choice: "changed", source: "Synthetic reviewed package change" },
+          },
         },
       },
       {

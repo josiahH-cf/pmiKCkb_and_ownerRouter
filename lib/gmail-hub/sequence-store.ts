@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { FieldPath, type Firestore } from "firebase-admin/firestore";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { assertRenewalDispositionVersion } from "@/lib/firestore/renewal-cycle-disposition-read";
+import { offerChargeMappingVersionIn } from "@/lib/firestore/renewal-offer-charge-mappings";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
   communicationsRetentionFields,
@@ -507,6 +508,15 @@ export class FirestoreCommunicationSequenceStore implements SequenceStore {
           effect: "send",
         });
         if (!verdict.ok) return null;
+        // S264 (R-S264-4): the authorized offer's charge rows were resolved from one mapping
+        // version. A mapping revision after the dispatch check admits nothing; the next check
+        // pauses the message for review.
+        const offer = a.offerSnapshot?.snapshot;
+        if (offer && offer.sourceLines > 0) {
+          const mappingVersion = await offerChargeMappingVersionIn(tx, this.db);
+          if (mappingVersion === null || mappingVersion !== offer.mappingVersion)
+            return null;
+        }
       }
       const occurrence: CommunicationOccurrence = {
         id: occurrenceId,

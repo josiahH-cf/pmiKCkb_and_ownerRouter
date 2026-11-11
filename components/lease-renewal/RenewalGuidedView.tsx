@@ -441,6 +441,13 @@ export function RenewalFullOutcome({
             <p>{stage.evidenceLine}</p>
           ) : null}
           {evidence ?? <p>{RENEWAL_PATH_DEFINITION[stepId].ready}</p>}
+          {/* S264: Review offer charges shows its ended and unrelated lines here, read only. */}
+          {stepId === "offer-tenant" ? (
+            <div
+              data-renewal-offer-charge-evidence-host
+              id="renewal-offer-charge-evidence"
+            />
+          ) : null}
         </details>
       </div>
     </section>
