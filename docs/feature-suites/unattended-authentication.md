@@ -35,10 +35,10 @@ identity/store inspection precedes token probes; an unresolved identity cannot p
 file has an empty account field, so interactive enrollment reads Google's identity and binds the
 exact ADC bytes beside the WSL credential store. That local evidence and all credentials stay out
 of Git, uploads, logs and reports. `auth:session`, `auth:enroll` and `auth:enroll:wsl` target WSL;
-the PowerShell compatibility script delegates to WSL. A checkout without installed packages (a
-Windows worktree, or an emptied `node_modules`) runs `auth:ensure` and enrollment from the registered
-WSL release checkout that `scripts/pmi-auth` uses, and enrollment stops before any Google prompt
-when a readiness check cannot run.
+the PowerShell compatibility script delegates to WSL. A checkout without installed packages or its own
+`.env.local` (a Windows worktree, or an emptied `node_modules`) runs `auth:ensure` and enrollment from
+the registered WSL release checkout that `scripts/pmi-auth` uses, and enrollment stops before any
+Google prompt when a readiness check cannot run.
 
 Server enforcement is in `lib/auth/canary-policy.ts`, `lib/auth/session.ts` and `proxy.ts`.
 Authentication and logout remain available. Reviewed read-only POST queries remain available;

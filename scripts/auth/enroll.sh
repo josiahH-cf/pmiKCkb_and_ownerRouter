@@ -26,12 +26,13 @@ if ! command -v node >/dev/null 2>&1; then
   [[ -n "$login_path" ]] && export PATH="$login_path:$PATH"
 fi
 command -v node >/dev/null || { echo "NOT READY: Node is missing from the WSL login PATH." >&2; exit 2; }
-# The checks below load this checkout's installed packages. A checkout without them (a Windows
-# worktree, or an emptied node_modules) continues in the registered WSL checkout that pmi-auth uses,
-# before any Google prompt or local config change. Enrollment itself is unchanged.
+# The checks below load this checkout's installed packages and check its .env.local. A checkout
+# without them (a Windows worktree, or an emptied node_modules) continues in the registered WSL
+# checkout that pmi-auth uses, before any Google prompt or local config change. Enrollment itself is
+# unchanged.
 auth_root="$(node scripts/auth/checkout-dependencies.mjs </dev/null)" || exit 2
 if [[ "$auth_root" != "$(pwd -P)" ]]; then
-  echo "This checkout has no installed packages; continuing in the registered WSL checkout $auth_root."
+  echo "This checkout lacks installed packages or its own .env.local; continuing in the registered WSL checkout $auth_root."
   cd -- "$auth_root"
   exec bash scripts/auth/enroll.sh "$@"
 fi
