@@ -101,6 +101,44 @@ export async function authorizeTenantOffer(kit, page, composition, action) {
   return { staged: staged.body.sequence, authorized };
 }
 
+/**
+ * The tenant's acceptance through the Tenant response editor in Full view, linked to the exact
+ * confirmed send it answers (S264 R-S264-6). Returns the editor, the offer's option text and the
+ * recorded offer answer.
+ */
+export async function recordTenantAcceptance(kit, page, leaseId, sent) {
+  await kit.open(page, kit.href(leaseId, "?view=full#renewal-manual-tenant_response"));
+  const form = page.locator("#renewal-manual-tenant_response");
+  await form.waitFor();
+  const workspaceSave = (response) =>
+    new URL(response.url()).pathname === WORKSPACE &&
+    response.request().method() === "POST";
+  const response = form.getByLabel("Tenant response", { exact: true });
+  if ((await response.inputValue()) !== "accepted") {
+    const [decided] = await Promise.all([
+      page.waitForResponse(workspaceSave),
+      response.selectOption("accepted"),
+    ]);
+    assert.equal(decided.status(), 200, await decided.text());
+  }
+  const answer = form.locator('[data-renewal-offer-answer="tenant"]');
+  const which = answer.getByLabel("Which offer does this answer respond to?", {
+    exact: true,
+  });
+  await which.waitFor();
+  const choice = "sent:" + sent.sequenceId + ":" + sent.occurrenceId;
+  const offered = await which.locator(`option[value="${choice}"]`).innerText();
+  await which.selectOption(choice);
+  const [linked] = await Promise.all([
+    page.waitForResponse(workspaceSave),
+    answer
+      .getByRole("button", { name: "Record the offer this answers", exact: true })
+      .click(),
+  ]);
+  assert.equal(linked.status(), 200, await linked.text());
+  return { answer, offered, linkedAnswer: (await linked.json()).offerAnswer };
+}
+
 async function cancelSequence(kit, page, id) {
   const latest = (await kit.read(page, SEQUENCES + "?id=" + id)).sequence;
   if (["cancelled", "completed"].includes(latest.state)) return latest.state;
@@ -554,36 +592,13 @@ export async function journeyN1004(ctx, page) {
       candidate.sequenceId === delivered.staged.id,
   );
   assert.ok(sent?.current, "The confirmed send carried the current offer");
-  await kit.open(page, kit.href(leaseId, "?view=full#renewal-manual-tenant_response"));
-  const form = page.locator("#renewal-manual-tenant_response");
-  await form.waitFor();
-  const workspaceSave = (response) =>
-    new URL(response.url()).pathname === WORKSPACE &&
-    response.request().method() === "POST";
-  const [decided] = await Promise.all([
-    page.waitForResponse(workspaceSave),
-    form.getByLabel("Tenant response", { exact: true }).selectOption("accepted"),
-  ]);
-  assert.equal(decided.status(), 200, await decided.text());
-  const answer = form.locator('[data-renewal-offer-answer="tenant"]');
-  const which = answer.getByLabel("Which offer does this answer respond to?", {
-    exact: true,
-  });
-  await which.waitFor();
-  const choice = "sent:" + sent.sequenceId + ":" + sent.occurrenceId;
-  assert.match(
-    await which.locator(`option[value="${choice}"]`).innerText(),
-    /^Sent .+: .+ \(the current offer\)$/,
+  const { answer, offered, linkedAnswer } = await recordTenantAcceptance(
+    kit,
+    page,
+    leaseId,
+    sent,
   );
-  await which.selectOption(choice);
-  const [linked] = await Promise.all([
-    page.waitForResponse(workspaceSave),
-    answer
-      .getByRole("button", { name: "Record the offer this answers", exact: true })
-      .click(),
-  ]);
-  assert.equal(linked.status(), 200, await linked.text());
-  const linkedAnswer = (await linked.json()).offerAnswer;
+  assert.match(offered, /^Sent .+: .+ \(the current offer\)$/);
   assert.equal(linkedAnswer?.attribution?.kind, "linked_communication");
   const tenantEvent = linkedAnswer.eventId;
   await answer
@@ -652,6 +667,29 @@ export async function journeyN1004(ctx, page) {
   observed.decisionsDoNotCoverChangedCharge = true;
   observed.acceptedOfferEvent = tenantEvent;
 
+  // BEH-S264-6 after the same charge-only change, built separately for this batch: Offer the
+  // tenant names the earlier acceptance with its exact next step instead of done, and Finish up's
+  // source update from the tenant answer holds before its claim, naming the difference. Observed
+  // as the page shows it; the row stays UNVERIFIED until both read back.
+  const followThrough = await chargeOnlyFollowThrough(
+    kit,
+    page,
+    leaseId,
+    /Pet rent\b[^.]*\$45\.00\b[^.]*\$50\.00/,
+  );
+  record({ id: "N10-04", check: "charge-only-follow-through", ...followThrough });
+  observed.chargeOnlyNextStepShown = followThrough.nextStep;
+  observed.chargeOnlySourceUpdateHeld = followThrough.sourceUpdateHeld;
+  const pending = [
+    followThrough.nextStep
+      ? null
+      : `Offer the tenant does not yet name the earlier acceptance with its exact next step (outcome ${followThrough.pathState}, primary ${JSON.stringify(followThrough.primaryLabel)}).`,
+    followThrough.sourceUpdateHeld
+      ? null
+      : "Finish up shows no source update from the tenant answer held for the changed charge.",
+  ].filter(Boolean);
+  if (pending.length) observed.missing = pending.join(" ");
+
   // N10-05 sends this lease's offer again: the lease goes back to awaiting the tenant, and the
   // accepted answer's record stays as recorded.
   const state = (await reads.workspace()).state;
@@ -669,6 +707,47 @@ export async function journeyN1004(ctx, page) {
     recorded.tenant,
   );
   return observed;
+}
+
+/**
+ * BEH-S264-6 after a charge-only change, read as staff see it: Offer the tenant's outcome is not
+ * done and its Now card names the earlier acceptance with a next step, and Finish up (its Now card
+ * in Guided view and its Source updates in Full view) names the changed charge on the update built
+ * from the tenant answer. Reads only.
+ */
+async function chargeOnlyFollowThrough(kit, page, leaseId, difference) {
+  const nowOn = async (step) => {
+    await kit.open(page, kit.href(leaseId, "?step=" + step));
+    const now = page.locator(
+      `[role="region"][aria-label="Now"][data-renewal-now-step="${step}"]`,
+    );
+    await now.waitFor();
+    const primary = now.locator("[data-renewal-now-primary]").first();
+    return {
+      state: await page
+        .locator(`[data-renewal-path-step="${step}"]`)
+        .first()
+        .getAttribute("data-renewal-path-state"),
+      text: (await now.innerText()).replace(/\s+/g, " "),
+      primary: (await primary.count()) ? (await primary.innerText()).trim() : null,
+    };
+  };
+  const offer = await nowOn("offer-tenant");
+  const acceptanceLine = /Current acceptance needs verification/.test(offer.text);
+  const finish = await nowOn("finish-up");
+  await kit.open(page, kit.href(leaseId, "?view=full#renewal-manual-source-updates"));
+  const updates = page.locator("#renewal-manual-source-updates");
+  await updates.waitFor({ state: "attached" });
+  const updatesText = ((await updates.textContent()) ?? "").replace(/\s+/g, " ").trim();
+  return {
+    pathState: offer.state,
+    primaryLabel: offer.primary,
+    acceptanceLine,
+    nextStep: offer.state !== "done" && acceptanceLine && Boolean(offer.primary),
+    finishUp: { state: finish.state, primary: finish.primary },
+    sourceUpdates: updatesText.slice(0, 600),
+    sourceUpdateHeld: difference.test(finish.text) || difference.test(updatesText),
+  };
 }
 
 // ---- N10-05 ------------------------------------------------------------------------------------
@@ -754,7 +833,15 @@ export async function journeyN1005(ctx, page) {
   const sequenceOf = async (id) =>
     (await kit.read(page, SEQUENCES + "?id=" + id)).sequence;
   try {
-    // The changed package and the applicable insurance transition require both flyers.
+    // The changed package and the applicable insurance transition require both flyers. The
+    // decisions are this journey's own, saved through the offer's route as the editor saves them.
+    const decided = await saveOfferCharges(kit, page, leaseId, (offer) => {
+      offer.transitions = {
+        insurance: { choice: "applies", source: "Synthetic insurance decision" },
+        rbp: { choice: "changed", source: "Synthetic package decision" },
+      };
+    });
+    assert.equal(decided.status, 200, JSON.stringify(decided.body));
     let composition = await reads.composition();
     let tenant = await reads.tenant();
     assert.deepEqual([...(composition.target.tenantResourceRequired ?? [])].sort(), [
@@ -789,21 +876,38 @@ export async function journeyN1005(ctx, page) {
     assert.equal(pending.authorized.status, 409, JSON.stringify(pending.authorized.body));
     assert.equal((await kit.sentMail()).length, sentBefore);
     await kit.open(page, kit.href(leaseId, "?step=offer-tenant"));
-    // S265: the Guided lead is the resource's one Connections entry, a button that opens it.
-    const fix = kit
+    const work = kit.now(page).locator("[data-renewal-priority-state]").first();
+    await work.waitFor();
+    const priority = {
+      state: await work.getAttribute("data-renewal-priority-state"),
+      lead: await work.getAttribute("data-renewal-priority-lead"),
+    };
+    const leadFix = kit
       .now(page)
-      .getByRole("button", { name: /^Shared resource link: / })
-      .first();
+      .getByRole("button", { name: /^Shared resource link: / });
+    let fix;
+    if (priority.state === "wait") {
+      // N10-04's offer went out and awaits the tenant, so recording the answer leads (S269 rule
+      // 4) and nothing about the next offer competes with it. The next offer's exact pending
+      // resource is its readiness fix (R-S265-3), in Tenant offer options and record of contact.
+      assert.equal(await leadFix.count(), 0, "No resource fix competes with the wait");
+      const options = page.locator(
+        'details[data-renewal-group="Tenant offer options and record of contact"]',
+      );
+      await kit.toggleDisclosure(page, options, true);
+      fix = options.getByRole("link", { name: /^Shared resource link: / }).first();
+    } else {
+      // S265: before the offer goes out, the Guided lead is the resource's one Connections entry.
+      assert.equal(priority.lead, "included-resource");
+      fix = leadFix.first();
+    }
     await fix.waitFor();
-    assert.equal(
-      await kit
-        .now(page)
-        .locator("[data-renewal-priority-lead]")
-        .first()
-        .getAttribute("data-renewal-priority-lead"),
-      "included-resource",
-    );
-    record({ id: "N10-05", check: "resource-lead", label: await fix.innerText() });
+    record({
+      id: "N10-05",
+      check: "resource-fix",
+      priority,
+      label: await fix.innerText(),
+    });
     await fix.click();
     await page.waitForURL((url) => url.pathname === "/connections");
     const target = new URL(page.url());

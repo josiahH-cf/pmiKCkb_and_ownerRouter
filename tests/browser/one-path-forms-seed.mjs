@@ -169,8 +169,12 @@ async function measure() {
   return (value, size) => font.widthOfTextAtSize(value, size);
 }
 
-/** The synthetic pet agreement: two pages, four animal rows, a fee sentence and two amount blanks. */
-async function petAgreement(differing) {
+/**
+ * The synthetic pet agreement: two pages, four animal rows, a fee sentence and two amount blanks.
+ * `sharedCharge` keeps the same file and adds one reviewed per-animal field that reads each
+ * animal's monthly charge, so the S264/S268 packet parity has a form relying on a shared charge.
+ */
+async function petAgreement(differing, sharedCharge = false) {
   const width = await measure();
   const feeLead = "The tenant pays a non-refundable pet processing fee of";
   const feeX = Math.ceil(72 + width(`${feeLead} `, 11)) + 4;
@@ -304,7 +308,11 @@ async function petAgreement(differing) {
   const map = (templateVersion) => ({
     schemaVersion: "artifact-field-map/v1",
     artifactKind: "animal_agreement",
-    mapVersion: differing ? "one-path-pet-differing-v1" : "one-path-pet-v1",
+    mapVersion: differing
+      ? "one-path-pet-differing-v1"
+      : sharedCharge
+        ? "one-path-pet-shared-charge-v1"
+        : "one-path-pet-v1",
     templateVersion,
     formFamily: ONE_PATH_FORM_FAMILY,
     formFamilyExtensionCompatible: true,
@@ -350,6 +358,17 @@ async function petAgreement(differing) {
         "SYNTHETIC second amount blank: the fee plus the deposit",
         ["renewal_charge_policy"],
       ),
+      ...(sharedCharge
+        ? [
+            field(
+              "AnimalMonthly",
+              "animal.monthly_charge",
+              "SYNTHETIC monthly charge for this animal",
+              ["renewal_charge_policy", "renewal_staff_override"],
+              { multiplicity: "per_animal", required: false },
+            ),
+          ]
+        : []),
     ],
     signers: [
       ...[1, 2, 3, 4].map((slot) => ({
@@ -395,6 +414,19 @@ async function petAgreement(differing) {
           fontSize: 11,
         }),
         region("Total", "Total", 0, 0, totalRect, { format: "money", fontSize: 11 }),
+        // Right of the deposit column, on each animal row; the file has nothing printed there.
+        ...(sharedCharge
+          ? [0, 1, 2, 3].map((slot) =>
+              region(
+                `AnimalMonthly-${slot + 1}`,
+                "AnimalMonthly",
+                slot,
+                0,
+                { x: 530, y: rowY(slot), width: 60, height: 16 },
+                { format: "money" },
+              ),
+            )
+          : []),
       ],
       protectedRegions: [...initials(0), ...signatures, ...manager, ...initials(1)],
     },
@@ -682,11 +714,16 @@ async function renewalExtension() {
 /**
  * Build the synthetic forms: their bytes, hashes and reviewed maps. Nothing is written.
  * `differingPetAgreement` builds the pet agreement whose text states its old fee a second time,
- * outside every reviewed region, so preparing it is refused.
+ * outside every reviewed region, so preparing it is refused. `sharedChargePetAgreement` keeps the
+ * same pet agreement file and reviews one more field, each animal's monthly charge (S271 N10-04
+ * and N10-10: a form relying on a shared charge for the accepted offer's packet parity).
  */
 export async function buildOnePathForms(options = {}) {
   const built = [
-    await petAgreement(Boolean(options.differingPetAgreement)),
+    await petAgreement(
+      Boolean(options.differingPetAgreement),
+      Boolean(options.sharedChargePetAgreement),
+    ),
     await ownerAcknowledgment(),
     await brochure(),
     ...(options.includeRenewalExtension === false ? [] : [await renewalExtension()]),

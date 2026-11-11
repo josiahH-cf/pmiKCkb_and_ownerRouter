@@ -39,6 +39,8 @@ export interface OnePathLease {
 export interface OnePathSeedOptions {
   /** Build the pet agreement whose text states its old fee outside every reviewed region. */
   differingPetAgreement?: boolean;
+  /** Review one more pet agreement field, each animal's monthly charge (a shared offer charge). */
+  sharedChargePetAgreement?: boolean;
   /** False leaves the plain renewal extension out. */
   includeRenewalExtension?: boolean;
   leases?: readonly OnePathLease[];
@@ -76,7 +78,10 @@ export const ONE_PATH_FAMILY_USE_STEPS: ReadonlyArray<
 export const ONE_PATH_ANIMAL_PROFILES: readonly OnePathAnimalProfile[];
 
 export function buildOnePathForms(
-  options?: Pick<OnePathSeedOptions, "differingPetAgreement" | "includeRenewalExtension">,
+  options?: Pick<
+    OnePathSeedOptions,
+    "differingPetAgreement" | "includeRenewalExtension" | "sharedChargePetAgreement"
+  >,
 ): Promise<Record<OnePathFormKind, OnePathForm>>;
 export function onePathIntakeEntry(
   form: OnePathForm,

@@ -2,7 +2,8 @@
 // and its verdicts. Browser, backend and adapter results bind to one source and build. Human,
 // model and real source or effect evidence stay separate. A report missing evidence cannot qualify.
 
-export const MATRIX_VERSION = "S271-2026-11-10.1";
+// .2: N10-04 also reads back the charge-only next step and the held source update (BEH-S264-6).
+export const MATRIX_VERSION = "S271-2026-11-10.2";
 
 // N10-06 is the Friday human read-through. It is recorded by humanReviewVerdict, never here.
 export const ENGINEERING_CASES = [
@@ -67,6 +68,8 @@ export const REQUIRED_OBSERVATIONS = {
     "staleMappingRefusedAtClaim",
     "sameValueDriftRefused",
     "decisionsDoNotCoverChangedCharge",
+    "chargeOnlyNextStepShown",
+    "chargeOnlySourceUpdateHeld",
     "materialTransitionBranches",
   ],
   "N10-05": [
