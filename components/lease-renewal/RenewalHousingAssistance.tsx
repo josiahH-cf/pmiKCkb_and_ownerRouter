@@ -104,7 +104,9 @@ function attribution(entry: ReturnType<typeof workingEntry>): string | null {
 }
 
 /** S266: program work staff recorded on this lease (a program contact or assisted follow-up). */
-function programWorkRecorded(state: RenewalWorkspaceState | null | undefined): boolean {
+export function programWorkRecorded(
+  state: RenewalWorkspaceState | null | undefined,
+): boolean {
   return (["program_contact", "assisted_housing"] as const).some((key) => {
     const outcome = state?.activities[key]?.outcome;
     return outcome === "waiting" || outcome === "done";

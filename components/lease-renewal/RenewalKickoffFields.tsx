@@ -30,6 +30,7 @@ import {
   isRenewalPresentationMove,
 } from "./RenewalDashboardNavigation";
 import { HeldWorkingValueNote, useRenewalWorkingRecord } from "./RenewalWorkingRecord";
+import { useRenewalFocusView } from "./RenewalFocusViewContext";
 import { workingRecommendationBasis } from "@/lib/lease-renewal/kickoff-facts";
 import {
   OwnerCurrentBaseRent,
@@ -102,12 +103,19 @@ export function StoredComparisonSummary({
   preparation,
   action = null,
   readOnly = false,
+  compact = false,
+  showFix = true,
 }: Readonly<{
   preparation: RenewalPreparation;
   action?: React.ReactNode;
   readOnly?: boolean;
+  /** S269/S270: the estimate or range only; the comparable rows are read in Verification. */
+  compact?: boolean;
+  /** False where the outcome's one primary action already carries this fix. */
+  showFix?: boolean;
 }>) {
   const comparison = preparation.comparison;
+  const fix = showFix ? comparison.fix : null;
   return (
     <section
       aria-label="Stored comparison"
@@ -123,7 +131,7 @@ export function StoredComparisonSummary({
           </span>
         ) : null}
       </p>
-      {comparison.firstComps.length > 0 ? (
+      {!compact && comparison.firstComps.length > 0 ? (
         <ol aria-label="Comparables" className="renewal-now-comps">
           {comparison.firstComps.map((comp, index) => (
             <li key={`${index}:${comp.rent}`}>
@@ -135,16 +143,16 @@ export function StoredComparisonSummary({
           ))}
         </ol>
       ) : null}
-      {!readOnly && (comparison.fix || action) ? (
+      {!readOnly && (fix || action) ? (
         <p className="ui-row">
           {action}
-          {comparison.fix ? (
+          {fix ? (
             <Button
-              onClick={() => focusRenewalDashboardControl(comparison.fix!.target)}
+              onClick={() => focusRenewalDashboardControl(fix.target)}
               size="compact"
               variant="secondary"
             >
-              {comparison.fix.label}
+              {fix.label}
             </Button>
           ) : null}
         </p>
@@ -165,6 +173,23 @@ export const USE_FOR_OFFER_LABEL = "Use this amount for the offer";
  * deliberate way to move a differing recommendation into the working base.
  */
 export function RentToRecommendField({
+  preparation,
+  placement = "any",
+}: Readonly<{
+  preparation: RenewalPreparation | null;
+  /**
+   * S269: Guided view holds this one editor in Compare market rent's active Work on the Now card;
+   * `full` mounts it only in Full view. The typed entry is kept by the working record provider, so
+   * switching views keeps it (S247).
+   */
+  placement?: "any" | "full";
+}>) {
+  const view = useRenewalFocusView();
+  if (placement === "full" && view && view.view !== "full") return null;
+  return <RentToRecommendEditor preparation={preparation} />;
+}
+
+function RentToRecommendEditor({
   preparation,
 }: Readonly<{ preparation: RenewalPreparation | null }>) {
   const working = useRenewalWorkingRecord();

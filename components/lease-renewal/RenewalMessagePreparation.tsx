@@ -19,7 +19,7 @@ import { boundedLocalWait, LocalWaitError } from "@/lib/ui/local-lifetime";
 import { formatBusinessTimestamp } from "@/lib/date-display";
 
 import { renewalCardTitle } from "@/components/lease-renewal/RenewalSectionHeading";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import {
   EXTERNAL_LINK_REL,
@@ -240,12 +240,18 @@ interface Preparation {
 import { RenewalSecondaryWork, useRenewalOutcomeStage } from "./RenewalGuidedView";
 import { applyTenantResourceInclusion } from "@/lib/lease-renewal/tenant-resource-inclusion";
 import type { RenewalStageContext } from "@/lib/lease-renewal/renewal-stage";
+import { GUIDED_SECONDARY_WORK_LABELS } from "@/lib/lease-renewal/guided-priority";
 
 type MessageOwnerProps = Readonly<{
   channel: "owner" | "tenant";
   canEdit: boolean;
   /** S265: whether the viewer maintains shared resource links (Admin); others read the handoff. */
   canManageResources?: boolean;
+  /**
+   * S270: the outcome's other secondary work (its outreach or contact records). With it, the
+   * message options and these records share the outcome's one named group.
+   */
+  secondaryWork?: ReactNode;
 }>;
 
 export function RenewalMessagePreparation({
@@ -374,6 +380,7 @@ function MessageOwner({
   canManageResources,
   compact = false,
   deliveryHeld = false,
+  secondaryWork,
 }: MessageOwnerProps & { compact?: boolean; deliveryHeld?: boolean }) {
   const context = useRenewalManualWorkspace();
   const working = useRenewalWorkingRecord();
@@ -387,8 +394,11 @@ function MessageOwner({
       canManageResources={canManageResources}
       compact={compact}
       deliveryHeld={deliveryHeld}
+      secondaryWork={secondaryWork}
     />
-  ) : null;
+  ) : (
+    secondaryWork
+  );
 }
 
 /** The server's saved authored body as editor state. */
@@ -745,6 +755,7 @@ function MessagePreparationEditor({
   canManageResources,
   compact,
   deliveryHeld,
+  secondaryWork,
 }: {
   leaseId: string;
   refreshBasis: string;
@@ -753,6 +764,7 @@ function MessagePreparationEditor({
   canManageResources?: boolean;
   compact: boolean;
   deliveryHeld: boolean;
+  secondaryWork?: ReactNode;
 }) {
   const router = useRouter();
   const working = useRenewalWorkingRecord();
@@ -1748,7 +1760,21 @@ function MessagePreparationEditor({
       ) : null}
       {chargeReview && !preparedHostsCharges ? chargeReview : null}
       <RenewalSecondaryWork
-        label={`Edit ${channelLabel.toLowerCase()} message and manage delivery options`}
+        // S270: one named group per outcome: the message options, then the outcome's records.
+        label={
+          secondaryWork !== undefined
+            ? GUIDED_SECONDARY_WORK_LABELS[
+                channel === "owner" ? "ask-owner" : "offer-tenant"
+              ]!
+            : `Edit ${channelLabel.toLowerCase()} message and manage delivery options`
+        }
+        stepId={
+          secondaryWork !== undefined
+            ? channel === "owner"
+              ? "ask-owner"
+              : "offer-tenant"
+            : undefined
+        }
       >
         <a
           className="primary-button"
@@ -2538,6 +2564,7 @@ function MessagePreparationEditor({
             ) : null}
           </>
         )}
+        {secondaryWork}
       </RenewalSecondaryWork>
     </Card>
   );
