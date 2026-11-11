@@ -27,6 +27,13 @@ import {
   renewalWorkingRecordRef,
 } from "@/lib/firestore/renewal-working-record";
 import { COMMUNICATION_SEQUENCE_COLLECTIONS } from "@/lib/gmail-hub/sequence-store";
+import {
+  prepareOfferAnswerIn,
+  readOfferAnswer,
+  type PreparedOfferAnswer,
+} from "@/lib/firestore/renewal-offer-answers";
+import { OfferAnswerInputSchema } from "@/lib/lease-renewal/offer-answers";
+import type { FrozenOfferSnapshot } from "@/lib/lease-renewal/offer-snapshot";
 import type { CommunicationInboundEvidence } from "@/lib/gmail-hub/sequence-model";
 import {
   ApprovedWorkingTermsSchema,
@@ -193,6 +200,12 @@ export const SaveRenewalWorkspaceSchema = z
     expectedRevision: z.number().int().nonnegative(),
     operationId: z.string().uuid(),
     action: RenewalWorkspaceActionSchema,
+    /**
+     * S264 R-S264-6: the exact offer the answer covers, recorded in its own collection with the
+     * answer: a tenant decision's confirmed send or verified external offer (or that it has no
+     * one exact offer), or the reviewed offer an owner approval of the exact terms covers.
+     */
+    offer: OfferAnswerInputSchema.optional(),
   })
   .strict();
 export const StartRenewalCycleSchema = z
@@ -435,10 +448,40 @@ export async function saveRenewalWorkspace(
   db: Firestore = getAdminFirestore(),
   resolveBasis?: () => Promise<RenewalWorkBasis | null>,
   verifyApproval?: OwnerApprovalVerification,
+  /** S264 R-S264-6: the current tenant offer, read fresh for an owner approval of its charges. */
+  verifyOffer?: {
+    readonly currentOfferSnapshot: () => Promise<FrozenOfferSnapshot | null>;
+  },
 ) {
   assertActor(actor, true);
   const input = SaveRenewalWorkspaceSchema.parse(raw),
     requestHash = hashExecutionPreview({ actorUid: actor.uid, ...input });
+  // S264 R-S264-6: an answer names its exact offer only on the answer itself, and an amount-only
+  // owner answer never covers the offer's charges.
+  if (
+    input.offer &&
+    input.action.kind !== "tenant_response" &&
+    input.action.kind !== "owner_response"
+  )
+    throw new EditableLayerError("Only an owner or tenant answer covers an offer.", 400);
+  if (
+    input.offer?.kind === "owner_reviewed_offer" &&
+    input.action.kind === "owner_response" &&
+    input.action.approvedBase?.scope === "amount_only"
+  )
+    throw new EditableLayerError(
+      "Base rent only covers the amount alone. To record that the owner approved the offer's charges, record the exact terms.",
+      400,
+    );
+  const reviewedOffer =
+    input.offer?.kind === "owner_reviewed_offer"
+      ? ((await verifyOffer?.currentOfferSnapshot().catch(() => null)) ?? null)
+      : null;
+  if (input.offer?.kind === "owner_reviewed_offer" && !reviewedOffer)
+    throw new EditableLayerError(
+      "The current offer charges could not be read, so the owner's approval of them was not recorded. Your entries are kept; reload and review the offer charges again.",
+      409,
+    );
   // S234 R-S234-1: an approval's party is one owner from the lease's current source read, or a
   // named representative; the roster is read before the transaction and an unreadable roster
   // records nothing. A linked reply is checked inside the transaction below.
@@ -610,6 +653,23 @@ export async function saveRenewalWorkspace(
         ),
       );
     }
+    // S264 R-S264-6: the exact offer the answer covers, read and checked before any write.
+    let offerAnswer: PreparedOfferAnswer | null = null;
+    if (
+      input.offer &&
+      (input.action.kind === "tenant_response" || input.action.kind === "owner_response")
+    )
+      offerAnswer = await prepareOfferAnswerIn(tx, db, {
+        leaseId: input.leaseId,
+        cycleId,
+        eventId: input.operationId,
+        party: input.action.kind === "owner_response" ? "owner" : "tenant",
+        outcome: input.action.outcome,
+        answer: input.offer,
+        actorUid: actor.uid,
+        recordedAt: now,
+        reviewedOffer,
+      });
     let approvalEvidence: OwnerApprovalEvidence | null = null;
     if (approvalInput && verifiedParty) {
       const channel = approvalInput.channel!;
@@ -761,6 +821,7 @@ export async function saveRenewalWorkspace(
           { ...written.doc, request_hash: requestHash },
         );
     }
+    const offerRecord = offerAnswer?.write(tx, approvedWorkingTerms) ?? null;
     tx.set(target, valid);
     tx.set(db.collection(RENEWAL_WORKSPACE_COLLECTIONS.cycles).doc(cycleId), valid);
     tx.create(event, {
@@ -770,12 +831,25 @@ export async function saveRenewalWorkspace(
       recorded_at: now,
       request_hash: requestHash,
       action: input.action,
+      ...(offerRecord
+        ? {
+            offer_answer: {
+              kind: offerRecord.attribution.kind,
+              snapshot_id: offerRecord.offer?.snapshotId ?? null,
+            },
+          }
+        : {}),
       previous_revision: base.revision,
       next_state: valid,
     });
     return false;
   });
-  return { state: await getRenewalWorkspace(actor, input.leaseId, db), duplicate };
+  return {
+    state: await getRenewalWorkspace(actor, input.leaseId, db),
+    duplicate,
+    // S264 R-S264-6: the recorded offer coverage, read back from its own record.
+    ...(input.offer ? { offerAnswer: await readOfferAnswer(db, input.operationId) } : {}),
+  };
 }
 
 /**

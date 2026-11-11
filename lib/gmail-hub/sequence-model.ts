@@ -264,6 +264,8 @@ export interface CommunicationOccurrence {
   gmailThreadId?: string;
   sentAtMs?: number;
   reason?: "paused_before_dispatch" | "provider_refusal" | "provider_unknown";
+  /** S264 R-S264-6: the exact offer the first tenant message carried, frozen with it. */
+  offerSnapshot?: import("@/lib/lease-renewal/offer-snapshot").FrozenOfferSnapshot;
 }
 export interface VerifiedCommunicationTarget {
   reply?: CommunicationReplyBinding;

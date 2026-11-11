@@ -78,6 +78,8 @@ import {
   useOfferChargeEvidenceHost,
 } from "./RenewalOfferCharges";
 import { offerChargesPriority } from "@/lib/lease-renewal/offer-charges-priority";
+import { offerAnswersViewOf } from "./RenewalOfferAnswers";
+import type { OfferAnswersView } from "@/lib/lease-renewal/offer-answers";
 import { useRenewalFocusView } from "./RenewalFocusViewContext";
 import {
   emptyMessagePreparationInputs,
@@ -234,6 +236,11 @@ interface Preparation {
     snapshotId: string;
     snapshotHash: string;
   } | null;
+  /**
+   * S264 R-S264-6: the offers a tenant decision can name and each recorded answer's coverage of
+   * the current offer. Absent for the owner message; null when it could not be read.
+   */
+  offerAnswers?: OfferAnswersView | null;
   publication: { status: string; ref?: string; reason?: string };
   /** S139/S161: the saved authored body and whether the facts changed after it was written. */
   bodyOverride?: RefinedBodyState | null;
@@ -1768,6 +1775,20 @@ function MessagePreparationEditor({
     );
     return () => setOfferChargesLead(null);
   }, [channel, setOfferChargesLead, offerPriorityTarget, offerPriorityReady]);
+  // S264 R-S264-6: the tenant message's read carries each recorded answer's coverage of the
+  // current offer; the response editors show it from here, so a saved charge or answer shows it.
+  const setOfferAnswers = nowCard?.setOfferAnswers;
+  const offerAnswersRead = channel === "tenant" ? current?.offerAnswers : undefined;
+  useEffect(() => {
+    if (channel !== "tenant" || !setOfferAnswers) return;
+    const view = offerAnswersViewOf(offerAnswersRead);
+    // Absent means this read carries no work record yet; null or another shape was unreadable.
+    setOfferAnswers({ view, failed: offerAnswersRead !== undefined && view === null });
+  }, [channel, setOfferAnswers, offerAnswersRead]);
+  useEffect(() => {
+    if (channel !== "tenant" || !setOfferAnswers) return;
+    return () => setOfferAnswers(null);
+  }, [channel, setOfferAnswers]);
   const offerSelectionNow =
     offerSelection ?? current?.offerCharges?.saved ?? emptyOfferChargeSelection();
   const chargeReview =
