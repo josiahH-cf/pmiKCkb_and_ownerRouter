@@ -26,6 +26,15 @@ if ! command -v node >/dev/null 2>&1; then
   [[ -n "$login_path" ]] && export PATH="$login_path:$PATH"
 fi
 command -v node >/dev/null || { echo "NOT READY: Node is missing from the WSL login PATH." >&2; exit 2; }
+# The checks below load this checkout's installed packages. A checkout without them (a Windows
+# worktree, or an emptied node_modules) continues in the registered WSL checkout that pmi-auth uses,
+# before any Google prompt or local config change. Enrollment itself is unchanged.
+auth_root="$(node scripts/auth/checkout-dependencies.mjs </dev/null)" || exit 2
+if [[ "$auth_root" != "$(pwd -P)" ]]; then
+  echo "This checkout has no installed packages; continuing in the registered WSL checkout $auth_root."
+  cd -- "$auth_root"
+  exec bash scripts/auth/enroll.sh "$@"
+fi
 # Windows npm reaches this script through the WSL interop relay, which gives Google's code prompt no
 # terminal input, so that launch path uses Google's browser callback through the default Windows browser.
 parent_command="$(cat "/proc/$PPID/comm" 2>/dev/null || true)"
@@ -66,19 +75,31 @@ enroll_google() {
   fi
 }
 
+# ensure.mjs exits 2 when a credential needs a person and 0 when it is ready. Any other result means
+# the check itself did not run, so stop instead of asking for a sign-in it cannot verify.
+needs_google_signin() {
+  local status=0 output
+  output="$(node scripts/auth/ensure.mjs --need="$1" --quiet </dev/null 2>&1)" || status=$?
+  [[ "$status" -eq 0 ]] && return 1
+  [[ "$status" -eq 2 ]] && return 0
+  [[ -n "$output" ]] && printf '%s\n' "$output" >&2
+  echo "NOT READY: the Google $2 check could not run (exit $status); enrollment stopped before any sign-in." >&2
+  exit 1
+}
+
 echo "Checking existing WSL sign-in as $PMI_LOCAL_ACCOUNT. These checks can take a few minutes."
 echo "Wait for a NEW Google link before entering anything."
 # These local config changes are part of explicit owner enrollment, never the status/preflight path.
 gcloud config set account "$PMI_LOCAL_ACCOUNT" </dev/null >/dev/null 2>&1
 gcloud config unset auth/impersonate_service_account </dev/null >/dev/null 2>&1
 echo "Checking Google CLI credentials..."
-if ! node scripts/auth/ensure.mjs --need=gcloud --quiet </dev/null >/dev/null 2>&1; then
+if needs_google_signin gcloud CLI; then
   enroll_google CLI auth login "$PMI_LOCAL_ACCOUNT"
   echo "Verifying Google CLI sign-in..."
   node scripts/auth/ensure.mjs --need=gcloud --quiet </dev/null
 fi
 echo "Checking Google ADC credentials..."
-if ! node scripts/auth/ensure.mjs --need=adc --quiet </dev/null >/dev/null 2>&1; then
+if needs_google_signin adc ADC; then
   enroll_google ADC auth application-default login --account="$PMI_LOCAL_ACCOUNT"
   echo "Verifying the Google account and binding this ADC enrollment..."
   node scripts/auth/verify-enrollment.mjs </dev/null
