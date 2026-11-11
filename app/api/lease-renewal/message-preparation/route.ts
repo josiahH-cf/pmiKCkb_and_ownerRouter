@@ -36,6 +36,8 @@ import { buildLiveCompScreenshotRuntime } from "@/lib/lease-renewal/comp-screens
 import { resolveRenewalDraftCompScreenshotAttachment } from "@/lib/lease-renewal/comp-screenshot-attachment-runtime";
 import type { RenewalDraftAttachmentIdentity } from "@/lib/lease-renewal/execution/renewal-draft-attachment";
 import { resolveRenewalWorkBasis } from "@/lib/lease-renewal/workspace-cycle-context";
+import { getAdminFirestore } from "@/lib/firestore/admin";
+import { readOfferAnswersView } from "@/lib/firestore/renewal-offer-answers";
 
 const identity = z
   .object({
@@ -70,6 +72,26 @@ const command = z.discriminatedUnion("kind", [
     ),
 ]);
 type Current = Awaited<ReturnType<typeof currentRenewalMessage>>;
+/**
+ * S264 R-S264-6: with the tenant message, the offers a tenant decision can name and each recorded
+ * answer's coverage of the current offer, rechecked now. Read again with every message read, so
+ * a saved charge or a recorded answer shows its coverage. Null when it could not be read.
+ */
+async function withOfferAnswers(current: Current) {
+  const preparation = publicPreparation(current);
+  if (current.facts.channel !== "tenant" || !current.workspace) return preparation;
+  const workspace = current.workspace;
+  const offerAnswers = await Promise.resolve()
+    .then(() =>
+      readOfferAnswersView(
+        getAdminFirestore(),
+        workspace,
+        current.offerCharges?.snapshot ?? null,
+      ),
+    )
+    .catch(() => null);
+  return { ...preparation, offerAnswers };
+}
 function publicPreparation(current: Current) {
   return {
     // S249: the rent to recommend with its basis, and the message record's revision.
@@ -178,7 +200,9 @@ export async function GET(request: Request) {
     );
     const input = identity.parse(Object.fromEntries(new URL(request.url).searchParams));
     return NextResponse.json(
-      publicPreparation(await currentRenewalMessage(actor, input.leaseId, input.channel)),
+      await withOfferAnswers(
+        await currentRenewalMessage(actor, input.leaseId, input.channel),
+      ),
       { headers: { "Cache-Control": "private, no-store" } },
     );
   } catch (error) {
@@ -213,9 +237,9 @@ export async function POST(request: Request) {
       const result = await saveMessage(actor, save, input.leaseId);
       return NextResponse.json({
         duplicate: result.duplicate,
-        ...publicPreparation(
+        ...(await withOfferAnswers(
           await currentRenewalMessage(actor, input.leaseId, input.channel),
-        ),
+        )),
       });
     }
     const draftDeps = {

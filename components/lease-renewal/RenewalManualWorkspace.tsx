@@ -78,6 +78,13 @@ import {
   WORKING_START_CONTROL_ID,
 } from "./RenewalDateProposal";
 import type { ApprovedBaseInput } from "@/lib/lease-renewal/owner-approval-scope";
+import type { OfferAnswerInput } from "@/lib/lease-renewal/offer-answers";
+import {
+  OwnerOfferApproval,
+  OwnerOfferCoverageLine,
+  TenantOfferAnswer,
+  useOfferAnswers,
+} from "./RenewalOfferAnswers";
 import { SHEET_FIELD_LABELS } from "@/lib/lease-renewal/sheet-writeback/field-intent";
 
 interface ManualContext {
@@ -96,7 +103,7 @@ interface ManualContext {
    * Saves one staff record. S154: the first save establishes the lease's work record, so no cycle
    * step comes first. It resolves when the save is confirmed and rejects when it is not.
    */
-  record: (action: RenewalWorkspaceAction) => Promise<void>;
+  record: (action: RenewalWorkspaceAction, offer?: OfferAnswerInput) => Promise<void>;
   prepareSource: (
     field: keyof typeof SHEET_FIELD_LABELS,
     eventId: string,
@@ -273,7 +280,11 @@ function ActiveManualProvider({
   }, [leaseId]);
 
   const run = useCallback(
-    async (key: string, action: RenewalWorkspaceAction): Promise<void> => {
+    async (
+      key: string,
+      action: RenewalWorkspaceAction,
+      offer?: OfferAnswerInput,
+    ): Promise<void> => {
       if (readUnavailableRef.current) {
         const text = "Reload current staff records before recording work.";
         setMessage(text);
@@ -290,6 +301,8 @@ function ActiveManualProvider({
           cycleId: basis?.cycleId ?? null,
           expectedRevision: basis?.revision ?? 0,
           action,
+          // S264 R-S264-6: the exact offer the answer covers, saved with the answer.
+          ...(offer ? { offer } : {}),
         };
         const payloadKey = JSON.stringify(payload);
         const prior = outstanding.current.get(key);
@@ -371,9 +384,9 @@ function ActiveManualProvider({
   );
 
   const record = useCallback(
-    (action: RenewalWorkspaceAction) => {
+    (action: RenewalWorkspaceAction, offer?: OfferAnswerInput) => {
       const key = manualRecordKey(action);
-      const result = queue.current.then(() => run(key, action));
+      const result = queue.current.then(() => run(key, action, offer));
       queue.current = result.catch(() => undefined);
       return result;
     },
@@ -1082,19 +1095,34 @@ function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
       })
       .catch(() => undefined);
   }
+  // S264 R-S264-6: the exact offer each answer covers, with the tenant message's own read (read
+  // again after every save of this record).
+  const offerAnswers = useOfferAnswers();
+  const [ownerOffer, setOwnerOffer] = useState(false);
   // S262 R-S262-1/2: the reviewed answer with its Amount approved, saved in one transaction.
   function recordApproval(
     approval: OwnerApprovalInput,
     approvedBase: ApprovedBaseInput,
   ): Promise<boolean> {
+    const reviewed = offerAnswers.view?.current;
     return context
-      .record({
-        kind: "owner_response",
-        outcome: "approved_terms",
-        approval,
-        approvedBase,
-        ...(source.trim() ? { source: source.trim() } : {}),
-      })
+      .record(
+        {
+          kind: "owner_response",
+          outcome: "approved_terms",
+          approval,
+          approvedBase,
+          ...(source.trim() ? { source: source.trim() } : {}),
+        },
+        // S264: the owner approved the reviewed offer's exact charges with the exact terms.
+        ownerOffer && reviewed && approvedBase.scope !== "amount_only"
+          ? {
+              kind: "owner_reviewed_offer",
+              snapshotId: reviewed.snapshotId,
+              snapshotHash: reviewed.snapshotHash,
+            }
+          : undefined,
+      )
       .then(() => {
         setDirty(false);
         setNewApproval(false);
@@ -1154,6 +1182,30 @@ function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
           />
         </Field>
       )}
+      {audience === "tenant" ? (
+        <TenantOfferAnswer
+          answers={offerAnswers}
+          eventId={current?.eventId ?? null}
+          canEdit
+          onRecord={(offer) => {
+            void context
+              .record(
+                {
+                  kind: "tenant_response",
+                  outcome: outcome as
+                    | "accepted"
+                    | "counter_change_requested"
+                    | "declined_nonrenewing",
+                  ...(source.trim() ? { source: source.trim() } : {}),
+                },
+                offer,
+              )
+              .catch(() => undefined);
+          }}
+          outcome={outcome}
+          pending={context.pending}
+        />
+      ) : null}
       {audience === "owner" && outcome === "revision_requested" ? (
         <Field
           htmlFor={`${id}-revision`}
@@ -1186,6 +1238,7 @@ function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
             economicsHash={context.ownerApproval?.economicsHash ?? null}
             state={state}
           />
+          <OwnerOfferCoverageLine answers={offerAnswers} eventId={ownerApproval.eventId} />
           {/* S262: the saved answer's offer amount and the way on to the tenant offer. */}
           <ContinueToTenantOffer working={workingContext?.record ?? null} />
         </>
@@ -1193,11 +1246,19 @@ function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
       {audience === "owner" &&
       outcome === "approved_terms" &&
       (ownerApproval?.outcome !== "approved_terms" || newApproval) ? (
-        <ManualOwnerAnswerApproval
-          choices={context.ownerApproval}
-          disabled={context.pending}
-          onSave={recordApproval}
-        />
+        <>
+          <OwnerOfferApproval
+            answers={offerAnswers}
+            checked={ownerOffer}
+            disabled={context.pending}
+            onChange={setOwnerOffer}
+          />
+          <ManualOwnerAnswerApproval
+            choices={context.ownerApproval}
+            disabled={context.pending}
+            onSave={recordApproval}
+          />
+        </>
       ) : audience === "owner" && ownerApproval?.outcome === "approved_terms" ? (
         <div className="ui-row">
           <button

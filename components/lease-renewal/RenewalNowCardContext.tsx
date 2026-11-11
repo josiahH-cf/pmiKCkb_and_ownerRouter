@@ -17,6 +17,7 @@ import {
 } from "react";
 
 import type { FinishUpPreparation } from "@/lib/lease-renewal/finish-up-preparation";
+import type { OfferAnswersView } from "@/lib/lease-renewal/offer-answers";
 import type { OfferChargesPriority } from "@/lib/lease-renewal/offer-charges-priority";
 import type { NowCardSlot, RenewalPathStepId } from "@/lib/lease-renewal/renewal-path";
 import type { RenewalPreparation } from "@/lib/lease-renewal/renewal-preparation";
@@ -47,6 +48,18 @@ interface NowCardContextValue {
    */
   readonly offerCharges: OfferChargesPriority | null;
   readonly setOfferCharges: (value: OfferChargesPriority | null) => void;
+  /**
+   * S264 R-S264-6: the tenant offer's recorded answers and their coverage of the current offer,
+   * carried with the one tenant message read, for the owner and tenant response editors.
+   */
+  readonly offerAnswers: OfferAnswersRead | null;
+  readonly setOfferAnswers: (value: OfferAnswersRead | null) => void;
+}
+
+/** The answers view as the tenant message read carried it, or that it could not be read. */
+export interface OfferAnswersRead {
+  readonly view: OfferAnswersView | null;
+  readonly failed: boolean;
 }
 
 const Context = createContext<NowCardContextValue | null>(null);
@@ -81,6 +94,14 @@ export function RenewalNowCardProvider({
         previous?.transitionsReady === value?.transitionsReady
           ? previous
           : value,
+      ),
+    [],
+  );
+  const [offerAnswers, setOfferAnswersState] = useState<OfferAnswersRead | null>(null);
+  const setOfferAnswers = useCallback(
+    (value: OfferAnswersRead | null) =>
+      setOfferAnswersState((previous) =>
+        JSON.stringify(previous) === JSON.stringify(value) ? previous : value,
       ),
     [],
   );
@@ -133,6 +154,8 @@ export function RenewalNowCardProvider({
       finishUp,
       offerCharges,
       setOfferCharges,
+      offerAnswers,
+      setOfferAnswers,
     }),
     [
       slots,
@@ -143,6 +166,8 @@ export function RenewalNowCardProvider({
       finishUp,
       offerCharges,
       setOfferCharges,
+      offerAnswers,
+      setOfferAnswers,
     ],
   );
   return <Context.Provider value={value}>{children}</Context.Provider>;
