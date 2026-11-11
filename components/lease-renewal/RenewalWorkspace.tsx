@@ -29,8 +29,8 @@ import type { RenewalWorkingRecord } from "@/lib/lease-renewal/working-record";
 import {
   RenewalManualProvider,
   RenewalManualSection,
-  useFinishUpLead,
 } from "@/components/lease-renewal/RenewalManualWorkspace";
+import { FinishUpFollowUps } from "@/components/lease-renewal/FinishUpFollowUps";
 import {
   RentRecommendationSummary,
   RentToRecommendField,
@@ -1263,49 +1263,6 @@ function DoThisNext({
       {projected.primary.redirected ? null : phaseLink}
       {issueDisclosure}
     </Card>
-  );
-}
-
-/**
- * S270 Finish up: the follow-up its Work holds with the source updates, then the outcome's work,
- * then "Other follow-ups". Both parts read the one lead (useFinishUpLead), which stays while the
- * person works here, so recording a follow-up never moves its form (R-S269-3).
- */
-function FinishUpFollowUps({
-  children,
-  currentRent,
-  moveOutInitiated,
-}: Readonly<{
-  children: ReactNode;
-  currentRent?: number | null;
-  moveOutInitiated: boolean;
-}>) {
-  const lead = useFinishUpLead();
-  return (
-    <>
-      <RenewalManualSection
-        section="documents"
-        documentOutcome="finish-up"
-        moveOutInitiated={moveOutInitiated}
-        currentRent={currentRent}
-        part="lead"
-        leadActivity={lead}
-      />
-      {children}
-      <RenewalSecondaryWork
-        label={GUIDED_SECONDARY_WORK_LABELS["finish-up"]!}
-        stepId="finish-up"
-      >
-        <RenewalManualSection
-          section="documents"
-          documentOutcome="finish-up"
-          moveOutInitiated={moveOutInitiated}
-          currentRent={currentRent}
-          part="rest"
-          leadActivity={lead}
-        />
-      </RenewalSecondaryWork>
-    </>
   );
 }
 
