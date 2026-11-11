@@ -410,13 +410,19 @@ function canaryRequests(argv, identities) {
   return requests;
 }
 
+const HANDOFF_REASONS = Object.freeze({
+  packages: "has no installed packages",
+  configuration: "has no local configuration (.env.local)",
+});
+
 /**
- * A WSL checkout without installed packages (a Windows worktree read through /mnt/c, or an emptied
- * node_modules) runs this same command from the registered WSL checkout and relays its exit status,
- * so the shared WSL store is still assessed instead of the check failing to load. Returns null when
- * this checkout can run the check itself. No credential or provider output crosses this boundary.
+ * A WSL checkout without installed packages or its own .env.local (a Windows worktree read through
+ * /mnt/c, or an emptied node_modules) runs this same command from the registered WSL checkout and
+ * relays its exit status. The shared WSL store and the registered configuration are then assessed,
+ * instead of the check failing to load or reporting a worktree's absent file. Returns null when this
+ * checkout runs the check itself. No credential or provider output crosses this boundary.
  */
-export function handOffWithoutPackages({
+export function handOffToRegisteredCheckout({
   root,
   argv,
   env,
@@ -438,7 +444,7 @@ export function handOffWithoutPackages({
   }
   if (!hook && !quiet)
     warn(
-      `This checkout has no installed packages; checking from the registered WSL checkout ${selected.root}.`,
+      `This checkout ${HANDOFF_REASONS[selected.reason] ?? "cannot run this check"}; checking from the registered WSL checkout ${selected.root}.`,
     );
   const result = spawn(
     process.execPath,
@@ -466,7 +472,7 @@ export async function main(
     platform = process.platform,
     root = ROOT,
     delegate = delegateToWsl,
-    handOff = handOffWithoutPackages,
+    handOff = handOffToRegisteredCheckout,
   } = {},
 ) {
   const need = parseNeed(readFlag(argv, "--need"));

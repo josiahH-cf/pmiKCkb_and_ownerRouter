@@ -18,7 +18,7 @@ import {
   registeredCheckout,
   selectAuthCheckout,
 } from "../../scripts/auth/checkout-dependencies.mjs";
-import { handOffWithoutPackages, main } from "../../scripts/auth/ensure.mjs";
+import { handOffToRegisteredCheckout, main } from "../../scripts/auth/ensure.mjs";
 import { HOOK_DELEGATION_TIMEOUT_MS } from "../../scripts/auth/wsl-delegate.mjs";
 
 // No credential store, Google process or token is used: fixtures are empty folders, a checkout
@@ -38,9 +38,13 @@ function write(path, text = "") {
   writeFileSync(path, text);
 }
 
-/** A checkout whose auth scripts exist; `packages` adds a resolvable Google package. */
-function checkout(dir, { packages = false, ensure = "" } = {}) {
+/**
+ * A checkout whose auth scripts exist; `packages` adds a resolvable Google package and `config` an
+ * empty .env.local (only its presence is ever checked).
+ */
+function checkout(dir, { packages = false, config = false, ensure = "" } = {}) {
   write(join(dir, "scripts", "auth", "ensure.mjs"), ensure);
+  if (config) write(join(dir, ".env.local"));
   if (packages) {
     write(
       join(dir, "node_modules", "google-auth-library", "package.json"),
@@ -86,9 +90,15 @@ describe("auth commands choose a checkout that has installed packages", () => {
     expect(authPackagesInstalled(ROOT)).toBe(true);
   });
 
-  it("keeps a checkout that can run the auth checks itself", () => {
-    const here = checkout(temp(), { packages: true });
-    expect(selectAuthCheckout({ root: here, home: temp() })).toEqual({
+  it("keeps a checkout with its packages and .env.local, even when another is registered", () => {
+    const home = temp();
+    const here = checkout(temp(), { packages: true, config: true });
+    expect(selectAuthCheckout({ root: here, home })).toEqual({
+      root: here,
+      handoff: false,
+    });
+    register(home, checkout(temp(), { packages: true, config: true }));
+    expect(selectAuthCheckout({ root: here, home })).toEqual({
       root: here,
       handoff: false,
     });
@@ -103,6 +113,36 @@ describe("auth commands choose a checkout that has installed packages", () => {
     expect(selectAuthCheckout({ root: here, home })).toEqual({
       root: registered,
       handoff: true,
+      reason: "packages",
+    });
+  });
+
+  // A Windows worktree resolves packages from the primary checkout above it but has no .env.local,
+  // so its own check would report the configuration missing although the registered one is ready.
+  it("hands a worktree without its own .env.local to the configured registered checkout", () => {
+    const home = temp();
+    const base = checkout(temp(), { packages: true, config: true });
+    const worktree = checkout(join(base, ".claude", "worktrees", "w"));
+    const registered = checkout(temp(), { packages: true, config: true });
+    register(home, registered);
+    expect(selectAuthCheckout({ root: worktree, home })).toEqual({
+      root: registered,
+      handoff: true,
+      reason: "configuration",
+    });
+  });
+
+  it("keeps a checkout with packages when no configured checkout is registered", () => {
+    const home = temp();
+    const here = checkout(temp(), { packages: true });
+    expect(selectAuthCheckout({ root: here, home })).toEqual({
+      root: here,
+      handoff: false,
+    });
+    register(home, checkout(temp(), { packages: true }));
+    expect(selectAuthCheckout({ root: here, home })).toEqual({
+      root: here,
+      handoff: false,
     });
   });
 
@@ -154,7 +194,7 @@ describe("ensure.mjs hands its check to the registered checkout", () => {
   it("runs the check itself when this checkout has its packages", () => {
     const spawn = vi.fn();
     expect(
-      handOffWithoutPackages({
+      handOffToRegisteredCheckout({
         root: "/repo",
         argv: ["--status"],
         env: {},
@@ -165,15 +205,34 @@ describe("ensure.mjs hands its check to the registered checkout", () => {
     expect(spawn).not.toHaveBeenCalled();
   });
 
+  it("names a missing .env.local as the reason for handing off", () => {
+    const warn = vi.fn();
+    handOffToRegisteredCheckout({
+      root: "/mnt/c/worktree",
+      argv: [],
+      env: {},
+      select: select({ root: "/registered", handoff: true, reason: "configuration" }),
+      spawn: () => ({ status: 0 }),
+      warn,
+    });
+    expect(warn).toHaveBeenCalledWith(
+      "This checkout has no local configuration (.env.local); checking from the registered WSL checkout /registered.",
+    );
+  });
+
   it("relays the registered checkout's exit status for the same arguments", () => {
     const spawn = vi.fn(() => ({ status: 2 }));
     const warn = vi.fn();
     const env = { HOME: "/home/owner" };
-    const result = handOffWithoutPackages({
+    const result = handOffToRegisteredCheckout({
       root: "/mnt/c/worktree",
       argv: ["--need=adc", "--unattended"],
       env,
-      select: select({ root: "/home/owner/registered", handoff: true }),
+      select: select({
+        root: "/home/owner/registered",
+        handoff: true,
+        reason: "packages",
+      }),
       spawn,
       warn,
     });
@@ -194,7 +253,7 @@ describe("ensure.mjs hands its check to the registered checkout", () => {
     const log = vi.fn();
     const handedOff = select({ root: "/registered", handoff: true });
     expect(
-      handOffWithoutPackages({
+      handOffToRegisteredCheckout({
         root: "/worktree",
         argv: ["--quiet"],
         env: {},
@@ -206,7 +265,7 @@ describe("ensure.mjs hands its check to the registered checkout", () => {
       }),
     ).toEqual({ handedOff: true, exitCode: 2 });
     expect(
-      handOffWithoutPackages({
+      handOffToRegisteredCheckout({
         root: "/worktree",
         argv: ["--hook"],
         env: {},
@@ -230,7 +289,7 @@ describe("ensure.mjs hands its check to the registered checkout", () => {
     (hook, exitCode, line) => {
       const spawn = vi.fn();
       const messages = [];
-      const result = handOffWithoutPackages({
+      const result = handOffToRegisteredCheckout({
         root: "/worktree",
         argv: [],
         env: {},
@@ -249,7 +308,7 @@ describe("ensure.mjs hands its check to the registered checkout", () => {
 
   it("never reports a stopped hand-off as a credential state", () => {
     const warn = vi.fn();
-    const result = handOffWithoutPackages({
+    const result = handOffToRegisteredCheckout({
       root: "/worktree",
       argv: [],
       env: {},
@@ -356,6 +415,29 @@ describe.skipIf(process.platform === "win32")(
       expect(result.stderr).toContain(
         `checking from the registered WSL checkout ${registered}`,
       );
+    });
+
+    // The worktree session hook after node_modules was restored: packages resolve, .env.local is
+    // absent, so the configured registered checkout reports instead of a false "env blocked".
+    it("hands a session-start hook without .env.local to the configured checkout", () => {
+      const dir = bareCheckout();
+      write(
+        join(dir, "node_modules", "google-auth-library", "package.json"),
+        JSON.stringify({ name: "google-auth-library", main: "index.js" }),
+      );
+      write(join(dir, "node_modules", "google-auth-library", "index.js"));
+      const home = temp();
+      const registered = checkout(temp(), {
+        packages: true,
+        config: true,
+        ensure:
+          "console.log(`auth: registered hook ${process.argv.slice(2).join(' ')}`);\n",
+      });
+      register(home, registered);
+      const hook = ensure(dir, home, ["--hook"]);
+      expect(hook.status, hook.stderr).toBe(0);
+      expect(hook.stdout.trim()).toBe("auth: registered hook --hook");
+      expect(hook.stderr).toBe("");
     });
   },
 );

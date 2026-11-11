@@ -198,7 +198,7 @@ describe.skipIf(process.platform !== "linux")("interactive WSL enrollment", () =
       ),
     ]);
     expect(result.output).toContain(
-      "This checkout has no installed packages; continuing in the registered WSL checkout",
+      "This checkout lacks installed packages or its own .env.local; continuing in the registered WSL checkout",
     );
   });
 
