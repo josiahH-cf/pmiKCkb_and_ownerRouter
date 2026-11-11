@@ -30,6 +30,10 @@ import {
   SaveMessagePreparationSchema,
   type MessageRuleBasis,
 } from "@/lib/lease-renewal/renewal-message-preparation";
+import {
+  OfferChargeSelectionSchema,
+  type OfferChargeSelection,
+} from "@/lib/lease-renewal/offer-charges";
 import type { RenewalWorkBasis } from "@/lib/lease-renewal/workspace-state";
 
 export const MESSAGE_PREPARATION_COLLECTIONS = {
@@ -38,7 +42,55 @@ export const MESSAGE_PREPARATION_COLLECTIONS = {
   // S250 R-S250-7: the agreement rule each saved revision was built on, beside the record (the
   // record's own stored shape is unchanged, so an earlier release still reads it).
   ruleBases: "renewal_message_rule_bases",
+  // S264 R-S264-2: the tenant offer's charge review for each saved revision, beside the record
+  // for the same reason.
+  offerSelections: "renewal_offer_charge_selections",
 } as const;
+
+const OFFER_SELECTION_SCHEMA_VERSION = "renewal-offer-charge-selection/v1";
+
+/** S264: the saved charge review for one revision of the tenant message. */
+export type OfferChargeSelectionRead =
+  | { readonly state: "saved"; readonly selection: OfferChargeSelection }
+  | { readonly state: "none" }
+  | { readonly state: "unreadable" };
+
+/**
+ * S264 R-S264-2: the charge review saved with the tenant message's revision. A review saved with
+ * an earlier revision is not this revision's; an unreadable one is reported, never read as empty.
+ */
+export async function getOfferChargeSelection(
+  actor: AuthenticatedUser,
+  leaseId: string,
+  cycleId: string,
+  revision: number,
+  db: Firestore = getAdminFirestore(),
+): Promise<OfferChargeSelectionRead> {
+  assertActor(actor);
+  try {
+    const snapshot = await db
+      .collection(MESSAGE_PREPARATION_COLLECTIONS.offerSelections)
+      .doc(identity(leaseId, cycleId, "tenant"))
+      .get();
+    if (!snapshot.exists || snapshot.get("revision") !== revision)
+      return { state: "none" };
+    if (snapshot.get("leaseId") !== leaseId || snapshot.get("cycleId") !== cycleId)
+      return { state: "unreadable" };
+    const parsed = OfferChargeSelectionSchema.safeParse(snapshot.get("selection"));
+    return parsed.success
+      ? { state: "saved", selection: parsed.data }
+      : { state: "unreadable" };
+  } catch {
+    return { state: "unreadable" };
+  }
+}
+
+/** The doc that holds the tenant message's charge review, for a claim's transaction. */
+export function offerChargeSelectionRef(db: Firestore, leaseId: string, cycleId: string) {
+  return db
+    .collection(MESSAGE_PREPARATION_COLLECTIONS.offerSelections)
+    .doc(identity(leaseId, cycleId, "tenant"));
+}
 
 /**
  * S250 R-S250-7: the agreement rule the message's saved revision was built on; null when that
@@ -122,6 +174,8 @@ export async function saveMessagePreparation(
 ) {
   assertActor(actor, true);
   const input = SaveMessagePreparationSchema.parse(raw);
+  if (input.offerCharges && input.channel !== "tenant")
+    throw new EditableLayerError("Offer charges belong to the tenant offer.", 400);
   const recordChanged = () =>
     new EditableLayerError(
       "This lease's work record changed while you were editing. Your wording is kept on screen; reload the message, then save it again.",
@@ -154,15 +208,18 @@ export async function saveMessagePreparation(
     .doc(input.operationId);
   const heads = renewalWorkspaceHeadRefs(db, input.leaseId);
   const bodyRef = messageBodyOverrideRef(db, input.leaseId, cycleId, input.channel);
+  const selectionRef = offerChargeSelectionRef(db, input.leaseId, cycleId);
   const requestHash = hashExecutionPreview({ actorUid: actor.uid, ...input });
   const duplicate = await db.runTransaction(async (transaction) => {
-    const [snapshot, prior, dated, leaseBound, priorBody] = await Promise.all([
-      transaction.get(ref),
-      transaction.get(audit),
-      transaction.get(heads.dated),
-      transaction.get(heads.leaseBound),
-      transaction.get(bodyRef),
-    ]);
+    const [snapshot, prior, dated, leaseBound, priorBody, priorSelection] =
+      await Promise.all([
+        transaction.get(ref),
+        transaction.get(audit),
+        transaction.get(heads.dated),
+        transaction.get(heads.leaseBound),
+        transaction.get(bodyRef),
+        input.channel === "tenant" ? transaction.get(selectionRef) : null,
+      ]);
     if (prior.exists) {
       if (prior.get("request_hash") !== requestHash)
         throw new EditableLayerError(
@@ -264,6 +321,33 @@ export async function saveMessagePreparation(
           recordedByUid: actor.uid,
         },
       );
+    // S264 R-S264-2: the charge review saves with this revision. A save that carries none (an
+    // earlier page, or a re-save that only renews the revision) keeps the review the previous
+    // revision saved, so a refresh or retry never loses a staff decision.
+    let offerChargesHash: string | null = null;
+    if (input.channel === "tenant") {
+      const carried =
+        input.offerCharges === undefined &&
+        priorSelection?.exists &&
+        priorSelection.get("revision") === current?.revision
+          ? OfferChargeSelectionSchema.safeParse(priorSelection.get("selection"))
+          : null;
+      const selection =
+        input.offerCharges ?? (carried?.success ? carried.data : undefined);
+      if (selection) {
+        offerChargesHash = hashExecutionPreview({ selection });
+        transaction.set(selectionRef, {
+          schemaVersion: OFFER_SELECTION_SCHEMA_VERSION,
+          leaseId: input.leaseId,
+          cycleId,
+          channel: "tenant",
+          revision: record.revision,
+          selection,
+          recordedAt: now,
+          recordedByUid: actor.uid,
+        });
+      }
+    }
     // S120: the sender's own signature is retained for reuse on their next lease or cycle.
     retainSenderSignature(transaction, db, actor, record);
     transaction.create(audit, {
@@ -278,6 +362,7 @@ export async function saveMessagePreparation(
       // The audit keeps hashes only; the wording itself lives in the override records.
       body_override: bodyOverride,
       subject_override: subjectOverride,
+      ...(offerChargesHash ? { offer_charges: offerChargesHash } : {}),
     });
     return false;
   });

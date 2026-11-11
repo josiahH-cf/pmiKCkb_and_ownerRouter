@@ -614,6 +614,8 @@ export class WorkflowCommunicationSequenceService {
         : {}),
       ...(target.reply ? { reply: target.reply } : {}),
       ...(resourceBasis ? { resourceBasis } : {}),
+      // S264 R-S264-6: the exact offer snapshot the reviewed tenant message states.
+      ...(target.offerSnapshot ? { offerSnapshot: target.offerSnapshot } : {}),
     };
     const authorization: CommunicationAuthorization = {
       ...a,

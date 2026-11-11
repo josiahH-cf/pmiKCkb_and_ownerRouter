@@ -135,6 +135,11 @@ export interface CommunicationAuthorization {
    * absent on earlier ones, whose stored content then decides whether they include a resource.
    */
   resourceBasis?: import("@/lib/lease-renewal/tenant-resource-inclusion").AuthorizedTenantResourceBasis;
+  /**
+   * S264 (R-S264-6): the exact tenant offer snapshot this authorization's initial message states,
+   * frozen with it. Absent on earlier authorizations and on messages that state no offer.
+   */
+  offerSnapshot?: import("@/lib/lease-renewal/offer-snapshot").FrozenOfferSnapshot;
 }
 export interface CommunicationSequence
   extends
@@ -284,6 +289,8 @@ export interface VerifiedCommunicationTarget {
   tenantResources?: import("@/lib/lease-renewal/tenant-resource-evidence").TenantResourceUses;
   /** S265: the resources the offer's decisions require in its initial message. */
   tenantResourceRequired?: readonly import("@/lib/lease-renewal/tenant-resource-evidence").TenantResourceId[];
+  /** S264: the exact tenant offer snapshot the current message states. */
+  offerSnapshot?: import("@/lib/lease-renewal/offer-snapshot").FrozenOfferSnapshot;
 }
 export function communicationSendKey(
   context: WorkflowCommunicationContext,

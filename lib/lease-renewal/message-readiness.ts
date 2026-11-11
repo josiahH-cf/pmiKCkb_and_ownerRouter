@@ -7,6 +7,7 @@
 import { MESSAGE_CHARGES } from "@/lib/lease-renewal/renewal-message-content";
 import { POLICY_PRODUCT_LABELS } from "@/lib/lease-renewal/policy-content";
 import { RENEWAL_RESOURCE_FIELDS } from "@/lib/lease-renewal/resource-locations";
+import { offerChargeRowControlId } from "@/lib/lease-renewal/offer-charges";
 import { KICKOFF_FIX_TARGETS } from "@/lib/lease-renewal/renewal-preparation";
 import {
   ENTER_RENEWAL_END_LABEL,
@@ -79,6 +80,9 @@ export const MESSAGE_CONTROL_IDS = {
   readiness: (channel: MessageChannel) => `renewal-message-${channel}-readiness`,
   refine: (channel: MessageChannel) => `renewal-message-${channel}-refine`,
   attachment: "renewal-message-owner-attachment",
+  /** S264: Review offer charges, and its Resident Benefits Package change question. */
+  offerCharges: "renewal-offer-charges",
+  rbpChange: "renewal-offer-charges-rbp-change",
 } as const;
 
 const RESOURCE_FIELD_BY_MESSAGE_FIELD: Record<string, string> = {
@@ -133,10 +137,22 @@ export function messageInputTarget(
     const label = (MESSAGE_CHARGES as Record<string, string>)[id] ?? id;
     return control(MESSAGE_CONTROL_IDS.charge(channel, id), `${label} charge`);
   }
-  if (field === "insuranceTransition")
+  if (field === "insuranceTransition" || field === "offerCharges.insuranceTransition")
     return control(
       MESSAGE_CONTROL_IDS.insurance(channel),
       "Insurance transition applicability",
+    );
+  // S264: each offer charge hold opens its own row, or the review's question that resolves it.
+  if (field === "offerCharges.rbpChange")
+    return control(MESSAGE_CONTROL_IDS.rbpChange, "Resident Benefits Package change");
+  if (field === "offerCharges.renewalDate")
+    return control(WORKING_START_FIELD_ID, ENTER_RENEWAL_START_LABEL);
+  if (field === "offerCharges" || field.startsWith("offerCharges."))
+    return control(MESSAGE_CONTROL_IDS.offerCharges, "Review offer charges");
+  if (field.startsWith("offerCharge."))
+    return control(
+      offerChargeRowControlId(field.slice("offerCharge.".length)),
+      "Review offer charges",
     );
   if (field in RESOURCE_FIELD_BY_MESSAGE_FIELD) {
     const resourceId = RESOURCE_FIELD_BY_MESSAGE_FIELD[field];

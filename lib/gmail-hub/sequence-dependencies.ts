@@ -29,6 +29,7 @@ import {
 } from "@/lib/firestore/renewal-outreach-records";
 import { CommunicationAttachmentStore } from "./sequence-attachments";
 import { renewalNoticeMaterialIdentity } from "./renewal-material-source";
+import { offerSnapshotIsMaterial } from "@/lib/lease-renewal/offer-snapshot";
 import {
   WorkflowCommunicationSequenceService,
   assertCommunicationStaff,
@@ -163,6 +164,15 @@ async function renewalTarget(actor: AuthenticatedUser, c: WorkflowCommunicationC
         reply: true,
       })
     : current.outgoingReasons;
+  // S264 (R-S264-4/6, ARCH-S264-4): a tenant offer whose charges are material binds its exact
+  // offer snapshot, including the mapping and source versions, so a charge, mapping or source
+  // revision changes the send basis even when every amount matches. An offer with no charge rows,
+  // transitions or RentVine charge lines contributes nothing, so its earlier basis is unchanged.
+  const offerSnapshot = channel === "tenant" ? current.basis.offerSnapshot : null;
+  const offerBasis =
+    offerSnapshot && offerSnapshotIsMaterial(offerSnapshot.snapshot)
+      ? { offer: offerSnapshot.snapshotHash }
+      : {};
   const contentBasis = c.replyTo
     ? null
     : {
@@ -180,6 +190,7 @@ async function renewalTarget(actor: AuthenticatedUser, c: WorkflowCommunicationC
               informationForm: null,
               insuranceFlyer: null,
               rbpFlyer: null,
+              ...offerBasis,
             }
           : f.ownerIntent === "renew_or_not"
             ? { ownerIntent: f.ownerIntent }
@@ -222,6 +233,8 @@ async function renewalTarget(actor: AuthenticatedUser, c: WorkflowCommunicationC
           tenantResourceRequired: c.replyTo ? [] : [...current.tenantResourceRequired],
         }
       : {}),
+    // S264 R-S264-6: the exact offer snapshot an authorization of this message freezes.
+    ...(offerSnapshot && !c.replyTo ? { offerSnapshot } : {}),
   };
   const initial = communicationMessageFromRenewalContent(current.content);
   const signatureParagraph =

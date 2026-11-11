@@ -97,4 +97,15 @@ export interface RenewalMessageClaimBasis {
    * stored content then decides whether they include a resource.
    */
   includedResources?: import("./tenant-resource-evidence").FrozenTenantResource[];
+  /**
+   * S264 (R-S264-4/6): the exact tenant offer snapshot the reviewed content states, with the
+   * mapping version its rows were resolved from. The claim rereads that version in its
+   * transaction. Absent on owner messages and on snapshots prepared before S264.
+   */
+  offerCharges?: {
+    snapshotId: string;
+    snapshotHash: string;
+    mappingVersion: number | null;
+    snapshot: import("./offer-snapshot").OfferSnapshot;
+  };
 }

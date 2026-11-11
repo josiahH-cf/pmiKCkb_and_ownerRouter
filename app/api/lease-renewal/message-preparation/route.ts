@@ -86,6 +86,18 @@ function publicPreparation(current: Current) {
     signatureOrigin: current.signatureOrigin,
     retainedSignature: current.retainedSignature,
     chargeInventory: current.chargeInventory,
+    // S264: what the tenant offer's charge review is resolved from, its saved review and the
+    // exact offer snapshot's identity. The editor projects its unsaved review from the same inputs.
+    offerCharges: current.offerCharges
+      ? {
+          source: current.offerCharges.source,
+          mappings: current.offerCharges.mappings,
+          saved: current.offerCharges.saved,
+          review: current.offerCharges.review,
+          snapshotId: current.offerCharges.snapshot.snapshotId,
+          snapshotHash: current.offerCharges.snapshot.snapshotHash,
+        }
+      : null,
     recipients: current.recipients,
     destinations: current.destinations,
     cycleId: current.workspace?.cycleId ?? null,
@@ -132,6 +144,19 @@ function claimBasisOf(current: Current) {
     // S261 ARCH-S261-2: an owner preview is bound to the base correction it was calculated from.
     ...(current.facts.channel === "owner"
       ? { workingBaseFingerprint: current.basis.workingBaseFingerprint }
+      : {}),
+    // S264 R-S264-4/6: a tenant preview is bound to its exact offer snapshot, including the
+    // mapping and source versions its charge rows were resolved from. The claim rereads the
+    // mapping version in its transaction; the snapshot is retained with the draft attempt.
+    ...(current.basis.offerSnapshot
+      ? {
+          offerCharges: {
+            snapshotId: current.basis.offerSnapshot.snapshotId,
+            snapshotHash: current.basis.offerSnapshot.snapshotHash,
+            mappingVersion: current.basis.offerSnapshot.snapshot.mappingVersion,
+            snapshot: current.basis.offerSnapshot.snapshot,
+          },
+        }
       : {}),
   };
 }

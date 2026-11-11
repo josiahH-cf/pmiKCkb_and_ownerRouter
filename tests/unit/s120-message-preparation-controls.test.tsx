@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 import {
-  act,
   cleanup,
   fireEvent,
   render,
@@ -19,6 +18,11 @@ import {
   type MessageCharge,
   type RenewalMessageFacts,
 } from "@/lib/lease-renewal/renewal-message-content";
+import { projectOfferCharges } from "@/lib/lease-renewal/offer-charges";
+import {
+  OFFER_CHARGE_MAPPINGS_SCHEMA_VERSION,
+  type OfferChargeMappingsRead,
+} from "@/lib/lease-renewal/offer-charge-mapping";
 
 // S120 (R120.2, R120.4, R120.5, R120.6) as revised by S161/S162/S163: the mounted preparation
 // routes each marked value to its own control, copies exactly the displayed body with its markers,
@@ -442,59 +446,123 @@ describe("S120 mounted message preparation", () => {
     ).toBeNull();
   });
 
-  it("AC-S120-2: a current RentVine recurring charge fills a charge deliberately with its source, saves by itself and leaves the comparison to a person", async () => {
-    const withInventory = {
-      ...unfinishedTenant(),
-      chargeInventory: [
-        {
-          id: "rc-77",
-          label: "Pet Rent",
-          amount: 25,
-          frequency: 1,
-          startDate: "2026-01-01",
-          current: true,
-          sourceRef: "rentvine:lease:701:recurring-charge:rc-77",
-        },
-      ],
+  it("AC-S120-2 (as revised by S264): a current RentVine recurring charge is proposed in Review offer charges with its source; leaving it out needs its evidence and saves by itself", async () => {
+    // S264 replaced the per-family charge picker with the one charge review: the verified line is
+    // proposed with its source and nothing about it is typed again.
+    const line = {
+      chargeId: "77",
+      accountId: "9001",
+      accountName: "Synthetic Pet Rent",
+      description: "Pet Rent",
+      classification: "non_rent" as const,
+      amount: "25.00",
+      frequency: "1",
+      startDate: "2026-01-01",
+      endDate: null,
+      endDateRaw: null,
+      statusId: 1,
+      version: "v-77",
     };
-    const api = server(() => withInventory);
+    const source = {
+      state: "read" as const,
+      asOf: "2026-11-10",
+      lines: [line],
+      version: "src-77",
+    };
+    const mappings: OfferChargeMappingsRead = {
+      readable: true,
+      record: {
+        schemaVersion: OFFER_CHARGE_MAPPINGS_SCHEMA_VERSION,
+        version: 1,
+        entries: [
+          {
+            entryId: "00000000-0000-4000-8000-000000009001",
+            accountId: "9001",
+            accountName: "Synthetic Pet Rent",
+            displayLabel: "Pet rent",
+            family: "pet" as const,
+            frequencyMonths: 1,
+            applicability: "active_on_renewal_date" as const,
+            requirement: null,
+            approval: { reference: "Synthetic approval note", approvedOn: "2026-11-01" },
+          },
+        ],
+        updatedAt: "2026-11-02T15:00:00.000Z",
+        updatedByUid: "synthetic-admin",
+      },
+    };
+    const base = unfinishedTenant();
+    const review = projectOfferCharges({
+      leaseId: "701",
+      source,
+      mappings,
+      selection: null,
+      terms: { rent: 1100, effectiveDate: "2027-01-01" },
+    });
+    const withCharges = {
+      ...base,
+      offerCharges: {
+        source,
+        mappings,
+        saved: null,
+        review,
+        snapshotId: "offer:701:synthetic",
+        snapshotHash: "c".repeat(64),
+      },
+    };
+    const api = server(() => withCharges);
     render(<RenewalMessagePreparation channel="tenant" canEdit />);
     await screen.findByRole("button", { name: "Copy formatted body" });
-    const petSummary = screen.getByText(/^Pet rent ·/);
-    const pet = petSummary.closest("details")!;
-    act(() => {
-      pet.open = true;
-    });
-    const fill = within(pet).getByLabelText("Fill from a current RentVine charge");
-    fireEvent.change(fill, { target: { value: "rc-77" } });
-    expect(within(pet).getByLabelText("Does this charge apply?")).toHaveValue("true");
-    expect(within(pet).getByLabelText("Charge amount ($)")).toHaveValue(25);
-    expect(within(pet).getByLabelText("How often is it charged?")).toHaveValue("monthly");
-    expect(within(pet).getByLabelText("Charge start date")).toHaveValue("2026-01-01");
-    expect(
-      (within(pet).getByLabelText("Charge source (optional)") as HTMLInputElement).value,
-    ).toEqual(expect.stringContaining("rc-77"));
-    expect(within(pet).getByLabelText("Compared with current charges")).toHaveValue(
-      "unverified",
-    );
-    expect(
-      within(pet).getByTestId("renewal-message-charge-origin-pet"),
-    ).toHaveTextContent(/RentVine recurring charge/i);
-    // A choice saves when it is made: the filled charge is posted as entered, comparison still open.
-    await waitFor(() => expect(api.posts()).toHaveLength(1));
-    const save = api.posts()[0]!.body!;
-    expect(save.kind).toBe("save");
-    const saved = (save.inputs as { charges: MessageCharge[] }).charges.find(
-      (charge) => charge.id === "pet",
+    const charges = screen.getByRole("region", { name: "Review offer charges" });
+    const pet = charges.querySelector<HTMLElement>(
+      '[data-offer-charge-row="rentvine:77"]',
     )!;
-    expect(saved).toMatchObject({
-      applicable: true,
-      amount: 25,
-      cadence: "monthly",
-      effectiveDate: "2026-01-01",
-      comparison: "unverified",
+    expect(pet).toHaveAttribute("data-offer-charge-status", "selected");
+    expect(
+      within(pet).getByText(/Proposed: included, stays the same/),
+    ).toBeInTheDocument();
+    expect(
+      within(pet).getByText(
+        /^Source: RentVine recurring charge 77, account Synthetic Pet Rent/,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText("Fill from a current RentVine charge")).toBeNull();
+    expect(screen.queryByLabelText("Does this charge apply?")).toBeNull();
+    // Leaving the line out saves the choice, and its evidence saves when the field is left.
+    fireEvent.change(within(pet).getByLabelText("Does Pet rent apply to this offer?"), {
+      target: { value: "exclude" },
     });
-    expect(saved.source).toEqual(expect.stringContaining("rc-77"));
+    const reason = within(pet).getByLabelText("Why it does not apply (its evidence)");
+    fireEvent.change(reason, { target: { value: "Synthetic: the pet moved out" } });
+    fireEvent.blur(reason);
+    await waitFor(() =>
+      expect(
+        (api.posts().at(-1)?.body?.offerCharges as { decisions?: unknown[] } | undefined)
+          ?.decisions,
+      ).toEqual([
+        {
+          rowKey: "rentvine:77",
+          choice: "exclude",
+          reason: "Synthetic: the pet moved out",
+          renewalAmountCents: null,
+          effectiveDate: null,
+          correctionSource: null,
+          reviewed: {
+            sourceVersion: "v-77",
+            renewalDate: "2027-01-01",
+            mappingVersion: 1,
+          },
+        },
+      ]),
+    );
+    const save = api.posts().at(-1)!.body!;
+    expect(save.kind).toBe("save");
+    // The earlier family-only entry is not touched by the charge review.
+    expect(
+      (save.inputs as { charges: MessageCharge[] }).charges.find(
+        (charge) => charge.id === "pet",
+      ),
+    ).toMatchObject({ applicable: null, amount: null });
   });
 
   it("AC-S120-4 adversarial (S161): refused prose in the wording field never reaches the body or the clipboard and is named as not saved yet; valid wording saves by itself", async () => {
