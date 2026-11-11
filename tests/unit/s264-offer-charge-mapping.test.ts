@@ -16,6 +16,7 @@ import {
   offerMappingVersion,
   SaveOfferChargeMappingsSchema,
   type OfferChargeMappingEntry,
+  type OfferChargeMappingRecord,
 } from "@/lib/lease-renewal/offer-charge-mapping";
 
 // S264 AC-S264-1 (mapping owner): the approved offer charge mapping model and its Admin route.
@@ -104,7 +105,7 @@ describe("S264 AC-S264-1 the mapping supplies meaning only", () => {
     expect(twice.error?.issues[0]?.message).toBe(
       "RentVine account 9001 is mapped twice. Keep one mapping per account.",
     );
-    const record = {
+    const record: OfferChargeMappingRecord = {
       schemaVersion: OFFER_CHARGE_MAPPINGS_SCHEMA_VERSION,
       version: 4,
       entries: [PET],
@@ -170,7 +171,7 @@ describe("S264 AC-S264-1 the Admin route", () => {
     expect(read.status).toBe(200);
     expect(read.headers.get("cache-control")).toContain("no-store");
     expect(await read.json()).toEqual({ mappings: { readable: true, record: null } });
-    const record = {
+    const record: OfferChargeMappingRecord = {
       schemaVersion: OFFER_CHARGE_MAPPINGS_SCHEMA_VERSION,
       version: 1,
       entries: [PET],

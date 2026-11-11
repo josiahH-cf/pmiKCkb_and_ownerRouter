@@ -6,7 +6,10 @@ import {
   type OfferChargeSelection,
   type OfferSourceLine,
 } from "@/lib/lease-renewal/offer-charges";
-import { OFFER_CHARGE_MAPPINGS_SCHEMA_VERSION } from "@/lib/lease-renewal/offer-charge-mapping";
+import {
+  OFFER_CHARGE_MAPPINGS_SCHEMA_VERSION,
+  type OfferChargeMappingsRead,
+} from "@/lib/lease-renewal/offer-charge-mapping";
 import {
   buildOfferSnapshot,
   describeOfferSnapshotChanges,
@@ -55,7 +58,7 @@ const pet: OfferSourceLine = {
   statusId: 1,
   version: "v-301",
 };
-const mappings = (version: number) => ({
+const mappings = (version: number): OfferChargeMappingsRead => ({
   readable: true,
   record: {
     schemaVersion: OFFER_CHARGE_MAPPINGS_SCHEMA_VERSION,
@@ -162,6 +165,7 @@ describe("S264 AC-S264-6 the offer snapshot", () => {
         endDate: "2028-01-31",
         fieldRevisions: { rent: 2, effectiveDate: 1, endDate: 1 },
         economicsHash: "e".repeat(64),
+        chargePolicyVersion: null,
       },
       offer: { snapshotId: answered.snapshotId, snapshotHash: answered.snapshotHash },
     };

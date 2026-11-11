@@ -19,7 +19,10 @@ import {
   type RenewalMessageFacts,
 } from "@/lib/lease-renewal/renewal-message-content";
 import { projectOfferCharges } from "@/lib/lease-renewal/offer-charges";
-import { OFFER_CHARGE_MAPPINGS_SCHEMA_VERSION } from "@/lib/lease-renewal/offer-charge-mapping";
+import {
+  OFFER_CHARGE_MAPPINGS_SCHEMA_VERSION,
+  type OfferChargeMappingsRead,
+} from "@/lib/lease-renewal/offer-charge-mapping";
 
 // S120 (R120.2, R120.4, R120.5, R120.6) as revised by S161/S162/S163: the mounted preparation
 // routes each marked value to its own control, copies exactly the displayed body with its markers,
@@ -466,7 +469,7 @@ describe("S120 mounted message preparation", () => {
       lines: [line],
       version: "src-77",
     };
-    const mappings = {
+    const mappings: OfferChargeMappingsRead = {
       readable: true,
       record: {
         schemaVersion: OFFER_CHARGE_MAPPINGS_SCHEMA_VERSION,

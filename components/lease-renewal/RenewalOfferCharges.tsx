@@ -93,7 +93,6 @@ export function RenewalOfferCharges({
   unfinished,
 }: RenewalOfferChargesProps) {
   const base = useId();
-  const [newFamily, setNewFamily] = useState<OfferCaseFamily | "">("");
   // An amount that is not dollars and cents is named at its field and never saved.
   const [amountErrors, setAmountErrors] = useState<Record<string, string>>({});
   const amountTyped = (
@@ -167,25 +166,6 @@ export function RenewalOfferCharges({
       ...selection,
       caseEntries: selection.caseEntries.filter((entry) => entry.id !== id),
     });
-    onCommit();
-  };
-  const addCase = () => {
-    if (!newFamily) return;
-    onChange({
-      ...selection,
-      caseEntries: [
-        ...selection.caseEntries,
-        {
-          id: crypto.randomUUID(),
-          family: newFamily,
-          amountCents: null,
-          effectiveDate: null,
-          trigger: null,
-          source: null,
-        },
-      ],
-    });
-    setNewFamily("");
     onCommit();
   };
   const setInsurance = (patch: { choice?: string; source?: string | null }) => {
@@ -481,95 +461,10 @@ export function RenewalOfferCharges({
   const savedInsurance = selection.transitions.insurance;
   const savedRbp = selection.transitions.rbp;
 
-  return (
-    <section
-      aria-label="Review offer charges"
-      className="ui-stack-tight renewal-offer-charges"
-      data-renewal-offer-charges
-      data-offer-charges-source={review.source}
-      id={MESSAGE_CONTROL_IDS.offerCharges}
-      tabIndex={-1}
-    >
-      <h3>Review offer charges</h3>
-      {review.lead ? (
-        <p data-offer-charges-lead role="note">
-          First: {review.lead.text}
-        </p>
-      ) : (
-        <p className="muted" data-offer-charges-lead="resolved">
-          Every charge line for this offer is decided.
-        </p>
-      )}
-      {review.source === "unavailable" ? (
-        <p role="alert">
-          The current RentVine charges could not be read. Refresh this lease to review
-          them.
-        </p>
-      ) : review.source === "not_read" ? (
-        <p className="muted">
-          RentVine charges are not read here; add charges for this lease below.
-        </p>
-      ) : null}
-      {unfinished ? (
-        <p role="status">
-          A charge entry is not finished, so the last saved review is kept until it is.
-        </p>
-      ) : null}
-      {working.length ? (
-        <ul
-          aria-label="Recurring charges"
-          className="ui-rows"
-          data-offer-charge-list="recurring"
-        >
-          {working.map(rowItem)}
-        </ul>
-      ) : (
-        <p className="muted">No recurring charge lines apply to this renewal.</p>
-      )}
-      <div className="ui-stack-tight" data-offer-charge-list="one_time">
-        <p>
-          <strong>One-time fees</strong>
-        </p>
-        {fees.length ? (
-          <ul aria-label="One-time fees" className="ui-rows">
-            {fees.map(rowItem)}
-          </ul>
-        ) : (
-          <p className="muted">
-            No one-time fee is selected. A fee applies only with its approved policy or an
-            authorized case source.
-          </p>
-        )}
-      </div>
-      {canEdit ? (
-        <div className="ui-row">
-          <Field htmlFor={`${base}-add`} label="Add a charge for this lease only">
-            <select
-              id={`${base}-add`}
-              value={newFamily}
-              onChange={(event) =>
-                setNewFamily(event.target.value as OfferCaseFamily | "")
-              }
-            >
-              <option value="">Choose a charge</option>
-              {OFFER_CASE_FAMILIES.map((family) => (
-                <option key={family} value={family}>
-                  {MESSAGE_CHARGES[family]}
-                  {isOneTimeFamily(family) ? " (one time)" : " (monthly)"}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Button
-            disabled={!newFamily}
-            onClick={addCase}
-            size="compact"
-            variant="secondary"
-          >
-            Add this charge
-          </Button>
-        </div>
-      ) : null}
+  // S269: an open transition choice that leads the review sits before the line lists.
+  const transitionLeads = review.lead !== null && review.lead.rowKey === null;
+  const transitionsBlock = (
+    <>
       {insurance.relevant ? (
         <div className="ui-stack-tight" data-offer-charge-transition="insurance">
           <Field
@@ -648,6 +543,72 @@ export function RenewalOfferCharges({
           ) : null}
         </div>
       ) : null}
+    </>
+  );
+
+  return (
+    <section
+      aria-label="Review offer charges"
+      className="ui-stack-tight renewal-offer-charges"
+      data-renewal-offer-charges
+      data-offer-charges-source={review.source}
+      id={MESSAGE_CONTROL_IDS.offerCharges}
+      tabIndex={-1}
+    >
+      <h3>Review offer charges</h3>
+      {review.lead ? (
+        <p data-offer-charges-lead role="note">
+          First: {review.lead.text}
+        </p>
+      ) : (
+        <p className="muted" data-offer-charges-lead="resolved">
+          Every charge line for this offer is decided.
+        </p>
+      )}
+      {review.source === "unavailable" ? (
+        <p role="alert">
+          The current RentVine charges could not be read. Refresh this lease to review
+          them.
+        </p>
+      ) : review.source === "not_read" ? (
+        <p className="muted">
+          RentVine charges are not read here. A charge for this lease only is added with
+          its case source.
+        </p>
+      ) : null}
+      {unfinished ? (
+        <p role="status">
+          A charge entry is not finished, so the last saved review is kept until it is.
+        </p>
+      ) : null}
+      {transitionLeads ? transitionsBlock : null}
+      {working.length ? (
+        <ul
+          aria-label="Recurring charges"
+          className="ui-rows"
+          data-offer-charge-list="recurring"
+        >
+          {working.map(rowItem)}
+        </ul>
+      ) : (
+        <p className="muted">No recurring charge lines apply to this renewal.</p>
+      )}
+      <div className="ui-stack-tight" data-offer-charge-list="one_time">
+        <p>
+          <strong>One-time fees</strong>
+        </p>
+        {fees.length ? (
+          <ul aria-label="One-time fees" className="ui-rows">
+            {fees.map(rowItem)}
+          </ul>
+        ) : (
+          <p className="muted">
+            No one-time fee is selected. A fee applies only with its approved policy or an
+            authorized case source.
+          </p>
+        )}
+      </div>
+      {transitionLeads ? null : transitionsBlock}
       <dl className="renewal-offer-totals" data-offer-charge-totals>
         <dt>Renewal base rent</dt>
         <dd data-offer-charge-total="base">
@@ -724,12 +685,78 @@ export function RenewalOfferCharges({
   );
 }
 
-/** The host element the tenant offer's evidence area renders, found after it mounts. */
+/**
+ * S264 with S270: "Add a charge for this lease only" is an optional choice, so it sits in the
+ * outcome's options group (Tenant offer options and record of contact). It edits the same
+ * selection the review owns and saves through the same message save; the new row then appears in
+ * Review offer charges until its amount, date, trigger and source are entered.
+ */
+export function RenewalOfferChargeAdd({
+  selection,
+  canEdit,
+  onChange,
+  onCommit,
+}: Pick<RenewalOfferChargesProps, "selection" | "canEdit" | "onChange" | "onCommit">) {
+  const base = useId();
+  const [newFamily, setNewFamily] = useState<OfferCaseFamily | "">("");
+  const addCase = () => {
+    if (!newFamily) return;
+    onChange({
+      ...selection,
+      caseEntries: [
+        ...selection.caseEntries,
+        {
+          id: crypto.randomUUID(),
+          family: newFamily,
+          amountCents: null,
+          effectiveDate: null,
+          trigger: null,
+          source: null,
+        },
+      ],
+    });
+    setNewFamily("");
+    onCommit();
+  };
+  if (!canEdit) return null;
+  return (
+    <div className="ui-row">
+      <Field htmlFor={`${base}-add`} label="Add a charge for this lease only">
+        <select
+          id={`${base}-add`}
+          value={newFamily}
+          onChange={(event) => setNewFamily(event.target.value as OfferCaseFamily | "")}
+        >
+          <option value="">Choose a charge</option>
+          {OFFER_CASE_FAMILIES.map((family) => (
+            <option key={family} value={family}>
+              {MESSAGE_CHARGES[family]}
+              {isOneTimeFamily(family) ? " (one time)" : " (monthly)"}
+            </option>
+          ))}
+        </select>
+      </Field>
+      <Button disabled={!newFamily} onClick={addCase} size="compact" variant="secondary">
+        Add this charge
+      </Button>
+    </div>
+  );
+}
+
+/**
+ * The host element the tenant offer's read-only Verification renders (Guided or Full), followed as
+ * the view mounts and replaces it. The page owns that element; this only finds it.
+ */
 export function useOfferChargeEvidenceHost(active: boolean): HTMLElement | null {
   const [host, setHost] = useState<HTMLElement | null>(null);
   useEffect(() => {
     if (!active) return;
-    setHost(document.getElementById(OFFER_CHARGE_EVIDENCE_HOST_ID));
+    const find = () => setHost(document.getElementById(OFFER_CHARGE_EVIDENCE_HOST_ID));
+    queueMicrotask(find);
+    if (typeof MutationObserver === "undefined") return;
+    const observer = new MutationObserver(find);
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
   }, [active]);
   return active ? host : null;
 }

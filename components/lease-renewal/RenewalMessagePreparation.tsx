@@ -72,7 +72,12 @@ import {
   type OfferChargeSource,
 } from "@/lib/lease-renewal/offer-charges";
 import type { OfferChargeMappingsRead } from "@/lib/lease-renewal/offer-charge-mapping";
-import { RenewalOfferCharges, useOfferChargeEvidenceHost } from "./RenewalOfferCharges";
+import {
+  RenewalOfferChargeAdd,
+  RenewalOfferCharges,
+  useOfferChargeEvidenceHost,
+} from "./RenewalOfferCharges";
+import { offerChargesPriority } from "@/lib/lease-renewal/offer-charges-priority";
 import { useRenewalFocusView } from "./RenewalFocusViewContext";
 import {
   emptyMessagePreparationInputs,
@@ -1688,6 +1693,23 @@ function MessagePreparationEditor({
   const evidenceHost = useOfferChargeEvidenceHost(
     channel === "tenant" && Boolean(offerReview),
   );
+  // S264 with S269: the first open charge row or transition choice leads Offer the tenant in
+  // Guided, after the working terms; this editor names its own control and keeps its one save.
+  const offerPriority = channel === "tenant" ? offerChargesPriority(offerReview) : null;
+  const offerPriorityTarget = offerPriority?.target ?? null;
+  const offerPriorityReady = offerPriority?.transitionsReady ?? true;
+  const setOfferChargesLead = nowCard?.setOfferCharges;
+  useEffect(() => {
+    if (channel !== "tenant" || !setOfferChargesLead) return;
+    setOfferChargesLead(
+      offerPriorityTarget
+        ? { target: offerPriorityTarget, transitionsReady: offerPriorityReady }
+        : null,
+    );
+    return () => setOfferChargesLead(null);
+  }, [channel, setOfferChargesLead, offerPriorityTarget, offerPriorityReady]);
+  const offerSelectionNow =
+    offerSelection ?? current?.offerCharges?.saved ?? emptyOfferChargeSelection();
   const chargeReview =
     channel === "tenant" && offerReview ? (
       <RenewalOfferCharges
@@ -1696,9 +1718,7 @@ function MessagePreparationEditor({
         onChange={offerChange}
         onCommit={commit}
         review={offerReview}
-        selection={
-          offerSelection ?? current?.offerCharges?.saved ?? emptyOfferChargeSelection()
-        }
+        selection={offerSelectionNow}
         unfinished={payload?.offerChargesUnfinished}
       />
     ) : null;
@@ -1788,6 +1808,16 @@ function MessagePreparationEditor({
         >
           Compose {channel} message in Communications
         </a>
+        {channel === "tenant" && offerReview ? (
+          // S270: an authorized case charge is an optional choice of this offer; it joins the
+          // same charge review and saves with the message.
+          <RenewalOfferChargeAdd
+            canEdit={canEdit}
+            onChange={offerChange}
+            onCommit={commit}
+            selection={offerSelectionNow}
+          />
+        ) : null}
         <p className="muted">
           Edits save in the app. In Communications, review the exact message and use Send
           or Schedule when its current checks pass. Resume requires a fresh review. You

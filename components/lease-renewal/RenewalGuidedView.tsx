@@ -1399,7 +1399,13 @@ function NowCard({
     standingCovered: stage.steps.some(
       (step) => step.id === "ask-owner" && step.state === "covered",
     ),
-    extensions,
+    extensions: {
+      ...extensions,
+      // S264: the one Review offer charges editor names its first open row or choice.
+      ...(extensions?.offerCharges === undefined && nowCard?.offerCharges
+        ? { offerCharges: nowCard.offerCharges }
+        : {}),
+    },
   });
   const lead = priority.lead;
   // S270 R-S270-2: a current required field or a save to recover opens the named group holding it.

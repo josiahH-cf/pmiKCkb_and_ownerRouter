@@ -18,6 +18,7 @@ import {
 import {
   OFFER_CHARGE_MAPPINGS_SCHEMA_VERSION,
   type OfferChargeMappingEntry,
+  type OfferChargeMappingsRead,
 } from "@/lib/lease-renewal/offer-charge-mapping";
 
 // S264 R-S264-4 / R-S264-7 (AC-S264-4, AC-S264-7): the exact tenant text composes from the one
@@ -65,7 +66,7 @@ const entry = (
   requirement: null,
   approval: { reference: "Synthetic approval note", approvedOn: "2026-11-01" },
 });
-const MAPPINGS = {
+const MAPPINGS: OfferChargeMappingsRead = {
   readable: true,
   record: {
     schemaVersion: OFFER_CHARGE_MAPPINGS_SCHEMA_VERSION,
@@ -79,7 +80,7 @@ const MAPPINGS = {
     updatedAt: "2026-11-02T15:00:00.000Z",
     updatedByUid: "synthetic-admin",
   },
-} as const;
+};
 
 function review(lines: OfferSourceLine[], selection: OfferChargeSelection | null = null) {
   return projectOfferCharges({

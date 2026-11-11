@@ -3,7 +3,10 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import { useState } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { RenewalOfferCharges } from "@/components/lease-renewal/RenewalOfferCharges";
+import {
+  RenewalOfferChargeAdd,
+  RenewalOfferCharges,
+} from "@/components/lease-renewal/RenewalOfferCharges";
 import {
   emptyOfferChargeSelection,
   OfferChargeSelectionSchema,
@@ -14,6 +17,7 @@ import {
 import {
   OFFER_CHARGE_MAPPINGS_SCHEMA_VERSION,
   type OfferChargeMappingEntry,
+  type OfferChargeMappingsRead,
 } from "@/lib/lease-renewal/offer-charge-mapping";
 import type { MessageCharge } from "@/lib/lease-renewal/renewal-message-content";
 
@@ -56,7 +60,7 @@ const entry = (
   requirement: null,
   approval: { reference: "Synthetic approval note", approvedOn: "2026-11-01" },
 });
-const MAPPINGS = {
+const MAPPINGS: OfferChargeMappingsRead = {
   readable: true,
   record: {
     schemaVersion: OFFER_CHARGE_MAPPINGS_SCHEMA_VERSION,
@@ -69,7 +73,7 @@ const MAPPINGS = {
     updatedAt: "2026-11-02T15:00:00.000Z",
     updatedByUid: "synthetic-admin",
   },
-} as const;
+};
 
 function Harness(props: {
   lines: OfferSourceLine[];
@@ -89,13 +93,22 @@ function Harness(props: {
     legacyCharges: props.legacy ?? [],
   });
   return (
-    <RenewalOfferCharges
-      canEdit={props.canEdit ?? true}
-      review={review}
-      selection={selection}
-      onChange={setSelection}
-      onCommit={() => props.onCommit(selection)}
-    />
+    <>
+      <RenewalOfferCharges
+        canEdit={props.canEdit ?? true}
+        review={review}
+        selection={selection}
+        onChange={setSelection}
+        onCommit={() => props.onCommit(selection)}
+      />
+      {/* S270: the optional case charge lives in the offer's options group. */}
+      <RenewalOfferChargeAdd
+        canEdit={props.canEdit ?? true}
+        selection={selection}
+        onChange={setSelection}
+        onCommit={() => props.onCommit(selection)}
+      />
+    </>
   );
 }
 

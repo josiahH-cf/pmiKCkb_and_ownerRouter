@@ -17,6 +17,7 @@ import {
 } from "react";
 
 import type { FinishUpPreparation } from "@/lib/lease-renewal/finish-up-preparation";
+import type { OfferChargesPriority } from "@/lib/lease-renewal/offer-charges-priority";
 import type { NowCardSlot, RenewalPathStepId } from "@/lib/lease-renewal/renewal-path";
 import type { RenewalPreparation } from "@/lib/lease-renewal/renewal-preparation";
 
@@ -40,6 +41,12 @@ interface NowCardContextValue {
   readonly preparation: RenewalPreparation | null;
   /** R-S249-14: Finish up's assembled source update previews; null where not assembled. */
   readonly finishUp: FinishUpPreparation | null;
+  /**
+   * S264 with S269: the tenant offer's first unresolved charge row or transition choice, given by
+   * the one Review offer charges editor for the Guided priority; null when nothing is open.
+   */
+  readonly offerCharges: OfferChargesPriority | null;
+  readonly setOfferCharges: (value: OfferChargesPriority | null) => void;
 }
 
 const Context = createContext<NowCardContextValue | null>(null);
@@ -64,6 +71,19 @@ export function RenewalNowCardProvider({
   const [primaries, setPrimaries] = useState<
     Partial<Record<RenewalPathStepId, NowCardPrimary>>
   >({});
+  const [offerCharges, setOfferChargesState] = useState<OfferChargesPriority | null>(
+    null,
+  );
+  const setOfferCharges = useCallback(
+    (value: OfferChargesPriority | null) =>
+      setOfferChargesState((previous) =>
+        previous?.target === value?.target &&
+        previous?.transitionsReady === value?.transitionsReady
+          ? previous
+          : value,
+      ),
+    [],
+  );
   // One stable ref callback for every slot element; the element names its own key, and the
   // cleanup React 19 runs on unmount clears it.
   const slotRef = useCallback((element: HTMLElement | null) => {
@@ -104,8 +124,26 @@ export function RenewalNowCardProvider({
     [],
   );
   const value = useMemo(
-    () => ({ slots, slotRef, primaries, setPrimary, preparation, finishUp }),
-    [slots, slotRef, primaries, setPrimary, preparation, finishUp],
+    () => ({
+      slots,
+      slotRef,
+      primaries,
+      setPrimary,
+      preparation,
+      finishUp,
+      offerCharges,
+      setOfferCharges,
+    }),
+    [
+      slots,
+      slotRef,
+      primaries,
+      setPrimary,
+      preparation,
+      finishUp,
+      offerCharges,
+      setOfferCharges,
+    ],
   );
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
