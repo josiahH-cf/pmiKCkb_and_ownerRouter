@@ -9,6 +9,7 @@ import { SHEET_FIELD_LABELS } from "@/lib/lease-renewal/sheet-writeback/field-in
 import { listMarketObservations } from "@/lib/firestore/renewal-market-observations";
 import { assertSignaturesCompletable } from "@/lib/lease-documents/returned-state-service";
 import { NextResponse } from "next/server";
+import { currentRenewalMessage } from "@/lib/lease-renewal/current-renewal-message";
 import { z } from "zod";
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
@@ -186,6 +187,12 @@ export async function POST(request: Request) {
       () => resolveRenewalWorkBasis(actor, value.leaseId),
       // S234 R-S234-1: an approval's party is checked against a fresh owner roster.
       { ownerRoster: () => resolveLeaseOwnerRoster(actor, value.leaseId) },
+      // S264 R-S264-6: an owner approval of the offer's charges binds the offer current now.
+      {
+        currentOfferSnapshot: async () =>
+          (await currentRenewalMessage(actor, value.leaseId, "tenant")).offerCharges
+            ?.snapshot ?? null,
+      },
     );
     // S262 R-S262-2: an answer with an Amount approved changed the working terms in the same
     // transaction; the response reads them back for the lease's current cycle.
