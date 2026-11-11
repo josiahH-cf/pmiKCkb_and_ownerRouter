@@ -48,6 +48,15 @@
 // at 390 (L14). No budget is met by removing a review or a confirmation (AC-S252-1): each send is
 // counted with its exact review and its own confirmation.
 //
+// NOVEMBER 10 (S271 R-S271-6, scoped S252 budgets on the cumulative candidate). The journey reads
+// the current screens: the desk's one "Working batch" table (S246), the guide's three-action
+// kickoff without its optional Verification inspection (help V4.0), Rent to recommend's value on
+// Ask the owner and its one editor, basis and stored comparison on Compare market rent (S261,
+// S269), the closed Verify market comparison group (S270), S262's owner answer (Amount approved,
+// who approved, Review the owner's answer, Save the owner's answer, every one counted), S269's
+// "Review tenant offer", and each outcome's named group, closed on arrival, opened by its summary
+// where the hand records sit (S270). Every bound is unchanged.
+//
 // Every check is named and decides itself; the result goes to journey.json in the run directory.
 // Synthetic data only; the page reaches nothing but the rehearsal.
 import assert from "node:assert/strict";
@@ -202,11 +211,30 @@ const lease = (page) => {
     page
       .getByRole("group", { name: "Lease view", exact: true })
       .getByRole("button", { name, exact: true });
+  /**
+   * "true" when Guided view is the lease's active view. November 9 (S258) and later the switch is
+   * one "Full view" toggle (`data-renewal-full-toggle`): Guided is active while it is not pressed
+   * and the Guided view region shows. The earlier switch pressed a "Guided view" button.
+   */
+  const guidedPressed = async () => {
+    const guidedButton = viewButton("Guided view");
+    if (await guidedButton.count())
+      return guidedButton.getAttribute("aria-pressed").catch(() => null);
+    const toggle = page
+      .getByRole("group", { name: "Lease view", exact: true })
+      .locator("[data-renewal-full-toggle]");
+    if ((await toggle.count()) !== 1) return null;
+    return (await toggle.getAttribute("aria-pressed")) === "false" &&
+      (await guided().isVisible())
+      ? "true"
+      : "false";
+  };
   return {
     guided,
     now,
     strip,
     viewButton,
+    guidedPressed,
     async open(leaseId, query = "") {
       await page.goto(`${origin}${leasePath(leaseId, query)}`, {
         waitUntil: "domcontentloaded",
@@ -250,9 +278,7 @@ const lease = (page) => {
             .textContent()
             .catch(() => ""),
         ),
-        guidedPressed: await viewButton("Guided view")
-          .getAttribute("aria-pressed")
-          .catch(() => null),
+        guidedPressed: await guidedPressed().catch(() => null),
       };
     },
     async nowText() {
@@ -271,6 +297,46 @@ async function shownWithin(locator, timeout) {
     .then(() => true)
     .catch(() => false);
 }
+
+/**
+ * How many of a CSS locator's elements are shown. Guided view keeps every outcome's existing
+ * controls mounted and hidden inside the Now region (S247), so a mounted count is not a shown one.
+ * The content of a closed disclosure is not shown either: Chromium lays it out on request, so it
+ * still has boxes (the N09-10 inspector applies the same rule).
+ */
+const shownCount = (locator) =>
+  locator.evaluateAll(
+    (items) =>
+      items.filter(
+        (item) =>
+          item.getClientRects().length > 0 &&
+          !item.closest("[hidden], [inert], [data-renewal-focus-hidden]") &&
+          !item.parentElement?.closest("details:not([open])") &&
+          getComputedStyle(item).visibility !== "hidden",
+      ).length,
+  );
+
+/** Where each of a locator's elements sits and whether it is shown, for a check's evidence. */
+const placement = (locator) =>
+  locator.evaluateAll((items) =>
+    items.map((item) => ({
+      text: (item.textContent ?? "").replace(/\s+/g, " ").trim().slice(0, 80),
+      boxes: item.getClientRects().length,
+      hiddenAncestor: Boolean(
+        item.closest("[hidden], [inert], [data-renewal-focus-hidden]"),
+      ),
+      inClosedDisclosure: Boolean(item.parentElement?.closest("details:not([open])")),
+      disclosure:
+        item.closest("details")?.querySelector(":scope > summary")?.textContent?.trim() ??
+        null,
+      outcome:
+        item.closest("[data-renewal-outcome]")?.getAttribute("data-renewal-outcome") ??
+        null,
+      slot:
+        item.closest("[data-renewal-now-slot]")?.getAttribute("data-renewal-now-slot") ??
+        null,
+    })),
+  );
 
 async function waitForStep(page, leaseId, want, maxMs = 60_000) {
   const view = lease(page);
@@ -360,9 +426,11 @@ async function journey(browser) {
     (await standInState(rehearsal)).comparison.comparisonsByLease ?? {};
 
   // J01 desk batch (L01): Renewals with no action shows the working batch.
+  // November 9 (S246) and later: the desk opens on the one "Working batch" region, whose single
+  // table lists the selected month's targets (tbody this_batch) before the carried-over leases.
   let mark = log.mark();
   await page.goto(`${origin}/lease-renewal`, { waitUntil: "domcontentloaded" });
-  const batch = page.getByRole("region", { name: "This batch", exact: true });
+  const batch = page.getByRole("region", { name: "Working batch", exact: true });
   await batch.waitFor({ state: "visible" });
   await page.waitForTimeout(2000);
   const desk = {
@@ -370,7 +438,7 @@ async function journey(browser) {
     summary: squash(await page.locator(".renewal-batch-summary").first().textContent()),
     rows: (
       await batch
-        .locator("[data-batch-lease]")
+        .locator('tbody[data-batch-list="this_batch"] tr[data-batch-lease]')
         .evaluateAll((items) =>
           items.map((item) => item.getAttribute("data-batch-lease")),
         )
@@ -416,13 +484,31 @@ async function journey(browser) {
       ),
     },
   );
+  // November 10 (help V4.0, S270): the guide's kickoff also teaches one optional inspection,
+  // opening a step's closed Verification group to read where its numbers come from
+  // (open-verification: a summary, effect "reads"). The guide's own purpose keeps the prepared
+  // kickoff at three actions (open it, Review owner message, confirm), so staff starting the
+  // kickoff do not open it. Like an optional edit (the S252 assumption) it is logged as optional
+  // and not performed; every other kickoff step is followed with the control the guide names.
+  const optionalInspections = (kickoff ?? []).filter(
+    (step) => step.effect === "reads" && step.control.role === "summary",
+  );
+  const kickoffPath = (kickoff ?? []).filter(
+    (step) => !optionalInspections.includes(step),
+  );
   const state = { page, maxPages: 1 };
   const deskMark = log.mark();
   mark = log.mark();
-  const kickoffObserved = {};
+  for (const step of optionalInspections)
+    log.optional("kickoff", `${step.control.label} (optional inspection, not opened)`, {
+      ref: step.ref,
+    });
+  const kickoffObserved = {
+    optionalInspections: optionalInspections.map((step) => step.ref),
+  };
   const followed = await followGuide({
     state,
-    steps: kickoff ?? [],
+    steps: kickoffPath,
     log,
     phase: "kickoff",
     leaseId: prepared,
@@ -488,40 +574,43 @@ async function journey(browser) {
           );
       }
       if (step.id === "read-the-prepared-message") {
-        await shownWithin(
-          view.now().locator('[data-renewal-field="rent-basis"]'),
-          60_000,
-        );
+        // November 10 (S261): Ask the owner reads Rent to recommend, the amount the owner message
+        // proposes, beside Current base rent, with "Edit rent to recommend" linking to its one
+        // editor on Compare market rent. That editor shows the basis; it is read there after the
+        // kickoff count, with no action.
+        const recommended = view
+          .now()
+          .locator('[data-renewal-field="owner-recommended-rent"]');
+        await shownWithin(recommended, 60_000);
         await shownWithin(
           view.now().getByRole("document", { name: "Message preview" }),
           60_000,
         );
         kickoffObserved.prepared = {
-          comparison: await view
-            .now()
-            .locator('[data-renewal-comparison="stored"]')
-            .count(),
-          comparisonAge: await view
-            .now()
-            .locator('[data-renewal-field="comparison-age"]')
-            .count(),
-          comps: await view.now().locator('[aria-label="Comparables"] li').count(),
-          rent: await view
-            .now()
-            .getByLabel("Rent to recommend")
-            .inputValue()
-            .catch(() => null),
-          basis: squash(
-            await view
-              .now()
-              .locator('[data-renewal-field="rent-basis"]')
-              .textContent()
-              .catch(() => ""),
+          comparison: await shownCount(
+            view.now().locator('[data-renewal-comparison="stored"]'),
           ),
+          comparisonAge: await shownCount(
+            view.now().locator('[data-renewal-field="comparison-age"]'),
+          ),
+          comps: await shownCount(view.now().locator('[aria-label="Comparables"] li')),
+          rent:
+            Number(
+              squash(
+                await recommended
+                  .locator("strong")
+                  .textContent()
+                  .catch(() => ""),
+              ).replace(/[^0-9.]/g, ""),
+            ) || null,
+          editRent: await recommended
+            .getByRole("link", { name: "Edit rent to recommend", exact: true })
+            .count(),
           preview: await view
             .now()
             .getByRole("document", { name: "Message preview" })
             .count(),
+          now: (await view.nowText()).slice(0, 900),
         };
       }
       if (step.id === "review-and-send" && result.ok) {
@@ -569,8 +658,10 @@ async function journey(browser) {
   check(
     "journey.kickoff-from-guide",
     "the kickoff completes using only the controls the in-app guide names (L61)",
-    followed.length === (kickoff ?? []).length && followed.every((entry) => entry.ok),
-    followed,
+    kickoffPath.length > 0 &&
+      followed.length === kickoffPath.length &&
+      followed.every((entry) => entry.ok),
+    { followed, optionalInspections: kickoffObserved.optionalInspections },
   );
   const l14 = kickoffObserved.layout1280;
   check(
@@ -591,22 +682,71 @@ async function journey(browser) {
       kickoffObserved.opened?.currentStep === "ask-owner",
     { path: kickoffObserved.path, opened: kickoffObserved.opened },
   );
+  // November 10 (S261, S269, S270): the stored comparison is the decision fact of Compare market
+  // rent, whose Now card shows its estimate and age; its comparable rows are read in Verify market
+  // comparison, closed on arrival; and Rent to recommend's one editor there shows its basis. Read
+  // them there after the kickoff count: a page read and one optional read-only disclosure, outside
+  // every budget. Opening the page or the disclosure must request no comparison either.
+  await view.open(prepared, "?step=compare-market");
+  const marketNow = view.now();
+  await shownWithin(marketNow.locator('[data-renewal-comparison="stored"]'), 30_000);
+  const marketEvidence = marketNow.locator("details[data-renewal-verification]").first();
+  // On arrival, with no action: the one stored comparison summary with its age, and Rent to
+  // recommend's editor with its basis.
+  kickoffObserved.market = {
+    comparison: await shownCount(marketNow.locator('[data-renewal-comparison="stored"]')),
+    comparisonAge: await shownCount(
+      marketNow.locator('[data-renewal-field="comparison-age"]'),
+    ),
+    evidenceClosedOnArrival: (await marketEvidence.getAttribute("open")) === null,
+    editorRent:
+      Number(
+        await marketNow
+          .getByLabel("Rent to recommend", { exact: true })
+          .inputValue()
+          .catch(() => ""),
+      ) || null,
+    basis: squash(
+      await marketNow
+        .locator('[data-renewal-field="rent-basis"]')
+        .textContent()
+        .catch(() => ""),
+    ),
+    // Evidence only: where every mounted summary and age line sits.
+    summaries: await placement(marketNow.locator("[data-renewal-comparison]")),
+    ages: await placement(marketNow.locator('[data-renewal-field="comparison-age"]')),
+  };
+  // The comparable rows, read in the opened Verification group, which is then closed again.
+  await marketEvidence.locator(":scope > summary").click();
+  log.optional(
+    "kickoff-evidence",
+    "Verify market comparison (read only, outside budgets)",
+  );
+  await page.waitForTimeout(500);
+  kickoffObserved.market.comps = await shownCount(
+    marketEvidence.locator('[aria-label="Comparables"] li'),
+  );
+  await marketEvidence.locator(":scope > summary").click();
   const comparisonsAfter =
     (await standInState(rehearsal)).comparison.comparisonsByLease ?? {};
   check(
     "journey.comparison",
     "the stored comparison, Rent to recommend with its basis and the owner message preview show with no action, and no second comparison is requested (L22, L32)",
-    kickoffObserved.prepared?.comparison === 1 &&
-      kickoffObserved.prepared?.comparisonAge === 1 &&
-      kickoffObserved.prepared?.comps > 0 &&
+    kickoffObserved.market?.comparison === 1 &&
+      kickoffObserved.market?.comparisonAge === 1 &&
+      kickoffObserved.market?.evidenceClosedOnArrival === true &&
+      kickoffObserved.market?.comps > 0 &&
       Number(kickoffObserved.prepared?.rent) > 0 &&
-      /Suggested from the stored comparison/.test(
-        kickoffObserved.prepared?.basis ?? "",
+      kickoffObserved.prepared?.editRent === 1 &&
+      kickoffObserved.market?.editorRent === kickoffObserved.prepared?.rent &&
+      /^(Suggested from the stored comparison|Saved working rent from stored market comparison)\b/.test(
+        kickoffObserved.market?.basis ?? "",
       ) &&
       kickoffObserved.prepared?.preview === 1 &&
       (comparisonsAfter[prepared] ?? 0) === (comparisonsBefore[prepared] ?? 0),
     {
       prepared: kickoffObserved.prepared,
+      market: kickoffObserved.market,
       before: comparisonsBefore[prepared] ?? 0,
       after: comparisonsAfter[prepared] ?? 0,
     },
@@ -682,11 +822,16 @@ async function journey(browser) {
   await view.open(prepared);
   const replyNow = await view.nowText();
   const replyNext = await view.nextStep();
+  // November 10 (S262): the observed reply opens "Record the owner's answer" as the Now card's
+  // one primary action; the stage's next step line names the same recording.
   check(
     "journey.owner-reply",
-    'the observed reply reads "Owner replied" with "Record the owner\'s decision" as the next step (L36)',
+    'the observed reply reads "Owner replied" with "Record the owner\'s answer" as the one next action (L36, S262)',
     /Owner replied/.test(replyNow) &&
-      replyNext.text.includes("Record the owner's decision"),
+      replyNext.primaries === 1 &&
+      replyNext.primary === "Record the owner's answer" &&
+      replyNext.lines === 1 &&
+      /Record the owner's (answer|decision)/.test(replyNext.text),
     { reply, sendRecord, now: replyNow.slice(0, 400), next: replyNext },
   );
 
@@ -702,6 +847,17 @@ async function journey(browser) {
     const effective = day.toISOString().slice(0, 10);
     // A twelve-month term: it ends on the same day of the year as the current lease.
     const termEnd = `${Number(preparedEnd.slice(0, 4)) + 1}${preparedEnd.slice(4)}`;
+    // November 10 (S270): Ask the owner keeps the one Working renewal terms editor in its own
+    // named reveal, closed while the dates are not the active work; staff open it to enter them.
+    const reveal = page.locator("details[data-renewal-working-terms]:visible").first();
+    if (
+      (await shownWithin(reveal.locator(":scope > summary"), 15_000)) &&
+      (await reveal.getAttribute("open")) === null
+    ) {
+      await reveal.locator(":scope > summary").click();
+      log.act("terms", "choice", "Working renewal terms");
+      termsObserved.revealOpened = true;
+    }
     for (const [name, value] of [
       ["Working effective date", effective],
       ["Working term end date", termEnd],
@@ -718,7 +874,10 @@ async function journey(browser) {
   await view.open(prepared);
 
   // J08 the owner's decision from the observed reply (L36): at most three actions, nothing
-  // preselected.
+  // preselected. November 10 (S262 R-S262-1): the approving branch of "Record the owner's
+  // answer" asks Amount approved, typed exactly as the owner gave it and never prefilled, and who
+  // approved, then shows Review the owner's answer before Save the owner's answer. Each is
+  // counted: no budget is met by removing a review or a confirmation (AC-S252-1).
   mark = log.mark();
   const decisionObserved = {};
   const decision = view.now().locator('[data-renewal-field="owner-decision-from-reply"]');
@@ -732,11 +891,32 @@ async function journey(browser) {
       .first()
       .check();
     log.act("decision", "choice", "Approved in the reply received …");
+    // The reply approves the terms of the sent owner message: its Rent to recommend.
+    const amount = decision.getByLabel("Amount approved", { exact: true });
+    await amount.waitFor({ state: "visible" });
+    decisionObserved.amountPrefilled = await amount.inputValue();
+    decisionObserved.amountApproved = kickoffObserved.prepared?.rent ?? null;
+    await amount.fill(String(decisionObserved.amountApproved ?? ""));
+    log.act("decision", "entry", "Amount approved");
     const party = decision.getByLabel("Who approved in this reply");
     await party.waitFor({ state: "visible" });
     const partyPreselected = await party.inputValue();
     await party.selectOption({ index: 1 });
     log.act("decision", "choice", "Who approved in this reply");
+    await decision
+      .getByRole("button", { name: "Review the owner's answer", exact: true })
+      .click();
+    log.act("decision", "choice", "Review the owner's answer");
+    const answerReview = decision.locator('[data-renewal-field="owner-answer-review"]');
+    const answerReviewShown = await shownWithin(answerReview, 15_000);
+    decisionObserved.review = answerReviewShown
+      ? squash(await answerReview.textContent()).slice(0, 400)
+      : null;
+    const confirm = decision.getByRole("button", {
+      name: "Save the owner's answer",
+      exact: true,
+    });
+    const confirmShown = answerReviewShown && (await shownWithin(confirm, 15_000));
     const saved = page
       .waitForResponse(
         (response) =>
@@ -749,10 +929,10 @@ async function journey(browser) {
         body: await response.text().then((text) => text.slice(0, 400)),
       }))
       .catch(() => null);
-    await decision
-      .getByRole("button", { name: "Record this decision", exact: true })
-      .click();
-    log.act("decision", "confirmation", "Record this decision");
+    if (confirmShown) {
+      await confirm.click();
+      log.act("decision", "confirmation", "Save the owner's answer");
+    }
     decisionObserved.saved = await saved;
     decisionObserved.alert = squash(
       await decision
@@ -763,9 +943,9 @@ async function journey(browser) {
     decisionObserved.partyPreselected = partyPreselected;
     effects.push({
       phase: "decision",
-      kind: "staff record (owner decision)",
-      reviewShown: true,
-      confirmShown: true,
+      kind: "staff record (owner answer)",
+      reviewShown: answerReviewShown,
+      confirmShown,
       confirmed: decisionObserved.saved?.status === 200,
       partyPreselected,
     });
@@ -790,6 +970,8 @@ async function journey(browser) {
       extra: {
         "the decision control is on the Now card": decisionShown,
         "no outcome is preselected": preselected === 0,
+        // S262 R-S262-1: Amount approved is typed by staff, never filled from the recommendation.
+        "Amount approved starts empty": decisionObserved.amountPrefilled === "",
         "the lease moves on to Offer the tenant": afterDecision === "offer-tenant",
       },
     },
@@ -907,14 +1089,16 @@ async function journey(browser) {
           .catch(() => ""),
       );
       points.at(-1).sendNeeds = sendNeeds;
+      // November 10 (S269): Guided names the tenant offer's review "Review tenant offer"; the
+      // dialog it opens is still Review and send.
       if (
         !tenantOffer &&
-        label === "Review and send" &&
+        label === "Review tenant offer" &&
         !sendNeeds &&
         (await review.isEnabled())
       ) {
         await review.click();
-        log.act("path", "choice", "Review and send (tenant offer)");
+        log.act("path", "choice", "Review tenant offer");
         const sent = await reviewAndConfirm(
           page,
           "path",
@@ -926,6 +1110,14 @@ async function journey(browser) {
         await page.waitForTimeout(3000);
         continue;
       }
+      // November 10 (S270): the hand record sits in the outcome's named group, "Tenant offer
+      // options and record of contact", closed on arrival; staff open it to reach the record.
+      if (
+        !tenantOffer &&
+        !offerDone &&
+        !(await offerRecord.isVisible().catch(() => false))
+      )
+        await openNamedGroup(page, "Tenant offer options and record of contact", "path");
       if (
         !tenantOffer &&
         !offerDone &&
@@ -960,8 +1152,21 @@ async function journey(browser) {
           continue;
         }
       }
-      // The offer is out: record the tenant's answer.
+      // The offer is out: record the tenant's answer. November 10 (S270): the response control
+      // sits in the named group, closed on arrival; staff reach it from "Record what happened"
+      // or by opening the group.
       const response = page.getByLabel("Tenant response", { exact: true });
+      if (!(await shownWithin(response, 5_000))) {
+        if (label === "Record what happened") {
+          await review.click();
+          log.act("path", "choice", "Record what happened");
+        } else
+          await openNamedGroup(
+            page,
+            "Tenant offer options and record of contact",
+            "path",
+          );
+      }
       if (
         (await shownWithin(response, 10_000)) &&
         (await response.inputValue()) !== "accepted"
@@ -1122,13 +1327,15 @@ async function journey(browser) {
   );
 
   // J17 values stay on their lease (AC-S252-5, L70): a rent and a date typed on the replied lease
-  // are suggested on no other lease, portfolio or policy.
+  // are suggested on no other lease, portfolio or policy. November 10 (S261, S269, S270): the
+  // renewal rent's one editor is Rent to recommend on Compare market rent, and the working dates
+  // are in Ask the owner's named Working renewal terms reveal, closed on arrival.
   const RENT = 1437;
   const DATE = "2027-02-17";
-  await view.open(replied, "?step=ask-owner");
-  const rentField = page.getByLabel("Working monthly rent", { exact: true });
+  const rentField = page.getByLabel("Rent to recommend", { exact: true });
   const dateField = page.getByLabel("Working effective date", { exact: true });
-  const saveWorkingValue = async (field, value, edit) => {
+  /** Edit, then resolve with the field the saved working-record write named. */
+  const saveWorkingValue = async (fields, value, edit) => {
     const [response] = await Promise.all([
       page.waitForResponse(
         (response) => {
@@ -1141,7 +1348,7 @@ async function journey(browser) {
           const payload = request.postDataJSON();
           return (
             payload.leaseId === String(replied) &&
-            payload.field === field &&
+            fields.includes(payload.field) &&
             payload.value === value
           );
         },
@@ -1149,21 +1356,41 @@ async function journey(browser) {
       ),
       edit(),
     ]);
-    assert.ok(response.ok(), field + " was refused");
+    assert.ok(response.ok(), fields.join(" or ") + " was refused");
+    return response.request().postDataJSON().field;
   };
   let typed = false;
-  if ((await shownWithin(rentField, 20_000)) && (await shownWithin(dateField, 5_000))) {
-    await saveWorkingValue("terms_rent", RENT, async () => {
-      await rentField.fill(String(RENT));
-      await rentField.blur();
-    });
-    log.optional("values", "Working monthly rent (typed for AC-S252-5)");
-    await saveWorkingValue("terms_effective_date", DATE, async () => {
-      await dateField.fill(DATE);
-      await dateField.blur();
-    });
-    log.optional("values", "Working effective date (typed for AC-S252-5)");
-    typed = true;
+  let rentSavedAs = null;
+  await view.open(replied, "?step=compare-market");
+  if (await shownWithin(rentField, 20_000)) {
+    rentSavedAs = await saveWorkingValue(
+      ["terms_rent", "recommended_rent"],
+      RENT,
+      async () => {
+        await rentField.fill(String(RENT));
+        await rentField.blur();
+      },
+    );
+    log.optional("values", "Rent to recommend (typed for AC-S252-5)");
+    await view.open(replied, "?step=ask-owner");
+    const datesReveal = page
+      .locator("details[data-renewal-working-terms]:visible")
+      .first();
+    if (
+      (await shownWithin(datesReveal, 15_000)) &&
+      (await datesReveal.getAttribute("open")) === null
+    ) {
+      await datesReveal.locator(":scope > summary").click();
+      log.optional("values", "Working renewal terms (opened for AC-S252-5)");
+    }
+    if (await shownWithin(dateField, 10_000)) {
+      await saveWorkingValue(["terms_effective_date"], DATE, async () => {
+        await dateField.fill(DATE);
+        await dateField.blur();
+      });
+      log.optional("values", "Working effective date (typed for AC-S252-5)");
+      typed = true;
+    }
   }
   const own = await route(`/api/lease-renewal/working-record?leaseId=${replied}`);
   const others = await Promise.all(
@@ -1194,7 +1421,8 @@ async function journey(browser) {
     "journey.cross-lease-values",
     "a rent and a date typed on one lease are kept on that lease and suggested on no other lease, portfolio or policy (AC-S252-5, L70)",
     typed &&
-      own.body?.record?.fields?.terms_rent?.value === RENT &&
+      rentSavedAs !== null &&
+      own.body?.record?.fields?.[rentSavedAs]?.value === RENT &&
       own.body?.record?.fields?.terms_effective_date?.value === DATE &&
       carried(RENT).length === 0 &&
       carried(DATE).length === 0 &&
@@ -1204,7 +1432,10 @@ async function journey(browser) {
       !containsValue(agreements.body, DATE),
     {
       typed,
-      ownRent: own.body?.record?.fields?.terms_rent?.value ?? null,
+      rentSavedAs,
+      ownRent: rentSavedAs
+        ? (own.body?.record?.fields?.[rentSavedAs]?.value ?? null)
+        : null,
       ownDate: own.body?.record?.fields?.terms_effective_date?.value ?? null,
       rentOn: carried(RENT),
       dateOn: carried(DATE),
@@ -1276,15 +1507,18 @@ async function journey(browser) {
   await page.goto(`${origin}/lease-renewal/live/desk`, { waitUntil: "domcontentloaded" });
   await page.getByRole("region", { name: "Working batch", exact: true }).waitFor();
   await page.waitForTimeout(2000);
-  let after = await groupOf(renewed);
+  // Every count is read as `before` was, with no group open; November 9 (S246) and later an open
+  // group's table lists that group alone, so a snapshot taken with it open omits the two lists.
+  const after = await groupOf(renewed);
   // The lease is listed only when its group's list is open: open each counted group in turn.
   let landed = after.listed[0] ?? null;
+  let landedIn = null;
   for (const group of Object.keys(after.counts)) {
     if (landed) break;
     await page.locator(`button[data-batch-group="${group}"]`).click();
     await page.waitForTimeout(1200);
-    after = await groupOf(renewed);
-    landed = after.listed.find((value) => value) ?? null;
+    landedIn = await groupOf(renewed);
+    landed = landedIn.listed.find((value) => value) ?? null;
     await page.locator(`button[data-batch-group="${group}"]`).click();
     await page.waitForTimeout(600);
   }
@@ -1309,6 +1543,7 @@ async function journey(browser) {
       landed,
       before,
       after,
+      landedIn,
       actions: countActions(log.since(mark)).actions,
     },
   );
@@ -1354,6 +1589,12 @@ async function journey(browser) {
           stage: box('[data-renewal-field="stage-line"]'),
           strip: box('[aria-label="Guided view"] nav[aria-label="Renewal path"]'),
           primary: box('[aria-label="Guided view"] [data-renewal-now-primary]'),
+          // Evidence only: the Now heading and the primary's words.
+          nowHeading: box('[aria-label="Guided view"] h2#renewal-now-heading'),
+          primaryLabel:
+            document
+              .querySelector('[aria-label="Guided view"] [data-renewal-now-primary]')
+              ?.textContent?.trim() ?? null,
         };
       });
       stepLayouts.push({
@@ -1391,18 +1632,20 @@ async function journey(browser) {
 
   // J19 reload continuity (L18): the same view, step and place, and typing the existing autosave
   // keeps (R-S247-9: "unsaved typing is kept by the existing autosave") is there after the reload.
-  // The missing-recipient lease's Ask the owner step: a Working monthly rent typed there saves when
-  // the person leaves the field, and the place is a scrolled Now card.
+  // November 10 (S261, S269): the renewal rent's one editor is Rent to recommend, Compare market
+  // rent's one editable field. On the missing-recipient lease, a rent typed there saves when the
+  // person leaves the field, and the place is a scrolled Now card.
   const KEPT_RENT = "1388";
+  const KEPT_STEP = "Compare market rent";
   await view.open(missingRecipient);
-  await view.strip().getByRole("button", { name: "Ask the owner", exact: true }).click();
+  await view.strip().getByRole("button", { name: KEPT_STEP, exact: true }).click();
   await page.waitForTimeout(800);
-  const keptField = page.getByLabel("Working monthly rent", { exact: true });
+  const keptField = page.getByLabel("Rent to recommend", { exact: true });
   let typedRent = null;
   if (await shownWithin(keptField, 15_000)) {
     await keptField.fill(KEPT_RENT);
     await keptField.blur();
-    log.optional("reload", "Working monthly rent (typed for L18)");
+    log.optional("reload", "Rent to recommend (typed for L18)");
     typedRent = KEPT_RENT;
     await page.waitForTimeout(3000);
   }
@@ -1419,7 +1662,7 @@ async function journey(browser) {
       .replace(/00$/, "");
   const reloaded = {
     heading: squash(await view.now().locator("h2#renewal-now-heading").textContent()),
-    pressed: await view.viewButton("Guided view").getAttribute("aria-pressed"),
+    pressed: await view.guidedPressed(),
     scrollY: await page.evaluate(() => Math.round(window.scrollY)),
     placeBefore,
     kept: typedRent ? await keptField.inputValue().catch(() => null) : null,
@@ -1427,7 +1670,7 @@ async function journey(browser) {
   check(
     "journey.reload-continuity",
     "a reload in the middle of a step returns to the same view, step and place, with typed text kept by the autosave (L18)",
-    reloaded.heading.endsWith("Ask the owner") &&
+    reloaded.heading.endsWith(KEPT_STEP) &&
       reloaded.pressed === "true" &&
       Math.abs(reloaded.scrollY - placeBefore) <= 80 &&
       typedRent !== null &&
@@ -1476,6 +1719,29 @@ async function journey(browser) {
   await context.close();
 }
 
+/**
+ * November 10 (S270): an outcome's supporting work sits in its named group, closed on arrival.
+ * Staff open the shown one by its summary; the click is logged as a choice in its phase. Resolves
+ * false when the shown outcome has no such group.
+ */
+async function openNamedGroup(page, label, phase) {
+  const group = page.locator(`details[data-renewal-group="${label}"]:visible`).first();
+  if (!(await group.count())) return false;
+  if ((await group.getAttribute("open")) === null) {
+    await group.locator(":scope > summary").click();
+    log.act(phase, "choice", `open ${label}`);
+    await page.waitForTimeout(600);
+  }
+  return true;
+}
+
+/** Each step's named group of supporting work (S270), where its hand records sit. */
+const STEP_GROUPS = {
+  "offer-tenant": "Tenant offer options and record of contact",
+  documents: "Other packet and handoff work",
+  "finish-up": "Other follow-ups",
+};
+
 /** Documents and Finish up by hand: each shown follow-up recorded Done or Not applicable. */
 async function recordHandOutcomes(page, step) {
   // The renewal information form is sent and returned by hand here: its link is a company
@@ -1497,8 +1763,19 @@ async function recordHandOutcomes(page, step) {
             "assisted_housing",
           ];
   let recorded = 0;
+  // November 10 (S270): a record outside the step's active work waits in the step's named group,
+  // closed on arrival. Staff open it once, when a record they need is not shown.
+  let groupTried = false;
   for (const id of ids) {
     const details = page.locator(`details#renewal-manual-${id}`);
+    if (
+      !(await details.isVisible().catch(() => false)) &&
+      STEP_GROUPS[step] &&
+      !groupTried
+    ) {
+      groupTried = true;
+      await openNamedGroup(page, STEP_GROUPS[step], "path");
+    }
     if (!(await details.isVisible().catch(() => false))) continue;
     const open = await details.evaluate((element) => element.open);
     if (!open) {

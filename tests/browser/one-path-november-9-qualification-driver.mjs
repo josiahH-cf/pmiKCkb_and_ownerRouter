@@ -1,4 +1,25 @@
 // S260. Runs on one guarded, compiled rehearsal build and records exact scoped results.
+// S271 R-S271-6 replays all ten journeys (N09-01 to N09-10) on the cumulative candidate.
+//
+//   exact qualification, from a clean committed head (the only run that can record Yes):
+//     bash scripts/run-renewal-one-path-rehearsal.sh --compiled --compiled-synthetic-mail \
+//       --driver tests/browser/one-path-november-9-qualification-driver.mjs -- \
+//       --rendered-help <canonical Help run dir> --rendered-help-drift <drift Help run dir>
+//   development iteration on uncommitted work (no synthetic mail, so the cross-case and mail
+//   rows stay UNVERIFIED and N09-07 meets N09-10's seeded unconfirmed offer):
+//     bash scripts/run-renewal-one-path-rehearsal.sh --overlay --compiled --driver <this file>
+//   development tenant send proof, N09-07 only, on the development server:
+//     bash scripts/run-renewal-one-path-rehearsal.sh --driver <this file> -- --tenant-send-proof
+//   compiled mail fence proof, N09-07's refusal only:
+//     bash scripts/run-renewal-one-path-rehearsal.sh --compiled --driver <this file> -- \
+//       --compiled-mail-fence-proof
+//
+// Both Help directories are private runs under ~/.local/state/pmi-kc-help-rehearsal of the same
+// served commit: the canonical one from `npm run verify:help-rendered`, and the drift one from
+// `bash scripts/run-help-rehearsal.sh --allow-overlay --controls <probe>` with the Work status
+// summary deliberately removed in the uncommitted overlay and a probe listing only that control
+// (the gate must report it missing). The Help version, scene count and control count are read
+// from the served commit's own Help source (one-path-november-9-help-proof.mjs).
 import assert from "node:assert/strict";
 import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 import { Socket } from "node:net";
@@ -219,6 +240,18 @@ const full = (page) => page.getByRole("button", { name: "Full view", exact: true
 const batch = (page) => page.getByRole("region", { name: "Working batch", exact: true });
 const now = (page) => page.getByRole("region", { name: "Now", exact: true });
 const status = (page) => page.locator("#renewal-staff-status-log > summary");
+/**
+ * November 10: the rows the one batch table renders, counted once the chosen group's list is open
+ * and has rendered at least `expected` rows. A table whose list is still arriving after a filter
+ * or a return renders no rows yet (the November 9 replay `20261109T225341Z-b4fb6aa0` counted zero
+ * there); a list with any other number of rows still fails the exact count.
+ */
+async function renderedBatchRows(page, group, expected) {
+  await batch(page).locator(`[data-batch-open-group="${group}"]`).waitFor();
+  const rows = batch(page).locator("tr[data-batch-lease]");
+  if (expected > 0) await rows.nth(expected - 1).waitFor();
+  return rows.count();
+}
 const comparisons = async () =>
   (await standInState(rehearsal)).comparison.comparisonsByLease ?? {};
 
@@ -374,7 +407,7 @@ try {
         await root.locator('th[aria-sort="ascending"]').waitFor();
         await filtered.click();
         assert.equal(await root.getByRole("table").count(), 1);
-        assert.equal(await root.locator("tr[data-batch-lease]").count(), count);
+        assert.equal(await renderedBatchRows(page, "not_targets", count), count);
         const exact = new URL(page.url()).search;
         await root.locator("tr[data-batch-lease] th a").first().click();
         await page
@@ -385,7 +418,7 @@ try {
         await page.setViewportSize(narrow);
         await batch(page).getByRole("table").waitFor();
         assert.equal(await batch(page).getByRole("table").count(), 1);
-        assert.equal(await batch(page).locator("tr[data-batch-lease]").count(), count);
+        assert.equal(await renderedBatchRows(page, "not_targets", count), count);
         await page.setViewportSize(wide);
 
         const linked = desk + "?v=2&sort=end_date&direction=desc&scope=all";
@@ -832,8 +865,29 @@ try {
 
         const discrepancyLease = String(rehearsal.roles.replied);
         const racePath = fields + "?leaseId=" + discrepancyLease;
-        const raceStart = await read(page, racePath);
-        assert.equal(raceStart.record?.fields?.terms_rent, undefined);
+        let raceStart = await read(page, racePath);
+        // November 10: without the compiled synthetic mail, the replied-owner seed enters this
+        // lease's current base rent before its refused send (scripts/lib/one-path-rehearsal/
+        // seeds.mjs). A development run clears that one seed entry so the race still starts from
+        // an empty field. The exact compiled run filters that seed: its field must be absent.
+        const seededRent = raceStart.record?.fields?.terms_rent;
+        if (
+          !compiledMail &&
+          seededRent?.origin === "staff_entry" &&
+          seededRent.revision === 1
+        ) {
+          const cleared = await post(page, fields, {
+            leaseId: discrepancyLease,
+            field: "terms_rent",
+            value: null,
+            expectedRevision: seededRent.revision,
+            operationId: randomUUID(),
+          });
+          assert.equal(cleared.status, 200, JSON.stringify(cleared.body));
+          raceStart = await read(page, racePath);
+          assert.equal(raceStart.record.fields.terms_rent.value, null);
+        } else assert.equal(raceStart.record?.fields?.terms_rent, undefined);
+        const raceRevision = raceStart.record?.fields?.terms_rent?.revision ?? 0;
         const raceSource = await read(
           page,
           "/api/lease-renewal/message-preparation?channel=owner&leaseId=" +
@@ -862,8 +916,8 @@ try {
             await page.waitForTimeout(75);
           }
           for (const [expectedRevision, value] of [
-            [0, 1701],
-            [1, null],
+            [raceRevision, 1701],
+            [raceRevision + 1, null],
           ]) {
             const changed = await post(page, fields, {
               leaseId: discrepancyLease,
@@ -1618,8 +1672,18 @@ try {
             blockers: composition.target.blockers,
           };
         }
+        // November 10 (S269): the Guided Now card names the tenant review for its outcome,
+        // "Review tenant offer"; it opens the same Review and send dialog.
+        record({
+          id: "N09-07",
+          check: "offer-now-card",
+          primary: await now(page)
+            .locator("[data-renewal-now-primary]")
+            .allInnerTexts()
+            .catch(() => null),
+        });
         await now(page)
-          .getByRole("button", { name: "Review and send", exact: true })
+          .getByRole("button", { name: "Review tenant offer", exact: true })
           .click();
         const dialog = page.getByRole("dialog", { name: "Review and send", exact: true });
         await dialog.getByRole("checkbox", { name: /Authorize follow-ups/ }).check();
@@ -2389,8 +2453,9 @@ try {
             });
             await reconcile.waitFor();
             await scope.locator("details[data-renewal-verification]").waitFor();
+            // S269: Guided names its send entries for the outcome.
             const competing = scope.getByRole("button", {
-              name: /^(Review and send|Send this message|Schedule)$/,
+              name: /^(Review and send|Review owner message|Review tenant offer|Send this message|Schedule)$/,
             });
             await competing.first().waitFor({ state: "hidden", timeout: 2000 });
             const snapshot = await scope.evaluate(inspectOutcome);

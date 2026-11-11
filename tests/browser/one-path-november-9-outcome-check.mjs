@@ -45,8 +45,11 @@ export function inspectOutcome(node) {
       "input#renewal-now-rent-to-recommend, [data-working-field=terms_rent] input, input[data-renewal-field=terms_rent]",
     ),
   ).filter(visible);
+  // S269 names the Guided send entries "Review owner message" and "Review tenant offer".
   const sends = controls.filter((control) =>
-    /^(send|review and send|schedule)/i.test(control.textContent.trim()),
+    /^(send|review and send|review owner message|review tenant offer|schedule)/i.test(
+      control.textContent.trim(),
+    ),
   );
   const looseControls = controls.filter(
     (control) =>
