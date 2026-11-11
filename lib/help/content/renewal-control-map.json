@@ -280,7 +280,7 @@
     "role": "label",
     "scope": "region:Owner approval",
     "availability": "conditional",
-    "expectation": "Choose the owner's actual answer; it saves at once. Exact terms live in Rent and charges.",
+    "expectation": "Choose the owner's actual answer. No response, Revision requested and Declined / non-renewal save at once; Approved saves through Review the owner's answer and Save the owner's answer. The renewal dates live in Working renewal terms.",
     "source": [
       "components/lease-renewal/RenewalDashboardNavigation.tsx",
       "components/lease-renewal/RenewalManualWorkspace.tsx"
@@ -311,7 +311,7 @@
     "role": "label",
     "scope": "region:Tenant offer and response",
     "availability": "conditional",
-    "expectation": "Choose acceptance, decline or counter; it saves at once.",
+    "expectation": "Choose acceptance, decline or counter; it saves at once. A decision then names the offer it answers in Which offer does this answer respond to?",
     "source": [
       "components/lease-renewal/RenewalDashboardNavigation.tsx",
       "components/lease-renewal/RenewalManualWorkspace.tsx"
@@ -1478,6 +1478,62 @@
     "actions": [
       "click-button:Full view",
       "open-summary:Tenant offer options and record of contact"
+    ]
+  },
+  {
+    "step": "127",
+    "page": "workspace:tenant-decision",
+    "control": "Which offer does this answer respond to?",
+    "role": "label",
+    "scope": "region:Tenant offer and response",
+    "availability": "conditional",
+    "expectation": "Shown after Accepted, Counter / change requested or Declined / not renewing: each offer the tenant received, a confirmed send or a Gmail draft verified as sent, and Not one exact offer. It starts on Choose the offer; choosing saves nothing.",
+    "source": ["components/lease-renewal/RenewalOfferAnswers.tsx"],
+    "actions": [
+      "click-button:Full view",
+      "open-summary:Tenant offer options and record of contact"
+    ]
+  },
+  {
+    "step": "128",
+    "page": "workspace:tenant-decision",
+    "control": "Where you verified it was sent",
+    "role": "label",
+    "scope": "region:Tenant offer and response",
+    "availability": "conditional",
+    "expectation": "Shown when the chosen offer is a Gmail draft: where staff checked it went out, such as the Gmail Sent folder entry and its date, saved with the answer.",
+    "source": ["components/lease-renewal/RenewalOfferAnswers.tsx"],
+    "actions": [
+      "click-button:Full view",
+      "open-summary:Tenant offer options and record of contact"
+    ]
+  },
+  {
+    "step": "129",
+    "page": "workspace:tenant-decision",
+    "control": "Record the offer this answers",
+    "role": "button",
+    "scope": "region:Tenant offer and response",
+    "availability": "conditional",
+    "expectation": "Records the tenant's answer again with the exact offer it answers. Answers the offer names it, and the line above says whether the answer covers the current offer or needs verification.",
+    "source": ["components/lease-renewal/RenewalOfferAnswers.tsx"],
+    "actions": [
+      "click-button:Full view",
+      "open-summary:Tenant offer options and record of contact"
+    ]
+  },
+  {
+    "step": "130",
+    "page": "workspace:owner-decision",
+    "control": "The owner approved these exact offer charges",
+    "role": "label",
+    "scope": "region:Owner approval",
+    "availability": "conditional",
+    "expectation": "Shown with Approved when the reviewed tenant offer lists charges, naming them. Checked with Base rent and the renewal dates, the saved approval covers that exact offer, charges included.",
+    "source": ["components/lease-renewal/RenewalOfferAnswers.tsx"],
+    "actions": [
+      "click-button:Full view",
+      "open-summary:Owner message options and outreach record"
     ]
   }
 ]

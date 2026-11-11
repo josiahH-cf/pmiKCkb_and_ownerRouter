@@ -53,7 +53,7 @@ export const DOCUMENTS_AND_DOTLOOP_GUIDES: readonly HelpGuide[] = [
         result:
           "It names a packet input with Enter it in Packet inputs, a form that waits on a named difference, a form whose source is pending with what is missing and who supplies it, or the signatures still awaited with Record a returned document. When every form that applies has its approved original, map and inputs, it says so. Reading it saves nothing.",
         effect: "reads",
-        note: "Each other form keeps its own readiness, and the manual handoff stays available. A role that cannot save packet inputs reads that an Editor enters it in Packet inputs.",
+        note: "Each other form keeps its own readiness, and the manual handoff stays available. A role that cannot save packet inputs reads that an Editor enters it in Packet inputs. Once the tenant's recorded acceptance names the exact offer it answers, each form this lease needs that carries a shared charge, the Resident Benefits Package, insurance or pet rent, is compared with that offer. A difference holds that form alone: This form waits names the form, the charge and both monthly amounts, what the accepted offer has and what this form's packet has, and Form families for this lease lists it under Missing for renewal staff, in Review offer charges. The form goes on once the amounts match.",
       },
       {
         id: "read-document-preparation",
@@ -280,6 +280,6 @@ export const DOCUMENTS_AND_DOTLOOP_GUIDES: readonly HelpGuide[] = [
     ],
     relatedGuides: ["owner-message", "work-a-renewal", "manage-connections"],
     relatedScreens: ["lease-workspace", "connections"],
-    lastUpdated: "2026-11-06",
+    lastUpdated: "2026-11-10",
   },
 ];

@@ -314,7 +314,7 @@ export const COMMUNICATIONS_GUIDES: readonly HelpGuide[] = [
         result:
           "No response, Revision requested and Declined / non-renewal save when you choose them. Approved saves only through Save the owner's answer: the recorded approval then reads who approved, how and when, with a line naming what it covers, Amount approved becomes the offer amount for this renewal, and Continue to Offer the tenant appears.",
         effect: "saves-in-app",
-        note: "What the owner's answer covers is Base rent only, or Base rent and the renewal dates once both dates are saved in Working renewal terms; other charges are reviewed with the tenant offer. The review shows Recommended base rent beside Amount approved, with Change the answer to go back. Rent to recommend stays your recommendation and is never replaced by the approved amount. After an owner reply, the Now card on Ask the owner leads with Record the owner's answer: choose the Approved in the reply received option, enter the amount and coverage and Who approved in this reply, then review and save; Asked for a change and Declined / non-renewal use Record this decision. Owner response here covers an authorized representative, another written channel or a conversation. How they approved offers Reply in this lease's renewal thread when a linked reply exists, Another written channel or Conversation. If the amount, the dates or the charges change later, the line reads Owner approval no longer covers and names what changed; ask the owner again, then choose Record a new approval. Revision requested also asks What the owner asked to change.",
+        note: "What the owner's answer covers is Base rent only, or Base rent and the renewal dates once both dates are saved in Working renewal terms; other charges are reviewed with the tenant offer. When the reviewed tenant offer lists charges, Approved also shows The owner approved these exact offer charges with those charges; check it only when the owner approved them as listed. It counts with Base rent and the renewal dates, and the saved approval then reads The owner's approval covers the current offer, charges included; without it, the approval covers the base and dates, not the offer's charges. The review shows Recommended base rent beside Amount approved, with Change the answer to go back. Rent to recommend stays your recommendation and is never replaced by the approved amount. After an owner reply, the Now card on Ask the owner leads with Record the owner's answer: choose the Approved in the reply received option, enter the amount and coverage and Who approved in this reply, then review and save; Asked for a change and Declined / non-renewal use Record this decision. Owner response here covers an authorized representative, another written channel or a conversation. How they approved offers Reply in this lease's renewal thread when a linked reply exists, Another written channel or Conversation. If the amount, the dates or the charges change later, the line reads Owner approval no longer covers and names what changed; ask the owner again, then choose Record a new approval. Revision requested also asks What the owner asked to change.",
       },
     ],
     result:
@@ -324,13 +324,13 @@ export const COMMUNICATIONS_GUIDES: readonly HelpGuide[] = [
       "An owner reply records no answer by itself; the answer is recorded only when you choose it.",
       "Copying the message, saving a draft or creating an unsent Gmail draft sends nothing and records no delivery.",
       "Recording an owner response approves nothing on the owner's behalf and writes nothing to RentVine or the Sheet.",
-      "A recorded approval covers only what it names, the base rent alone or the base rent and the renewal dates; other charges are reviewed with the tenant offer, and after a covered value changes the owner's approval needs recording again.",
+      "A recorded approval covers only what it names: the base rent alone, the base rent and the renewal dates, or with The owner approved these exact offer charges, that exact offer's charges as well. An approval of an earlier offer never covers the current offer's charges, and after a covered value changes the owner's approval needs recording again.",
       "Rent to recommend is a staff recommendation, not the owner's approval; saving the owner's answer sets the offer amount to Amount approved.",
       "Follow-up timing sets no reminder or deadline, and paused follow-ups send nothing until a fresh review and Resume reviewed sequence.",
     ],
     relatedGuides: ["compare-rent", "tenant-offer", "work-a-renewal"],
     relatedScreens: ["communications"],
-    lastUpdated: "2026-11-06",
+    lastUpdated: "2026-11-10",
     navItems: ["communications"],
   },
 ];

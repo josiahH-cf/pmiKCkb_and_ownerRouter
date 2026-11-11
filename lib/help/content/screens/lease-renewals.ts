@@ -84,7 +84,7 @@ const ABOUT_PANEL: Readonly<Record<SectionHelpId, string>> = {
   "renewal-cycle":
     "Explains what staff record for this lease and that each entry saves on its own.",
   "rent-and-charges":
-    "Explains current rent, contractual rent, recurring charges and the working value, and where each update is confirmed.",
+    "Explains Current base rent and where it comes from, recurring charges and your working correction, and where each update is confirmed.",
   "correct-a-fact":
     "Explains choosing a fact and its destinations, and the separate confirmation each update needs.",
   "future-rent":
@@ -112,7 +112,7 @@ const ABOUT_PANEL: Readonly<Record<SectionHelpId, string>> = {
   "staff-work-documents":
     "Explains recording document preparation, delivery, signatures and follow-ups done outside the app.",
   "owner-response":
-    "Explains recording the owner's actual answer, including who approved, how and when.",
+    "Explains recording the owner's actual answer: Amount approved, what it covers and who approved, how and when.",
   "working-terms":
     "Explains the working renewal rent and dates and which messages and previews use them.",
   "tenant-response":
@@ -497,7 +497,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         region: "region:Owner approval",
         availability: "conditional",
         source: ["components/lease-renewal/RenewalOwnerAnswer.tsx"],
-        does: "Shown with Amount approved when Owner response is Approved: Base rent only, or Base rent and the renewal dates once both dates are saved. Other charges are reviewed with the tenant offer.",
+        does: "Shown with Amount approved when Owner response is Approved: Base rent only, or Base rent and the renewal dates once both dates are saved. Other charges are reviewed with the tenant offer; The owner approved these exact offer charges adds them only when the owner approved them as listed.",
         who: "Renewal staff",
         route: LEASE,
         actions: FULL_OWNER_OPTIONS,

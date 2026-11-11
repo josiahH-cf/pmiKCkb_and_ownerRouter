@@ -35,6 +35,7 @@ const ALL_LEASES = ["click-link:All leases and filters"];
 const GUIDED_PRIORITY = ["lib/lease-renewal/guided-priority.ts"];
 const OWNER_ANSWER = ["components/lease-renewal/RenewalOwnerAnswer.tsx"];
 const OFFER_CHARGES = ["components/lease-renewal/RenewalOfferCharges.tsx"];
+const OFFER_ANSWERS = ["components/lease-renewal/RenewalOfferAnswers.tsx"];
 
 const SECTIONS = ["lib/lease-renewal/dashboard-sections.ts"];
 const BATCH = ["components/lease-renewal/RenewalWorkingBatch.tsx"];
@@ -229,7 +230,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "The answer saves with your name and time. An approval records Amount approved as the offer amount for this renewal, what the answer covers, who approved, the reply it came in and the time that reply was received, and Continue to Offer the tenant appears. Record the owner's answer starts with no choice made, and a reply records an answer only when you choose one.",
         effect: "saves-in-app",
-        note: "What the owner's answer covers is Base rent only, or Base rent and the renewal dates once both dates are saved; other charges are reviewed with the tenant offer. The review lists Recommended base rent beside Amount approved, and Change the answer returns to your entries. Rent to recommend stays your recommendation: the approved amount never replaces it, and when no earlier recommendation exists the lease says so. Owner reply reads the observed message from the linked conversation. A failed read offers Try again and keeps your entries. Retry keeps keyboard focus while reading and leads into the reply when ready. If you already moved to an answer, focus stays there. A partial reply says to read the full conversation. Owner response in Full view records an approval from an authorized representative, another written channel or a conversation: choose Approved, enter Amount approved and what it covers, then Who approved, How they approved and When they approved, and choose Review the owner's answer and Save the owner's answer. Record a new approval starts a new answer after one is saved.",
+        note: "What the owner's answer covers is Base rent only, or Base rent and the renewal dates once both dates are saved; other charges are reviewed with the tenant offer. The review lists Recommended base rent beside Amount approved, and Change the answer returns to your entries. Rent to recommend stays your recommendation: the approved amount never replaces it, and when no earlier recommendation exists the lease says so. Owner reply reads the observed message from the linked conversation. A failed read offers Try again and keeps your entries. Retry keeps keyboard focus while reading and leads into the reply when ready. If you already moved to an answer, focus stays there. A partial reply says to read the full conversation. Owner response in Full view records an approval from an authorized representative, another written channel or a conversation: choose Approved, enter Amount approved and what it covers, then Who approved, How they approved and When they approved, and choose Review the owner's answer and Save the owner's answer. When the reviewed tenant offer lists charges, Owner response also shows The owner approved these exact offer charges; check it only when the owner approved those charges as listed. Record a new approval starts a new answer after one is saved.",
       },
       {
         id: "offer-the-tenant",
@@ -264,6 +265,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "The answer saves when you choose it. After Accepted, a lease that still needs the renewal information form names Send the renewal information form and then Record the returned information form, each recorded as Information form sent and Information form returned, before Documents and signatures; Declined / not renewing goes to the non-renewal handoff. Recording it accepts nothing for the tenant.",
         effect: "saves-in-app",
+        note: "After Accepted, Counter / change requested or Declined / not renewing, name the offer the tenant answered: choose it in Which offer does this answer respond to?, then choose Record the offer this answers. For a Gmail draft you sent yourself, also enter Where you verified it was sent. Answers the offer then names that offer, and an acceptance tied to no offer or to an earlier one reads Current acceptance needs verification with the reason. Prepare the tenant offer and record the response explains each choice.",
       },
       {
         id: "prepare-the-documents",
@@ -742,9 +744,9 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         route: LEASE,
         where: "Full view, section links",
         result:
-          "Rent to recommend is the staff recommendation. Record the owner's answer saves the owner's verified answer: Amount approved, Base rent only or Base rent and the renewal dates, and who approved, how and when. Send this message in the exact review sends the tenant offer, Tenant response records what the tenant said, and signatures happen in Dotloop by hand.",
+          "Rent to recommend is the staff recommendation. Record the owner's answer saves the owner's verified answer: Amount approved, Base rent only or Base rent and the renewal dates, and who approved, how and when; The owner approved these exact offer charges adds the reviewed offer's charges only when the owner approved them as listed. Send this message in the exact review sends the tenant offer, Tenant response records what the tenant said and which offer it answers, and signatures happen in Dotloop by hand.",
         effect: "reads",
-        note: "Each record keeps its own meaning: a recommendation is not the owner's approval, an approval covers only what it names, a sent offer is not the tenant's acceptance, and a recorded signature is staff evidence, not a Dotloop receipt.",
+        note: "Each record keeps its own meaning: a recommendation is not the owner's approval, an approval covers only what it names, a sent offer is not the tenant's acceptance, an acceptance of an earlier offer needs verification for the current one, and a recorded signature is staff evidence, not a Dotloop receipt.",
       },
       {
         id: "find-the-shared-settings",
@@ -1196,6 +1198,25 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         effect: "saves-in-app",
       },
       {
+        id: "record-the-offer-answered",
+        action:
+          "After Accepted, Counter / change requested or Declined / not renewing, choose the offer the tenant answered in Which offer does this answer respond to?, then choose Record the offer this answers.",
+        control: {
+          label: "Record the offer this answers",
+          role: "button",
+          region: "region:Tenant offer and response",
+          availability: "conditional",
+          source: OFFER_ANSWERS,
+          actions: FULL_TENANT_OPTIONS,
+        },
+        route: LEASE,
+        where: "Tenant offer and response, Tenant response, under the answer",
+        result:
+          "The answer is recorded again with the exact offer it answers, with your name and time. Answers the offer names that offer's rent and charges, and the line above it reads This acceptance answers the current offer, or Current acceptance needs verification with the reason.",
+        effect: "saves-in-app",
+        note: "The list starts on Choose the offer, so no offer is chosen for you. A confirmed send reads Sent with its date. A Gmail draft prepared here and sent from Gmail by a person reads Gmail draft prepared with its date, sent from Gmail; for it, also enter Where you verified it was sent, such as the Gmail Sent folder entry and its date. Choose Not one exact offer (record the answer as it is) when the answer cannot be tied to one offer. An answer to an earlier offer never covers the current one, even when only one charge changed: the line reads Current acceptance needs verification: it answers an earlier offer, and names what changed. If the offers cannot be read, the section says so; reload the page to review them.",
+      },
+      {
         id: "read-notice-timing",
         action:
           "Open Verify follow-up and source updates on Finish up and read the Notice timing card: each notice date the app derived, with where it came from.",
@@ -1215,12 +1236,13 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
       },
     ],
     result:
-      "The tenant has the offer, delivery and the tenant's actual response are recorded with this lease, and the recorded response decides whether documents or the non-renewal handoff come next.",
+      "The tenant has the offer, delivery and the tenant's actual response are recorded with this lease, with the exact offer the response answers, and the recorded response decides whether documents or the non-renewal handoff come next.",
     doesNotDo: [
       "The app sends nothing on its own; only your explicit Send this message in the exact review, or Send or Schedule in Communications, sends the offer.",
       "Copying, drafting and recording deliver nothing and accept nothing for the tenant.",
       "An unsent Gmail draft is not delivery, and a recorded delivery or response is staff evidence, not a provider receipt.",
       "Recording the tenant response does not write to RentVine or the Sheet.",
+      "Naming the offer an answer responds to changes no offer, message or charge, and an acceptance of an earlier offer never accepts the current one.",
       "Review offer charges decides the offer's lines only; no RentVine charge changes, and a mapping or a policy sets no fee for a lease.",
     ],
     relatedGuides: [
@@ -1230,7 +1252,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
       "prepare-documents",
     ],
     relatedScreens: ["lease-workspace", "communications"],
-    lastUpdated: "2026-11-09",
+    lastUpdated: "2026-11-10",
   },
   {
     id: "update-sources",

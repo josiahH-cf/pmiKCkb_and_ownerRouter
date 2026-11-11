@@ -11,7 +11,7 @@ export const HELP_CHANGELOG: readonly HelpChangelogEntry[] = [
     version: "V4.0",
     date: "2026-11-10",
     summary:
-      "V4.0, each renewal step leads with the one field or fix it needs now, and its optional work and read-only Verification sit in named groups, the same in Guided and Full view. Check the numbers shows Current base rent. Record the owner's answer saves Amount approved and what it covers as the offer amount, apart from Rent to recommend. Working renewal terms has its own group and proposes the day after the current lease ends. Review offer charges decides each tenant offer line with exact totals, and an Admin keeps Offer charge mappings. Shared tenant flyers and the information form need a tenant audience check in Connections, and Documents and signatures shows Next for this packet. A new guide teaches a teammate to prepare a renewal and the lead to review it inside the app.",
+      "V4.0, each renewal step leads with the one field or fix it needs now, and its optional work and read-only Verification sit in named groups, the same in Guided and Full view. Check the numbers shows Current base rent. Record the owner's answer saves Amount approved and what it covers as the offer amount, apart from Rent to recommend. Working renewal terms has its own group and proposes the day after the current lease ends. Review offer charges decides each tenant offer line with exact totals, and an Admin keeps Offer charge mappings. Shared tenant flyers and the information form need a tenant audience check in Connections, and Documents and signatures shows Next for this packet. A tenant response names the exact offer it answers, an owner approval can cover the reviewed offer's exact charges, and a form whose shared charge differs from the accepted offer waits with the difference. A new guide teaches a teammate to prepare a renewal and the lead to review it inside the app.",
     affectedGuides: [
       "work-a-renewal",
       "train-and-review",
@@ -23,7 +23,7 @@ export const HELP_CHANGELOG: readonly HelpChangelogEntry[] = [
       "manage-connections",
       "admin-tasks",
     ],
-    contentDigest: "b7b0daf9e44f3407012ab703c2cd3979f4814f0db7e3282e101f15b7523c09c3",
+    contentDigest: "d3070d6f90092c8c163be513b7f964a9035103141231c1337ca4bbeaf5f3262e",
   },
   {
     version: "V3.0",

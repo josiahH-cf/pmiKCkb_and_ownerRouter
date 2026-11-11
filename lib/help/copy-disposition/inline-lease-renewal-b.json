@@ -715,5 +715,19 @@
     "text": "No one-time fee is selected. A fee applies only with its approved policy or an authorized case source.",
     "describes": "Review offer charges one-time fees: none selected, and a fee needs its approved policy or an authorized case source (S264)",
     "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalOfferAnswers.tsx",
+    "text": "Choose the offer the tenant received: a confirmed send, or a Gmail draft you verified was sent.",
+    "describes": "Which offer does this answer respond to?: a tenant decision names the confirmed send or the Gmail draft staff verified was sent (S264)",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalOfferAnswers.tsx",
+    "text": "For example, the Gmail Sent folder entry and its date.",
+    "describes": "Where you verified it was sent: the evidence staff record for an offer sent from a Gmail draft (S264)",
+    "disposition": "keep"
   }
 ]
