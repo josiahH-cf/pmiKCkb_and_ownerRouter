@@ -39,6 +39,7 @@ import type {
 } from "@/lib/lease-renewal/writeback/client-projection";
 import { RENEWAL_WRITEBACK_ACCOUNT } from "@/lib/lease-renewal/writeback/proposal-contract";
 import type { CompleteRenewalTerms } from "@/lib/lease-renewal/working-record";
+import type { TenantAcceptanceRead } from "@/lib/lease-renewal/tenant-acceptance-hold";
 
 /** The source the assembled previews name: the working renewal terms. */
 export const FINISH_UP_TERMS_SOURCE = "Working renewal terms";
@@ -75,6 +76,12 @@ export interface FinishUpPreparation {
   readonly sheet: FinishUpSourceSection | null;
   /** The existing control that prepares, confirms and reads back each update. */
   readonly applyTarget: string;
+  /**
+   * S264 R-S264-6: the page's read of the tenant acceptance against the current offer. Every
+   * update here carries the accepted renewal, so each waits while that acceptance answers an
+   * earlier offer. Shown only; the claims check the same hold.
+   */
+  readonly acceptance?: TenantAcceptanceRead | null;
 }
 
 export interface FinishUpPreparationInput {
@@ -87,6 +94,8 @@ export interface FinishUpPreparationInput {
   readonly identity: SourceUpdateIdentity | null;
   /** When the page read RentVine. */
   readonly readAtIso: string;
+  /** S264 R-S264-6: the page's read of the tenant acceptance against the current offer. */
+  readonly acceptance?: TenantAcceptanceRead | null;
 }
 
 /** A client proposal shell: the preview builders read only its identity and read time. */
@@ -320,6 +329,7 @@ export function assembleFinishUpPreparation(
   input: FinishUpPreparationInput,
 ): FinishUpPreparation {
   const terms = input.terms.complete;
+  const acceptance = input.acceptance ?? null;
   if (!terms)
     return {
       terms: null,
@@ -327,6 +337,7 @@ export function assembleFinishUpPreparation(
       rentvine: null,
       sheet: null,
       applyTarget: KICKOFF_FIX_TARGETS.rentAndCharges,
+      acceptance,
     };
   return {
     terms,
@@ -334,5 +345,6 @@ export function assembleFinishUpPreparation(
     rentvine: rentvineSection(input, terms),
     sheet: sheetSection(input, terms),
     applyTarget: KICKOFF_FIX_TARGETS.rentAndCharges,
+    acceptance,
   };
 }

@@ -65,6 +65,7 @@ import { RenewalWorkingTermsReveal } from "@/components/lease-renewal/RenewalWor
 import { formatMoneyReference } from "@/lib/lease-renewal/current-rent-display";
 import { RenewalNowCardProvider } from "@/components/lease-renewal/RenewalNowCardContext";
 import type { FinishUpPreparation } from "@/lib/lease-renewal/finish-up-preparation";
+import type { TenantAcceptanceRead } from "@/lib/lease-renewal/tenant-acceptance-hold";
 import { renewalStageContextFor } from "@/lib/lease-renewal/renewal-stage-context";
 import { initialRenewalWorkspaceView } from "@/lib/lease-renewal/workspace-view";
 import { buildRenewalActionSnapshot } from "@/lib/lease-renewal/renewal-action-snapshot";
@@ -223,6 +224,7 @@ export function RenewalWorkspace({
   policySheetValue = null,
   policyTodayIso = null,
   finishUpPreparation = null,
+  tenantAcceptance = null,
 }: Readonly<{
   compScreenshotExecutable?: boolean;
   packetSnapshot?: RenewalPacketSnapshot | null;
@@ -300,6 +302,11 @@ export function RenewalWorkspace({
    * working terms and this page's reads. Read only; null where the page did not assemble them.
    */
   finishUpPreparation?: FinishUpPreparation | null;
+  /**
+   * S264 R-S264-6: this page's read of the tenant's recorded acceptance against the current
+   * offer's charges; the stage holds Offer the tenant while it answers an earlier offer.
+   */
+  tenantAcceptance?: TenantAcceptanceRead | null;
 }>) {
   const { summary } = workspace;
   const dataExpired = workspace.dataCurrency?.state === "expired";
@@ -410,13 +417,15 @@ export function RenewalWorkspace({
           manualState?.cycleId ?? manualCycleBasis?.dateIso ?? null,
         ])
       : null;
-  const baseStageContext =
-    workspace.renewalStageContext ??
-    renewalStageContextFor(
-      { ...summary, guidance: workspace.guidance },
-      null,
-      workspace.dataCurrency?.readAtIso ?? null,
-    );
+  const baseStageContext = {
+    ...(workspace.renewalStageContext ??
+      renewalStageContextFor(
+        { ...summary, guidance: workspace.guidance },
+        null,
+        workspace.dataCurrency?.readAtIso ?? null,
+      )),
+    tenantAcceptance,
+  };
   // R-S248-7: the confirmed RentVine updates this page read, each with whether its receipt is in.
   const stageContext = rentChargeStatus
     ? {

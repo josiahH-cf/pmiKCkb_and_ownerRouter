@@ -50,22 +50,13 @@ import { getRenewalWorkspace } from "@/lib/firestore/renewal-workspace";
 import {
   getMessagePreparation,
   getMessageRuleBasis,
-  getOfferChargeSelection,
   workspaceMessageBasisFingerprint,
-  type OfferChargeSelectionRead,
 } from "@/lib/firestore/renewal-message-preparations";
-import { readOfferChargeMappings } from "@/lib/firestore/renewal-offer-charge-mappings";
+import { offerChargeSource } from "./offer-snapshot";
 import {
-  projectOfferCharges,
-  type OfferChargeReview,
-  type OfferChargeSource,
-} from "./offer-charges";
-import type { OfferChargeMappingsRead } from "./offer-charge-mapping";
-import {
-  buildOfferSnapshot,
-  offerChargeSource,
-  type FrozenOfferSnapshot,
-} from "./offer-snapshot";
+  composeTenantOfferCharges,
+  type CurrentOfferCharges,
+} from "./tenant-offer-composition";
 import {
   STANDING_AGREEMENT_WORDS,
   adoptedStandingRule,
@@ -211,13 +202,7 @@ export type MessageSignatureOrigin =
  * review from `source`, `mappings` and its own unsaved selection; the server's snapshot is the one
  * the exact claims bind.
  */
-export interface CurrentOfferCharges {
-  readonly source: OfferChargeSource;
-  readonly mappings: OfferChargeMappingsRead;
-  readonly saved: import("./offer-charges").OfferChargeSelection | null;
-  readonly review: OfferChargeReview;
-  readonly snapshot: FrozenOfferSnapshot;
-}
+export type { CurrentOfferCharges };
 
 /** S120 (R120.2): a current non-rent recurring charge a person may deliberately fill a charge from. */
 export interface MessageChargeInventoryLine {
@@ -797,41 +782,19 @@ export async function currentRenewalMessage(
   // S265 resource requirements and every outgoing check.
   let offer: CurrentOfferCharges | null = null;
   if (channel === "tenant") {
-    const [mappings, savedSelection] = await Promise.all([
-      readOfferChargeMappings(db),
-      saved && workspace
-        ? getOfferChargeSelection(actor, leaseId, workspace.cycleId, saved.revision, db)
-        : Promise.resolve<OfferChargeSelectionRead>({ state: "none" }),
-    ]);
-    const source = offerChargeSource(inventory);
-    const review = projectOfferCharges({
+    offer = await composeTenantOfferCharges({
+      actor,
       leaseId,
-      source,
-      mappings,
-      selection: savedSelection.state === "saved" ? savedSelection.selection : null,
-      selectionUnreadable: savedSelection.state === "unreadable",
-      terms: { rent: terms.rent, effectiveDate: terms.effectiveDate },
-      legacyCharges: inputs.charges,
-      legacyInsuranceTransition: inputs.insuranceTransition,
-      legacyOtherChargesComparison: inputs.otherChargesComparison,
+      workspace,
+      working: workingRecord,
+      saved,
+      source: offerChargeSource(inventory),
+      db,
     });
-    if (!mappings.readable)
+    if (!offer.mappings.readable)
       notices.push(
         "The offer charge mappings could not be read. RentVine charge lines wait for review until they read back.",
       );
-    offer = {
-      source,
-      mappings,
-      saved: savedSelection.state === "saved" ? savedSelection.selection : null,
-      review,
-      snapshot: buildOfferSnapshot({
-        leaseId,
-        cycleId: workspace?.cycleId ?? null,
-        working: workingRecord,
-        review,
-        source,
-      }),
-    };
   }
   // S249 R-S249-2: a stored comparison for this cycle reaches the message with no second run. The
   // staff record's saved preparation comes first; else the newest stored lookup for the cycle.

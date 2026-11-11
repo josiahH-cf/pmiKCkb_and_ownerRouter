@@ -42,6 +42,7 @@ import {
   type RenewalStageContext,
 } from "@/lib/lease-renewal/renewal-stage";
 import type { RenewalIssue } from "@/lib/lease-renewal/renewal-issues";
+import { currentAcceptanceRead } from "@/lib/lease-renewal/tenant-acceptance-hold";
 import { fetchWithDeadline } from "@/lib/ui/fetch-lifetime";
 import {
   focusProgrammatically,
@@ -248,6 +249,13 @@ export function useRenewalOutcomeStage(context: RenewalStageContext) {
     working && !working.readUnavailable
       ? housingAssistanceVariant(working.record)
       : context.housingAssistance;
+  // S264 R-S264-6: the tenant message's live read of the acceptance against the current offer
+  // first, then this page's read; the stage counts either only for the current tenant answer.
+  const liveAcceptance = useRenewalNowCard()?.offerAnswers?.view?.acceptance;
+  const tenantAcceptance = currentAcceptanceRead(state, [
+    liveAcceptance,
+    context.tenantAcceptance,
+  ]);
   const stage = useMemo(
     () =>
       projectRenewalStage(
@@ -256,6 +264,7 @@ export function useRenewalOutcomeStage(context: RenewalStageContext) {
           ...context,
           staffRecordUnavailable: readUnavailable,
           housingAssistance,
+          tenantAcceptance,
           // S250 R-S250-6: an applied agreement that no longer covers returns the owner step.
           standingLeft:
             pricing?.view?.authority.kind === "standing" &&
@@ -279,7 +288,15 @@ export function useRenewalOutcomeStage(context: RenewalStageContext) {
         },
         { standingCovered },
       ),
-    [state, context, readUnavailable, standingCovered, pricing, housingAssistance],
+    [
+      state,
+      context,
+      readUnavailable,
+      standingCovered,
+      pricing,
+      housingAssistance,
+      tenantAcceptance,
+    ],
   );
   return { stage, readUnavailable };
 }

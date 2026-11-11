@@ -17,7 +17,13 @@ import { focusRenewalDashboardControl } from "./RenewalDashboardNavigation";
 import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
 import { useRenewalPricingPolicy } from "./RenewalPricingPolicy";
 import { standingRuleBasis } from "@/lib/lease-renewal/standing-agreement";
+import {
+  TENANT_ACCEPTANCE_HOLD_WORDS,
+  TENANT_RESPONSE_TARGET,
+  type TenantAcceptanceHold,
+} from "@/lib/lease-renewal/tenant-acceptance-hold";
 import { SourceUpdatePreview } from "./SourceUpdatePreview";
+import { useLiveAcceptanceHold } from "./useLiveSourceUpdateBasis";
 
 export const FINISH_UP_WORDS = {
   heading: "Source updates from the final terms",
@@ -35,10 +41,16 @@ function Section({
   label,
   section,
   applyTarget,
+  hold,
 }: Readonly<{
   label: string;
   section: FinishUpSourceSection;
   applyTarget: string;
+  /**
+   * S264 R-S264-6: every update here carries the accepted renewal, so each waits; the notice
+   * above the sections names the exact difference once.
+   */
+  hold: TenantAcceptanceHold | null;
 }>) {
   return (
     <section
@@ -72,7 +84,7 @@ function Section({
             </p>
           ))
         : null}
-      {section.state === "ready" ? (
+      {section.state === "ready" && !hold ? (
         <p>
           <Button
             onClick={() => focusRenewalDashboardControl(applyTarget)}
@@ -101,6 +113,8 @@ export function FinishUpSourcePreviews({
   const live = working
     ? effectiveRenewalTerms(working.record ?? null).complete
     : undefined;
+  // S264 R-S264-6: the tenant message's live read first, then this page's read.
+  const hold = useLiveAcceptanceHold(preparation.acceptance);
   const terms = preparation.terms;
   // The previews were assembled from the terms this page read; say so when they moved since.
   const changed =
@@ -135,9 +149,30 @@ export function FinishUpSourcePreviews({
               {FINISH_UP_WORDS.changed}
             </p>
           ) : null}
+          {hold ? (
+            <div
+              className="renewal-notice ui-stack-tight"
+              data-renewal-field="finish-up-acceptance-hold"
+              role="note"
+            >
+              <p>
+                {hold.line} {TENANT_ACCEPTANCE_HOLD_WORDS.finishUp}
+              </p>
+              <p>
+                <Button
+                  onClick={() => focusRenewalDashboardControl(TENANT_RESPONSE_TARGET)}
+                  size="compact"
+                  variant="secondary"
+                >
+                  {TENANT_ACCEPTANCE_HOLD_WORDS.next}
+                </Button>
+              </p>
+            </div>
+          ) : null}
           {preparation.rentvine ? (
             <Section
               applyTarget={preparation.applyTarget}
+              hold={hold}
               label="RentVine"
               section={preparation.rentvine}
             />
@@ -145,6 +180,7 @@ export function FinishUpSourcePreviews({
           {preparation.sheet ? (
             <Section
               applyTarget={preparation.applyTarget}
+              hold={hold}
               label="Operating Sheet"
               section={preparation.sheet}
             />

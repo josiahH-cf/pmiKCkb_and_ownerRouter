@@ -42,9 +42,14 @@ import {
 } from "@/lib/lease-renewal/sheet-writeback/live";
 import {
   SheetWritebackContractError,
+  sheetWritebackExecutionId,
   type SheetWritebackProposal,
   type ValidatedSheetWritebackEffect,
 } from "@/lib/lease-renewal/sheet-writeback/proposal-contract";
+import type { ExternalExecutionStore } from "@/lib/external-execution/types";
+import { acceptanceHoldRefusal } from "@/lib/lease-renewal/offer-answers";
+import { sheetUpdateReliesOnAcceptance } from "@/lib/lease-renewal/tenant-acceptance-hold";
+import { readTenantAcceptanceCheck } from "@/lib/lease-renewal/tenant-offer-composition";
 import { clientSheetWritebackProposal } from "@/lib/lease-renewal/sheet-writeback/client-projection";
 import {
   discardSheetWritebackProposal,
@@ -238,6 +243,34 @@ function workingRentIntentOf(proposal: SheetWritebackProposal): number | null {
     !effect.authorization &&
     typeof effect.staffIntent.value === "number"
     ? effect.staffIntent.value
+    : null;
+}
+
+/**
+ * S264 R-S264-6: the refusal, before any claim, of a new attempt at a Sheet update carrying the
+ * accepted renewal's terms while the recorded tenant acceptance answers an earlier offer's
+ * charges. An attempt already claimed keeps its own reconciliation and receipt replay.
+ */
+async function acceptanceHoldBeforeClaim(
+  user: Awaited<ReturnType<typeof requireCapabilityInSpace>>,
+  leaseId: string,
+  proposal: SheetWritebackProposal,
+  effect: ValidatedSheetWritebackEffect,
+  deps: { readonly store: Pick<ExternalExecutionStore, "get"> },
+): Promise<NextResponse | null> {
+  if (!sheetUpdateReliesOnAcceptance(effect.effect)) return null;
+  const existing = await deps.store.get(sheetWritebackExecutionId(proposal, effect));
+  if (existing && (existing.state !== "ready" || existing.attemptCount !== 0))
+    return null;
+  const check = await readTenantAcceptanceCheck({ actor: user, leaseId });
+  return check?.state === "earlier_offer" && check.line
+    ? NextResponse.json(
+        {
+          error: acceptanceHoldRefusal(check.line),
+          error_type: "acceptance_needs_verification",
+        },
+        { status: 409 },
+      )
     : null;
 }
 
@@ -533,6 +566,10 @@ async function handleRequest(request: Request, read: "status" | "lookup" | null)
       const previewedRent = workingRentIntentOf(proposal);
       if (previewedRent !== null && workingCurrentRent(record) !== previewedRent)
         throw new SheetWorkspaceResolutionError("working_value_changed");
+      // S264 R-S264-6: the renewal date carries the accepted terms, so a new attempt never claims
+      // on a recorded acceptance that answers an earlier offer's charges. App records only.
+      const held = await acceptanceHoldBeforeClaim(user, leaseId, proposal, effect, deps);
+      if (held) return held;
       const outcome = await service.executeEffect({
         proposal,
         effectHash: body.effectHash,
