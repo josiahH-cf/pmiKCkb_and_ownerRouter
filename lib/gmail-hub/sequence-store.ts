@@ -529,6 +529,11 @@ export class FirestoreCommunicationSequenceStore implements SequenceStore {
         ...(threading ? { threading } : {}),
         payloadHash: a.payloadHash,
         claimedAtMs: nowMs,
+        // S264 R-S264-6: the first message keeps the exact offer it carries, so a tenant answer
+        // can name it after a later authorization replaces this one.
+        ...(s.confirmedCount === 0 && a.offerSnapshot
+          ? { offerSnapshot: a.offerSnapshot }
+          : {}),
       };
       const next: CommunicationSequence = {
         ...s,

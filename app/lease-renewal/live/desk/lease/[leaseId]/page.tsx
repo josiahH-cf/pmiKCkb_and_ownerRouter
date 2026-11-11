@@ -7,6 +7,8 @@ import type {
 import { getPacketInputs } from "@/lib/firestore/lease-packet-inputs";
 import { readChargePolicy } from "@/lib/firestore/lease-charge-policy";
 import { packetEconomics } from "@/lib/lease-documents/owner-approval-binding";
+import { readAcceptedTenantOffer } from "@/lib/firestore/renewal-offer-answers";
+import { offerPacketComparisons } from "@/lib/lease-renewal/offer-packet-parity";
 import { ownerRosterFingerprint } from "@/lib/firestore/renewal-workspace";
 import { projectRenewalDeskIdentity } from "@/lib/lease-renewal/desk-identity";
 import { listLeaseOwnerReplies } from "@/lib/gmail-hub/sequence-store";
@@ -369,6 +371,30 @@ export default async function LiveRenewalLeaseWorkspacePage({
     currentPacketRead.state === "read"
       ? evaluateRenewalPacket(currentPacketRead.input)
       : null;
+  // S237 R-S237-1 / S264 R-S264-6: the packet inputs and the published charge policy, read once
+  // for the terms basis below and for the accepted offer's packet parity.
+  const [basisInputs, basisPolicy] = await Promise.all([
+    getPacketInputs(user, leaseId).then(
+      (record) => ({ readable: true as const, record }),
+      () => ({ readable: false as const, record: null }),
+    ),
+    readChargePolicy(),
+  ]);
+  const basisEconomics =
+    basisInputs.readable && basisPolicy.readable
+      ? packetEconomics(leaseId, basisInputs.record, basisPolicy.record)
+      : null;
+  // S264 R-S264-6: a form whose packet carries a shared charge is compared with the exact offer
+  // the tenant's recorded acceptance answers; a difference holds that form alone.
+  const acceptedOffer = await readAcceptedTenantOffer(
+    getAdminFirestore(),
+    renewalAuxiliaryValue(manualRead, null),
+  ).catch(() => null);
+  const offerComparisons = offerPacketComparisons({
+    manifest: artifactManifest,
+    economics: basisEconomics?.calculated ?? null,
+    accepted: acceptedOffer?.snapshot ?? null,
+  });
   const packetFamilyRows = projectLeasePacketReadiness({
     manifest: artifactManifest,
     evaluation: currentPacketEvaluation,
@@ -376,6 +402,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
       readable: familyUseRead.readable,
       families: currentFamilyUse,
     },
+    offerComparisons,
   });
   const packetContextReadiness = projectPacketContextReadiness({
     evaluation: currentPacketEvaluation,
@@ -543,17 +570,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
   // S237 R-S237-1: the terms basis beside every RentVine and Sheet preview, recomputed on each
   // render: Working terms, the recorded approval's coverage and the executed documents. It is shown
   // only; no effect, hash or admission reads it.
-  const [basisInputs, basisPolicy] = await Promise.all([
-    getPacketInputs(user, leaseId).then(
-      (record) => ({ readable: true as const, record }),
-      () => ({ readable: false as const, record: null }),
-    ),
-    readChargePolicy(),
-  ]);
-  const currentEconomicsHash =
-    basisInputs.readable && basisPolicy.readable
-      ? packetEconomics(leaseId, basisInputs.record, basisPolicy.record).hash
-      : null;
+  const currentEconomicsHash = basisEconomics?.hash ?? null;
   // PR #163 review: the panels recompute the basis from the live Working and staff records; these
   // server reads are what it is computed from and its fallback.
   const sourceUpdateTermsBasisInputs: SourceUpdateTermsBasisInputs = {

@@ -6,9 +6,9 @@
 //   evidence; a date or charge change never widens it.
 // - exact_terms: the owner approved the base and the renewal dates as they stood (the S234
 //   capture, including its calculated packet economics). Legacy S234 approvals read as this.
-// - offer_snapshot: the owner approved one exact tenant offer snapshot, identified by S264. It is
-//   typed here so S264 adds the snapshot identity without reworking the boundary; nothing in this
-//   slice records it, so an offer that needs it is held.
+// - offer_snapshot: the owner approved one exact tenant offer snapshot, identified by S264. S264
+//   records it only with the exact-terms answer's own offer record (renewal_offer_answers, bound
+//   in the same transaction as the answer); without that record the answer is exact_terms.
 //
 // Pure and client-safe. No backfill: a recorded answer keeps the scope it actually had.
 
@@ -91,9 +91,19 @@ export type OwnerApprovalScope =
       readonly offer: OfferSnapshotIdentity;
     };
 
-/** The recorded approval's actual scope on this work record, or null when none is recorded. */
+/**
+ * The recorded approval's actual scope on this work record, or null when none is recorded.
+ * S264 R-S264-6: `offerApproval` is the offer the same answer bound with its exact rows (read from
+ * its own record by the answer's event); only an exact-terms answer of this cycle can carry it.
+ * Without it, an exact-terms answer covers the base and dates alone.
+ */
 export function ownerApprovalScope(
   workspace: RenewalWorkspaceState | null | undefined,
+  offerApproval?: {
+    readonly eventId: string;
+    readonly cycleId: string;
+    readonly offer: OfferSnapshotIdentity;
+  } | null,
 ): OwnerApprovalScope | null {
   const response = workspace?.ownerResponse;
   if (!workspace || response?.outcome !== "approved_terms") return null;
@@ -105,13 +115,23 @@ export function ownerApprovalScope(
       rent: base.amount,
       rentRevision: base.workingRevision,
     };
-  return response.approvedWorkingTerms
-    ? {
-        kind: "exact_terms",
-        cycleId: workspace.cycleId,
-        terms: response.approvedWorkingTerms,
-      }
-    : null;
+  if (!response.approvedWorkingTerms) return null;
+  if (
+    offerApproval &&
+    offerApproval.eventId === response.eventId &&
+    offerApproval.cycleId === workspace.cycleId
+  )
+    return {
+      kind: "offer_snapshot",
+      cycleId: workspace.cycleId,
+      terms: response.approvedWorkingTerms,
+      offer: offerApproval.offer,
+    };
+  return {
+    kind: "exact_terms",
+    cycleId: workspace.cycleId,
+    terms: response.approvedWorkingTerms,
+  };
 }
 
 /**
