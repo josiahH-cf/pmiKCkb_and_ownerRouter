@@ -856,7 +856,10 @@ export function RenewalWorkspace({
                                     </div>
                                   ) : null}
                                   {separated && section.id === "comps" ? (
+                                    // S269: Guided view holds this one editor in the Now card's
+                                    // active Work; Full view keeps it here.
                                     <RentToRecommendField
+                                      placement="full"
                                       preparation={stageContext.preparation ?? null}
                                     />
                                   ) : null}

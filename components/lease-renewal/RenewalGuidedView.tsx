@@ -21,8 +21,17 @@ import {
   NOT_PART_OF_PATH_LABEL,
   RENEWAL_PATH_DEFINITION,
   pathStepForLinkStep,
+  type NowCardSlot,
   type RenewalPathStepId,
 } from "@/lib/lease-renewal/renewal-path";
+import { recommendationField } from "@/lib/lease-renewal/current-cycle-terms";
+import {
+  MESSAGE_CONTROL_IDS,
+  WORKING_END_FIELD_ID,
+  WORKING_START_FIELD_ID,
+} from "@/lib/lease-renewal/message-readiness";
+import type { RenewalWorkingRecord } from "@/lib/lease-renewal/working-record";
+import { startDateFixFromOffer, useRenewalLeaseEnd } from "./RenewalDateProposal";
 import {
   RENEWAL_STAGE_NEXT_STEP,
   projectRenewalStage,
@@ -49,12 +58,35 @@ import {
 import {
   HOUSING_ASSISTANCE_TARGETS,
   HousingAssistanceField,
+  programWorkRecorded,
 } from "./RenewalHousingAssistance";
 import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
-import { housingAssistanceVariant } from "@/lib/lease-renewal/working-record";
+import {
+  housingAssistanceFact,
+  housingAssistanceVariant,
+  workingRenewalTerms,
+} from "@/lib/lease-renewal/working-record";
+import { housingAssistanceWork } from "@/lib/lease-renewal/housing-assistance-source";
 import { nowSlotKey, useRenewalNowCard } from "./RenewalNowCardContext";
-import { PreparedNumbersCheck, StoredComparisonSummary } from "./RenewalKickoffFields";
-import { CurrentBaseRentSummary } from "./RenewalCurrentBaseRent";
+import {
+  PreparedNumbersCheck,
+  RentToRecommendField,
+  StoredComparisonSummary,
+} from "./RenewalKickoffFields";
+import {
+  CurrentBaseRentSummary,
+  OwnerCurrentBaseRent,
+  useCurrentBaseRent,
+} from "./RenewalCurrentBaseRent";
+import {
+  GUIDED_PRIORITY_WORDS,
+  guidedReturnLabel,
+  projectGuidedPriority,
+  type GuidedEditorState,
+  type GuidedPriorityExtensions,
+  type GuidedPriorityInput,
+} from "@/lib/lease-renewal/guided-priority";
+import { KICKOFF_WORDS } from "@/lib/lease-renewal/renewal-preparation";
 import { PrepareThisLeaseButton } from "./RenewalKickoffPreparation";
 import { FinishUpSourcePreviews } from "./RenewalFinishUpPreviews";
 import {
@@ -104,16 +136,90 @@ function stepOwning(
   );
 }
 
+/** S269: the one Rent to recommend editor; Guided holds it in Compare market rent's Work. */
+const RENT_TO_RECOMMEND_ID = "renewal-now-rent-to-recommend";
+/** S269: the Now card's one primary action, which an exact return focuses again. */
+const NOW_PRIMARY_ID = "renewal-now-primary";
+
 /**
  * S266: controls this view's Now card renders only on their own step, such as the Housing
- * assistance field on Check the numbers. A request for one chooses that step first.
+ * assistance field on Check the numbers. A request for one chooses that step first. S269 adds
+ * Rent to recommend, which leads Compare market rent's active Work in Guided view.
  */
 const NOW_CARD_CONTROLS: Partial<Record<RenewalPathStepId, readonly string[]>> = {
   "check-numbers": [
     HOUSING_ASSISTANCE_TARGETS.now.field,
     HOUSING_ASSISTANCE_TARGETS.now.contact,
   ],
+  "compare-market": [RENT_TO_RECOMMEND_ID],
 };
+
+/** S269 R-S269-3: the outcome a cross-outcome fix started in, and the control to return to. */
+interface GuidedReturn {
+  readonly stepId: RenewalPathStepId;
+  readonly targetId: string;
+}
+
+/** The existing editors whose save state an outcome's priority reads (S155 autosave states). */
+const OUTCOME_EDITORS: Partial<
+  Record<RenewalPathStepId, readonly { field: string; label: string; target: string }[]>
+> = {
+  "check-numbers": [
+    {
+      field: "current_rent",
+      label: "Working current rent",
+      target: "renewal-working-current-rent",
+    },
+    {
+      field: "housing_assistance",
+      label: "Housing assistance",
+      target: HOUSING_ASSISTANCE_TARGETS.now.field,
+    },
+  ],
+  "compare-market": [
+    {
+      field: "terms_rent",
+      label: KICKOFF_WORDS.rentToRecommend,
+      target: RENT_TO_RECOMMEND_ID,
+    },
+  ],
+  "ask-owner": [
+    {
+      field: "terms_effective_date",
+      label: "Working effective date",
+      target: WORKING_START_FIELD_ID,
+    },
+    {
+      field: "terms_end_date",
+      label: "Working term end date",
+      target: WORKING_END_FIELD_ID,
+    },
+  ],
+};
+
+function outcomeEditors(
+  stepId: RenewalPathStepId,
+  states: Readonly<Record<string, { readonly phase: string; readonly message?: string }>>,
+  record: RenewalWorkingRecord | null,
+): GuidedEditorState[] {
+  return (OUTCOME_EDITORS[stepId] ?? []).flatMap((editor) => {
+    // S262: Rent to recommend saves its own fact once the offer basis has its own value.
+    const field =
+      editor.target === RENT_TO_RECOMMEND_ID ? recommendationField(record) : editor.field;
+    const state = states[field];
+    return state?.phase === "failed" || state?.phase === "saving"
+      ? [
+          {
+            key: field,
+            label: editor.label,
+            target: editor.target,
+            phase: state.phase,
+            ...(state.message ? { message: state.message } : {}),
+          },
+        ]
+      : [];
+  });
+}
 
 function stepRenderingNowControl(
   steps: readonly RenewalPathStepView[],
@@ -471,12 +577,18 @@ export function RenewalGuidedView({
   facts,
   selectedStepId,
   canEdit,
+  priorityExtensions,
 }: Readonly<{
   context: RenewalStageContext;
   facts: RenewalFocusFacts;
   /** The page's `step` value: a path step, or an older step that names one (R-S247-11). */
   selectedStepId?: string;
   canEdit: boolean;
+  /**
+   * S269 extension point: the controls S262, S263, S264, S265 and S268 add, by owner and action
+   * identity, so they take their place in the one priority (lib/lease-renewal/guided-priority).
+   */
+  priorityExtensions?: GuidedPriorityExtensions;
 }>) {
   const view = useRenewalFocusView();
   const { stage, readUnavailable } = useRenewalOutcomeStage(context);
@@ -536,14 +648,38 @@ export function RenewalGuidedView({
   const pendingFocus = useRef<string | null>(null);
   const focusHeading = useRef(false);
   const [announcement, setAnnouncement] = useState("");
+  // R-S269-3: a cross-outcome fix keeps the outcome it started in, for its exact return.
+  const [returnTo, setReturnTo] = useState<GuidedReturn | null>(null);
+  const pendingReturn = useRef<GuidedReturn | null>(null);
 
   const choose = useCallback(
     (id: RenewalPathStepId) => {
       focusHeading.current = true;
+      setReturnTo(null);
       setChosen(id === stage.currentStepId ? "follow-current" : id);
     },
     [stage.currentStepId],
   );
+  /**
+   * Follow an exact fix: reveal and focus its owning control, never operate it. A fix owned by
+   * another outcome keeps this one for "Return to ...". Presentation only.
+   */
+  const followFix = useCallback((lead: GuidedPriorityInput, from: RenewalPathStepId) => {
+    // The focus request below is answered synchronously by the listener in this view, which
+    // takes the return when it opens another outcome.
+    pendingReturn.current =
+      lead.owner !== from ? { stepId: from, targetId: NOW_PRIMARY_ID } : null;
+    focusRenewalDashboardControl(lead.target);
+    pendingReturn.current = null;
+  }, []);
+  const returnToOrigin = useCallback(() => {
+    if (!returnTo) return;
+    pendingFocus.current = returnTo.targetId;
+    setReturnTo(null);
+    setChosen(
+      returnTo.stepId === stage.currentStepId ? "follow-current" : returnTo.stepId,
+    );
+  }, [returnTo, stage.currentStepId]);
   const previouslyRevealed = useRef<RenewalPathStepId | null>(null);
 
   // Reveal the shown step's existing controls in place; everything else stays mounted, hidden.
@@ -613,6 +749,11 @@ export function RenewalGuidedView({
   // view at that control; a control already shown passes through.
   useEffect(() => {
     if (!view) return;
+    // R-S269-3: an exact fix that opens another outcome keeps the one it started in.
+    const keepReturn = (owner: RenewalPathStepId) => {
+      const origin = pendingReturn.current;
+      if (origin && origin.stepId !== owner) setReturnTo(origin);
+    };
     const onRequest = (event: Event) => {
       if (view.view !== "guided") return;
       const id = (event as CustomEvent<{ id: string }>).detail?.id;
@@ -623,6 +764,7 @@ export function RenewalGuidedView({
       if (id && nowOwner) {
         event.preventDefault();
         pendingFocus.current = id;
+        keepReturn(nowOwner.id);
         setChosen(nowOwner.id === stage.currentStepId ? "follow-current" : nowOwner.id);
         return;
       }
@@ -631,6 +773,7 @@ export function RenewalGuidedView({
       const owner = stepOwning(stage.steps, element);
       if (owner) {
         pendingFocus.current = id;
+        keepReturn(owner.id);
         setChosen(owner.id === stage.currentStepId ? "follow-current" : owner.id);
       } else view.showInFull(id);
     };
@@ -657,9 +800,13 @@ export function RenewalGuidedView({
       canEdit={canEdit}
       choose={choose}
       context={context}
+      extensions={priorityExtensions}
       facts={facts}
+      followFix={followFix}
       heading={heading}
       leaseId={context.leaseId}
+      onReturn={returnToOrigin}
+      returnTo={returnTo && returnTo.stepId !== shown.id ? returnTo : null}
       shown={shown}
       showInFull={(id) => view.showInFull(id)}
       stage={stage}
@@ -679,29 +826,43 @@ function focusControl(target: string): boolean {
   return focusRenewalDashboardControl(target);
 }
 
+type GuidedLinks = Readonly<{
+  /** S269: follow an exact fix to its owning control, keeping this outcome for its return. */
+  followFix: (lead: GuidedPriorityInput, from: RenewalPathStepId) => void;
+  /** S269: the outcome an exact fix started in, while another outcome is shown. */
+  returnTo: GuidedReturn | null;
+  onReturn: () => void;
+  extensions?: GuidedPriorityExtensions;
+}>;
+
 function GuidedPane({
   announcement,
   canEdit,
   choose,
   context,
+  extensions,
   facts,
+  followFix,
   heading,
   leaseId,
+  onReturn,
+  returnTo,
   shown,
   showInFull,
   stage,
-}: Readonly<{
-  announcement: string;
-  canEdit: boolean;
-  choose: (id: RenewalPathStepId) => void;
-  context: RenewalStageContext;
-  facts: RenewalFocusFacts;
-  heading: React.RefObject<HTMLHeadingElement | null>;
-  leaseId: string;
-  shown: RenewalPathStepView;
-  showInFull: (id: string | null) => void;
-  stage: RenewalStage;
-}>) {
+}: GuidedLinks &
+  Readonly<{
+    announcement: string;
+    canEdit: boolean;
+    choose: (id: RenewalPathStepId) => void;
+    context: RenewalStageContext;
+    facts: RenewalFocusFacts;
+    heading: React.RefObject<HTMLHeadingElement | null>;
+    leaseId: string;
+    shown: RenewalPathStepView;
+    showInFull: (id: string | null) => void;
+    stage: RenewalStage;
+  }>) {
   const view = useRenewalFocusView();
   // S249 R-S249-1 (D-OP-7): where the numbers check states "Numbers agree" on RentVine, an
   // operating Sheet difference is information on that check, never a second item to work.
@@ -764,9 +925,13 @@ function GuidedPane({
               canEdit={canEdit}
               choose={choose}
               context={context}
+              extensions={extensions}
               facts={facts}
+              followFix={followFix}
               heading={heading}
               leaseId={leaseId}
+              onReturn={onReturn}
+              returnTo={returnTo}
               shown={shown}
               stage={stage}
             />,
@@ -846,21 +1011,26 @@ function NowCard({
   canEdit,
   choose,
   context,
+  extensions,
   facts,
+  followFix,
   heading,
   leaseId,
+  onReturn,
+  returnTo,
   shown,
   stage,
-}: Readonly<{
-  canEdit: boolean;
-  choose: (id: RenewalPathStepId) => void;
-  context: RenewalStageContext;
-  facts: RenewalFocusFacts;
-  heading: React.RefObject<HTMLHeadingElement | null>;
-  leaseId: string;
-  shown: RenewalPathStepView;
-  stage: RenewalStage;
-}>) {
+}: GuidedLinks &
+  Readonly<{
+    canEdit: boolean;
+    choose: (id: RenewalPathStepId) => void;
+    context: RenewalStageContext;
+    facts: RenewalFocusFacts;
+    heading: React.RefObject<HTMLHeadingElement | null>;
+    leaseId: string;
+    shown: RenewalPathStepView;
+    stage: RenewalStage;
+  }>) {
   const router = useRouter();
   const manual = useRenewalManualWorkspace();
   const nowCard = useRenewalNowCard();
@@ -1002,7 +1172,154 @@ function NowCard({
     !blocker && primary?.label === RENEWAL_STAGE_NEXT_STEP.confirmFinished
       ? context.sourceRenewal
       : null;
+
+  // S269 R-S269-1: the one live priority this outcome leads with, read from the stage projection
+  // and the facts this page already holds. Reading it saves, sends and looks up nothing.
+  const working = useRenewalWorkingRecord();
+  const leaseEnd = useRenewalLeaseEnd();
+  const terms = workingRenewalTerms(working?.record ?? null);
+  const baseFacts = {
+    contractualRent: facts.currentRent,
+    providerTotal: facts.leaseTotalRent ?? null,
+    listedRent: facts.unitListedRent ?? null,
+    chargeInventory: facts.chargeInventory,
+  };
+  const base = useCurrentBaseRent(baseFacts);
+  const baseRentFix =
+    base.check !== null && (base.state === "needs_verification" || base.check.leads);
+  const housingActive = housingAssistanceWork({
+    fact: housingAssistanceFact(working?.record),
+    mention: context.housingAssistanceMention === true,
+    recordedProgramWork: programWorkRecorded(state),
+  }).active;
+  const shownIndex = stage.steps.findIndex((step) => step.id === shown.id);
+  const nextApplicable =
+    stage.steps.slice(shownIndex + 1).find((step) => step.state !== "not_part") ?? null;
+  const priority = projectGuidedPriority({
+    stage,
+    shown,
+    canEdit,
+    editors: outcomeEditors(shown.id, working?.states ?? {}, working?.record ?? null),
+    lease: {
+      endMissing: leaseEnd ? leaseEnd.leaseEnd.state !== "verified" : !facts.endDateIso,
+      baseRentFix,
+      chargeFix:
+        preparation?.charges?.state === "difference" ? preparation.charges.fix : null,
+      numbersFix:
+        preparation?.numbers.state === "difference" ? preparation.numbers.fix : null,
+    },
+    housingAssistanceActive: housingActive,
+    comparison: preparation
+      ? {
+          state: preparation.comparison.state,
+          fix: preparation.comparison.fix ?? null,
+        }
+      : null,
+    working:
+      working && !working.readUnavailable
+        ? { rent: terms.rent, effectiveDate: terms.effectiveDate, endDate: terms.endDate }
+        : null,
+    message:
+      audience && fillerActive && filler
+        ? {
+            ready: filler.label === KICKOFF_WORDS.reviewAndSend,
+            label: filler.label,
+            target: `renewal-card-message-${audience}`,
+            reason: filler.reason ?? null,
+          }
+        : null,
+    ownerReply: Boolean(replyDecision),
+    assisted: stage.steps.some(
+      (step) => step.id === "assisted-rent" && step.state !== "not_part",
+    ),
+    standingCovered: stage.steps.some(
+      (step) => step.id === "ask-owner" && step.state === "covered",
+    ),
+    extensions,
+  });
+  const lead = priority.lead;
+  // R-S269-2: Rent to recommend is the outcome's one editable field; Housing assistance joins the
+  // active Work when it is material (S266) and keeps its place while someone is typing in it.
+  const showRent =
+    outcomeLayout && shown.id === "compare-market" && shown.state !== "not_part";
+  const housingDesired: "work" | "optional" = housingActive ? "work" : "optional";
+  const [housingPlacement, setHousingPlacement] = useState(housingDesired);
+  const [housingFocused, setHousingFocused] = useState(false);
+  if (!housingFocused && housingPlacement !== housingDesired)
+    setHousingPlacement(housingDesired);
+  // S261's own correction is the primary when the current base rent is the fix.
+  const basePrimary =
+    lead?.key === "current-base-rent" && working?.canEdit === true && !blocker;
+  /** Follow an exact fix: reveal and focus its owner. A date fix from the offer keeps S263's return. */
+  const follow = (input: GuidedPriorityInput) => {
+    if (
+      shown.id === "offer-tenant" &&
+      (input.key === "renewal-start" || input.key === "renewal-end")
+    ) {
+      startDateFixFromOffer(
+        input.key === "renewal-start" ? "renewalStartDate" : "renewalEndDate",
+        MESSAGE_CONTROL_IDS.readiness("tenant"),
+      );
+      focusRenewalDashboardControl(input.target);
+      return;
+    }
+    followFix(input, shown.id);
+  };
+  // The lead takes the primary's place where it is an exact fix, or where the outcome shows its
+  // field and the action that follows it. Otherwise the stage's own primary stays.
+  const leadPrimary: {
+    readonly label: string;
+    readonly target: string;
+    readonly run: () => void;
+  } | null = (() => {
+    if (!lead || blocker || basePrimary) return null;
+    if (priority.state === "missing" || lead.key === "unfinished") {
+      if (
+        lead.key === "message-fix" ||
+        lead.key === "housing-assistance" ||
+        lead.key === "current-base-rent"
+      )
+        return null;
+      return { label: lead.label, target: lead.target, run: () => follow(lead) };
+    }
+    if (lead.key === "rent-to-recommend" && nextApplicable)
+      return {
+        label: `Continue to ${nextApplicable.label}`,
+        target: `renewal-outcome-${nextApplicable.id}`,
+        run: () => choose(nextApplicable.id),
+      };
+    if (lead.key === "owner-answer" && replyDecision)
+      return {
+        label: lead.label,
+        target: lead.target,
+        run: () => document.getElementById(lead.target)?.focus(),
+      };
+    return null;
+  })();
+  // A finished step offers the next one; it never offers its own first action again.
+  const donePrimary =
+    priority.state === "done" && nextApplicable && !leadPrimary
+      ? {
+          label: `Continue to ${nextApplicable.label}`,
+          target: `renewal-outcome-${nextApplicable.id}`,
+          run: () => choose(nextApplicable.id),
+        }
+      : null;
+  const shownPrimary = leadPrimary ?? donePrimary;
+  // S269: a ready message opens its exact review under the outcome's own words.
+  const fillerLabel =
+    fillerActive && filler
+      ? filler.label === KICKOFF_WORDS.reviewAndSend && audience
+        ? audience === "owner"
+          ? GUIDED_PRIORITY_WORDS.reviewOwnerMessage
+          : GUIDED_PRIORITY_WORDS.reviewTenantOffer
+        : filler.label
+      : null;
   const runPrimary = (event: MouseEvent<HTMLButtonElement>) => {
+    if (shownPrimary) {
+      shownPrimary.run();
+      return;
+    }
     if (coveredOwnerStep && !blocker) {
       choose("offer-tenant");
       return;
@@ -1050,6 +1367,145 @@ function NowCard({
       focusControl(definition.controls[0]);
   };
 
+  const waitingLine =
+    shown.state === "waiting" && isCurrent && stage.waiting
+      ? renewalStageWaitingLine(stage.waiting)
+      : null;
+  const blockerLine = blocker
+    ? stage.stage.key === "retired" || context.staffRecordUnavailable || !blocker.target
+      ? blocker.label
+      : `Needs verification: ${blocker.label}`
+    : null;
+  // R-S269-2: one short cue leads under the heading. The waiting line, the blocker or the not
+  // part line is that cue when it applies; otherwise the priority's own cue, when it has one.
+  const cueKind: "waiting" | "blocker" | "not-part" | "priority" | null =
+    shown.state === "not_part"
+      ? "not-part"
+      : blockerLine
+        ? "blocker"
+        : waitingLine
+          ? "waiting"
+          : priority.cue && priority.state !== "wait"
+            ? "priority"
+            : null;
+  const waitingNode = waitingLine ? (
+    <p
+      data-renewal-field="waiting"
+      data-renewal-priority-cue={cueKind === "waiting" ? true : undefined}
+    >
+      {waitingLine}
+    </p>
+  ) : null;
+  const blockerNode = blockerLine ? (
+    <p
+      className="renewal-notice"
+      data-renewal-priority-cue={cueKind === "blocker" ? true : undefined}
+      role="alert"
+    >
+      {blockerLine}
+    </p>
+  ) : null;
+  const slotNode = (slot: NowCardSlot) => (
+    <div
+      className="renewal-now-slot"
+      data-renewal-now-slot={slot}
+      data-renewal-now-slot-key={nowSlotKey(shown.id, slot)}
+      // Keyed by step, so a different step gets its own slot elements and registrations.
+      key={nowSlotKey(shown.id, slot)}
+      ref={nowCard?.slotRef}
+    >
+      {/* S261: Current base rent is the first rent fact of the numbers check. */}
+      {slot === "prepared-numbers-check" ? (
+        <CurrentBaseRentSummary
+          facts={baseFacts}
+          primaryId={basePrimary ? NOW_PRIMARY_ID : undefined}
+        />
+      ) : null}
+      {preparation && slot === "prepared-numbers-check" ? (
+        <PreparedNumbersCheck preparation={preparation} />
+      ) : null}
+      {preparation && slot === "stored-comparison" ? (
+        <StoredComparisonSummary
+          action={
+            preparation.comparison.state === "none" &&
+            !preparation.comparison.attempted ? (
+              <PrepareThisLeaseButton canPrepare={canEdit} leaseId={leaseId} />
+            ) : null
+          }
+          // S270: the comparable rows are read in Verify market comparison.
+          compact
+          preparation={preparation}
+          // The primary action carries the recovery when it is the lead.
+          showFix={lead?.key !== "comparison-recovery"}
+        />
+      ) : null}
+    </div>
+  );
+  // The numbers summary and the stored comparison are the decision facts of their outcomes, so
+  // they lead its active Work; the message slots keep their place after the next step.
+  const activeSlots: readonly NowCardSlot[] = [
+    "prepared-numbers-check",
+    "stored-comparison",
+  ];
+  const housingField =
+    shown.id === "check-numbers" && shown.state !== "not_part" ? (
+      <div
+        className="ui-stack-tight"
+        data-renewal-housing-slot={housingPlacement}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null))
+            setHousingFocused(false);
+        }}
+        onFocus={() => setHousingFocused(true)}
+      >
+        {/* S251 R-S251-1 / R-S251-2: "Housing assistance" is recorded on Check the numbers. */}
+        <HousingAssistanceField
+          mention={context.housingAssistanceMention === true}
+          placement="now"
+        />
+      </div>
+    ) : null;
+  const rentFirst = lead?.key === "rent-to-recommend" || lead?.key === "editor";
+  const rentField = showRent ? <RentToRecommendField preparation={preparation} /> : null;
+  const primaryNode =
+    sourceCompletion && canEdit ? (
+      <RenewalSourceCompletionControl dates={sourceCompletion} leaseId={leaseId} guided />
+    ) : primary && !sourceCompletion && shown.state !== "not_part" && !basePrimary ? (
+      <p>
+        <Button
+          busy={busy || (!shownPrimary && fillerActive && filler?.busy === true)}
+          data-renewal-now-primary
+          data-renewal-work-primary
+          data-renewal-now-target={
+            shownPrimary?.target ?? (fillerActive ? undefined : primary.target)
+          }
+          disabled={busy || (!shownPrimary && fillerActive && filler?.disabled === true)}
+          id={NOW_PRIMARY_ID}
+          onClick={runPrimary}
+        >
+          {shownPrimary?.label ?? fillerLabel ?? primary.label}
+        </Button>
+        {!shownPrimary && fillerActive && filler?.reason ? (
+          <span
+            className="muted renewal-now-primary-reason"
+            data-renewal-field="send-needs"
+          >
+            {" "}
+            {filler.reason}
+          </span>
+        ) : null}
+      </p>
+    ) : null;
+  const replyNode =
+    replyDecision && manual ? (
+      <RenewalOwnerDecisionFromReply
+        choices={replyDecision}
+        disabled={manual.pending}
+        // S262: the reviewed answer learns whether its save was confirmed.
+        onRecord={(action) => manual.record(action)}
+      />
+    ) : null;
+
   return (
     <>
       <h2
@@ -1064,53 +1520,63 @@ function NowCard({
             ? `Now: ${shown.label}`
             : shown.label}
       </h2>
-      <div className="ui-stack-tight" data-renewal-work data-renewal-outcome={shown.id}>
-        {shown.state === "waiting" && isCurrent && stage.waiting ? (
-          <p data-renewal-field="waiting">{renewalStageWaitingLine(stage.waiting)}</p>
-        ) : null}
-        {blocker ? (
-          <p className="renewal-notice" role="alert">
-            {stage.stage.key === "retired" ||
-            context.staffRecordUnavailable ||
-            !blocker.target
-              ? blocker.label
-              : `Needs verification: ${blocker.label}`}
+      <div
+        className="ui-stack-tight"
+        data-renewal-outcome={shown.id}
+        data-renewal-priority-lead={lead?.key}
+        data-renewal-priority-owner={lead?.owner}
+        data-renewal-priority-state={priority.state}
+        data-renewal-work
+        data-renewal-work-state={
+          priority.state === "reconcile" ? "reconcile" : blocker ? "blocked" : shown.state
+        }
+      >
+        {cueKind === "not-part" ? (
+          <p data-renewal-field="not-part" data-renewal-priority-cue>
+            {NOT_PART_OF_PATH_LABEL}.
           </p>
+        ) : cueKind === "blocker" ? (
+          blockerNode
+        ) : cueKind === "waiting" ? (
+          waitingNode
+        ) : cueKind === "priority" ? (
+          <p data-renewal-priority-cue>{priority.cue}</p>
         ) : null}
+        {cueKind !== "blocker" ? blockerNode : null}
+        {cueKind !== "waiting" ? waitingNode : null}
         {stage.check && isCurrent && !shown.detail?.startsWith("Needs a check") ? (
           <p className="renewal-notice" data-renewal-field="needs-check" role="note">
             Needs a check: {stage.check.sentence}
           </p>
         ) : null}
-        {sourceCompletion && canEdit ? (
-          <RenewalSourceCompletionControl
-            dates={sourceCompletion}
-            leaseId={leaseId}
-            guided
-          />
-        ) : primary && !sourceCompletion && shown.state !== "not_part" ? (
-          <p>
-            <Button
-              busy={busy || (fillerActive && filler?.busy === true)}
-              data-renewal-now-primary
-              data-renewal-work-primary
-              data-renewal-now-target={fillerActive ? undefined : primary.target}
-              disabled={busy || (fillerActive && filler?.disabled === true)}
-              onClick={runPrimary}
-            >
-              {fillerActive && filler ? filler.label : primary.label}
-            </Button>
-            {fillerActive && filler?.reason ? (
-              <span
-                className="muted renewal-now-primary-reason"
-                data-renewal-field="send-needs"
-              >
-                {" "}
-                {filler.reason}
-              </span>
-            ) : null}
-          </p>
-        ) : null}
+        {/* R-S269-2: the active input group: the outcome's decision facts, its field, the one
+            primary action or exact fix with its reason, and the exact return. */}
+        <div
+          className="ui-stack-tight renewal-active-group"
+          data-renewal-active-group={shown.id}
+        >
+          {shown.state !== "not_part"
+            ? definition.slots.filter((slot) => activeSlots.includes(slot)).map(slotNode)
+            : null}
+          {showRent ? <OwnerCurrentBaseRent facts={baseFacts} /> : null}
+          {housingPlacement === "work" ? housingField : null}
+          {rentFirst ? rentField : null}
+          {primaryNode}
+          {priority.crossOutcome && lead?.reason && priority.state !== "missing" ? (
+            <p className="muted" data-renewal-priority-reason>
+              {lead.reason}
+            </p>
+          ) : null}
+          {replyNode}
+          {rentFirst ? null : rentField}
+          {returnTo ? (
+            <p data-renewal-return={returnTo.stepId}>
+              <Button onClick={onReturn} size="compact" variant="secondary">
+                {guidedReturnLabel(returnTo.stepId)}
+              </Button>
+            </p>
+          ) : null}
+        </div>
         <p data-renewal-field="next-step">
           Next step: {stage.nextStep.label}
           {!isCurrent ? (
@@ -1126,18 +1592,8 @@ function NowCard({
             </>
           ) : null}
         </p>
-        {shown.state === "not_part" ? (
-          <p data-renewal-field="not-part">{NOT_PART_OF_PATH_LABEL}.</p>
-        ) : shown.detail ? (
+        {shown.state !== "not_part" && shown.detail ? (
           <p data-renewal-field="now-detail">{shown.detail}</p>
-        ) : null}
-        {replyDecision && manual ? (
-          <RenewalOwnerDecisionFromReply
-            choices={replyDecision}
-            disabled={manual.pending}
-            // S262: the reviewed answer learns whether its save was confirmed.
-            onRecord={(action) => manual.record(action)}
-          />
         ) : null}
         {shown.id === "finish-up" && stage.finishUp.length > 0 ? (
           // R-S248-7: each item in its own words: recorded by staff or verified by the receipt.
@@ -1157,54 +1613,12 @@ function NowCard({
           // R-S249-14 / L42: the source update previews the final terms call for. Read only.
           <FinishUpSourcePreviews preparation={nowCard.finishUp} />
         ) : null}
-        {/* S249 fills these named slots from the one preparation projection (the numbers check,
-          the stored comparison, Rent to recommend) and from the lease's one message record (the
-          message preview and its delivery actions, filled by the message editor). */}
+        {/* S249 fills the message slots from the lease's one message record (the message preview
+          and its delivery actions, filled by the message editor). */}
         {shown.state !== "not_part"
-          ? definition.slots.map((slot) => (
-              <div
-                className="renewal-now-slot"
-                data-renewal-now-slot={slot}
-                data-renewal-now-slot-key={nowSlotKey(shown.id, slot)}
-                // Keyed by step, so a different step gets its own slot elements and registrations.
-                key={nowSlotKey(shown.id, slot)}
-                ref={nowCard?.slotRef}
-              >
-                {/* S261: Current base rent is the first rent fact of the numbers check. */}
-                {slot === "prepared-numbers-check" ? (
-                  <CurrentBaseRentSummary
-                    facts={{
-                      contractualRent: facts.currentRent,
-                      providerTotal: facts.leaseTotalRent ?? null,
-                      listedRent: facts.unitListedRent ?? null,
-                      chargeInventory: facts.chargeInventory,
-                    }}
-                  />
-                ) : null}
-                {preparation && slot === "prepared-numbers-check" ? (
-                  <PreparedNumbersCheck preparation={preparation} />
-                ) : null}
-                {preparation && slot === "stored-comparison" ? (
-                  <StoredComparisonSummary
-                    action={
-                      preparation.comparison.state === "none" &&
-                      !preparation.comparison.attempted ? (
-                        <PrepareThisLeaseButton canPrepare={canEdit} leaseId={leaseId} />
-                      ) : null
-                    }
-                    preparation={preparation}
-                  />
-                ) : null}
-              </div>
-            ))
+          ? definition.slots.filter((slot) => !activeSlots.includes(slot)).map(slotNode)
           : null}
-        {/* S251 R-S251-1 / R-S251-2: "Housing assistance" is recorded on Check the numbers. */}
-        {shown.id === "check-numbers" && shown.state !== "not_part" ? (
-          <HousingAssistanceField
-            mention={context.housingAssistanceMention === true}
-            placement="now"
-          />
-        ) : null}
+        {housingPlacement === "optional" ? housingField : null}
         {derived ? (
           <div className="ui-stack-tight" data-renewal-derived={derived.record.activity}>
             <p className="muted" data-renewal-field="derived-origin">
