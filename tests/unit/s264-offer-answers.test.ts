@@ -26,13 +26,21 @@ import type { RenewalWorkspaceState } from "@/lib/lease-renewal/workspace-state"
 // accepted offer's rows. Synthetic values only.
 
 const CYCLE = "10000000-0000-4000-8000-000000007263";
-function snapshot(petCents: number | null, extra: Partial<OfferSnapshot> = {}): FrozenOfferSnapshot {
+function snapshot(
+  petCents: number | null,
+  extra: Partial<OfferSnapshot> = {},
+): FrozenOfferSnapshot {
   const value: OfferSnapshot = {
     schemaVersion: "renewal-offer-snapshot/v1",
     leaseId: "7263",
     cycleId: CYCLE,
     base: { rent: 920, revision: 2 },
-    dates: { effectiveDate: "2027-02-01", effectiveRevision: 1, endDate: "2028-01-31", endRevision: 1 },
+    dates: {
+      effectiveDate: "2027-02-01",
+      effectiveRevision: 1,
+      endDate: "2028-01-31",
+      endRevision: 1,
+    },
     rows:
       petCents === null
         ? []
@@ -62,7 +70,10 @@ function snapshot(petCents: number | null, extra: Partial<OfferSnapshot> = {}): 
   };
   return { ...offerSnapshotIdentity(value), snapshot: value };
 }
-function answer(party: "tenant" | "owner", offer: FrozenOfferSnapshot | null): OfferAnswerRecord {
+function answer(
+  party: "tenant" | "owner",
+  offer: FrozenOfferSnapshot | null,
+): OfferAnswerRecord {
   return {
     schemaVersion: "renewal-offer-answer/v1",
     leaseId: "7263",
@@ -74,7 +85,12 @@ function answer(party: "tenant" | "owner", offer: FrozenOfferSnapshot | null): O
       party === "owner"
         ? { kind: "owner_reviewed_offer", reviewedByUid: "synthetic-staff" }
         : offer
-          ? { kind: "linked_communication", sequenceId: "s1", occurrenceId: "o1", sentAtMs: 1 }
+          ? {
+              kind: "linked_communication",
+              sequenceId: "s1",
+              occurrenceId: "o1",
+              sentAtMs: 1,
+            }
           : { kind: "unattributed" },
     offer,
     recordedAt: "2026-11-10T15:00:00.000Z",
@@ -106,10 +122,18 @@ describe("S264 AC-S264-6 coverage is rechecked against the current offer", () =>
       state: "current_unknown",
     });
     expect(
-      describeTenantAnswerCoverage("accepted", offerAnswerCoverage(answer("tenant", null), answered)),
-    ).toBe("Current acceptance needs verification: the answer is not linked to one exact offer.");
+      describeTenantAnswerCoverage(
+        "accepted",
+        offerAnswerCoverage(answer("tenant", null), answered),
+      ),
+    ).toBe(
+      "Current acceptance needs verification: the answer is not linked to one exact offer.",
+    );
     expect(
-      describeTenantAnswerCoverage("counter_change_requested", offerAnswerCoverage(answer("tenant", answered), answered)),
+      describeTenantAnswerCoverage(
+        "counter_change_requested",
+        offerAnswerCoverage(answer("tenant", answered), answered),
+      ),
     ).toBe("This answer responds to the current offer.");
   });
 
@@ -118,7 +142,10 @@ describe("S264 AC-S264-6 coverage is rechecked against the current offer", () =>
     expect(readOfferAnswerRecord(record)).toEqual(record);
     const altered = {
       ...record,
-      offer: { ...record.offer!, snapshot: { ...record.offer!.snapshot, mappingVersion: 9 } },
+      offer: {
+        ...record.offer!,
+        snapshot: { ...record.offer!.snapshot, mappingVersion: 9 },
+      },
     };
     expect(readOfferAnswerRecord(altered)).toBeNull();
   });
@@ -126,8 +153,11 @@ describe("S264 AC-S264-6 coverage is rechecked against the current offer", () =>
   it("the save request names one exact offer at most, by its own identity", () => {
     expect(OfferAnswerInputSchema.safeParse({ kind: "unattributed" }).success).toBe(true);
     expect(
-      OfferAnswerInputSchema.safeParse({ kind: "external_offer", executionId: "exec_1", reference: "ok" })
-        .success,
+      OfferAnswerInputSchema.safeParse({
+        kind: "external_offer",
+        executionId: "exec_1",
+        reference: "ok",
+      }).success,
     ).toBe(false);
     expect(
       OfferAnswerInputSchema.safeParse({
@@ -137,7 +167,8 @@ describe("S264 AC-S264-6 coverage is rechecked against the current offer", () =>
       }).success,
     ).toBe(false);
     expect(
-      OfferAnswerInputSchema.safeParse({ kind: "newest_draft", executionId: "exec_1" }).success,
+      OfferAnswerInputSchema.safeParse({ kind: "newest_draft", executionId: "exec_1" })
+        .success,
     ).toBe(false);
   });
 });
@@ -165,22 +196,36 @@ describe("S264 AC-S264-6 the owner's offer scope comes only from the answer's ow
   it("an exact-terms answer with its offer record covers that offer; without it, the base and dates only", () => {
     const binding = ownerOfferApproval(answer("owner", offer));
     const scope = ownerApprovalScope(workspace(undefined), binding);
-    expect(scope).toMatchObject({ kind: "offer_snapshot", offer: { snapshotHash: offer.snapshotHash } });
+    expect(scope).toMatchObject({
+      kind: "offer_snapshot",
+      offer: { snapshotHash: offer.snapshotHash },
+    });
     expect(ownerApprovalScope(workspace(undefined))?.kind).toBe("exact_terms");
     expect(
-      ownerApprovalScope(workspace(undefined), { ...binding!, eventId: "another-answer" })?.kind,
+      ownerApprovalScope(workspace(undefined), { ...binding!, eventId: "another-answer" })
+        ?.kind,
     ).toBe("exact_terms");
-    expect(describeOwnerOfferCoverage(scope, offerAnswerCoverage(answer("owner", offer), offer))).toBe(
-      "The owner's approval covers the current offer, charges included.",
-    );
     expect(
-      describeOwnerOfferCoverage(ownerApprovalScope(workspace(undefined)), { state: "not_attributed" }),
+      describeOwnerOfferCoverage(
+        scope,
+        offerAnswerCoverage(answer("owner", offer), offer),
+      ),
+    ).toBe("The owner's approval covers the current offer, charges included.");
+    expect(
+      describeOwnerOfferCoverage(ownerApprovalScope(workspace(undefined)), {
+        state: "not_attributed",
+      }),
     ).toBe("The owner's approval covers the base and dates, not the offer's charges.");
   });
 
   it("an amount-only answer stays amount-only even beside an offer record", () => {
     const scope = ownerApprovalScope(
-      workspace({ amount: 920, scope: "amount_only", cycleId: CYCLE, workingRevision: 2 }),
+      workspace({
+        amount: 920,
+        scope: "amount_only",
+        cycleId: CYCLE,
+        workingRevision: 2,
+      }),
       ownerOfferApproval(answer("owner", offer)),
     );
     expect(scope?.kind).toBe("amount_only");
@@ -341,7 +386,12 @@ describe("S264 AC-S264-6 packet parity with the accepted offer's rows", () => {
       economics: economics([
         { kind: "insurance", applicable: true, amountCents: 1500, cadence: "monthly" },
         { kind: "animal", applicable: true, amountCents: 4500, cadence: "monthly" },
-        { kind: "animal", applicable: true, amountCents: 30000, cadence: "refundable_deposit" },
+        {
+          kind: "animal",
+          applicable: true,
+          amountCents: 30000,
+          cadence: "refundable_deposit",
+        },
       ]),
       accepted,
     });
@@ -364,12 +414,19 @@ describe("S264 AC-S264-6 packet parity with the accepted offer's rows", () => {
   });
 
   it("a charge only one side carries is a discrepancy; an unpriced packet charge or no acceptance compares nothing", () => {
-    const map = manifest({ renewal_extension: ["charges.resident_benefit_package.monthly"] });
+    const map = manifest({
+      renewal_extension: ["charges.resident_benefit_package.monthly"],
+    });
     expect(
       offerPacketComparisons({
         manifest: map,
         economics: economics([
-          { kind: "resident_benefit_package", applicable: true, amountCents: 3000, cadence: "monthly" },
+          {
+            kind: "resident_benefit_package",
+            applicable: true,
+            amountCents: 3000,
+            cadence: "monthly",
+          },
         ]),
         accepted: snapshot(4500).snapshot,
       }),

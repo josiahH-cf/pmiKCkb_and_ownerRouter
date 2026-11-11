@@ -1373,7 +1373,10 @@ function ResponseForm({
             economicsHash={context.ownerApproval?.economicsHash ?? null}
             state={state}
           />
-          <OwnerOfferCoverageLine answers={offerAnswers} eventId={ownerApproval.eventId} />
+          <OwnerOfferCoverageLine
+            answers={offerAnswers}
+            eventId={ownerApproval.eventId}
+          />
           {/* S262: the saved answer's offer amount and the way on to the tenant offer. */}
           <ContinueToTenantOffer working={workingContext?.record ?? null} />
         </>

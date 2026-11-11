@@ -285,7 +285,8 @@ export function buildOfferAnswersView(input: {
   const tenant = workspace?.tenantResponse ?? null;
   // Each answer's own record, by its event: a record of another answer or party covers nothing.
   const tenantRecord =
-    input.tenantRecord?.party === "tenant" && input.tenantRecord.eventId === tenant?.eventId
+    input.tenantRecord?.party === "tenant" &&
+    input.tenantRecord.eventId === tenant?.eventId
       ? input.tenantRecord
       : null;
   const ownerRecord = input.ownerRecord?.party === "owner" ? input.ownerRecord : null;
@@ -322,7 +323,9 @@ export function buildOfferAnswersView(input: {
           outcome: tenant.outcome,
           eventId: tenant.eventId,
           attribution: tenantRecord?.attribution.kind ?? null,
-          answered: tenantRecord?.offer ? offerSummary(tenantRecord.offer.snapshot) : null,
+          answered: tenantRecord?.offer
+            ? offerSummary(tenantRecord.offer.snapshot)
+            : null,
           coverage: tenantCoverage.state,
           line: describeTenantAnswerCoverage(tenant.outcome, tenantCoverage),
         }
@@ -332,10 +335,10 @@ export function buildOfferAnswersView(input: {
         ? {
             eventId: workspace.ownerResponse.eventId,
             scope: scope.kind,
-          coverage: ownerCoverage.state,
-          line: describeOwnerOfferCoverage(scope, ownerCoverage),
-        }
-      : null,
+            coverage: ownerCoverage.state,
+            line: describeOwnerOfferCoverage(scope, ownerCoverage),
+          }
+        : null,
   };
 }
 

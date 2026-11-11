@@ -99,7 +99,11 @@ vi.mock("@/lib/lease-renewal/writeback/charge-inventory", async (original) => ({
   ...(await original<typeof import("@/lib/lease-renewal/writeback/charge-inventory")>()),
   loadRenewalChargeInventory: async (_client: unknown, leaseId: string) => ({
     leaseId,
-    leaseDates: { startDate: "2026-02-01", endDate: "2027-01-31", increaseEligibilityDate: null },
+    leaseDates: {
+      startDate: "2026-02-01",
+      endDate: "2027-01-31",
+      increaseEligibilityDate: null,
+    },
     asOfDate: "2026-11-10",
     charges: structuredClone(state.charges),
   }),
@@ -177,7 +181,9 @@ const admin: AuthenticatedUser = {
 };
 const LEASE = "9763";
 const RENEWAL = "2027-02-01";
-const ROSTER = [{ label: "Synthetic Owner", sourceRef: "rentvine:export:portfolio.owners[0].name" }];
+const ROSTER = [
+  { label: "Synthetic Owner", sourceRef: "rentvine:export:portfolio.owners[0].name" },
+];
 const APPROVAL: OwnerApprovalInput = {
   party: {
     kind: "owner",
@@ -263,7 +269,8 @@ const context = WorkflowCommunicationContextSchema.parse({
 
 async function currentOffer() {
   clearLiveLeaseCache();
-  return (await currentRenewalMessage(state.actor, LEASE, "tenant", db)).offerCharges!.snapshot;
+  return (await currentRenewalMessage(state.actor, LEASE, "tenant", db)).offerCharges!
+    .snapshot;
 }
 
 /** The tenant message saved through the existing scoped preparation save. */
@@ -280,7 +287,10 @@ async function saveTenant(offerCharges?: OfferChargeSelection) {
       channel: "tenant",
       expectedRevision: saved?.revision ?? 0,
       operationId: randomUUID(),
-      inputs: { ...inputs, leaseOrigin: { kind: "pmi", source: "Synthetic original lease" } },
+      inputs: {
+        ...inputs,
+        leaseOrigin: { kind: "pmi", source: "Synthetic original lease" },
+      },
       ...(offerCharges ? { offerCharges } : {}),
     },
     {
@@ -298,7 +308,11 @@ async function setUp() {
   const mappings = await readOfferChargeMappings(db);
   await saveOfferChargeMappings(
     admin,
-    { entries: [PET], expectedVersion: mappings.record?.version ?? 0, operationId: randomUUID() },
+    {
+      entries: [PET],
+      expectedVersion: mappings.record?.version ?? 0,
+      operationId: randomUUID(),
+    },
     db,
   );
   await publishSuppliedRenewalTemplate(admin, "tenant", db);
@@ -338,8 +352,8 @@ async function record(action: Record<string, unknown>, offer?: Record<string, un
     { ownerRoster: async () => ROSTER },
     {
       currentOfferSnapshot: async () =>
-        (await currentRenewalMessage(state.actor, LEASE, "tenant", db)).offerCharges?.snapshot ??
-        null,
+        (await currentRenewalMessage(state.actor, LEASE, "tenant", db)).offerCharges
+          ?.snapshot ?? null,
     },
   );
 }
@@ -358,7 +372,10 @@ const approvedExact = (scope: "amount_only" | "exact_terms" = "exact_terms") => 
 
 /** Send the tenant offer now through the real target, authorization and dispatch. */
 async function sendTenantOffer() {
-  const sent = new Map<string, { messageId: string; threadId: string; labelIds: string[]; sentAtMs: number }>();
+  const sent = new Map<
+    string,
+    { messageId: string; threadId: string; labelIds: string[]; sentAtMs: number }
+  >();
   const service = new WorkflowCommunicationSequenceService({
     store: new FirestoreCommunicationSequenceStore(db),
     resolveTarget: resolveCommunicationTarget,
@@ -477,7 +494,11 @@ describe("S264 AC-S264-6 the answers keep the exact offer they covered", () => {
     expect(frozen.snapshotHash).toBe(approvedOffer.snapshotHash);
     const accepted = await record(
       { kind: "tenant_response", outcome: "accepted" },
-      { kind: "linked_communication", sequenceId: send.sequenceId, occurrenceId: send.occurrenceId },
+      {
+        kind: "linked_communication",
+        sequenceId: send.sequenceId,
+        occurrenceId: send.occurrenceId,
+      },
     );
     expect(accepted.offerAnswer).toMatchObject({
       party: "tenant",
@@ -536,8 +557,12 @@ describe("S264 AC-S264-6 the answers keep the exact offer they covered", () => {
       .doc(send.occurrenceId)
       .get();
     expect(kept.get("offerSnapshot")).toEqual(frozen);
-    expect(await readOfferAnswer(db, owner.offerAnswer!.eventId)).toEqual(owner.offerAnswer);
-    expect(await readOfferAnswer(db, accepted.offerAnswer!.eventId)).toEqual(accepted.offerAnswer);
+    expect(await readOfferAnswer(db, owner.offerAnswer!.eventId)).toEqual(
+      owner.offerAnswer,
+    );
+    expect(await readOfferAnswer(db, accepted.offerAnswer!.eventId)).toEqual(
+      accepted.offerAnswer,
+    );
 
     // The response editors read both answers' coverage with the tenant message's own read.
     clearLiveLeaseCache();
@@ -606,8 +631,10 @@ describe("S264 AC-S264-6 the answers keep the exact offer they covered", () => {
       },
     ]);
     expect(
-      offerPacketComparisons({ ...petPacket([4500]), accepted: acceptedOffer.snapshot })[0]
-        ?.state,
+      offerPacketComparisons({
+        ...petPacket([4500]),
+        accepted: acceptedOffer.snapshot,
+      })[0]?.state,
     ).toBe("match");
   });
 
@@ -637,8 +664,14 @@ describe("S264 AC-S264-6 the answers keep the exact offer they covered", () => {
 
     // A wait answers no offer.
     await expect(
-      record({ kind: "tenant_response", outcome: "awaiting_response" }, { kind: "unattributed" }),
-    ).rejects.toMatchObject({ status: 400, message: "Only a tenant decision answers an offer." });
+      record(
+        { kind: "tenant_response", outcome: "awaiting_response" },
+        { kind: "unattributed" },
+      ),
+    ).rejects.toMatchObject({
+      status: 400,
+      message: "Only a tenant decision answers an offer.",
+    });
     // An acceptance not tied to one exact offer is recorded with that scope.
     const unattributed = await record(
       { kind: "tenant_response", outcome: "accepted" },
@@ -653,36 +686,51 @@ describe("S264 AC-S264-6 the answers keep the exact offer they covered", () => {
         "accepted",
         offerAnswerCoverage(unattributed.offerAnswer!, reviewed),
       ),
-    ).toBe("Current acceptance needs verification: the answer is not linked to one exact offer.");
+    ).toBe(
+      "Current acceptance needs verification: the answer is not linked to one exact offer.",
+    );
     expect(
-      await readAcceptedTenantOffer(db, await getRenewalWorkspace(state.actor, LEASE, db)),
+      await readAcceptedTenantOffer(
+        db,
+        await getRenewalWorkspace(state.actor, LEASE, db),
+      ),
     ).toBeNull();
 
     // An app-prepared offer counts only once its draft was created and staff say where they
     // verified it was sent; an unused draft attempt is refused.
     const workspace = (await getRenewalWorkspace(state.actor, LEASE, db))!;
     const draft = (executionId: string) =>
-      db.collection("renewal_message_draft_snapshots").doc(executionId).set({
-        leaseId: LEASE,
-        cycleId: workspace.cycleId,
-        channel: "tenant",
-        claimBasis: {
-          offerCharges: {
-            snapshotId: reviewed.snapshotId,
-            snapshotHash: reviewed.snapshotHash,
-            mappingVersion: reviewed.snapshot.mappingVersion,
-            snapshot: reviewed.snapshot,
+      db
+        .collection("renewal_message_draft_snapshots")
+        .doc(executionId)
+        .set({
+          leaseId: LEASE,
+          cycleId: workspace.cycleId,
+          channel: "tenant",
+          claimBasis: {
+            offerCharges: {
+              snapshotId: reviewed.snapshotId,
+              snapshotHash: reviewed.snapshotHash,
+              mappingVersion: reviewed.snapshot.mappingVersion,
+              snapshot: reviewed.snapshot,
+            },
           },
-        },
-      });
+        });
     await draft("exec_created");
-    await db.collection("action_executions").doc("exec_created").set({ state: "Succeeded" });
+    await db
+      .collection("action_executions")
+      .doc("exec_created")
+      .set({ state: "Succeeded" });
     await draft("exec_unused");
     await db.collection("action_executions").doc("exec_unused").set({ state: "Ready" });
     await expect(
       record(
         { kind: "tenant_response", outcome: "accepted" },
-        { kind: "external_offer", executionId: "exec_unused", reference: "Synthetic Gmail Sent entry" },
+        {
+          kind: "external_offer",
+          executionId: "exec_unused",
+          reference: "Synthetic Gmail Sent entry",
+        },
       ),
     ).rejects.toMatchObject({ status: 409 });
     const external = await record(
@@ -709,7 +757,11 @@ describe("S264 AC-S264-6 the answers keep the exact offer they covered", () => {
       reviewed,
     );
     expect(view.candidates).toEqual([
-      expect.objectContaining({ kind: "external_offer", executionId: "exec_created", current: true }),
+      expect.objectContaining({
+        kind: "external_offer",
+        executionId: "exec_created",
+        current: true,
+      }),
     ]);
     expect(view.tenant).toMatchObject({
       attribution: "external_offer",

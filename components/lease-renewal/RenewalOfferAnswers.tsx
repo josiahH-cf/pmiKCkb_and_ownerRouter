@@ -13,7 +13,10 @@
 import { useId, useState } from "react";
 
 import { Button, Field } from "@/components/ui";
-import type { OfferAnswerInput, OfferAnswersView } from "@/lib/lease-renewal/offer-answers";
+import type {
+  OfferAnswerInput,
+  OfferAnswersView,
+} from "@/lib/lease-renewal/offer-answers";
 
 import { useRenewalNowCard, type OfferAnswersRead } from "./RenewalNowCardContext";
 

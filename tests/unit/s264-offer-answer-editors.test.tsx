@@ -88,7 +88,9 @@ describe("S264 AC-S264-6 the tenant response names the exact offer it answers", 
       "Answers the offer: Rent $920.00 per month; Pet rent $45.00 per month.",
     );
     const choice = screen.getByLabelText("Which offer does this answer respond to?");
-    expect([...(choice as HTMLSelectElement).options].map((option) => option.textContent)).toEqual([
+    expect(
+      [...(choice as HTMLSelectElement).options].map((option) => option.textContent),
+    ).toEqual([
       "Choose the offer",
       "Sent 11/9/2026: Rent $920.00 per month; Pet rent $45.00 per month",
       "Gmail draft prepared 11/8/2026, sent from Gmail: Rent $920.00 per month; Pet rent $45.00 per month",
@@ -133,7 +135,9 @@ describe("S264 AC-S264-6 the tenant response names the exact offer it answers", 
     );
     expect(screen.queryByRole("note")).not.toBeInTheDocument();
     expect(screen.queryByText(/^Answers the offer:/)).not.toBeInTheDocument();
-    expect(screen.getByLabelText("Which offer does this answer respond to?")).toBeEnabled();
+    expect(
+      screen.getByLabelText("Which offer does this answer respond to?"),
+    ).toBeEnabled();
   });
 
   it("a wait or a check answers no offer, and an unread view asks nothing; an unreadable one says so", () => {
@@ -223,7 +227,9 @@ describe("S264 AC-S264-6 the view travels with the tenant message read", () => {
   it("keeps only a view in the expected shape", () => {
     expect(offerAnswersViewOf(VIEW)).toBe(VIEW);
     expect(offerAnswersViewOf(undefined)).toBeNull();
-    expect(offerAnswersViewOf({ ...VIEW, candidates: [{ kind: "newest_draft" }] })).toBeNull();
+    expect(
+      offerAnswersViewOf({ ...VIEW, candidates: [{ kind: "newest_draft" }] }),
+    ).toBeNull();
     expect(offerAnswersViewOf({ ...VIEW, tenant: { outcome: "accepted" } })).toBeNull();
     expect(
       offerAnswersViewOf({ ...VIEW, owner: { ...VIEW.owner!, eventId: undefined } }),
