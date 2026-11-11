@@ -567,12 +567,23 @@ async function captureScene(scene) {
   }
 }
 
+// The Full view click leaves the pointer and focus where the toggle was. After the frame scroll
+// either can rest on a section's info button, which inverts while hovered or focused, so one
+// capture differed from the next (document-handoff, November 11). Release both before each frame
+// so every capture shows the settled default state. A string keeps tsx helpers out of the page.
+const RELEASE_INFO_FOCUS = `(() => {
+  const active = document.activeElement;
+  if (active instanceof HTMLElement && active.matches(".info-tip-trigger")) active.blur();
+})()`;
+
 // The first screenshot commits the pending layout. If an upstream read moved the heading
 // during that paint, reframe it before accepting an image of the settled section.
 async function captureWorkspaceFrame(page, target, phase, sceneId) {
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const frameTop = await target.evaluate(FRAME_WORKSPACE_SECTION, phase);
     assert.equal(typeof frameTop, "number", sceneId + " needs its Full workspace frame.");
+    await page.mouse.move(0, 0);
+    await page.evaluate(RELEASE_INFO_FOCUS);
     const png = await page.screenshot({ animations: "disabled", caret: "hide" });
     const { top } = await target.evaluate(PLACEMENT);
     if (top === frameTop) return png;
