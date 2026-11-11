@@ -29,6 +29,7 @@ import type { RenewalWorkingRecord } from "@/lib/lease-renewal/working-record";
 import {
   RenewalManualProvider,
   RenewalManualSection,
+  useFinishUpLead,
 } from "@/components/lease-renewal/RenewalManualWorkspace";
 import {
   RentRecommendationSummary,
@@ -60,6 +61,7 @@ import {
 } from "@/components/lease-renewal/RenewalGuidedView";
 import type { RenewalPathStepId } from "@/lib/lease-renewal/renewal-path";
 import { GUIDED_SECONDARY_WORK_LABELS } from "@/lib/lease-renewal/guided-priority";
+import { RenewalWorkingTermsReveal } from "@/components/lease-renewal/RenewalWorkingTermsReveal";
 import { formatMoneyReference } from "@/lib/lease-renewal/current-rent-display";
 import { RenewalNowCardProvider } from "@/components/lease-renewal/RenewalNowCardContext";
 import type { FinishUpPreparation } from "@/lib/lease-renewal/finish-up-preparation";
@@ -868,9 +870,19 @@ export function RenewalWorkspace({
                                             <RenewalManualSection
                                               section={section.id}
                                               currentRent={workspace.currentRent}
+                                              workingTermsApart={section.id === "owner"}
                                             />
                                             {renderPhase(section.steps[0], "work")}
                                           </div>
+                                        ) : undefined
+                                      }
+                                      // S270: the one Working renewal terms editor, its own
+                                      // named reveal in Ask the owner's Work.
+                                      workingTerms={
+                                        separated &&
+                                        section.steps[0] &&
+                                        section.id === "owner" ? (
+                                          <RenewalWorkingTermsReveal />
                                         ) : undefined
                                       }
                                     />
@@ -984,52 +996,45 @@ export function RenewalWorkspace({
                                       {/* S270: the outcome's active Work first: the packet (S268
                                         leads it), the current follow-up with the source updates,
                                         or the completion record. */}
-                                      {stepId === "document-packet"
-                                        ? renderPhase(stepId, "work")
-                                        : null}
-                                      <RenewalManualSection
-                                        section="documents"
-                                        documentOutcome={documentOutcome(stepId)}
-                                        moveOutInitiated={
-                                          summary.moveOut?.state === "initiated"
-                                        }
-                                        currentRent={workspace.currentRent}
-                                        part={
-                                          documentOutcome(stepId) === "finish-up"
-                                            ? "lead"
-                                            : undefined
-                                        }
-                                      />
-                                      {stepId !== "document-packet"
-                                        ? renderPhase(stepId, "work")
-                                        : null}
-                                      {/* Then its one named group; Complete has none. */}
-                                      {stepId === "document-packet" ? (
-                                        <RenewalSecondaryWork
-                                          label={GUIDED_SECONDARY_WORK_LABELS.documents!}
-                                          stepId="documents"
-                                        >
-                                          {resourceLocationsPanel}
-                                          <RenewalPolicyContentPanel />
-                                        </RenewalSecondaryWork>
-                                      ) : documentOutcome(stepId) === "finish-up" ? (
-                                        <RenewalSecondaryWork
-                                          label={
-                                            GUIDED_SECONDARY_WORK_LABELS["finish-up"]!
+                                      {documentOutcome(stepId) === "finish-up" ? (
+                                        <FinishUpFollowUps
+                                          currentRent={workspace.currentRent}
+                                          moveOutInitiated={
+                                            summary.moveOut?.state === "initiated"
                                           }
-                                          stepId="finish-up"
                                         >
+                                          {renderPhase(stepId, "work")}
+                                        </FinishUpFollowUps>
+                                      ) : (
+                                        <>
+                                          {stepId === "document-packet"
+                                            ? renderPhase(stepId, "work")
+                                            : null}
                                           <RenewalManualSection
                                             section="documents"
-                                            documentOutcome="finish-up"
+                                            documentOutcome={documentOutcome(stepId)}
                                             moveOutInitiated={
                                               summary.moveOut?.state === "initiated"
                                             }
                                             currentRent={workspace.currentRent}
-                                            part="rest"
                                           />
-                                        </RenewalSecondaryWork>
-                                      ) : null}
+                                          {stepId !== "document-packet"
+                                            ? renderPhase(stepId, "work")
+                                            : null}
+                                          {/* Then its one named group; Complete has none. */}
+                                          {stepId === "document-packet" ? (
+                                            <RenewalSecondaryWork
+                                              label={
+                                                GUIDED_SECONDARY_WORK_LABELS.documents!
+                                              }
+                                              stepId="documents"
+                                            >
+                                              {resourceLocationsPanel}
+                                              <RenewalPolicyContentPanel />
+                                            </RenewalSecondaryWork>
+                                          ) : null}
+                                        </>
+                                      )}
                                     </RenewalFullOutcome>
                                   ) : (
                                     <>
@@ -1258,6 +1263,49 @@ function DoThisNext({
       {projected.primary.redirected ? null : phaseLink}
       {issueDisclosure}
     </Card>
+  );
+}
+
+/**
+ * S270 Finish up: the follow-up its Work holds with the source updates, then the outcome's work,
+ * then "Other follow-ups". Both parts read the one lead (useFinishUpLead), which stays while the
+ * person works here, so recording a follow-up never moves its form (R-S269-3).
+ */
+function FinishUpFollowUps({
+  children,
+  currentRent,
+  moveOutInitiated,
+}: Readonly<{
+  children: ReactNode;
+  currentRent?: number | null;
+  moveOutInitiated: boolean;
+}>) {
+  const lead = useFinishUpLead();
+  return (
+    <>
+      <RenewalManualSection
+        section="documents"
+        documentOutcome="finish-up"
+        moveOutInitiated={moveOutInitiated}
+        currentRent={currentRent}
+        part="lead"
+        leadActivity={lead}
+      />
+      {children}
+      <RenewalSecondaryWork
+        label={GUIDED_SECONDARY_WORK_LABELS["finish-up"]!}
+        stepId="finish-up"
+      >
+        <RenewalManualSection
+          section="documents"
+          documentOutcome="finish-up"
+          moveOutInitiated={moveOutInitiated}
+          currentRent={currentRent}
+          part="rest"
+          leadActivity={lead}
+        />
+      </RenewalSecondaryWork>
+    </>
   );
 }
 

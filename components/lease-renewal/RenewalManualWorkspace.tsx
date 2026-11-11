@@ -58,6 +58,7 @@ import {
   type RenewalCycleBasis,
   type RenewalWorkspaceAction,
   type RenewalWorkspaceState,
+  type StaffActivityRecord,
 } from "@/lib/lease-renewal/workspace-state";
 import {
   outreachFillFor,
@@ -114,10 +115,63 @@ interface ManualContext {
   ownerApproval?: OwnerApprovalChoices;
   /** S248: the lease's message evidence, read into the staff lane as the desk row reads it. */
   outreachEvidence?: LeaseOutreachEvidence | null;
+  /**
+   * R-S269-3 / S270: each activity's unsaved entry by activity, for this lease page's lifetime, so
+   * an entry survives its form moving (Finish up moves the next follow-up from Other follow-ups
+   * into its Work when the one before it is recorded). Presentation state only; saves nothing.
+   */
+  activityDrafts?: Map<ManualActivity, ActivityDraft>;
+}
+/** An activity form's entry that differs from its saved record, with the fields typed in. */
+interface ActivityDraft {
+  readonly outcome: StaffActivityRecord["outcome"];
+  readonly source: string;
+  readonly reason: string;
+  readonly occurredAt: string;
+  readonly touched: readonly string[];
 }
 const Context = createContext<ManualContext | null>(null);
 export function useRenewalManualWorkspace() {
   return useContext(Context);
+}
+
+/** The first follow-up with no done or not applicable record, in the outcome's order. */
+function firstOpenFollowUp(
+  state: RenewalWorkspaceState | null,
+  activities: readonly ManualActivity[],
+): ManualActivity | null {
+  return (
+    activities.find((key) => {
+      const outcome = state ? currentStaffActivity(state, key)?.outcome : undefined;
+      return outcome !== "done" && outcome !== "not_applicable";
+    }) ?? null
+  );
+}
+
+const FINISH_UP_ACTIVITIES = (Object.keys(MANUAL_ACTIVITIES) as ManualActivity[]).filter(
+  (key) =>
+    MANUAL_ACTIVITIES[key].section === "documents" &&
+    STEP_FOR_ACTIVITY[key] === "finish-up",
+);
+
+/**
+ * S270 / R-S269-3: the follow-up Finish up's Work holds. It is the first open follow-up when the
+ * person arrives (the page opens, the view switches or the Guided outcome changes) and stays the
+ * same while they work there, so recording it never moves its form, its focus or its typed
+ * entries under them. The next one takes its place at the next arrival. Presentation only.
+ */
+export function useFinishUpLead(): ManualActivity | null {
+  const state = useRenewalManualWorkspace()?.state ?? null;
+  const view = useRenewalFocusView();
+  const first = firstOpenFollowUp(state, FINISH_UP_ACTIVITIES);
+  const arrival = `${view?.view ?? ""}:${view?.nowPresentation?.stepId ?? ""}`;
+  const [kept, setKept] = useState<{
+    readonly arrival: string;
+    readonly lead: ManualActivity | null;
+  } | null>(null);
+  // Until the staff record is read, the lead follows it.
+  if (state && (!kept || kept.arrival !== arrival)) setKept({ arrival, lead: first });
+  return state && kept && kept.arrival === arrival ? kept.lead : first;
 }
 interface ManualProviderProps {
   writebackPaused?: boolean;
@@ -493,6 +547,7 @@ function ActiveManualProvider({
   }
   const covered = useStandingOwnerAuthority(state?.revision ?? 0);
   const workingRecord = useRenewalWorkingRecord();
+  const [activityDrafts] = useState(() => new Map<ManualActivity, ActivityDraft>());
   // S248: the same evidence fill the desk row reads; the recorded work card names its next step.
   const summary = manualRenewalSummary(state, {
     standingOwnerAuthority: covered,
@@ -515,6 +570,7 @@ function ActiveManualProvider({
         prepareDerivedSource,
         ownerApproval,
         outreachEvidence: outreachEvidence ?? null,
+        activityDrafts,
       }}
     >
       <div className="renewal-primary-progress" data-renewal-focus-context>
@@ -621,7 +677,16 @@ export function RenewalManualSection({
   moveOutInitiated = false,
   currentRent = null,
   part,
+  workingTermsApart = false,
+  leadActivity,
 }: {
+  /**
+   * S270: Ask the owner's outcome layout shows the one Working renewal terms editor as its own
+   * named reveal (RenewalWorkingTermsReveal) instead of inside the owner's response.
+   */
+  workingTermsApart?: boolean;
+  /** S270: the follow-up Finish up's Work holds (useFinishUpLead), shared by both parts. */
+  leadActivity?: ManualActivity | null;
   section: "owner" | "tenant" | "documents";
   documentOutcome?: "documents" | "finish-up" | "complete";
   /**
@@ -680,10 +745,9 @@ export function RenewalManualSection({
   // S270: the first follow-up without a done or not applicable record leads Finish up.
   const leadFollowUp =
     part && documentOutcome === "finish-up"
-      ? (activities.find((key) => {
-          const outcome = state ? currentStaffActivity(state, key)?.outcome : undefined;
-          return outcome !== "done" && outcome !== "not_applicable";
-        }) ?? null)
+      ? leadActivity !== undefined
+        ? leadActivity
+        : firstOpenFollowUp(state, activities)
       : null;
   const partActivities =
     part === "lead"
@@ -724,7 +788,9 @@ export function RenewalManualSection({
       {section === "owner" && assisted ? (
         <AssistedRenewalControls currentRent={currentRent} />
       ) : null}
-      {section === "owner" ? <ResponseForm audience="owner" /> : null}
+      {section === "owner" ? (
+        <ResponseForm audience="owner" workingTermsApart={workingTermsApart} />
+      ) : null}
       {section === "tenant" ? <ResponseForm audience="tenant" /> : null}
       {afterResponse.map(activityForm)}
       {section === "documents" && (!documentOutcome || documentOutcome === "complete") ? (
@@ -835,15 +901,38 @@ function ActivityForm({ activity }: { activity: ManualActivity }) {
     definition = MANUAL_ACTIVITIES[activity],
     current = state ? currentStaffActivity(state, activity) : null,
     historical = state?.activities[activity];
+  // R-S269-3 / S270: an unsaved entry kept for this activity (its form moved, as Finish up moves
+  // the next follow-up into its Work) comes back exactly as it was left.
+  const drafts = context.activityDrafts;
+  const [kept] = useState(() => drafts?.get(activity) ?? null);
   const id = useId(),
-    [outcome, setOutcome] = useState(current?.outcome ?? "not_started"),
-    [source, setSource] = useState(savedSource(current?.source)),
-    [reason, setReason] = useState(current?.reason ?? ""),
-    [occurredAt, setOccurredAt] = useState(toLocalDateTime(current?.occurredAt));
+    [outcome, setOutcome] = useState<StaffActivityRecord["outcome"]>(
+      kept?.outcome ?? current?.outcome ?? "not_started",
+    ),
+    [source, setSource] = useState(kept?.source ?? savedSource(current?.source)),
+    [reason, setReason] = useState(kept?.reason ?? current?.reason ?? ""),
+    [occurredAt, setOccurredAt] = useState(
+      kept?.occurredAt ?? toLocalDateTime(current?.occurredAt),
+    );
   // The fields the person has typed in since the last save. A newer saved record (another
   // operator, a new work record) refreshes every other field, so a later autosave never carries a
   // stale value over a colleague's entry.
-  const [touched, setTouched] = useState<ReadonlySet<string>>(() => new Set());
+  const [touched, setTouched] = useState<ReadonlySet<string>>(
+    () => new Set(kept?.touched ?? []),
+  );
+  const outcomeEdited = outcome !== (current?.outcome ?? "not_started");
+  useEffect(() => {
+    if (!drafts) return;
+    if (touched.size > 0 || outcomeEdited)
+      drafts.set(activity, {
+        outcome,
+        source,
+        reason,
+        occurredAt,
+        touched: [...touched],
+      });
+    else drafts.delete(activity);
+  }, [drafts, activity, outcome, source, reason, occurredAt, touched, outcomeEdited]);
   const touch = (field: string) =>
     setTouched((current) => (current.has(field) ? current : new Set(current).add(field)));
   const setDirty = (value: boolean) => {
@@ -995,7 +1084,54 @@ function ActivityForm({ activity }: { activity: ManualActivity }) {
     </details>
   );
 }
-function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
+/**
+ * S263/S270: the one Working renewal terms editor: the way back to a tenant offer that opened a
+ * date fix, the verified current lease end kept apart from the working renewal dates, the dates
+ * (and, in the earlier layout, the working rent) and the owner-approved terms recorded earlier.
+ */
+export function WorkingRenewalTermsFields({ rent }: Readonly<{ rent: boolean }>) {
+  const recordedTerms = useRenewalManualWorkspace()?.state?.ownerResponse?.terms;
+  return (
+    <>
+      <ReturnToTenantOffer />
+      <CurrentLeaseEndFact />
+      {rent ? (
+        <WorkingMoneyField field="terms_rent" label="Working monthly rent" />
+      ) : null}
+      <WorkingDateField
+        controlId={WORKING_START_CONTROL_ID}
+        field="terms_effective_date"
+        label="Working effective date"
+      >
+        <RenewalStartSuggestion />
+      </WorkingDateField>
+      <WorkingDateField
+        controlId={WORKING_END_CONTROL_ID}
+        field="terms_end_date"
+        label="Working term end date"
+      >
+        <RenewalEndDateCheck />
+      </WorkingDateField>
+      {recordedTerms ? (
+        <p className="muted">
+          Owner-approved terms recorded earlier on this cycle:{" "}
+          {USD.format(recordedTerms.rent)} from{" "}
+          {formatCalendarDate(recordedTerms.effectiveDate)} to{" "}
+          {formatCalendarDate(recordedTerms.endDate)}.
+        </p>
+      ) : null}
+    </>
+  );
+}
+
+function ResponseForm({
+  audience,
+  workingTermsApart = false,
+}: {
+  audience: "owner" | "tenant";
+  /** S270: Ask the owner shows the Working renewal terms as its own named reveal. */
+  workingTermsApart?: boolean;
+}) {
   const outcomeLayout = useRenewalFocusView()?.outcomeLayout ?? false;
   const context = useRenewalManualWorkspace()!,
     state = context.state,
@@ -1132,7 +1268,6 @@ function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
   }
   const [newApproval, setNewApproval] = useState(false);
   const ownerApproval = audience === "owner" ? state?.ownerResponse : undefined;
-  const recordedTerms = audience === "owner" ? state?.ownerResponse?.terms : undefined;
   return (
     <div id={`renewal-manual-${audience}_response`} tabIndex={-1} className="ui-stack">
       <RenewalSectionHeading
@@ -1286,40 +1421,13 @@ function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
             : ""}
         </p>
       ) : null}
-      {audience === "owner" ? (
+      {/* S270: in Ask the owner's outcome layout the terms are their own named reveal. */}
+      {audience === "owner" && !workingTermsApart ? (
         <div className="ui-stack" id="renewal-working-terms">
           <RenewalSectionHeading id="working-terms" as="h3">
             Working renewal terms
           </RenewalSectionHeading>
-          {/* S263: the way back to a tenant offer that opened a date fix, then the verified
-              current lease end, kept apart from the working renewal dates. */}
-          <ReturnToTenantOffer />
-          <CurrentLeaseEndFact />
-          {!outcomeLayout ? (
-            <WorkingMoneyField field="terms_rent" label="Working monthly rent" />
-          ) : null}
-          <WorkingDateField
-            controlId={WORKING_START_CONTROL_ID}
-            field="terms_effective_date"
-            label="Working effective date"
-          >
-            <RenewalStartSuggestion />
-          </WorkingDateField>
-          <WorkingDateField
-            controlId={WORKING_END_CONTROL_ID}
-            field="terms_end_date"
-            label="Working term end date"
-          >
-            <RenewalEndDateCheck />
-          </WorkingDateField>
-          {recordedTerms ? (
-            <p className="muted">
-              Owner-approved terms recorded earlier on this cycle:{" "}
-              {USD.format(recordedTerms.rent)} from{" "}
-              {formatCalendarDate(recordedTerms.effectiveDate)} to{" "}
-              {formatCalendarDate(recordedTerms.endDate)}.
-            </p>
-          ) : null}
+          <WorkingRenewalTermsFields rent={!outcomeLayout} />
         </div>
       ) : null}
     </div>
