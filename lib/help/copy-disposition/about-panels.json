@@ -95,16 +95,22 @@
     "kind": "about",
     "location": "lib/lease-renewal/section-help.ts",
     "aboutId": "rent-and-charges",
-    "text": "The one working area for rent and charge facts. Current rent is what the tenant is billed: your working value if you entered one, otherwise the single current rent-account charge, otherwise the contractual lease rent, each labelled with where it came from. Contractual lease rent, Lease total (RentVine) and Unit listed rent keep their own meanings and are never added to the rent. Each recurring charge is listed with its account classification and billing period; charges outside the current schedule sit behind a disclosure.",
+    "text": "The one working area for rent and charge facts. Current base rent is your working correction if you entered one; otherwise the single current rent-account charge, unless the contractual base rent differs from it; otherwise the contractual base rent, each labelled with where it came from. When RentVine's sources disagree or no base rent is recorded, it reads Needs verification until you correct it. Lease total (RentVine) and Unit listed rent keep their own meanings and are never added to the rent, and a separate recurring charge such as pet rent is listed apart from the base. Each recurring charge is listed with its account classification and billing period; charges outside the current schedule sit behind a disclosure.",
     "describes": "Rent and charges working area and destination status",
     "disposition": "correct",
-    "contradicts": ["S242"],
+    "contradicts": ["S242", "S261"],
     "corrections": [
       {
         "field": "notDone",
         "before": "A future offer does not change today's rent or the Sheet current rent.",
         "after": "An offer that starts later does not change today's rent or the Sheet current rent.",
         "rule": "Help copy describes present behavior without roadmap wording."
+      },
+      {
+        "field": "purpose",
+        "before": "The one working area for rent and charge facts. Current rent is what the tenant is billed: your working value if you entered one, otherwise the single current rent-account charge, otherwise the contractual lease rent, each labelled with where it came from. Contractual lease rent, Lease total (RentVine) and Unit listed rent keep their own meanings and are never added to the rent. Each recurring charge is listed with its account classification and billing period; charges outside the current schedule sit behind a disclosure.",
+        "after": "The one working area for rent and charge facts. Current base rent is your working correction if you entered one; otherwise the single current rent-account charge, unless the contractual base rent differs from it; otherwise the contractual base rent, each labelled with where it came from. When RentVine's sources disagree or no base rent is recorded, it reads Needs verification until you correct it. Lease total (RentVine) and Unit listed rent keep their own meanings and are never added to the rent, and a separate recurring charge such as pet rent is listed apart from the base. Each recurring charge is listed with its account classification and billing period; charges outside the current schedule sit behind a disclosure.",
+        "rule": "S261: Current base rent is the working correction, else the single current rent-account charge unless the contractual base differs, else the contractual base; a disagreement reads Needs verification, and totals, listings and separate charges are never the base."
       }
     ]
   },
@@ -234,16 +240,28 @@
     "kind": "about",
     "location": "lib/lease-renewal/section-help.ts",
     "aboutId": "owner-response",
-    "text": "Records what the owner actually answered. Choosing Approved asks who approved, how and when, and Record approval saves it; any other answer saves when you choose it.",
-    "describes": "Owner response choice and structured approval evidence",
+    "text": "Records what the owner actually answered. Choose the outcome first. For an approval, enter Amount approved and what the answer covers, name who approved, how and when, then choose Review the owner's answer and Save the owner's answer; any other answer saves when you choose it.",
+    "describes": "Owner response choice and the owner's answer: amount approved, coverage and evidence",
     "disposition": "correct",
-    "contradicts": ["S234"],
+    "contradicts": ["S234", "S262"],
     "corrections": [
       {
         "field": "purpose",
         "before": "Records what the owner actually answered. The answer saves when you choose it; the source or channel is optional.",
-        "after": "Records what the owner actually answered. Choosing Approved asks who approved, how and when, and Record approval saves it; any other answer saves when you choose it.",
+        "after": "Records what the owner actually answered. Choose the outcome first. For an approval, enter Amount approved and what the answer covers, name who approved, how and when, then choose Review the owner's answer and Save the owner's answer; any other answer saves when you choose it.",
         "rule": "An approval is recorded as structured evidence with Record approval; other answers save when chosen."
+      },
+      {
+        "field": "purpose",
+        "before": "Records what the owner actually answered. Choosing Approved asks who approved, how and when, and Record approval saves it; any other answer saves when you choose it.",
+        "after": "Records what the owner actually answered. Choose the outcome first. For an approval, enter Amount approved and what the answer covers, name who approved, how and when, then choose Review the owner's answer and Save the owner's answer; any other answer saves when you choose it.",
+        "rule": "S262: an approval records Amount approved and what the answer covers with who approved, how and when, and saves through Review the owner's answer and Save the owner's answer; Working renewal terms is its own section."
+      },
+      {
+        "field": "saves",
+        "before": "The response is stored with this lease's recorded work. Working renewal terms are kept separately below and stay whatever the owner has answered.",
+        "after": "The response is stored with this lease's recorded work. A saved approval makes Amount approved the offer amount for this renewal and never replaces Rent to recommend. The renewal dates stay in Working renewal terms, its own section.",
+        "rule": "S262: an approval records Amount approved and what the answer covers with who approved, how and when, and saves through Review the owner's answer and Save the owner's answer; Working renewal terms is its own section."
       }
     ]
   },

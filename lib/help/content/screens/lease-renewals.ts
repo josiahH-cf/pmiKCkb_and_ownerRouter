@@ -713,7 +713,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         region: "region:Market rent comparison",
         availability: "required",
         source: ["lib/lease-renewal/renewal-preparation.ts"],
-        does: "Your recommendation to the owner; it saves by itself and fills the owner message. The owner's saved answer, not this field, sets the offer amount.",
+        does: "Your recommendation to the owner; it saves by itself and fills the owner message. The offer uses the same amount until a saved owner's answer sets the amount approved; after that, Use this amount for the offer adopts a different recommendation deliberately, and it is not an owner approval.",
         who: "Renewal staff",
         route: LEASE,
         actions: FULL_VIEW,

@@ -133,7 +133,7 @@ export const HELP_GLOSSARY: readonly HelpGlossaryTerm[] = [
     id: "rent-to-recommend",
     term: "Rent to recommend",
     definition:
-      "The renewal rent staff recommend to the owner, set on Compare market rent with its basis in words. It is a staff recommendation: the owner's answer is recorded separately and never replaces it.",
+      "The renewal rent staff recommend to the owner, set on Compare market rent with its basis in words. It is a staff recommendation: the owner's answer is recorded separately and never replaces it. Until a saved owner's answer sets the amount approved, the offer uses the same amount.",
     relatedGuides: ["compare-rent", "train-and-review"],
   },
   {
@@ -202,7 +202,7 @@ export const HELP_GLOSSARY: readonly HelpGlossaryTerm[] = [
     id: "working-renewal-terms",
     term: "Working renewal terms",
     definition:
-      "The renewal rent and dates you are working with for one lease. Messages and update previews read them, and they change only when you edit them.",
+      "The renewal base rent and dates you are working with for one lease. Messages and update previews read them. The base rent follows Rent to recommend until a saved owner's answer sets the amount approved, and the dates are entered in Working renewal terms.",
     relatedGuides: ["compare-rent", "owner-message"],
   },
   {

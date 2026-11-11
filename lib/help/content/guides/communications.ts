@@ -325,7 +325,7 @@ export const COMMUNICATIONS_GUIDES: readonly HelpGuide[] = [
       "Copying the message, saving a draft or creating an unsent Gmail draft sends nothing and records no delivery.",
       "Recording an owner response approves nothing on the owner's behalf and writes nothing to RentVine or the Sheet.",
       "A recorded approval covers only what it names, the base rent alone or the base rent and the renewal dates; other charges are reviewed with the tenant offer, and after a covered value changes the owner's approval needs recording again.",
-      "Rent to recommend is a staff recommendation; only the saved owner's answer sets the offer amount.",
+      "Rent to recommend is a staff recommendation, not the owner's approval; saving the owner's answer sets the offer amount to Amount approved.",
       "Follow-up timing sets no reminder or deadline, and paused follow-ups send nothing until a fresh review and Resume reviewed sequence.",
     ],
     relatedGuides: ["compare-rent", "tenant-offer", "work-a-renewal"],

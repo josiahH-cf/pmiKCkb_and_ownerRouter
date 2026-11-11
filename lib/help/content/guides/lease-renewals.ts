@@ -943,7 +943,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "The amount saves in the app. Ask the owner shows this same amount and links back to its editor.",
         effect: "saves-in-app",
-        note: "Preparation can fill an empty amount using a verified basis. Your saved amount takes precedence. Rent to recommend stays your recommendation to the owner: the amount the owner approves is recorded with the owner's answer and never replaces it.",
+        note: "Preparation can fill an empty amount using a verified basis. Your saved amount takes precedence. Rent to recommend stays your recommendation to the owner: the amount the owner approves is recorded with the owner's answer and never replaces it. The offer uses this amount until the owner's answer is saved; after that, Use this amount for the offer adopts a changed recommendation for the offer deliberately, and it is not an owner approval.",
       },
       {
         id: "enter-working-terms",

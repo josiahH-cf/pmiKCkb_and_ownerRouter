@@ -107,14 +107,18 @@
   {
     "kind": "process-guide",
     "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
-    "text": "Owner response and exact terms | Record the response. Approved asks who approved, how and when, and Record approval saves it; any other answer saves when chosen. The rent and dates live in Working renewal terms.",
+    "text": "Owner response and exact terms | Record the response, outcome first. Approved asks Amount approved, what the answer covers and who approved, how and when, then Review the owner's answer and Save the owner's answer save it; any other answer saves when chosen. The renewal dates live in Working renewal terms.",
     "describes": "Process guide entry: Owner response and exact terms",
     "disposition": "correct",
-    "contradicts": ["S234"],
+    "contradicts": ["S234", "S262"],
     "corrections": [
       {
         "before": "Owner response and exact terms | Record the response; it saves when chosen and its source is optional. The rent and dates live in Working renewal terms.",
-        "after": "Owner response and exact terms | Record the response. Approved asks who approved, how and when, and Record approval saves it; any other answer saves when chosen. The rent and dates live in Working renewal terms."
+        "after": "Owner response and exact terms | Record the response, outcome first. Approved asks Amount approved, what the answer covers and who approved, how and when, then Review the owner's answer and Save the owner's answer save it; any other answer saves when chosen. The renewal dates live in Working renewal terms."
+      },
+      {
+        "before": "Owner response and exact terms | Record the response. Approved asks who approved, how and when, and Record approval saves it; any other answer saves when chosen. The rent and dates live in Working renewal terms.",
+        "after": "Owner response and exact terms | Record the response, outcome first. Approved asks Amount approved, what the answer covers and who approved, how and when, then Review the owner's answer and Save the owner's answer save it; any other answer saves when chosen. The renewal dates live in Working renewal terms."
       }
     ]
   },

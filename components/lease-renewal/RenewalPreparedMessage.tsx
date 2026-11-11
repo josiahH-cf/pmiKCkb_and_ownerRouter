@@ -35,6 +35,7 @@ import type {
 } from "@/lib/gmail-hub/sequence-model";
 import type { WorkflowCommunicationContext } from "@/lib/gmail-hub/workflow-context";
 import { BUSINESS_TIME_ZONE } from "@/lib/lease-renewal/business-calendar";
+import { GUIDED_PRIORITY_WORDS } from "@/lib/lease-renewal/guided-priority";
 import { messageRevisionLabel } from "@/lib/lease-renewal/message-revision";
 import { STALE_REFINED_BODY_MESSAGE } from "@/lib/lease-renewal/refined-message";
 import { NOTICE_GENERATION_NOT_READY } from "@/lib/lease-renewal/notice-source-error";
@@ -398,6 +399,15 @@ function PreparedMessageBlock({
   const router = useRouter();
   const working = useRenewalWorkingRecord();
   const pricing = useRenewalPricingPolicy();
+  // The action that opens this message's exact review, as the person sees it: Guided names it for
+  // its outcome (S269), while Full view and the assisted renewal question show "Review and send".
+  const focusView = useRenewalFocusView();
+  const reviewAction =
+    !full && focusView?.view === "guided" && step === "ask-owner"
+      ? GUIDED_PRIORITY_WORDS.reviewOwnerMessage
+      : !full && focusView?.view === "guided" && step === "offer-tenant"
+        ? GUIDED_PRIORITY_WORDS.reviewTenantOffer
+        : KICKOFF_WORDS.reviewAndSend;
   // S250 R-S250-8: the tenant offer names the standing agreement's rule as the rent's basis.
   const ruleBasis =
     api.channel === "tenant"
@@ -658,7 +668,7 @@ function PreparedMessageBlock({
           working?.hasUnsettled?.(workingFields) ||
           working?.confirmedVersion?.(workingFields) !== workingVersion,
         );
-      const changedMessage = `Working figures changed while this review was loading. Your entries are kept. Choose ${mode === "schedule" ? KICKOFF_WORDS.schedule : KICKOFF_WORDS.reviewAndSend} again to review the current message.`;
+      const changedMessage = `Working figures changed while this review was loading. Your entries are kept. Choose ${mode === "schedule" ? KICKOFF_WORDS.schedule : reviewAction} again to review the current message.`;
       const readComposition = () =>
         json<{
           context: WorkflowCommunicationContext;
@@ -711,7 +721,7 @@ function PreparedMessageBlock({
             }
             if (attempt >= SAVE_RETRIES)
               throw new Error(
-                "The draft save did not answer. Choose Review and send again: the same save is sent again, so no second draft is made.",
+                `The draft save did not answer. Choose ${mode === "schedule" ? KICKOFF_WORDS.schedule : reviewAction} again: the same save is sent again, so no second draft is made.`,
               );
           }
         }
