@@ -66,6 +66,11 @@ const VIEW: OfferAnswersView = {
     coverage: "earlier_offer",
     line: "The owner approved an earlier offer, so the current offer's charges are not covered. Pet rent changed ($45.00 to $50.00).",
   },
+  acceptance: {
+    eventId: "event-1",
+    state: "earlier_offer",
+    line: "Current acceptance needs verification: it answers an earlier offer. Pet rent changed ($45.00 to $50.00).",
+  },
 };
 
 describe("S264 AC-S264-6 the tenant response names the exact offer it answers", () => {
@@ -234,6 +239,18 @@ describe("S264 AC-S264-6 the view travels with the tenant message read", () => {
     expect(
       offerAnswersViewOf({ ...VIEW, owner: { ...VIEW.owner!, eventId: undefined } }),
     ).toBeNull();
+  });
+
+  it("AC-S264-6 keeps the acceptance check only in its shape; a read without one holds nothing", () => {
+    expect(
+      offerAnswersViewOf({ ...VIEW, acceptance: { eventId: "event-1", state: "done" } }),
+    ).toBeNull();
+    expect(
+      offerAnswersViewOf({ ...VIEW, acceptance: { state: "earlier_offer", line: "x" } }),
+    ).toBeNull();
+    const earlier: Record<string, unknown> = { ...VIEW };
+    delete earlier.acceptance;
+    expect(offerAnswersViewOf(earlier)?.acceptance).toBeNull();
   });
 
   it("the response editors read the view the tenant message published, with no request", () => {

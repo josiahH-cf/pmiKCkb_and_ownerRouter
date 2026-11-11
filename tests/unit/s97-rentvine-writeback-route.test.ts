@@ -24,6 +24,20 @@ const mocks = vi.hoisted(() => ({
   writerFailsAfterApply: false,
   projection: vi.fn(async () => ({})),
   progress: null as unknown,
+  /** S264 R-S264-6: the tenant acceptance read the hold sees; null holds nothing. */
+  acceptance: null as null | { eventId: string; state: string; line: string | null },
+  acceptanceReads: 0,
+}));
+
+// S264 R-S264-6: the acceptance hold reads the app's records; these doubles say what it reads.
+vi.mock("@/lib/lease-renewal/tenant-offer-composition", () => ({
+  readTenantAcceptanceCheck: vi.fn(async () => {
+    mocks.acceptanceReads += 1;
+    return mocks.acceptance;
+  }),
+}));
+vi.mock("@/lib/firestore/renewal-offer-sources", () => ({
+  keepOfferSource: vi.fn(async () => undefined),
 }));
 
 vi.mock("@/lib/auth/session", async (importActual) => ({
@@ -233,6 +247,8 @@ describe("S97 rentvine-writeback route", () => {
     mocks.writerCalls = [];
     mocks.writerFailsAfterApply = false;
     mocks.projection.mockClear();
+    mocks.acceptance = null;
+    mocks.acceptanceReads = 0;
     LEASE.startDate = "2025-09-01";
     LEASE.endDate = "2026-08-31";
     LEASE.increaseEligibilityDate = null;
@@ -541,6 +557,56 @@ describe("S97 rentvine-writeback route", () => {
     expect(second.status).toBe(200);
     const duplicate = (await second.json()) as { duplicate: boolean };
     expect(duplicate.duplicate).toBe(true);
+    expect(mocks.writerCalls.filter((call) => call === "updateLease")).toHaveLength(1);
+  });
+
+  it("AC-S264-6 an acceptance of an earlier offer holds a new attempt before its claim; a claimed attempt keeps its receipt", async () => {
+    const { previewHash, effectHash } = await proposeDatesChange();
+    mocks.gateOpen = true;
+    const line =
+      "Current acceptance needs verification: it answers an earlier offer. Pet rent changed ($45.00 to $50.00).";
+    mocks.acceptance = { eventId: "event-accepted", state: "earlier_offer", line };
+    const held = await post({
+      operation: "execute",
+      leaseId: "4821",
+      previewHash,
+      effectHash,
+      confirm: true,
+    });
+    expect(held.status).toBe(409);
+    expect(await held.json()).toEqual({
+      error: `${line} This update was not sent. Record the tenant's answer for the current offer, then confirm this update again.`,
+      error_type: "acceptance_needs_verification",
+    });
+    expect(mocks.writerCalls).toEqual([]);
+    expect(
+      ((mocks.deps as RenewalWritebackDependencies).store as MemoryExternalExecutionStore)
+        .records.size,
+    ).toBe(0);
+    // Once the answer covers the current offer, the same confirmation claims once.
+    mocks.acceptance = { eventId: "event-accepted", state: "covers", line: null };
+    const applied = await post({
+      operation: "execute",
+      leaseId: "4821",
+      previewHash,
+      effectHash,
+      confirm: true,
+    });
+    expect(applied.status).toBe(200);
+    expect(mocks.writerCalls.filter((call) => call === "updateLease")).toHaveLength(1);
+    // A claimed attempt replays its receipt; the hold never stands in front of it.
+    mocks.acceptance = { eventId: "event-accepted", state: "earlier_offer", line };
+    const reads = mocks.acceptanceReads;
+    const again = await post({
+      operation: "execute",
+      leaseId: "4821",
+      previewHash,
+      effectHash,
+      confirm: true,
+    });
+    expect(again.status).toBe(200);
+    expect(((await again.json()) as { duplicate: boolean }).duplicate).toBe(true);
+    expect(mocks.acceptanceReads).toBe(reads);
     expect(mocks.writerCalls.filter((call) => call === "updateLease")).toHaveLength(1);
   });
 

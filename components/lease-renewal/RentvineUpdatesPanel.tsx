@@ -2,11 +2,16 @@
 import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import { RemainingDifferences } from "@/components/lease-renewal/RemainingDifferences";
 import {
+  useLiveAcceptanceHold,
   useLiveRemainingDifferences,
   useLiveTermsBasis,
   type RemainingDifferencesInputs,
   type SourceUpdateTermsBasisInputs,
 } from "@/components/lease-renewal/useLiveSourceUpdateBasis";
+import {
+  rentvineUpdateReliesOnAcceptance,
+  type TenantAcceptanceRead,
+} from "@/lib/lease-renewal/tenant-acceptance-hold";
 import {
   formatCalendarDate,
   formatSourceCalendarDate,
@@ -136,6 +141,7 @@ export function RentvineUpdatesPanel({
   remainingDifferencesInputs = null,
   futureRentExecutionReady = null,
   currentBaseReadback = null,
+  tenantAcceptance = null,
 }: Readonly<{
   leaseId: string;
   role: Role;
@@ -160,8 +166,14 @@ export function RentvineUpdatesPanel({
   futureRentExecutionReady?: boolean | null;
   /** S117: the refreshed base-rent comparison after a succeeded current-base charge update. */
   currentBaseReadback?: CurrentBaseReadback | null;
+  /** S264 R-S264-6: this page's read of the tenant acceptance against the current offer. */
+  tenantAcceptance?: TenantAcceptanceRead | null;
 }>) {
   const termsBasis = useLiveTermsBasis(termsBasisInputs);
+  const acceptanceHold = useLiveAcceptanceHold(
+    tenantAcceptance,
+    termsBasisInputs?.workspace,
+  );
   const remainingDifferences = useLiveRemainingDifferences(remainingDifferencesInputs);
   const router = useRouter();
   const [inventory, setInventory] = useState(initialInventory);
@@ -212,6 +224,12 @@ export function RentvineUpdatesPanel({
   // page derives that; the server re-checks it on every confirmation.
   const futureBlocked =
     proposal?.business_intent === "future_rent" && futureRentExecutionReady === false;
+  // S264 R-S264-6: an update carrying the accepted renewal waits while the tenant's recorded
+  // acceptance answers an earlier offer; the server refuses the same attempt before its claim.
+  const heldForAcceptance =
+    proposal && rentvineUpdateReliesOnAcceptance(proposal.business_intent)
+      ? acceptanceHold
+      : null;
   const proposalLifecycleLocked =
     proposal !== null &&
     (effects === null ||
@@ -556,6 +574,7 @@ export function RentvineUpdatesPanel({
                       inventory,
                       identity,
                     })}
+                    hold={state === "not_started" ? heldForAcceptance : null}
                   />
                   <p className="muted">
                     {effect.reversal_kind === "none"
@@ -617,7 +636,10 @@ export function RentvineUpdatesPanel({
                   ) : null}
                   {executor ? (
                     <div className="ui-actions">
-                      {state === "not_started" && !expired && !futureBlocked ? (
+                      {state === "not_started" &&
+                      !expired &&
+                      !futureBlocked &&
+                      !heldForAcceptance ? (
                         <Button
                           disabled={pending}
                           onClick={() => void run(() => executeEffect(effect))}

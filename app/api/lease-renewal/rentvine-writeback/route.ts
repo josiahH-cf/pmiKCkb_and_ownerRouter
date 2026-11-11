@@ -1,5 +1,10 @@
 import { EditableLayerError } from "@/lib/firestore/errors";
+import { keepOfferSource } from "@/lib/firestore/renewal-offer-sources";
 import { ensureRenewalWorkRecord } from "@/lib/firestore/renewal-workspace";
+import { acceptanceHoldRefusal } from "@/lib/lease-renewal/offer-answers";
+import { offerChargeSource } from "@/lib/lease-renewal/offer-snapshot";
+import { rentvineUpdateReliesOnAcceptance } from "@/lib/lease-renewal/tenant-acceptance-hold";
+import { readTenantAcceptanceCheck } from "@/lib/lease-renewal/tenant-offer-composition";
 import { readEffectiveRenewalTerms } from "@/lib/firestore/renewal-effective-terms";
 import { getRenewalWorkingRecord } from "@/lib/firestore/renewal-working-record";
 import {
@@ -400,6 +405,8 @@ async function assembleProposal(
       resolveRenewalWorkBasis(user, body.leaseId),
     );
     const inventory = await loadRenewalChargeInventory(deps.reads, body.leaseId);
+    // S264 R-S264-6: the lines this preview read are the claim's basis for the tenant's answer.
+    await keepOfferSource(body.leaseId, offerChargeSource(inventory));
     renewalTerms = {
       cycleId: workRecord.cycleId,
       termsRevision: current.revision,
@@ -496,6 +503,35 @@ async function archivedGenerationStatuses(
       };
     }),
   );
+}
+
+/**
+ * S264 R-S264-6: the refusal, before any claim, of a new attempt at an update that applies the
+ * accepted renewal while the recorded tenant acceptance answers an earlier offer's charges. Null
+ * lets the update continue to its existing checks and one-attempt claim.
+ */
+async function acceptanceHoldBeforeClaim(
+  user: Awaited<ReturnType<typeof requireCapabilityInSpace>>,
+  proposal: RenewalWritebackProposal,
+  effect: ValidatedRenewalWritebackEffect,
+  service: RenewalWritebackService,
+): Promise<NextResponse | null> {
+  if (!rentvineUpdateReliesOnAcceptance(proposal.businessIntent)) return null;
+  const { record } = await service.readEffectExecution(proposal, effect.effectHash);
+  if (record && (record.state !== "ready" || record.attemptCount !== 0)) return null;
+  const check = await readTenantAcceptanceCheck({
+    actor: user,
+    leaseId: proposal.leaseId,
+  });
+  return check?.state === "earlier_offer" && check.line
+    ? NextResponse.json(
+        {
+          error: acceptanceHoldRefusal(check.line),
+          error_type: "acceptance_needs_verification",
+        },
+        { status: 409 },
+      )
+    : null;
 }
 
 /** Project the value-free receipt evidence; a failure never re-writes the provider (ARCH-S97-4). */
@@ -747,7 +783,7 @@ async function handleRequest(request: Request, statusOnly: boolean) {
       }
       // S156/S160: a future-rent effect stays confirmable while the working renewal terms are
       // still the exact amount and dates it was prepared from. That is value integrity, checked
-      // again inside the one-attempt claim. No approval or acceptance record is consulted.
+      // again inside the one-attempt claim. No approval or acceptance is required.
       if (
         proposal.businessIntent === "future_rent" &&
         (!proposal.renewalTerms ||
@@ -765,6 +801,11 @@ async function handleRequest(request: Request, statusOnly: boolean) {
           { status: 409 },
         );
       }
+      // S264 R-S264-6: an update that applies the accepted renewal never claims on a recorded
+      // acceptance that answers an earlier offer's charges. Only a new attempt is held: one already
+      // claimed keeps its own recovery and receipt replay. App records only; no provider call.
+      const held = await acceptanceHoldBeforeClaim(user, proposal, effect, service);
+      if (held) return held;
       const outcome = await service.executeEffect({
         proposal,
         effectHash: body.effectHash,

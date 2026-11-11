@@ -1,9 +1,14 @@
 "use client";
 import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import {
+  useLiveAcceptanceHold,
   useLiveTermsBasis,
   type SourceUpdateTermsBasisInputs,
 } from "@/components/lease-renewal/useLiveSourceUpdateBasis";
+import {
+  sheetUpdateReliesOnAcceptance,
+  type TenantAcceptanceRead,
+} from "@/lib/lease-renewal/tenant-acceptance-hold";
 import { formatBusinessTimestamp } from "@/lib/date-display";
 
 import { RenewalSectionHeading } from "@/components/lease-renewal/RenewalSectionHeading";
@@ -154,6 +159,7 @@ export function OperatingSheetPanel({
   initialFieldValues = {},
   fieldCells = {},
   writebackPaused = false,
+  tenantAcceptance = null,
 }: Readonly<{
   role: Role;
   /**
@@ -180,8 +186,23 @@ export function OperatingSheetPanel({
    * and read-only reconciliation continue; only the Sheet update itself is unavailable.
    */
   writebackPaused?: boolean;
+  /** S264 R-S264-6: this page's read of the tenant acceptance against the current offer. */
+  tenantAcceptance?: TenantAcceptanceRead | null;
 }>) {
   const termsBasis = useLiveTermsBasis(termsBasisInputs);
+  // S264 R-S264-6: the renewal date carries the accepted renewal, so its update waits while the
+  // tenant's recorded acceptance answers an earlier offer; the server refuses the same attempt.
+  const acceptanceHold = useLiveAcceptanceHold(
+    tenantAcceptance,
+    termsBasisInputs?.workspace,
+  );
+  const heldForAcceptance = (effect: SheetWritebackClientEffect) =>
+    sheetUpdateReliesOnAcceptance({
+      kind: effect.kind,
+      ...(typeof effect.effect.field === "string" ? { field: effect.effect.field } : {}),
+    })
+      ? acceptanceHold
+      : null;
   const router = useRouter();
   const workingRecord = useRenewalWorkingRecord();
   const workingRent = workingCurrentRent(workingRecord?.record);
@@ -479,6 +500,7 @@ export function OperatingSheetPanel({
               const status = statusByHash.get(effect.effect_hash);
               const state = status?.state ?? "unknown";
               const reversalPreview = reversalPreviews[effect.effect_hash];
+              const held = state === "not_started" ? heldForAcceptance(effect) : null;
               return (
                 <li className="ui-stack" key={effect.effect_hash}>
                   <div>
@@ -493,6 +515,7 @@ export function OperatingSheetPanel({
                         identity,
                         location: previewLocation(effect),
                       })}
+                      hold={held}
                     />
                   ) : (
                     <ul>
@@ -537,6 +560,7 @@ export function OperatingSheetPanel({
                       !expired &&
                       !proposal.requires_fresh_review &&
                       !paused &&
+                      !held &&
                       status?.effect_executable !== false ? (
                         <Button
                           disabled={pending}

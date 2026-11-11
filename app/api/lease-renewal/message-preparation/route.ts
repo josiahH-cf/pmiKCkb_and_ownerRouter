@@ -38,6 +38,7 @@ import type { RenewalDraftAttachmentIdentity } from "@/lib/lease-renewal/executi
 import { resolveRenewalWorkBasis } from "@/lib/lease-renewal/workspace-cycle-context";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { readOfferAnswersView } from "@/lib/firestore/renewal-offer-answers";
+import { keepOfferSource } from "@/lib/firestore/renewal-offer-sources";
 
 const identity = z
   .object({
@@ -91,6 +92,16 @@ async function withOfferAnswers(current: Current) {
     )
     .catch(() => null);
   return { ...preparation, offerAnswers };
+}
+/**
+ * S264 R-S264-6: keep the RentVine charge lines this tenant offer was composed from, so a source
+ * update that applies the accepted renewal compares that acceptance with the current offer before
+ * its claim without reading RentVine again. Kept on the save and draft paths only; keeping them
+ * never changes the message, its preview or its draft.
+ */
+async function keepTenantOfferSource(leaseId: string, current: Current): Promise<void> {
+  if (current.facts.channel !== "tenant" || !current.offerCharges) return;
+  await keepOfferSource(leaseId, current.offerCharges.source);
 }
 function publicPreparation(current: Current) {
   return {
@@ -235,11 +246,11 @@ export async function POST(request: Request) {
       // S161: an autosave. It needs no cycle, no review and no current source read to be stored.
       const save = SaveMessagePreparationSchema.strip().parse(input);
       const result = await saveMessage(actor, save, input.leaseId);
+      const current = await currentRenewalMessage(actor, input.leaseId, input.channel);
+      await keepTenantOfferSource(input.leaseId, current);
       return NextResponse.json({
         duplicate: result.duplicate,
-        ...(await withOfferAnswers(
-          await currentRenewalMessage(actor, input.leaseId, input.channel),
-        )),
+        ...(await withOfferAnswers(current)),
       });
     }
     const draftDeps = {
@@ -385,6 +396,7 @@ export async function POST(request: Request) {
       );
       preview = buildSuppliedRenewalDraftPreview(actor, current);
     }
+    await keepTenantOfferSource(input.leaseId, current);
     if (input.confirm) {
       const saved = await getMessageDraftSnapshot(
         actor,

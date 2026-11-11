@@ -31,8 +31,13 @@ import {
   offerSnapshotIntact,
   offerTermsUnchanged,
   type FrozenOfferSnapshot,
+  type OfferSnapshot,
 } from "./offer-snapshot";
-import type { RenewalWorkspaceState } from "./workspace-state";
+import type { TenantAcceptanceRead } from "./tenant-acceptance-hold";
+import {
+  currentManualTenantOutcome,
+  type RenewalWorkspaceState,
+} from "./workspace-state";
 
 export const OFFER_ANSWER_SCHEMA_VERSION = "renewal-offer-answer/v1";
 
@@ -214,6 +219,75 @@ export function describeOwnerOfferCoverage(
   }
 }
 
+/**
+ * The offer's charges as the tenant reads them: each selected row's identity, name, amount,
+ * cadence, comparison and condition, a date of its own (a row that starts on the renewal date
+ * follows the terms), the transition decisions and the unchanged statement. The base, the dates
+ * and the versions the rows were resolved from are left out: the base and dates are the S234
+ * terms answer, and a re-resolution that changes no charge (a mapping or RentVine re-version, a
+ * same-value save) changes nothing the tenant read.
+ */
+function chargeContent(snapshot: OfferSnapshot): string {
+  return JSON.stringify({
+    rows: snapshot.rows.map((row) => [
+      row.rowKey,
+      row.origin,
+      row.family,
+      row.label,
+      row.amountCents,
+      row.cadence,
+      row.effectiveFrom === snapshot.dates.effectiveDate ? null : row.effectiveFrom,
+      row.comparison,
+      row.trigger,
+    ]),
+    transitions: snapshot.transitions,
+    unchangedStatement: snapshot.unchangedStatement,
+  });
+}
+
+/**
+ * R-S264-6 at the decision's consumers: how the work record's current tenant acceptance stands
+ * against the current offer's charges. Null when no acceptance answers the current terms. An
+ * acceptance tied to one exact offer covers the current offer while the charges are the ones it
+ * answered; otherwise it answers an earlier offer, in the same words the response editor shows.
+ * One not tied to an exact offer (every answer recorded before offers were kept) and one whose
+ * current offer could not be composed keep their recorded reading (see tenant-acceptance-hold.ts).
+ */
+export function tenantAcceptanceCheck(input: {
+  readonly workspace: RenewalWorkspaceState | null;
+  /** The acceptance's own offer record, by its event; null when none was recorded. */
+  readonly record: OfferAnswerRecord | null;
+  /** The offer as it stands now; null when it could not be composed. */
+  readonly current: FrozenOfferSnapshot | null;
+}): TenantAcceptanceRead | null {
+  const { workspace, current } = input;
+  const response = workspace?.tenantResponse;
+  if (!workspace || !response || currentManualTenantOutcome(workspace) !== "accepted")
+    return null;
+  const eventId = response.eventId;
+  const record =
+    input.record?.party === "tenant" &&
+    input.record.eventId === eventId &&
+    input.record.cycleId === workspace.cycleId &&
+    input.record.leaseId === workspace.leaseId
+      ? input.record
+      : null;
+  if (!record?.offer) return { eventId, state: "not_attributed", line: null };
+  if (!current) return { eventId, state: "unknown", line: null };
+  if (chargeContent(record.offer.snapshot) === chargeContent(current.snapshot))
+    return { eventId, state: "covers", line: null };
+  return {
+    eventId,
+    state: "earlier_offer",
+    line: describeTenantAnswerCoverage("accepted", offerAnswerCoverage(record, current)),
+  };
+}
+
+/** The refusal a source update that applies the accepted renewal returns before its claim. */
+export function acceptanceHoldRefusal(line: string): string {
+  return `${line} This update was not sent. Record the tenant's answer for the current offer, then confirm this update again.`;
+}
+
 /** What the response editors show and offer, carried with the tenant message's own read. */
 export interface OfferAnswersView {
   readonly current: {
@@ -246,6 +320,11 @@ export interface OfferAnswersView {
     readonly coverage: OfferAnswerCoverage["state"];
     readonly line: string;
   } | null;
+  /**
+   * How the current tenant acceptance stands against the current offer's charges (null when no
+   * acceptance answers the current terms), for the stage, Finish up and the source updates.
+   */
+  readonly acceptance: TenantAcceptanceRead | null;
 }
 
 /** An offer's terms and charges in one line, as staff review them. */
@@ -291,6 +370,7 @@ export function buildOfferAnswersView(input: {
       : null;
   const ownerRecord = input.ownerRecord?.party === "owner" ? input.ownerRecord : null;
   const tenantCoverage = offerAnswerCoverage(tenantRecord, current);
+  const acceptance = tenantAcceptanceCheck({ workspace, record: tenantRecord, current });
   const scope = ownerApprovalScope(workspace, ownerOfferApproval(ownerRecord));
   const ownerCoverage = offerAnswerCoverage(
     scope?.kind === "offer_snapshot" ? ownerRecord : null,
@@ -339,6 +419,7 @@ export function buildOfferAnswersView(input: {
             line: describeOwnerOfferCoverage(scope, ownerCoverage),
           }
         : null,
+    acceptance,
   };
 }
 

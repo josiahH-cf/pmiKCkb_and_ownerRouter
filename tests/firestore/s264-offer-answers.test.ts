@@ -605,6 +605,12 @@ describe("S264 AC-S264-6 the answers keep the exact offer they covered", () => {
         coverage: "earlier_offer",
         line: "The owner approved an earlier offer, so the current offer's charges are not covered. Pet rent changed ($45.00 to $50.00).",
       },
+      // R-S264-6 at the consumers: the current acceptance answers an earlier offer's charges.
+      acceptance: {
+        eventId: accepted.offerAnswer!.eventId,
+        state: "earlier_offer",
+        line: "Current acceptance needs verification: it answers an earlier offer. Pet rent changed ($45.00 to $50.00).",
+      },
     });
     // The owner message's read carries none of it.
     const ownerRead = await (
