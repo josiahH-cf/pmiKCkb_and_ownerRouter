@@ -59,6 +59,7 @@ import {
   RenewalSecondaryWork,
 } from "@/components/lease-renewal/RenewalGuidedView";
 import type { RenewalPathStepId } from "@/lib/lease-renewal/renewal-path";
+import { GUIDED_SECONDARY_WORK_LABELS } from "@/lib/lease-renewal/guided-priority";
 import { formatMoneyReference } from "@/lib/lease-renewal/current-rent-display";
 import { RenewalNowCardProvider } from "@/components/lease-renewal/RenewalNowCardContext";
 import type { FinishUpPreparation } from "@/lib/lease-renewal/finish-up-preparation";
@@ -832,17 +833,8 @@ export function RenewalWorkspace({
                                 >
                                   {/* S120 (R120.1): prepare the message first; record outreach and the later
                       response after actual contact. The order is chronology, not a gate. */}
-                                  {section.id === "owner" || section.id === "tenant" ? (
-                                    <RenewalMessagePreparation
-                                      key={`message-preparation-${section.id}`}
-                                      channel={section.id}
-                                      canEdit={can(role, "edit")}
-                                      canManageResources={can(role, "manageAdmin")}
-                                      outcomeContext={
-                                        separated ? stageContext : undefined
-                                      }
-                                    />
-                                  ) : null}
+                                  {/* S270: the current base and read-only recommendation with its
+                                    edit link lead Ask the owner's Work, before its named group. */}
                                   {separated && section.id === "owner" ? (
                                     <div
                                       className="ui-stack-tight"
@@ -855,6 +847,34 @@ export function RenewalWorkspace({
                                       <RenewalPricingPolicyPanel />
                                     </div>
                                   ) : null}
+                                  {section.id === "owner" || section.id === "tenant" ? (
+                                    <RenewalMessagePreparation
+                                      key={`message-preparation-${section.id}`}
+                                      channel={section.id}
+                                      canEdit={can(role, "edit")}
+                                      canManageResources={can(role, "manageAdmin")}
+                                      outcomeContext={
+                                        separated ? stageContext : undefined
+                                      }
+                                      // S270: the outcome's one named group holds the message
+                                      // options and the outreach or contact records together.
+                                      secondaryWork={
+                                        separated && section.steps[0] ? (
+                                          <div
+                                            className="ui-stack"
+                                            id={renewalStepTargetId(section.steps[0])}
+                                            tabIndex={-1}
+                                          >
+                                            <RenewalManualSection
+                                              section={section.id}
+                                              currentRent={workspace.currentRent}
+                                            />
+                                            {renderPhase(section.steps[0], "work")}
+                                          </div>
+                                        ) : undefined
+                                      }
+                                    />
+                                  ) : null}
                                   {separated && section.id === "comps" ? (
                                     // S269: Guided view holds this one editor in the Now card's
                                     // active Work; Full view keeps it here.
@@ -865,7 +885,12 @@ export function RenewalWorkspace({
                                   ) : null}
                                   {section.id === "comps" ? (
                                     <div id="renewal-market-comparison-controls">
-                                      <RenewalSecondaryWork label="Comparison inputs and deliberate rerun">
+                                      <RenewalSecondaryWork
+                                        label={
+                                          GUIDED_SECONDARY_WORK_LABELS["compare-market"]!
+                                        }
+                                        stepId="compare-market"
+                                      >
                                         <RenewalCompPreparation
                                           address={summary.addressLabel}
                                           currentRent={workspace.currentRent}
@@ -889,28 +914,22 @@ export function RenewalWorkspace({
                                       placement="full"
                                     />
                                   ) : null}
-                                  {separated && section.steps[0] ? (
+                                  {separated &&
+                                  section.id === "lease-details" &&
+                                  section.steps[0] ? (
                                     <div
                                       id={renewalStepTargetId(section.steps[0])}
                                       tabIndex={-1}
                                     >
+                                      {/* S270: noncurrent corrections, with the optional Housing
+                                        assistance editor the Guided Now card places here. */}
                                       <RenewalSecondaryWork
                                         label={
-                                          section.id === "lease-details"
-                                            ? "Correct lease facts and review source updates"
-                                            : section.id === "owner"
-                                              ? "Record owner outreach or decision"
-                                              : "Record tenant contact or response"
+                                          GUIDED_SECONDARY_WORK_LABELS["check-numbers"]!
                                         }
+                                        optionalHost
+                                        stepId="check-numbers"
                                       >
-                                        {section.id !== "lease-details" ? (
-                                          <RenewalManualSection
-                                            section={
-                                              section.id === "owner" ? "owner" : "tenant"
-                                            }
-                                            currentRent={workspace.currentRent}
-                                          />
-                                        ) : null}
                                         {renderPhase(section.steps[0], "work")}
                                       </RenewalSecondaryWork>
                                     </div>
@@ -962,41 +981,55 @@ export function RenewalWorkspace({
                                       canEdit={can(role, "edit")}
                                       evidence={renderPhase(stepId, "verification")}
                                     >
-                                      {documentOutcome(stepId) === "complete" ? (
-                                        <RenewalManualSection
-                                          section="documents"
-                                          documentOutcome="complete"
-                                          moveOutInitiated={
-                                            summary.moveOut?.state === "initiated"
-                                          }
-                                          currentRent={workspace.currentRent}
-                                        />
-                                      ) : null}
-                                      <RenewalSecondaryWork
-                                        label={
-                                          DOCUMENT_OUTCOME_WORK_LABELS[
-                                            documentOutcome(stepId)
-                                          ]
+                                      {/* S270: the outcome's active Work first: the packet (S268
+                                        leads it), the current follow-up with the source updates,
+                                        or the completion record. */}
+                                      {stepId === "document-packet"
+                                        ? renderPhase(stepId, "work")
+                                        : null}
+                                      <RenewalManualSection
+                                        section="documents"
+                                        documentOutcome={documentOutcome(stepId)}
+                                        moveOutInitiated={
+                                          summary.moveOut?.state === "initiated"
                                         }
-                                      >
-                                        {stepId === "document-packet" ? (
-                                          <>
-                                            {resourceLocationsPanel}
-                                            <RenewalPolicyContentPanel />
-                                          </>
-                                        ) : null}
-                                        {documentOutcome(stepId) !== "complete" ? (
+                                        currentRent={workspace.currentRent}
+                                        part={
+                                          documentOutcome(stepId) === "finish-up"
+                                            ? "lead"
+                                            : undefined
+                                        }
+                                      />
+                                      {stepId !== "document-packet"
+                                        ? renderPhase(stepId, "work")
+                                        : null}
+                                      {/* Then its one named group; Complete has none. */}
+                                      {stepId === "document-packet" ? (
+                                        <RenewalSecondaryWork
+                                          label={GUIDED_SECONDARY_WORK_LABELS.documents!}
+                                          stepId="documents"
+                                        >
+                                          {resourceLocationsPanel}
+                                          <RenewalPolicyContentPanel />
+                                        </RenewalSecondaryWork>
+                                      ) : documentOutcome(stepId) === "finish-up" ? (
+                                        <RenewalSecondaryWork
+                                          label={
+                                            GUIDED_SECONDARY_WORK_LABELS["finish-up"]!
+                                          }
+                                          stepId="finish-up"
+                                        >
                                           <RenewalManualSection
                                             section="documents"
-                                            documentOutcome={documentOutcome(stepId)}
+                                            documentOutcome="finish-up"
                                             moveOutInitiated={
                                               summary.moveOut?.state === "initiated"
                                             }
                                             currentRent={workspace.currentRent}
+                                            part="rest"
                                           />
-                                        ) : null}
-                                        {renderPhase(stepId, "work")}
-                                      </RenewalSecondaryWork>
+                                        </RenewalSecondaryWork>
+                                      ) : null}
                                     </RenewalFullOutcome>
                                   ) : (
                                     <>
@@ -1228,15 +1261,9 @@ function DoThisNext({
   );
 }
 
-const DOCUMENT_OUTCOME_WORK_LABELS = {
-  documents: "Prepare or record document work",
-  "finish-up": "Work remaining follow-ups and source updates",
-  complete: "Record completion or non-renewal",
-} as const;
-
 function documentOutcome(
   step: RenewalProcessStepId,
-): keyof typeof DOCUMENT_OUTCOME_WORK_LABELS {
+): "documents" | "finish-up" | "complete" {
   if (step === "document-packet") return "documents";
   if (step === "signatures-follow-up") return "finish-up";
   return "complete";
@@ -1552,7 +1579,8 @@ function PhaseContent({
             )
           : null;
       const ownerConflictNote = ownerConflict ? (
-        <p data-renewal-field="owner-outcome-conflict" role="status">
+        // S270: a differing earlier owner record keeps its group open as current work.
+        <p data-renewal-field="owner-outcome-conflict" data-renewal-promote role="status">
           {ownerConflict}
         </p>
       ) : null;

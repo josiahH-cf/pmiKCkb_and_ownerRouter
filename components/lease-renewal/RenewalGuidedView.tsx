@@ -78,8 +78,10 @@ import {
   OwnerCurrentBaseRent,
   useCurrentBaseRent,
 } from "./RenewalCurrentBaseRent";
+import { FOCUS_OPENED_ATTRIBUTE } from "./renewal-focus-reveal";
 import {
   GUIDED_PRIORITY_WORDS,
+  GUIDED_VERIFICATION_LABELS,
   guidedReturnLabel,
   projectGuidedPriority,
   type GuidedEditorState,
@@ -407,9 +409,14 @@ export function RenewalFullOutcome({
   const [feedback, setFeedback] = useState("");
   const [busy, setBusy] = useState(false);
   const full = enabled && view?.view === "full";
-  const showVerification =
-    full ||
-    (enabled && view?.view === "guided" && view.nowPresentation?.stepId === stepId);
+  const shownHere =
+    enabled && view?.view === "guided" && view.nowPresentation?.stepId === stepId;
+  const showVerification = full || shownHere;
+  // S270: Verification starts closed again on another outcome (a view switch remounts it).
+  const verification = useRef<HTMLDetailsElement | null>(null);
+  useLayoutEffect(() => {
+    if (verification.current) verification.current.open = false;
+  }, [shownHere]);
   const step = stage.steps.find((item) => item.id === stepId) ?? {
     id: stepId,
     label: RENEWAL_PATH_DEFINITION[stepId].label,
@@ -540,8 +547,10 @@ export function RenewalFullOutcome({
           data-renewal-verification={showVerification ? true : undefined}
           id={`renewal-evidence-${stepId}`}
           key={view?.view}
+          ref={verification}
         >
-          <summary>Verify {step.label.toLowerCase()}</summary>
+          {/* S270: the outcome's named read-only Verification. */}
+          <summary>{GUIDED_VERIFICATION_LABELS[stepId]}</summary>
           {current && stage.check ? <p>{stage.check.sentence}</p> : null}
           {current && stage.evidenceLine && stage.evidenceLine !== step.detail ? (
             <p>{stage.evidenceLine}</p>
@@ -553,21 +562,159 @@ export function RenewalFullOutcome({
   );
 }
 
-/** Secondary actions remain mounted for continuity and their exact links. */
+/**
+ * S270 R-S270-2: what keeps a named group open as current work: a failed or pending save, an
+ * invalid field or a governing note marked `data-renewal-promote`.
+ */
+const CURRENT_WORK_SELECTOR =
+  "[data-autosave='failed'], [data-autosave='saving'], [aria-invalid='true'], [data-renewal-promote]";
+
+/** Why a named group holds current work now, or null. Reading it changes nothing. */
+function groupPromotion(details: HTMLDetailsElement, leadTarget: string | null) {
+  const marker = details.querySelector(CURRENT_WORK_SELECTOR);
+  if (marker)
+    return marker.hasAttribute("data-autosave")
+      ? `save-${marker.getAttribute("data-autosave")}`
+      : marker.hasAttribute("aria-invalid")
+        ? "invalid"
+        : "governing";
+  // The shown Guided outcome's current required field or recovery (S269's lead).
+  const target = leadTarget ? document.getElementById(leadTarget) : null;
+  return target && details.contains(target) ? "lead" : null;
+}
+
+/**
+ * Secondary actions remain mounted for continuity and their exact links. S270: each outcome has
+ * one named group below its active Work, closed on ordinary entry, a view switch or another
+ * outcome. An exact link opens it (focusRenewalDashboardControl opens the target's ancestors);
+ * current work inside keeps it open through a switch; closing it with focus inside returns focus
+ * to its summary. Opening and closing are presentation only.
+ */
 export function RenewalSecondaryWork({
   children,
   label,
-}: Readonly<{ children: ReactNode; label: string }>) {
+  stepId,
+  optionalHost = false,
+}: Readonly<{
+  children: ReactNode;
+  label: string;
+  /** S270: the outcome whose named group this is, in Guided and Full. */
+  stepId?: RenewalPathStepId;
+  /** S270: a place the Guided Now card fills with an optional editor (Housing assistance). */
+  optionalHost?: boolean;
+}>) {
   const view = useRenewalFocusView();
-  if (!view?.outcomeLayout) return <>{children}</>;
+  const ref = useRef<HTMLDetailsElement | null>(null);
+  const viewName = view?.view ?? null;
+  const shownStep =
+    viewName === "guided" ? (view?.nowPresentation?.stepId ?? null) : null;
+  const leadTarget =
+    stepId && shownStep === stepId && view?.guidedLead?.stepId === stepId
+      ? view.guidedLead.target
+      : null;
+  const [promoted, setPromoted] = useState<string | null>(null);
+  const evaluate = useCallback(() => {
+    const next = ref.current ? groupPromotion(ref.current, leadTarget) : null;
+    setPromoted((current) => (current === next ? current : next));
+  }, [leadTarget]);
+  useLayoutEffect(() => {
+    evaluate();
+  });
+  // A save that fails or starts inside the group changes only attributes, so watch them.
+  useEffect(() => {
+    const details = ref.current;
+    if (!details || typeof MutationObserver === "undefined") return;
+    const observer = new MutationObserver(evaluate);
+    observer.observe(details, {
+      attributes: true,
+      attributeFilter: ["data-autosave", "aria-invalid", "data-renewal-promote"],
+      childList: true,
+      subtree: true,
+    });
+    return () => observer.disconnect();
+  }, [evaluate]);
+  const seen = useRef({ viewName, shownStep });
+  const openedFor = useRef<string | null>(null);
+  useLayoutEffect(() => {
+    const details = ref.current;
+    if (!details) return;
+    const before = seen.current;
+    seen.current = { viewName, shownStep };
+    const switched = before.viewName !== viewName || before.shownStep !== shownStep;
+    const current = groupPromotion(details, leadTarget);
+    if (current) {
+      // Current work opens with the group and stays open through a switch.
+      if (switched || openedFor.current !== current) details.open = true;
+      openedFor.current = current;
+      return;
+    }
+    openedFor.current = null;
+    if (!switched || details.contains(document.activeElement)) return;
+    // A group the Guided reveal holds open for the shown outcome's control stays open.
+    if (viewName === "guided" && details.hasAttribute(FOCUS_OPENED_ATTRIBUTE)) return;
+    details.open = false;
+  });
+  // The place the Guided Now card fills with an optional editor registers itself.
+  const setGroupHost = view?.setGroupHost;
+  const hostRef = useCallback(
+    (element: HTMLDivElement | null) => {
+      if (stepId) setGroupHost?.(stepId, element);
+    },
+    [setGroupHost, stepId],
+  );
+  // Closing the group while focus is inside returns focus to its summary.
+  const layout = view?.outcomeLayout ?? false;
+  useEffect(() => {
+    const details = ref.current;
+    if (!details) return;
+    const summary = () => details.querySelector<HTMLElement>(":scope > summary");
+    let inside = false;
+    const onFocusIn = (event: FocusEvent) => {
+      inside = event.target !== summary();
+    };
+    const onFocusOut = (event: FocusEvent) => {
+      if (event.relatedTarget instanceof Node && !details.contains(event.relatedTarget))
+        inside = false;
+    };
+    const onToggle = () => {
+      if (details.open) return;
+      const active = document.activeElement;
+      const lost = active === null || active === document.body;
+      const target = summary();
+      if (
+        target &&
+        ((active !== target && active !== null && details.contains(active)) ||
+          (inside && lost))
+      )
+        focusProgrammatically(target);
+      inside = false;
+    };
+    details.addEventListener("focusin", onFocusIn);
+    details.addEventListener("focusout", onFocusOut);
+    details.addEventListener("toggle", onToggle);
+    return () => {
+      details.removeEventListener("focusin", onFocusIn);
+      details.removeEventListener("focusout", onFocusOut);
+      details.removeEventListener("toggle", onToggle);
+    };
+  }, [layout]);
+  if (!layout) return <>{children}</>;
   return (
     <details
       className="renewal-secondary-work"
+      data-renewal-group={stepId ? label : undefined}
+      data-renewal-group-step={stepId}
+      data-renewal-promoted={promoted ?? undefined}
       data-renewal-secondary-work
-      open={view.view !== "full"}
+      ref={ref}
     >
       <summary>{label}</summary>
-      <div className="ui-stack">{children}</div>
+      <div className="ui-stack">
+        {optionalHost && stepId ? (
+          <div data-renewal-group-host={stepId} ref={hostRef} />
+        ) : null}
+        {children}
+      </div>
     </details>
   );
 }
@@ -715,15 +862,24 @@ export function RenewalGuidedView({
     const verification = body.querySelector(
       `[data-renewal-verification-owner="${shown.id}"]`,
     );
-    view.applyReveal([
-      view.slot,
-      ...(verification ? [verification] : []),
-      ...[view.nowSlot, view.afterSlot].filter(
-        (element): element is HTMLElement => element !== null,
-      ),
-      ...contexts,
-      ...targets,
-    ]);
+    // S270: the place in the outcome's named group where the Now card puts an optional editor.
+    const hosts = inactive
+      ? []
+      : [...body.querySelectorAll(`[data-renewal-group-host="${shown.id}"]`)];
+    view.applyReveal(
+      [
+        view.slot,
+        ...(verification ? [verification] : []),
+        ...[view.nowSlot, view.afterSlot].filter(
+          (element): element is HTMLElement => element !== null,
+        ),
+        ...contexts,
+        ...targets,
+        ...hosts,
+      ],
+      // S270: the shown outcome's own named group keeps its summary and its own closed state.
+      { outcome: shown.id },
+    );
     if (pendingFocus.current) {
       const id = pendingFocus.current;
       pendingFocus.current = null;
@@ -1034,7 +1190,8 @@ function NowCard({
   const router = useRouter();
   const manual = useRenewalManualWorkspace();
   const nowCard = useRenewalNowCard();
-  const outcomeLayout = useRenewalFocusView()?.outcomeLayout ?? false;
+  const focusView = useRenewalFocusView();
+  const outcomeLayout = focusView?.outcomeLayout ?? false;
   const preparation = context.preparation ?? null;
   // The correction names the live staff record's cycle.
   const state = manual?.state ?? null;
@@ -1238,6 +1395,18 @@ function NowCard({
     extensions,
   });
   const lead = priority.lead;
+  // S270 R-S270-2: a current required field or a save to recover opens the named group holding it.
+  const setGuidedLead = focusView?.setGuidedLead;
+  const groupLead =
+    lead && (priority.state === "missing" || priority.state === "recover")
+      ? lead.target
+      : null;
+  useLayoutEffect(() => {
+    setGuidedLead?.(groupLead ? { stepId: shown.id, target: groupLead } : null);
+  }, [setGuidedLead, shown.id, groupLead]);
+  // S270: the optional Housing assistance editor sits in Correct other lease facts, the place
+  // that group registers; it mounts once, there.
+  const optionalHost = focusView?.groupHosts["check-numbers"] ?? null;
   // R-S269-2: Rent to recommend is the outcome's one editable field; Housing assistance joins the
   // active Work when it is material (S266) and keeps its place while someone is typing in it.
   const showRent =
@@ -1618,7 +1787,13 @@ function NowCard({
         {shown.state !== "not_part"
           ? definition.slots.filter((slot) => !activeSlots.includes(slot)).map(slotNode)
           : null}
-        {housingPlacement === "optional" ? housingField : null}
+        {housingPlacement === "optional" && housingField
+          ? outcomeLayout
+            ? optionalHost
+              ? createPortal(housingField, optionalHost)
+              : null
+            : housingField
+          : null}
         {derived ? (
           <div className="ui-stack-tight" data-renewal-derived={derived.record.activity}>
             <p className="muted" data-renewal-field="derived-origin">
@@ -1773,7 +1948,8 @@ function NowCard({
         ] as readonly RenewalPathStepId[]
       ).includes(shown.id) ? (
         <details data-renewal-verification key={shown.id}>
-          <summary>Verify {shown.label.toLowerCase()}</summary>
+          {/* S270: the variant's equivalent named Verification. */}
+          <summary>{GUIDED_VERIFICATION_LABELS[shown.id]}</summary>
           <p>{shown.detail ?? stage.evidenceLine ?? stage.stageLine}</p>
           {stage.check ? <p>{stage.check.sentence}</p> : null}
         </details>
