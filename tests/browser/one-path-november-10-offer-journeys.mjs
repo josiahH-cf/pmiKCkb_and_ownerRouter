@@ -101,6 +101,44 @@ export async function authorizeTenantOffer(kit, page, composition, action) {
   return { staged: staged.body.sequence, authorized };
 }
 
+/**
+ * The tenant's acceptance through the Tenant response editor in Full view, linked to the exact
+ * confirmed send it answers (S264 R-S264-6). Returns the editor, the offer's option text and the
+ * recorded offer answer.
+ */
+export async function recordTenantAcceptance(kit, page, leaseId, sent) {
+  await kit.open(page, kit.href(leaseId, "?view=full#renewal-manual-tenant_response"));
+  const form = page.locator("#renewal-manual-tenant_response");
+  await form.waitFor();
+  const workspaceSave = (response) =>
+    new URL(response.url()).pathname === WORKSPACE &&
+    response.request().method() === "POST";
+  const response = form.getByLabel("Tenant response", { exact: true });
+  if ((await response.inputValue()) !== "accepted") {
+    const [decided] = await Promise.all([
+      page.waitForResponse(workspaceSave),
+      response.selectOption("accepted"),
+    ]);
+    assert.equal(decided.status(), 200, await decided.text());
+  }
+  const answer = form.locator('[data-renewal-offer-answer="tenant"]');
+  const which = answer.getByLabel("Which offer does this answer respond to?", {
+    exact: true,
+  });
+  await which.waitFor();
+  const choice = "sent:" + sent.sequenceId + ":" + sent.occurrenceId;
+  const offered = await which.locator(`option[value="${choice}"]`).innerText();
+  await which.selectOption(choice);
+  const [linked] = await Promise.all([
+    page.waitForResponse(workspaceSave),
+    answer
+      .getByRole("button", { name: "Record the offer this answers", exact: true })
+      .click(),
+  ]);
+  assert.equal(linked.status(), 200, await linked.text());
+  return { answer, offered, linkedAnswer: (await linked.json()).offerAnswer };
+}
+
 async function cancelSequence(kit, page, id) {
   const latest = (await kit.read(page, SEQUENCES + "?id=" + id)).sequence;
   if (["cancelled", "completed"].includes(latest.state)) return latest.state;
@@ -408,10 +446,17 @@ export async function journeyN1004(ctx, page) {
     JSON.stringify(staleMapping.authorized.body),
   );
   tenant = await reads.tenant();
-  assert.ok(tenant.offerCharges.review.rows.some((row) => row.status === "needs_review"));
+  const needsReview = tenant.offerCharges.review.rows.filter(
+    (row) => row.status === "needs_review",
+  ).length;
+  assert.ok(needsReview > 0);
   await kit.open(page, kit.href(leaseId, "?step=offer-tenant"));
   // Each confirmed line leaves the list, so confirm the first remaining one until none is left.
+  // The list renders after the offer's own read: every line needing review shows its control.
   const confirmAgain = review.getByRole("button", { name: "Confirm this line again" });
+  for (let wait = 0; wait < 300 && (await confirmAgain.count()) < needsReview; wait++)
+    await page.waitForTimeout(100);
+  assert.equal(await confirmAgain.count(), needsReview);
   const reviewed = [];
   for (let remaining = await confirmAgain.count(); remaining > 0; ) {
     assert.ok(reviewed.length < 20, "Each line needing review is confirmed once");
@@ -554,36 +599,13 @@ export async function journeyN1004(ctx, page) {
       candidate.sequenceId === delivered.staged.id,
   );
   assert.ok(sent?.current, "The confirmed send carried the current offer");
-  await kit.open(page, kit.href(leaseId, "?view=full#renewal-manual-tenant_response"));
-  const form = page.locator("#renewal-manual-tenant_response");
-  await form.waitFor();
-  const workspaceSave = (response) =>
-    new URL(response.url()).pathname === WORKSPACE &&
-    response.request().method() === "POST";
-  const [decided] = await Promise.all([
-    page.waitForResponse(workspaceSave),
-    form.getByLabel("Tenant response", { exact: true }).selectOption("accepted"),
-  ]);
-  assert.equal(decided.status(), 200, await decided.text());
-  const answer = form.locator('[data-renewal-offer-answer="tenant"]');
-  const which = answer.getByLabel("Which offer does this answer respond to?", {
-    exact: true,
-  });
-  await which.waitFor();
-  const choice = "sent:" + sent.sequenceId + ":" + sent.occurrenceId;
-  assert.match(
-    await which.locator(`option[value="${choice}"]`).innerText(),
-    /^Sent .+: .+ \(the current offer\)$/,
+  const { answer, offered, linkedAnswer } = await recordTenantAcceptance(
+    kit,
+    page,
+    leaseId,
+    sent,
   );
-  await which.selectOption(choice);
-  const [linked] = await Promise.all([
-    page.waitForResponse(workspaceSave),
-    answer
-      .getByRole("button", { name: "Record the offer this answers", exact: true })
-      .click(),
-  ]);
-  assert.equal(linked.status(), 200, await linked.text());
-  const linkedAnswer = (await linked.json()).offerAnswer;
+  assert.match(offered, /^Sent .+: .+ \(the current offer\)$/);
   assert.equal(linkedAnswer?.attribution?.kind, "linked_communication");
   const tenantEvent = linkedAnswer.eventId;
   await answer
@@ -606,6 +628,7 @@ export async function journeyN1004(ctx, page) {
     .locator("details")
     .filter({ hasText: "Correct the renewal amount or date" });
   await kit.toggleDisclosure(page, changed, true);
+  const changedAt = new Date().toISOString();
   await fill(
     changed.getByLabel("Renewal amount if it differs ($)", { exact: true }),
     "50",
@@ -652,6 +675,18 @@ export async function journeyN1004(ctx, page) {
   observed.decisionsDoNotCoverChangedCharge = true;
   observed.acceptedOfferEvent = tenantEvent;
 
+  // S264 R-S264-6 at the tenant decision's consumers, after the same charge-only change: the
+  // acceptance stays as recorded and the work relying on it waits with the exact difference.
+  const held = await acceptanceHoldAtConsumers(kit, page, leaseId, {
+    line: ACCEPTANCE_HOLD_LINE,
+    changedAt,
+    reads,
+  });
+  record({ id: "N10-04", check: "acceptance-hold", ...held });
+  observed.chargeOnlyNextStepShown = true;
+  observed.chargeOnlySourceUpdateHeld = true;
+  observed.sourceUpdateClaim = held.claim;
+
   // N10-05 sends this lease's offer again: the lease goes back to awaiting the tenant, and the
   // accepted answer's record stays as recorded.
   const state = (await reads.workspace()).state;
@@ -671,6 +706,205 @@ export async function journeyN1004(ctx, page) {
   return observed;
 }
 
+/** S264 R-S264-6: the exact difference after N10-04's one charge-only change. */
+const ACCEPTANCE_HOLD_LINE =
+  "Current acceptance needs verification: it answers an earlier offer. Pet rent changed ($45.00 to $50.00).";
+/** lib/lease-renewal/tenant-acceptance-hold.ts, as staff read it. */
+const ACCEPTANCE_HOLD_WORDS = {
+  next: "Record the tenant's answer for the current offer",
+  target: "renewal-manual-tenant_response",
+  update: "This update waits until the tenant's answer covers the current offer.",
+  finishUp: "These updates wait until the tenant's answer covers the current offer.",
+};
+const WRITEBACK = "/api/lease-renewal/rentvine-writeback";
+
+const squash = async (locator) =>
+  ((await locator.textContent()) ?? "").replace(/\s+/g, " ").trim();
+
+/**
+ * S264 R-S264-6 where staff act on the tenant's answer, after N10-04's charge-only change. Offer
+ * the tenant stays current with its one next step at the tenant response editor, and the stage
+ * line names the exact difference. Finish up's source update previews wait with the same line, its
+ * one next step and no Apply. The change's own tenant message save kept the RentVine lines a claim
+ * compares against. The compiled synthetic build's sanctioned source-preview seam prepares an exact
+ * RentVine lease date preview, which waits with its Tenant acceptance row and no Apply, and a claim
+ * of it is refused before any claim; a development build prepares no RentVine preview (the Demo
+ * environment refuses it). No send and no provider effect.
+ */
+async function acceptanceHoldAtConsumers(kit, page, leaseId, { line, changedAt, reads }) {
+  const words = ACCEPTANCE_HOLD_WORDS;
+  const sentBefore = (await kit.sentMail()).length;
+  const nowOn = async (step) => {
+    await kit.open(page, kit.href(leaseId, "?step=" + step));
+    const now = page.locator(
+      `[role="region"][aria-label="Now"][data-renewal-now-step="${step}"]`,
+    );
+    await now.waitFor();
+    return now;
+  };
+
+  // Offer the tenant: current, not done, with its one next step at the tenant response editor.
+  const offer = await nowOn("offer-tenant");
+  const path = page.locator('[data-renewal-path-step="offer-tenant"]').first();
+  assert.equal(await path.getAttribute("data-renewal-path-state"), "current");
+  const primary = offer.locator("[data-renewal-now-primary]");
+  assert.equal(await primary.count(), 1, "Offer the tenant leads with one step");
+  assert.equal((await primary.innerText()).trim(), words.next);
+  assert.equal(await primary.getAttribute("data-renewal-now-target"), words.target);
+  const stage = page.locator('#renewal-current-stage [data-renewal-field="stage-line"]');
+  assert.equal(await squash(stage), line);
+  assert.equal(await stage.getAttribute("data-renewal-current-step"), "offer-tenant");
+
+  // Finish up: the previews from the final terms wait with the same line and offer no Apply.
+  const finish = await nowOn("finish-up");
+  const previews = finish.locator("section.renewal-finish-up-previews");
+  await previews.waitFor();
+  assert.equal(
+    await previews.getAttribute("data-renewal-finish-up-previews"),
+    "assembled",
+  );
+  const notice = previews.locator('[data-renewal-field="finish-up-acceptance-hold"]');
+  await notice.waitFor();
+  assert.equal(await squash(notice.locator("p").first()), `${line} ${words.finishUp}`);
+  assert.equal(
+    await notice.getByRole("button", { name: words.next, exact: true }).count(),
+    1,
+  );
+  const sources = await previews
+    .locator("[data-renewal-finish-up-source]")
+    .evaluateAll((nodes) =>
+      nodes.map((node) => node.getAttribute("data-renewal-finish-up-source")),
+    );
+  assert.ok(sources.includes("ready"), "A source update from the final terms is ready");
+  assert.equal(
+    await previews
+      .locator("button", { hasText: "Review and apply in Rent and charges" })
+      .count(),
+    0,
+  );
+
+  // The claim's basis: the RentVine lines the change's own tenant message save read and kept.
+  const kept = await kit.readDocument("renewal_offer_sources/" + leaseId);
+  const keptAt = kept?.fields?.readAt?.stringValue ?? null;
+  assert.ok(keptAt && keptAt >= changedAt, "The change's save kept the lines it read");
+
+  // Rent and charges: an exact RentVine lease date update carries the accepted renewal.
+  const endDate = (await reads.working()).record?.fields?.terms_end_date?.value;
+  assert.match(String(endDate), /^\d{4}-\d{2}-\d{2}$/);
+  const dates = { kind: "renewal_dates_update", after: { endDate } };
+  let rentAndCharges;
+  let claim;
+  if (!kit.compiledMail) {
+    const refused = await kit.post(page, WRITEBACK, {
+      operation: "propose",
+      leaseId,
+      expectedPriorPreviewHash: null,
+      evidenceRef: "workspace:" + leaseId,
+      effects: [dates],
+    });
+    assert.equal(refused.status, 409, JSON.stringify(refused.body));
+    assert.equal(refused.body.error_type, "environment_context_not_allowed");
+    rentAndCharges =
+      "not prepared: a development build refuses every RentVine preview (409 environment_context_not_allowed)";
+    claim = "not attempted: a development build holds no RentVine preview to claim";
+  } else {
+    const token = process.env.S260_SYNTHETIC_WORKER_TOKEN;
+    assert.match(token ?? "", /^[a-f0-9]{64}$/);
+    // tests/browser/fixtures/s260-compiled-source-preview.ts admits this route's previews and
+    // status reads with the token; its dependencies refuse every writer, provider action and claim.
+    const seam = (url) => url.pathname === WRITEBACK;
+    await page.route(seam, (route) =>
+      route.fallback({
+        headers: {
+          ...route.request().headers(),
+          "x-s260-source-preview": "Bearer " + token,
+        },
+      }),
+    );
+    try {
+      const status = async () => {
+        const answer = await kit.readStatus(page, WRITEBACK + "?leaseId=" + leaseId);
+        assert.equal(answer.status, 200, JSON.stringify(answer.body));
+        return answer.body;
+      };
+      const prior = await status();
+      const options = await kit.post(page, WRITEBACK, { operation: "options", leaseId });
+      assert.equal(options.status, 200, JSON.stringify(options.body));
+      assert.notEqual(
+        options.body.inventory?.leaseDates?.endDate ?? null,
+        endDate,
+        "The renewal end date moves the RentVine lease end",
+      );
+      const proposed = await kit.post(page, WRITEBACK, {
+        operation: "propose",
+        leaseId,
+        expectedPriorPreviewHash: prior.proposal?.preview_hash ?? null,
+        evidenceRef: "workspace:" + leaseId,
+        effects: [dates],
+      });
+      assert.equal(proposed.status, 200, JSON.stringify(proposed.body));
+      const previewHash = proposed.body.proposal.preview_hash;
+      assert.equal(proposed.body.proposal.effects.length, 1);
+      const [effect] = proposed.body.proposal.effects;
+      await kit.open(page, kit.href(leaseId, "?view=full#renewal-rent-and-charges"));
+      const panel = page.locator('article[aria-labelledby="rentvine-updates-title"]');
+      const item = panel.locator("li").filter({ hasText: "Ready to confirm" }).first();
+      await item.waitFor({ state: "attached" });
+      const row = item.locator('[data-renewal-field="acceptance-hold"]');
+      assert.equal(await squash(row.locator("dt")), "Tenant acceptance");
+      assert.equal(await squash(row.locator("dd")), `${line} ${words.update}`);
+      assert.equal(
+        await panel.locator("button", { hasText: "Apply RentVine update" }).count(),
+        0,
+      );
+      const attempt = await kit.post(page, WRITEBACK, {
+        operation: "execute",
+        leaseId,
+        previewHash,
+        effectHash: effect.effect_hash,
+        confirm: true,
+      });
+      assert.equal(attempt.status, 409, JSON.stringify(attempt.body));
+      // Both refuse before any claim. The route's per-key environment gate runs first, so in the
+      // Demo environment it refuses before the acceptance hold is read.
+      assert.ok(
+        ["environment_context_not_allowed", "acceptance_needs_verification"].includes(
+          attempt.body.error_type,
+        ),
+        JSON.stringify(attempt.body),
+      );
+      const unclaimed = (await status()).effects.find(
+        (entry) => entry.effect_hash === effect.effect_hash,
+      );
+      assert.equal(unclaimed?.state, "not_started");
+      assert.equal(unclaimed?.attempt_count, 0);
+      const discarded = await kit.post(page, WRITEBACK, {
+        operation: "discard",
+        leaseId,
+        previewHash,
+      });
+      assert.equal(discarded.status, 200, JSON.stringify(discarded.body));
+      rentAndCharges = "held: Tenant acceptance row with the exact difference, no Apply";
+      claim = {
+        status: attempt.status,
+        refusedBy: attempt.body.error_type,
+        state: unclaimed.state,
+        attempts: unclaimed.attempt_count,
+      };
+    } finally {
+      await page.unroute(seam);
+    }
+  }
+  assert.equal((await kit.sentMail()).length, sentBefore, "No message was sent");
+  return {
+    stage: line,
+    finishUpSources: sources,
+    offerSourceKeptAt: keptAt,
+    rentAndCharges,
+    claim,
+  };
+}
+
 // ---- N10-05 ------------------------------------------------------------------------------------
 
 const RESOURCE_LABELS = {
@@ -686,6 +920,9 @@ async function saveResource(
   id,
   { url, version, restricted = null, clear = false },
 ) {
+  // A fresh document for the signed-in role: the Editor's fix link may have opened this same
+  // address, and going to it again would only move to the entry without loading the page.
+  await page.goto("about:blank");
   await kit.open(page, "/connections#renewal-resource-entry-" + id);
   const form = page.locator("#renewal-resource-entry-" + id);
   await form.waitFor();
@@ -754,7 +991,15 @@ export async function journeyN1005(ctx, page) {
   const sequenceOf = async (id) =>
     (await kit.read(page, SEQUENCES + "?id=" + id)).sequence;
   try {
-    // The changed package and the applicable insurance transition require both flyers.
+    // The changed package and the applicable insurance transition require both flyers. The
+    // decisions are this journey's own, saved through the offer's route as the editor saves them.
+    const decided = await saveOfferCharges(kit, page, leaseId, (offer) => {
+      offer.transitions = {
+        insurance: { choice: "applies", source: "Synthetic insurance decision" },
+        rbp: { choice: "changed", source: "Synthetic package decision" },
+      };
+    });
+    assert.equal(decided.status, 200, JSON.stringify(decided.body));
     let composition = await reads.composition();
     let tenant = await reads.tenant();
     assert.deepEqual([...(composition.target.tenantResourceRequired ?? [])].sort(), [
@@ -789,21 +1034,38 @@ export async function journeyN1005(ctx, page) {
     assert.equal(pending.authorized.status, 409, JSON.stringify(pending.authorized.body));
     assert.equal((await kit.sentMail()).length, sentBefore);
     await kit.open(page, kit.href(leaseId, "?step=offer-tenant"));
-    // S265: the Guided lead is the resource's one Connections entry, a button that opens it.
-    const fix = kit
+    const work = kit.now(page).locator("[data-renewal-priority-state]").first();
+    await work.waitFor();
+    const priority = {
+      state: await work.getAttribute("data-renewal-priority-state"),
+      lead: await work.getAttribute("data-renewal-priority-lead"),
+    };
+    const leadFix = kit
       .now(page)
-      .getByRole("button", { name: /^Shared resource link: / })
-      .first();
+      .getByRole("button", { name: /^Shared resource link: / });
+    let fix;
+    if (priority.state === "wait") {
+      // N10-04's offer went out and awaits the tenant, so recording the answer leads (S269 rule
+      // 4) and nothing about the next offer competes with it. The next offer's exact pending
+      // resource is its readiness fix (R-S265-3), in Tenant offer options and record of contact.
+      assert.equal(await leadFix.count(), 0, "No resource fix competes with the wait");
+      const options = page.locator(
+        'details[data-renewal-group="Tenant offer options and record of contact"]',
+      );
+      await kit.toggleDisclosure(page, options, true);
+      fix = options.getByRole("link", { name: /^Shared resource link: / }).first();
+    } else {
+      // S265: before the offer goes out, the Guided lead is the resource's one Connections entry.
+      assert.equal(priority.lead, "included-resource");
+      fix = leadFix.first();
+    }
     await fix.waitFor();
-    assert.equal(
-      await kit
-        .now(page)
-        .locator("[data-renewal-priority-lead]")
-        .first()
-        .getAttribute("data-renewal-priority-lead"),
-      "included-resource",
-    );
-    record({ id: "N10-05", check: "resource-lead", label: await fix.innerText() });
+    record({
+      id: "N10-05",
+      check: "resource-fix",
+      priority,
+      label: await fix.innerText(),
+    });
     await fix.click();
     await page.waitForURL((url) => url.pathname === "/connections");
     const target = new URL(page.url());
@@ -983,13 +1245,16 @@ export async function journeyN1005(ctx, page) {
     assert.ok((await forceSourceRefresh(page)).body?.refreshed);
     tenant = await reads.tenant();
     preview = await draftPreview();
+    // The offer leaves the optional form out while its link has no audience check (S265's
+    // default inclusion follows a usable link). Recording a link for it without the check changes
+    // that omitted resource only: the reviewed message and its included proof stay as they were.
     await asAdmin(() =>
       saveResource(kit, page, "renewal_information_form", {
         url: SYNTHETIC_HOST + "/renewal-form",
-        version: "Renewal form 2026-11",
+        clear: true,
       }),
     );
-    const draftsBefore = (await kit.draftMail()).length;
+    const draftsBefore = new Set((await kit.draftMail()).map((draft) => draft.id));
     const created = await confirmDraft(preview);
     record({
       id: "N10-05",
@@ -999,7 +1264,12 @@ export async function journeyN1005(ctx, page) {
     });
     assert.equal(created.status, 200, JSON.stringify(created.body));
     assert.equal(created.body.status, "created");
-    assert.equal((await kit.draftMail()).length, draftsBefore + 1);
+    const drafted = (await kit.draftMail()).filter(
+      (draft) => !draftsBefore.has(draft.id),
+    );
+    assert.equal(drafted.length, 1);
+    assert.equal(typeof drafted[0].text, "string");
+    assert.doesNotMatch(drafted[0].text, /renewal-form|information form/i);
     await asAdmin(() =>
       saveResource(kit, page, "renewal_information_form", { url: "", clear: true }),
     );
@@ -1088,15 +1358,26 @@ export async function journeyN1005(ctx, page) {
       .now(page)
       .getByRole("button", { name: "Check whether the message went out", exact: true });
     await reconcile.waitFor();
-    assert.equal(
-      await kit
-        .now(page)
-        .getByRole("button", {
-          name: /^(Review tenant offer|Review and send|Send|Schedule)/,
-        })
-        .count(),
-      0,
-    );
+    const competing = await kit
+      .now(page)
+      .getByRole("button", {
+        name: /^(Review tenant offer|Review and send|Send|Schedule)/,
+      })
+      .evaluateAll((nodes) =>
+        nodes.map((node) => ({
+          text: (node.textContent ?? "").trim(),
+          disabled: node.disabled,
+          within:
+            node
+              .closest("[data-renewal-now-slot], [data-renewal-field], section, details")
+              ?.getAttribute("data-renewal-now-slot") ??
+            node.closest("[data-renewal-field]")?.getAttribute("data-renewal-field") ??
+            node.closest("[id]")?.id ??
+            null,
+        })),
+      );
+    record({ id: "N10-05", check: "reconcile-competing", competing });
+    assert.deepEqual(competing, [], "Nothing competes with the reconciliation");
     observed.reconciliationLeadsOffer = true;
     const resumed = await kit.post(page, SEQUENCES, {
       action: "resume",

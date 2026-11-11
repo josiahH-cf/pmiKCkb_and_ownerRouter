@@ -443,8 +443,22 @@ export function RenewalFullOutcome({
   };
   const current = step.id === stage.currentStepId;
   const blocker = current ? stage.blocker : null;
+  const audience =
+    stepId === "ask-owner" ? "owner" : stepId === "offer-tenant" ? "tenant" : null;
+  const delivery = audience ? stage.evidence[audience] : null;
+  // S269 rule 2 (AC-S269-1, both views): an unresolved send for this outcome's message leads with
+  // its own check on the same attempt, ahead of the step's next action (such as recording an
+  // earlier reply, which stays available through the Owner or Tenant response).
+  const unresolvedSend =
+    audience && delivery?.unconfirmedSequenceId && step.state !== "not_part"
+      ? {
+          label: RENEWAL_STAGE_NEXT_STEP.checkSend,
+          target: `renewal-card-message-${audience}`,
+        }
+      : null;
   const primary =
     blocker ??
+    unresolvedSend ??
     (step.state === "covered" && stepId === "ask-owner"
       ? {
           label: "Continue to Offer the tenant",
@@ -452,9 +466,6 @@ export function RenewalFullOutcome({
           continueTo: "offer-tenant" as const,
         }
       : step.primary);
-  const audience =
-    stepId === "ask-owner" ? "owner" : stepId === "offer-tenant" ? "tenant" : null;
-  const delivery = audience ? stage.evidence[audience] : null;
   const reconcile =
     primary?.label === RENEWAL_STAGE_NEXT_STEP.checkSend
       ? delivery?.unconfirmedSequenceId
@@ -1515,6 +1526,18 @@ function NowCard({
     readonly run: () => void;
   } | null = (() => {
     if (!lead || blocker || basePrimary) return null;
+    // S269 rule 2: the unresolved send's own check on the same attempt is the one primary, even
+    // where the step's next action records an earlier reply.
+    if (priority.state === "reconcile" && lead.key === "check-send") {
+      const sequenceId = evidence?.unconfirmedSequenceId;
+      return sequenceId
+        ? {
+            label: lead.label,
+            target: lead.target,
+            run: () => void reconcile(sequenceId),
+          }
+        : null;
+    }
     if (priority.state === "missing" || lead.key === "unfinished") {
       if (
         lead.key === "message-fix" ||
@@ -1745,8 +1768,10 @@ function NowCard({
         ) : null}
       </p>
     ) : null;
+  // While the unresolved send leads, the reply decision waits here; the Owner response in Full
+  // view still records it (S269 rule 2).
   const replyNode =
-    replyDecision && manual ? (
+    replyDecision && manual && priority.state !== "reconcile" ? (
       <RenewalOwnerDecisionFromReply
         choices={replyDecision}
         disabled={manual.pending}
@@ -1986,19 +2011,22 @@ function NowCard({
                   {recordWhatHappened.label}
                 </Button>
               ) : null}
-              <Button
-                onClick={() =>
-                  focusControl(
-                    audience === "owner"
-                      ? "renewal-card-message-owner"
-                      : "renewal-card-message-tenant",
-                  )
-                }
-                size="compact"
-                variant="secondary"
-              >
-                Send again
-              </Button>
+              {/* S269 rule 2 / R-S265-3: an unresolved attempt is checked before any new send. */}
+              {!evidence?.unconfirmedSequenceId ? (
+                <Button
+                  onClick={() =>
+                    focusControl(
+                      audience === "owner"
+                        ? "renewal-card-message-owner"
+                        : "renewal-card-message-tenant",
+                    )
+                  }
+                  size="compact"
+                  variant="secondary"
+                >
+                  Send again
+                </Button>
+              ) : null}
             </>
           ) : null}
           {shown.state === "waiting" && definition.next ? (

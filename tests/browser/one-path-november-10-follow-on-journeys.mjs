@@ -3,8 +3,11 @@
 // app's own attempt records, never assumed.
 import assert from "node:assert/strict";
 import { refusedConnections } from "../../scripts/lib/one-path-rehearsal/control.mjs";
+import { openRehearsalDatabase } from "../../scripts/lib/one-path-rehearsal/emulator-database.mjs";
+import { seedOnePathForms } from "./one-path-forms-seed.mjs";
 import { leaseReads } from "./one-path-november-10-core-journeys.mjs";
 import { centralDate, uuid } from "./one-path-november-10-kit.mjs";
+import { recordTenantAcceptance } from "./one-path-november-10-offer-journeys.mjs";
 
 const WORKING = "/api/lease-renewal/working-record";
 const WORKSPACE = "/api/lease-renewal/workspace";
@@ -465,27 +468,107 @@ export async function journeyN1010(ctx, page) {
     effects.length + (handoff.attempts?.length ?? 0) + (handoff.association ? 1 : 0);
   assert.equal(observed.providerEffects, 0);
 
-  // R-S264-6 with S268: packet parity compares each form whose reviewed map reads a shared charge
-  // with the offer the tenant's recorded acceptance answers (offer-packet-parity.ts). It needs a
-  // reviewed map that reads one to compare anything.
-  const sharedFacts = [
-    "animal.monthly_charge",
-    "charges.resident_benefit_package.monthly",
-    "charges.insurance.monthly",
-  ];
-  const sharedForms = (await kit.listDocuments("lease_artifact_intake"))
-    .filter((doc) =>
-      sharedFacts.some((fact) => JSON.stringify(doc.fields ?? {}).includes(`"${fact}"`)),
-    )
-    .map((doc) => doc.name.split("/").pop());
-  record({ id: "N10-10", check: "shared-charge-forms", sharedForms });
-  observed.sharedChargeDiscrepancyHeld = false;
-  observed.missing = sharedForms.length
-    ? `Reviewed maps read a shared charge (${sharedForms.join(", ")}); this driver does not yet read back their held form.`
-    : "No reviewed form map in the rehearsal reads a shared charge (animal.monthly_charge, or the package or insurance monthly amount), so packet parity has nothing to compare and no form can be shown held. The S253 forms seed would need a reviewed field for one.";
-  if (!observed.syntheticPdfInputs)
-    observed.missing += " The snapshot was not ready for a filled extension PDF.";
-  if (!observed.signedEvidenceSeparate)
-    observed.missing += ` Returned documents were unavailable: ${observed.returnedUnavailable ?? "no tracked document"}.`;
+  // R-S264-6 with S268 (AC-S264-6; the N10-04 and N10-10 cross-surface case): a form relying on a
+  // shared charge that the accepted offer disagrees with holds, alone, in the first-packet review.
+  const shared = await sharedChargeHold(ctx, page);
+  observed.sharedChargeDiscrepancyHeld = shared.held;
+  const missing = [
+    shared.missing,
+    observed.syntheticPdfInputs
+      ? null
+      : "The snapshot was not ready for a filled extension PDF.",
+    observed.signedEvidenceSeparate
+      ? null
+      : `Returned documents were unavailable: ${observed.returnedUnavailable ?? "no tracked document"}.`,
+  ].filter(Boolean);
+  if (missing.length) observed.missing = missing.join(" ");
   return observed;
+}
+
+const PACKET_PARITY_HOLD =
+  /Pet rent: the accepted offer has \$[\d,]+\.\d\d per month(?: and \$[\d,]+\.\d\d per month)* and this form's packet has (?:no such charge|\$[\d,]+\.\d\d per month(?: and \$[\d,]+\.\d\d per month)*)\. This form waits until they match/;
+
+/**
+ * Every packet family row of a lease's Documents and signatures, as staff read them on a fresh
+ * page: the same address would only move to its fragment and keep the earlier render.
+ */
+async function packetFamilies(kit, page, leaseId) {
+  await page.goto("about:blank");
+  await kit.open(page, kit.href(leaseId, "?view=full#renewal-section-documents"));
+  const group = page.locator(
+    'details[data-renewal-group="Other packet and handoff work"]',
+  );
+  if (await group.count()) await kit.toggleDisclosure(page, group.first(), true);
+  const rows = page.locator("tr[data-family]");
+  await rows.first().waitFor();
+  return Object.fromEntries(
+    await rows.evaluateAll((list) =>
+      list.map((row) => [
+        row.getAttribute("data-family"),
+        row.innerText.replace(/\s+/g, " "),
+      ]),
+    ),
+  );
+}
+
+/**
+ * The prepared lease's tenant accepts its confirmed offer (N10-05 sent it), recorded against that
+ * exact send. The S253 seed's opt-in pet agreement then reviews one more field, each animal's
+ * monthly charge, written through the seed's own writer as its L64 variant is: the pet agreement
+ * now relies on Pet rent, which the accepted offer charges and the fee-only packet policy does not.
+ * Only that form holds, naming the difference; with the original map nothing is compared. The
+ * original map is restored and the lease goes back to awaiting the tenant.
+ */
+async function sharedChargeHold(ctx, page) {
+  const { kit, rehearsal, record } = ctx;
+  const leaseId = String(ctx.leases.prepared.leaseId);
+  const reads = leaseReads(kit, page, leaseId);
+  const sent = (await reads.tenant()).offerAnswers?.candidates?.find(
+    (candidate) => candidate.kind === "linked_communication",
+  );
+  if (!sent)
+    return {
+      held: false,
+      missing:
+        "The prepared lease has no confirmed tenant offer to accept; N10-05 sends one in the full run.",
+    };
+  const db = openRehearsalDatabase(rehearsal);
+  const { linkedAnswer } = await recordTenantAcceptance(kit, page, leaseId, sent);
+  try {
+    assert.equal(linkedAnswer?.attribution?.kind, "linked_communication");
+    const before = await packetFamilies(kit, page, leaseId);
+    let after;
+    await seedOnePathForms(db, { sharedChargePetAgreement: true });
+    try {
+      after = await packetFamilies(kit, page, leaseId);
+    } finally {
+      await seedOnePathForms(db);
+    }
+    const restored = await packetFamilies(kit, page, leaseId);
+    record({
+      id: "N10-10",
+      check: "shared-charge",
+      answered: sent.sequenceId,
+      before: before.animal_agreement,
+      after: after.animal_agreement,
+    });
+    assert.doesNotMatch(before.animal_agreement ?? "", PACKET_PARITY_HOLD);
+    assert.match(after.animal_agreement ?? "", PACKET_PARITY_HOLD);
+    for (const [kind, text] of Object.entries(after))
+      if (kind !== "animal_agreement")
+        assert.doesNotMatch(text, /the accepted offer has/, kind + " is not held");
+    assert.doesNotMatch(restored.animal_agreement ?? "", PACKET_PARITY_HOLD);
+    return { held: true };
+  } finally {
+    const state = (await reads.workspace()).state;
+    const awaiting = await kit.post(page, WORKSPACE, {
+      operation: "record",
+      leaseId,
+      cycleId: state.cycleId,
+      expectedRevision: state.revision,
+      operationId: uuid(),
+      action: { kind: "tenant_response", outcome: "awaiting_response" },
+    });
+    assert.equal(awaiting.status, 200, JSON.stringify(awaiting.body));
+  }
 }

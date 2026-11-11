@@ -61,7 +61,7 @@ async function admitNoticeSource(kit, page, leaseId, purpose = "renewal_owner") 
         NOTICE_GENERATION.test(reason),
       )
     )
-      return composition;
+      return { composition, refreshes: attempt };
     assert.ok(
       (await forceSourceRefresh(page)).body?.refreshed,
       "Refresh the lease source",
@@ -206,10 +206,42 @@ export async function journeyN1003(ctx, page) {
   // Return to tenant offer restores the same offer before the end is entered.
   const back = page.getByRole("button", { name: "Return to tenant offer", exact: true });
   await back.waitFor();
+  // Return focuses the tenant offer's readiness, which mounts with the offer's own first read.
+  // Staff return to a loaded offer; a return before that read finishes has nothing to focus
+  // (seen twice on the development server, reported with the S271 runs).
+  const readiness = page.locator("#renewal-message-tenant-readiness");
+  await readiness.waitFor({ state: "attached" });
+  const readinessShown = await readiness.count();
   await back.click();
-  await page.waitForFunction(() =>
-    Boolean(document.activeElement?.closest("#renewal-message-tenant-readiness")),
-  );
+  try {
+    await page.waitForFunction(() =>
+      Boolean(document.activeElement?.closest("#renewal-message-tenant-readiness")),
+    );
+  } catch (error) {
+    // Diagnostics only: where focus went and whether the tenant offer's readiness was mounted.
+    record({
+      id: "N10-03",
+      check: "return-focus",
+      readinessShown,
+      ...(await page.evaluate(() => ({
+        active: document.activeElement
+          ? document.activeElement.tagName + "#" + document.activeElement.id
+          : null,
+        readinessNow: Boolean(
+          document.getElementById("renewal-message-tenant-readiness"),
+        ),
+        summary:
+          document
+            .getElementById("renewal-message-tenant-readiness-summary")
+            ?.textContent?.slice(0, 200) ?? null,
+        nowStep:
+          document
+            .querySelector('[role="region"][aria-label="Now"]')
+            ?.getAttribute("data-renewal-now-step") ?? null,
+      }))),
+    });
+    throw error;
+  }
   const tenant1 = await reads.tenant();
   assert.equal(tenant1.saved?.revision ?? null, tenantSavedBefore);
   assert.match(tenant1.content.plainText, new RegExp("effective " + usDate(start)));
@@ -462,6 +494,15 @@ export async function journeyN1002(ctx, page) {
   // Establish the work record, the recommendation and an owner message whose send is uncertain.
   assert.ok((await forceSourceRefresh(page)).body?.refreshed, "Read the current source");
   const owner0 = await reads.owner();
+  const ownerBlockers = async () =>
+    ((await reads.composition("renewal_owner")).target?.blockers ?? []).filter((reason) =>
+      NOTICE_GENERATION.test(reason),
+    ).length;
+  const notice = {
+    workRecordBefore: (await reads.workspace()).state?.cycleId ?? null,
+    savedBefore: owner0.saved?.revision ?? null,
+    afterRefresh: await ownerBlockers(),
+  };
   if (!owner0.saved) {
     const saved = await kit.post(page, PREPARATION, {
       kind: "save",
@@ -483,8 +524,10 @@ export async function journeyN1002(ctx, page) {
     expectedCycleId: cycle,
   });
   assert.equal(recommended.status, 200, JSON.stringify(recommended.body));
-
-  await admitNoticeSource(kit, page, leaseId);
+  notice.workRecordAfter = (await reads.workspace()).state?.cycleId ?? null;
+  notice.afterSaves = await ownerBlockers();
+  notice.refreshes = (await admitNoticeSource(kit, page, leaseId)).refreshes;
+  record({ id: "N10-02", check: "notice-admission", ...notice });
   const sentBefore = (await kit.sentMail()).length;
   await setNextSend(rehearsal, "unconfirmed");
   const message = await sendOwnerMessage(page, leaseId);
@@ -555,9 +598,15 @@ export async function journeyN1002(ctx, page) {
     await kit.open(page, kit.href(leaseId, "?step=ask-owner"));
     const fieldset = page.locator("#renewal-owner-decision-from-reply");
     await fieldset.waitFor();
-    await fieldset
+    // The lease's owner replies are listed newest first: the one just delivered on this thread.
+    const approvedInReply = fieldset
       .getByRole("radio", { name: /^Approved in the reply received/ })
-      .check();
+      .first();
+    assert.ok(
+      String(await approvedInReply.getAttribute("value")).includes(sequenceId),
+      "The approval names the reply on this send's thread",
+    );
+    await approvedInReply.check();
     const amount = fieldset.getByLabel("Amount approved", { exact: true });
     await amount.waitFor();
     assert.equal(await amount.inputValue(), "", "Amount approved is never prefilled");
@@ -912,18 +961,31 @@ export async function journeyN1001(ctx, page, mutations) {
         ? ["Check the numbers names the S270 Verify lease numbers group"]
         : [];
 
-    // The saved comparison and owner draft come back as they were.
+    // The saved comparison and owner draft come back as they were. S270 places the estimate or
+    // range in Compare market rent's Work and the full comparison, with its comparable rows, in
+    // the read-only Verify market comparison, closed on entry: one shown view of the comparison.
     await kit.open(page, kit.href(leaseId, "?step=compare-market"));
-    // The Now card can hold the revealed Market rent comparison region beside its own summary;
-    // the shown stored comparison is the visible one.
-    const comparison = kit.now(page).locator("[data-renewal-comparison]:visible").first();
+    const now = kit.now(page);
+    const comparison = now.locator(
+      '[data-renewal-now-slot="stored-comparison"] [data-renewal-comparison]',
+    );
     await comparison.waitFor();
-    record({
-      id: "N10-01",
-      check: "stored-comparison",
-      inNow: await kit.now(page).locator("[data-renewal-comparison]").count(),
-      visible: await kit.now(page).locator("[data-renewal-comparison]:visible").count(),
-    });
+    const views = {
+      inNow: await now.locator("[data-renewal-comparison]").count(),
+      visible: await now.locator("[data-renewal-comparison]:visible").count(),
+      inClosedVerification: await now
+        .locator(
+          'details[data-renewal-verification]:not([open]) [data-renewal-comparison="stored"]',
+        )
+        .count(),
+    };
+    record({ id: "N10-01", check: "stored-comparison", ...views });
+    assert.equal(views.visible, 1, "One stored comparison is shown on entry");
+    assert.equal(
+      views.inNow - 1,
+      views.inClosedVerification,
+      "Every other stored comparison is the closed Verify market comparison's",
+    );
     assert.match(
       await comparison.locator('[data-renewal-field="comparison-line"]').innerText(),
       /range \$[\d,]+ to \$[\d,]+ from \d+ comparable/,
