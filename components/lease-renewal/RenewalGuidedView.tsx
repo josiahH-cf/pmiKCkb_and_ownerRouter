@@ -2011,19 +2011,22 @@ function NowCard({
                   {recordWhatHappened.label}
                 </Button>
               ) : null}
-              <Button
-                onClick={() =>
-                  focusControl(
-                    audience === "owner"
-                      ? "renewal-card-message-owner"
-                      : "renewal-card-message-tenant",
-                  )
-                }
-                size="compact"
-                variant="secondary"
-              >
-                Send again
-              </Button>
+              {/* S269 rule 2 / R-S265-3: an unresolved attempt is checked before any new send. */}
+              {!evidence?.unconfirmedSequenceId ? (
+                <Button
+                  onClick={() =>
+                    focusControl(
+                      audience === "owner"
+                        ? "renewal-card-message-owner"
+                        : "renewal-card-message-tenant",
+                    )
+                  }
+                  size="compact"
+                  variant="secondary"
+                >
+                  Send again
+                </Button>
+              ) : null}
             </>
           ) : null}
           {shown.state === "waiting" && definition.next ? (
