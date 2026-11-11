@@ -584,7 +584,18 @@ export function rentvineStandInResponse(mix, url, flags = {}) {
     };
   }
   if (path === "leases/statuses") return { body: mix.statuses };
-  if (/^leases\/\d+\/recurring-charges$/.test(path)) return { body: [] };
+  // S271: a lease's recurring charges are none unless the `recurringCharges` flag gives that lease
+  // synthetic `{recurringCharge, account}` envelopes, served for the list and for each detail read.
+  const charges = path.match(/^leases\/(\d+)\/recurring-charges(?:\/(\d+))?$/);
+  if (charges) {
+    const served = flags.recurringCharges?.[charges[1]] ?? [];
+    if (!charges[2]) return { body: served };
+    return {
+      body: served.find(
+        (entry) => entry?.recurringCharge?.leaseRecurringChargeID === charges[2],
+      ),
+    };
+  }
   const one = path.match(/^leases\/(\d+)$/);
   const row = one ? leases.find((entry) => String(entry.lease.leaseID) === one[1]) : null;
   if (!row) return { body: undefined };

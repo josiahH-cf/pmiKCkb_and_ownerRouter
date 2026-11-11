@@ -18,6 +18,7 @@ docs/specs/
 tests/browser/fixtures/s260-compiled-mail.ts
 tests/browser/fixtures/s260-compiled-mail-worker.ts
 tests/browser/fixtures/s260-compiled-source-preview.ts
+tests/browser/fixtures/s271-compiled-stand-in.ts
 
 # The dedicated scanner has its own exact-file build context and service image.
 infra/publication-scanner/

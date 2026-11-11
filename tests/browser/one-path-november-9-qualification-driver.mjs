@@ -20,7 +20,10 @@ import {
 } from "../../scripts/lib/one-path-rehearsal/control.mjs";
 import { forceSourceRefresh } from "../../scripts/lib/one-path-rehearsal/seeds.mjs";
 import { inspectOutcome, outcomeFaults } from "./one-path-november-9-outcome-check.mjs";
-import { readExactHelpProof } from "./one-path-november-9-help-proof.mjs";
+import {
+  readExactHelpProof,
+  servedHelpInventory,
+} from "./one-path-november-9-help-proof.mjs";
 import { qualifyCompiledTenantOffer } from "./one-path-november-9-mail-checks.mjs";
 import { novemberNineMatrixVerdict } from "./one-path-november-9-qualification-verdict.mjs";
 
@@ -48,7 +51,16 @@ const report = join(
       : "s260-journeys.jsonl",
 );
 const results = [];
-const renderedHelp = readExactHelpProof(process.argv, rehearsal.servedVersion);
+// November 10: the served commit's own Help inventory, read from its worktree, independent of
+// the rendered Help run evidence that the proof compares against it.
+const servedHelp = process.argv.includes("--rendered-help")
+  ? servedHelpInventory()
+  : null;
+const renderedHelp = readExactHelpProof(
+  process.argv,
+  rehearsal.servedVersion,
+  servedHelp,
+);
 let monthPreparation = null;
 const record = (entry) => {
   appendFileSync(report, JSON.stringify(entry) + "\n");
@@ -77,6 +89,21 @@ async function toggleDisclosure(page, details, expanded) {
   await details
     .and(page.locator(expanded ? "details[open]" : "details:not([open])"))
     .waitFor();
+}
+/**
+ * November 10 (S270): supporting work sits in named groups that are closed on entry. Open the
+ * named group by its own summary and return it; a group already open stays open.
+ */
+async function openNamedGroup(page, label) {
+  const group = page.locator(`details[data-renewal-group="${label}"]`).first();
+  await group.waitFor({ state: "attached" });
+  if ((await group.getAttribute("open")) === null) {
+    const summary = group.locator(":scope > summary");
+    await summary.scrollIntoViewIfNeeded();
+    await summary.click();
+    await group.and(page.locator("details[open]")).waitFor();
+  }
+  return group;
 }
 const read = (page, path) =>
   page.evaluate(async (path) => {
@@ -895,10 +922,9 @@ try {
         );
         assert.equal(await difference.getByRole("button").count(), 0);
         await toggleDisclosure(page, evidence, false);
-        await numbers
-          .getByText("Correct lease facts and review source updates", { exact: true })
-          .click();
-        const corrections = numbers.getByRole("region", {
+        // November 10 (S270): the correction lives in the named group, closed on entry.
+        const factsGroup = await openNamedGroup(page, "Correct other lease facts");
+        const corrections = factsGroup.getByRole("region", {
           name: "Correct a lease fact",
           exact: true,
         });
@@ -1783,15 +1809,14 @@ try {
           .locator("[data-renewal-outcome]")
           .evaluateAll((nodes) => nodes.map((node) => node.dataset.renewalOutcome));
         assert.deepEqual(outcomes, ["documents", "finish-up", "complete"]);
-        const documentWork = documents.locator('[data-renewal-outcome="documents"]');
-        const secondaryDocuments = documentWork.getByText(
-          "Prepare or record document work",
-          { exact: true },
-        );
-        const evaluate = documentWork.getByRole("button", {
-          name: /^(Evaluate packet|Evaluate current truth)$/,
-        });
-        if (!(await evaluate.isVisible())) await secondaryDocuments.click();
+        // November 10 (S270): document work sits in "Other packet and handoff work", closed on
+        // entry, inside the Documents and completion section.
+        const documentWork = await openNamedGroup(page, "Other packet and handoff work");
+        const evaluate = documents
+          .getByRole("button", {
+            name: /^(Evaluate packet|Evaluate current truth)$/,
+          })
+          .first();
         const packetPath = "/api/lease-renewal/packet-truth";
         const evaluation = page.waitForResponse(
           (response) =>
@@ -1818,22 +1843,22 @@ try {
             }),
         );
         assert.deepEqual(persisted.snapshot, savedPacket);
-        const dotloop = documentWork.getByRole("button", {
+        const dotloop = documents.getByRole("button", {
           name: "Preview exact Dotloop packet creation",
           exact: true,
         });
-        if (await dotloop.count()) assert.equal(await dotloop.isEnabled(), false);
-        const manual = documentWork.locator("#renewal-manual-documents");
+        if (await dotloop.count()) assert.equal(await dotloop.first().isEnabled(), false);
+        const manual = documents.locator("#renewal-manual-documents");
         const outcome = manual.getByLabel("Required documents prepared outcome", {
           exact: true,
         });
         if (!(await outcome.isVisible())) {
-          const secondary = documentWork
-            .locator("summary")
-            .filter({ hasText: /^Prepare or record document work$/ });
-          if (!(await manual.isVisible())) await secondary.click();
-          if (!(await outcome.isVisible())) await manual.locator("summary").click();
+          if (!(await manual.isVisible()))
+            await openNamedGroup(page, "Other packet and handoff work");
+          if (!(await outcome.isVisible()))
+            await manual.locator("summary").first().click();
         }
+        assert.ok(await documentWork.count());
         const [documentResponse] = await Promise.all([
           savedWork(
             (action) => action?.kind === "activity" && action.activity === "documents",
@@ -1848,10 +1873,8 @@ try {
 
         const detailsPath = "?view=full#renewal-outcome-check-numbers";
         await open(page, href(covered, detailsPath));
-        const details = page.locator('section[data-renewal-outcome="check-numbers"]');
-        await details
-          .getByText("Correct lease facts and review source updates", { exact: true })
-          .click();
+        await page.locator('section[data-renewal-outcome="check-numbers"]').waitFor();
+        const details = await openNamedGroup(page, "Correct other lease facts");
         const corrections = details.getByRole("region", {
           name: "Correct a lease fact",
           exact: true,
@@ -2488,6 +2511,7 @@ try {
     results,
     networkRefusals: refusedConnections(rehearsal),
     tenantSendProof: onlyTenant,
+    servedHelp,
   });
   writeFileSync(
     join(

@@ -102,19 +102,25 @@ function hasDeskDisposition(entry) {
   return Boolean(entry?.stage && entry?.next);
 }
 
-function hasCaseReadback({ id, role, observed }, source, compiledMail) {
+function hasCaseReadback({ id, role, observed }, source, compiledMail, servedHelp) {
   const help = id.startsWith("N09-09-");
   if (!required[help ? "N09-09" : id]?.every((key) => observed[key] === true)) {
     return false;
   }
   if (help) {
+    // November 10: the served commit's own Help version, scene count and control count (read
+    // from its worktree), so a later Help release is checked against its own inventory.
     return (
       role === id.slice("N09-09-".length) &&
       observed.protectedSpaceRequest === (role === "Admin" ? "read" : "denied") &&
       observed.helpSource === source &&
       /^[a-f0-9]{64}$/.test(observed.helpSourceManifest) &&
-      observed.matchedScenes === 27 &&
-      observed.checkedControls === 831 &&
+      /^V[1-9]\d*\.\d+$/.test(String(servedHelp?.version)) &&
+      observed.helpVersion === servedHelp.version &&
+      servedHelp.scenes > 0 &&
+      servedHelp.controls > 0 &&
+      observed.matchedScenes === servedHelp.scenes &&
+      observed.checkedControls === servedHelp.controls &&
       observed.missingRequiredControls === 0 &&
       observed.rejectedDrift === "Work status" &&
       Boolean(observed.canonicalRun && observed.driftRun)
@@ -179,6 +185,7 @@ export function novemberNineMatrixVerdict({
   results,
   networkRefusals,
   tenantSendProof,
+  servedHelp = null,
 }) {
   const source = rehearsal.servedVersion;
   const compiledMail = rehearsal.compiledMail ?? null;
@@ -210,7 +217,7 @@ export function novemberNineMatrixVerdict({
       !observed ||
       !Object.keys(observed).length ||
       Boolean(observed.missing) ||
-      (!tenantSendProof && !hasCaseReadback(row, source, compiledMail))
+      (!tenantSendProof && !hasCaseReadback(row, source, compiledMail, servedHelp))
     );
   });
   const rejected = !exact || !completeMatrix || networkRefusals.length > 0 || unsupported;
