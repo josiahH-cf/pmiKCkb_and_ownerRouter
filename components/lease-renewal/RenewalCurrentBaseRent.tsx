@@ -59,7 +59,16 @@ function separateChargesLine(base: CurrentBaseRent): string | null {
 export function CurrentBaseRentSummary({
   facts,
   placement = "now",
-}: Readonly<{ facts: CurrentBaseRentFacts; placement?: "now" | "full" }>) {
+  primaryId,
+}: Readonly<{
+  facts: CurrentBaseRentFacts;
+  placement?: "now" | "full";
+  /**
+   * S269: when the current base rent is Check the numbers' first fix, its one correction is the
+   * Now card's primary action (with this id), so no second button repeats it.
+   */
+  primaryId?: string;
+}>) {
   const working = useRenewalWorkingRecord();
   const view = useRenewalFocusView();
   const base = useCurrentBaseRent(facts);
@@ -95,9 +104,17 @@ export function CurrentBaseRentSummary({
           {leads && working?.canEdit ? (
             <p>
               <Button
+                data-renewal-now-primary={primaryId ? true : undefined}
+                data-renewal-now-target={primaryId ? base.correctionTarget : undefined}
+                data-renewal-work-primary={primaryId ? true : undefined}
+                id={primaryId}
                 onClick={() => focusRenewalDashboardControl(base.correctionTarget)}
                 size="compact"
-                variant={base.state === "needs_verification" ? "primary" : "secondary"}
+                variant={
+                  primaryId || base.state === "needs_verification"
+                    ? "primary"
+                    : "secondary"
+                }
               >
                 {CORRECT_CURRENT_BASE_RENT_LABEL}
               </Button>

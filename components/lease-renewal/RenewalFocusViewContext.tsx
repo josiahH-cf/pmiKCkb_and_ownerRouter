@@ -27,7 +27,11 @@ import {
   focusRenewalDashboardControl,
   setRenewalStickyOffset,
 } from "./RenewalDashboardNavigation";
-import { createFocusReveal, type FocusReveal } from "./renewal-focus-reveal";
+import {
+  createFocusReveal,
+  type FocusReveal,
+  type FocusRevealOptions,
+} from "./renewal-focus-reveal";
 
 /**
  * S143: the lease-level view switch. The view, the chosen task and the saved Full view scroll
@@ -69,7 +73,21 @@ interface FocusViewValue {
    * The one reveal over the workspace body, shared by Guided view and Focus view so the two never
    * hide and show the same regions against each other. Full view clears it.
    */
-  readonly applyReveal: (keep: readonly Element[]) => void;
+  readonly applyReveal: (keep: readonly Element[], options?: FocusRevealOptions) => void;
+  /**
+   * S269/S270: the control the shown Guided outcome leads with. A named secondary Work group that
+   * holds it opens as current work. Kept for this case through a view switch; presentation only.
+   */
+  readonly guidedLead: { readonly stepId: string; readonly target: string } | null;
+  readonly setGuidedLead: (
+    value: { readonly stepId: string; readonly target: string } | null,
+  ) => void;
+  /**
+   * S270: places inside named groups, by outcome, that the Guided Now card fills with an optional
+   * editor (the Housing assistance field in Correct other lease facts).
+   */
+  readonly groupHosts: Readonly<Record<string, HTMLElement>>;
+  readonly setGroupHost: (stepId: string, element: HTMLElement | null) => void;
   /** True when the address named the view, so an older link's hash does not override it. */
   readonly explicitView: boolean;
   /** The step the Guided view shows, kept for a reload of this page. */
@@ -321,6 +339,30 @@ export function RenewalFocusViewProvider({
     },
     [],
   );
+  const [guidedLead, setGuidedLeadState] = useState<{
+    readonly stepId: string;
+    readonly target: string;
+  } | null>(null);
+  const setGuidedLead = useCallback(
+    (next: { readonly stepId: string; readonly target: string } | null) => {
+      setGuidedLeadState((previous) =>
+        previous?.stepId === next?.stepId && previous?.target === next?.target
+          ? previous
+          : next,
+      );
+    },
+    [],
+  );
+  const [groupHosts, setGroupHosts] = useState<Readonly<Record<string, HTMLElement>>>({});
+  const setGroupHost = useCallback((stepId: string, element: HTMLElement | null) => {
+    setGroupHosts((current) => {
+      if (element ? current[stepId] === element : !(stepId in current)) return current;
+      const next = { ...current };
+      if (element) next[stepId] = element;
+      else delete next[stepId];
+      return next;
+    });
+  }, []);
   const scope = useRef(continuityScope);
   useLayoutEffect(() => {
     scope.current = continuityScope;
@@ -388,14 +430,14 @@ export function RenewalFocusViewProvider({
     [focusFullTarget, setView],
   );
   const applyReveal = useCallback(
-    (keep: readonly Element[]) => {
+    (keep: readonly Element[], options?: FocusRevealOptions) => {
       const body = slot?.parentElement;
       if (!body) return;
       if (!reveal.current || reveal.current.body !== body) {
         reveal.current?.reveal.clear();
         reveal.current = { body, reveal: createFocusReveal(body) };
       }
-      reveal.current.reveal.apply(keep);
+      reveal.current.reveal.apply(keep, options);
     },
     [slot],
   );
@@ -543,6 +585,10 @@ export function RenewalFocusViewProvider({
       nowPresentation,
       setNowPresentation,
       applyReveal,
+      guidedLead,
+      setGuidedLead,
+      groupHosts,
+      setGroupHost,
       explicitView,
       rememberStep,
       restoredStep,
@@ -560,6 +606,10 @@ export function RenewalFocusViewProvider({
       nowPresentation,
       setNowPresentation,
       applyReveal,
+      guidedLead,
+      setGuidedLead,
+      groupHosts,
+      setGroupHost,
       explicitView,
       rememberStep,
       restoredStep,

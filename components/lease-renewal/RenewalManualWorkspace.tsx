@@ -607,9 +607,15 @@ export function RenewalManualSection({
   documentOutcome,
   moveOutInitiated = false,
   currentRent = null,
+  part,
 }: {
   section: "owner" | "tenant" | "documents";
   documentOutcome?: "documents" | "finish-up" | "complete";
+  /**
+   * S270: Finish up's active Work holds its first open follow-up and the source updates
+   * ("lead"); its named group "Other follow-ups" holds the rest ("rest"). Each form has one owner.
+   */
+  part?: "lead" | "rest";
   /** S251 R-S251-6: the current rent "Keep the current rent" records as the working rent. */
   currentRent?: number | null;
   /**
@@ -658,15 +664,36 @@ export function RenewalManualSection({
           Boolean(state?.activities[key])),
     )
     .map(([key]) => key as ManualActivity);
+  // S270: the first follow-up without a done or not applicable record leads Finish up.
+  const leadFollowUp =
+    part && documentOutcome === "finish-up"
+      ? (activities.find((key) => {
+          const outcome = state ? currentStaffActivity(state, key)?.outcome : undefined;
+          return outcome !== "done" && outcome !== "not_applicable";
+        }) ?? null)
+      : null;
+  const partActivities =
+    part === "lead"
+      ? activities.filter((key) => key === leadFollowUp)
+      : part === "rest"
+        ? activities.filter((key) => key !== leadFollowUp)
+        : activities;
   // S120 (R120.1): the outreach or delivery record comes before the response it precedes in
   // time; the remaining activities keep their order after the response.
-  const beforeResponse = activities.filter((key) =>
+  const beforeResponse = partActivities.filter((key) =>
     ACTIVITIES_BEFORE_RESPONSE.includes(key),
   );
-  const afterResponse = activities.filter(
+  const afterResponse = partActivities.filter(
     (key) => !ACTIVITIES_BEFORE_RESPONSE.includes(key),
   );
   const activityForm = (key: ManualActivity) => <ActivityForm key={key} activity={key} />;
+  if (part === "rest")
+    return partActivities.length > 0 ? (
+      <div className="ui-stack" data-renewal-follow-ups="other">
+        {beforeResponse.map(activityForm)}
+        {afterResponse.map(activityForm)}
+      </div>
+    ) : null;
   const completionState = context.states.completion ?? AUTOSAVE_IDLE;
   return (
     <Card
