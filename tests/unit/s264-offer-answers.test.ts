@@ -315,6 +315,11 @@ describe("S264 AC-S264-6 the response editors' view rechecks each answer now", (
         coverage: "earlier_offer",
         line: "The owner approved an earlier offer, so the current offer's charges are not covered. Pet rent changed ($45.00 to $50.00).",
       },
+      acceptance: {
+        eventId: tenantEvent,
+        state: "earlier_offer",
+        line: "Current acceptance needs verification: it answers an earlier offer. Pet rent changed ($45.00 to $50.00).",
+      },
     });
   });
 
@@ -346,7 +351,13 @@ describe("S264 AC-S264-6 the response editors' view rechecks each answer now", (
         tenantRecord: null,
         ownerRecord: null,
       }),
-    ).toEqual({ current: null, candidates: [], tenant: null, owner: null });
+    ).toEqual({
+      current: null,
+      candidates: [],
+      tenant: null,
+      owner: null,
+      acceptance: null,
+    });
   });
 });
 

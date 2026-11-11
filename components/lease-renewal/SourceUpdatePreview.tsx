@@ -3,14 +3,24 @@
 
 import type { SourceUpdatePreviewFacts } from "@/lib/lease-renewal/source-update-preview";
 import type { SourceUpdateTermsBasis } from "@/lib/lease-renewal/source-update-terms-basis";
+import {
+  TENANT_ACCEPTANCE_HOLD_WORDS,
+  type TenantAcceptanceHold,
+} from "@/lib/lease-renewal/tenant-acceptance-hold";
 
 export function SourceUpdatePreview({
   facts,
   basis,
+  hold,
 }: Readonly<{
   facts: SourceUpdatePreviewFacts;
   /** S237 R-S237-1: informational only; it never changes the effect or its confirmation. */
   basis?: SourceUpdateTermsBasis | null;
+  /**
+   * S264 R-S264-6: the tenant's recorded acceptance answers an earlier offer, so this update
+   * carrying the accepted renewal waits; the line names the exact difference.
+   */
+  hold?: TenantAcceptanceHold | null;
 }>) {
   return (
     <dl aria-label="Exact update preview" className="renewal-update-preview">
@@ -48,6 +58,14 @@ export function SourceUpdatePreview({
           <dd>
             {basis.terms}. {basis.approval}. {basis.documents}. Shown for review only; it
             does not change this update.
+          </dd>
+        </div>
+      ) : null}
+      {hold ? (
+        <div data-renewal-field="acceptance-hold">
+          <dt>{TENANT_ACCEPTANCE_HOLD_WORDS.label}</dt>
+          <dd>
+            {hold.line} {TENANT_ACCEPTANCE_HOLD_WORDS.update}
           </dd>
         </div>
       ) : null}

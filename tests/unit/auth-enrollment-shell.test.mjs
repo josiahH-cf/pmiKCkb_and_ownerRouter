@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -46,10 +46,15 @@ if IFS= read -r -t 1 ignored; then
   echo check-consumed-input >> "$PMI_TEST_FIXTURE/calls"
 fi
 case "$*" in
+  'scripts/auth/checkout-dependencies.mjs')
+    [[ "$PMI_TEST_NO_PACKAGES" == 1 ]] && { echo 'NOT READY: no installed packages' >&2; exit 2; }
+    if [[ -n "$PMI_TEST_AUTH_ROOT" ]]; then echo "$PMI_TEST_AUTH_ROOT"; else pwd -P; fi ;;
   'scripts/auth/ensure.mjs --need=gcloud --quiet')
-    [[ "$PMI_TEST_NEEDS_CLI" == 0 || -f "$PMI_TEST_FIXTURE/cli-enrolled" ]] ;;
+    [[ -n "$PMI_TEST_CHECK_CRASH" ]] && { echo 'Error [ERR_MODULE_NOT_FOUND]: check fixture' >&2; exit "$PMI_TEST_CHECK_CRASH"; }
+    # ensure.mjs exits 2 when a credential needs a person.
+    [[ "$PMI_TEST_NEEDS_CLI" == 0 || -f "$PMI_TEST_FIXTURE/cli-enrolled" ]] || exit 2 ;;
   'scripts/auth/ensure.mjs --need=adc --quiet')
-    [[ "$PMI_TEST_NEEDS_ADC" == 0 ]] ;;
+    [[ "$PMI_TEST_NEEDS_ADC" == 0 ]] || exit 2 ;;
   'scripts/auth/verify-enrollment.mjs') exit 0 ;;
   'scripts/auth/ensure.mjs --need=gcloud,adc,env,gh --unattended') exit 0 ;;
   *) exit 92 ;;
@@ -74,6 +79,9 @@ esac`,
           PMI_TEST_NEEDS_CLI: options.needsCli ? "1" : "0",
           PMI_TEST_NEEDS_ADC: options.needsAdc === false ? "0" : "1",
           PMI_TEST_LOGIN_RESULT: String(options.loginResult ?? 0),
+          PMI_TEST_NO_PACKAGES: options.noPackages ? "1" : "0",
+          PMI_TEST_AUTH_ROOT: options.authRoot?.(fixture) ?? "",
+          PMI_TEST_CHECK_CRASH: options.checkCrash ? String(options.checkCrash) : "",
         },
       },
     );
@@ -156,6 +164,49 @@ describe.skipIf(process.platform !== "linux")("interactive WSL enrollment", () =
       "node scripts/auth/verify-enrollment.mjs",
       "node scripts/auth/ensure.mjs --need=gcloud,adc,env,gh --unattended",
     ]);
+  });
+
+  it("stops before any Google sign-in when a readiness check cannot run", () => {
+    const result = enroll({ needsCli: true, checkCrash: 1 });
+    expect(result.status).toBe(1);
+    expect(result.calls.join("\n")).not.toContain("gcloud auth ");
+    expect(result.output).toContain("ERR_MODULE_NOT_FOUND");
+    expect(result.output).toContain(
+      "NOT READY: the Google CLI check could not run (exit 1); enrollment stopped before any sign-in.",
+    );
+    expect(result.output).not.toContain("Complete Google CLI sign-in");
+  });
+
+  it("continues in the registered WSL checkout when this checkout has no installed packages", () => {
+    const result = enroll({
+      args: ["--attended", "--account=josiah@pmikcmetro.com"],
+      authRoot: (fixture) => {
+        const registered = join(fixture, "registered");
+        mkdirSync(join(registered, "scripts", "auth"), { recursive: true });
+        writeFileSync(
+          join(registered, "scripts", "auth", "enroll.sh"),
+          `printf 'registered enroll in %s with %s\\n' "$PWD" "$*" >> "$PMI_TEST_FIXTURE/calls"\n`,
+        );
+        return registered;
+      },
+    });
+    expect(result.status, result.output).toBe(0);
+    expect(result.calls).toEqual([
+      "node scripts/auth/checkout-dependencies.mjs",
+      expect.stringMatching(
+        /^registered enroll in \/.+\/registered with --attended --account=josiah@pmikcmetro\.com$/,
+      ),
+    ]);
+    expect(result.output).toContain(
+      "This checkout has no installed packages; continuing in the registered WSL checkout",
+    );
+  });
+
+  it("stops before any Google prompt or config change when no checkout has installed packages", () => {
+    const result = enroll({ noPackages: true });
+    expect(result.status).toBe(2);
+    expect(result.calls).toEqual(["node scripts/auth/checkout-dependencies.mjs"]);
+    expect(result.output).toContain("NOT READY: no installed packages");
   });
 
   it("stops failed browser enrollment before binding and keeps its recovery command in browser mode", () => {

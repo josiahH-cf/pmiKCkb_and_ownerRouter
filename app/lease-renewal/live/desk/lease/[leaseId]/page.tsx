@@ -8,6 +8,8 @@ import { getPacketInputs } from "@/lib/firestore/lease-packet-inputs";
 import { readChargePolicy } from "@/lib/firestore/lease-charge-policy";
 import { packetEconomics } from "@/lib/lease-documents/owner-approval-binding";
 import { readAcceptedTenantOffer } from "@/lib/firestore/renewal-offer-answers";
+import { offerChargeSource } from "@/lib/lease-renewal/offer-snapshot";
+import { readTenantAcceptanceCheck } from "@/lib/lease-renewal/tenant-offer-composition";
 import { offerPacketComparisons } from "@/lib/lease-renewal/offer-packet-parity";
 import { ownerRosterFingerprint } from "@/lib/firestore/renewal-workspace";
 import { projectRenewalDeskIdentity } from "@/lib/lease-renewal/desk-identity";
@@ -567,6 +569,20 @@ export default async function LiveRenewalLeaseWorkspacePage({
   const attempts = attemptState?.attempts ?? [];
   const manualState = renewalAuxiliaryValue(manualRead, null);
   const chargeInventory = renewalAuxiliaryValue(chargeInventoryRead, null);
+  // S264 R-S264-6: whether the tenant's recorded acceptance covers the current offer's charges,
+  // composed from this render's RentVine charge read and the app's records (no further provider
+  // read). Null unless the work record holds a current acceptance; never throws.
+  const tenantAcceptance =
+    manualRead.status === "available"
+      ? await readTenantAcceptanceCheck({
+          actor: user,
+          leaseId,
+          db: getAdminFirestore(),
+          workspace: manualState,
+          working: renewalAuxiliaryValue(workingRecordRead, null),
+          ...(chargeInventory ? { source: offerChargeSource(chargeInventory) } : {}),
+        }).catch(() => null)
+      : null;
   // S237 R-S237-1: the terms basis beside every RentVine and Sheet preview, recomputed on each
   // render: Working terms, the recorded approval's coverage and the executed documents. It is shown
   // only; no effect, hash or admission reads it.
@@ -631,6 +647,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
           sheet: sheetFieldsRead.status === "available" ? sheetFields : null,
           identity: sourceUpdateIdentity,
           readAtIso: readTimestamp,
+          acceptance: tenantAcceptance,
         })
       : null;
   // S237 R-S237-5: what still differs, from this render's own RentVine and Sheet reads.
@@ -690,6 +707,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
             attemptSummary={attemptSummary}
             auxiliaryFailures={auxiliaryFailures}
             finishUpPreparation={finishUpPreparation}
+            tenantAcceptance={tenantAcceptance}
             sheetWritebackPaused={isOperatingSheetWritebackPaused()}
             policyMaterial={policyMaterial}
             policySheetValue={sheetFields?.row?.fieldValues?.rhino_renewed ?? null}
@@ -798,6 +816,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
                   }
                   initialEffects={sheetEffects}
                   role={user.role}
+                  tenantAcceptance={tenantAcceptance}
                   workspaceContext={sheetWorkspaceContext}
                   writebackPaused={isOperatingSheetWritebackPaused()}
                 />
@@ -864,6 +883,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
                   }
                   leaseId={leaseId}
                   role={user.role}
+                  tenantAcceptance={tenantAcceptance}
                 />
               ) : (
                 <RenewalAuxiliaryNotice compact failures={[writebackProposalRead]} />

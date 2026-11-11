@@ -51,6 +51,12 @@ import type { RenewalPreparation } from "@/lib/lease-renewal/renewal-preparation
 import type { RenewalProcessStepId } from "@/lib/lease-renewal/renewal-process";
 import { SHEET_FIELD_LABELS } from "@/lib/lease-renewal/sheet-writeback/field-intent";
 import {
+  currentAcceptanceHold,
+  TENANT_ACCEPTANCE_HOLD_WORDS,
+  type TenantAcceptanceHold,
+  type TenantAcceptanceRead,
+} from "@/lib/lease-renewal/tenant-acceptance-hold";
+import {
   RENEWAL_WORK_STATUS_LABELS,
   type RenewalWorkStatus,
 } from "@/lib/lease-renewal/work-status";
@@ -68,6 +74,8 @@ export const RENEWAL_STAGE_NEXT_STEP = {
   notOutreach: "This was not the renewal outreach",
   /** R-S248-9: both facts are shown and neither wins; staff record which one is right. */
   settleCheck: "Review both facts and record what happened",
+  /** S264 R-S264-6: the acceptance answers an earlier offer; its answer is kept as history. */
+  verifyAcceptance: TENANT_ACCEPTANCE_HOLD_WORDS.next,
 } as const;
 
 /**
@@ -148,6 +156,13 @@ export interface RenewalStageContext {
    * was read (the desk row); the staff record and the operating Sheet receipts still show.
    */
   readonly providerUpdates?: readonly RenewalProviderUpdate[] | null;
+  /**
+   * S264 R-S264-6: how the recorded tenant acceptance stands against the current offer's charges,
+   * read with the lease's own RentVine read (the lease page, then each tenant message read). It
+   * applies only to the acceptance event it names. Absent where it was not read (the desk row),
+   * the recorded acceptance reads as recorded.
+   */
+  readonly tenantAcceptance?: TenantAcceptanceRead | null;
 }
 
 /** R-S248-7: one confirmed RentVine update and whether its receipt was read back. */
@@ -330,6 +345,8 @@ interface Evaluation {
   readonly evidence: OutreachEvidence;
   readonly context: RenewalStageContext;
   readonly variants: RenewalPathVariants;
+  /** S264 R-S264-6: the current acceptance answers an earlier offer's charges. */
+  readonly acceptanceHold: TenantAcceptanceHold | null;
 }
 
 const satisfiedFor = (evaluation: Evaluation) => (key: ManualActivity) => {
@@ -404,6 +421,21 @@ function audienceStep(
       nextStep: label,
       primary: { label, target: responseTarget },
       detail: "The tenant requested a change to the current terms.",
+      waiting: null,
+    };
+  }
+  // S264 R-S264-6: the acceptance answers an earlier offer, so the step is not done. Its one next
+  // step is the tenant response editor, where the answer for the current offer is recorded or
+  // verified; the recorded answer stays as history. The information form follows an acceptance
+  // of the current offer, so it waits.
+  if (decided && audience === "tenant" && evaluation.acceptanceHold) {
+    const label = RENEWAL_STAGE_NEXT_STEP.verifyAcceptance;
+    return {
+      state: "current",
+      stage: definition.waitingStage ?? definition.stage,
+      nextStep: label,
+      primary: { label, target: responseTarget },
+      detail: evaluation.acceptanceHold.line,
       waiting: null,
     };
   }
@@ -785,6 +817,14 @@ function currentStepFor(
     steps.some((step) => step.id === "offer-tenant" && step.applies && !step.done)
   )
     return "offer-tenant";
+  // S264 R-S264-6: an acceptance of an earlier offer keeps the tenant step current, whatever later
+  // work is recorded; that work keeps its own records.
+  if (
+    evaluation.acceptanceHold &&
+    !lane.nonRenewal &&
+    steps.some((step) => step.id === "offer-tenant" && step.applies && !step.done)
+  )
+    return "offer-tenant";
   const laneStep = STEP_FOR_ACTIVITY[lane.nextActivity];
   const started =
     Boolean(state) &&
@@ -867,6 +907,8 @@ export function projectRenewalStage(
     evidence,
     context: scopedContext,
     variants,
+    // S264 R-S264-6: bound to the staff record's own current acceptance, never another answer.
+    acceptanceHold: currentAcceptanceHold(state, [context.tenantAcceptance]),
   };
   const satisfied = satisfiedFor(evaluation);
   const owner = audienceStep(evaluation, "owner");
@@ -1127,6 +1169,9 @@ export function projectRenewalStage(
       return `Needs verification: ${scopedContext.verification.label.trim().replace(/\.$/, "")}`;
     if (check) return `Needs a check: ${check.sentence}`;
     if (lane.complete) return label;
+    // S264 R-S264-6: the fact to settle is the acceptance's coverage of the current offer.
+    if (currentStepId === "offer-tenant" && evaluation.acceptanceHold)
+      return evaluation.acceptanceHold.line;
     if (waiting && waiting.party.startsWith("the ") && label.startsWith("Waiting on"))
       return `${label}${since(waiting.sinceIso)}`;
     if (waiting) return `${label}: ${evidenceLine ?? `waiting on ${waiting.party}`}`;

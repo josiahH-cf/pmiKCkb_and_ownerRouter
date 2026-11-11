@@ -758,12 +758,15 @@ export function projectGuidedPriority(facts: GuidedPriorityFacts): GuidedPriorit
       }),
     );
   // An eligible actual answer leads ahead of preparation facts that serve a different action.
+  // S264 R-S264-6: so does the tenant's answer for the current offer, when the recorded
+  // acceptance answers an earlier one.
   const answerFirst =
     (shown.id === "ask-owner" && (facts.ownerReply || facts.extensions?.ownerAnswer)) ||
     (shown.id === "offer-tenant" &&
       shown.state === "current" &&
       shown.primary !== null &&
-      /response|decision|form/i.test(shown.primary.label));
+      (shown.primary.label === RENEWAL_STAGE_NEXT_STEP.verifyAcceptance ||
+        /response|decision|form/i.test(shown.primary.label)));
   if (answerFirst) {
     // S262: an observed owner reply opens "Record the owner's answer" on the Now card; an
     // explicit task names the answer control it opens through the extension.

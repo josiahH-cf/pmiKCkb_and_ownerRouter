@@ -33,6 +33,12 @@ const text = (value: unknown): value is string => typeof value === "string";
 const textOrNull = (value: unknown) => value === null || text(value);
 const record = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
+const ACCEPTANCE_STATES: ReadonlySet<string> = new Set([
+  "covers",
+  "earlier_offer",
+  "not_attributed",
+  "unknown",
+]);
 
 /** The view as the tenant message read carried it; null when absent or not in this shape. */
 export function offerAnswersViewOf(raw: unknown): OfferAnswersView | null {
@@ -78,9 +84,19 @@ export function offerAnswersViewOf(raw: unknown): OfferAnswersView | null {
       text(owner.scope) &&
       text(owner.coverage) &&
       text(owner.line));
-  return candidatesValid && tenantValid && ownerValid
-    ? (raw as unknown as OfferAnswersView)
-    : null;
+  // S264 R-S264-6: the current acceptance against the current offer's charges. A read without
+  // it (an earlier server) holds nothing here.
+  const acceptance = raw.acceptance ?? null;
+  const acceptanceValid =
+    acceptance === null ||
+    (record(acceptance) &&
+      text(acceptance.eventId) &&
+      ACCEPTANCE_STATES.has(acceptance.state as string) &&
+      textOrNull(acceptance.line));
+  if (!candidatesValid || !tenantValid || !ownerValid || !acceptanceValid) return null;
+  return (raw.acceptance === undefined
+    ? { ...raw, acceptance: null }
+    : raw) as unknown as OfferAnswersView;
 }
 
 /** The tenant offer's recorded answers, as the one tenant message read last carried them. */
