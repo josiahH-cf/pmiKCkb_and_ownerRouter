@@ -5,6 +5,7 @@ import {
   GUIDED_RETURN_LABELS,
   GUIDED_SECONDARY_WORK_LABELS,
   GUIDED_VERIFICATION_LABELS,
+  includedResourceFix,
   projectGuidedPriority,
   type GuidedPriorityFacts,
 } from "@/lib/lease-renewal/guided-priority";
@@ -13,6 +14,12 @@ import {
   RENEWAL_PATH_STEP_IDS,
   type RenewalPathStepId,
 } from "@/lib/lease-renewal/renewal-path";
+import {
+  projectMessageReadiness,
+  RESOURCE_ADMIN_HANDOFF,
+  resourceEntryHref,
+} from "@/lib/lease-renewal/message-readiness";
+import type { TenantResourceInclusion } from "@/lib/lease-renewal/tenant-resource-inclusion";
 import { renewalStageContextFor } from "@/lib/lease-renewal/renewal-stage-context";
 import {
   projectRenewalStage,
@@ -270,6 +277,106 @@ describe("AC-S269-1: the precedence of the one live priority", () => {
       "offer-charges",
       "included-resource",
     ]);
+  });
+
+  it("S265 slot: a missing required flyer leads with its Connections entry only once its own transition decisions are ready; otherwise the next message fix", () => {
+    const flyer = {
+      label: "Shared resource link: Insurance flyer",
+      target: resourceEntryHref("insurance_flyer"),
+      reason: "The insurance flyer is required for this offer.",
+    };
+    const offer = (transitionsReady: boolean, ready = false) =>
+      projectGuidedPriority(
+        facts(step("offer-tenant"), {
+          working: { rent: 1400, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
+          message: ready
+            ? {
+                ready: true,
+                label: "Review and send",
+                target: "renewal-card-message-tenant",
+              }
+            : {
+                ready: false,
+                label: "Review the marked values",
+                target: "renewal-card-message-tenant",
+              },
+          extensions: { includedResource: { ...flyer, transitionsReady } },
+        }),
+      );
+    const held = offer(false);
+    expect(held.inputs.map((entry) => entry.key)).toEqual(["message-fix"]);
+    expect(held.lead?.label).toBe("Review the marked values");
+    const resource = offer(true);
+    expect(resource.state).toBe("missing");
+    expect(resource.lead).toMatchObject({
+      key: "included-resource",
+      label: flyer.label,
+      target: "/connections#renewal-resource-entry-insurance_flyer",
+      owner: "offer-tenant",
+      reason: flyer.reason,
+    });
+    expect(resource.cue).toBe(flyer.reason);
+    // With the resource in order and the message ready, the offer leads to its exact review.
+    const ready = projectGuidedPriority(
+      facts(step("offer-tenant"), {
+        working: { rent: 1400, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
+        message: {
+          ready: true,
+          label: "Review and send",
+          target: "renewal-card-message-tenant",
+        },
+      }),
+    );
+    expect(ready.lead?.label).toBe("Review tenant offer");
+  });
+
+  it("S265 slot: the fix comes from the one inclusion projection and readiness item, with the Admin handoff for other roles", () => {
+    const inclusion = (
+      problems: TenantResourceInclusion["problems"],
+      holds: TenantResourceInclusion["holds"] = [],
+    ): TenantResourceInclusion => ({
+      includedIds: [],
+      included: [],
+      problems,
+      required: ["insurance_flyer"],
+      holds,
+    });
+    const required = {
+      resourceId: "insurance_flyer" as const,
+      field: "insuranceFlyer" as TenantResourceInclusion["problems"][number]["field"],
+      kind: "required_absent" as const,
+      message: "The insurance flyer is required for this offer.",
+    };
+    const readiness = (canManageResources: boolean) =>
+      projectMessageReadiness({
+        channel: "tenant",
+        missing: [{ field: required.field, message: required.message }],
+        canManageResources,
+      }).items;
+    expect(includedResourceFix(inclusion([required]), readiness(true))).toEqual({
+      label: "Shared resource link: Insurance flyer",
+      href: "/connections#renewal-resource-entry-insurance_flyer",
+      reason: required.message,
+      transitionsReady: true,
+    });
+    expect(includedResourceFix(inclusion([required]), readiness(false))?.reason).toBe(
+      `${required.message} ${RESOURCE_ADMIN_HANDOFF}`,
+    );
+    expect(
+      includedResourceFix(
+        inclusion([required], ["insurance_transition"]),
+        readiness(true),
+      )?.transitionsReady,
+    ).toBe(false);
+    // A problem with a resource the offer does not require, or no problem, gives no fix.
+    expect(
+      includedResourceFix(
+        { ...inclusion([{ ...required, resourceId: "rbp_flyer", field: "rbpFlyer" }]) },
+        readiness(true),
+      ),
+    ).toBeNull();
+    expect(includedResourceFix(inclusion([]), readiness(true))).toBeNull();
+    expect(includedResourceFix(null, null)).toBeNull();
   });
 
   it("a ready offer leads to Review tenant offer, and a ready owner message to Review owner message", () => {

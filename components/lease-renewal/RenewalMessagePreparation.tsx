@@ -104,7 +104,11 @@ import {
   standingRuleContext,
   standingRuleSourceLabel,
 } from "@/lib/lease-renewal/standing-agreement";
-import { nowSlotKey, useRenewalNowCard } from "./RenewalNowCardContext";
+import {
+  nowSlotKey,
+  useRenewalNowCard,
+  type NowCardResourceLead,
+} from "./RenewalNowCardContext";
 import {
   workingFieldLabel,
   messageWorkingFieldsFor,
@@ -243,9 +247,15 @@ interface Preparation {
 }
 
 import { RenewalSecondaryWork, useRenewalOutcomeStage } from "./RenewalGuidedView";
-import { applyTenantResourceInclusion } from "@/lib/lease-renewal/tenant-resource-inclusion";
+import {
+  applyTenantResourceInclusion,
+  type TenantResourceInclusion,
+} from "@/lib/lease-renewal/tenant-resource-inclusion";
 import type { RenewalStageContext } from "@/lib/lease-renewal/renewal-stage";
-import { GUIDED_SECONDARY_WORK_LABELS } from "@/lib/lease-renewal/guided-priority";
+import {
+  GUIDED_SECONDARY_WORK_LABELS,
+  includedResourceFix,
+} from "@/lib/lease-renewal/guided-priority";
 
 type MessageOwnerProps = Readonly<{
   channel: "owner" | "tenant";
@@ -257,6 +267,8 @@ type MessageOwnerProps = Readonly<{
    * message options and these records share the outcome's one named group.
    */
   secondaryWork?: ReactNode;
+  /** S270: Ask the owner's Working renewal terms reveal, in Work above the named group. */
+  workingTerms?: ReactNode;
 }>;
 
 export function RenewalMessagePreparation({
@@ -386,6 +398,7 @@ function MessageOwner({
   compact = false,
   deliveryHeld = false,
   secondaryWork,
+  workingTerms,
 }: MessageOwnerProps & { compact?: boolean; deliveryHeld?: boolean }) {
   const context = useRenewalManualWorkspace();
   const working = useRenewalWorkingRecord();
@@ -400,9 +413,13 @@ function MessageOwner({
       compact={compact}
       deliveryHeld={deliveryHeld}
       secondaryWork={secondaryWork}
+      workingTerms={workingTerms}
     />
   ) : (
-    secondaryWork
+    <>
+      {workingTerms}
+      {secondaryWork}
+    </>
   );
 }
 
@@ -743,13 +760,15 @@ function composedPreparation(
     shownContent = applyAuthoredSubject(shownContent, authoredSubject);
   // S265 (R-S265-2): the same inclusion projection the server applies to the exact final content,
   // so an authored resource clause or link shows its own fix here too. S264: with this review's
-  // transition decisions.
-  if (shownContent && current)
-    shownContent = applyTenantResourceInclusion(
-      shownContent,
-      facts ?? current.facts,
-    ).content;
-  return { payload, content, shownContent, offerReview };
+  // transition decisions. S265 into S269: the inclusion also gives the Guided offer its first
+  // required resource fix.
+  let inclusion: TenantResourceInclusion | null = null;
+  if (shownContent && current) {
+    const applied = applyTenantResourceInclusion(shownContent, facts ?? current.facts);
+    shownContent = applied.content;
+    inclusion = applied.inclusion;
+  }
+  return { payload, content, shownContent, offerReview, inclusion };
 }
 
 function MessagePreparationEditor({
@@ -761,6 +780,7 @@ function MessagePreparationEditor({
   compact,
   deliveryHeld,
   secondaryWork,
+  workingTerms,
 }: {
   leaseId: string;
   refreshBasis: string;
@@ -770,6 +790,7 @@ function MessagePreparationEditor({
   compact: boolean;
   deliveryHeld: boolean;
   secondaryWork?: ReactNode;
+  workingTerms?: ReactNode;
 }) {
   const router = useRouter();
   const working = useRenewalWorkingRecord();
@@ -1228,6 +1249,45 @@ function MessagePreparationEditor({
             : undefined,
         })
       : null;
+  // S265 into S269: the offer's first required resource fix takes its place in the Guided
+  // priority (after the offer charges and only once the transition decisions are ready).
+  const resourceLead: NowCardResourceLead | null =
+    channel === "tenant"
+      ? includedResourceFix(composed?.inclusion ?? null, readiness?.items ?? null)
+      : null;
+  const setResourceLead = nowCard?.setResourceLead;
+  const resourceLabel = resourceLead?.label;
+  const resourceHref = resourceLead?.href;
+  const resourceReason = resourceLead?.reason;
+  const resourceTransitionsReady = resourceLead?.transitionsReady;
+  useEffect(() => {
+    if (!setResourceLead || channel !== "tenant") return;
+    setResourceLead(
+      "offer-tenant",
+      resourceLabel && resourceHref && resourceReason !== undefined
+        ? {
+            label: resourceLabel,
+            href: resourceHref,
+            reason: resourceReason,
+            transitionsReady: resourceTransitionsReady !== false,
+          }
+        : null,
+    );
+  }, [
+    setResourceLead,
+    channel,
+    resourceLabel,
+    resourceHref,
+    resourceReason,
+    resourceTransitionsReady,
+  ]);
+  useEffect(
+    () =>
+      setResourceLead && channel === "tenant"
+        ? () => setResourceLead("offer-tenant", null)
+        : undefined,
+    [setResourceLead, channel],
+  );
   function openMissingInput(item: MessageMissingInput) {
     if (item.target.kind !== "control") return;
     // S263 R-S263-4: a date fix opened from the tenant offer can return to this same offer.
@@ -1779,6 +1839,7 @@ function MessagePreparationEditor({
         />
       ) : null}
       {chargeReview && !preparedHostsCharges ? chargeReview : null}
+      {workingTerms}
       <RenewalSecondaryWork
         // S270: one named group per outcome: the message options, then the outcome's records.
         label={

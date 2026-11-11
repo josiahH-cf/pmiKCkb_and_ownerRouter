@@ -20,7 +20,12 @@
 // charges), S265 (an included resource) and S268 (the packet lead) name their own control; an
 // absent one leaves the order as it is. Pure and client-safe.
 
-import { WORKING_END_FIELD_ID, WORKING_START_FIELD_ID } from "./message-readiness";
+import {
+  WORKING_END_FIELD_ID,
+  WORKING_START_FIELD_ID,
+  type MessageMissingInput,
+} from "./message-readiness";
+import type { TenantResourceInclusion } from "./tenant-resource-inclusion";
 import {
   ENTER_RENEWAL_END_LABEL,
   ENTER_RENEWAL_START_LABEL,
@@ -230,11 +235,17 @@ export interface GuidedPriorityExtensions {
     /** True once every applicable transition decision is made. */
     readonly transitionsReady: boolean;
   } | null;
-  /** S265: a required included resource (such as a flyer) that is missing, with its fix. */
+  /**
+   * S265: a required included resource (such as a flyer) the exact offer still needs, with its
+   * one Connections entry (`target` is that page address) and the problem as its reason.
+   */
   readonly includedResource?: {
     readonly label: string;
     readonly target: string;
     readonly owner?: RenewalPathStepId;
+    readonly reason?: string | null;
+    /** False while an applicable transition decision is open; the resource waits until then. */
+    readonly transitionsReady?: boolean;
   } | null;
   /** S268: the first pending packet input or the exact source or authority handoff. */
   readonly packetLead?: { readonly label: string; readonly target: string } | null;
@@ -465,13 +476,20 @@ function missingInputs(facts: GuidedPriorityFacts): GuidedPriorityInput[] {
             arrivesWith: "S264",
           }),
         );
-      if (ext.includedResource && (ext.offerCharges?.transitionsReady ?? true))
+      // Only once the applicable transition decisions are ready (the offer charges' own and the
+      // resource requirements') does a missing required resource lead with its fix.
+      if (
+        ext.includedResource &&
+        ext.includedResource.transitionsReady !== false &&
+        (ext.offerCharges?.transitionsReady ?? true)
+      )
         list.push(
           input({
             key: "included-resource",
             label: ext.includedResource.label,
             target: ext.includedResource.target,
             owner: ext.includedResource.owner ?? "offer-tenant",
+            reason: ext.includedResource.reason ?? null,
             arrivesWith: "S265",
           }),
         );
@@ -782,6 +800,37 @@ export function projectGuidedPriority(facts: GuidedPriorityFacts): GuidedPriorit
   if (shown.state === "waiting" || shown.scheduled || shown.state === "covered")
     return finish("wait", action);
   return finish("act", action);
+}
+
+/**
+ * S265 into S269 (Offer the tenant order): the first required tenant resource the exact offer
+ * content still needs, as its readiness item names it (with the Admin handoff a role that does
+ * not maintain the links reads), its one Connections entry, and whether the applicable transition
+ * decisions are ready. Null when every required resource is in order. Pure; reads nothing.
+ */
+export function includedResourceFix(
+  inclusion: TenantResourceInclusion | null,
+  readinessItems: readonly MessageMissingInput[] | null,
+): {
+  readonly label: string;
+  readonly href: string;
+  readonly reason: string;
+  readonly transitionsReady: boolean;
+} | null {
+  if (!inclusion || !readinessItems) return null;
+  const problem = inclusion.problems.find((entry) =>
+    inclusion.required.includes(entry.resourceId),
+  );
+  const item = problem
+    ? readinessItems.find((entry) => entry.field === problem.field)
+    : undefined;
+  if (!item || item.target.kind !== "route") return null;
+  return {
+    label: item.target.label,
+    href: item.target.href,
+    reason: item.message,
+    transitionsReady: inclusion.holds.length === 0,
+  };
 }
 
 /** The path step label a return names, for the step a cross-outcome fix started in. */
