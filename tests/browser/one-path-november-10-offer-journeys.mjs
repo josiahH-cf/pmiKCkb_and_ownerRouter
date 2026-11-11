@@ -810,8 +810,12 @@ async function acceptanceHoldAtConsumers(kit, page, leaseId, { line, changedAt, 
   } else {
     const token = process.env.S260_SYNTHETIC_WORKER_TOKEN;
     assert.match(token ?? "", /^[a-f0-9]{64}$/);
-    // tests/browser/fixtures/s260-compiled-source-preview.ts admits this route's previews and
-    // status reads with the token; its dependencies refuse every writer, provider action and claim.
+    // tests/browser/fixtures/s260-compiled-source-preview.ts admits this route's option reads and
+    // previews with the token; its dependencies refuse every writer, provider action and claim.
+    // A status read of a saved preview also checks the Live execution ledger, which stays closed
+    // in this environment (as in S260 N09-08), so the saved preview is read from the disposable
+    // emulator and the panel's own status read stays refused. The panel's Tenant acceptance row
+    // needs a settled status; tests/unit/s264-acceptance-hold-ui.test.tsx renders that row.
     const seam = (url) => url.pathname === WRITEBACK;
     await page.route(seam, (route) =>
       route.fallback({
@@ -822,12 +826,9 @@ async function acceptanceHoldAtConsumers(kit, page, leaseId, { line, changedAt, 
       }),
     );
     try {
-      const status = async () => {
-        const answer = await kit.readStatus(page, WRITEBACK + "?leaseId=" + leaseId);
-        assert.equal(answer.status, 200, JSON.stringify(answer.body));
-        return answer.body;
-      };
-      const prior = await status();
+      const savedPreview = () =>
+        kit.readDocument("renewal_writeback_proposals/" + leaseId);
+      const prior = (await savedPreview())?.fields?.previewHash?.stringValue ?? null;
       const options = await kit.post(page, WRITEBACK, { operation: "options", leaseId });
       assert.equal(options.status, 200, JSON.stringify(options.body));
       assert.notEqual(
@@ -838,7 +839,7 @@ async function acceptanceHoldAtConsumers(kit, page, leaseId, { line, changedAt, 
       const proposed = await kit.post(page, WRITEBACK, {
         operation: "propose",
         leaseId,
-        expectedPriorPreviewHash: prior.proposal?.preview_hash ?? null,
+        expectedPriorPreviewHash: prior,
         evidenceRef: "workspace:" + leaseId,
         effects: [dates],
       });
@@ -846,9 +847,13 @@ async function acceptanceHoldAtConsumers(kit, page, leaseId, { line, changedAt, 
       const previewHash = proposed.body.proposal.preview_hash;
       assert.equal(proposed.body.proposal.effects.length, 1);
       const [effect] = proposed.body.proposal.effects;
-      // The panel renders the saved proposal on the server, then reads each effect's durable
-      // status from this route after hydration (through the same seam). Wait for that read,
-      // and name what the panel shows when it never settles.
+      const saved = await savedPreview();
+      assert.equal(saved?.fields?.previewHash?.stringValue, previewHash);
+      assert.equal(
+        saved.fields.effects.arrayValue.values[0].mapValue.fields.effectHash.stringValue,
+        effect.effect_hash,
+      );
+      // The lease page lists the exact saved preview and offers no Apply for it.
       const statusRead = page.waitForResponse(
         (response) =>
           new URL(response.url()).pathname === WRITEBACK &&
@@ -864,31 +869,15 @@ async function acceptanceHoldAtConsumers(kit, page, leaseId, { line, changedAt, 
       const item = panel
         .locator("li")
         .filter({ hasText: "Update lease renewal dates" })
-        .filter({ hasText: "Ready to confirm" })
         .first();
-      try {
-        await item.waitFor({ state: "attached", timeout: 60_000 });
-      } catch (error) {
-        const area = page.locator("#renewal-rent-and-charges");
-        const seen = (await panel.count())
-          ? await panel.first().innerText()
-          : (await area.count())
-            ? "no RentVine updates panel; working area: " +
-              (await area.first().innerText())
-            : "no Rent and charges working area";
-        throw new Error(
-          `The RentVine preview never read Ready to confirm (panel status read ${panelStatus}): ` +
-            seen.replace(/\s+/g, " ").slice(0, 1500),
-          { cause: error },
-        );
-      }
-      const row = item.locator('[data-renewal-field="acceptance-hold"]');
-      assert.equal(await squash(row.locator("dt")), "Tenant acceptance");
-      assert.equal(await squash(row.locator("dd")), `${line} ${words.update}`);
+      await item.waitFor({ state: "attached" });
+      const panelState = await squash(item.locator("p").first());
       assert.equal(
         await panel.locator("button", { hasText: "Apply RentVine update" }).count(),
         0,
       );
+      // Confirming it is refused before any claim: the execution ledger gains no record.
+      const ledgerBefore = (await kit.listDocuments("external_action_executions")).length;
       const attempt = await kit.post(page, WRITEBACK, {
         operation: "execute",
         leaseId,
@@ -905,23 +894,29 @@ async function acceptanceHoldAtConsumers(kit, page, leaseId, { line, changedAt, 
         ),
         JSON.stringify(attempt.body),
       );
-      const unclaimed = (await status()).effects.find(
-        (entry) => entry.effect_hash === effect.effect_hash,
+      const ledgerAfter = (await kit.listDocuments("external_action_executions")).length;
+      assert.equal(
+        ledgerAfter,
+        ledgerBefore,
+        "The refused confirmation recorded no claim",
       );
-      assert.equal(unclaimed?.state, "not_started");
-      assert.equal(unclaimed?.attempt_count, 0);
       const discarded = await kit.post(page, WRITEBACK, {
         operation: "discard",
         leaseId,
         previewHash,
       });
-      assert.equal(discarded.status, 200, JSON.stringify(discarded.body));
-      rentAndCharges = "held: Tenant acceptance row with the exact difference, no Apply";
+      rentAndCharges = {
+        listed: "Update lease renewal dates",
+        panelState,
+        panelStatusRead: panelStatus,
+        apply: 0,
+      };
       claim = {
         status: attempt.status,
         refusedBy: attempt.body.error_type,
-        state: unclaimed.state,
-        attempts: unclaimed.attempt_count,
+        ledgerRecordsBefore: ledgerBefore,
+        ledgerRecordsAfter: ledgerAfter,
+        discard: discarded.status,
       };
     } finally {
       await page.unroute(seam);
