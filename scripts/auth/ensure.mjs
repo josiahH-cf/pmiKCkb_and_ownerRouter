@@ -7,8 +7,8 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { GoogleAuth } from "google-auth-library";
 
+import { selectAuthCheckout } from "./checkout-dependencies.mjs";
 import { inspectCredentialStore } from "./credential-store.mjs";
 import { classifyAdcError } from "../preflight-adc.mjs";
 import { LOCAL_PRINCIPAL, resolveIdentities } from "./identities.mjs";
@@ -21,7 +21,7 @@ import {
   redact,
   summarize,
 } from "./plan.mjs";
-import { delegateToWsl } from "./wsl-delegate.mjs";
+import { HOOK_DELEGATION_TIMEOUT_MS, delegateToWsl } from "./wsl-delegate.mjs";
 
 const ROOT = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 const TOKENINFO_URL = "https://oauth2.googleapis.com/tokeninfo";
@@ -156,11 +156,14 @@ export async function probeAdc(
     timeoutMs = 60_000,
     statusOnly = false,
     inspect = inspectCredentialStore,
-    createClient = (credentials) =>
-      new GoogleAuth({
+    // Loaded on use, so a checkout without installed packages can still delegate or hand off.
+    createClient = async (credentials) => {
+      const { GoogleAuth } = await import("google-auth-library");
+      return new GoogleAuth({
         credentials,
         scopes: ["https://www.googleapis.com/auth/cloud-platform"],
-      }).getClient(),
+      }).getClient();
+    },
   } = {},
 ) {
   const inspection = inspect({ env });
@@ -407,10 +410,64 @@ function canaryRequests(argv, identities) {
   return requests;
 }
 
+/**
+ * A WSL checkout without installed packages (a Windows worktree read through /mnt/c, or an emptied
+ * node_modules) runs this same command from the registered WSL checkout and relays its exit status,
+ * so the shared WSL store is still assessed instead of the check failing to load. Returns null when
+ * this checkout can run the check itself. No credential or provider output crosses this boundary.
+ */
+export function handOffWithoutPackages({
+  root,
+  argv,
+  env,
+  hook = false,
+  quiet = false,
+  select = selectAuthCheckout,
+  spawn = spawnSync,
+  log = console.log,
+  warn = console.error,
+}) {
+  const selected = select({ root });
+  if (selected && !selected.handoff) return null;
+  const report = (line) => (hook ? log(`auth: ${line}`) : warn(line));
+  if (!selected) {
+    report(
+      "NOT READY: this checkout has no installed packages and the registered WSL checkout is unavailable; install its dependencies in WSL, then run npm run auth:ensure",
+    );
+    return { handedOff: false, exitCode: hook ? 0 : 2 };
+  }
+  if (!hook && !quiet)
+    warn(
+      `This checkout has no installed packages; checking from the registered WSL checkout ${selected.root}.`,
+    );
+  const result = spawn(
+    process.execPath,
+    [join(selected.root, "scripts", "auth", "ensure.mjs"), ...argv],
+    {
+      cwd: selected.root,
+      env,
+      stdio: "inherit",
+      ...(hook ? { timeout: HOOK_DELEGATION_TIMEOUT_MS } : {}),
+    },
+  );
+  if (result.error || result.status === null) {
+    report(
+      "the registered WSL checkout could not finish this check; run npm run auth:ensure there",
+    );
+    return { handedOff: false, exitCode: hook ? 0 : 2 };
+  }
+  return { handedOff: true, exitCode: hook ? 0 : result.status };
+}
+
 export async function main(
   argv = process.argv.slice(2),
   env = process.env,
-  { platform = process.platform, root = ROOT, delegate = delegateToWsl } = {},
+  {
+    platform = process.platform,
+    root = ROOT,
+    delegate = delegateToWsl,
+    handOff = handOffWithoutPackages,
+  } = {},
 ) {
   const need = parseNeed(readFlag(argv, "--need"));
   const unattended = argv.includes("--unattended");
@@ -435,6 +492,11 @@ export async function main(
     else console.error(line);
     process.exitCode = hook ? 0 : 2;
     return { delegated: false, exitCode: hook ? 0 : 2 };
+  }
+  const handedOff = handOff({ root, argv, env, hook, quiet });
+  if (handedOff) {
+    process.exitCode = handedOff.exitCode;
+    return handedOff;
   }
   const identities = resolveIdentities(env);
   const result = await ensureAuthenticated({
