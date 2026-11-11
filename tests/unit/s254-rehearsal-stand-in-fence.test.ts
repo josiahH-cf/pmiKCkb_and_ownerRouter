@@ -55,7 +55,7 @@ const ORIGIN = "http://127.0.0.1:41234";
 const REHEARSAL = {
   ENVIRONMENT_KIND: "demo",
   DATA_CONTEXT: "demo",
-  NODE_ENV: "development",
+  NODE_ENV: "development" as const,
   LOCAL_DEMO_AUTH: "true",
   FIRESTORE_EMULATOR_HOST: "127.0.0.1:8123",
   REHEARSAL_STAND_IN_ORIGIN: ORIGIN,
