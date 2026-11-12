@@ -43,7 +43,14 @@ import {
   S271_DRIVER,
   compiledMailAdmits,
 } from "@/scripts/lib/one-path-rehearsal/compiled-mail.mjs";
-import { resolveRehearsalStandIn as resolveCompiledDraftStandIn } from "@/tests/browser/fixtures/s271-compiled-stand-in";
+
+// .gcloudignore keeps the compiled draft stand-in out of every Cloud Run upload, and the production
+// build type-checks this file. A non-literal specifier loads the fixture only when the test runs,
+// so the uploaded source never needs it.
+const COMPILED_DRAFT_STAND_IN = "../browser/fixtures/s271-compiled-stand-in";
+type CompiledDraftStandIn = {
+  resolveRehearsalStandIn: (env?: NodeJS.ProcessEnv) => unknown;
+};
 
 // S254 R-S254-4 / AC-S254-5: the rehearsal's mail stand-in is a Demo-owned adapter that can never
 // produce a live effect. It exists only when the descriptor is explicitly Demo with Demo data AND
@@ -392,7 +399,10 @@ describe("S260/S271 fence: the compiled synthetic mail admits two exact drivers 
       ).toBe(false);
   });
 
-  it("aliases the draft stand-in only to a resolver that is null outside the compiled build", () => {
+  it("aliases the draft stand-in only to a resolver that is null outside the compiled build", async () => {
+    const { resolveRehearsalStandIn: resolveCompiledDraftStandIn } = (await import(
+      /* @vite-ignore */ COMPILED_DRAFT_STAND_IN
+    )) as CompiledDraftStandIn;
     const fence = readFileSync(
       join(process.cwd(), "scripts/lib/one-path-rehearsal/compiled-mail.mjs"),
       "utf8",
