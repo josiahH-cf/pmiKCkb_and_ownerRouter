@@ -24,6 +24,11 @@ that imported an upload-excluded fixture, and canonical traffic never moved. Tes
 shipped it. The Thursday checkpoint and the Friday staff review stay separate from cumulative
 admission.
 
+Both November 12 stops are now guarded in code. The unit gate
+`tests/unit/upload-set-closure.test.mjs` fails any uploaded type-checked import of a
+`.gcloudignore`'d file. The watcher's inspect fetch now advances its bare cache's `main`, which
+had stayed at an October tip until replacement run `c461d88c` timed out in inspect.
+
 Historical S254 recorded 62 Yes, two No and seven UNVERIFIED on its complete `edba7cbb` run.
 L55 and the batch verdict remain No under that run's assistance rule and source. S259 Run 11
 passed all 14 engineering journeys. Staff verdict NOT RUN.

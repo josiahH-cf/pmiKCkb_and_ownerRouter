@@ -558,7 +558,9 @@ export function createDriver({
       );
       if (ci?.status !== "completed" || ci?.conclusion !== "success")
         return { sha, ci, changedPaths: [], foundationPresent: false };
-      // A disposable Git database, never fetch/reset/pull the development worktree.
+      // A disposable Git database, never fetch/reset/pull the development worktree. A bare clone
+      // has no fetch refspec, so the fetch names its destination: otherwise only FETCH_HEAD moves,
+      // the cache's main keeps its clone-time tip and every fetch downloads all history since.
       if (!existsSync(gitRoot))
         await checked("git", [
           "clone",
@@ -569,7 +571,9 @@ export function createDriver({
           `https://github.com/${REPOSITORY}.git`,
           gitRoot,
         ]);
-      await checked("git", ["fetch", "origin", "main"], { cwd: gitRoot });
+      await checked("git", ["fetch", "origin", "+refs/heads/main:refs/heads/main"], {
+        cwd: gitRoot,
+      });
       const baseline =
         checkpoint?.lastDeployedSha || (await readVersion(CANONICAL)).commit;
       const changedPaths = (
