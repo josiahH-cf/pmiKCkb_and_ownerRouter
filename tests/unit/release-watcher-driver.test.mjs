@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { spawnSync } from "node:child_process";
 import {
   mkdirSync,
   mkdtempSync,
@@ -877,5 +878,134 @@ describe("release watcher identity client lifecycle", () => {
     );
     expect(createCloudClient).toHaveBeenCalledTimes(1);
     expect(client.request).toHaveBeenCalledTimes(1);
+  });
+});
+
+// Run c461d88c (2026-11-12) stopped in inspect: the bare cache was cloned with no fetch refspec,
+// so `git fetch origin main` filled only FETCH_HEAD, the cache's main stayed at its clone-time
+// tip, and every inspection downloaded all history since then until one passed the command limit.
+describe("release watcher Git cache inspection", () => {
+  const GITHUB = "https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter.git";
+  const gitIn = (cwd, args) => {
+    const result = spawnSync("git", args, { cwd, encoding: "utf8" });
+    if (result.status !== 0) throw new Error(`git ${args[0]} failed: ${result.stderr}`);
+    return result.stdout.trim();
+  };
+  function cacheHarness() {
+    const root = mkdtempSync(join(tmpdir(), "pmi-watcher-cache-"));
+    roots.push(root);
+    const remote = join(root, "remote.git"),
+      seed = join(root, "seed"),
+      source = join(root, "development"),
+      stateRoot = join(root, "state");
+    for (const dir of [seed, source, stateRoot]) mkdirSync(dir, { recursive: true });
+    gitIn(root, ["init", "-q", "--bare", remote]);
+    gitIn(seed, ["init", "-q"]);
+    gitIn(source, ["init", "-q"]);
+    const commit = (path, text) => {
+      mkdirSync(join(seed, path, ".."), { recursive: true });
+      writeFileSync(join(seed, path), text);
+      gitIn(seed, ["add", path]);
+      gitIn(seed, [
+        "-c",
+        "user.name=Local fixture",
+        "-c",
+        "user.email=fixture@pmikcmetro.com",
+        "commit",
+        "-qm",
+        path,
+      ]);
+      gitIn(seed, ["push", "-q", remote, "HEAD:refs/heads/main"]);
+      return gitIn(seed, ["rev-parse", "HEAD"]);
+    };
+    const calls = [];
+    // Git runs for real against a local stand-in for GitHub; only the remote URL is rewritten.
+    const runCommand = vi.fn(async (bin, args, options = {}) => {
+      calls.push({ bin, args, cwd: options.cwd });
+      if (bin === "git") {
+        const result = spawnSync(
+          "git",
+          args.map((arg) => (arg === GITHUB ? remote : arg)),
+          { cwd: options.cwd ?? source, encoding: "utf8" },
+        );
+        return { status: result.status, stdout: result.stdout };
+      }
+      if (args[0] === "run" && args[1] === "list") {
+        const headSha = args[args.indexOf("--commit") + 1];
+        return {
+          status: 0,
+          stdout: JSON.stringify([
+            {
+              databaseId: 1,
+              headSha,
+              headBranch: "main",
+              event: "push",
+              status: "completed",
+              conclusion: "success",
+            },
+          ]),
+        };
+      }
+      throw new Error(`Unexpected isolated command: ${bin}`);
+    });
+    const driver = createDriver({
+      source,
+      stateRoot,
+      checkpointPath: join(stateRoot, "checkpoint.json"),
+      adminProfile: join(root, "admin"),
+      editorProfile: join(root, "editor"),
+      operatorEmail: "alerts@pmikcmetro.com",
+      runCommand,
+      ensureAuth: vi.fn(),
+      fetchImpl: vi.fn(),
+      assertLock: () => {},
+    });
+    const cacheMain = () =>
+      gitIn(join(stateRoot, "repository"), ["rev-parse", "refs/heads/main"]);
+    return { calls, commit, driver, cacheMain, source, stateRoot };
+  }
+
+  it("advances the cache's main to the remote tip on every inspection", async () => {
+    const h = cacheHarness();
+    const base = h.commit("lib/auth/canary-policy.ts", "export const policy = 1;\n");
+    const deployed = { phase: "complete", sha: base, lastDeployedSha: base };
+    expect(await h.driver.inspect(deployed)).toMatchObject({
+      sha: base,
+      changedPaths: [],
+    });
+    expect(h.cacheMain()).toBe(base);
+    const next = h.commit("app/page.tsx", "export default function Page() {}\n");
+    expect(await h.driver.inspect(deployed)).toMatchObject({
+      sha: next,
+      changedPaths: ["app/page.tsx"],
+      foundationPresent: true,
+    });
+    expect(h.cacheMain()).toBe(next);
+    const later = h.commit("docs/status.md", "Status\n");
+    await h.driver.inspect(deployed);
+    expect(h.cacheMain()).toBe(later);
+  });
+
+  it("runs every cache command in the disposable state repository, never the development checkout", async () => {
+    const h = cacheHarness();
+    const base = h.commit("lib/auth/canary-policy.ts", "export const policy = 1;\n");
+    const deployed = { phase: "complete", sha: base, lastDeployedSha: base };
+    await h.driver.inspect(deployed);
+    h.commit("app/page.tsx", "export default function Page() {}\n");
+    await h.driver.inspect(deployed);
+    const gitRoot = join(h.stateRoot, "repository");
+    const cached = h.calls.filter((call) => call.bin === "git" && call.cwd !== undefined);
+    expect(cached.length).toBeGreaterThan(0);
+    expect(cached.every((call) => call.cwd === gitRoot)).toBe(true);
+    expect(
+      h.calls.filter((call) => call.args[0] === "fetch").map((call) => call.args),
+    ).toEqual([
+      ["fetch", "origin", "+refs/heads/main:refs/heads/main"],
+      ["fetch", "origin", "+refs/heads/main:refs/heads/main"],
+    ]);
+    expect(gitIn(h.source, ["status", "--porcelain"])).toBe("");
+    expect(
+      spawnSync("git", ["rev-parse", "--verify", "HEAD"], { cwd: h.source }).status,
+    ).not.toBe(0);
   });
 });

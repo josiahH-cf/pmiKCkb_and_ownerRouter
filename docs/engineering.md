@@ -63,6 +63,13 @@ Updated: 2026-10-20.
   together cover every file, restores the public npm download cache for the anonymous install, and
   cancels a pull request's superseded run. `scripts/verify.sh` runs the second-scale policy checks
   before format, lint, typecheck, the test lanes and the build.
+- Cloud Build builds and type-checks only the source upload, which leaves out every
+  `.gcloudignore` path; local and CI builds see the full tree. The unit gate
+  `tests/unit/upload-set-closure.test.mjs` recomputes the upload in Node with a port of gcloud's
+  ignore rules, which matched `gcloud meta list-files-for-upload` file for file at `fad81893`.
+  It fails when an uploaded type-checked file, or code it reaches, imports or references a
+  left-out file, and when a left-out type-checked file declares globals. Load an excluded
+  rehearsal fixture through a non-literal dynamic import.
 - `format:check` keeps Prettier's content-hash cache under `node_modules`, so a repeat local check
   takes about 5 s instead of 37 s; CI and every fresh install start cold. Lint stays single-threaded:
   two ESLint threads measured 28–30 s against 39–41 s at twice the memory, with no CI gain, and

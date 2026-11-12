@@ -19,7 +19,8 @@ Human verdict: NOT RUN — no human observer. [Qualification](evidence/renewal-w
 
 Run `d3a71afe` stopped at deploy before any candidate existed, because Cloud Build could not
 type-check a test that imported an upload-excluded fixture. Test-only repair `7f4cf234` shipped
-in the replacement run. The Thursday checkpoint and the Friday staff review stay separate from
+in the replacement run. The unit upload-set gate and the watcher's bare-cache fetch refspec now
+guard both November 12 release stops. The Thursday checkpoint and the Friday staff review stay separate from
 cumulative admission. Both Dotloop write keys remain closed, and signing stays human. Fees, tenant links, Dotloop maps
 and the program source remain source pending in their owners.
 

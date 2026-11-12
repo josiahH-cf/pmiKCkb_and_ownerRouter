@@ -281,7 +281,8 @@ owner adds the canonical `/__/auth/handler` redirect URI (owner step A7), never 
 - Keep `GOOGLE_APPLICATION_CREDENTIALS` unset. Service-account keys cannot be created for this
   project (org policy) and every preflight refuses them.
 - `.gcloudignore` inherits `.gitignore` and excludes `.claude/`, `output/`, and local env files
-  from source uploads.
+  from source uploads. The unit gate `tests/unit/upload-set-closure.test.mjs` fails when an
+  uploaded type-checked file imports an excluded one.
 - Only `josiah@pmikcmetro.com` is approved for unattended local work on this WSL host. Reuse its
   WSL credential store and ignored provider configuration; never substitute another identity,
   impersonation, key file, credential override or Windows store.
@@ -401,6 +402,10 @@ The watcher checks the current green `main` SHA against that permit; it cannot a
 head under the same permission. An unfinished checkpoint still pins its exact SHA and must be
 reconciled through the runbook before a new run. Never replace a failed checkpoint or dispatch claim
 to obtain another build.
+Inspection fetches remote `main` into the watcher's disposable bare cache in the release state
+directory with the refspec `+refs/heads/main:refs/heads/main`, so the cache's `main` advances
+on every pass and each fetch carries only new history. It never fetches into a development
+worktree.
 A historical successful serialized release was the cumulative Focus/maintenance follow-up run
 `859ff7f8-0106-48c1-acfa-823d4a592422`, exact `eb5d35991c3ec128a102e4483d3779af16106821` /
 `pmi-kc-app-rmv3yavsf-2cece39f7605`. Recovery preparation, the single application build, candidate
