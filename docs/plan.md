@@ -1,18 +1,18 @@
 # Current plan
 
-Updated: 2026-11-11 (UTC).
+Updated: 2026-11-12 (UTC).
 
-## November 10 authorized batch
+## Completed November 10 batch
 
-The owner authorized intakes 139–149 through exact qualification, mainline integration
-and native Cloud Run delivery. The November 10 specifications govern the batch.
-[Suite registry](feature-suites/README.md#november-10-renewal-walkthrough-and-guided-journey)
+Intakes 139–149 shipped together and the queue cleared after independent readbacks.
+S271 engineering is Yes across nine N10 cases, with a separate Thursday Yes, on exact source
+`c0f6490e8659a3aa684099590efbbbcbef7c6deb` and build `EvsdEv_bUWl9gRTP0vv6O`. The S260 replay
+is Yes across ten journeys and all three Help roles on the same source.
+Human verdict: NOT RUN — no human observer. [Qualification](evidence/renewal-walkthrough-qualification-2026-11-10.md)
 
-S271 passed on `c0f6490e8659a3aa684099590efbbbcbef7c6deb`, with the S260 replay and a
-separate Thursday verdict. The cumulative queue binds all eleven intakes to that source.
-Require exact-main CI, fresh prerequisites and one watcher on locked GO. Capture the
-predecessor and tag bindings, promote using the candidate receipt and clear the queue after
-observation and independent readback. [Exact qualification](evidence/renewal-walkthrough-qualification-2026-11-10.md)
+Exact main `7f4cf234c18c0b80a0ed88bc08d70e174ae9c311` passed all seven CI jobs. Native run `943a91a6-c659-4234-95ea-3582d0a4011e` passed locked GO, receipt-bound
+promotion, full observation and independent final readbacks. The approved configuration passed
+its independent comparison. [Delivery evidence](evidence/renewal-walkthrough-delivery-2026-11-12.md) · [Suite registry](feature-suites/README.md#november-10-renewal-walkthrough-and-guided-journey)
 
 ## Completed November 9 batch
 
@@ -56,7 +56,7 @@ assessment gaps, newly diagnosed A-08 PDF publication dependency, and the config
 communication work needed to unblock real renewals.
 The owner finalized this scope, then launched implementation and backend-question maintenance.
 It was delivered at `b5ba7802` / `pmi-kc-app-rmw123csb-dc0ce89a8583`; the current serving source
-`0afd0206` / `pmi-kc-app-rmw9w581k-2489abae9071` includes it.
+`7f4cf234` / `pmi-kc-app-rmwcvtvpl-13e72fe3f01f` includes it.
 The four independent source findings are repaired and reviewed; full07 passed 10,162 unit tests
 with four parity skips and all 497 backend tests, core passed 46 with 23 explicit configuration
 skips, and exact-main CI passed all five jobs. Run `ff1f44bf` passed candidate/promotion, two

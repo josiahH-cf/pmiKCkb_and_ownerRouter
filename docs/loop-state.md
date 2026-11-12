@@ -1,34 +1,28 @@
 # Loop state
 
-Last updated: 2026-11-11 (UTC). Read AGENTS.md and docs/facts.md first.
+Last updated: 2026-11-12 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current execution
 
-Intakes 139–149 (S261–S271) passed exact local qualification on
-`c0f6490e8659a3aa684099590efbbbcbef7c6deb`, build `EvsdEv_bUWl9gRTP0vv6O`. S271 engineering
-is Yes across nine N10 cases, with a separate Thursday Yes. The S260 replay is Yes across ten
-journeys. Full verification, Core E2E, rendered Help and the deliberate Help drift passed.
-Human verdict: NOT RUN — no human observer. Exact-main CI, fresh prerequisites and locked GO
-govern the native release. [Qualification](evidence/renewal-walkthrough-qualification-2026-11-10.md)
-
-Production serves `0afd020671ea9fbb1f0ee75484943c60e331b91a` / `pmi-kc-app-rmw9w581k-2489abae9071` at 100% canonical traffic.
-Run `b61162cf-8646-4f9c-803e-3b24824c6e34` consumed its permit after one successful application build `1f42ae31-629b-418d-807a-e12fe229a9c1`.
-Two observation checkpoints passed in 401,874 ms. All 375 source, projected and rendered
+Production serves `7f4cf234c18c0b80a0ed88bc08d70e174ae9c311` / `pmi-kc-app-rmwcvtvpl-13e72fe3f01f` at 100% canonical traffic.
+Run `943a91a6-c659-4234-95ea-3582d0a4011e` consumed its permit after one successful application build `053961ec-41a0-4553-bc03-f37ecf2d8926`.
+Two observation checkpoints passed in 402,737 ms. All 375 source, projected and rendered
 lease records matched with zero discrepancies, candidate 5xx, unresolved effects or guarded
-mutation attempts. All eleven independent final readbacks passed at `2026-11-09T23:53:48Z`.
-[Delivery evidence](evidence/renewal-simplification-delivery-2026-11-09.md) · [Exact-main CI](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/42718078835)
+mutation attempts. All eleven independent final readbacks passed at `2026-11-12T02:04:06Z`.
+[Delivery evidence](evidence/renewal-walkthrough-delivery-2026-11-12.md) · [Exact-main CI](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/43133331913)
 
-Intakes 130–138 shipped together and the queue cleared after independent readbacks.
-S260 engineering is Yes across ten journeys and all three Help roles on exact source
-`b4fb6aa03e65aca6398b8adcefd523b6530e2f2f` and build `b9znJuQzNo6VAt8ZaK0Ut`. Staff verdict NOT RUN.
-[Qualification](evidence/renewal-simplification-qualification-2026-11-09.md)
+Intakes 139–149 shipped together and the queue cleared after independent readbacks.
+S271 engineering is Yes across nine N10 cases, with a separate Thursday Yes, on exact source
+`c0f6490e8659a3aa684099590efbbbcbef7c6deb` and build `EvsdEv_bUWl9gRTP0vv6O`. The S260 replay
+is Yes across ten journeys and all three Help roles on the same source.
+Human verdict: NOT RUN — no human observer. [Qualification](evidence/renewal-walkthrough-qualification-2026-11-10.md)
 
-The isolated WSL run used the corrected eleven authoring files, exact intake base
-`aa5f12e9b75f992b8fc3ec8a67e8acef6bfa792d` and the approved credential store. Intake,
-admission and final CLI/ADC refreshes passed unattended. The authoring checkout is preserved.
-The first admitted run stopped before promotion and was archived under the lock. The replacement
-used the corrected read-only checker and its own CI, permit, build and receipts.
-[November 9 baseline](evidence/renewal-simplification-baseline-2026-11-09.md)
+The first prepare stopped on the expired gcloud sign-in before any permit. After the owner
+signed in again, run `d3a71afe` stopped at deploy: Cloud Build could not type-check a test
+that imported an upload-excluded fixture, and canonical traffic never moved. Test-only repair
+`7f4cf234` passed the exact upload-set type check and exact-main CI, and the replacement run
+shipped it. The Thursday checkpoint and the Friday staff review stay separate from cumulative
+admission.
 
 Historical S254 recorded 62 Yes, two No and seven UNVERIFIED on its complete `edba7cbb` run.
 L55 and the batch verdict remain No under that run's assistance rule and source. S259 Run 11
@@ -70,19 +64,7 @@ The owner resolved the Gmail profile scope on November 8 for the existing guarde
 
 ## Awaiting release
 
-The eleven qualified intakes ride one cumulative candidate.
-
-1. 139 S261 verified base rent and owner pricing `c0f6490e8659a3aa684099590efbbbcbef7c6deb`
-2. 140 S262 owner response with the approved base rent `c0f6490e8659a3aa684099590efbbbcbef7c6deb`
-3. 141 S263 working renewal date proposals `c0f6490e8659a3aa684099590efbbbcbef7c6deb`
-4. 142 S264 tenant offer charges, totals and answers `c0f6490e8659a3aa684099590efbbbcbef7c6deb`
-5. 143 S265 tenant resource audience checks `c0f6490e8659a3aa684099590efbbbcbef7c6deb`
-6. 144 S266 housing assistance program source readiness `c0f6490e8659a3aa684099590efbbbcbef7c6deb`
-7. 145 S267 staff training and internal review `c0f6490e8659a3aa684099590efbbbcbef7c6deb`
-8. 146 S268 first Dotloop packet mapping review `c0f6490e8659a3aa684099590efbbbcbef7c6deb`
-9. 147 S269 Guided priority fields and exact resume `c0f6490e8659a3aa684099590efbbbcbef7c6deb`
-10. 148 S270 Guided disclosures for supporting details `c0f6490e8659a3aa684099590efbbbcbef7c6deb`
-11. 149 S271 November 10 walkthrough qualification `c0f6490e8659a3aa684099590efbbbcbef7c6deb`
+None. The November 10 intakes cleared after full observation and independent final readbacks.
 
 ## Continuation contract
 

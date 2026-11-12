@@ -1,21 +1,31 @@
 # Current status
 
-Updated: 2026-11-11 (UTC).
+Updated: 2026-11-12 (UTC).
 
-## November 10 renewal walkthrough qualification
+## November 10 renewal walkthrough delivery
 
-Intakes 139–149 (S261–S271) passed exact local qualification on
-`c0f6490e8659a3aa684099590efbbbcbef7c6deb`, build `EvsdEv_bUWl9gRTP0vv6O`. S271 engineering
-is Yes across nine N10 cases, with a separate Thursday Yes, and the S260 replay is Yes
-across ten journeys. Full verification, Core E2E, rendered Help and the deliberate Help
-drift passed. The approved WSL CLI and ADC refreshed after the owner's re-enrollment.
-Human verdict: NOT RUN — no human observer. The Thursday checkpoint and the Friday staff
-review stay separate from cumulative admission. The queue is ready for exact-main CI and
-native admission. [Qualification](evidence/renewal-walkthrough-qualification-2026-11-10.md)
+Production serves `7f4cf234c18c0b80a0ed88bc08d70e174ae9c311` / `pmi-kc-app-rmwcvtvpl-13e72fe3f01f` at 100% canonical traffic.
+Run `943a91a6-c659-4234-95ea-3582d0a4011e` consumed its permit after one successful application build `053961ec-41a0-4553-bc03-f37ecf2d8926`.
+Two observation checkpoints passed in 402,737 ms. All 375 source, projected and rendered
+lease records matched with zero discrepancies, candidate 5xx, unresolved effects or guarded
+mutation attempts. All eleven independent final readbacks passed at `2026-11-12T02:04:06Z`.
+[Delivery evidence](evidence/renewal-walkthrough-delivery-2026-11-12.md) · [Exact-main CI](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/43133331913)
 
-## November 9 renewal simplification delivery
+Intakes 139–149 shipped together and the queue cleared after independent readbacks.
+S271 engineering is Yes across nine N10 cases, with a separate Thursday Yes, on exact source
+`c0f6490e8659a3aa684099590efbbbcbef7c6deb` and build `EvsdEv_bUWl9gRTP0vv6O`. The S260 replay
+is Yes across ten journeys and all three Help roles on the same source.
+Human verdict: NOT RUN — no human observer. [Qualification](evidence/renewal-walkthrough-qualification-2026-11-10.md)
 
-Production serves `0afd020671ea9fbb1f0ee75484943c60e331b91a` / `pmi-kc-app-rmw9w581k-2489abae9071` at 100% canonical traffic.
+Run `d3a71afe` stopped at deploy before any candidate existed, because Cloud Build could not
+type-check a test that imported an upload-excluded fixture. Test-only repair `7f4cf234` shipped
+in the replacement run. The Thursday checkpoint and the Friday staff review stay separate from
+cumulative admission. Both Dotloop write keys remain closed, and signing stays human. Fees, tenant links, Dotloop maps
+and the program source remain source pending in their owners.
+
+## November 9 renewal simplification delivery (historical)
+
+Production served `0afd020671ea9fbb1f0ee75484943c60e331b91a` / `pmi-kc-app-rmw9w581k-2489abae9071` at 100% canonical traffic.
 Run `b61162cf-8646-4f9c-803e-3b24824c6e34` consumed its permit after one successful application build `1f42ae31-629b-418d-807a-e12fe229a9c1`.
 Two observation checkpoints passed in 401,874 ms. All 375 source, projected and rendered
 lease records matched with zero discrepancies, candidate 5xx, unresolved effects or guarded

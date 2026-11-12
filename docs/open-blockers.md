@@ -22,8 +22,8 @@ meeting plans are not scheduled jobs or promises.
 
 ## Settled direction and current state
 
-Production serves `0afd020671ea9fbb1f0ee75484943c60e331b91a` / `pmi-kc-app-rmw9w581k-2489abae9071`, 100%. The
-[November 9 delivery](evidence/renewal-simplification-delivery-2026-11-09.md) carries the cumulative renewal simplification.
+Production serves `7f4cf234c18c0b80a0ed88bc08d70e174ae9c311` / `pmi-kc-app-rmwcvtvpl-13e72fe3f01f`, 100%. The
+[November 10 delivery](evidence/renewal-walkthrough-delivery-2026-11-12.md) carries the cumulative renewal walkthrough fixes.
 The holds below still govern their named operations. Staff verdict NOT RUN.
 
 The November 5 run served 5b5c65c6b7be2b504b38e8c8fdea3d81367e5202 /

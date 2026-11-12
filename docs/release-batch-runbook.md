@@ -1,6 +1,6 @@
 # Batched release runbook
 
-Updated 2026-11-09 (UTC). One candidate must ship every queued feature.
+Updated 2026-11-12 (UTC). One candidate must ship every queued feature.
 
 The owner has launched the finalized November 3 P1–P9 gap plan to completion. That named scope
 and AGENTS.md feature-run continuity authorize its delivery and diagnosed/verified repairs without
@@ -9,9 +9,24 @@ Keep all pending outcomes in the overall program. Exact-main CI, fresh prerequis
 one watcher/application build, receipts, full observation and recovery remain mandatory. Failed
 attempts and consumed permits are immutable and never reusable.
 
-## Current verified delivery — November 9 renewal simplification
+## Current verified delivery — November 10 renewal walkthrough
 
-Production serves `0afd020671ea9fbb1f0ee75484943c60e331b91a` / `pmi-kc-app-rmw9w581k-2489abae9071` at 100% canonical traffic.
+Production serves `7f4cf234c18c0b80a0ed88bc08d70e174ae9c311` / `pmi-kc-app-rmwcvtvpl-13e72fe3f01f` at 100% canonical traffic.
+Run `943a91a6-c659-4234-95ea-3582d0a4011e` consumed its permit after one successful application build `053961ec-41a0-4553-bc03-f37ecf2d8926`.
+Two observation checkpoints passed in 402,737 ms. All 375 source, projected and rendered
+lease records matched with zero discrepancies, candidate 5xx, unresolved effects or guarded
+mutation attempts. All eleven independent final readbacks passed at `2026-11-12T02:04:06Z`.
+[Delivery evidence](evidence/renewal-walkthrough-delivery-2026-11-12.md) · [Exact-main CI](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/43133331913)
+
+Intakes 139–149 shipped together and the queue cleared after independent readbacks.
+S271 engineering is Yes across nine N10 cases, with a separate Thursday Yes, on exact source
+`c0f6490e8659a3aa684099590efbbbcbef7c6deb` and build `EvsdEv_bUWl9gRTP0vv6O`. The S260 replay
+is Yes across ten journeys and all three Help roles on the same source.
+Human verdict: NOT RUN — no human observer. [Qualification](evidence/renewal-walkthrough-qualification-2026-11-10.md)
+
+## Previous verified delivery — November 9 renewal simplification (historical)
+
+Production served `0afd020671ea9fbb1f0ee75484943c60e331b91a` / `pmi-kc-app-rmw9w581k-2489abae9071` at 100% canonical traffic.
 Run `b61162cf-8646-4f9c-803e-3b24824c6e34` consumed its permit after one successful application build `1f42ae31-629b-418d-807a-e12fe229a9c1`.
 Two observation checkpoints passed in 401,874 ms. All 375 source, projected and rendered
 lease records matched with zero discrepancies, candidate 5xx, unresolved effects or guarded
@@ -258,7 +273,7 @@ gcloud beta billing projects describe pmi-kc-kb-prod --format="value(billingEnab
 
 Expect True and account `01A5A3-65CA5A-614D45`. Stop if billing is disabled.
 
-**2. Verify the watcher and checkpoint before any start.** Last verified run `b61162cf-8646-4f9c-803e-3b24824c6e34` is complete,
+**2. Verify the watcher and checkpoint before any start.** Last verified run `943a91a6-c659-4234-95ea-3582d0a4011e` is complete,
 its permit consumed and its original receipts preserved. The stale S128-only checkpoint and later
 failed cumulative attempts were archived through checked retirement; none was relabeled a pass.
 Blocked runs `dc4e1ac8`, `6eb157e1` and `a83ed59b` were archived the same way as superseded.

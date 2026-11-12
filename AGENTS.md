@@ -19,9 +19,32 @@ When two sources disagree, use this order:
 Never revive a historical blocker, Demo/Test policy, action grant, or provider claim without checking
 the current code and live service. Date-stamped history is not authority.
 
-## Present production truth — November 9 renewal simplification
+## Present production truth — November 10 renewal walkthrough
 
-Production serves `0afd020671ea9fbb1f0ee75484943c60e331b91a` / `pmi-kc-app-rmw9w581k-2489abae9071` at 100% canonical traffic.
+Production serves `7f4cf234c18c0b80a0ed88bc08d70e174ae9c311` / `pmi-kc-app-rmwcvtvpl-13e72fe3f01f` at 100% canonical traffic.
+Run `943a91a6-c659-4234-95ea-3582d0a4011e` consumed its permit after one successful application build `053961ec-41a0-4553-bc03-f37ecf2d8926`.
+Two observation checkpoints passed in 402,737 ms. All 375 source, projected and rendered
+lease records matched with zero discrepancies, candidate 5xx, unresolved effects or guarded
+mutation attempts. All eleven independent final readbacks passed at `2026-11-12T02:04:06Z`.
+[Delivery evidence](docs/evidence/renewal-walkthrough-delivery-2026-11-12.md) · [Exact-main CI](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/43133331913)
+
+Intakes 139–149 shipped together and the queue cleared after independent readbacks.
+S271 engineering is Yes across nine N10 cases, with a separate Thursday Yes, on exact source
+`c0f6490e8659a3aa684099590efbbbcbef7c6deb` and build `EvsdEv_bUWl9gRTP0vv6O`. The S260 replay
+is Yes across ten journeys and all three Help roles on the same source.
+Human verdict: NOT RUN — no human observer. [Qualification](docs/evidence/renewal-walkthrough-qualification-2026-11-10.md)
+
+The running image `sha256:787a052af6c254650dc136b2ac2df3dceda42492e222f469132d4a3690d31720` matches the successful regional build.
+Runtime fingerprint `sha256:ba367a33db4a619ae67c7d9d3e06d27c2b154fa16c9c567f4212fa14f02487d7`. Only APP_COMMIT_SHA changed among 54 environment keys.
+The managed service identity, eleven paired Space maps, five secret bindings, Production/Live,
+Demo=false, Sheet=true and RentCast allowance 50 match reviewed state. The annual GET
+readiness job returned to PAUSED, and the minute worker stayed ENABLED with its exact target and calendar.
+Both Dotloop write keys remain closed, and signing stays human. Fees, tenant links, Dotloop maps
+and the program source remain source pending in their owners.
+
+## Previous production truth — November 9 renewal simplification (historical)
+
+Production served `0afd020671ea9fbb1f0ee75484943c60e331b91a` / `pmi-kc-app-rmw9w581k-2489abae9071` at 100% canonical traffic.
 Run `b61162cf-8646-4f9c-803e-3b24824c6e34` consumed its permit after one successful application build `1f42ae31-629b-418d-807a-e12fe229a9c1`.
 Two observation checkpoints passed in 401,874 ms. All 375 source, projected and rendered
 lease records matched with zero discrepancies, candidate 5xx, unresolved effects or guarded
