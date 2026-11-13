@@ -345,9 +345,26 @@ function projectNoticeObservation(
   head: DocumentSnapshot,
   existing: DocumentSnapshot,
   saved: DocumentSnapshot | undefined,
-  tx: Transaction,
   db: Firestore,
+  tx?: Transaction,
 ): RenewalNoticeSafety {
+  if (!tx && source.noticeAdmitted !== true) {
+    // An independently read display generation can show a positive move-out, but cannot
+    // clear an earlier observed notice or provide a safety basis for a message.
+    const disposition = projection(
+      source,
+      saved?.exists ? historySchema.parse(saved.data()) : null,
+    );
+    return {
+      disposition,
+      basis: null,
+      cycleId: null,
+      tenancyVerified: false,
+      history: null,
+      ready: false,
+      reason: "Message preparation requires an admitted source read.",
+    };
+  }
   const markerRef = noticeSafetyMarkerRef(db, leaseId);
   const cycleId =
     head.exists && typeof head.get("cycleId") === "string"
@@ -370,7 +387,7 @@ function projectNoticeObservation(
           version: 1,
           observedAt: new Date(source.observedAtMs).toISOString(),
         };
-    if (!existing.exists) tx.create(markerRef, marker);
+    if (!existing.exists) tx?.create(markerRef, marker);
     const reason =
       "Notice evidence needs a fresh admitted source read. Use Refresh data, then review again; no notice evidence from this unadmitted generation is shown.";
     return {
@@ -413,7 +430,7 @@ function projectNoticeObservation(
     !existing.exists ||
     hashExecutionPreview(existing.data() ?? {}) !== hashExecutionPreview(result.marker)
   )
-    tx.set(markerRef, result.marker);
+    tx?.set(markerRef, result.marker);
   const ready =
     result.ready &&
     source.noticeAdmitted === true &&
@@ -454,6 +471,7 @@ export async function observeRenewalNotices(
   actor: AuthenticatedUser,
   sources: readonly NoticeSourceRead[],
   db: Firestore = getAdminFirestore(),
+  options: { readonly displayOnly?: boolean } = {},
 ): Promise<RenewalNoticeSafety[]> {
   requireReader(actor);
   if (sources.length > NOTICE_OBSERVATION_BATCH_SIZE)
@@ -467,63 +485,71 @@ export async function observeRenewalNotices(
     throw new EditableLayerError("The notice observation identities are ambiguous.", 409);
   if (!entries.length) return [];
   try {
-    return await db.runTransaction(async (tx) => {
-      const targets = entries.map((entry) => ({
-        ...entry,
-        headRef: db
-          .collection("lease_renewal_workspaces")
-          .doc(renewalWorkspaceDocId(entry.leaseId)),
-        markerRef: noticeSafetyMarkerRef(db, entry.leaseId),
-      }));
-      const snapshots = await tx.getAll(
-        ...targets.flatMap((entry) => [entry.headRef, entry.markerRef]),
-      );
-      const byPath = new Map(snapshots.map((snapshot) => [snapshot.ref.path, snapshot]));
-      const prepared = targets.map((entry) => {
-        const head = byPath.get(entry.headRef.path),
-          existing = byPath.get(entry.markerRef.path);
-        if (!head || !existing) throw new Error("notice_snapshot_missing");
-        const cycleId =
-          head.exists && typeof head.get("cycleId") === "string"
-            ? (head.get("cycleId") as string)
-            : null;
-        const admitted =
-          entry.source.admittedLeaseKeys?.includes(entry.headRef.id) === true &&
-          entry.source.statusTable.status === "available" &&
-          entry.source.statusTable.admittedLeaseKeys?.includes(entry.headRef.id) === true;
-        const history =
-          existing.exists && admitted
-            ? historyRef(
-                db,
-                entry.leaseId,
-                noticeScopeHash(entry.leaseId, entry.tenancyHash, cycleId),
-              )
-            : null;
-        return { ...entry, head, existing, history };
-      });
-      const historyRefs = prepared.flatMap((entry) =>
-        entry.history ? [entry.history] : [],
-      );
-      const historySnapshots = historyRefs.length ? await tx.getAll(...historyRefs) : [];
-      const histories = new Map(
-        historySnapshots.map((snapshot) => [snapshot.ref.path, snapshot]),
-      );
-      if (historyRefs.some((ref) => !histories.has(ref.path)))
-        throw new Error("notice_history_snapshot_missing");
-      // No source fetch, transaction read or external action occurs after this point.
-      return prepared.map((entry) =>
-        projectNoticeObservation(
-          entry.source,
-          entry.leaseId,
-          entry.tenancyHash,
-          entry.head,
-          entry.existing,
-          entry.history ? histories.get(entry.history.path) : undefined,
-          tx,
-          db,
-        ),
-      );
-    });
+    return await db.runTransaction(
+      async (tx) => {
+        const targets = entries.map((entry) => ({
+          ...entry,
+          headRef: db
+            .collection("lease_renewal_workspaces")
+            .doc(renewalWorkspaceDocId(entry.leaseId)),
+          markerRef: noticeSafetyMarkerRef(db, entry.leaseId),
+        }));
+        const snapshots = await tx.getAll(
+          ...targets.flatMap((entry) => [entry.headRef, entry.markerRef]),
+        );
+        const byPath = new Map(
+          snapshots.map((snapshot) => [snapshot.ref.path, snapshot]),
+        );
+        const prepared = targets.map((entry) => {
+          const head = byPath.get(entry.headRef.path),
+            existing = byPath.get(entry.markerRef.path);
+          if (!head || !existing) throw new Error("notice_snapshot_missing");
+          const cycleId =
+            head.exists && typeof head.get("cycleId") === "string"
+              ? (head.get("cycleId") as string)
+              : null;
+          const admitted =
+            entry.source.admittedLeaseKeys?.includes(entry.headRef.id) === true &&
+            entry.source.statusTable.status === "available" &&
+            entry.source.statusTable.admittedLeaseKeys?.includes(entry.headRef.id) ===
+              true;
+          const history =
+            existing.exists && (admitted || options.displayOnly)
+              ? historyRef(
+                  db,
+                  entry.leaseId,
+                  noticeScopeHash(entry.leaseId, entry.tenancyHash, cycleId),
+                )
+              : null;
+          return { ...entry, head, existing, history };
+        });
+        const historyRefs = prepared.flatMap((entry) =>
+          entry.history ? [entry.history] : [],
+        );
+        const historySnapshots = historyRefs.length
+          ? await tx.getAll(...historyRefs)
+          : [];
+        const histories = new Map(
+          historySnapshots.map((snapshot) => [snapshot.ref.path, snapshot]),
+        );
+        if (historyRefs.some((ref) => !histories.has(ref.path)))
+          throw new Error("notice_history_snapshot_missing");
+        // No source fetch, transaction read or external action occurs after this point.
+        return prepared.map((entry) =>
+          projectNoticeObservation(
+            entry.source,
+            entry.leaseId,
+            entry.tenancyHash,
+            entry.head,
+            entry.existing,
+            entry.history ? histories.get(entry.history.path) : undefined,
+            db,
+            options.displayOnly ? undefined : tx,
+          ),
+        );
+      },
+      options.displayOnly ? { readOnly: true } : undefined,
+    );
   } catch {
     // A failed chunk exposes no ready result and commits no partial invalidation markers.
     return entries.map(({ leaseId, tenancyHash }) => ({

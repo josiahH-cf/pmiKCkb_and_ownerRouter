@@ -94,6 +94,7 @@ export interface AttentionQueue {
   readonly followThrough?: readonly AttentionFollowThroughRow[];
   /** S280: "unavailable" when the viewer's own renewal messages could not be read. */
   readonly followThroughState?: "ok" | "unavailable";
+  readonly followThroughIncomplete?: true;
   /** S280 R-S280-4: present when renewal rows were read; says whether they are retained. */
   readonly renewalRead?: AttentionRenewalRead;
 }
@@ -265,6 +266,7 @@ export async function gatherAttentionQueue(
       ? {
           followThrough: followThrough.rows,
           followThroughState: followThrough.state,
+          ...(followThrough.incomplete ? { followThroughIncomplete: true as const } : {}),
         }
       : canSeeRenewals && dependencies.loadFollowThrough && !followThrough
         ? { followThrough: [], followThroughState: "unavailable" as const }

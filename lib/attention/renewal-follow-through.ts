@@ -133,6 +133,26 @@ function hasObservedReply(sequence: CommunicationSequence): boolean {
   );
 }
 
+/** Skip history that cannot produce any of the personal follow-through rows. */
+export function mayNeedFollowThrough(sequence: CommunicationSequence): boolean {
+  if (
+    !sequence.authorization ||
+    sequence.state === "cancelled" ||
+    sequence.state === "draft" ||
+    sequence.pause?.cause === "newer_message_sent"
+  )
+    return false;
+  if (sequence.state === "completed") {
+    const ended = sequence.replyWatchEnded?.reason;
+    return (
+      ended !== "answer_recorded" &&
+      ended !== "cycle_closed" &&
+      hasObservedReply(sequence)
+    );
+  }
+  return true;
+}
+
 export interface FollowThroughInput {
   readonly viewerUid: string;
   /** Every renewal communication of the leases the viewer sent to (theirs and others'). */
@@ -178,6 +198,7 @@ export function projectOwnFollowThrough(
   };
   for (const [key, sequence] of currentRenewalMessages(input.sequences)) {
     if (sequence.responsibleUid !== input.viewerUid) continue;
+    if (!mayNeedFollowThrough(sequence)) continue;
     let unsent: ReturnType<typeof unsentWorkEvidence> = null;
     try {
       unsent = unsentWorkEvidence(sequence);

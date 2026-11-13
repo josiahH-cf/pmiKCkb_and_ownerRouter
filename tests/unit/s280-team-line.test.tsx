@@ -8,12 +8,16 @@ import { readFileSync } from "node:fs";
 import { act, cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { RenewalTeamLineText } from "@/components/attention/RenewalTeamLine";
+import {
+  RenewalTeamLineSlot,
+  RenewalTeamLineText,
+} from "@/components/attention/RenewalTeamLine";
 import { DashboardAttentionQueue } from "@/components/console/DashboardAttentionQueue";
 import { WorkAccountabilityBoard } from "@/components/work/WorkAccountabilityBoard";
 import type { AttentionQueue } from "@/lib/attention/attention-queue";
 import {
   RENEWAL_TEAM_LINE_HREF,
+  RENEWAL_TEAM_LINE_ROUTE,
   renewalTeamLineSentence,
   renewalTeamNextActionCount,
   type RenewalTeamLine,
@@ -147,6 +151,10 @@ describe("S280 BEH-S280-5: the rendered line", () => {
   });
 
   it("BEH-S280-5: with no personal items the Dashboard panel shows the team line with the desk's count", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json(LINE)),
+    );
     const queue: AttentionQueue = {
       state: "ok",
       rows: [],
@@ -161,7 +169,7 @@ describe("S280 BEH-S280-5: the rendered line", () => {
         <DashboardAttentionQueue
           canApprove={false}
           initial={Promise.resolve(queue)}
-          teamLine={Promise.resolve(LINE)}
+          showRenewalTeamLine
         />,
       );
     });
@@ -178,35 +186,36 @@ describe("S280 BEH-S280-5: the rendered line", () => {
     vi.stubGlobal("crypto", { randomUUID: () => "request-id-1" });
     vi.stubGlobal(
       "fetch",
-      vi.fn(
-        async () =>
-          new Response(
-            JSON.stringify({
-              snapshot: {
-                tasks: [],
-                editable_task_ids: [],
-                sessions: [],
-                expectations: [],
-                mappings: [],
-                server_now: "2026-11-12T18:20:00.000Z",
-                record_limit: 500,
-                may_be_truncated: false,
-              },
-            }),
-            { status: 200, headers: { "content-type": "application/json" } },
-          ),
+      vi.fn(async (url) =>
+        url === RENEWAL_TEAM_LINE_ROUTE
+          ? Response.json(LINE)
+          : new Response(
+              JSON.stringify({
+                snapshot: {
+                  tasks: [],
+                  editable_task_ids: [],
+                  sessions: [],
+                  expectations: [],
+                  mappings: [],
+                  server_now: "2026-11-12T18:20:00.000Z",
+                  record_limit: 500,
+                  may_be_truncated: false,
+                },
+              }),
+              { status: 200, headers: { "content-type": "application/json" } },
+            ),
       ),
     );
     render(
       <WorkAccountabilityBoard
-        emptyAside={<RenewalTeamLineText line={LINE} />}
+        emptyAside={<RenewalTeamLineSlot />}
         mode="mine"
         mutationAllowed={false}
         spaces={[{ id: "lease-renewals", name: "Lease Renewals" }]}
       />,
     );
     expect(await screen.findByText("No tasks assigned")).toBeInTheDocument();
-    expect(screen.getByTestId("renewal-team-line")).toHaveTextContent(
+    expect(await screen.findByTestId("renewal-team-line")).toHaveTextContent(
       "12 renewals have a next action for the team. Open the Renewal Desk.",
     );
   });

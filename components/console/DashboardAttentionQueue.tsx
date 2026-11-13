@@ -24,7 +24,6 @@ import {
   keepRetainedRenewalRows,
 } from "@/lib/attention/attention-retention";
 import { FOLLOW_THROUGH_WORDS } from "@/lib/attention/renewal-follow-through-words";
-import type { RenewalTeamLine } from "@/lib/attention/renewal-team-line";
 import { formatBusinessTimestamp } from "@/lib/date-display";
 
 const PREVIEW_ROWS = 5;
@@ -40,16 +39,19 @@ const AUTHORITY_NOTE: Record<AttentionAuthority, string | null> = {
 export function DashboardAttentionQueue({
   initial,
   canApprove,
-  teamLine,
+  showRenewalTeamLine = false,
 }: Readonly<{
   initial: Promise<AttentionQueue>;
   canApprove: boolean;
-  /** S280 R-S280-2: the team line, streamed on its own; omitted or null shows none. */
-  teamLine?: Promise<RenewalTeamLine | null> | null;
+  showRenewalTeamLine?: boolean;
 }>) {
   return (
     <Suspense fallback={<AttentionQueueLoading />}>
-      <AttentionQueueBody canApprove={canApprove} initial={initial} teamLine={teamLine} />
+      <AttentionQueueBody
+        canApprove={canApprove}
+        initial={initial}
+        showRenewalTeamLine={showRenewalTeamLine}
+      />
     </Suspense>
   );
 }
@@ -72,11 +74,11 @@ function AttentionQueueLoading() {
 function AttentionQueueBody({
   initial,
   canApprove,
-  teamLine,
+  showRenewalTeamLine,
 }: Readonly<{
   initial: Promise<AttentionQueue>;
   canApprove: boolean;
-  teamLine?: Promise<RenewalTeamLine | null> | null;
+  showRenewalTeamLine: boolean;
 }>) {
   const first = use(initial);
   const [queue, setQueue] = useState<AttentionQueue>(first);
@@ -136,7 +138,13 @@ function AttentionQueueBody({
           ))}
         </ul>
       ) : null}
-      <RenewalTeamLineSlot line={teamLine} />
+      {queue.followThroughIncomplete ? (
+        <p className="muted">
+          More renewal messages may need your attention.{" "}
+          <Link href="/gmail-hub">Open Communications.</Link>
+        </p>
+      ) : null}
+      {showRenewalTeamLine ? <RenewalTeamLineSlot /> : null}
       {queue.renewalReviewIssue ? (
         <p className="muted" data-testid="renewal-review-issue">
           {queue.renewalReviewIssue.message}

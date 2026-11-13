@@ -1,8 +1,8 @@
 import { RenewalTeamLineSlot } from "@/components/attention/RenewalTeamLine";
 import { AppShell } from "@/components/layout/AppShell";
 import { WorkAccountabilityBoard } from "@/components/work/WorkAccountabilityBoard";
-import { loadRenewalTeamLine } from "@/lib/attention/renewal-team-line-read";
 import { requirePageCapability } from "@/lib/auth/page-guards";
+import { hasSpaceAccess } from "@/lib/auth/session";
 import {
   allowsMutation,
   resolveEnvironmentDescriptor,
@@ -22,10 +22,6 @@ export default async function MyWorkPage() {
         !space.readOnly,
     )
     .map(({ id, name }) => ({ id, name }));
-  // S280 R-S280-2: My Work's empty state carries the team's renewal line. Started, not awaited, so
-  // the task list never waits for it; null for a user without renewals.
-  const teamLine = loadRenewalTeamLine(user).catch(() => null);
-
   return (
     <AppShell user={user}>
       <main className="content content--workspace ui-stack">
@@ -36,7 +32,7 @@ export default async function MyWorkPage() {
           </p>
         </div>
         <WorkAccountabilityBoard
-          emptyAside={<RenewalTeamLineSlot line={teamLine} />}
+          emptyAside={hasSpaceAccess(user, "renewals") ? <RenewalTeamLineSlot /> : null}
           mode="mine"
           mutationAllowed={mutationAllowed}
           spaces={spaces}

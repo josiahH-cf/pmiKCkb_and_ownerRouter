@@ -259,4 +259,37 @@ describe("S280 R-S280-1 on the emulator", () => {
     );
     expect(read).toEqual({ state: "ok", rows: [] });
   });
+
+  it("keeps the newest relevant leases ahead of draft history and signals a partial list", async () => {
+    const batch = db.batch();
+    for (let index = 0; index < 32; index++) {
+      batch.set(
+        db.collection(SEQUENCES).doc(`hold-${index}`),
+        stored({
+          lease: String(9000 + index),
+          purpose: "renewal_tenant",
+          responsibleUid: viewer.uid,
+          state: "paused",
+          createdAtMs: NOW - 48 * HOUR + index,
+          pause: { cause: "staff", byUid: viewer.uid, atMs: NOW - HOUR, evidenceIds: [] },
+        }),
+      );
+    }
+    batch.set(
+      db.collection(SEQUENCES).doc("draft"),
+      stored({
+        lease: "8000",
+        purpose: "renewal_tenant",
+        responsibleUid: viewer.uid,
+        state: "draft",
+        createdAtMs: NOW - HOUR,
+      }),
+    );
+    await batch.commit();
+    const read = await readOwnRenewalFollowThrough(viewer, NOW, { db: () => db });
+    expect(read).toMatchObject({ state: "ok", incomplete: true });
+    expect(read.rows).toHaveLength(30);
+    expect(read.rows.map((row) => row.leaseId)).toContain("9031");
+    expect(read.rows.map((row) => row.leaseId)).not.toContain("9000");
+  });
 });
