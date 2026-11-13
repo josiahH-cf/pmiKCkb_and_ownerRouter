@@ -27,6 +27,7 @@ import {
   outreachRecordForAcceptedSend,
   writeRenewalOutreachRecord,
 } from "@/lib/firestore/renewal-outreach-records";
+import { recordRenewalHold } from "@/lib/firestore/renewal-hold-notices";
 import { CommunicationAttachmentStore } from "./sequence-attachments";
 import { renewalNoticeMaterialIdentity } from "./renewal-material-source";
 import { renewalReviewedInputs } from "./renewal-reviewed-inputs";
@@ -133,6 +134,10 @@ export function createCommunicationSequenceService() {
         Date.now(),
       );
       if (record) await writeRenewalOutreachRecord(record);
+    },
+    // S273 R-S273-6: one in-app notice for the responsible sender when the worker holds a message.
+    recordHold: async (sequence) => {
+      await recordRenewalHold(sequence);
     },
   });
 }
@@ -401,6 +406,8 @@ async function renewalTarget(
     signatureParagraph,
     // S249 ARCH-S249-2: the lease message record's revision this composition was made from.
     messageRevision: current.messageRevision,
+    // S273 R-S273-2: when the lease's own message record was last saved (null when never saved).
+    messageSavedAt: current.saved?.updatedAt ?? null,
     // S249 R-S249-5 (J): the prefilled figure this composed message carries, if any.
     carriedRecommendation: current.carriedRecommendation,
     attachmentNotice: current.attachment

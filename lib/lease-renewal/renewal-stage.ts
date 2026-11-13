@@ -71,6 +71,11 @@ import {
   RENEWAL_WORK_STATUS_LABELS,
   type RenewalWorkStatus,
 } from "@/lib/lease-renewal/work-status";
+import {
+  unsentMessageDetail,
+  unsentNeedsStaff,
+  type UnsentMessageView,
+} from "@/lib/lease-renewal/unsent-message";
 
 export const RENEWAL_STAGE_VERSION = "renewal-stage/v1" as const;
 
@@ -245,6 +250,12 @@ export interface RenewalPathStepView {
   readonly controls: readonly string[];
   /** A scheduled first message is not yet sent: nothing to send again or record about it. */
   readonly scheduled?: boolean;
+  /**
+   * S273 R-S273-3: the step's unsent message is out of date or held: its line and differences are
+   * the detail, and the message owner runs its one repair ("Review the updated offer") or its
+   * existing recovery, with "Cancel the scheduled offer" beside the repair.
+   */
+  readonly unsent?: UnsentMessageView;
 }
 
 export interface RenewalStageWaiting {
@@ -418,6 +429,7 @@ function audienceStep(
   readonly detail: string | null;
   readonly waiting: RenewalStageWaiting | null;
   readonly scheduled?: boolean;
+  readonly unsent?: UnsentMessageView;
 } {
   const { lane, state } = evaluation;
   const satisfied = satisfiedFor(evaluation);
@@ -449,7 +461,9 @@ function audienceStep(
     evaluation.context.standingAgreement &&
     !decided &&
     evidence.state !== "unconfirmed" &&
-    evidence.state !== "delivery_failed"
+    evidence.state !== "delivery_failed" &&
+    // S273: a held or out-of-date owner message stays visible with its repair.
+    !unsentNeedsStaff(evidence.unsent)
   )
     return {
       state: "covered",
@@ -576,6 +590,21 @@ function audienceStep(
       },
     };
   }
+  // S273 R-S273-3: an unsent message that is out of date or held stays visible with its state,
+  // the values that differ and its one repair (or its existing recovery), until staff resolve it.
+  // An unconfirmed send keeps its own check below; a current scheduled message keeps its line.
+  const unsent = evidence.unsent;
+  if (unsent && unsentNeedsStaff(unsent) && unsent.primary) {
+    return {
+      state: "current",
+      stage: definition.stage,
+      nextStep: unsent.primary.label,
+      primary: { label: unsent.primary.label, target: messageTarget },
+      detail: unsentMessageDetail(unsent),
+      waiting: null,
+      unsent,
+    };
+  }
   // Not yet sent: the evidence state names its own next step and never counts as outreach.
   switch (evidence.state) {
     case "unconfirmed":
@@ -650,6 +679,7 @@ function assistedAnswerStep(evaluation: Evaluation): {
   readonly detail: string | null;
   readonly waiting: RenewalStageWaiting | null;
   readonly scheduled?: boolean;
+  readonly unsent?: UnsentMessageView;
 } {
   const { state, lane } = evaluation;
   const definition = RENEWAL_PATH_DEFINITION["assisted-owner-renewal-answer"];
@@ -864,6 +894,17 @@ function currentStepFor(
     return "ask-owner";
   if (
     evidence.tenant.state === "unconfirmed" &&
+    steps.some((step) => step.id === "offer-tenant" && step.applies && !step.done)
+  )
+    return "offer-tenant";
+  // S273 R-S273-3: a held or out-of-date unsent message is the step staff see at once.
+  if (
+    unsentNeedsStaff(evidence.owner.unsent) &&
+    steps.some((step) => step.id === "ask-owner" && step.applies && !step.done)
+  )
+    return "ask-owner";
+  if (
+    unsentNeedsStaff(evidence.tenant.unsent) &&
     steps.some((step) => step.id === "offer-tenant" && step.applies && !step.done)
   )
     return "offer-tenant";
@@ -1148,6 +1189,7 @@ export function projectRenewalStage(
       detail,
       primary,
       ...(audience?.scheduled ? { scheduled: true } : {}),
+      ...(audience?.unsent ? { unsent: audience.unsent } : {}),
     };
   });
 
@@ -1347,18 +1389,46 @@ export interface RenewalStageSummary {
   readonly waiting: RenewalStageWaiting | null;
   /** The hand-set status and the derived stage, when they differ. */
   readonly handStatusLine: string | null;
+  /**
+   * S273 R-S273-3: the desk row's one cue for a held or out-of-date unsent message ("Scheduled
+   * message out of date" or "Message held"), linking to its step. Absent when there is none.
+   */
+  readonly messageCue?: {
+    readonly kind: "out_of_date" | "held";
+    readonly label: string;
+    readonly stepId: RenewalPathStepId;
+  };
+}
+
+/** S273 R-S273-3: the one cue for the lease's held or out-of-date unsent message, if any. */
+export function renewalMessageCue(
+  stage: Pick<RenewalStage, "evidence" | "steps">,
+): RenewalStageSummary["messageCue"] | undefined {
+  for (const [audience, stepId] of [
+    ["owner", "ask-owner"],
+    ["tenant", "offer-tenant"],
+  ] as const) {
+    const unsent = stage.evidence[audience]?.unsent;
+    const step = stage.steps.find((item) => item.id === stepId);
+    if (unsent?.cue && unsentNeedsStaff(unsent) && step && step.state !== "not_part")
+      return { kind: unsent.cue.kind, label: unsent.cue.label, stepId };
+  }
+  return undefined;
 }
 
 export function summarizeRenewalStage(stage: RenewalStage): RenewalStageSummary {
   const step = stage.steps.findIndex((item) => item.id === stage.currentStepId);
   const current = stage.steps[step];
+  const messageCue = renewalMessageCue(stage);
   const urgent =
     stage.blocker ||
     stage.check ||
     stage.evidence.owner?.unconfirmedSequenceId ||
     stage.evidence.tenant?.unconfirmedSequenceId ||
+    messageCue ||
     stage.nextStep.label === RENEWAL_STAGE_NEXT_STEP.checkAddress;
   return {
+    ...(messageCue ? { messageCue } : {}),
     triage: {
       rank: urgent
         ? 0

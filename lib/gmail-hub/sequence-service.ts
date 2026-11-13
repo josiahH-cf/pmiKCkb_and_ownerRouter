@@ -82,6 +82,11 @@ import {
 } from "@/lib/lease-renewal/tenant-resource-inclusion";
 import type { TenantResourceId } from "@/lib/lease-renewal/tenant-resource-evidence";
 import {
+  appendUnsentHistory,
+  unsentAttemptOnResume,
+  unsentAttemptOnSave,
+} from "@/lib/lease-renewal/unsent-message";
+import {
   CommunicationTargetChangedError,
   LEASE_READ_REREAD_WAITS_MS,
   LeaseReadNotSettledError,
@@ -237,6 +242,12 @@ export interface CommunicationSequenceDependencies {
   readTenantResponse?(
     sequence: CommunicationSequence,
   ): Promise<RecordedTenantResponse | null>;
+  /**
+   * S273 R-S273-6: after the communication worker held a message, raise its one in-app notice for
+   * the responsible sender (deduplicated per sequence and pause; no body, no recipient address). It
+   * runs after the hold and never decides it: a failure here is swallowed.
+   */
+  recordHold?(sequence: CommunicationSequence): Promise<void>;
 }
 export function assertCommunicationStaff(
   actor: AuthenticatedUser,
@@ -491,6 +502,9 @@ export class WorkflowCommunicationSequenceService {
             "Keep this history and start a new communication.",
             409,
           );
+        // S273 R-S273-5: a save over unsent authorized work ends that attempt (scheduled or held,
+        // then updated); it stays listed, read only, beside the authorization.
+        const ended = unsentAttemptOnSave(current, nowMs);
         return {
           ...parsed,
           workflowLabel: current?.workflowLabel ?? admission!.label,
@@ -529,6 +543,11 @@ export class WorkflowCommunicationSequenceService {
           threads: current?.threads ?? [],
           observedMessageIds: current?.observedMessageIds ?? [],
           observation: current?.observation ?? null,
+          ...(ended
+            ? { unsentHistory: appendUnsentHistory(current?.unsentHistory, ended) }
+            : current?.unsentHistory
+              ? { unsentHistory: current.unsentHistory }
+              : {}),
           lastOperation: { id: operationId, hash: operationHash },
         };
       },
@@ -769,8 +788,14 @@ export class WorkflowCommunicationSequenceService {
             "This communication changed; review the current version.",
             409,
           );
+        // S273 R-S273-5: a Resume ends the held attempt (held, then resumed), read only.
+        const resumed =
+          input.action === "resume" ? unsentAttemptOnResume(c, nowMs) : null;
         return {
           ...c,
+          ...(resumed
+            ? { unsentHistory: appendUnsentHistory(c.unsentHistory, resumed) }
+            : {}),
           version: input.expectedVersion + 1,
           state: "active",
           workflowLabel: target.label,

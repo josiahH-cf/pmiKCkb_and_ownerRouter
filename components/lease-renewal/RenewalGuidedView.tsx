@@ -43,6 +43,10 @@ import {
   type RenewalStage,
   type RenewalStageContext,
 } from "@/lib/lease-renewal/renewal-stage";
+import {
+  UNSENT_MESSAGE_WORDS,
+  keepSettledMessageBases,
+} from "@/lib/lease-renewal/unsent-message";
 import type { RenewalIssue } from "@/lib/lease-renewal/renewal-issues";
 import { currentAcceptanceRead } from "@/lib/lease-renewal/tenant-acceptance-hold";
 import { fetchWithDeadline } from "@/lib/ui/fetch-lifetime";
@@ -265,12 +269,30 @@ export function useRenewalOutcomeStage(context: RenewalStageContext) {
     liveAcceptance,
     context.tenantAcceptance,
   ]);
+  // S273 R-S273-2 (S274): a lease read that did not settle keeps the previous settled values, so
+  // the out-of-date cue does not flicker on a refresh. Derived from the reads this page received.
+  const [settledBases, setSettledBases] = useState(context.outreach?.currentMessage);
+  const [seenOutreach, setSeenOutreach] = useState(context.outreach);
+  if (seenOutreach !== context.outreach) {
+    setSeenOutreach(context.outreach);
+    setSettledBases(
+      keepSettledMessageBases(settledBases, context.outreach?.currentMessage),
+    );
+  }
+  const outreach = useMemo(
+    () =>
+      context.outreach && settledBases
+        ? { ...context.outreach, currentMessage: settledBases }
+        : context.outreach,
+    [context.outreach, settledBases],
+  );
   const stage = useMemo(
     () =>
       projectRenewalStage(
         state,
         {
           ...context,
+          outreach,
           staffRecordUnavailable: readUnavailable,
           housingAssistance,
           tenantAcceptance,
@@ -300,6 +322,7 @@ export function useRenewalOutcomeStage(context: RenewalStageContext) {
     [
       state,
       context,
+      outreach,
       readUnavailable,
       standingCovered,
       pricing,
@@ -455,6 +478,7 @@ export function RenewalFullOutcome({
   const audience =
     stepId === "ask-owner" ? "owner" : stepId === "offer-tenant" ? "tenant" : null;
   const delivery = audience ? stage.evidence[audience] : null;
+  const stepUnsent = "unsent" in step ? step.unsent : undefined;
   // S269 rule 2 (AC-S269-1, both views): an unresolved send for this outcome's message leads with
   // its own check on the same attempt, ahead of the step's next action (such as recording an
   // earlier reply, which stays available through the Owner or Tenant response).
@@ -482,7 +506,9 @@ export function RenewalFullOutcome({
   const messageOwnsPrimary =
     audience &&
     !blocker &&
-    primary?.label === RENEWAL_PATH_DEFINITION[stepId].primary.label;
+    (primary?.label === RENEWAL_PATH_DEFINITION[stepId].primary.label ||
+      // S273 R-S273-3/R-S273-4: the message owner runs the held or out-of-date message's repair.
+      (Boolean(stepUnsent) && primary?.label === stepUnsent?.primary?.label));
   const sourceCompletion =
     !blocker && primary?.label === RENEWAL_STAGE_NEXT_STEP.confirmFinished
       ? context.sourceRenewal
@@ -596,6 +622,19 @@ export function RenewalFullOutcome({
             <p>{stage.evidenceLine}</p>
           ) : null}
           {evidence ?? <p>{RENEWAL_PATH_DEFINITION[stepId].ready}</p>}
+          {/* S273 R-S273-5: the cycle's earlier attempts for this message, read only. */}
+          {delivery?.earlierAttempts?.length ? (
+            <div className="ui-stack-tight" data-renewal-field="earlier-attempts">
+              <p>{UNSENT_MESSAGE_WORDS.earlierAttempts}</p>
+              <ul aria-label={UNSENT_MESSAGE_WORDS.earlierAttempts}>
+                {delivery.earlierAttempts.map((attempt) => (
+                  <li data-renewal-earlier-attempt={attempt.sequenceId} key={attempt.key}>
+                    {attempt.line}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
           {/* S264: Review offer charges shows its ended and unrelated lines here, read only. */}
           {stepId === "offer-tenant" ? (
             <div
@@ -1414,7 +1453,9 @@ function NowCard({
     Boolean(filler) &&
     !blocker &&
     (shown.state === "current" || shown.state === "open") &&
-    shown.primary?.label === definition.primary.label;
+    (shown.primary?.label === definition.primary.label ||
+      // S273 R-S273-3/R-S273-4: a held or out-of-date message's repair, run by its message owner.
+      (Boolean(shown.unsent) && filler?.label === shown.primary?.label));
   const sourceCompletion =
     !blocker && primary?.label === RENEWAL_STAGE_NEXT_STEP.confirmFinished
       ? context.sourceRenewal

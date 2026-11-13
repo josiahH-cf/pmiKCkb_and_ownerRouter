@@ -7,6 +7,7 @@ import type {
 } from "@/lib/lease-renewal/sender-signature-choice";
 import { Icon as MessageCopyIcon } from "@/components/ui";
 import type { CommunicationSequence } from "@/lib/gmail-hub/sequence-model";
+import type { UnsentMessageView } from "@/lib/lease-renewal/unsent-message";
 import {
   describeSequenceState,
   SEQUENCE_PAUSE_CAUSE_LABELS,
@@ -302,9 +303,13 @@ function OutcomeMessagePreparation({
   const evidence = stage.evidence[props.channel];
   const waiting =
     step?.state === "waiting" || step?.state === "done" || step?.state === "covered";
+  // S273 R-S273-3: a held or out-of-date message holds the step's send actions; its own repair or
+  // recovery takes their place, so no second message is started beside it.
+  const unsent = step?.unsent ?? null;
   const hold = Boolean(
     evidence?.unconfirmedSequenceId ||
     step?.scheduled ||
+    unsent ||
     waiting ||
     (stage.currentStepId === stepId && stage.blocker),
   );
@@ -321,7 +326,13 @@ function OutcomeMessagePreparation({
       {sequenceId ? (
         <TenantOfferProgress sequenceId={sequenceId} leaseId={context.leaseId} />
       ) : null}
-      <MessageOwner {...props} compact deliveryHeld={hold} offCycleHold={offCycleHold} />
+      <MessageOwner
+        {...props}
+        compact
+        deliveryHeld={hold}
+        offCycleHold={offCycleHold}
+        unsent={unsent}
+      />
     </>
   );
 }
@@ -407,6 +418,7 @@ function MessageOwner({
   compact = false,
   deliveryHeld = false,
   offCycleHold = null,
+  unsent = null,
   secondaryWork,
   workingTerms,
 }: MessageOwnerProps & {
@@ -414,6 +426,8 @@ function MessageOwner({
   deliveryHeld?: boolean;
   /** S282 R-S282-4: the off-cycle end date row the readiness list shows while the hold stands. */
   offCycleHold?: OffCycleReadinessItem | null;
+  /** S273 R-S273-3: the step's held or out-of-date unsent message, from the stage projection. */
+  unsent?: UnsentMessageView | null;
 }) {
   const context = useRenewalManualWorkspace();
   const working = useRenewalWorkingRecord();
@@ -428,6 +442,7 @@ function MessageOwner({
       compact={compact}
       deliveryHeld={deliveryHeld}
       offCycleHold={offCycleHold}
+      unsent={unsent}
       secondaryWork={secondaryWork}
       workingTerms={workingTerms}
     />
@@ -796,6 +811,7 @@ function MessagePreparationEditor({
   compact,
   deliveryHeld,
   offCycleHold,
+  unsent = null,
   secondaryWork,
   workingTerms,
 }: {
@@ -807,6 +823,8 @@ function MessagePreparationEditor({
   compact: boolean;
   deliveryHeld: boolean;
   offCycleHold: OffCycleReadinessItem | null;
+  /** S273 R-S273-3: the step's held or out-of-date unsent message. */
+  unsent?: UnsentMessageView | null;
   secondaryWork?: ReactNode;
   workingTerms?: ReactNode;
 }) {
@@ -1856,6 +1874,7 @@ function MessagePreparationEditor({
           compactFull={compact}
           deliveryHeld={deliveryHeld}
           offCycleHold={offCycleHold}
+          unsent={unsent}
           chargeReview={preparedHostsCharges ? chargeReview : null}
           onCopy={() => copy("formatted")}
           onDraftCreate={async () => {

@@ -16,6 +16,7 @@ import { projectRenewalDeskIdentity } from "@/lib/lease-renewal/desk-identity";
 import { listLeaseOwnerReplies } from "@/lib/gmail-hub/sequence-store";
 import { readLeaseOutreachEvidence } from "@/lib/firestore/renewal-outreach-records";
 import { UNREADABLE_OUTREACH_EVIDENCE_INPUT } from "@/lib/lease-renewal/outreach-evidence";
+import { withLeaseCurrentMessageBases } from "@/lib/lease-renewal/unsent-message-read";
 import { readKickoffSupport } from "@/lib/lease-renewal/kickoff-support";
 import {
   UNREAD_KICKOFF_SUPPORT,
@@ -224,7 +225,11 @@ export default async function LiveRenewalLeaseWorkspacePage({
   // with the same bounded wait.
   const outreachEvidencePromise = withReadDeadline(() =>
     readLeaseOutreachEvidence(leaseId),
-  ).catch(() => null);
+  )
+    // S273 R-S273-2: for a scheduled or held message, the lease's current values, so the step
+    // shows it out of date on this read, before any worker run. A late or failed read adds nothing.
+    .then((evidence) => withLeaseCurrentMessageBases(user, leaseId, evidence))
+    .catch(() => null);
   // S249: the same preparation read the desk makes, for this one lease, with the same wait.
   const kickoffSupportPromise = withReadDeadline(() =>
     readKickoffSupport(user, [leaseId]),

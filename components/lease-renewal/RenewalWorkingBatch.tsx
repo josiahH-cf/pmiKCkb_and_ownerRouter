@@ -850,6 +850,21 @@ function BatchRow({
         ) : row.reason ? (
           <span className="renewal-batch-reason">{row.reason}</span>
         ) : null}
+        {workRow && row.messageCue && row.canOpen ? (
+          // S273 R-S273-3: the one cue for a held or out-of-date unsent message, opening its step.
+          <Link
+            className="text-link renewal-batch-message-cue"
+            data-batch-message-cue={row.messageCue.kind}
+            href={buildWorkspaceHref({
+              leaseId: row.leaseId,
+              step: row.messageCue.stepId,
+              deskView: continuation,
+            })}
+            prefetch={false}
+          >
+            {row.messageCue.label}
+          </Link>
+        ) : null}
         {row.statusNote ? (
           <span className="renewal-batch-status-note">{row.statusNote}</span>
         ) : null}

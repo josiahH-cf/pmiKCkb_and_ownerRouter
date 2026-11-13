@@ -44,6 +44,10 @@ import {
   type OutreachAudience,
   type StoredOutreachRecord,
 } from "@/lib/lease-renewal/outreach-evidence";
+import {
+  earlierAttemptsOf,
+  unsentWorkEvidence,
+} from "@/lib/lease-renewal/unsent-message";
 
 export const RENEWAL_OUTREACH_RECORD_COLLECTION = "renewal_outreach_records";
 const SEQUENCE_COLLECTION = "gmail_communication_sequences";
@@ -110,7 +114,21 @@ export function linkedRenewalMessageEvidence(
     })
     .sort((left, right) => left.sentAtMs - right.sentAtMs);
   const inbound = sequence.inbound ?? [];
+  // S273 R-S273-1 / R-S273-5: the unsent authorized work and the earlier attempts, from the stored
+  // communication alone; no message body and no recipient address.
+  // An older record missing a member reads as holding none; it never fails the whole read.
+  let unsent: ReturnType<typeof unsentWorkEvidence> = null;
+  let attempts: ReturnType<typeof earlierAttemptsOf> = [];
+  try {
+    unsent = unsentWorkEvidence(sequence);
+    attempts = earlierAttemptsOf(sequence);
+  } catch {
+    unsent = null;
+    attempts = [];
+  }
   return {
+    ...(unsent ? { unsent } : {}),
+    ...(attempts.length ? { attempts } : {}),
     sequenceId: sequence.id,
     audience,
     cycleId: sequence.noticeCycleId ?? null,

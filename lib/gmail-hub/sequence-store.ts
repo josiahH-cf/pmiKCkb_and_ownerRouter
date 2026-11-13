@@ -33,6 +33,10 @@ import {
   tenantResponsePause,
   type RecordedTenantResponse,
 } from "./tenant-response-hold";
+import {
+  appendUnsentHistory,
+  unsentAttemptOnSettle,
+} from "@/lib/lease-renewal/unsent-message";
 import type {
   CommunicationInboundEvidence,
   CommunicationOccurrence,
@@ -862,6 +866,9 @@ export class FirestoreCommunicationSequenceStore implements SequenceStore {
             sentAtMs,
           },
         ];
+        // S273 R-S273-5: a first message whose send was not confirmed, settled by a readback, keeps
+        // its earlier attempt (unconfirmed, then resolved), read only.
+        const resolved = unsentAttemptOnSettle(s, current, i.nowMs);
         const next: CommunicationSequence = {
           ...s,
           state,
@@ -869,6 +876,9 @@ export class FirestoreCommunicationSequenceStore implements SequenceStore {
           lastSentAtMs: sentAtMs,
           nextDueAtMs: state === "active" ? nextDue : null,
           ...(recoveredInitial ? { pause: null } : {}),
+          ...(resolved
+            ? { unsentHistory: appendUnsentHistory(s.unsentHistory, resolved) }
+            : {}),
           unresolvedOccurrenceId: null,
           threads,
           updatedAtMs: i.nowMs,

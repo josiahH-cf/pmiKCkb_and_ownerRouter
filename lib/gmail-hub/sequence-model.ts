@@ -231,6 +231,13 @@ export interface CommunicationSequence
   replyWatch?: boolean;
   /** S275 R-S275-1: why and when the watch ended; absent while it holds or never applied. */
   replyWatchEnded?: import("./reply-watch").ReplyWatchEnded | null;
+  /**
+   * S273 R-S273-5: this communication's earlier unsent attempts, oldest first (scheduled or held,
+   * then updated or resumed; unconfirmed, then resolved). Kept beside the authorization like the
+   * notice cycle, so its payload and replay binding are unchanged; times, states and causes only.
+   * Absent until an attempt ends.
+   */
+  unsentHistory?: import("@/lib/lease-renewal/unsent-message").UnsentAttemptRecord[];
   observation: {
     checkedAtMs: number;
     state: "current" | "unavailable";
