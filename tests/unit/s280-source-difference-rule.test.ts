@@ -325,7 +325,14 @@ describe("S280 ARCH-S280-4: the pipeline on the operating Sheet (fail-first)", (
     expect(unreadable.production_allowed).toBe(false);
   });
 
-  const conflictCases = [
+  const conflictCases: readonly {
+    fieldKey: string;
+    fieldLabel: string;
+    testTitle: string;
+    column: number;
+    sheet: string;
+    other: NonSheetCandidate;
+  }[] = [
     {
       fieldKey: "market_value",
       fieldLabel: "Market value",
@@ -358,14 +365,7 @@ describe("S280 ARCH-S280-4: the pipeline on the operating Sheet (fail-first)", (
         fields: { owner_pricing_confirmed: { value: false, confidence: "Likely" } },
       },
     },
-  ] satisfies readonly {
-    fieldKey: string;
-    fieldLabel: string;
-    testTitle: string;
-    column: number;
-    sheet: string;
-    other: NonSheetCandidate;
-  }[];
+  ];
 
   for (const { testTitle, fieldKey, fieldLabel, column, sheet, other } of conflictCases) {
     it(testTitle, () => {

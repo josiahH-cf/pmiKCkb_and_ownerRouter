@@ -10,6 +10,11 @@ import {
   preparationComparisonNeeded,
   type RenewalBatchRowView,
 } from "@/lib/lease-renewal/renewal-batch-row";
+import {
+  projectRenewalPreparation,
+  type RenewalComparisonFacts,
+} from "@/lib/lease-renewal/renewal-preparation";
+import type { RenewalOwnerAuthority } from "@/lib/lease-renewal/renewal-pricing-policy";
 
 // S283 R-S283-2 / BEH-S283-2: the line beside "Prepare" states how many shown leases need a
 // comparison, and that count equals the lookups the run then makes. A shown lease whose owner step
@@ -38,19 +43,50 @@ function shown(
 }
 
 type DeskFacts = Parameters<typeof preparationComparisonNeeded>[0];
-type Comparison = NonNullable<DeskFacts["kickoff"]>["comparison"];
 
 function deskFacts(
-  comparison: Comparison | null,
-  extra: Partial<DeskFacts> = {},
+  comparison: RenewalComparisonFacts | null,
+  authority?: RenewalOwnerAuthority,
 ): DeskFacts {
   return {
     kickoff: comparison
-      ? ({ comparison } as NonNullable<DeskFacts["kickoff"]>)
+      ? projectRenewalPreparation({
+          numbers: {
+            contractualRent: 1300,
+            rentCharges: null,
+            leaseEndIso: CYCLE,
+            workingRent: null,
+            sheetRent: null,
+            sheetEndIso: null,
+            sourceReadable: true,
+          },
+          comparison,
+          typedRent: null,
+          agreementRent: null,
+          currentRent: 1300,
+          ownerRecipient: null,
+          signature: null,
+          templateApproved: null,
+          address: "101 Sample Pl",
+        })
       : undefined,
-    renewalPricing: undefined,
-    ...extra,
-  } as DeskFacts;
+    renewalPricing: authority
+      ? {
+          authority,
+          policy: null,
+          proposal: null,
+          assignment: null,
+          leaseAssignment: null,
+          portfolioAssignment: null,
+          policyChanged: false,
+          agreements: [],
+          standingAgreement: null,
+          basisChoice: null,
+          basisScope: null,
+          rentSource: "RentVine",
+        }
+      : undefined,
+  };
 }
 
 describe("BEH-S283-2 the line counts every shown lease, whatever its stage", () => {
@@ -114,29 +150,35 @@ describe("BEH-S283-2 a lookup is needed exactly where the preparation service wo
       preparationComparisonNeeded(deskFacts({ state: "none", attempted: true })),
     ).toBe(false);
     expect(
-      preparationComparisonNeeded(
-        deskFacts({ state: "held_back", reason: "Held back" } as Comparison),
-      ),
+      preparationComparisonNeeded(deskFacts({ state: "held_back", reason: "Held back" })),
     ).toBe(false);
     expect(
       preparationComparisonNeeded(
-        deskFacts({ state: "stored", comparison: {} } as unknown as Comparison),
+        deskFacts({
+          state: "stored",
+          comparison: {
+            observationId: null,
+            observedAtIso: "2026-11-13T18:20:00.000Z",
+            source: "Synthetic comparison",
+            rangeLow: 1300,
+            rangeHigh: 1500,
+            compCount: 2,
+            comps: [{ rent: 1300 }, { rent: 1500 }],
+          },
+        }),
       ),
     ).toBe(false);
   });
 
   it("needs none where a standing agreement covers the owner step or could not be confirmed to", () => {
-    for (const authority of [{ covered: true }, { unconfirmed: true }])
-      expect(
-        preparationComparisonNeeded(
-          deskFacts(
-            { state: "none" },
-            {
-              renewalPricing: { authority } as unknown as DeskFacts["renewalPricing"],
-            },
-          ),
-        ),
-      ).toBe(false);
+    const authorities: RenewalOwnerAuthority[] = [
+      { covered: true, reason: "The standing agreement covers this renewal." },
+      { covered: false, unconfirmed: true, reason: "Coverage could not be confirmed." },
+    ];
+    for (const authority of authorities)
+      expect(preparationComparisonNeeded(deskFacts({ state: "none" }, authority))).toBe(
+        false,
+      );
   });
 
   it("is unknown without preparation facts or when they could not be read", () => {
