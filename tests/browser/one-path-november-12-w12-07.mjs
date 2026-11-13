@@ -22,8 +22,8 @@
 //   F  Forms from their previews: the renewal dates entered in Working renewal terms, Finish up's
 //      "Review and apply in Rent and charges" for the RentVine end date and for the Sheet renewal
 //      date, each read for its value, mark, focus, writes and provider calls; then each value
-//      changed before its preview (the RentVine proposal is saved from fresh RentVine state, which
-//      writes nothing to RentVine; its effect is never applied).
+//      changed before its preview. The compiled rehearsal admits the RentVine proposal save only.
+//      Its exact preview and emulator readback agree, and the separately guarded Apply stays closed.
 //   L  The list: four staff activities recorded "Done: recorded by staff" (their Sheet cells join
 //      the reviewed Market value), then "Source updates (N pending)" read row by row.
 //   D  The deterministic Sheets adapter. The rehearsal keeps Sheet writes off (the runtime switch
@@ -243,6 +243,10 @@ const ADAPTER_CASES = Object.freeze({
     [
       "tests/firestore/s278-sheet-set.test.ts",
       "S278 R-S278-4: one confirmation for a lease row's listed Sheet cells AC-S278-6: a combined preview is never applied one cell at a time, and a single update keeps its own confirmation",
+    ],
+    [
+      "tests/unit/s97-rentvine-updates-panel.test.tsx",
+      "S97 RentVine updates panel uses one visible Apply action and posts the exact hashes once",
     ],
   ],
 });
@@ -533,6 +537,46 @@ const openedRight = (opened, expected) =>
   opened.writes.length === 0 &&
   opened.providerCalls.length === 0;
 
+/** Save the UI's one exact proposal through the compiled test fixture. No status or Apply request
+ * receives the fixture's capability. The context's normal boundary still observes the request. */
+async function saveRentvinePreview(ctx, page, save, leaseId) {
+  const token = process.env.S260_SYNTHETIC_WORKER_TOKEN;
+  const compiled = ctx.rehearsal.compiledMail != null;
+  if (compiled && !/^[a-f0-9]{64}$/.test(token ?? ""))
+    throw new Error("The compiled rehearsal source-preview capability is unavailable.");
+  const path = ctx.origin + RENTVINE_ROUTE;
+  const admitExactPreview = (route) => {
+    const request = route.request();
+    if (request.method() !== "POST") return route.fallback();
+    const body = request.postDataJSON();
+    const effect = body?.effects?.[0];
+    if (
+      body?.operation !== "propose" ||
+      body.leaseId !== String(leaseId) ||
+      body.effects?.length !== 1 ||
+      effect?.kind !== "renewal_dates_update" ||
+      effect.after?.endDate !== CHANGED_END
+    )
+      return route.fallback();
+    return route.fallback({
+      headers: { ...request.headers(), "x-s260-source-preview": "Bearer " + token },
+    });
+  };
+  if (compiled) await page.route(path, admitExactPreview);
+  try {
+    const proposed = ctx.kit
+      .appResponse(page, RENTVINE_ROUTE, {
+        match: (body) => body?.operation === "propose",
+        timeout: 120_000,
+      })
+      .catch(() => null);
+    await save.click();
+    return await proposed;
+  } finally {
+    if (compiled) await page.unroute(path, admitExactPreview);
+  }
+}
+
 /** Record each activity "Done: recorded by staff" in its own form, as staff do. */
 async function recordActivities(ctx, page, leaseId) {
   const { kit } = ctx;
@@ -582,6 +626,7 @@ async function writeEvidence(ctx) {
         JSON.stringify(document.fields?.production_allowed ?? null),
       ]),
     ),
+    executions: versions(executions),
     sheetExecutions: versions(
       executions.filter((document) =>
         document.fields?.actionKey?.stringValue?.startsWith("google_sheets."),
@@ -701,19 +746,14 @@ export async function checkW1207(ctx, page, start) {
     });
     const writesBefore = ctx.writes.length;
     const callsBefore = serverCalls(ctx).length;
-    const proposed = kit.appResponse(page, RENTVINE_ROUTE, {
-      match: (body) => body?.operation === "propose",
-      timeout: 120_000,
-    });
-    await save.click();
-    const response = await proposed.catch(() => null);
+    const response = await saveRentvinePreview(ctx, page, save, leaseId);
     const body = response ? await response.json().catch(() => null) : null;
     await kit.shownWithin(
       page.getByRole("heading", { name: "Review RentVine updates", exact: true }).first(),
       30_000,
     );
     await page.waitForTimeout(1_500);
-    // The saved proposal's own review: one item per exact effect, each with its own action.
+    // The saved proposal's own read-only review in the compiled rehearsal.
     const effects = await page.evaluate(() => {
       const heading = [...document.querySelectorAll("h1, h2, h3, h4")].find(
         (node) => (node.textContent ?? "").trim() === "Review RentVine updates",
@@ -721,25 +761,47 @@ export async function checkW1207(ctx, page, start) {
       const holder = heading?.closest("div.ui-stack");
       const list = holder?.querySelector(":scope > ol");
       return list
-        ? [...list.children].map((item) => ({
-            text: (item.textContent ?? "").replace(/\s+/g, " ").trim().slice(0, 600),
-            apply: [...item.querySelectorAll("button")].filter(
-              (button) => (button.textContent ?? "").trim() === "Apply RentVine update",
-            ).length,
-          }))
+        ? [...list.children].map((item) => {
+            const preview = item.querySelector('dl[aria-label="Exact update preview"]');
+            const value = (label) =>
+              [...(preview?.querySelectorAll("dt") ?? [])]
+                .find((term) => term.textContent?.trim() === label)
+                ?.nextElementSibling?.textContent?.trim() ?? null;
+            return {
+              current: value("Current"),
+              proposed: value("Proposed"),
+              apply: [...item.querySelectorAll("button")].filter(
+                (button) => button.textContent?.trim() === "Apply RentVine update",
+              ).length,
+            };
+          })
         : [];
     });
     const proposalEffects = body?.proposal?.effects ?? [];
     const datesEffect = proposalEffects.find(
       (effect) => effect?.kind === "renewal_dates_update",
     );
+    const stored = await kit.readDocument(`renewal_writeback_proposals/${leaseId}`);
+    const storedEffects = stored?.fields?.effects?.arrayValue?.values ?? [];
+    const storedHash = storedEffects[0]?.mapValue?.fields?.effectHash?.stringValue;
+    const previewHash = body?.proposal?.preview_hash;
+    const readback =
+      /^[a-f0-9]{64}$/.test(previewHash ?? "") &&
+      body?.proposal?.lease_id === String(leaseId) &&
+      stored?.fields?.leaseId?.stringValue === String(leaseId) &&
+      stored?.fields?.previewHash?.stringValue === previewHash &&
+      storedEffects.length === 1 &&
+      /^[a-f0-9]{64}$/.test(storedHash ?? "") &&
+      storedHash === datesEffect?.effect_hash;
     rentvineChanged = {
       attempted: true,
       afterEdit,
       status: response?.status() ?? null,
       error: body?.error ?? null,
+      readback,
       effectKinds: proposalEffects.map((effect) => effect?.kind),
-      datesAfter: datesEffect?.after ?? datesEffect?.effect?.after ?? null,
+      datesBefore: datesEffect?.effect?.before?.endDate ?? null,
+      datesAfter: datesEffect?.effect?.after?.endDate ?? null,
       effects,
       writes: ctx.writes.slice(writesBefore),
       rentvineWrites: serverCalls(ctx)
@@ -897,6 +959,25 @@ export async function checkW1207(ctx, page, start) {
     "rentvine:rentvine-dates",
   ];
   const pending = list.rows.filter((row) => row.state !== "done").length;
+  const savedRentvinePreview =
+    rentvineChanged.status === 200 &&
+    rentvineChanged.readback &&
+    rentvineChanged.effectKinds.length === 1 &&
+    rentvineChanged.datesBefore === ctx.leases.byId(leaseId)?.endDate &&
+    rentvineChanged.datesAfter === CHANGED_END &&
+    rentvineChanged.effects.length === 1 &&
+    rentvineChanged.effects[0].current ===
+      `ends ${usDate(rentvineChanged.datesBefore)}` &&
+    rentvineChanged.effects[0].proposed === `ends ${usDate(CHANGED_END)}` &&
+    rentvineChanged.effects[0].apply === 0 &&
+    rentvineChanged.writes.filter((write) => write.path === RENTVINE_ROUTE).length ===
+      1 &&
+    rentvineChanged.writes.some(
+      (write) => write.path === RENTVINE_ROUTE && write.kind === "propose",
+    ) &&
+    rentvineChanged.rentvineWrites === 0 &&
+    JSON.stringify(evidenceAtStart.executions) ===
+      JSON.stringify(evidenceAfter.executions);
 
   const ac1 =
     journeyRead.differs &&
@@ -928,12 +1009,7 @@ export async function checkW1207(ctx, page, start) {
     rentvineChanged.afterEdit?.value === CHANGED_END &&
     !rentvineChanged.afterEdit?.prefilled &&
     !String(rentvineChanged.afterEdit?.hint ?? "").includes(WORDS.mark) &&
-    rentvineChanged.status === 200 &&
-    rentvineChanged.effects.some(
-      (effect) =>
-        effect.text.includes(usDate(CHANGED_END)) || effect.text.includes(CHANGED_END),
-    ) &&
-    rentvineChanged.rentvineWrites === 0 &&
+    savedRentvinePreview &&
     sheetChanged.attempted === true &&
     sheetChanged.afterEdit?.value === CHANGED_END &&
     !sheetChanged.afterEdit?.prefilled &&
@@ -1029,9 +1105,7 @@ export async function checkW1207(ctx, page, start) {
     verdicts["AC-S278-5"].ok;
 
   const ac6 =
-    rentvineChanged.status === 200 &&
-    rentvineChanged.effects.length > 0 &&
-    rentvineChanged.effects.every((effect) => effect.apply === 1) &&
+    savedRentvinePreview &&
     list.rows
       .filter((row) => row.key.startsWith("sheet:"))
       .every((row) => row.button?.name?.startsWith(`${WORDS.prepare}: `)) &&
