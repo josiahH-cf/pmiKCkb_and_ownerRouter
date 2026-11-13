@@ -237,7 +237,8 @@ function readSheetFixture(path) {
 // help rehearsal's opt-in rows, otherwise none.
 function sheetFixture() {
   if (!MIX_FIXTURE) return SHEET_FIXTURE;
-  const sheet = mixSheetFixture(mix());
+  // S284 (test-only): the control file's `sheetCells` flag serves named cells of existing rows.
+  const sheet = mixSheetFixture(mix(), mixFlags());
   for (const row of sheet.rows)
     if (!Array.isArray(row.cells) || row.cells.length !== HEADER.length)
       throw new Error(`The mix Sheet row for ${row.leaseId} must fill the header.`);

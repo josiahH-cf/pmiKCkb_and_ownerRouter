@@ -114,6 +114,8 @@ export interface RentvineStandInFlags {
   statusUnreadable?: Record<string, string>;
   /** S271: synthetic `{recurringCharge, account}` envelopes by lease id; none by default. */
   recurringCharges?: Record<string, unknown[]>;
+  /** S284 (test-only): Sheet cells served in place of the fixture's, by lease id and column. */
+  sheetCells?: Record<string, Record<string, string>>;
 }
 
 export const NOVEMBER_5_MIX_PATH: string;
@@ -142,7 +144,10 @@ export function rentvineStandInResponse(
   url: URL,
   flags?: RentvineStandInFlags,
 ): { body: unknown };
-export function mixSheetFixture(mix: November5Mix): {
+export function mixSheetFixture(
+  mix: November5Mix,
+  flags?: RentvineStandInFlags,
+): {
   rows: November5MixSheetRow[];
   rentvinePropertyIds: Record<string, number>;
 };

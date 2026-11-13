@@ -60,7 +60,9 @@
 #                           driver gets ONE_PATH_REHEARSAL_ORIGIN and ONE_PATH_REHEARSAL_RUN_DIR,
 #                           reads <run>/rehearsal.json (role leases, groups, stand-in origin,
 #                           files) through readRehearsal, and uses the control functions. Files
-#                           named tests/browser/one-path-*-driver.mjs travel with --commit.
+#                           named tests/browser/one-path-*-driver.mjs travel with --commit, with
+#                           the journey modules and kits they import (one-path-*-journeys.mjs,
+#                           one-path-*-kit.mjs).
 #   Candidate-only seeds    scripts/lib/one-path-rehearsal/seeds.mjs lists the seed steps. Built:
 #                           recorded cycles for the three leases renewed in RentVine, one fresh
 #                           RentVine read so move-out evidence shows as it does day to day, and the
@@ -153,7 +155,9 @@ harness_files() {
       if [[ -f "$path" ]]; then echo "$path"; fi
     done
     find scripts/lib/one-path-rehearsal -type f 2>/dev/null || true
-    find tests/browser -maxdepth 1 -type f -name 'one-path-*-driver.mjs' 2>/dev/null || true
+    # Drivers travel with the journey modules and kits they import (S284 baseline on a commit).
+    find tests/browser -maxdepth 1 -type f \( -name 'one-path-*-driver.mjs' \
+      -o -name 'one-path-*-journeys.mjs' -o -name 'one-path-*-kit.mjs' \) 2>/dev/null || true
     # A driver named on the command line travels too.
     if [[ -n "$driver_file" && -f "$driver_file" ]]; then echo "${driver_file#./}"; fi
   ) | sort -u

@@ -21,6 +21,10 @@
 //                                       one lease's RentVine status (L09)
 //   rentvine-outage <path>|clear        fail one RentVine read, for example leases/statuses
 //   recording-cycles on|off             serve the recorded cycle dates of the renewed leases
+//   sheet-cell <lease id> <column> <text>|clear
+//                                       serve one operating Sheet cell of an existing row (S284)
+//   process-draft <definition id>       write a renewal process Draft with placeholder staff,
+//                                       as the production process seed does (S284)
 //   refused                             connections the provider boundary refused (L58)
 //
 // Without --run the newest run directory under ~/.local/state/pmi-kc-one-path-rehearsal is used.
@@ -39,9 +43,11 @@ import {
   setRecordingCycles,
   setRentvineOutage,
   setRewording,
+  setSheetCells,
   setStatusUnreadable,
   standInState,
 } from "./lib/one-path-rehearsal/control.mjs";
+import { seedRenewalProcessDraft } from "./lib/one-path-rehearsal/process-draft-seed.mjs";
 
 const argv = process.argv.slice(2);
 const option = (name) => {
@@ -110,6 +116,12 @@ else if (command === "rentvine-outage" && first)
   result = setRentvineOutage(rehearsal, first === "clear" ? null : first);
 else if (command === "recording-cycles" && ["on", "off"].includes(first))
   result = setRecordingCycles(rehearsal, first === "on");
+else if (command === "sheet-cell" && first && second === "clear")
+  result = setSheetCells(rehearsal, first, null);
+else if (command === "sheet-cell" && first && second && argv[3] !== undefined)
+  result = setSheetCells(rehearsal, first, { [second]: argv[3] });
+else if (command === "process-draft" && first)
+  result = await seedRenewalProcessDraft(rehearsal, first);
 else if (command === "refused") result = refusedConnections(rehearsal);
 else usage(`Unknown or incomplete command: ${argv.join(" ") || "(none)"}`);
 

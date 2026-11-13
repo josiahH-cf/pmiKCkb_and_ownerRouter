@@ -180,6 +180,41 @@ export function setRecurringCharges(rehearsal, leaseId, charges) {
   return writeFlags(rehearsal, { ...flags, recurringCharges });
 }
 
+/** The operating Sheet's columns, as the provider boundary's Sheet stand-in serves its header. */
+export const REHEARSAL_SHEET_COLUMNS = 19;
+
+/**
+ * S284 W12-09 (test-only): serve these operating Sheet cells for one existing fixture Sheet row,
+ * by zero-based column (`{ 4: "$1,650" }` is "Current Rent"), or the fixture's own cells again with
+ * null. Rows are never added; the app reads the change on its next Sheet read.
+ */
+export function setSheetCells(rehearsal, leaseId, cells) {
+  if (!Object.values(rehearsal.groups).flat().includes(Number(leaseId)))
+    throw new Error("Choose an existing fixture lease.");
+  if (
+    cells !== null &&
+    (typeof cells !== "object" ||
+      Array.isArray(cells) ||
+      !Object.keys(cells).length ||
+      Object.entries(cells).some(
+        ([column, text]) =>
+          !/^\d{1,2}$/.test(column) ||
+          Number(column) >= REHEARSAL_SHEET_COLUMNS ||
+          typeof text !== "string" ||
+          text.length > 120,
+      ))
+  )
+    throw new Error("Give synthetic text by Sheet column (0 to 18), or null.");
+  const flags = readFlags(rehearsal);
+  const sheetCells = { ...(flags.sheetCells ?? {}) };
+  if (cells === null) delete sheetCells[String(leaseId)];
+  else
+    sheetCells[String(leaseId)] = Object.fromEntries(
+      Object.entries(cells).map(([column, text]) => [String(Number(column)), text]),
+    );
+  return writeFlags(rehearsal, { ...flags, sheetCells });
+}
+
 /** S252: every RentVine control flag off, as the rehearsal starts (reset.mjs). */
 export function clearRentvineFlags(rehearsal) {
   return writeFlags(rehearsal, {});

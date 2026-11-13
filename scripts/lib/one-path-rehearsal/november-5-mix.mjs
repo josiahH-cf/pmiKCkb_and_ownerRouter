@@ -608,10 +608,25 @@ export function rentvineStandInResponse(mix, url, flags = {}) {
   };
 }
 
-/** The operating Sheet rows of the mix, in the shape the provider boundary's Sheet stand-in serves. */
-export function mixSheetFixture(mix) {
+/**
+ * The operating Sheet rows of the mix, in the shape the provider boundary's Sheet stand-in serves.
+ * S284 (test-only): the `sheetCells` flag serves named cells of an existing row in place of the
+ * fixture's, by lease id and zero-based column (`{"9102": {"4": "$1,650"}}`), so a rehearsal can
+ * show a Sheet value that differs from RentVine. Rows are never added or removed. Reads only.
+ */
+export function mixSheetFixture(mix, flags = {}) {
+  const overrides = flags?.sheetCells ?? {};
   return {
-    rows: mix.sheet?.rows ?? [],
+    rows: (mix.sheet?.rows ?? []).map((row) => {
+      const cells = overrides[String(row.leaseId)];
+      if (!cells || typeof cells !== "object") return row;
+      return {
+        ...row,
+        cells: row.cells.map((cell, column) =>
+          typeof cells[String(column)] === "string" ? cells[String(column)] : cell,
+        ),
+      };
+    }),
     rentvinePropertyIds: Object.fromEntries(
       mix.leases
         .filter((row) => row.property?.propertyID !== undefined)
