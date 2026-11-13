@@ -487,6 +487,15 @@ changes only that entry, the production audit reports zero findings and the depe
 pins the version. PR #167 merged it at `bb8e7a00`. Production serves 6fbd6225 until the next guarded
 run verifies.
 
+Staff workflow audit batch, 2026-11-12: PR #203's production dependency audit failed on seven
+advisories published between 2026-11-12T21:28Z and 23:31Z in the same optional MCP SDK chain: five
+in Hono through 4.13.15 (GHSA-4m76-xfj5-7975, GHSA-h7mg-cq63-vhpq, GHSA-3gg2-335m-rxc6,
+GHSA-46wx-v44x-9hh2, GHSA-4h7h-rv7c-7m2v) and two in `@hono/node-server` 2.0.0 through 2.1.5
+(GHSA-qv5m-9pm6-hqp3, GHSA-jpvv-r467-5p4w). The same pull request overrides Hono to 4.13.16 and
+`@hono/node-server` to 2.1.6, the first patched releases; the lockfile changes only those two
+entries, the production audit reports zero findings and the dependency boundary test pins both
+versions. The next guarded release carries the patch.
+
 S232 release checker, 2026-10-29: run `ab09e960` (S232–S239 at `bdab63a2`) stopped at candidate
 assurance. Reconciliation found one field mismatch in 374 records: the retention of one ended
 fixed-term lease with no recorded outcome. The candidate showed it as `ended_without_outcome`

@@ -42,11 +42,13 @@ describe("I11 patched transitive dependency boundaries", () => {
         "body-parser",
       ),
     ).toBe("2.4.0");
-    // October 20: GHSA-5r4p-p66f-jhc7 is patched in 4.13.11.
-    expect(installedVersion("hono")).toBe("4.13.11");
-    // October 29 audit: GHSA-rmxm-3fg6-px4f affects @hono/node-server 1.19.10 through 2.1.2 (the
-    // MCP SDK's server adapter); the override selects the first patched release.
-    expect(installedVersion("@hono/node-server")).toBe("2.1.3");
+    // November 12 audit: GHSA-4m76-xfj5-7975, GHSA-h7mg-cq63-vhpq, GHSA-3gg2-335m-rxc6,
+    // GHSA-46wx-v44x-9hh2 and GHSA-4h7h-rv7c-7m2v affect hono through 4.13.15.
+    expect(installedVersion("hono")).toBe("4.13.16");
+    // November 12 audit: GHSA-qv5m-9pm6-hqp3 and GHSA-jpvv-r467-5p4w affect @hono/node-server
+    // 2.0.0 through 2.1.5 (the MCP SDK's server adapter); the override selects the first patched
+    // release.
+    expect(installedVersion("@hono/node-server")).toBe("2.1.6");
     // October 23: GHSA-rxp7-6hxx-x8q5 affects ip-address through 10.7.3.
     expect(installedVersion("ip-address")).toBe("10.7.4");
     expect(installedVersion("nanoid")).toBe("3.3.18");
