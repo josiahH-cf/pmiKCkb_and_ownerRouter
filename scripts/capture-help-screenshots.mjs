@@ -29,7 +29,7 @@ import {
 } from "node:fs";
 import { createServer, Socket } from "node:net";
 import { join } from "node:path";
-import { chromium } from "playwright-core";
+import { chromium, errors } from "playwright-core";
 
 import { prepareHelpBrowserFonts } from "./lib/help-browser-fonts.mjs";
 import { compareHelpScene } from "./lib/help-scene-drift.mjs";
@@ -838,7 +838,32 @@ async function resolveRoute(page, route) {
 }
 
 async function signIn(page, role) {
-  await page.goto(`${origin}/sign-in`, { waitUntil: "domcontentloaded" });
+  const url = `${origin}/sign-in`;
+  const navigation = { waitUntil: "domcontentloaded" };
+  try {
+    await page.goto(url, navigation);
+  } catch (error) {
+    const interrupted =
+      error instanceof errors.TimeoutError ||
+      /net::ERR_CONNECTION_(?:REFUSED|RESET|CLOSED)\b/.test(String(error));
+    if (!managed || !interrupted) throw error;
+    // Next can restart mid-navigation as its dev route cache grows. Retry only the GET.
+    record({
+      event: "sign-in-navigation-retry",
+      role,
+      reason: String(error).slice(0, 200),
+    });
+    await waitForServer(origin);
+    const version = await fetch(origin + "/api/version", {
+      signal: AbortSignal.timeout(ROUTE_BUDGET_MS),
+    });
+    assert.ok(
+      version.ok,
+      "The control server version read must succeed after a restart.",
+    );
+    assert.equal((await version.json()).commit, served.commit);
+    await page.goto(url, navigation);
+  }
   const ok = await page.evaluate(
     `fetch("/api/auth/demo",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({role:${JSON.stringify(role)}})}).then(r=>r.ok)`,
   );
