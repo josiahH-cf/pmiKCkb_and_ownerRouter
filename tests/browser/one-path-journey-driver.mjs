@@ -207,10 +207,10 @@ const lease = (page) => {
   const now = () => guided().getByRole("region", { name: "Now", exact: true });
   const strip = () =>
     guided().getByRole("navigation", { name: "Renewal path", exact: true });
+  const viewControls = () =>
+    page.getByRole("group", { name: "Lease view", exact: true, includeHidden: true });
   const viewButton = (name) =>
-    page
-      .getByRole("group", { name: "Lease view", exact: true })
-      .getByRole("button", { name, exact: true });
+    viewControls().getByRole("button", { name, exact: true, includeHidden: true });
   /**
    * "true" when Guided view is the lease's active view. November 9 (S258) and later the switch is
    * one "Full view" toggle (`data-renewal-full-toggle`): Guided is active while it is not pressed
@@ -220,9 +220,7 @@ const lease = (page) => {
     const guidedButton = viewButton("Guided view");
     if (await guidedButton.count())
       return guidedButton.getAttribute("aria-pressed").catch(() => null);
-    const toggle = page
-      .getByRole("group", { name: "Lease view", exact: true })
-      .locator("[data-renewal-full-toggle]");
+    const toggle = viewControls().locator("[data-renewal-full-toggle]");
     if ((await toggle.count()) !== 1) return null;
     return (await toggle.getAttribute("aria-pressed")) === "false" &&
       (await guided().isVisible())
@@ -239,9 +237,8 @@ const lease = (page) => {
       await page.goto(`${origin}${leasePath(leaseId, query)}`, {
         waitUntil: "domcontentloaded",
       });
-      await page
-        .getByRole("group", { name: "Lease view", exact: true })
-        .waitFor({ state: "visible" });
+      // The compact toolbar puts the mounted view controls inside closed Lease details.
+      await viewControls().waitFor({ state: "attached" });
       await guided().waitFor({ state: "visible" });
       await page.waitForTimeout(1500);
     },
@@ -580,17 +577,22 @@ async function journey(browser) {
         const recommended = view
           .now()
           .locator('[data-renewal-field="owner-recommended-rent"]');
-        const message = view.now().locator('details[data-renewal-group="Message"]');
-        const preview = view
+        const message = view
           .now()
-          .locator('[role="document"][aria-label="Message preview"]');
-        await shownWithin(recommended, 60_000);
-        await message.or(preview).first().waitFor({ state: "attached", timeout: 60_000 });
-        const namedMessage = (await message.count()) === 1;
-        const edit = recommended.getByRole(namedMessage ? "button" : "link", {
+          .locator(
+            'details[data-renewal-group="Message"][data-renewal-group-step="ask-owner"]',
+          );
+        const edit = recommended.getByRole("button", {
           name: "Edit rent to recommend",
           exact: true,
         });
+        // The facts and the asynchronous message mount independently. Read the named owner
+        // work and the rendered preview before asking the exact review to open.
+        const messagePreview = message.locator(
+          '[role="document"][aria-label="Message preview"]',
+        );
+        await edit.waitFor({ state: "visible", timeout: 60_000 });
+        await messagePreview.waitFor({ state: "attached", timeout: 60_000 });
         kickoffObserved.prepared = {
           comparison: await shownCount(
             view.now().locator('[data-renewal-comparison="stored"]'),
@@ -609,14 +611,32 @@ async function journey(browser) {
               ).replace(/[^0-9.]/g, ""),
             ) || null,
           editRent: await edit.count(),
-          preview: namedMessage
-            ? await message
-                .locator('[role="document"][aria-label="Message preview"]')
-                .count()
-            : await shownCount(preview),
-          messageClosed: namedMessage
-            ? (await message.getAttribute("open")) === null
-            : null,
+          preview: await messagePreview.count(),
+          previewText: squash(
+            (
+              await messagePreview.locator("p").evaluateAll((paragraphs) =>
+                paragraphs.map((paragraph) => {
+                  const text = paragraph.cloneNode(true);
+                  for (const link of text.querySelectorAll("a[href]")) {
+                    const href = link.getAttribute("href");
+                    const label = link.textContent.trim();
+                    if (href !== label && href !== `mailto:${label}`) {
+                      link.append(`: ${href}`);
+                    }
+                  }
+                  for (const br of text.querySelectorAll("br")) br.replaceWith(" ");
+                  return text.textContent;
+                }),
+              )
+            ).join(" "),
+          ),
+          messageClosed: (await message.getAttribute("open")) === null,
+          basis: squash(
+            await view
+              .now()
+              .locator('[data-renewal-field="owner-recommended-basis"]')
+              .textContent(),
+          ),
           now: (await view.nowText()).slice(0, 900),
         };
       }
@@ -626,8 +646,19 @@ async function journey(browser) {
           dialog.locator('[data-renewal-field="exact-review"]'),
           120_000,
         );
+        const reviewBody = dialog.getByRole("region", {
+          name: "Message body",
+          exact: true,
+        });
+        const reviewBasis = dialog.locator('[data-renewal-field="review-rent-basis"]');
         kickoffObserved.review = {
           reviewShown,
+          body: (await shownWithin(reviewBody, 15_000))
+            ? squash(await reviewBody.innerText())
+            : null,
+          basis: (await shownWithin(reviewBasis, 15_000))
+            ? squash(await reviewBasis.innerText())
+            : null,
           exact: reviewShown
             ? squash(
                 await dialog.locator('[data-renewal-field="exact-review"]').textContent(),
@@ -750,12 +781,24 @@ async function journey(browser) {
         kickoffObserved.market?.basis ?? "",
       ) &&
       kickoffObserved.prepared?.preview === 1 &&
-      kickoffObserved.prepared?.messageClosed !== false &&
+      kickoffObserved.prepared?.messageClosed === true &&
       kickoffObserved.review?.reviewShown === true &&
+      kickoffObserved.review?.body === kickoffObserved.prepared.previewText &&
+      Boolean(kickoffObserved.review?.body) &&
+      kickoffObserved.review.body.includes(
+        new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
+          kickoffObserved.prepared.rent,
+        ),
+      ) &&
+      /^Rent to recommend .*suggested from the stored comparison\b/.test(
+        kickoffObserved.prepared.basis,
+      ) &&
+      kickoffObserved.review.basis === kickoffObserved.prepared.basis &&
       (comparisonsAfter[prepared] ?? 0) === (comparisonsBefore[prepared] ?? 0),
     {
       prepared: kickoffObserved.prepared,
       market: kickoffObserved.market,
+      review: kickoffObserved.review,
       before: comparisonsBefore[prepared] ?? 0,
       after: comparisonsAfter[prepared] ?? 0,
     },
@@ -1664,8 +1707,12 @@ async function journey(browser) {
       if (await stepButton.count()) {
         await stepButton.click();
         log.read("layout", `path strip: ${label}`);
-        await page.waitForTimeout(800);
       }
+      // The view may still be switching after the path control is clicked.
+      await view
+        .now()
+        .getByRole("heading", { name: new RegExp(`^(?:Now: )?${label}$`) })
+        .waitFor({ state: "visible", timeout: 15_000 });
       await page.evaluate(() => window.scrollTo(0, 0));
       await page.waitForTimeout(300);
       const boxes = await page.evaluate(() => {
@@ -1681,8 +1728,10 @@ async function journey(browser) {
           stage: box('[data-renewal-field="stage-line"]'),
           strip: box('[aria-label="Guided view"] nav[aria-label="Renewal path"]'),
           primary: box('[aria-label="Guided view"] [data-renewal-now-primary]'),
-          // Evidence only: the Now heading and the primary's words.
           nowHeading: box('[aria-label="Guided view"] h2#renewal-now-heading'),
+          verificationClosed: !document.querySelector(
+            '[aria-label="Guided view"] details[data-renewal-verification][open]',
+          ),
           primaryLabel:
             document
               .querySelector('[aria-label="Guided view"] [data-renewal-now-primary]')
@@ -1699,6 +1748,7 @@ async function journey(browser) {
             .textContent()
             .catch(() => ""),
         ),
+        height,
         limit: height * screens,
         ...boxes,
       });
@@ -1718,6 +1768,26 @@ async function journey(browser) {
           onScreen(entry.primary, entry.limit) &&
           (entry.width !== 1280 ||
             (onScreen(entry.stage, entry.limit) && onScreen(entry.strip, entry.limit))),
+      ),
+    { lease: missingRecipient, stepLayouts },
+  );
+
+  // The S269 replacement measures from the Now heading. Keep the original page-top result
+  // above while independently requiring the current layout and closed evidence.
+  check(
+    "journey.layout-steps.fromNowHeading",
+    "the exact Now action fits in one viewport from the heading on all four steps, at both widths, with evidence closed (S269)",
+    stepLayouts.length === LAYOUT_STEPS.length * 2 &&
+      stepLayouts.every(
+        (entry) =>
+          entry.scrollY === 0 &&
+          !entry.overflow &&
+          entry.heading.endsWith(entry.step) &&
+          entry.verificationClosed &&
+          entry.nowHeading &&
+          entry.primary &&
+          entry.primary.top >= entry.nowHeading.bottom &&
+          entry.primary.bottom <= entry.nowHeading.top + entry.height,
       ),
     { lease: missingRecipient, stepLayouts },
   );
