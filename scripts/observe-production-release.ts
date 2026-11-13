@@ -73,10 +73,10 @@ import { isApprovedPredecessor } from "../lib/production-assurance/predecessor-e
 import { runProductionReconciliation } from "./run-production-reconciliation";
 
 /**
- * S156/S232/S248/S251: the desk guidance contract this checkout renders. Every assured revision built from
+ * S156/S232/S248/S251/S280: the desk guidance contract this checkout renders. Every assured revision built from
  * this checkout must mark each desk row with it; the oracle refuses an unmarked or mixed page.
  */
-export const OBSERVED_GUIDANCE_CONTRACT = "s251-variants" as const;
+export const OBSERVED_GUIDANCE_CONTRACT = "s280-rentvine-basis" as const;
 
 const DEFAULT_PROJECT = "pmi-kc-kb-prod";
 const DEFAULT_REGION = "us-central1";

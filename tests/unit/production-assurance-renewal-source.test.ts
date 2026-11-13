@@ -356,6 +356,38 @@ describe("independent production renewal truth oracle", () => {
     ).toBe("missing_sheet");
   });
 
+  it("S280 verifies the positive RentVine rent for an unresolved Sheet difference only under the new contract", () => {
+    const input = {
+      leaseId: "115",
+      rentvineCurrentRent: 1250,
+      sheetFact: sheetFact(1450),
+      resolutions: [],
+    };
+    expect(projectIndependentRentExpectation(input).rentVerification).toBe(
+      "needs_verification",
+    );
+    expect(projectIndependentRentExpectation({ ...input, rentvineBasis: true })).toEqual({
+      evidence: "rentvine_basis",
+      rentVerification: "verified",
+      verifiedByResolutionDiffers: false,
+      resolvedValue: null,
+    });
+    expect(
+      projectIndependentRentExpectation({
+        ...input,
+        rentvineCurrentRent: null,
+        rentvineBasis: true,
+      }).evidence,
+    ).toBe("missing_rentvine");
+    expect(
+      projectIndependentRentExpectation({
+        ...input,
+        sheetFact: null,
+        rentvineBasis: true,
+      }).evidence,
+    ).toBe("missing_sheet");
+  });
+
   it("accepts only one exact current resolved decision and marks a differing value", () => {
     const trigger = independentCurrentRentResolutionTriggerKey("115");
     expect(trigger).toBe(
