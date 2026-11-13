@@ -7,6 +7,7 @@ import { NoticeRuleCard } from "@/components/desk/NoticeRuleCard";
 import { SpaceDesk } from "@/components/desk/SpaceDesk";
 import { WelcomeDraftCard } from "@/components/desk/WelcomeDraftCard";
 import { ProcessSummaryPanel } from "@/components/spaces/ProcessSummaryPanel";
+import { RenewalProcessGuidance } from "@/components/spaces/RenewalProcessGuidance";
 import { SpaceDetailClient } from "@/components/spaces/SpaceDetailClient";
 import { TrustedPublicationPanel } from "@/components/spaces/TrustedPublicationPanel";
 import { can } from "@/lib/auth/roles";
@@ -36,6 +37,7 @@ import {
 } from "@/lib/launch/content";
 import { buildWelcomeDraft } from "@/lib/move-in/welcome-draft";
 import { buildEvidencePacket } from "@/lib/move-out/evidence-packet";
+import { isGuidanceOnlySpace } from "@/lib/processes/guidance-only";
 import { SPACE_CONNECTOR_IDS } from "@/lib/space-card-state";
 import { canAccessLaunchSpace } from "@/lib/space-scope-resources";
 import { launchSpaces } from "@/lib/spaces";
@@ -118,7 +120,11 @@ export default async function SpaceDetailPage({
     space.id,
     space.processDefinitionId,
   );
-  const hasProcess = Boolean(space.processDefinitionId) && !retiredMaintenance;
+  // S286 R-S286-1: a renewal Space shows its process as guidance on one view. It has no
+  // Overview desk, Process tab, run or checklist, and it reads no run.
+  const guidanceOnly = isGuidanceOnlySpace(space) && !retiredMaintenance;
+  const hasProcess =
+    Boolean(space.processDefinitionId) && !retiredMaintenance && !guidanceOnly;
   const requestedTab = (await searchParams)?.tab;
   const activeTab = hasProcess && requestedTab === "process" ? "process" : "overview";
 
@@ -134,6 +140,14 @@ export default async function SpaceDetailPage({
     operationalPages = await listPublishedOperationalPages(user, space.id);
   } catch {
     operationalPages = [];
+  }
+  if (guidanceOnly && space.processDefinitionId) {
+    // The guidance reads the definition only; a missing or unreadable one shows the desk sentence.
+    try {
+      processDefinition = await getProcessDefinition(user, space.processDefinitionId);
+    } catch {
+      processDefinition = null;
+    }
   }
   if (hasProcess && space.processDefinitionId) {
     const definitionId = space.processDefinitionId;
@@ -216,15 +230,6 @@ export default async function SpaceDetailPage({
           {config.askDemoMode ? <span className="review-pill">Local demo</span> : null}
         </div>
 
-        {["owner-renewal-outreach", "tenant-renewal-notice", "lease-renewals"].includes(
-          spaceId,
-        ) ? (
-          <p className="muted">
-            Use this page for the process and checklist.{" "}
-            <Link href={renewalWorkHref}>Open renewal work</Link>
-          </p>
-        ) : null}
-
         {hasProcess ? (
           <nav className="subtabs" aria-label="Space views">
             <Link
@@ -266,6 +271,15 @@ export default async function SpaceDetailPage({
               permissions.
             </p>
           </section>
+        ) : guidanceOnly ? (
+          <>
+            <RenewalProcessGuidance
+              definition={processDefinition}
+              definitionId={space.processDefinitionId ?? ""}
+              deskHref={renewalWorkHref}
+            />
+            {buildDomainSlot(space.id)}
+          </>
         ) : activeTab === "process" && space.processDefinitionId ? (
           <ProcessSummaryPanel
             definitionId={space.processDefinitionId}

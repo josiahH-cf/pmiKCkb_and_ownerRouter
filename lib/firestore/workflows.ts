@@ -51,6 +51,13 @@ import {
   isRetiredMaintenanceWorkflow,
   MAINTENANCE_RETIREMENT_MESSAGE,
 } from "@/lib/maintenance/retirement";
+import {
+  GUIDANCE_ONLY_RUN_RECORD_NOTICE,
+  GUIDANCE_ONLY_RUN_START_REFUSAL,
+  isGuidanceOnlyProcessDefinitionId,
+  isGuidanceOnlyWorkflowRun,
+  withoutUnusedGuidanceStaffFields,
+} from "@/lib/processes/guidance-only";
 
 const COLLECTIONS = {
   processDefinitions: "process_definitions",
@@ -124,7 +131,11 @@ export async function updateProcessDefinition(
   db = getAdminFirestore(),
 ) {
   assertCan(actor, "edit");
-  const parsed = UpdateProcessDefinitionInputSchema.parse(input);
+  // S286 R-S286-5: a renewal definition's unused run owner and approver may be left empty; the
+  // stored values are kept.
+  const parsed = UpdateProcessDefinitionInputSchema.parse(
+    withoutUnusedGuidanceStaffFields(definitionId, input),
+  );
 
   await db.runTransaction(async (transaction) => {
     const snapshot = await transaction.get(definitionRef(db, definitionId));
@@ -242,6 +253,10 @@ export async function startWorkflowRun(
   options: StartWorkflowRunOptions = {},
 ) {
   assertCan(actor, "edit");
+  // S286 R-S286-2: a renewal process is guidance and starts no run for any caller, before any
+  // read or write.
+  if (isGuidanceOnlyProcessDefinitionId(definitionId))
+    throw new EditableLayerError(GUIDANCE_ONLY_RUN_START_REFUSAL, 409);
   const parsed = StartWorkflowRunInputSchema.parse(input);
   const definition = await getProcessDefinition(actor, definitionId, db);
 
@@ -439,6 +454,9 @@ export async function updateWorkflowRunOutcome(
     const current = readRequiredWorkflowRun(snapshot.id, snapshot.data());
     if (isRetiredMaintenanceWorkflow(current.space_id, current.definition_id))
       throw new EditableLayerError(MAINTENANCE_RETIREMENT_MESSAGE, 410);
+    // S286 R-S286-3: an earlier renewal run is kept as a record; it is never completed or failed.
+    if (isGuidanceOnlyWorkflowRun(current))
+      throw new EditableLayerError(GUIDANCE_ONLY_RUN_RECORD_NOTICE, 409);
 
     if (isTerminalRunStatus(current.status)) {
       throw new EditableLayerError("This workflow run is already closed.", 409);

@@ -175,7 +175,9 @@ describe("S147 Anticipated work in Internal Processes", () => {
 describe("S147 anticipated-work route", () => {
   // S167: an account without the Renewals Space used to get a 403 before any read, and a scoped
   // account could start only the processes of the Spaces it could open.
-  it("computes anticipated work for an Editor and offers every active process to start", async () => {
+  // S286 R-S286-1 (rewritten on purpose): a renewal process is guidance, so Lease Renewal is no
+  // longer offered to start; every other active process still is.
+  it("computes anticipated work for an Editor and offers every active non-renewal process to start", async () => {
     requireCapability.mockResolvedValue(editor);
     listProcessDefinitions.mockResolvedValue([
       { id: "lease-renewal", name: "Lease Renewal", status: "Draft" },
@@ -199,7 +201,7 @@ describe("S147 anticipated-work route", () => {
     expect(body.status).toBe("ok");
     expect(body.groups.length).toBeGreaterThan(0);
     expect(body.canStart).toBe(true);
-    expect(body.startableDefinitionIds).toEqual(["lease-renewal", "custom-move-in"]);
+    expect(body.startableDefinitionIds).toEqual(["custom-move-in"]);
   });
 
   it("refuses an unauthenticated request before any read", async () => {
@@ -239,7 +241,8 @@ describe("S147 anticipated-work route", () => {
       "compliance-new-user",
     ]);
     expect(body.canStart).toBe(true);
-    expect(body.startableDefinitionIds).toEqual(["lease-renewal"]);
+    // S286 R-S286-1 (rewritten on purpose): no renewal family is offered to start.
+    expect(body.startableDefinitionIds).toEqual([]);
     const [windows] = loadLiveRenewalDesk.mock.calls[0] as [
       { startIso: string; endIso: string }[],
     ];

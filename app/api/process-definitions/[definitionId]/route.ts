@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapability } from "@/lib/auth/session";
 import {
@@ -14,6 +15,7 @@ import {
   isRetiredMaintenanceWorkflow,
   MAINTENANCE_RETIREMENT_MESSAGE,
 } from "@/lib/maintenance/retirement";
+import { withoutUnusedGuidanceStaffFields } from "@/lib/processes/guidance-only";
 import {
   assertProcessDefinitionAccess,
   assertProcessDefinitionRecordAccess,
@@ -58,7 +60,15 @@ export async function PATCH(request: Request, context: RouteContext) {
     const user = await requireCapability("edit");
     const { definitionId } = await context.params;
     assertProcessDefinitionAccess(user, definitionId);
-    const input = await parseJsonBody(request, UpdateProcessDefinitionInputSchema);
+    // S286 R-S286-5: a renewal definition's unused run owner and approver may be sent empty; the
+    // stored values are kept. Every other definition parses exactly as before.
+    const input = await parseJsonBody(
+      request,
+      z.preprocess(
+        (payload) => withoutUnusedGuidanceStaffFields(definitionId, payload),
+        UpdateProcessDefinitionInputSchema,
+      ),
+    );
     const definition = await updateProcessDefinition(user, definitionId, input);
     const publication = await readProcessDefinitionPublication(user, definition);
     const runs = await listWorkflowRuns(user, { definitionId });

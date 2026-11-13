@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ProcessDefinitionRecord, WorkflowRunRecord } from "@/lib/firestore/types";
+import { isGuidanceOnlyWorkflowRun } from "@/lib/processes/guidance-only";
 import { workflowRunNextAction } from "@/lib/processes/run-next-action";
 
 /**
@@ -17,6 +18,8 @@ export function ProcessSummaryPanel({
   definition: ProcessDefinitionRecord | null;
   runs: readonly WorkflowRunRecord[];
 }) {
+  // S286 R-S286-3: an earlier renewal run is a record, not work; it supplies no next action here.
+  const recentRuns = runs.filter((run) => !isGuidanceOnlyWorkflowRun(run));
   if (!definition) {
     return (
       <div className="panel">
@@ -50,11 +53,11 @@ export function ProcessSummaryPanel({
       </ol>
 
       <h3>Recent runs</h3>
-      {runs.length === 0 ? (
+      {recentRuns.length === 0 ? (
         <p className="muted">No workflow runs yet.</p>
       ) : (
         <ul className="compact-list">
-          {runs.map((run) => (
+          {recentRuns.map((run) => (
             <li key={run.id}>
               {run.status}: {workflowRunNextAction(run)} · Definition version:{" "}
               {run.definition_version_id ?? "Not pinned (draft)"}

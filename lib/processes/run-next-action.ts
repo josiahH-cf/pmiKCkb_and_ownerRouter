@@ -8,6 +8,7 @@ import type {
   WorkflowRunStatus,
   WorkflowRunStepCheckRecord,
 } from "@/lib/firestore/types";
+import { isGuidanceOnlyWorkflowRun } from "@/lib/processes/guidance-only";
 
 const CLOSED_RUN_STATUSES: ReadonlySet<WorkflowRunStatus> = new Set<WorkflowRunStatus>([
   "Completed",
@@ -31,15 +32,18 @@ export interface WorkflowRunChecklist {
 }
 
 /**
- * The run's current Next Action: None for a closed run; otherwise the first step that is not
- * Checked or Skipped, or Complete the run when every step is. Without the checklist, an open run
- * keeps the value it stored at start.
+ * The run's current Next Action: None for a closed run and for an earlier run of a guidance-only
+ * (renewal) process, which is kept as a record (S286 R-S286-3); otherwise the first step that is
+ * not Checked or Skipped, or Complete the run when every step is. Without the checklist, an open
+ * run keeps the value it stored at start.
  */
 export function workflowRunNextAction(
-  run: Pick<WorkflowRunRecord, "status" | "next_action">,
+  run: Pick<WorkflowRunRecord, "status" | "next_action"> &
+    Partial<Pick<WorkflowRunRecord, "definition_id">>,
   checklist?: WorkflowRunChecklist,
 ): string {
-  if (isClosedWorkflowRun(run.status)) return WORKFLOW_RUN_NO_NEXT_ACTION;
+  if (isClosedWorkflowRun(run.status) || isGuidanceOnlyWorkflowRun(run))
+    return WORKFLOW_RUN_NO_NEXT_ACTION;
   if (!checklist || checklist.steps.length === 0) return run.next_action;
   const statusByStep = new Map(
     checklist.checks.map((check) => [check.step_id, check.status]),

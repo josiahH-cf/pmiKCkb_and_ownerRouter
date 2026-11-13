@@ -7,6 +7,13 @@ import { useState } from "react";
 import Link from "next/link";
 import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
 import { InfoTip } from "@/components/ui/InfoTip";
+import {
+  GUIDANCE_ONLY_RUN_START_REFUSAL,
+  GUIDANCE_ONLY_STAFF_FIELD_NOTE,
+  RENEWAL_DESK_HREF,
+  RENEWAL_DESK_LINK_LABEL,
+  isGuidanceOnlyProcessDefinitionId,
+} from "@/lib/processes/guidance-only";
 import type { ProcessDefinitionPublicationRead } from "@/lib/publication/process-definition-readback";
 import type {
   ExternalActionReadiness,
@@ -50,6 +57,11 @@ export function ProcessDefinitionDetailClient({
   const [form, setForm] = useState(() => definitionToForm(initialDefinition));
   const [publicationNote, setPublicationNote] = useState("");
   const [runForm, setRunForm] = useState({ due_date: "", note: "" });
+  // S286 R-S286-1 and R-S286-5: a renewal process is guidance. It offers no Start run, and its
+  // unused run owner and approver are shown as not used and never sent, so the stored values stay.
+  const guidanceOnly = isGuidanceOnlyProcessDefinitionId(definition.id);
+  const toInput = (state: DefinitionFormState) =>
+    formToDefinitionInput(state, guidanceOnly);
   const hasCurrentPublishedVersion = publication.state === "verified";
   const canMutate =
     canEdit &&
@@ -74,7 +86,7 @@ export function ProcessDefinitionDetailClient({
           publication?: ProcessDefinitionPublicationRead;
         }>(`/api/process-definitions/${definition.id}`, {
           body: JSON.stringify({
-            ...formToDefinitionInput(form),
+            ...toInput(form),
             expected_revision: definition.revision,
           }),
           method: "PATCH",
@@ -97,8 +109,8 @@ export function ProcessDefinitionDetailClient({
     }
 
     if (
-      JSON.stringify(formToDefinitionInput(form)) !==
-      JSON.stringify(formToDefinitionInput(definitionToForm(definition)))
+      JSON.stringify(toInput(form)) !==
+      JSON.stringify(toInput(definitionToForm(definition)))
     ) {
       setMessage(
         "Save and read back your reviewed changes before publishing. Publication uses the saved definition.",
@@ -158,8 +170,8 @@ export function ProcessDefinitionDetailClient({
       const verified = publicationFor(current.definition, current.publication);
       setPublication(verified);
       const matches =
-        JSON.stringify(formToDefinitionInput(form)) ===
-        JSON.stringify(formToDefinitionInput(definitionToForm(current.definition)));
+        JSON.stringify(toInput(form)) ===
+        JSON.stringify(toInput(definitionToForm(current.definition)));
       setNeedsReload(!matches);
       const outcome =
         error instanceof WorkflowRequestError && error.status < 500
@@ -296,7 +308,9 @@ export function ProcessDefinitionDetailClient({
 
         {!canEdit ? (
           <p className="muted">
-            Editing, publishing, or starting this process requires Editor access.{" "}
+            {guidanceOnly
+              ? "Editing or publishing this process requires Editor access."
+              : "Editing, publishing, or starting this process requires Editor access."}{" "}
             <RequestAccessLink surface="process_definition.edit" />
           </p>
         ) : null}
@@ -328,24 +342,38 @@ export function ProcessDefinitionDetailClient({
               value={form.trigger}
             />
           </label>
-          <div className="workflow-two-column-fields">
-            <label>
-              Owner UID
-              <input
-                onChange={(event) => setForm({ ...form, owner_uid: event.target.value })}
-                value={form.owner_uid}
-              />
-            </label>
-            <label>
-              Approver UID
-              <input
-                onChange={(event) =>
-                  setForm({ ...form, default_approver_uid: event.target.value })
-                }
-                value={form.default_approver_uid}
-              />
-            </label>
-          </div>
+          {guidanceOnly ? (
+            <div className="workflow-two-column-fields">
+              <p>
+                Owner UID <span className="muted">{GUIDANCE_ONLY_STAFF_FIELD_NOTE}</span>
+              </p>
+              <p>
+                Approver UID{" "}
+                <span className="muted">{GUIDANCE_ONLY_STAFF_FIELD_NOTE}</span>
+              </p>
+            </div>
+          ) : (
+            <div className="workflow-two-column-fields">
+              <label>
+                Owner UID
+                <input
+                  onChange={(event) =>
+                    setForm({ ...form, owner_uid: event.target.value })
+                  }
+                  value={form.owner_uid}
+                />
+              </label>
+              <label>
+                Approver UID
+                <input
+                  onChange={(event) =>
+                    setForm({ ...form, default_approver_uid: event.target.value })
+                  }
+                  value={form.default_approver_uid}
+                />
+              </label>
+            </div>
+          )}
           <label>
             Source links
             <textarea
@@ -487,11 +515,18 @@ export function ProcessDefinitionDetailClient({
             </p>
           ) : null}
           {!hasCurrentPublishedVersion ? (
-            <p className="muted">
-              Publishing pins an immutable version for the runs that start after it. A
-              Draft definition can still start an app-plane run, recorded as Not pinned
-              (draft).
-            </p>
+            guidanceOnly ? (
+              <p className="muted">
+                Publishing pins an immutable version. The renewal Space shows the
+                published version as guidance.
+              </p>
+            ) : (
+              <p className="muted">
+                Publishing pins an immutable version for the runs that start after it. A
+                Draft definition can still start an app-plane run, recorded as Not pinned
+                (draft).
+              </p>
+            )
           ) : null}
           <p className="muted">
             Only a validated version becomes Active. Publication grants no external action
@@ -499,44 +534,54 @@ export function ProcessDefinitionDetailClient({
           </p>
         </section>
 
-        <section className="panel">
-          <h2>Start run</h2>
-          <p className="muted">
-            Creates an internal checklist. External changes use their separate
-            confirmation controls.
-          </p>
-          <label>
-            Due date
-            <input
-              disabled={!canEdit || isBusy}
-              onChange={(event) =>
-                setRunForm({ ...runForm, due_date: event.target.value })
-              }
-              type="date"
-              value={runForm.due_date}
-            />
-            <span className="muted">
-              {runForm.due_date ? formatCalendarDate(runForm.due_date) : "MM/DD/YYYY"}
-            </span>
-          </label>
-          <label className="workflow-note-field">
-            Start note
-            <textarea
-              disabled={!canEdit || isBusy}
-              onChange={(event) => setRunForm({ ...runForm, note: event.target.value })}
-              rows={3}
-              value={runForm.note}
-            />
-          </label>
-          <button
-            className="secondary-button"
-            disabled={!canEdit || isBusy || definition.status === "Retired"}
-            onClick={startRun}
-            type="button"
-          >
-            Start run
-          </button>
-        </section>
+        {guidanceOnly ? (
+          <section className="panel">
+            <h2>Renewal work</h2>
+            <p className="muted">{GUIDANCE_ONLY_RUN_START_REFUSAL}</p>
+            <Link className="text-link" href={RENEWAL_DESK_HREF}>
+              {RENEWAL_DESK_LINK_LABEL}
+            </Link>
+          </section>
+        ) : (
+          <section className="panel">
+            <h2>Start run</h2>
+            <p className="muted">
+              Creates an internal checklist. External changes use their separate
+              confirmation controls.
+            </p>
+            <label>
+              Due date
+              <input
+                disabled={!canEdit || isBusy}
+                onChange={(event) =>
+                  setRunForm({ ...runForm, due_date: event.target.value })
+                }
+                type="date"
+                value={runForm.due_date}
+              />
+              <span className="muted">
+                {runForm.due_date ? formatCalendarDate(runForm.due_date) : "MM/DD/YYYY"}
+              </span>
+            </label>
+            <label className="workflow-note-field">
+              Start note
+              <textarea
+                disabled={!canEdit || isBusy}
+                onChange={(event) => setRunForm({ ...runForm, note: event.target.value })}
+                rows={3}
+                value={runForm.note}
+              />
+            </label>
+            <button
+              className="secondary-button"
+              disabled={!canEdit || isBusy || definition.status === "Retired"}
+              onClick={startRun}
+              type="button"
+            >
+              Start run
+            </button>
+          </section>
+        )}
 
         <section className="panel">
           <h2>Recent Runs</h2>
@@ -635,13 +680,14 @@ function definitionToForm(definition: ProcessDefinitionRecord): DefinitionFormSt
   };
 }
 
-function formToDefinitionInput(form: DefinitionFormState) {
+/** A guidance-only (renewal) definition never sends its unused run owner and approver. */
+function formToDefinitionInput(form: DefinitionFormState, guidanceOnly = false) {
   return {
     action_references: parseActionReferences(form.action_references),
-    default_approver_uid: form.default_approver_uid,
+    default_approver_uid: guidanceOnly ? undefined : form.default_approver_uid,
     escalation_condition: form.escalation_condition || undefined,
     name: form.name,
-    owner_uid: form.owner_uid,
+    owner_uid: guidanceOnly ? undefined : form.owner_uid,
     required_starting_inputs: lines(form.required_starting_inputs),
     short_outcome: form.short_outcome,
     source_links: parseSourceLinks(form.source_links),

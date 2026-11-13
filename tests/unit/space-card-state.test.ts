@@ -51,10 +51,16 @@ const ownerEmail: LaunchSpace = {
 };
 
 describe("computeSpaceCardState", () => {
+  // S286 R-S286-4 (rewritten on purpose): the Lease Renewals cases below used to expect
+  // has-a-process, needs-a-process and status-unavailable. A renewal Space's process is guidance,
+  // so it reads the neutral desk state; the run-based states are now pinned on Move-In.
   it("returns has-a-process when the Space's definition is seeded and connections are present", () => {
+    expect(computeSpaceCardState(moveIn, new Set(["move-in"]), ALL_PRESENT)).toBe(
+      "has-a-process",
+    );
     expect(
       computeSpaceCardState(leaseRenewals, new Set(["lease-renewal"]), ALL_PRESENT),
-    ).toBe("has-a-process");
+    ).toBe("renewal-desk");
   });
 
   it("surfaces connections-needed first, even when the process is seeded", () => {
@@ -65,8 +71,10 @@ describe("computeSpaceCardState", () => {
   });
 
   it("returns needs-a-process for a mapped Space whose definition is not seeded", () => {
+    expect(computeSpaceCardState(moveIn, new Set(), ALL_PRESENT)).toBe("needs-a-process");
+    // A renewal Space never reads "Needs a process".
     expect(computeSpaceCardState(leaseRenewals, new Set(), ALL_PRESENT)).toBe(
-      "needs-a-process",
+      "renewal-desk",
     );
   });
 
@@ -79,8 +87,12 @@ describe("computeSpaceCardState", () => {
 
   it("returns status-unavailable for a process-carrying Space when the definition read failed", () => {
     // FTU-4: a transient read failure must not falsely claim a configured Space is missing its process.
-    expect(computeSpaceCardState(leaseRenewals, new Set(), ALL_PRESENT, true)).toBe(
+    expect(computeSpaceCardState(moveIn, new Set(), ALL_PRESENT, true)).toBe(
       "status-unavailable",
+    );
+    // S286 R-S286-4: a renewal Space is worked on the desk whatever the definition read did.
+    expect(computeSpaceCardState(leaseRenewals, new Set(), ALL_PRESENT, true)).toBe(
+      "renewal-desk",
     );
   });
 
@@ -110,6 +122,8 @@ describe("computeSpaceCardState", () => {
       "needs-a-process",
       "has-a-process",
       "reference",
+      "renewal-guidance",
+      "renewal-desk",
     ] as const) {
       expect(SPACE_CARD_STATE_LABEL[state]).toBeTruthy();
     }

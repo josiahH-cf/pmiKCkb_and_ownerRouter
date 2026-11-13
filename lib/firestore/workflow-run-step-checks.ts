@@ -26,6 +26,10 @@ import {
   isRetiredMaintenanceWorkflow,
   MAINTENANCE_RETIREMENT_MESSAGE,
 } from "@/lib/maintenance/retirement";
+import {
+  GUIDANCE_ONLY_RUN_RECORD_NOTICE,
+  isGuidanceOnlyWorkflowRun,
+} from "@/lib/processes/guidance-only";
 import type {
   WorkflowRunRecord,
   WorkflowRunStepCheckActivityRecord,
@@ -83,6 +87,9 @@ export async function setWorkflowRunStepCheck(
     const run = readRecord<WorkflowRunRecord>(runSnapshot.id, runSnapshot.data()!);
     if (isRetiredMaintenanceWorkflow(run.space_id, run.definition_id))
       throw new EditableLayerError(MAINTENANCE_RETIREMENT_MESSAGE, 410);
+    // S286 R-S286-3: an earlier renewal run is kept as a record; its checklist is read only.
+    if (isGuidanceOnlyWorkflowRun(run))
+      throw new EditableLayerError(GUIDANCE_ONLY_RUN_RECORD_NOTICE, 409);
     if (["Completed", "Cancelled", "Failed"].includes(run.status)) {
       throw new EditableLayerError(
         "Checklist steps cannot be changed after a workflow run is closed.",

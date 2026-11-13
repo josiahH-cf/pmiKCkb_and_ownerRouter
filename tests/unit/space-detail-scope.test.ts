@@ -118,8 +118,10 @@ describe("Space detail access boundary", () => {
 
 // PR #182 review: the Overview desk reads the latest run's own steps from the version it is
 // pinned to, as the Workflow Run page does, so a later draft edit cannot change its Next Action.
+// S286 R-S286-1 and R-S286-3 (rewritten on purpose): these cases used Owner Renewal Outreach. A
+// renewal Space shows guidance and reads no run, so the desk cases now run on Move-In.
 describe("Space Overview desk Next Action source", () => {
-  const spaceId = "owner-renewal-outreach";
+  const spaceId = "move-in";
   const draft = {
     id: spaceId,
     status: "Active",
@@ -149,7 +151,7 @@ describe("Space Overview desk Next Action source", () => {
     vi.mocked(getWorkflowRunDefinition).mockResolvedValueOnce({
       default_approver_uid: "admin-1",
       id: spaceId,
-      name: "Owner Renewal Outreach",
+      name: "Move-In",
       space_id: spaceId,
       steps: pinnedSteps,
     } as Awaited<ReturnType<typeof getWorkflowRunDefinition>>);

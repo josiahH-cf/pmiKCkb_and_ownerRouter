@@ -72,24 +72,26 @@ export default async function SpacesPage() {
               // The whole card is clickable (A-IA-V2), so the card has no nested interactive elements.
               <Link className="panel space-card" href={href} key={space.id}>
                 <h2>{space.name}</h2>
+                {/* S286 R-S286-6: a renewal process is read, not run; the desk is where
+                    leases are worked. */}
                 <p className="muted">
                   {desk
                     ? "Work leases on the Renewals desk"
                     : space.id === "owner-renewal-outreach"
-                      ? "Open the owner outreach checklist"
+                      ? "Read how owner outreach is done"
                       : space.id === "tenant-renewal-notice"
-                        ? "Open the tenant offer and documents checklist"
+                        ? "Read how the tenant offer and documents are done"
                         : space.processCategory}
                 </p>
+                {/* S286 R-S286-4: every renewal card, the desk card included, reads its
+                    guidance state in the neutral tone. */}
                 <span
                   className="space-card-state-pill"
                   data-tone={SPACE_CARD_STATE_TONE[state]}
                 >
                   {isRetiredMaintenanceWorkflow(space.id, space.processDefinitionId)
                     ? "Read-only history"
-                    : desk
-                      ? "Lease work and review"
-                      : SPACE_CARD_STATE_LABEL[state]}
+                    : SPACE_CARD_STATE_LABEL[state]}
                 </span>
                 {waiting > 0 ? (
                   <span className="review-pill space-card-waiting">

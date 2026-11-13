@@ -38,6 +38,7 @@ import {
   MAINTENANCE_WAITING_ON_LABELS,
   type MaintenanceWaitingOnProjection,
 } from "@/lib/maintenance/waiting-on";
+import { isGuidanceOnlyWorkflowRun } from "@/lib/processes/guidance-only";
 import { isClosedWorkflowRun } from "@/lib/processes/run-next-action";
 import {
   OPEN_WORK_TASK_STATES,
@@ -315,6 +316,9 @@ export function projectProcessRead(input: {
   readonly runsFailed: boolean;
   readonly asOf: string;
 }): TypedSourceRead<"processes"> {
+  // S286 R-S286-3: an earlier renewal run is a record kept on its run page; it supplies no next
+  // action or due date to shared context.
+  const runs = input.runs.filter((run) => !isGuidanceOnlyWorkflowRun(run));
   const records: OperationalRecord<ProcessRecordFacts>[] = [
     ...input.definitions.map((definition) => ({
       ref: { source: "processes" as const, id: `definition:${definition.id}` },
@@ -331,7 +335,7 @@ export function projectProcessRead(input: {
         dueDateIso: null,
       },
     })),
-    ...input.runs.map((run) => ({
+    ...runs.map((run) => ({
       ref: { source: "processes" as const, id: `run:${run.id}` },
       title: run.process_name,
       detail: [

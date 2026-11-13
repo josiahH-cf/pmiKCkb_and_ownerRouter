@@ -4,6 +4,7 @@
 // No I/O — the caller passes the (server-resolved) definition ids + presence map.
 
 import { CONNECTORS } from "@/lib/connections/connector-catalog";
+import { hasPublishedVersion, isGuidanceOnlySpace } from "@/lib/processes/guidance-only";
 import type { LaunchSpace } from "@/lib/spaces";
 
 export type SpaceCardState =
@@ -15,7 +16,10 @@ export type SpaceCardState =
   | "retired-process"
   | "planned"
   | "status-unavailable"
-  | "reference";
+  | "reference"
+  // S286 R-S286-4: a renewal Space's process is guidance; its work is on the Renewal Desk.
+  | "renewal-guidance"
+  | "renewal-desk";
 
 // Which connector(s) each Space's BUILT functionality depends on. Conservative on purpose: only map
 // Spaces with a known connector dependency, so an unmapped Space is never mislabeled
@@ -40,6 +44,8 @@ export const SPACE_CARD_STATE_LABEL: Record<SpaceCardState, string> = {
   planned: "Planned",
   "status-unavailable": "Status unavailable",
   reference: "Reference (read-only)",
+  "renewal-guidance": "Guidance",
+  "renewal-desk": "Worked on the Renewal Desk",
 };
 
 // The color a card reads at (console overhaul Slice B). Pure map, no I/O: process-ready is green
@@ -60,6 +66,9 @@ export const SPACE_CARD_STATE_TONE: Record<SpaceCardState, SpaceCardTone> = {
   planned: "planned",
   "status-unavailable": "planned",
   reference: "reference",
+  // S286 R-S286-4: the neutral reference tone, never the blocked tone.
+  "renewal-guidance": "reference",
+  "renewal-desk": "reference",
 };
 
 /** True when any connector the Space depends on is missing a required config value (presence=false). */
@@ -102,6 +111,16 @@ export function computeSpaceCardState(
   }
   if (!space.processDefinitionId) {
     return "planned";
+  }
+  // S286 R-S286-4: a renewal Space reads "Guidance" when its process has a published version and
+  // "Worked on the Renewal Desk" otherwise (none, a draft, a retired process, a bare id set or an
+  // unread definition set). The connection check above keeps its own state and comes first.
+  if (isGuidanceOnlySpace(space)) {
+    if (definitionsUnavailable || !("get" in definitionIds)) return "renewal-desk";
+    const definition = definitionIds.get(space.processDefinitionId);
+    return definition && hasPublishedVersion(definition)
+      ? "renewal-guidance"
+      : "renewal-desk";
   }
   if (definitionsUnavailable) {
     return "status-unavailable";

@@ -9,12 +9,26 @@ import {
   isClosedWorkflowRun,
   workflowRunNextAction,
 } from "@/lib/processes/run-next-action";
+import {
+  GUIDANCE_ONLY_RUN_RECORD_NOTICE,
+  RENEWAL_DESK_HREF,
+  RENEWAL_DESK_LINK_LABEL,
+  isGuidanceOnlyWorkflowRun,
+} from "@/lib/processes/guidance-only";
 import type {
   ProcessDefinitionStep,
   WorkflowRunRecord,
   WorkflowRunStepCheckRecord,
+  WorkflowRunStepCheckStatus,
   WorkflowRunTimelineRecord,
 } from "@/lib/firestore/types";
+
+/** How a recorded step reads on an earlier renewal run (the Space checklist's words). */
+const RECORD_STEP_STATUS: Record<WorkflowRunStepCheckStatus, string> = {
+  Unchecked: "To do",
+  Checked: "Done",
+  Skipped: "Skipped",
+};
 
 interface WorkflowRunClientProps {
   canEdit: boolean;
@@ -47,7 +61,10 @@ export function WorkflowRunClient({
     return status !== "Checked" && status !== "Skipped";
   });
   const checklistComplete = initialSteps.length > 0 && incompleteSteps.length === 0;
-  const canUpdate = canEdit && !isClosed && !isBusy;
+  // S286 R-S286-3: an earlier renewal run is kept as a record. It reads its pinned steps, checks
+  // and history, and offers no outcome or checklist change.
+  const recordOnly = isGuidanceOnlyWorkflowRun(run);
+  const canUpdate = canEdit && !isClosed && !isBusy && !recordOnly;
   const canComplete = canUpdate && checklistComplete;
 
   async function updateOutcome(action: "complete" | "fail") {
@@ -135,52 +152,73 @@ export function WorkflowRunClient({
         </div>
       </section>
 
-      <aside className="panel">
-        <h2>Outcome</h2>
-        {!canEdit && !isClosed ? (
+      {recordOnly ? (
+        <aside className="panel">
+          <h2>Checklist</h2>
+          <p className="muted">{GUIDANCE_ONLY_RUN_RECORD_NOTICE}</p>
+          <ol className="compact-list">
+            {initialSteps.map((step) => {
+              const recorded = checksByStep.get(step.id);
+              return (
+                <li key={step.id}>
+                  {step.title}: {RECORD_STEP_STATUS[recorded?.status ?? "Unchecked"]}
+                  {recorded?.reason ? ` (Reason: ${recorded.reason})` : ""}
+                </li>
+              );
+            })}
+          </ol>
+          <Link className="text-link" href={RENEWAL_DESK_HREF}>
+            {RENEWAL_DESK_LINK_LABEL}
+          </Link>
+        </aside>
+      ) : (
+        <aside className="panel">
+          <h2>Outcome</h2>
+          {!canEdit && !isClosed ? (
+            <p className="muted">
+              Updating this workflow run requires Editor access.{" "}
+              <RequestAccessLink surface="workflow_run.edit" />
+            </p>
+          ) : null}
           <p className="muted">
-            Updating this workflow run requires Editor access.{" "}
-            <RequestAccessLink surface="workflow_run.edit" />
+            Checklist: {initialSteps.length - incompleteSteps.length} of{" "}
+            {initialSteps.length} complete. Every step must be Checked or Skipped with a
+            reason before completion.
           </p>
-        ) : null}
-        <p className="muted">
-          Checklist: {initialSteps.length - incompleteSteps.length} of{" "}
-          {initialSteps.length} complete. Every step must be Checked or Skipped with a
-          reason before completion.
-        </p>
-        {incompleteSteps.length > 0 ? (
-          <p className="form-error">
-            Incomplete: {incompleteSteps.map((step) => step.title).join(", ")}.
-          </p>
-        ) : null}
-        <label className="workflow-note-field">
-          Notes
-          <textarea
-            disabled={!canUpdate}
-            onChange={(event) => setNotes(event.target.value)}
-            rows={4}
-            value={notes}
-          />
-        </label>
-        <div className="action-row">
-          <button
-            className="primary-button"
-            disabled={!canComplete}
-            onClick={() => updateOutcome("complete")}
-            type="button"
-          >
-            Complete run
-          </button>
-          <button
-            className="secondary-button"
-            disabled={!canUpdate}
-            onClick={() => updateOutcome("fail")}
-            type="button"
-          >
-            Fail run
-          </button>
-        </div>
-      </aside>
+          {incompleteSteps.length > 0 ? (
+            <p className="form-error">
+              Incomplete: {incompleteSteps.map((step) => step.title).join(", ")}.
+            </p>
+          ) : null}
+          <label className="workflow-note-field">
+            Notes
+            <textarea
+              disabled={!canUpdate}
+              onChange={(event) => setNotes(event.target.value)}
+              rows={4}
+              value={notes}
+            />
+          </label>
+          <div className="action-row">
+            <button
+              className="primary-button"
+              disabled={!canComplete}
+              onClick={() => updateOutcome("complete")}
+              type="button"
+            >
+              Complete run
+            </button>
+            <button
+              className="secondary-button"
+              disabled={!canUpdate}
+              onClick={() => updateOutcome("fail")}
+              type="button"
+            >
+              Fail run
+            </button>
+          </div>
+        </aside>
+      )}
 
       <section className="panel workflow-timeline-panel">
         <h2>Timeline</h2>

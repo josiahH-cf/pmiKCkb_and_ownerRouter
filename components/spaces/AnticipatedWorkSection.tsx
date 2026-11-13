@@ -54,9 +54,11 @@ export function AnticipatedWorkSection() {
   return (
     <section aria-label="Anticipated work" className="console-anticipated">
       <h2 className="console-strip-title">Anticipated work</h2>
+      {/* S286 R-S286-6: a renewal process is guidance and starts no run, so the lane offers
+          the place each family is worked rather than Start run. */}
       <p className="muted">
-        See the renewal work coming up across the owner-named processes, with Start run
-        beside each one.
+        See the renewal work coming up across the owner-named processes, with a link to
+        where each is worked.
       </p>
       {state.kind === "failed" ? (
         <p className="muted" role="status">

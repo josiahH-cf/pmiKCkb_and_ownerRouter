@@ -463,6 +463,9 @@ describe("S241 reviewed existing process content and conflict safety", () => {
       [...fake.store.keys()].filter((key) => key.startsWith("publication_versions/")),
     ).toHaveLength(1);
   });
+  // S286 R-S286-4 (rewritten on purpose): the owner renewal Space used to read draft-process. Its
+  // process is guidance now, so an unpublished one reads the desk state, never Guidance; the
+  // draft-process state stays pinned on a Space that still runs its process.
   it("shows an unpublished definition as draft rather than published readiness", () => {
     const space = {
       id: "owner-renewal-outreach",
@@ -474,6 +477,19 @@ describe("S241 reviewed existing process content and conflict safety", () => {
       computeSpaceCardState(
         space,
         new Map([[space.processDefinitionId, { status: "Draft" }]]),
+        {},
+      ),
+    ).toBe("renewal-desk");
+    const owningSpace = {
+      id: "owner-onboarding",
+      name: "Owner onboarding",
+      processCategory: "Onboarding",
+      processDefinitionId: "owner-onboarding-process",
+    };
+    expect(
+      computeSpaceCardState(
+        owningSpace,
+        new Map([[owningSpace.processDefinitionId, { status: "Draft" }]]),
         {},
       ),
     ).toBe("draft-process");
