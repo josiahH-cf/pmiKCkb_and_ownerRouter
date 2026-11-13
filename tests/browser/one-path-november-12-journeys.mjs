@@ -173,14 +173,26 @@ export async function reviewText(ctx, dialog) {
  * makes (`requestKind` is the kind of request the button sends). Resolves with the answer's status,
  * the message record id and state, and the dialog's alert when it stays open.
  */
-export async function confirmReview(ctx, page, dialog, buttonName, requestKind) {
+export async function confirmReview(
+  ctx,
+  page,
+  dialog,
+  buttonName,
+  requestKind,
+  { onNoAnswer } = {},
+) {
   const { kit } = ctx;
   const answer = kit.appResponse(page, SEQUENCES_ROUTE, {
     match: (body) => kit.sequenceAction(body) === requestKind,
     timeout: 180_000,
   });
+  const observed = onNoAnswer ? answer.catch(() => null) : answer;
   await dialog.getByRole("button", { name: buttonName, exact: true }).click();
-  const response = await answer;
+  const response = await observed;
+  if (!response) {
+    onNoAnswer();
+    return { status: null, sequenceId: null, state: null, alert: null, error: null };
+  }
   const body = await response.json().catch(() => null);
   const status = response.status();
   let alert = null;
@@ -808,7 +820,9 @@ export async function observeTimedOwnerConfirmation(ctx, page, leaseId, dialog, 
     waitedMs = Math.floor(performance.now() - opened);
     postsBeforeConfirm = posts.length;
     readsDuringWait = [...reads].slice(0, 20);
-    confirmed = await confirmReview(ctx, page, dialog, "Send this message", "send");
+    confirmed = await confirmReview(ctx, page, dialog, "Send this message", "send", {
+      onNoAnswer: () => ctx.unresolved?.("W12-03 timed send: no answer"),
+    });
   } finally {
     page.off("request", listen);
   }
