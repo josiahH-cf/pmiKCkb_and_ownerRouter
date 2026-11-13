@@ -1132,9 +1132,12 @@ async function journey(browser) {
     }
     if (step === "offer-tenant") {
       const primary = view.now().locator("[data-renewal-now-primary]");
-      // The tenant offer is the lease's one tenant message record, which loads after the page;
-      // its Review and send becomes the Now card's primary once it has loaded.
-      await shownWithin(view.now().locator("[data-renewal-message-revision]"), 60_000);
+      // S281: the audience's Message group can be closed or absent after send. The
+      // visible message-work wrapper stays mounted while the offer record is available.
+      await shownWithin(
+        view.now().locator('[data-renewal-message-work="tenant"]'),
+        60_000,
+      );
       await page.waitForTimeout(1000);
       const label = squash(await primary.textContent().catch(() => ""));
       const review = primary;
