@@ -4,7 +4,7 @@
 # S256 — Find staff work and process guidance by task
 
 > Status: AUTHORING READY, intake 126. Owner-confirmed November 7 scope. Implementation and qualification await an execution instruction.
-> November 12 intake 164 is AUTHORING READY for renewal Spaces that show guidance and start no runs (S286).
+> November 12 intake 164 is delivered at ba9a64f6 for renewal Spaces that show guidance and start no runs (S286).
 
 **Goal.**
 

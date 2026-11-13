@@ -19,10 +19,28 @@ When two sources disagree, use this order:
 Never revive a historical blocker, Demo/Test policy, action grant, or provider claim without checking
 the current code and live service. Date-stamped history is not authority.
 
-## Present production truth — November 10 renewal walkthrough
+## Present production truth — November 13 staff workflow audit chunk 1
 
-Production serves `7f4cf234c18c0b80a0ed88bc08d70e174ae9c311` / `pmi-kc-app-recovery-d8c6629da8bc4d73` at 100% canonical traffic.
-The receipt-bound rollback from staff workflow audit chunk 1 verified at `2026-11-13T19:25:24.889Z`.
+Production serves `ba9a64f6a011d4145e454e94fa0bbfdbff3e364c` / `pmi-kc-app-rmwfg7l0s-307709dd3033` at 100% canonical traffic.
+Run `a6f14bac-7edd-4db2-ab94-93f0875dc1ee` consumed its permit after one successful application build `bb3ea21c-6432-404d-aeb9-5d130d103c54`.
+Two observation checkpoints passed in 408,062 ms. All 375 source, projected and rendered
+lease records matched with zero discrepancies, candidate 5xx, unresolved effects or guarded
+mutation attempts. All eleven independent final readbacks passed at `2026-11-13T21:08:56Z`.
+[Delivery evidence](docs/evidence/staff-workflow-audit-chunk-1-delivery-2026-11-13.md) · [Exact-main CI](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/43501116275)
+
+Intakes 152, 153, 155, 157, 160 and 164 are delivered. The two carried outreach checks, S284 cumulative qualification and the remaining intakes are assigned to chunk 2. R-S284-5 production counts and the human verdict are NOT RUN.
+
+The running image `sha256:c7ecbc0cbf45da29e7918193381330eb5dff16eac24fba1e759a189e2138f6da` matches the successful regional build.
+Runtime fingerprint `sha256:be0abd6245ab6de98a0f79bcde1d0f174487cb55406350b0f46e4cc87dd0e20c`. Only APP_COMMIT_SHA changed among 54 environment keys.
+The managed service identity, eleven paired Space maps, five secret bindings, Production/Live,
+Demo=false, Sheet=true and RentCast allowance 50 match reviewed state. The annual GET
+readiness job returned to PAUSED, and the minute worker stayed ENABLED with its exact target and calendar.
+Both Dotloop write keys remain closed. Signing stays human.
+
+## Previous production truth — November 10 renewal walkthrough (historical)
+
+Production served `7f4cf234c18c0b80a0ed88bc08d70e174ae9c311` / `pmi-kc-app-recovery-aea5d595d8cc4e00` at 100% canonical traffic.
+The latest receipt-bound rollback from staff workflow audit chunk 1 verified at `2026-11-13T20:22:24.224Z`.
 [Chunk 1 attempt evidence](docs/evidence/staff-workflow-audit-chunk1-attempts-2026-11-13.md). The original November 10 delivery was
 verified on `pmi-kc-app-rmwcvtvpl-13e72fe3f01f`.
 Run `943a91a6-c659-4234-95ea-3582d0a4011e` consumed its permit after one successful application build `053961ec-41a0-4553-bc03-f37ecf2d8926`.

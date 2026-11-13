@@ -34,6 +34,10 @@ release acceptance passed; no live customer completion or human usability verdic
 
 ## Current core
 
+Staff workflow audit chunk 1 is delivered at `ba9a64f6`, covering S274, S275, S277, S279,
+S282 and S286. [Delivery evidence](evidence/staff-workflow-audit-chunk-1-delivery-2026-11-13.md) records its exact release and the
+checks carried into the [cumulative qualification](feature-suites/README.md#november-12-staff-workflow-audit).
+
 S246–S254 and PR #191 shipped together at `ef81b891` / `pmi-kc-app-rmw65wgt2-8c8249a0547c`. The
 [one-path delivery evidence](evidence/renewal-one-path-delivery-2026-11-07.md) records the release, readbacks and
 the separation from the independent litmus and staff verdict.

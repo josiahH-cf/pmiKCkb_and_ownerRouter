@@ -2,12 +2,16 @@
 
 Updated: 2026-11-13 (UTC).
 
-## Staff workflow audit in progress
+## Staff workflow audit continuation
 
-Chunk 1 retains all six queue rows. The first run stopped at candidate assurance. The
-replacement stopped during observation and the receipt-bound rollback verified the November
-10 source on its prepared recovery revision. Chunk 2 qualification continues.
-[Chunk 1 attempt evidence](evidence/staff-workflow-audit-chunk1-attempts-2026-11-13.md).
+Production serves `ba9a64f6a011d4145e454e94fa0bbfdbff3e364c` / `pmi-kc-app-rmwfg7l0s-307709dd3033` at 100% canonical traffic.
+Run `a6f14bac-7edd-4db2-ab94-93f0875dc1ee` consumed its permit after one successful application build `bb3ea21c-6432-404d-aeb9-5d130d103c54`.
+Two observation checkpoints passed in 408,062 ms. All 375 source, projected and rendered
+lease records matched with zero discrepancies, candidate 5xx, unresolved effects or guarded
+mutation attempts. All eleven independent final readbacks passed at `2026-11-13T21:08:56Z`.
+[Delivery evidence](evidence/staff-workflow-audit-chunk-1-delivery-2026-11-13.md) · [Exact-main CI](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/43501116275)
+
+Intakes 152, 153, 155, 157, 160 and 164 are delivered. The two carried outreach checks, S284 cumulative qualification and the remaining intakes are assigned to chunk 2. R-S284-5 production counts and the human verdict are NOT RUN.
 
 ## Completed November 10 batch
 
@@ -63,7 +67,7 @@ assessment gaps, newly diagnosed A-08 PDF publication dependency, and the config
 communication work needed to unblock real renewals.
 The owner finalized this scope, then launched implementation and backend-question maintenance.
 It was delivered at `b5ba7802` / `pmi-kc-app-rmw123csb-dc0ce89a8583`; the current serving source
-`7f4cf234` / `pmi-kc-app-rmwcvtvpl-13e72fe3f01f` includes it.
+`ba9a64f6` / `pmi-kc-app-rmwfg7l0s-307709dd3033` includes it.
 The four independent source findings are repaired and reviewed; full07 passed 10,162 unit tests
 with four parity skips and all 497 backend tests, core passed 46 with 23 explicit configuration
 skips, and exact-main CI passed all five jobs. Run `ff1f44bf` passed candidate/promotion, two

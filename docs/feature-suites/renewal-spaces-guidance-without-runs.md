@@ -3,7 +3,7 @@
 
 # S286 — Work renewals on the Renewal Desk: renewal Spaces show guidance and start no runs
 
-> Status: AUTHORING READY, intake 164. Accuracy cleanup. Owner-directed on November 12, 2026. Implementation and verification pending.
+> Status: DELIVERED at ba9a64f6, intake 164. Chunk 1 run `a6f14bac-7edd-4db2-ab94-93f0875dc1ee`.
 
 **Goal.**
 

@@ -3,8 +3,7 @@
 
 # S279 — Show one lease status from one record
 
-> Status: AUTHORING READY, intake 157. Status and waiting. Implementation and verification
-> pending.
+> Status: DELIVERED at ba9a64f6, intake 157. Chunk 1 run `a6f14bac-7edd-4db2-ab94-93f0875dc1ee`. R-S279-2 is partial. See the delivery evidence for the remaining scope.
 
 **Goal.**
 

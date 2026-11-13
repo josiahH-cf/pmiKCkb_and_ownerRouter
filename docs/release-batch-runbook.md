@@ -1,6 +1,6 @@
 # Batched release runbook
 
-Updated 2026-11-12 (UTC). One candidate must ship every queued feature.
+Updated 2026-11-13 (UTC). One candidate must ship every queued feature.
 
 The owner has launched the finalized November 3 P1–P9 gap plan to completion. That named scope
 and AGENTS.md feature-run continuity authorize its delivery and diagnosed/verified repairs without
@@ -9,9 +9,24 @@ Keep all pending outcomes in the overall program. Exact-main CI, fresh prerequis
 one watcher/application build, receipts, full observation and recovery remain mandatory. Failed
 attempts and consumed permits are immutable and never reusable.
 
-## Current verified delivery — November 10 renewal walkthrough
+## Current verified delivery — November 13 staff workflow audit chunk 1
 
-Production serves `7f4cf234c18c0b80a0ed88bc08d70e174ae9c311` / `pmi-kc-app-rmwcvtvpl-13e72fe3f01f` at 100% canonical traffic.
+Production serves `ba9a64f6a011d4145e454e94fa0bbfdbff3e364c` / `pmi-kc-app-rmwfg7l0s-307709dd3033` at 100% canonical traffic.
+Run `a6f14bac-7edd-4db2-ab94-93f0875dc1ee` consumed its permit after one successful application build `bb3ea21c-6432-404d-aeb9-5d130d103c54`.
+Two observation checkpoints passed in 408,062 ms. All 375 source, projected and rendered
+lease records matched with zero discrepancies, candidate 5xx, unresolved effects or guarded
+mutation attempts. All eleven independent final readbacks passed at `2026-11-13T21:08:56Z`.
+[Delivery evidence](evidence/staff-workflow-audit-chunk-1-delivery-2026-11-13.md) · [Exact-main CI](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/43501116275)
+
+The running image `sha256:c7ecbc0cbf45da29e7918193381330eb5dff16eac24fba1e759a189e2138f6da` matches the successful regional build.
+Runtime fingerprint `sha256:be0abd6245ab6de98a0f79bcde1d0f174487cb55406350b0f46e4cc87dd0e20c`. Only APP_COMMIT_SHA changed among 54 environment keys.
+The managed service identity, eleven paired Space maps, five secret bindings, Production/Live,
+Demo=false, Sheet=true and RentCast allowance 50 match reviewed state. The annual GET
+readiness job returned to PAUSED, and the minute worker stayed ENABLED with its exact target and calendar.
+
+## Previous verified delivery — November 10 renewal walkthrough (historical)
+
+Production served `7f4cf234c18c0b80a0ed88bc08d70e174ae9c311` / `pmi-kc-app-rmwcvtvpl-13e72fe3f01f` at 100% canonical traffic.
 Run `943a91a6-c659-4234-95ea-3582d0a4011e` consumed its permit after one successful application build `053961ec-41a0-4553-bc03-f37ecf2d8926`.
 Two observation checkpoints passed in 402,737 ms. All 375 source, projected and rendered
 lease records matched with zero discrepancies, candidate 5xx, unresolved effects or guarded
