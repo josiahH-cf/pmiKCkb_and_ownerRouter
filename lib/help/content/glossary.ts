@@ -133,7 +133,7 @@ export const HELP_GLOSSARY: readonly HelpGlossaryTerm[] = [
     id: "renewal-path",
     term: "Renewal path",
     definition:
-      "The strip of steps in Guided view, from Check the numbers to Complete, each marked Done, Now, Open, Waiting or Covered. Any step can be chosen and worked at any time.",
+      "The strip of steps in Guided view, from Check the numbers to Complete, each marked Done, Now, Open or Waiting. A step the lease does not use is left off, and a line under the strip says why. Any step on it can be chosen and worked at any time.",
     relatedGuides: ["work-a-renewal"],
   },
   {

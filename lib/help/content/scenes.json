@@ -1,5 +1,5 @@
 {
-  "version": "V5.0",
+  "version": "V6.0",
   "routeParameters": {
     "leaseId": "4821",
     "propertyKey": "4821",
@@ -332,7 +332,7 @@
       "align": "center",
       "actions": [
         "click-button:Full view",
-        "open-summary:Owner message options and outreach record",
+        "open-summary:Outreach record",
         "wait-text:Copy the message"
       ],
       "source": "rehearsal",

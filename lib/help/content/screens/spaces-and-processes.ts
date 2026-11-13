@@ -10,6 +10,7 @@ const SPACE_RECORDS = "components/spaces/SpaceDetailClient.tsx";
 const ANTICIPATED = "components/spaces/AnticipatedWorkSection.tsx";
 const LIST = "components/workflows/ProcessDefinitionListClient.tsx";
 const DETAIL = "components/workflows/ProcessDefinitionDetailClient.tsx";
+const STAFF_FIELDS = "lib/processes/staff-fields.ts";
 // S286: the three renewal Spaces show their process as guidance and start no run.
 const GUIDANCE = "components/spaces/RenewalProcessGuidance.tsx";
 const GUIDANCE_WORDS = "lib/processes/guidance-only.ts";
@@ -270,7 +271,7 @@ export const SPACES_AND_PROCESSES_SCREENS: readonly HelpScreenReference[] = [
         role: "button",
         availability: "conditional",
         source: [RUN_PANEL],
-        does: "Starts the first checklist run for a process that starts runs. The run is an internal checklist and sends nothing. While the process carries placeholder owner or approver assignments, no run starts and the page says so. A renewal Space has no Start run.",
+        does: "Starts the first checklist run for a process that starts runs. The run is an internal checklist and sends nothing. A double click starts one run. A refused start shows its reason, such as that the process has no assigned staff member yet and an Admin assigns one first. A renewal Space has no Start run.",
         who: "All staff",
       },
       {
@@ -547,19 +548,19 @@ export const SPACES_AND_PROCESSES_SCREENS: readonly HelpScreenReference[] = [
         who: "All staff",
       },
       {
-        label: "Owner UID",
+        label: "Run owner (staff account ID)",
         role: "label",
         availability: "required",
-        source: [LIST],
-        does: "The staff account that owns the process; it starts as yours.",
+        source: [LIST, STAFF_FIELDS],
+        does: "The account ID of the staff member who owns each new run of this process; it starts as yours. An Admin finds each staff member's account ID in Admin, People and access.",
         who: "All staff",
       },
       {
-        label: "Approver UID",
+        label: "Default approver (staff account ID)",
         role: "label",
         availability: "required",
-        source: [LIST],
-        does: "The process's default approver; it starts as yours.",
+        source: [LIST, STAFF_FIELDS],
+        does: "The account ID of the staff member who reviews each new run of this process; it starts as yours.",
         who: "All staff",
       },
       {
@@ -589,7 +590,7 @@ export const SPACES_AND_PROCESSES_SCREENS: readonly HelpScreenReference[] = [
     ],
     guides: ["publish-a-process", "outreach-checklist"],
     navItems: ["internal-processes"],
-    lastUpdated: "2026-11-04",
+    lastUpdated: "2026-11-13",
   },
   {
     id: "process-definition",
@@ -597,7 +598,7 @@ export const SPACES_AND_PROCESSES_SCREENS: readonly HelpScreenReference[] = [
     routes: ["/processes/[definitionId]"],
     who: "All staff",
     summary:
-      "A Process Definition page shows one definition: the form with Save and Publish, the Publication panel with its immutable version, and Recent Runs. A renewal process (Lease Renewal, Owner Renewal Outreach + Comp Lookup, Tenant Renewal Notice + DotLoop Follow-Up) shows Owner UID and Approver UID as Not used: this process starts no runs and a Renewal work panel with Open the Renewal Desk; its published version is the guidance its Space shows. Any other process has a Start run panel, and a run started there is an internal checklist. Saving carries the revision you loaded, and publishing runs the Publication checks on the saved definition.",
+      "A Process Definition page shows one definition: the form with Save and Publish, the Publication panel with its immutable version, and Recent Runs. A renewal process (Lease Renewal, Owner Renewal Outreach + Comp Lookup, Tenant Renewal Notice + DotLoop Follow-Up) shows Run owner (staff account ID) and Default approver (staff account ID) as Not used: this process starts no runs and a Renewal work panel with Open the Renewal Desk; its published version is the guidance its Space shows. Any other process has a Start run panel, and a run started there is an internal checklist. Saving carries the revision you loaded, and publishing runs the Publication checks on the saved definition.",
     controls: [
       {
         label: "Back to Processes",
@@ -632,19 +633,19 @@ export const SPACES_AND_PROCESSES_SCREENS: readonly HelpScreenReference[] = [
         who: "All staff",
       },
       {
-        label: "Owner UID",
+        label: "Run owner (staff account ID)",
         role: "label",
         availability: "conditional",
-        source: [DETAIL],
-        does: "The staff account that owns a process that starts runs. On a renewal process it reads Not used: this process starts no runs, and the value already stored stays as it is.",
+        source: [DETAIL, STAFF_FIELDS],
+        does: "The account ID of the staff member who owns each new run of a process that starts runs; its hint says an Admin finds it in Admin, People and access. On a renewal process it reads Not used: this process starts no runs, and the value already stored stays as it is.",
         who: "All staff",
       },
       {
-        label: "Approver UID",
+        label: "Default approver (staff account ID)",
         role: "label",
         availability: "conditional",
-        source: [DETAIL],
-        does: "The default approver of a process that starts runs; a new run lists this account as its Owner. On a renewal process it reads Not used: this process starts no runs.",
+        source: [DETAIL, STAFF_FIELDS],
+        does: "The account ID of the staff member who reviews each new run of a process that starts runs; a new run lists this account as its Owner. On a renewal process it reads Not used: this process starts no runs.",
         who: "All staff",
       },
       {
@@ -784,7 +785,7 @@ export const SPACES_AND_PROCESSES_SCREENS: readonly HelpScreenReference[] = [
         role: "button",
         availability: "conditional",
         source: [DETAIL],
-        does: "On a process that starts runs: creates an internal checklist run and opens its run page. A run of an Active definition records its immutable version, and a Draft run reads Not pinned (draft). While the definition carries placeholder owner or approver assignments, no run is created and the page says so. A renewal process has no Start run.",
+        does: "On a process that starts runs: creates an internal checklist run and opens its run page. A run of an Active definition records its immutable version, and a Draft run reads Not pinned (draft). A double click creates one run. A refused start creates nothing and shows its reason, such as that the process has no assigned staff member yet, or This run did not start. Reload the page and try again. A renewal process has no Start run.",
         who: "All staff",
       },
       {

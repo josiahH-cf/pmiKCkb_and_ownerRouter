@@ -4,6 +4,7 @@ const HUB_SOURCE = ["components/gmail-hub/WorkflowCommunicationsHub.tsx"];
 const COMPOSER_SOURCE = ["components/gmail-hub/CommunicationComposer.tsx"];
 const LIST = "region:Shared workflow communications";
 const COMPOSER = "region:Workflow communication composer";
+const REFUSAL_SOURCE = ["lib/gmail-hub/communication-state.ts"];
 
 export const COMMUNICATIONS_SCREENS: readonly HelpScreenReference[] = [
   {
@@ -12,7 +13,7 @@ export const COMMUNICATIONS_SCREENS: readonly HelpScreenReference[] = [
     routes: ["/gmail-hub"],
     who: "All staff",
     summary:
-      "Workflow Communications is where staff review, save, send and schedule the renewal messages they start from a lease. The list has four views, Incoming, Outgoing, Drafts and Scheduled, with filters and the sending worker's health lines; Incoming and Scheduled offer Check Gmail now, and Incoming also shows Linked conversations with the Gmail connection for your own mailbox. A sent renewal message stays watched for its answer until the answer is recorded or the cycle ends, and a reply that arrives is brought to its lease. Opening a communication shows the workflow communication composer with its responsible sender, recipients, wording, files, recorded state and what happened to each message. Messages go out only on your Send or Schedule, follow-ups pause on a reply, a failed delivery or a changed recipient or source fact until a fresh review and Resume, and Gmail shows neither delivery nor reading. Mailbox management stays in Gmail.",
+      "Workflow Communications is where staff review, save, send and schedule the renewal messages they start from a lease. The list has four views, Incoming, Outgoing, Drafts and Scheduled, with filters and the sending worker's health lines; Incoming and Scheduled offer Check Gmail now, and Incoming also shows Linked conversations with the Gmail connection for your own mailbox. A sent renewal message stays watched for its answer until the answer is recorded or the cycle ends, and a reply that arrives is brought to its lease. Opening a communication shows the workflow communication composer with its responsible sender, recipients, wording, files, recorded state and what happened to each message; the state names its time with the zone, such as Scheduled for 11/13/2026, 9:00 AM CST. A renewal lease holds one current message per audience, so the composer refuses a second unsent one, a message written before the lease changed and an older message once a newer one was sent, and says what to do next. Messages go out only on your Send or Schedule, follow-ups pause on a reply, a failed delivery or a changed recipient or source fact until a fresh review and Resume, and Gmail shows neither delivery nor reading. Mailbox management stays in Gmail.",
     controls: [
       {
         label: "Incoming",
@@ -258,7 +259,7 @@ export const COMMUNICATIONS_SCREENS: readonly HelpScreenReference[] = [
         region: COMPOSER,
         availability: "conditional",
         source: COMPOSER_SOURCE,
-        does: "Saves the wording and files in the app now. Sends nothing.",
+        does: "Saves the wording and files in the app now. Sends nothing. A composer opened from the lease saves nothing until your first change and reads Not saved yet. Your first change saves a draft.",
         who: "Renewal staff",
       },
       {
@@ -316,12 +317,48 @@ export const COMMUNICATIONS_SCREENS: readonly HelpScreenReference[] = [
         who: "Renewal staff",
       },
       {
+        label: "Update from the lease",
+        role: "button",
+        region: COMPOSER,
+        availability: "conditional",
+        source: REFUSAL_SOURCE,
+        does: "Shown under This message was written before the lease changed. Update it from the lease, or cancel it., with one line per changed value: rebuilds the message from the lease and saves it once. The status reads Updated from the lease. Nothing was sent. Review the message, then Send or Schedule it. Until then Send, Schedule and Resume reviewed sequence are not offered.",
+        who: "Renewal staff",
+      },
+      {
+        label: "Changed on the lease",
+        role: "list",
+        region: COMPOSER,
+        availability: "conditional",
+        source: COMPOSER_SOURCE,
+        does: "Under This message was written before the lease changed: one line per changed value, such as Renewal end date: 12/31/2027 in this message, 06/30/2027 on the lease., or the label with changed when no plain values exist. It reads only.",
+        who: "All staff",
+      },
+      {
+        label: "Open that communication",
+        role: "link",
+        region: COMPOSER,
+        availability: "conditional",
+        source: REFUSAL_SOURCE,
+        does: "Shown when another message for this renewal and audience is already scheduled, waiting to send, paused before sending or holding a send Gmail has not confirmed: opens that communication to update or cancel it, or to check its send. The lease's review shows the same link.",
+        who: "Renewal staff",
+      },
+      {
+        label: "Open the lease",
+        role: "link",
+        region: COMPOSER,
+        availability: "conditional",
+        source: REFUSAL_SOURCE,
+        does: "Shown under A newer message for this renewal was sent, with its time when known, and Cancel this one: opens the lease. Send, Schedule and Resume reviewed sequence are not offered for the older message.",
+        who: "Renewal staff",
+      },
+      {
         label: "Resume reviewed sequence",
         role: "button",
         region: COMPOSER,
         availability: "conditional",
         source: COMPOSER_SOURCE,
-        does: "Restarts a paused communication after a fresh review of the current message and recipients. A pause for changed lease or recipient facts lists What changed above it.",
+        does: "Restarts a paused communication after a fresh review of the current message and recipients. A pause for changed lease or recipient facts lists What changed above it. A pause can also read The tenant's response was recorded by staff, A newer message for this renewal was sent or The owner message wording was updated.",
         who: "Renewal staff",
       },
       {

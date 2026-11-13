@@ -521,9 +521,9 @@
     "kind": "inline",
     "location": "components/approval/ApprovalQueueBulkPanel.tsx",
     "text": "Execute skips every current item; no external write is attempted.",
-    "describes": "Approval Queue bulk preview note for the Execute bulk action",
-    "disposition": "correct",
-    "contradicts": ["S242", "S244"],
+    "describes": "Approval Queue bulk preview note for the Execute bulk action; Execute left the bulk options, and the preview always reads that the server checks every selected item again",
+    "disposition": "remove",
+    "contradicts": ["S283"],
     "corrections": [
       {
         "before": "Execute is visible for v1, but current items will be skipped until approved executable action runtime exists.",

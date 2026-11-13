@@ -77,6 +77,9 @@ const DIRECT_PRODUCT_RECORD_REFERENCE_INVENTORY = {
   ],
   lease_renewal_resolutions: ["lib/firestore/lease-renewal-resolutions.ts"],
   maintenance_tickets: [
+    // S280 R-S280-5: mark-all-read names the retired maintenance_tickets notification family to
+    // skip it; it reads and writes no ticket.
+    "app/api/notifications/mark-all-read/route.ts",
     "lib/firestore/maintenance-artifacts.ts",
     "lib/firestore/maintenance-case-records.ts",
     "lib/firestore/maintenance-tickets.ts",
@@ -158,6 +161,8 @@ const DIRECT_PRODUCT_RECORD_REFERENCE_INVENTORY = {
     // S286: the app refuses a renewal run start, so the isolated help rehearsal seeds its one
     // earlier renewal run record straight to its emulator, stamped with the retention contract.
     "scripts/lib/help-rehearsal-fixtures.mjs",
+    // S284 W12-14: the one-path rehearsal seeds its process-draft run the same way, emulator only.
+    "scripts/lib/one-path-rehearsal/process-draft-seed-run.ts",
   ],
 } satisfies Record<ProductRecordCollection, readonly string[]>;
 
@@ -249,6 +254,8 @@ const PRODUCT_RECORD_WRITER_INVENTORY = {
     "lib/firestore/workflows.ts",
     // S286: the help rehearsal's earlier renewal run record, emulator only.
     "scripts/lib/help-rehearsal-fixtures.mjs",
+    // S284 W12-14: the one-path rehearsal's process-draft run record, emulator only.
+    "scripts/lib/one-path-rehearsal/process-draft-seed-run.ts",
   ],
 } satisfies Record<ProductRecordCollection, readonly string[]>;
 

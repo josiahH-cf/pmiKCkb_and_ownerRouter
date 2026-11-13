@@ -150,7 +150,7 @@ export const DOCUMENTS_AND_DOTLOOP_GUIDES: readonly HelpGuide[] = [
         result:
           "The table lists every family with Use, Applies, Original and map, and Missing. A family without an approved original reads No approved original received, one without a reviewed map reads No reviewed field and signer map, and Missing names who supplies each piece.",
         effect: "reads",
-        note: "The table is read-only: Evaluate packet records a snapshot, and nothing here writes one or sends anything. Dotloop selection, below the table, compares the saved Dotloop selection with its latest observation.",
+        note: "The table is read-only: Evaluate packet records a snapshot, and nothing here writes one or sends anything. Dotloop selection, below the table, compares the saved Dotloop selection with its latest observation. Fact names read in staff words, such as Verified Year built is required., and a Verification disclosure holds the raw fact keys and their source references. A family use PMI KC has not confirmed reads Needs Verification: PMI KC has not confirmed this form use. Times read like 11/13/2026, 9:00 AM CST.",
       },
       {
         id: "reload-readiness",
@@ -280,6 +280,6 @@ export const DOCUMENTS_AND_DOTLOOP_GUIDES: readonly HelpGuide[] = [
     ],
     relatedGuides: ["owner-message", "work-a-renewal", "manage-connections"],
     relatedScreens: ["lease-workspace", "connections"],
-    lastUpdated: "2026-11-10",
+    lastUpdated: "2026-11-13",
   },
 ];

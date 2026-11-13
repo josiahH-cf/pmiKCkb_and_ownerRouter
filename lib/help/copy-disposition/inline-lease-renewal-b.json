@@ -606,6 +606,13 @@
   },
   {
     "kind": "inline",
+    "location": "components/lease-renewal/RenewalPreparedMessage.tsx",
+    "text": "The sent message could not be read just now.",
+    "describes": "Verification, Sent owner message or Sent tenant offer: the exact sent message read from Communications could not be read, so nothing is shown in its place (S281 R-S281-3)",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
     "location": "components/lease-renewal/RenewalOwnerDecisionFromReply.tsx",
     "text": "Owner response below records an authorized representative, another written channel or a conversation.",
     "describes": "Now card owner decision from an observed reply: an approval by a representative, another written channel or a conversation is recorded in Owner response (S252 L36)",

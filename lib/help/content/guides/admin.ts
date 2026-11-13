@@ -67,7 +67,7 @@ export const ADMIN_GUIDES: readonly HelpGuide[] = [
         result:
           "The choice saves at once as the shared basis for every renewal notice comparison, and the panel shows the saved version, who recorded it and when. A lease with missing or stale dates can still read Cannot determine.",
         effect: "saves-in-app",
-        note: "Renewal staff select the same documented basis once from the lease workspace. It is one shared setting, so once anyone saves it, this panel shows it as chosen. No message, schedule or provider record is created.",
+        note: "Only an Admin selects the basis; an Editor or Approver who tries is refused with Only an Admin changes the shared notice timing basis. It is one shared setting: every lease shows it as one read-only Notice timing line, and an Admin there sees Change in Admin, which opens this panel. No message, schedule or provider record is created.",
       },
       {
         id: "set-family-use",
@@ -279,7 +279,7 @@ export const ADMIN_GUIDES: readonly HelpGuide[] = [
       "admin-gmail-settings",
       "admin-space-request",
     ],
-    lastUpdated: "2026-11-06",
+    lastUpdated: "2026-11-13",
     navItems: ["admin"],
   },
 ];

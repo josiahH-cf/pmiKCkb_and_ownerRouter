@@ -61,9 +61,9 @@ export const SPACES_AND_PROCESSES_GUIDES: readonly HelpGuide[] = [
         route: "/spaces/[spaceId]",
         where: "Space page, How this work is done, at the end",
         result:
-          "The Process Definition page opens with the definition form, Save and Publish, the Publication panel, Renewal work and Recent Runs. Owner UID and Approver UID read Not used: this process starts no runs.",
+          "The Process Definition page opens with the definition form, Save and Publish, the Publication panel, Renewal work and Recent Runs. Run owner (staff account ID) and Default approver (staff account ID) read Not used: this process starts no runs.",
         effect: "reads",
-        note: "Processes lists every definition you can open, and Back to Processes on this page opens it. On a process that starts runs, the page has Owner UID and Approver UID fields and a Start run panel in place of Renewal work.",
+        note: "Processes lists every definition you can open, and Back to Processes on this page opens it. On a process that starts runs, the page has Run owner (staff account ID) and Default approver (staff account ID) fields and a Start run panel in place of Renewal work. Each holds a staff account ID, which an Admin finds in Admin, People and access.",
       },
       {
         id: "edit-fields",

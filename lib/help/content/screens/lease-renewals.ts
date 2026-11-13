@@ -22,19 +22,13 @@ const FULL_COMPARISON_INPUTS = [
 ];
 // S270: each outcome's optional work and read-only verification are named groups, closed on
 // arrival, with the same names in Guided and Full view (lib/lease-renewal/guided-priority.ts).
-const FULL_OWNER_OPTIONS = [
-  ...FULL_VIEW,
-  "open-summary:Owner message options and outreach record",
-];
+const FULL_OWNER_OPTIONS = [...FULL_VIEW, "open-summary:Outreach record"];
 const FULL_OWNER_EVIDENCE = [
   ...FULL_VIEW,
   "open-summary:Verify owner terms and outreach",
 ];
 const FULL_WORKING_TERMS = [...FULL_VIEW, "open-summary:Working renewal terms"];
-const FULL_TENANT_OPTIONS = [
-  ...FULL_VIEW,
-  "open-summary:Tenant offer options and record of contact",
-];
+const FULL_TENANT_OPTIONS = [...FULL_VIEW, "open-summary:Record of contact"];
 const FULL_TENANT_EVIDENCE = [
   ...FULL_VIEW,
   "open-summary:Verify offer facts and delivery",
@@ -221,7 +215,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
     ],
     guides: ["work-a-renewal"],
     spaces: ["lease-renewals"],
-    lastUpdated: "2026-11-09",
+    lastUpdated: "2026-11-13",
   },
   {
     id: "renewal-desk",
@@ -229,7 +223,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
     routes: [DESK],
     who: "Renewal staff",
     summary:
-      "Renewals opens one monthly table. The selected month comes first and unfinished carryover follows. The counts above the table filter its rows. Sort by stage, date or rent, or choose All leases and filters for the wider worklist and saved views. Rents show in dollars with the recommendation's basis and the owner-approved amount, a row reads Needs a check when the staff record and the lease's messages disagree, and an off-cycle lease's reason names its end date review: Off-cycle end date: included by or on hold by, with who and when.",
+      "Renewals opens one monthly table. The selected month comes first and unfinished carryover follows. The counts above the table filter its rows. Sort by stage, date or rent, or choose All leases and filters for the wider worklist and saved views. Rents show in dollars with the recommendation's basis and the owner-approved amount, a row reads Needs a check when the staff record and the lease's messages disagree, and an off-cycle lease's reason names its end date review: Off-cycle end date: included by or on hold by, with who and when. A row whose scheduled message the lease has since changed, or whose message the app held, carries one link, Scheduled message out of date or Message held, which opens the lease at that step, and such a row sorts first. On a phone, Prepare and Filter renewals are each one row you expand, and the lease column stays in place while the other columns scroll.",
     controls: [
       // The map's recorded Refresh data name describes the same button listed below.
       ...renewalControlMapScreenControls(DESK).filter(
@@ -250,7 +244,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         region: "region:Working batch",
         availability: "required",
         source: BATCH,
-        does: "The filter bar shows counts for Renewed in RentVine, confirm and close, Month-to-month reviews due, Non-renewals to hand off, Coming up later, Not renewal targets and Completed. Choosing a count lists its leases.",
+        does: "The filter bar shows counts for Renewed in RentVine, confirm and close, Month-to-month reviews due, Non-renewals to hand off, Coming up later, Not renewal targets and Completed. Choosing a count lists its leases. Search this month's leases narrows the table by address, unit or tenant, and the month's Prepare button then prepares only the leases shown. The search is kept on this page only.",
         who: "Renewal staff",
       },
       {
@@ -454,7 +448,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
     routes: [LEASE],
     who: "Renewal staff",
     summary:
-      "The lease page holds one renewal from its facts to completion. A lease opens in Guided view: the stage line, the Renewal path from Check the numbers to Complete, and one Now card that leads with the one field or fix the step needs now, such as Review owner message, and the step's own controls shown in place, with optional work and read-only verification in named groups below. Who the lease waits on comes from its own sent messages and replies; when the staff record disagrees, the stage line reads Needs a check with both facts and the fix as a link. While a step waits, the Now card shows Last checked for a reply with Check for a reply now, and wherever the renewal rent shows, its basis line says where the amount comes from. Full view shows every section: Lease details, Market rent comparison, Owner approval, Tenant offer and response, and Documents and completion. Recorded work saves in the app, a message goes out only after your Send this message, and RentVine and the operating Sheet change only through an exact preview you confirm yourself.",
+      "The lease page holds one renewal from its facts to completion. A lease opens in Guided view: the stage line, the Renewal path from Check the numbers to Complete, and one Now card that leads with the one field or fix the step needs now, such as Review owner message, and the step's own controls shown in place, with optional work and read-only verification in named groups below. Who the lease waits on comes from its own sent messages and replies; when the staff record disagrees, the stage line reads Needs a check with both facts and the fix as a link. While a step waits, the Now card shows Last checked for a reply with Check for a reply now, and wherever the renewal rent shows, its basis line says where the amount comes from. Full view shows every section: Lease details, Market rent comparison, Owner approval, Tenant offer and response, and Documents and completion. After a jump to a field in another section, Return to with the step name, such as Return to owner approval, brings you back to where you started. Once Gmail accepts a renewal message, the step's Verification shows the exact sent message, and a read-only Notice timing basis line follows the work. On a phone the lease header is two lines: the address with its tenant count and Lease details, which holds the full identity, Open in RentVine, the view switch, Lease information and Process guide, then the stage with Work status. Recorded work saves in the app, a message goes out only after your Send this message, and RentVine and the operating Sheet change only through an exact preview you confirm yourself.",
     controls: [
       ...WORKSPACE_MAP_CONTROLS,
       ...WORKSPACE_ABOUT_CONTROLS,
@@ -798,15 +792,23 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         actions: FULL_TENANT_EVIDENCE,
       },
       {
-        label: "Documented notice basis",
-        role: "label",
-        region: "region:Notice timing",
+        label: "Notice timing basis",
+        role: "region",
         availability: "conditional",
-        source: ["components/lease-renewal/NoticeTimingBasisSelection.tsx"],
-        does: "The shared basis for notice timing comparisons; choosing the documented option saves it at once and creates no message.",
+        source: ["components/lease-renewal/NoticeTimingBasisLine.tsx"],
+        does: "One read-only line after the step's work: the shared basis for notice timing, such as Notice timing: counted from the lease end date, in calendar days, 30 days. Applies to every renewal. Set on with its date, or Notice timing basis: not set. An Admin sets it in Renewal notice rules. The lease has no selector; only an Admin changes the basis, in Admin.",
         who: "Renewal staff",
         route: LEASE,
-        actions: FULL_FOLLOW_UP_EVIDENCE,
+      },
+      {
+        label: "Change in Admin",
+        role: "link",
+        region: "region:Notice timing basis",
+        availability: "conditional",
+        source: ["lib/lease-renewal/notice-timing-basis-line.ts"],
+        does: "Shown to an Admin at the end of the Notice timing basis line: opens Admin, Renewal notice rules, Notice Timing Basis, where the basis is chosen. It saves nothing here.",
+        who: "Admin",
+        route: LEASE,
       },
       {
         label: "Evaluate packet",
@@ -848,7 +850,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
     routes: ["/lease-renewal/live"],
     who: "Renewal staff",
     summary:
-      "The live renewal review compares RentVine and the operating Sheet across the portfolio and lists each field that needs a decision, grouped by severity. A resolution is recorded in the app with its reason; the review reads both sources and changes neither.",
+      "The live renewal review compares RentVine and the operating Sheet across the portfolio and lists each field that needs a decision, grouped by severity, each card named by its lease and field. A difference in the current rent or the lease dates is not a decision: RentVine is the basis, and it is listed under Information with the value in each source. A resolution is recorded in the app with its reason; the review reads both sources and changes neither.",
     controls: [
       {
         label: "← Renewals",
@@ -938,9 +940,26 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         does: "A reference on which system owns each renewal fact, the fallback order for each field and where app records and provider changes are kept; it changes nothing.",
         who: "Renewal staff",
       },
+      {
+        label: "Information",
+        role: "region",
+        availability: "conditional",
+        source: ["lib/lease-renewal/source-difference-rule.ts"],
+        does: "Lists each RentVine and operating Sheet difference in the current rent or the lease dates, such as the operating Sheet shows one amount and RentVine shows another. RentVine is the basis. These need no decision; with nothing else open the review reads Nothing needs a decision right now. The differences below are information.",
+        who: "Renewal staff",
+      },
+      {
+        label: "Open the lease's Sheet update",
+        role: "link",
+        region: "region:Information",
+        availability: "conditional",
+        source: ["lib/lease-renewal/source-difference-rule.ts"],
+        does: "Opens that lease where its Sheet update is prepared. It saves nothing.",
+        who: "Renewal staff",
+      },
     ],
     guides: ["work-a-renewal"],
-    lastUpdated: "2026-11-09",
+    lastUpdated: "2026-11-13",
   },
   {
     id: "renewal-older-links",

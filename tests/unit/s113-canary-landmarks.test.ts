@@ -344,7 +344,19 @@ describe("S113 candidate and captured predecessor workspace landmarks", () => {
         guidedFixture({ steps: ["Month-to-month review", ...GUIDED_STEPS] }),
       ),
     ).toBe(true);
+    // S283 R-S283-7: the strip lists only the steps on the lease's path, so a covered owner step
+    // and a non-renewal's replaced steps are absent; the first, current and last steps still hold.
+    for (const steps of [
+      GUIDED_STEPS.filter((step) => step !== "Ask the owner"),
+      ["Check the numbers", "Compare market rent", "Non-renewal handoff", "Complete"],
+      ["Check the numbers", "Non-renewal handoff", "Complete"],
+    ])
+      expect(
+        await hasRenewalWorkspaceLandmarks(guidedFixture({ steps })),
+        JSON.stringify(steps),
+      ).toBe(true);
     for (const options of [
+      { steps: ["Check the numbers", "Complete"] },
       { switchButtons: 2 },
       { switchButtons: 4 },
       { pressed: { "Guided view": "false" } },

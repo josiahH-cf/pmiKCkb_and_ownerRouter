@@ -75,7 +75,7 @@ export const HOME_AND_ASK_GUIDES: readonly HelpGuide[] = [
         result:
           "Up to five approvals and other items waiting on you are listed, each linked to its own page, with a link to the full list. Nothing is waiting on you right now shows when the list is empty, and Try again reads the list again after a read that failed or was incomplete.",
         effect: "reads",
-        note: "An Approver or Admin may see Approve on an eligible app item. It records the approval in the app only, sends nothing and changes no provider; other items open on their own review page.",
+        note: "An Approver or Admin may see Approve on an eligible app item. It records the approval in the app only, sends nothing and changes no provider; other items open on their own review page. From your renewal messages lists the renewal work your own sent messages call for, each as the lease and its step, such as record the owner's decision, review the held offer, update the out-of-date owner message or check whether the offer went out, followed by Because you sent this message. A renewal difference row names its lease and field. A line under the list counts the renewals with a next action for the team and links Open the Renewal Desk. When the renewal data is past its freshness limit, the rows stay with Renewal data last read and its time, and Refresh reads them again.",
       },
       {
         id: "search-records",
@@ -220,7 +220,7 @@ export const HOME_AND_ASK_GUIDES: readonly HelpGuide[] = [
     ],
     relatedGuides: ["my-work-and-profile", "search", "approve-or-deny", "work-a-renewal"],
     relatedScreens: ["dashboard", "top-bar", "help"],
-    lastUpdated: "2026-11-04",
+    lastUpdated: "2026-11-13",
     navItems: ["dashboard", "help", "my-work"],
   },
 ];

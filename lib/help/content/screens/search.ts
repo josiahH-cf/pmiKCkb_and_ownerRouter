@@ -17,7 +17,7 @@ export const SEARCH_SCREENS: readonly HelpScreenReference[] = [
         role: "combobox",
         availability: "required",
         source: TOP_BAR,
-        does: "Suggests up to eight matching records as you type, each with its type and reference.",
+        does: "Suggests up to eight matching records as you type, each with its type and reference. On a phone the top bar shows a Search button in its place, named Search records; it opens the same field, and Escape or leaving an empty field folds it back.",
         who: "All staff",
         route: "/search",
       },
@@ -140,6 +140,6 @@ export const SEARCH_SCREENS: readonly HelpScreenReference[] = [
       },
     ],
     guides: ["search"],
-    lastUpdated: "2026-11-04",
+    lastUpdated: "2026-11-13",
   },
 ];
