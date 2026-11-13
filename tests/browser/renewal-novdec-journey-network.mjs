@@ -146,6 +146,15 @@ function mixFlags() {
     return {};
   }
 }
+// S284 W12-03 (test-only): RentVine answering one read path slowly, as a large account's export
+// does. The control file's `rentvineLatency` flag ({ path, ms }) delays that path by at most 5 s.
+function rentvineLatencyMs(path) {
+  if (!MIX_FIXTURE) return 0;
+  const latency = mixFlags().rentvineLatency;
+  return latency && latency.path === path
+    ? Math.min(5000, Math.max(0, Number(latency.ms) || 0))
+    : 0;
+}
 
 function rentvine(url) {
   if (MIX_FIXTURE) return rentvineStandInResponse(mix(), url, mixFlags()).body;
@@ -368,6 +377,8 @@ globalThis.fetch = async function guardedFetch(input, init) {
         headers: { "content-type": "application/json" },
       });
     }
+    const latency = rentvineLatencyMs(path);
+    if (latency > 0) await new Promise((resolve) => setTimeout(resolve, latency));
     const body = rentvine(url);
     record({ served: "rentvine", path: url.pathname, found: body !== undefined });
     return body === undefined

@@ -189,7 +189,7 @@ describe("S75 shared follow-up consumers", () => {
     const tenant = within(
       screen.getByRole("region", { name: "Tenant offer and response" }),
     );
-    expect(tenant.getByText("Waiting on tenant")).toBeInTheDocument();
+    expect(tenant.getByText("Waiting on the tenant")).toBeInTheDocument();
     expect(
       tenant.getByText(/Last verified contact: 08\/20\/2026, 7:00 AM CDT/),
     ).toBeInTheDocument();

@@ -180,6 +180,54 @@ export function setRecurringCharges(rehearsal, leaseId, charges) {
   return writeFlags(rehearsal, { ...flags, recurringCharges });
 }
 
+/** The mail stand-in's only accepted recipients (scripts/lib/one-path-rehearsal/stand-ins.mjs). */
+const SYNTHETIC_ADDRESS = /^[^@\s<>]+@example\.invalid$/i;
+
+/**
+ * S284 W12-03 (test-only): serve another synthetic address for one existing fixture lease's first
+ * owner, as an owner whose contact RentVine changed, or the fixture's own again with null. The app
+ * reads it on its next RentVine read ("Refresh data", or the next read after the minute).
+ */
+export function setOwnerEmail(rehearsal, leaseId, email) {
+  if (!Object.values(rehearsal.groups).flat().includes(Number(leaseId)))
+    throw new Error("Choose an existing fixture lease.");
+  if (email !== null && !SYNTHETIC_ADDRESS.test(String(email)))
+    throw new Error("Give an example.invalid address, or null.");
+  const flags = readFlags(rehearsal);
+  const ownerEmails = { ...(flags.ownerEmails ?? {}) };
+  if (email === null) delete ownerEmails[String(leaseId)];
+  else ownerEmails[String(leaseId)] = String(email);
+  return writeFlags(rehearsal, { ...flags, ownerEmails });
+}
+
+/** The longest delay the provider boundary applies to one RentVine read path. */
+export const REHEARSAL_RENTVINE_LATENCY_MAX_MS = 5000;
+
+/**
+ * S284 W12-03 (test-only): make RentVine answer one read path slowly (for example leases/export,
+ * by 1500 ms), as a large account's export does, or at once again with null. The provider
+ * boundary applies it to every process of the rehearsal on its next read of that path.
+ */
+export function setRentvineLatency(rehearsal, path, ms = 0) {
+  const flags = readFlags(rehearsal);
+  if (path === null) {
+    const rest = { ...flags };
+    delete rest.rentvineLatency;
+    return writeFlags(rehearsal, rest);
+  }
+  if (!/^[a-z][a-z0-9/-]*$/.test(String(path)))
+    throw new Error("Name a RentVine read path, for example leases/export.");
+  const delay = Number(ms);
+  if (!Number.isInteger(delay) || delay < 1 || delay > REHEARSAL_RENTVINE_LATENCY_MAX_MS)
+    throw new Error(
+      `Give a delay from 1 to ${REHEARSAL_RENTVINE_LATENCY_MAX_MS} milliseconds.`,
+    );
+  return writeFlags(rehearsal, {
+    ...flags,
+    rentvineLatency: { path: String(path), ms: delay },
+  });
+}
+
 /** The operating Sheet's columns, as the provider boundary's Sheet stand-in serves its header. */
 export const REHEARSAL_SHEET_COLUMNS = 19;
 

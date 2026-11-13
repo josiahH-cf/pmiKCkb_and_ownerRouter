@@ -77,7 +77,15 @@ The owner resolved the Gmail profile scope on November 8 for the existing guarde
 
 ## Awaiting release
 
-None. The November 10 intakes cleared after full observation and independent final readbacks.
+Staff workflow audit chunk 1, released early at the owner's direction (2026-11-13) while chunk 2
+(S272, S273, S276, S278, S280, S281, S283, S285 and the S284 qualification) is still in development.
+
+1. 152 S274 Refuse or hold a renewal message only for a settled change, and name it `42f7cd9a`
+2. 153 S275 Bring an owner or tenant reply to the lease through visible controls `d7a9a0f7`
+3. 155 S277 Adopt, affirm and show the basis of the renewal rent `1f1fe06a`
+4. 157 S279 Show one lease status from one record `aaf06f03`
+5. 160 S282 Record the review of an off-cycle lease end date `b2e53ba3`
+6. 164 S286 Renewal Spaces show guidance and start no runs `2b4092d0`
 
 ## Continuation contract
 

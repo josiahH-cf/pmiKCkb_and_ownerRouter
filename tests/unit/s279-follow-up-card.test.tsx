@@ -110,7 +110,8 @@ describe("R-S279-1 / BEH-S279-1: the card adds only what the step line does not 
 
   it("AC-S279-1: on its own, the card names who and the last contact from the lease's evidence", () => {
     const { container } = render(<RenewalFollowUpStatus projection={followUp()} />);
-    expect(screen.getByText("Waiting on owner")).toBeInTheDocument();
+    // The same words as the step's waiting line and the lease status (R-S279-1, word for word).
+    expect(screen.getByText("Waiting on the owner")).toBeInTheDocument();
     expect(screen.getByText(/^Last verified contact: 11\/04\/2026/)).toBeInTheDocument();
     expect(container.textContent).not.toMatch(/an unresolved source/);
     // With nothing sent yet there is no contact to verify.
@@ -126,7 +127,7 @@ describe("R-S279-1 / BEH-S279-1: the card adds only what the step line does not 
       />,
     );
     expect(screen.getByText("No contact recorded yet")).toBeInTheDocument();
-    expect(screen.getByText("Waiting on team")).toBeInTheDocument();
+    expect(screen.getByText("Waiting on the PMI KC team")).toBeInTheDocument();
   });
 });
 

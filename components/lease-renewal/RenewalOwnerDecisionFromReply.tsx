@@ -33,8 +33,18 @@ const REVISION = "revision_requested";
 const DECLINE = "declined_non_renewal";
 const REPLY_PREFIX = "reply\u0000";
 
-/** Display one observed reply through the existing exact linked-thread read; never store its body. */
-function OwnerReplyPreview({ reply }: Readonly<{ reply: OwnerReplyChoice }>) {
+/**
+ * Display one observed reply through the existing exact linked-thread read; never store its body.
+ * S275 R-S275-4: a tenant reply reads the same way, under "Tenant reply".
+ */
+export function RenewalReplyPreview({
+  reply,
+  audience = "owner",
+}: Readonly<{ reply: OwnerReplyChoice; audience?: "owner" | "tenant" }>) {
+  const words =
+    audience === "owner"
+      ? { title: "Owner reply", party: "owner", body: "renewal-owner-reply-body" }
+      : { title: "Tenant reply", party: "tenant", body: "renewal-tenant-reply-body" };
   // Until this exact read settles, its loading state follows its inputs directly.
   const replyKey = JSON.stringify([
     reply.sequenceId,
@@ -101,9 +111,9 @@ function OwnerReplyPreview({ reply }: Readonly<{ reply: OwnerReplyChoice }>) {
     headingRef.current?.focus();
   }, [current, key]);
   return (
-    <section aria-label="Owner reply" className="ui-stack-tight">
+    <section aria-label={words.title} className="ui-stack-tight">
       <h3 className="section-subtitle" ref={headingRef} tabIndex={-1}>
-        Owner reply
+        {words.title}
       </h3>
       <p className="muted">
         Received {formatBusinessTimestamp(reply.receivedAt)} in {reply.senderEmail}.
@@ -115,7 +125,7 @@ function OwnerReplyPreview({ reply }: Readonly<{ reply: OwnerReplyChoice }>) {
         </p>
       ) : current?.state === "ready" ? (
         <>
-          <p className="renewal-owner-reply-body">{current.body}</p>
+          <p className={words.body}>{current.body}</p>
           {current.truncated ? (
             <p role="note">
               Part of this reply is shown. Read the full linked conversation before
@@ -125,11 +135,11 @@ function OwnerReplyPreview({ reply }: Readonly<{ reply: OwnerReplyChoice }>) {
         </>
       ) : current?.state === "failed" ? (
         <p role="alert">
-          The owner&apos;s reply text could not be read. The reply record and your entries
-          are kept.
+          The {words.party}&apos;s reply text could not be read. The reply record and your
+          entries are kept.
         </p>
       ) : (
-        <p role="status">Reading the owner&apos;s reply.</p>
+        <p role="status">Reading the {words.party}&apos;s reply.</p>
       )}
       {current?.state === "failed" || retrying ? (
         <Button
@@ -332,7 +342,7 @@ export function RenewalOwnerDecisionFromReply({
     >
       <legend>{RECORD_OWNER_ANSWER_TITLE}</legend>
       {choices.replies[0] ? (
-        <OwnerReplyPreview reply={reply ?? choices.replies[0]} />
+        <RenewalReplyPreview reply={reply ?? choices.replies[0]} />
       ) : null}
       {choices.replies.map((entry) =>
         option(

@@ -58,6 +58,7 @@ import {
 } from "@/lib/lease-renewal/desk-view-continuation";
 import { LeaseWorkStatusLines } from "@/components/lease-renewal/LeaseWorkStatusLines";
 import {
+  LEASE_WORK_STATUS_LABEL,
   deskLeaseWorkStatusInput,
   projectLeaseWorkStatus,
 } from "@/lib/lease-renewal/lease-work-status";
@@ -1857,27 +1858,35 @@ function DeskRow({
             lifecycle={row.lifecycle}
           />
         ) : null}
-        {leaseStatus.status === "needs_check" ? (
-          // Two waiting facts disagree; there is no single status to filter by.
-          <StatusBadge tone="caution">{leaseStatus.label}</StatusBadge>
-        ) : (
-          <Link
-            prefetch={false}
-            className="renewal-status-link"
-            href={href({ ...state, overallStatus: status })}
-            title="Show only this status"
+        {/* The overall badge always carries the row's overall status and its filter link. When
+            two waiting facts disagree, the "Needs a check" line below names the check (the cell's
+            data-lease-status carries needs_check), so the release reconciliation still reads one
+            overall status per row. */}
+        <Link
+          prefetch={false}
+          className="renewal-status-link"
+          href={href({ ...state, overallStatus: status })}
+          title="Show only this status"
+        >
+          <StatusBadge
+            tone={
+              status === "complete" && row.manualProgress?.complete
+                ? "neutral"
+                : OVERALL_STATUS_TONE[status]
+            }
           >
-            <StatusBadge
-              tone={
-                status === "complete" && row.manualProgress?.complete
-                  ? "neutral"
-                  : OVERALL_STATUS_TONE[status]
-              }
-            >
-              {leaseStatus.label}
-            </StatusBadge>
-          </Link>
-        )}
+            {leaseStatus.status === "needs_check"
+              ? status === "complete" && row.manualProgress?.complete
+                ? "Completed: recorded by staff"
+                : LEASE_WORK_STATUS_LABEL[status]
+              : leaseStatus.label}
+          </StatusBadge>
+        </Link>
+        {leaseStatus.status === "needs_check" ? (
+          <span className="renewal-td-secondary" data-renewal-field="needs-check">
+            {leaseStatus.label}
+          </span>
+        ) : null}
         {row.manualProgress ? (
           <span className="renewal-td-secondary">
             {row.manualProgress.label}

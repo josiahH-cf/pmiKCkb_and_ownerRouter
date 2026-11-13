@@ -161,7 +161,8 @@ const DIRECT_PRODUCT_RECORD_REFERENCE_INVENTORY = {
     // S286: the app refuses a renewal run start, so the isolated help rehearsal seeds its one
     // earlier renewal run record straight to its emulator, stamped with the retention contract.
     "scripts/lib/help-rehearsal-fixtures.mjs",
-    // S284 W12-14: the one-path rehearsal seeds its process-draft run the same way, emulator only.
+    // S284: the guarded rehearsal seeds the Owner Renewal Outreach Draft and its earlier run
+    // through the served commit's own seed writer, into the rehearsal emulator only, stamped.
     "scripts/lib/one-path-rehearsal/process-draft-seed-run.ts",
   ],
 } satisfies Record<ProductRecordCollection, readonly string[]>;
@@ -254,7 +255,7 @@ const PRODUCT_RECORD_WRITER_INVENTORY = {
     "lib/firestore/workflows.ts",
     // S286: the help rehearsal's earlier renewal run record, emulator only.
     "scripts/lib/help-rehearsal-fixtures.mjs",
-    // S284 W12-14: the one-path rehearsal's process-draft run record, emulator only.
+    // S284: the guarded rehearsal's process Draft seed, emulator only.
     "scripts/lib/one-path-rehearsal/process-draft-seed-run.ts",
   ],
 } satisfies Record<ProductRecordCollection, readonly string[]>;

@@ -27,6 +27,11 @@ export interface OwnerApprovalChoices {
     | null;
   /** Replies received on this lease's owner renewal threads, newest first. */
   readonly replies: readonly OwnerReplyChoice[];
+  /**
+   * S275 R-S275-4: replies received on this lease's tenant renewal threads, newest first, the
+   * tenant answer's reply choices. Absent where the page did not read them.
+   */
+  readonly tenantReplies?: readonly OwnerReplyChoice[];
   /** PR #162 review: the fingerprint of `roster`, sent back with an owner choice. */
   readonly rosterFingerprint: string | null;
   /**
