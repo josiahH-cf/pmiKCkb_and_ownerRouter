@@ -489,8 +489,8 @@
         "width": 1280,
         "height": 800
       },
-      "region": "heading:How this work is done",
-      "frame": "viewport",
+      "region": "region:How this work is done",
+      "frame": "region",
       "source": "rehearsal",
       "alt": "The Owner Renewal Outreach Space under How this work is done, with the published steps, Sources and Open the Renewal Desk.",
       "caption": "A renewal Space shows its process as guidance and starts no run."

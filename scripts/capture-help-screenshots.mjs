@@ -555,6 +555,17 @@ async function captureScene(scene) {
         "",
         verifiedIdentifier,
       );
+      // S286: with Start run gone, Recent Runs sits under Publication, and the earlier run's
+      // pinned version (the same generated identifier, read exactly) reaches the frame's lower edge.
+      for (const line of await page
+        .locator("p")
+        .filter({ hasText: /^Definition version: / })
+        .all())
+        verifiedText.push(
+          ...(
+            await identifierBounds(line, "Definition version: ", verifiedIdentifier)
+          ).filter(({ y }) => y >= 0 && y < scene.viewport.height),
+        );
     }
     // S286: the renewal-process-guidance scene (which replaced process-start-run) shows the
     // published steps and sources, with no generated identifier to exclude.
