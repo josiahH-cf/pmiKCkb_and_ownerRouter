@@ -8,15 +8,7 @@
 // through the workspace route and records nothing. No note, checkbox or attestation is required.
 // Synthetic values only; no provider request.
 import "@testing-library/jest-dom/vitest";
-import {
-  act,
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-  within,
-} from "@testing-library/react";
+import { act, cleanup, fireEvent, render, waitFor, within } from "@testing-library/react";
 import { useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 

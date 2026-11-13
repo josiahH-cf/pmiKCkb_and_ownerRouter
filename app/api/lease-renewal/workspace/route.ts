@@ -207,9 +207,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ record: await correctRenewalOutreach(actor, value) });
     }
     if (input.operation === "stop_tenant_reminders") {
-      const { operation: _, ...value } = input;
       return NextResponse.json({
-        tenantReminders: await stopTenantReminders(actor, value),
+        tenantReminders: await stopTenantReminders(actor, {
+          leaseId: input.leaseId,
+          cycleId: input.cycleId,
+        }),
       });
     }
     if (
