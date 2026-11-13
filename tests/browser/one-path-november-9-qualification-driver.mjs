@@ -1426,8 +1426,17 @@ try {
         );
         assert.equal(blank.signatureSetup.choice, "blank");
         assert.equal(blank.facts.signature, null);
-        await page.getByRole("button", { name: "Edit signature", exact: true }).click();
-        const choice = page.getByRole("form", { name: "Your signature" });
+        // S281 R-S281-12: a saved choice clears the signature hold, so Message can close on entry.
+        const message = now(page).locator(
+          'details[data-renewal-group="Message"][data-renewal-group-step="ask-owner"]',
+        );
+        await message.waitFor();
+        if ((await message.getAttribute("open")) === null)
+          await toggleDisclosure(page, message, true);
+        await message
+          .getByRole("button", { name: "Edit signature", exact: true })
+          .click();
+        const choice = message.getByRole("form", { name: "Your signature" });
         await choice
           .getByLabel("Sender name", { exact: true })
           .fill("November Fixture Approver");
