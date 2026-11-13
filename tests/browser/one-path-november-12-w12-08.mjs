@@ -63,6 +63,7 @@ import {
   journeyW1208,
   reachPrimary,
   sendTenantOffer,
+  stepScheduleButton,
   waitForPrimary,
 } from "./one-path-november-12-journeys.mjs";
 import { DESK, WORKING_ROUTE, WORKSPACE_ROUTE } from "./one-path-november-12-kit.mjs";
@@ -764,12 +765,8 @@ async function followFix(ctx, page, leaseId, who) {
 
 /** Ask the owner: the step's Schedule, the dialog's own date and time, then confirm. */
 async function scheduleOwnerMessage(ctx, page, leaseId) {
-  const { kit } = ctx;
   await reachPrimary(ctx, page, leaseId, "ask-owner", "Review owner message");
-  const inNow = kit.now(page).getByRole("button", { name: "Schedule", exact: true });
-  const trigger = (await kit.shownWithin(inNow, 20_000))
-    ? inNow
-    : page.getByRole("button", { name: "Schedule", exact: true }).first();
+  const trigger = await stepScheduleButton(ctx, page);
   await trigger.click();
   const dialog = page.getByRole("dialog", { name: "Review and schedule" });
   await dialog

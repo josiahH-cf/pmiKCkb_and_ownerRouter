@@ -57,6 +57,7 @@ import {
   recordOwnerAnswer,
   refreshData,
   reviewText,
+  stepScheduleButton,
 } from "./one-path-november-12-journeys.mjs";
 import {
   SEQUENCES_ROUTE,
@@ -158,13 +159,8 @@ async function openReview(ctx, page, leaseId, channel, mode) {
     step,
     channel === "owner" ? "Review owner message" : "Review tenant offer",
   );
-  let trigger = kit.primary(page);
-  if (mode === "schedule") {
-    const inNow = kit.now(page).getByRole("button", { name: "Schedule", exact: true });
-    trigger = (await kit.shownWithin(inNow, 20_000))
-      ? inNow
-      : page.getByRole("button", { name: "Schedule", exact: true }).first();
-  }
+  const trigger =
+    mode === "schedule" ? await stepScheduleButton(ctx, page) : kit.primary(page);
   await trigger.click();
   const dialog = page.getByRole("dialog", {
     name: mode === "schedule" ? DIALOG_SCHEDULE : DIALOG_SEND,
@@ -380,14 +376,19 @@ async function readCommunications(
   return result;
 }
 
-/** The lease's own page on a step, as staff read it (the stage and the step's Now card). */
-async function readLease(ctx, page, leaseId, step) {
+/** The held message's differences, as staff read them on the lease's Now card. */
+async function readLeaseHold(ctx, page, leaseId, line) {
   const { kit } = ctx;
-  await kit.openLease(page, leaseId, `?step=${step}`);
-  await kit.primaryName(page, 45_000);
-  await page.waitForTimeout(1500);
-  const main = await kit.visibleText(page.locator("main").first());
-  return main || kit.visibleText(page.locator("body"));
+  await kit.openLease(page, leaseId, "?step=ask-owner");
+  const now = kit.now(page);
+  const changedValue = now.getByText(line, { exact: true });
+  const review = kit
+    .primary(page)
+    .filter({ hasText: /^Review the updated owner message$/ });
+  return (
+    (await kit.shownWithin(changedValue, 20_000)) &&
+    (await kit.shownWithin(review, 5_000))
+  );
 }
 
 // ---- AC-S274-1: ten confirmations after 90 seconds, nothing edited ---------------------------------
@@ -736,8 +737,12 @@ async function holdPart(ctx, page, leaseId) {
     hub.cardText.includes(`Paused: ${PAUSED_CHANGED}`) &&
     hub.cardChanged.includes(line) &&
     hub.composerChanged.includes(line);
-  const leaseText = await readLease(ctx, page, leaseId, "ask-owner");
-  const leaseShows = leaseText.includes(line);
+  const leaseShows = await readLeaseHold(
+    ctx,
+    page,
+    leaseId,
+    `Rent to recommend: ${money(before)} in the scheduled message, ${money(after)} on the lease.`,
+  );
   ctx.record({
     part: "hold",
     waitTick,
