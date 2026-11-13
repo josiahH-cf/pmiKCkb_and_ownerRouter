@@ -613,6 +613,13 @@
   },
   {
     "kind": "inline",
+    "location": "components/lease-renewal/RenewalTenantDecisionFromReply.tsx",
+    "text": "Tenant response below records another channel or a conversation, and the offer an acceptance covers.",
+    "describes": "Now card tenant decision from an observed reply: another channel, a conversation and the exact offer an acceptance covers are recorded in Tenant response (S275 R-S275-4)",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
     "location": "components/lease-renewal/RenewalHousingAssistance.tsx",
     "text": "Enter the program name to save Housing assistance as Yes.",
     "describes": "Housing assistance: the Yes choice requires a program name before its working record can be saved (S251)",

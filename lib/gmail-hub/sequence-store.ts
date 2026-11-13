@@ -911,6 +911,26 @@ export async function listLeaseOwnerReplies(
   leaseId: string,
   db: Firestore = getAdminFirestore(),
 ): Promise<import("@/lib/lease-renewal/owner-approval-evidence").OwnerReplyChoice[]> {
+  return listLeaseRenewalReplies(leaseId, "renewal_owner", db);
+}
+
+/**
+ * S275 R-S275-4: the replies people sent on this lease's tenant renewal threads, newest first, as
+ * the tenant answer's reply choices. A tenant reply behaves as an owner reply: evidence ids and
+ * times only, no message content.
+ */
+export async function listLeaseTenantReplies(
+  leaseId: string,
+  db: Firestore = getAdminFirestore(),
+): Promise<import("@/lib/lease-renewal/owner-approval-evidence").OwnerReplyChoice[]> {
+  return listLeaseRenewalReplies(leaseId, "renewal_tenant", db);
+}
+
+async function listLeaseRenewalReplies(
+  leaseId: string,
+  purpose: "renewal_owner" | "renewal_tenant",
+  db: Firestore,
+): Promise<import("@/lib/lease-renewal/owner-approval-evidence").OwnerReplyChoice[]> {
   const snapshot = await db
     .collection(COMMUNICATION_SEQUENCE_COLLECTIONS.sequences)
     .where("context.entityId", "==", leaseId)
@@ -921,7 +941,7 @@ export async function listLeaseOwnerReplies(
       const context = doc.get("context") as
         | { entityType?: string; purpose?: string }
         | undefined;
-      if (context?.entityType !== "renewal_lease" || context.purpose !== "renewal_owner")
+      if (context?.entityType !== "renewal_lease" || context.purpose !== purpose)
         return [];
       const inbound =
         (doc.get("inbound") as CommunicationInboundEvidence[] | undefined) ?? [];
