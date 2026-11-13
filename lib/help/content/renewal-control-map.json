@@ -1010,9 +1010,9 @@
     "role": "region",
     "scope": "region:Now",
     "availability": "conditional",
-    "expectation": "The stored comparison, Rent to recommend, Reason to include and the message preview.",
+    "expectation": "Open Message to read Reason to include, What sending needs and the prepared owner message.",
     "source": ["components/lease-renewal/RenewalPreparedMessage.tsx"],
-    "actions": ["click-button:Ask the owner"]
+    "actions": ["click-button:Ask the owner", "open-summary:Message"]
   },
   {
     "step": "87",
@@ -1729,11 +1729,11 @@
     "page": "workspace:tenant-offer",
     "control": "Publish the standard follow-up message",
     "role": "button",
-    "scope": "",
+    "scope": "region:Tenant message preparation",
     "availability": "conditional",
     "expectation": "Template approvers can publish the standard follow-up from the tenant message editor. Each new review starts with the published wording.",
     "source": ["components/lease-renewal/FollowUpCopyPublication.tsx"],
     "who": "Approver or Admin",
-    "actions": ["click-button:Full view"]
+    "actions": ["click-button:Full view", "open-summary:Record of contact"]
   }
 ]
