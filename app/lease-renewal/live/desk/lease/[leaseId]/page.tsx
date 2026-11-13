@@ -14,6 +14,7 @@ import { offerPacketComparisons } from "@/lib/lease-renewal/offer-packet-parity"
 import { ownerRosterFingerprint } from "@/lib/firestore/renewal-workspace";
 import { projectRenewalDeskIdentity } from "@/lib/lease-renewal/desk-identity";
 import { listLeaseOwnerReplies } from "@/lib/gmail-hub/sequence-store";
+import { listOwnerAnswerChoices } from "@/lib/gmail-hub/owner-answer-choices";
 import { readLeaseOutreachEvidence } from "@/lib/firestore/renewal-outreach-records";
 import { UNREADABLE_OUTREACH_EVIDENCE_INPUT } from "@/lib/lease-renewal/outreach-evidence";
 import { withLeaseCurrentMessageBases } from "@/lib/lease-renewal/unsent-message-read";
@@ -439,18 +440,34 @@ export default async function LiveRenewalLeaseWorkspacePage({
           (v) => leaseViewId(v) === leaseId,
         )
       : [];
-  const ownerRoster =
-    ownerViews.length === 1
-      ? projectRenewalDeskIdentity(ownerViews[0]).owners.map(({ label, sourceRef }) => ({
+  const ownerParties =
+    ownerViews.length === 1 ? projectRenewalDeskIdentity(ownerViews[0]).owners : null;
+  const ownerRoster = ownerParties
+    ? ownerParties.map(({ label, sourceRef }) => ({ label, sourceRef }))
+    : null;
+  // S285 R-S285-4 / R-S285-5 (ARCH-S285-3): the replies, each with the one roster owner it came
+  // from when that is certain, and the term the cycle's latest confirmed owner message stated. The
+  // match is made here on the server; only the roster entry reaches the page, never an address.
+  const ownerAnswerChoices = await listOwnerAnswerChoices({
+    leaseId,
+    cycleId: renewalAuxiliaryValue(manualRead, null)?.cycleId ?? null,
+    roster: ownerParties
+      ? ownerParties.map(({ label, sourceRef, email }) => ({
           label,
           sourceRef,
+          email: email?.label ?? null,
         }))
-      : null;
+      : null,
+  }).catch(async () => ({
+    replies: await listLeaseOwnerReplies(leaseId).catch(() => []),
+    ownerMessageTerm: null,
+  }));
   const ownerApprovalChoices: OwnerApprovalChoices = {
     roster: ownerRoster,
-    replies: await listLeaseOwnerReplies(leaseId).catch(() => []),
+    replies: ownerAnswerChoices.replies,
     // PR #162 review: an owner choice is sent back with the roster it was made from.
     rosterFingerprint: ownerRoster ? ownerRosterFingerprint(ownerRoster) : null,
+    ownerMessageTerm: ownerAnswerChoices.ownerMessageTerm,
   };
   const policy = renewalAuxiliaryValue(policyRead, {
     state: "unreadable" as const,

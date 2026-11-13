@@ -77,6 +77,7 @@ import { ContinueToTenantOffer, ManualOwnerAnswerApproval } from "./RenewalOwner
 import {
   CurrentLeaseEndFact,
   RenewalEndDateCheck,
+  RenewalEndSuggestion,
   RenewalStartSuggestion,
   ReturnToTenantOffer,
   WORKING_END_CONTROL_ID,
@@ -1171,6 +1172,8 @@ export function WorkingRenewalTermsFields({ rent }: Readonly<{ rent: boolean }>)
         field="terms_end_date"
         label="Working term end date"
       >
+        {/* S285 R-S285-1: the end-date choices beside manual entry. */}
+        <RenewalEndSuggestion />
         <RenewalEndDateCheck />
       </WorkingDateField>
       {recordedTerms ? (

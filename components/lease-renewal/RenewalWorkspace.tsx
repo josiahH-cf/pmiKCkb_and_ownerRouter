@@ -595,6 +595,17 @@ export function RenewalWorkspace({
                   nonRenewal:
                     summary.moveOut?.state === "initiated" ||
                     manualNonRenewal(manualState ?? null),
+                  // S285 R-S285-1: the current lease's own length is offered only from its
+                  // verified RentVine end and the same lease's start.
+                  currentLease:
+                    workspace.leaseEnd.state === "verified" &&
+                    workspace.leaseEnd.basis === "rentvine" &&
+                    summary.leaseTerm?.endDateIso === workspace.leaseEnd.endIso
+                      ? {
+                          startIso: summary.leaseTerm?.startDateIso ?? null,
+                          endIso: workspace.leaseEnd.endIso,
+                        }
+                      : null,
                 }
               : null
           }

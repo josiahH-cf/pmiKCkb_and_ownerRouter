@@ -1,5 +1,8 @@
 import { randomUUID } from "node:crypto";
-import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
+import {
+  hasRenewalRoleAuthority,
+  renewalRoleCapability,
+} from "@/lib/lease-renewal/role-action-governance";
 import {
   getMessageDraftSnapshot,
   preparedMessageDraftDiffers,
@@ -15,6 +18,11 @@ import { currentRenewalMessage } from "@/lib/lease-renewal/current-renewal-messa
 import { SaveMessagePreparationSchema } from "@/lib/lease-renewal/renewal-message-preparation";
 import { saveMessagePreparation } from "@/lib/firestore/renewal-message-preparations";
 import { publishSuppliedRenewalTemplate } from "@/lib/firestore/renewal-message-publication";
+import {
+  previewOwnerCopyPublication,
+  publishOwnerCopyV21,
+} from "@/lib/firestore/renewal-owner-copy-publication";
+import { isVerificationAccount } from "@/lib/auth/canary-policy";
 import { buildSuppliedRenewalDraftPreview } from "@/lib/lease-renewal/execution/supplied-renewal-draft-preview";
 import { finalizeRenewalNoticeDraft } from "@/lib/lease-renewal/execution/renewal-notice-draft-service";
 import {
@@ -52,6 +60,21 @@ const draftSave = SaveMessagePreparationSchema.omit({ leaseId: true, channel: tr
 const command = z.discriminatedUnion("kind", [
   SaveMessagePreparationSchema.extend({ kind: z.literal("save") }),
   z.object({ kind: z.literal("publish"), channel: z.enum(["owner", "tenant"]) }).strict(),
+  /**
+   * S285 R-S285-6: an existing template approver publishes owner copy v2.1. Without `confirm` it
+   * only states how many unsent owner messages will be held; with it, it publishes when that
+   * count is unchanged.
+   */
+  z
+    .object({
+      kind: z.literal("publish_owner_copy"),
+      version: z.literal("v2.1"),
+      confirm: z
+        .object({ heldCount: z.number().int().nonnegative().max(100_000) })
+        .strict()
+        .optional(),
+    })
+    .strict(),
   identity
     .extend({
       kind: z.literal("draft"),
@@ -158,6 +181,17 @@ function publicPreparation(current: Current) {
         ? { reason: current.publication.reason }
         : {}),
     },
+    // S285 R-S285-6: the owner copy version in use and whether v2.1 waits for an approver. The
+    // GET adds whether this viewer may publish it. Null for the tenant offer.
+    ...(current.ownerCopy
+      ? {
+          ownerCopy: {
+            version: current.ownerCopy.version,
+            readyToPublish: current.ownerCopy.readyToPublish,
+            canPublish: false,
+          },
+        }
+      : {}),
     notices: current.notices,
     policyGates: current.policyGates,
   };
@@ -207,6 +241,22 @@ function saveMessage(actor: AuthenticatedUser, value: unknown, leaseId: string) 
     resolveBasis: () => resolveRenewalWorkBasis(actor, leaseId),
   });
 }
+/** S285 R-S285-6: only an existing template approver sees the new owner wording control. */
+function withOwnerCopyAuthority<T extends { ownerCopy?: { canPublish: boolean } }>(
+  actor: AuthenticatedUser,
+  preparation: T,
+): T {
+  if (!preparation.ownerCopy) return preparation;
+  return {
+    ...preparation,
+    ownerCopy: {
+      ...preparation.ownerCopy,
+      canPublish:
+        hasRenewalRoleAuthority("approve_message_template", actor.role) &&
+        !isVerificationAccount(actor),
+    },
+  };
+}
 export async function GET(request: Request) {
   try {
     const actor = await requireCapabilityInSpace(
@@ -215,8 +265,11 @@ export async function GET(request: Request) {
     );
     const input = identity.parse(Object.fromEntries(new URL(request.url).searchParams));
     return NextResponse.json(
-      await withOfferAnswers(
-        await currentRenewalMessage(actor, input.leaseId, input.channel),
+      withOwnerCopyAuthority(
+        actor,
+        await withOfferAnswers(
+          await currentRenewalMessage(actor, input.leaseId, input.channel),
+        ),
       ),
       { headers: { "Cache-Control": "private, no-store" } },
     );
@@ -246,6 +299,33 @@ export async function POST(request: Request) {
         contentHash: publication.contentHash,
       });
     }
+    if (input.kind === "publish_owner_copy") {
+      await requireCapabilityInSpace(
+        renewalRoleCapability("approve_message_template"),
+        "renewals",
+      );
+      if (!input.confirm)
+        return NextResponse.json(await previewOwnerCopyPublication(actor), {
+          headers: { "Cache-Control": "private, no-store" },
+        });
+      try {
+        const published = await publishOwnerCopyV21(actor, input.confirm.heldCount);
+        return NextResponse.json({
+          status: published.status,
+          duplicate: published.duplicate,
+          heldCount: published.heldCount,
+          contentHash: published.contentHash,
+        });
+      } catch (error) {
+        const heldCount = (error as { heldCount?: unknown } | null)?.heldCount;
+        if (error instanceof EditableLayerError && typeof heldCount === "number")
+          return NextResponse.json(
+            { error: error.message, code: "owner_copy_count_changed", heldCount },
+            { status: error.status },
+          );
+        throw error;
+      }
+    }
     if (input.kind === "save") {
       // S161: an autosave. It needs no cycle, no review and no current source read to be stored.
       const save = SaveMessagePreparationSchema.strip().parse(input);
@@ -254,7 +334,7 @@ export async function POST(request: Request) {
       await keepTenantOfferSource(input.leaseId, current);
       return NextResponse.json({
         duplicate: result.duplicate,
-        ...(await withOfferAnswers(current)),
+        ...withOwnerCopyAuthority(actor, await withOfferAnswers(current)),
       });
     }
     if (input.kind === "publish_follow_up") {

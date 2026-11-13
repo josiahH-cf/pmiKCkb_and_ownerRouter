@@ -9,6 +9,11 @@
 
 import { z } from "zod";
 import { EditableLayerError } from "@/lib/errors/editable-layer-error";
+import {
+  OWNER_TERM_INPUT_KEYS,
+  OWNER_WORDING_UPDATED_LINE,
+  isOwnerWordingChange,
+} from "@/lib/lease-renewal/owner-copy-version";
 
 /**
  * Why a lease read is not settled yet (R-S274-1, R-S274-2, R-S274-4):
@@ -186,16 +191,39 @@ export function changedReviewedInputs(
       current: null,
     });
   }
+  // S285 R-S285-6: when the owner wording version changed, the renewal dates the new wording
+  // states for the first time are part of that one change, not separate changes.
+  if (changes.some(isOwnerWordingChange)) {
+    const shownBefore = new Set(reviewed.map((input) => input.key));
+    return changes.filter(
+      (change) =>
+        !(OWNER_TERM_INPUT_KEYS as readonly string[]).includes(change.key) ||
+        shownBefore.has(change.key),
+    );
+  }
   return changes;
 }
 
 /**
+ * S285 R-S285-6: the changed input a hold stores when the only change is the owner wording an
+ * approver published; its line reads "The owner message wording was updated".
+ */
+export const OWNER_WORDING_UPDATED_INPUT: ChangedInput = Object.freeze({
+  key: "ownerWording",
+  label: OWNER_WORDING_UPDATED_LINE,
+  current: null,
+});
+
+/**
  * The staff line for one changed input: "Rent to recommend: was $1,400.00, now $1,425.00". A new
- * hold reads "New hold: {text}"; an input without plain values reads "{label} changed".
+ * hold reads "New hold: {text}"; an input without plain values reads "{label} changed". S285: the
+ * owner message's approved template changing reads "The owner message wording was updated".
  */
 export function changedInputLine(change: ChangedInput): string {
   if (change.key.startsWith(NEW_HOLD_KEY_PREFIX))
     return `${NEW_HOLD_LABEL}: ${change.current ?? ""}`.trim();
+  if (change.key === OWNER_WORDING_UPDATED_INPUT.key || isOwnerWordingChange(change))
+    return OWNER_WORDING_UPDATED_LINE;
   const { previous, current } = change;
   if (previous === undefined || previous === current) return `${change.label} changed`;
   if (previous === null && current === null) return `${change.label} changed`;

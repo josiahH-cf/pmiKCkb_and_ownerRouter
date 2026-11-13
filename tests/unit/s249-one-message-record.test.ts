@@ -103,6 +103,29 @@ describe("S249 R-S249-10: owner wording", () => {
     ).plainText;
     expect(body).not.toContain("$1,475.00");
   });
+
+  // S285 R-S285-2: the v2.1 case. The recommendation sentence is unchanged and the proposed term
+  // follows it; every v2.0 assertion above stays true while v2.0 is the copy in use.
+  it("S285 v2.1: the recommendation sentence is unchanged and the term sentence follows it", () => {
+    const body = composeRenewalMessage(
+      ownerFacts({
+        ownerIntent: "recommend_rent",
+        ownerCopyVersion: "v2.1",
+        suggestedRent: { value: 1425, source: "Example basis", kind: "proposal" },
+        ownerTerms: {
+          rent: null,
+          effectiveDate: "2027-01-01",
+          endDate: "2027-12-31",
+          source: "Working renewal terms",
+        },
+      }),
+    ).plainText;
+    const recommendation = "Our reviewed rental analysis suggests $1,425.00 per month.";
+    const term = "The renewal term would run from 01/01/2027 through 12/31/2027.";
+    expect(body).toContain(recommendation);
+    expect(body.indexOf(term)).toBeGreaterThan(body.indexOf(recommendation));
+    expect(body).not.toContain(INTERNAL_SENTENCE);
+  });
 });
 
 describe("S249 R-S249-6: Reason to include", () => {

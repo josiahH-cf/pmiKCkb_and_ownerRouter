@@ -186,6 +186,8 @@ export interface PreparedMessageApi {
   readonly signaturePresent: boolean;
   readonly outgoingReasons?: readonly string[];
   readonly renewOrNot?: boolean;
+  /** S285 R-S285-3: the owner copy in use states the renewal term. */
+  readonly ownerTermStated?: boolean;
   readonly onSignatureSetupSaved?: (choice: SenderSignatureChoice) => Promise<void>;
   /** Fill and save the sender's own signature on this message (it is kept for the sender). */
   readonly saveSignature: (fields: PreparedSignatureFields) => string | null;
@@ -705,8 +707,13 @@ function PreparedMessageBlock({
         });
     }
   }, [api.draft.pending, api.draft.recoveryRequired, previewSlot]);
-  const typedRent = workingRenewalTerms(working?.record ?? null).rent;
+  const workingTerms = workingRenewalTerms(working?.record ?? null);
+  const typedRent = workingTerms.rent;
   const workingRentBasis = workingRecommendationBasis(working?.record);
+  // S285 R-S285-3: while the owner copy in use states the term, "Renewal dates" reads the saved
+  // working start and end.
+  const termStart = api.ownerTermStated ? workingTerms.effectiveDate : null;
+  const termEnd = api.ownerTermStated ? workingTerms.endDate : null;
   const live = useMemo(
     () =>
       preparation && api.channel === "owner" && !api.renewOrNot
@@ -717,6 +724,9 @@ function PreparedMessageBlock({
             recipientReady: api.to !== null,
             templateApproved: api.templateApproved,
             marked: api.marked,
+            ...(api.ownerTermStated
+              ? { renewalDates: { start: termStart, end: termEnd } }
+              : {}),
           })
         : null,
     [
@@ -729,6 +739,9 @@ function PreparedMessageBlock({
       api.to,
       api.templateApproved,
       api.marked,
+      api.ownerTermStated,
+      termStart,
+      termEnd,
     ],
   );
   // The items Send needs. For the owner they come from the one projection; for the tenant offer
@@ -853,7 +866,11 @@ function PreparedMessageBlock({
         );
         return;
       }
-      const workingFields = messageWorkingFieldsFor(api.channel, api.renewOrNot);
+      const workingFields = messageWorkingFieldsFor(
+        api.channel,
+        api.renewOrNot,
+        api.ownerTermStated,
+      );
       const workingVersion = working?.confirmedVersion?.(workingFields);
       const figuresChanged = () =>
         !reloadAfter &&
@@ -1540,7 +1557,9 @@ function PreparedMessageBlock({
         ) : null}
         {needs.map((item) => (
           <li data-renewal-ready={item.ready ? "ready" : "missing"} key={item.key}>
-            {item.label}: {item.ready ? "Ready" : `Missing ${item.missing ?? ""}`}
+            {!item.ready && "line" in item && item.line
+              ? item.line
+              : `${item.label}: ${item.ready ? "Ready" : `Missing ${item.missing ?? ""}`}`}
             {!item.ready &&
             item.key === "signature" &&
             (deliveryHeld || firstMissing?.key !== "signature") ? (

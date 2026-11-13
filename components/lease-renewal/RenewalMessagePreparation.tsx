@@ -52,6 +52,7 @@ import {
   MESSAGE_CHARGES,
   MessageChargeSchema,
   RenewalMessageEditsSchema,
+  ownerCopyStatesTerm,
   responseRequestParagraph,
   type RenewalMessageFacts,
 } from "@/lib/lease-renewal/renewal-message-content";
@@ -62,6 +63,7 @@ import {
   type MessageMissingInput,
 } from "@/lib/lease-renewal/message-readiness";
 import { startDateFixFromOffer } from "./RenewalDateProposal";
+import { OwnerWordingPublication, type OwnerCopyView } from "./OwnerWordingPublication";
 import {
   OfferCaseEntrySchema,
   OfferChargeDecisionSchema,
@@ -242,6 +244,8 @@ interface Preparation {
    */
   offerAnswers?: OfferAnswersView | null;
   publication: { status: string; ref?: string; reason?: string };
+  /** S285 R-S285-6: the owner copy version in use and the approver's publication control. */
+  ownerCopy?: OwnerCopyView | null;
   /** S139/S161: the saved authored body and whether the facts changed after it was written. */
   bodyOverride?: RefinedBodyState | null;
   /** Hash of the body composed from the current facts; authored wording records it. */
@@ -833,9 +837,15 @@ function MessagePreparationEditor({
   const nowCard = useRenewalNowCard();
   const [signatureSettingsOpen, setSignatureSettingsOpen] = useState(false);
   const [current, setCurrent] = useState<Preparation | null>(null);
+  // S285 R-S285-3: an owner message whose copy states the term reads the working dates too.
+  const ownerTermStated =
+    channel === "owner" &&
+    current?.facts.ownerIntent !== "renew_or_not" &&
+    ownerCopyStatesTerm(current?.facts.ownerCopyVersion);
   const messageWorkingFields = messageWorkingFieldsFor(
     channel,
     current?.facts.ownerIntent === "renew_or_not",
+    ownerTermStated,
   );
   const [inputs, setInputs] = useState(emptyMessagePreparationInputs);
   // S161: the authored body (typed here or accepted from a refinement) and the authored subject.
@@ -1654,6 +1664,7 @@ function MessagePreparationEditor({
   const paragraph = responseRequestParagraph(
     channel,
     payload?.effective.edits ?? { responseRequest: "" },
+    ownerTermStated ? "v2.1" : "v2.0",
   );
   const signatureEdited =
     canonical(signature ?? null) !== canonical(current?.inputs.signature ?? null);
@@ -1755,6 +1766,8 @@ function MessagePreparationEditor({
               : current.signatureSetup !== null,
           outgoingReasons: current.outgoingReasons,
           renewOrNot: current.facts.ownerIntent === "renew_or_not",
+          // S285 R-S285-3: the owner message states the term, so "Renewal dates" is a readiness line.
+          ownerTermStated,
           reason: inputs.recommendationReason ?? "",
           composerHref: workflowComposerHref({
             leaseId,
@@ -2207,6 +2220,14 @@ function MessagePreparationEditor({
                   />
                 </fieldset>
               </>
+            ) : null}
+            {/* S285 R-S285-6: the approver's control for the owner wording that asks about the
+                term, beside the owner template's publication. Nothing shows for an Editor. */}
+            {channel === "owner" ? (
+              <OwnerWordingPublication
+                onPublished={() => void load().catch((error) => setNotice(error.message))}
+                ownerCopy={current.ownerCopy}
+              />
             ) : null}
             <section
               aria-label="Unsent Gmail draft"

@@ -105,6 +105,10 @@ import {
   getSuppliedRenewalPublication,
   suppliedRenewalPublication,
 } from "@/lib/firestore/renewal-message-publication";
+import {
+  readOwnerCopyPublications,
+  type OwnerCopyPublicationRead,
+} from "@/lib/firestore/renewal-owner-copy-publication";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
 import {
@@ -482,7 +486,7 @@ export async function currentRenewalMessage(
     workspace,
     working,
     resources,
-    publication,
+    publicationRead,
     retainedSignature,
     businessProfile,
     policyMaterial,
@@ -504,12 +508,16 @@ export async function currentRenewalMessage(
     getRenewalWorkspace(actor, leaseId, db),
     getRenewalWorkingRecord(actor, leaseId, db).catch(() => "unavailable" as const),
     getRenewalResourceLocations(actor, db).catch(() => null),
-    getSuppliedRenewalPublication(actor, channel, db).catch(() => ({
-      ...suppliedRenewalPublication(channel),
-      status: "unavailable" as const,
-      reason:
-        "Current supplied-template publication could not be read. Editing and copy continue; the Gmail draft waits for that readback.",
-    })),
+    // S285 ARCH-S285-2: the owner message reads the one owner copy resolver (v2.0 and v2.1 records);
+    // the tenant offer reads its own supplied publication as before.
+    channel === "owner"
+      ? readOwnerCopyPublications(actor, db)
+      : getSuppliedRenewalPublication(actor, channel, db).catch(() => ({
+          ...suppliedRenewalPublication(channel),
+          status: "unavailable" as const,
+          reason:
+            "Current supplied-template publication could not be read. Editing and copy continue; the Gmail draft waits for that readback.",
+        })),
     getRetainedSenderSignature(actor, db).catch(() => null),
     readBusinessProfile(actor, actor.uid, db).catch(() => null),
     // S129/S131: the policy material snapshot never throws.
@@ -955,15 +963,44 @@ export async function currentRenewalMessage(
   const greeting = greetingPartyNames(
     channel === "owner" ? identity.owners : identity.tenants,
   );
+  const ownerIntent: RenewalMessageFacts["ownerIntent"] =
+    channel === "owner"
+      ? housingAssistanceVariant(workingRecord) &&
+        currentRentChoice(workspace) !== "propose_change"
+        ? "renew_or_not"
+        : "recommend_rent"
+      : undefined;
+  // S285 ARCH-S285-2 / R-S285-6: the owner copy in use for this owner question, the newest version
+  // whose publication reads back approved. Until v2.1 is published this is v2.0 exactly as before.
+  const publication: OwnerCopyPublicationRead =
+    "publicationFor" in publicationRead
+      ? publicationRead.publicationFor(ownerIntent)
+      : { ...publicationRead, version: "v2.0" };
+  const ownerCopy =
+    "publicationFor" in publicationRead
+      ? {
+          version: publication.version,
+          readyToPublish: publicationRead.readyToPublish,
+          /**
+           * The v2.0 publication a message reviewed before v2.1 was published bound, so a hold can
+           * name "The owner message wording was updated" (R-S285-6). Null under v2.0.
+           */
+          previous:
+            publication.version === "v2.1" && publicationRead.v20.status === "approved"
+              ? {
+                  name: publicationRead.v20.name,
+                  contentHash: publicationRead.v20.contentHash,
+                }
+              : null,
+        }
+      : null;
   const facts: RenewalMessageFacts = {
     outgoingContract: true,
-    ownerIntent:
-      channel === "owner"
-        ? housingAssistanceVariant(workingRecord) &&
-          currentRentChoice(workspace) !== "propose_change"
-          ? "renew_or_not"
-          : "recommend_rent"
-        : undefined,
+    ownerIntent,
+    // Absent reads v2.0, so the facts under v2.0 are exactly as before this suite.
+    ...(channel === "owner" && publication.version === "v2.1"
+      ? { ownerCopyVersion: publication.version }
+      : {}),
     signatureConfigured: signatureSetup !== null,
     channel,
     names: greeting.names,
@@ -1259,6 +1296,11 @@ export async function currentRenewalMessage(
     signatureSetup,
     outgoingReasons,
     publication,
+    /**
+     * S285 R-S285-6: the owner copy version in use, whether v2.1 is ready for an approver to
+     * publish, and the earlier publication a held message was reviewed with. Null for the tenant.
+     */
+    ownerCopy,
     notices,
     policyGates,
   };

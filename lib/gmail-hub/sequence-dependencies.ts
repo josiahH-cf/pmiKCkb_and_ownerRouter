@@ -35,6 +35,7 @@ import { LEASE_READ_REREAD_WAITS_MS, LeaseReadNotSettledError } from "./reviewed
 import { RenewalNoticeSourceError } from "@/lib/lease-renewal/notice-source-error";
 import { settleLiveLeaseRefresh } from "@/lib/lease-renewal/live-lease-cache";
 import { offerSnapshotIsMaterial } from "@/lib/lease-renewal/offer-snapshot";
+import { ownerTermContentBasis } from "@/lib/lease-renewal/owner-copy-version";
 import {
   WorkflowCommunicationSequenceService,
   assertCommunicationStaff,
@@ -307,34 +308,50 @@ async function renewalTarget(
     offerSnapshot && offerSnapshotIsMaterial(offerSnapshot.snapshot)
       ? { offer: offerSnapshot.snapshotHash }
       : {};
+  // S285 R-S285-3 (ARCH-S285-2): under an owner copy version that states the term, the saved
+  // working dates join the owner message's content basis; under v2.0 nothing is added, so an owner
+  // message authorized before this suite keeps its digest and still dispatches as reviewed.
+  const ownerTermStated = channel === "owner" && f.ownerIntent !== "renew_or_not";
+  const ownerContent = (
+    publicationHash: string | null,
+    version: typeof f.ownerCopyVersion,
+  ) => ({
+    address: f.address,
+    publication: publicationHash,
+    ownerIntent: f.ownerIntent,
+    currentRent: f.currentBaseRent?.value ?? null,
+    rent: f.suggestedRent?.value ?? null,
+    range: f.range ? { low: f.range.low, high: f.range.high } : null,
+    ...ownerTermContentBasis(version, f.ownerTerms),
+  });
   const contentBasis = c.replyTo
     ? null
-    : {
-        address: f.address,
-        publication:
+    : channel === "owner" && ownerTermStated
+      ? ownerContent(
           current.publication.status === "approved"
             ? current.publication.contentHash
             : null,
-        ...(channel === "tenant"
-          ? {
-              leaseEnd: f.leaseEndDate,
-              terms,
-              charges: charges.filter((charge) => charge.applicable === true),
-              insuranceTransition: f.insuranceTransition?.applicable ?? null,
-              informationForm: null,
-              insuranceFlyer: null,
-              rbpFlyer: null,
-              ...offerBasis,
-            }
-          : f.ownerIntent === "renew_or_not"
-            ? { ownerIntent: f.ownerIntent }
-            : {
-                ownerIntent: f.ownerIntent,
-                currentRent: f.currentBaseRent?.value ?? null,
-                rent: f.suggestedRent?.value ?? null,
-                range: f.range ? { low: f.range.low, high: f.range.high } : null,
-              }),
-      };
+          f.ownerCopyVersion,
+        )
+      : {
+          address: f.address,
+          publication:
+            current.publication.status === "approved"
+              ? current.publication.contentHash
+              : null,
+          ...(channel === "tenant"
+            ? {
+                leaseEnd: f.leaseEndDate,
+                terms,
+                charges: charges.filter((charge) => charge.applicable === true),
+                insuranceTransition: f.insuranceTransition?.applicable ?? null,
+                informationForm: null,
+                insuranceFlyer: null,
+                rbpFlyer: null,
+                ...offerBasis,
+              }
+            : { ownerIntent: f.ownerIntent }),
+        };
   const targetBlockers = [
     ...new Set([
       ...blockers,
@@ -359,6 +376,21 @@ async function renewalTarget(
     signatureSetup: current.signatureSetup,
     blockers: targetBlockers,
     materialSourceHash: sequenceHash({ ...leaseBasis, contentBasis, blockers }),
+    // S285 R-S285-6: the material source this read would give under the owner copy published before
+    // the one in use. When an authorization matches it, the only change is the owner wording, and a
+    // hold names it "The owner message wording was updated".
+    ...(channel === "owner" &&
+    ownerTermStated &&
+    !c.replyTo &&
+    current.ownerCopy?.previous
+      ? {
+          priorOwnerWordingMaterialSourceHash: sequenceHash({
+            ...leaseBasis,
+            contentBasis: ownerContent(current.ownerCopy.previous.contentHash, "v2.0"),
+            blockers,
+          }),
+        }
+      : {}),
     // S274 ARCH-S274-1: whether this read settled; S274 ARCH-S274-3: what the review displays.
     readSettlement: current.readSettlement,
     reviewedInputs: renewalReviewedInputs({

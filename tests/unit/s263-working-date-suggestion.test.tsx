@@ -11,6 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   CurrentLeaseEndFact,
   RenewalEndDateCheck,
+  RenewalEndSuggestion,
   RenewalLeaseEndProvider,
   RenewalStartSuggestion,
   ReturnToTenantOffer,
@@ -97,6 +98,8 @@ function renderTerms(
           <RenewalStartSuggestion />
         </WorkingDateField>
         <WorkingDateField field="terms_end_date" label="Working term end date">
+          {/* S285 R-S285-1: the editor now offers end choices beside manual entry. */}
+          <RenewalEndSuggestion />
           <RenewalEndDateCheck />
         </WorkingDateField>
       </RenewalWorkingRecordProvider>
@@ -190,7 +193,9 @@ describe("AC-S263-1 the next-day start in Working renewal terms", () => {
     expect(requested).toEqual(["renewal-correct-a-fact"]);
   });
 
-  it("R-S263-2/3: the end stays a manual entry, and a saved end that is not after the start is shown for review", () => {
+  // Rewritten on purpose for S285 R-S285-1: an end is now offered as a term staff choose, but only
+  // while the current-cycle end is empty. A saved end always wins and is never changed for staff.
+  it("R-S263-2/3 (as amended by R-S285-1): a saved end offers no end choice, and a saved end that is not after the start is shown for review", () => {
     renderTerms(
       ELIGIBLE,
       working({
@@ -204,6 +209,7 @@ describe("AC-S263-1 the next-day start in Working renewal terms", () => {
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText(/Suggested end/)).toBeNull();
+    expect(screen.queryByRole("button", { name: /Use a 12 month term/ })).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });

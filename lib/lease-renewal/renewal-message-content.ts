@@ -61,6 +61,37 @@ export const SUPPLIED_RENEWAL_COPY = Object.freeze({
 });
 
 /**
+ * S285 R-S285-2 (ARCH-S285-2): owner copy v2.1, a separate version beside v2.0. The owner message
+ * that recommends a rent states the proposed term directly after the recommendation sentence and
+ * its request paragraph asks about the rent and the term. Every other owner sentence is v2.0's
+ * exactly. v2.1 is in use only once an existing template approver publishes it and its record
+ * reads back approved (R-S285-6); until then every owner message is composed under v2.0. The
+ * wording is the owner-accepted assumption of S285 and is approved exactly by that publication.
+ */
+export const OWNER_RENEWAL_COPY_V2_1 = Object.freeze({
+  version: "v2.1" as const,
+  authority: "owner-direction:s285-rent-and-term-ask-2026-11-12" as const,
+  owner: Object.freeze({
+    ...SUPPLIED_RENEWAL_COPY.owner,
+    request:
+      "Take a look below at similar units currently available in that price range and let us know how you want to proceed with this year's rent and whether the renewal term works for you.",
+    term: "The renewal term would run from {{start}} through {{end}}.",
+  }),
+  signoff: SUPPLIED_RENEWAL_COPY.signoff,
+});
+
+/** S285: the owner copy versions, oldest first. The newest one published is in use. */
+export const OWNER_COPY_VERSIONS = ["v2.0", "v2.1"] as const;
+export type OwnerCopyVersion = (typeof OWNER_COPY_VERSIONS)[number];
+
+/** S285 R-S285-2: true when the owner copy version states the renewal term. */
+export function ownerCopyStatesTerm(
+  version: OwnerCopyVersion | null | undefined,
+): boolean {
+  return version === "v2.1";
+}
+
+/**
  * S120 (R120.5): the optional response-request wording replaces exactly one paragraph of the
  * approved copy. These sentences name that paragraph for the field's help; blank keeps the default.
  */
@@ -75,17 +106,24 @@ export const RESPONSE_REQUEST_PLACEMENT = Object.freeze({
 export function responseRequestParagraph(
   channel: "owner" | "tenant",
   edits: { responseRequest: string },
+  /** S285: the owner copy version in use; v2.1's request asks about the rent and the term. */
+  ownerCopyVersion?: OwnerCopyVersion,
 ): { text: string; isDefault: boolean } {
   const custom = edits.responseRequest.trim();
   if (custom) return { text: custom, isDefault: false };
   return {
     text:
       channel === "owner"
-        ? SUPPLIED_RENEWAL_COPY.owner.request
+        ? ownerCopyStatesTerm(ownerCopyVersion)
+          ? OWNER_RENEWAL_COPY_V2_1.owner.request
+          : SUPPLIED_RENEWAL_COPY.owner.request
         : SUPPLIED_RENEWAL_COPY.tenant.response,
     isDefault: true,
   };
 }
+
+/** S285 R-S285-3: the readiness line while a renewal date the owner message states is missing. */
+export const RENEWAL_DATES_MISSING_LINE = "Renewal dates: enter the start and end";
 
 /** Replace only the named fields; unresolved authoring tokens never reach copy. */
 /**
@@ -220,6 +258,12 @@ export type RenewalMessageEdits = z.infer<typeof RenewalMessageEditsSchema>;
 export interface RenewalMessageFacts {
   readonly outgoingContract?: boolean;
   readonly ownerIntent?: "recommend_rent" | "renew_or_not";
+  /**
+   * S285 R-S285-6 (ARCH-S285-2): the owner copy version in use, the newest one whose publication
+   * reads back approved. Absent reads v2.0. Only the owner message that recommends a rent uses
+   * v2.1; the renew-or-not variant and the tenant offer keep their own wording.
+   */
+  readonly ownerCopyVersion?: OwnerCopyVersion;
   readonly signatureConfigured?: boolean;
   channel: "owner" | "tenant";
   names: string[];
@@ -302,7 +346,8 @@ export type MessageRun = {
   breakBefore?: boolean;
 };
 export interface RenewalMessageContent {
-  version: "v2.0";
+  /** S285: "v2.1" only for an owner message composed under owner copy v2.1. */
+  version: "v2.0" | "v2.1";
   channel: "owner" | "tenant";
   subject: string;
   paragraphs: MessageRun[][];
@@ -463,6 +508,12 @@ export function composeRenewalMessage(
   };
   const editsResult = RenewalMessageEditsSchema.safeParse(rawEdits);
   const edits = editsResult.success ? editsResult.data : { responseRequest: "" };
+  // S285 R-S285-2: only the owner message that recommends a rent states the term, and only under
+  // a copy version that states it. The renew-or-not variant and the tenant offer are unchanged.
+  const ownerTermStated =
+    facts.channel === "owner" &&
+    facts.ownerIntent !== "renew_or_not" &&
+    ownerCopyStatesTerm(facts.ownerCopyVersion);
   if (!editsResult.success)
     note(
       "responseRequest",
@@ -531,7 +582,14 @@ export function composeRenewalMessage(
           market_high: rangeKnown ? high! : missingValueMarker("high comparable rent"),
         }),
       );
-    add(edits.responseRequest || SUPPLIED_RENEWAL_COPY.owner.request);
+    // S285 R-S285-2: under v2.1 the default request asks about the rent and the term. A staff
+    // edit replaces this paragraph only; the term sentence below is its own paragraph.
+    add(
+      edits.responseRequest ||
+        (ownerTermStated
+          ? OWNER_RENEWAL_COPY_V2_1.owner.request
+          : SUPPLIED_RENEWAL_COPY.owner.request),
+    );
     let listed = 0;
     for (const { value: comp } of firstUsableComparables(facts.comps).entries) {
       const label = text(comp.address);
@@ -586,6 +644,24 @@ export function composeRenewalMessage(
       note(
         "recommendedRent",
         "Enter the rent to recommend before releasing the owner message.",
+      );
+    }
+    // S285 R-S285-2 / R-S285-3: under v2.1 the proposed term follows the recommendation, from the
+    // saved working dates only. A missing date is a named marker and one readiness line, which
+    // holds Review, Schedule and the Gmail draft as a missing amount does (S249 R-S249-10).
+    if (ownerTermStated) {
+      const start = day(facts.ownerTerms?.effectiveDate);
+      const end = day(facts.ownerTerms?.endDate);
+      if (!start) note("renewalDates", RENEWAL_DATES_MISSING_LINE);
+      else if (!end) note("renewalDates.end", RENEWAL_DATES_MISSING_LINE);
+      else if (facts.ownerTerms!.endDate! <= facts.ownerTerms!.effectiveDate!)
+        note("renewalDates.end", "The renewal end date is not after the start date.");
+      if (start || end) sourced(facts.ownerTerms?.source);
+      add(
+        fillSuppliedCopy(OWNER_RENEWAL_COPY_V2_1.owner.term, {
+          start: start ?? missingValueMarker("renewal start date"),
+          end: end ?? missingValueMarker("renewal end date"),
+        }),
       );
     }
     add(SUPPLIED_RENEWAL_COPY.owner.consideration);
@@ -778,7 +854,7 @@ export function composeRenewalMessage(
   const exactParagraphs =
     facts.channel === "owner" ? emphasizeOwnerFacts(paragraphs, address) : paragraphs;
   return {
-    version: "v2.0",
+    version: ownerTermStated ? "v2.1" : "v2.0",
     channel: facts.channel,
     subject,
     paragraphs: exactParagraphs,

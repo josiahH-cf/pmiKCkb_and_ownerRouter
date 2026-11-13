@@ -90,6 +90,7 @@ import {
   CommunicationTargetChangedError,
   LEASE_READ_REREAD_WAITS_MS,
   LeaseReadNotSettledError,
+  OWNER_WORDING_UPDATED_INPUT,
   changedReviewedInputs,
   type ChangedInput,
   type LeaseReadUnsettledReason,
@@ -965,6 +966,13 @@ export class WorkflowCommunicationSequenceService {
             ...s.authorization.to,
             ...s.authorization.cc,
           ]);
+          // S285 R-S285-5: whether a person's reply came from an address the message was sent to.
+          // A yes or no only; the address itself is not kept.
+          const from = emailFrom(m.from);
+          const fromSentTo =
+            classification === "human" && from
+              ? s.authorization.to.some((address) => address.toLowerCase() === from)
+              : undefined;
           // S233 R-S233-1/R-S233-2: evidence only; a report names its attempt when one is clear.
           messages.push({
             id: `${mailboxKey}:${m.id}`,
@@ -973,6 +981,7 @@ export class WorkflowCommunicationSequenceService {
             messageId: m.id,
             kind: classification,
             receivedAtMs,
+            ...(fromSentTo === undefined ? {} : { fromSentTo }),
             ...(classification === "bounce"
               ? {
                   attemptOccurrenceId: correlateBounceAttempt(
@@ -1285,9 +1294,18 @@ export class WorkflowCommunicationSequenceService {
       // S274 R-S274-6: the hold on a settled difference stores each changed input, with the value
       // kept with this authorization where one was kept; without kept values none is guessed.
       const kept = keptAuthorizedInputs(s);
-      const changedInputs: ChangedInput[] = kept
-        ? changedReviewedInputs(kept, target.reviewedInputs ?? null)
-        : [];
+      // S285 R-S285-6: an authorization that matches this read under the earlier owner copy was
+      // held only because an approver published the new owner wording; the hold names that cause.
+      const ownerWordingOnly =
+        !readinessHeld &&
+        materialSourceHash === target.materialSourceHash &&
+        target.priorOwnerWordingMaterialSourceHash !== undefined &&
+        target.priorOwnerWordingMaterialSourceHash === authorization.materialSourceHash;
+      const changedInputs: ChangedInput[] = ownerWordingOnly
+        ? [OWNER_WORDING_UPDATED_INPUT]
+        : kept
+          ? changedReviewedInputs(kept, target.reviewedInputs ?? null)
+          : [];
       s = await this.deps.store.write({
         id: s.id,
         actorUid: actor.uid,

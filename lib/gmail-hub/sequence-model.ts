@@ -281,6 +281,12 @@ export interface CommunicationInboundEvidence {
   receivedAtMs: number;
   /** A bounce's attempt by its RFC Message-ID or thread; null when no single attempt is identified. */
   attemptOccurrenceId?: string | null;
+  /**
+   * S285 R-S285-5: true when a person's reply came from an address the message was sent to (its
+   * To), false when it came from another participant. A yes or no only; no address is kept.
+   * Absent on evidence recorded before S285.
+   */
+  fromSentTo?: boolean;
 }
 /** At most this many incoming entries are kept per communication; older ones stay counted as seen. */
 export const INBOUND_EVIDENCE_LIMIT = 200;
@@ -318,6 +324,12 @@ export interface VerifiedCommunicationTarget {
   cc: string[];
   sourceRefs: string[];
   materialSourceHash: string;
+  /**
+   * S285 R-S285-6: the material source this read would give under the owner copy published before
+   * the one in use (v2.0 while v2.1 is in use). Present only for an owner message whose copy
+   * changed. Not part of the reviewed target hash; it names a hold's cause only.
+   */
+  priorOwnerWordingMaterialSourceHash?: string;
   label: string;
   blockers?: string[];
   /**
