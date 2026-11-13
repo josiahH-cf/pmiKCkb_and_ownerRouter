@@ -17,6 +17,7 @@ import { isCurrentMessageScope, keptContentBasis } from "@/lib/gmail-hub/current
 import {
   NEW_HOLD_KEY_PREFIX,
   NEW_HOLD_LABEL,
+  OWNER_WORDING_UPDATED_INPUT,
   changedReviewedInputs,
   type ChangedInput,
   type ReviewedInput,
@@ -28,6 +29,10 @@ import {
   type RichCommunicationMessage,
 } from "@/lib/gmail-hub/sequence-model";
 import { messageRevisionOf } from "@/lib/lease-renewal/message-revision";
+import {
+  OWNER_WORDING_UPDATED_LINE,
+  isOwnerWordingChange,
+} from "@/lib/lease-renewal/owner-copy-version";
 
 type Audience = "owner" | "tenant";
 export type UnsentPauseCause = NonNullable<CommunicationSequence["pause"]>["cause"];
@@ -195,11 +200,15 @@ export function unsentMessageWords(audience: Audience) {
 
 /**
  * R-S273-3: one changed value: "Renewal end date: 12/31/2027 in the scheduled message, 06/30/2027
- * on the lease." A value the authorization did not keep reads "{label} changed."
+ * on the lease." A value the authorization did not keep reads "{label} changed." S285 R-S285-6: a
+ * held owner message whose only cause is the owner wording an approver published reads "The
+ * owner message wording was updated." (the worker's hold and the approved template's change).
  */
 export function unsentDifferenceLine(change: ChangedInput): string {
   if (change.key.startsWith(NEW_HOLD_KEY_PREFIX))
     return `${NEW_HOLD_LABEL}: ${(change.current ?? "").replace(/\.$/, "")}.`;
+  if (change.key === OWNER_WORDING_UPDATED_INPUT.key || isOwnerWordingChange(change))
+    return `${OWNER_WORDING_UPDATED_LINE}.`;
   const { previous, current } = change;
   if (previous === undefined || previous === current) return `${change.label} changed.`;
   return `${change.label}: ${previous ?? "not set"} in the scheduled message, ${current ?? "not set"} on the lease.`;

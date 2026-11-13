@@ -362,14 +362,29 @@ export async function prepareTenantOffer(ctx, page, leaseId, log, { end }) {
   return { owner, answer, dates, amount };
 }
 
+/**
+ * The step's "Schedule" button as staff reach it: in the Now card, or (S281 R-S281-12) inside the
+ * step's "Other ways to send" group, which is closed on entry and opened by its summary.
+ */
+export async function stepScheduleButton(ctx, page) {
+  const { kit } = ctx;
+  const group = page
+    .locator('details[data-renewal-group="Other ways to send"]:visible')
+    .first();
+  if (await kit.shownWithin(group, 3_000)) {
+    await kit.openDisclosure(group);
+    const inGroup = group.getByRole("button", { name: "Schedule", exact: true });
+    if (await kit.shownWithin(inGroup, 10_000)) return inGroup;
+  }
+  const schedule = kit.now(page).getByRole("button", { name: "Schedule", exact: true });
+  if (await kit.shownWithin(schedule, 20_000)) return schedule;
+  return page.getByRole("button", { name: "Schedule", exact: true }).first();
+}
+
 /** Offer the tenant: "Schedule" in the step, the dialog's date and time as offered, then confirm. */
 export async function scheduleTenantOffer(ctx, page, leaseId) {
-  const { kit } = ctx;
   await reachPrimary(ctx, page, leaseId, "offer-tenant", "Review tenant offer");
-  const schedule = kit.now(page).getByRole("button", { name: "Schedule", exact: true });
-  const trigger = (await kit.shownWithin(schedule, 20_000))
-    ? schedule
-    : page.getByRole("button", { name: "Schedule", exact: true }).first();
+  const trigger = await stepScheduleButton(ctx, page);
   const dialog = await openReviewDialog(ctx, page, trigger, DIALOG_SCHEDULE);
   const firstDate = await dialog
     .locator('input[type="date"]')
@@ -450,7 +465,46 @@ export async function resumeFromCommunications(ctx, page, leaseId, purposeWords)
     name: "Resume reviewed sequence",
     exact: true,
   });
-  await resume.waitFor({ timeout: 60_000 });
+  // A build that refuses this Resume (S272 R-S272-5) shows its reason in place of the control
+  // once the communication's lease read answers; until then Resume shows but stays disabled.
+  const refusal = composer.locator('[data-communication-field="refusal"]');
+  await resume.or(refusal).first().waitFor({ timeout: 60_000 });
+  await page
+    .waitForFunction(
+      () => {
+        const region = document.querySelector(
+          'section[aria-label="Workflow communication composer"]',
+        );
+        if (!region) return false;
+        if (region.querySelector('[data-communication-field="refusal"]')) return true;
+        return [...region.querySelectorAll("button")].some(
+          (button) =>
+            (button.textContent ?? "").trim() === "Resume reviewed sequence" &&
+            !button.disabled,
+        );
+      },
+      null,
+      { timeout: 60_000 },
+    )
+    .catch(() => undefined);
+  if (!(await resume.isVisible())) {
+    const shown = async (name) =>
+      (await composer.getByRole("button", { name, exact: true }).count()) > 0;
+    return {
+      cardText,
+      offered: false,
+      controlsShown: {
+        send: await shown("Send"),
+        schedule: await shown("Schedule"),
+        resume: false,
+      },
+      refusalReason: await refusal.first().getAttribute("data-refusal-reason"),
+      dialogShown: (await page.getByRole("dialog").count()) > 0,
+      status: null,
+      state: null,
+      statusLine: await kit.visibleText(composer.locator('p[role="status"]').first()),
+    };
+  }
   const controls = {
     send: await composer.getByRole("button", { name: "Send", exact: true }).isEnabled(),
     schedule: await composer
@@ -467,6 +521,7 @@ export async function resumeFromCommunications(ctx, page, leaseId, purposeWords)
   const body = await response.json().catch(() => null);
   return {
     cardText,
+    offered: true,
     controlsEnabled: controls,
     dialogShown: (await before.count()) > 0,
     status: response.status(),
@@ -582,6 +637,28 @@ export async function journeyW1202(ctx, page) {
   };
 }
 
+/** S273 R-S273-3: the Offer step's primary while it holds the step on a held or outdated offer. */
+const HELD_OFFER_PRIMARY =
+  /^Review the updated offer$|^Review this tenant communication$/;
+
+/**
+ * W12-01's "send a new offer from the lease". The baseline's Offer step still reads "Review tenant
+ * offer" and the offer is sent as before. A build whose step holds on the held offer (S273
+ * R-S273-3: "Review the updated offer" and "Cancel the scheduled offer") offers no new send there;
+ * that is recorded with the primary it read, and nothing is clicked.
+ */
+async function newOfferFromLease(ctx, page, leaseId) {
+  await ctx.kit.openLease(page, leaseId, "?step=offer-tenant");
+  // The held state shows once the step's message read answers; any other name is taken only
+  // after it has stayed the same for ten seconds with nothing still reading.
+  const primary = await waitForPrimary(ctx, page, (name) =>
+    HELD_OFFER_PRIMARY.test(name),
+  );
+  if (HELD_OFFER_PRIMARY.test(primary ?? ""))
+    return { offered: false, primary, status: null, alert: null };
+  return { offered: true, primary, ...(await sendTenantOffer(ctx, page, leaseId)) };
+}
+
 /** W12-01: the same, then a new offer from the lease, Resume on the paused one, and a tick. */
 export async function journeyW1201(ctx, page) {
   const { kit } = ctx;
@@ -592,10 +669,15 @@ export async function journeyW1201(ctx, page) {
   const held = (await kit.sequences(leaseId, "renewal_tenant")).find(
     (sequence) => sequence.id === scheduled.sequenceId,
   );
-  const fresh = await sendTenantOffer(ctx, page, leaseId);
-  log.add("new tenant offer sent from the lease", { status: fresh.status });
+  const fresh = await newOfferFromLease(ctx, page, leaseId);
+  log.add("new tenant offer sent from the lease", {
+    offered: fresh.offered,
+    primary: fresh.primary,
+    status: fresh.status,
+  });
   const resumed = await resumeFromCommunications(ctx, page, leaseId, "renewal tenant");
   log.add("Resume reviewed sequence", {
+    offered: resumed.offered,
     status: resumed.status,
     state: resumed.state,
     dialogShown: resumed.dialogShown,
@@ -613,14 +695,24 @@ export async function journeyW1201(ctx, page) {
   });
   return {
     observed: {
+      scheduledSequenceId: scheduled.sequenceId,
       firstTick: pickTick(firstTick),
       heldMessage: sequenceSummary(held),
       newOfferStatus: fresh.status,
+      newOffer: {
+        offered: fresh.offered,
+        primary: fresh.primary,
+        status: fresh.status,
+        alert: fresh.alert ?? null,
+      },
       resume: {
+        offered: resumed.offered,
         status: resumed.status,
         state: resumed.state,
         dialogShown: resumed.dialogShown,
-        controlsEnabled: resumed.controlsEnabled,
+        controlsEnabled: resumed.controlsEnabled ?? null,
+        controlsShown: resumed.controlsShown ?? null,
+        refusalReason: resumed.refusalReason ?? null,
       },
       secondTick: pickTick(secondTick),
       tenantMessages: messages.length,
@@ -866,11 +958,24 @@ export async function journeyW1205(ctx, page) {
     .catch(() => null);
   await select.selectOption("accepted");
   const response = await saved;
-  const reviewShown = await page
-    .getByRole("region", { name: /Review the tenant/i })
-    .count();
-  const workspace = await kit.read(page, `${WORKSPACE_ROUTE}?leaseId=${leaseId}`);
+  const reviewRegion = page.getByRole("region", { name: /Review the tenant/i });
+  const reviewShown = await reviewRegion.count();
   log.add('tenant response "Accepted" chosen', { status: response?.status() ?? null });
+  // S276 R-S276-1 (W12-05 candidate adaptation): where choosing no longer saves, staff read the
+  // review and choose its one Save, so both builds reach the same recorded "Accepted" before the
+  // tick. On a build that saves on selection there is no review and nothing more is clicked.
+  let reviewText = null;
+  let savedWithSave = null;
+  if (response === null && reviewShown > 0) {
+    reviewText = await kit.visibleText(reviewRegion.first());
+    const answer = kit.appResponse(page, WORKSPACE_ROUTE, {
+      match: (body) => body?.action?.kind === "tenant_response",
+    });
+    await reviewRegion.first().getByRole("button", { name: "Save", exact: true }).click();
+    savedWithSave = (await answer).status();
+    log.add('tenant response "Accepted" saved with Save', { status: savedWithSave });
+  }
+  const workspace = await kit.read(page, `${WORKSPACE_ROUTE}?leaseId=${leaseId}`);
   const tick = await kit.tick(sequenceId);
   log.add("worker tick at the next due time", pickTick(tick));
   const mailAfter = (await kit.sentTo(kit.tenantAddresses(leaseId))).length;
@@ -882,6 +987,8 @@ export async function journeyW1205(ctx, page) {
       offerStatus: offer.status,
       savedOnSelection: response !== null && response.status() === 200,
       reviewShownBeforeSave: reviewShown > 0,
+      reviewText,
+      savedWithSave,
       recordedOutcome: workspace?.state?.tenantResponse?.outcome ?? null,
       tick: pickTick(tick),
       tenantMessagesBeforeTick: mailBefore,

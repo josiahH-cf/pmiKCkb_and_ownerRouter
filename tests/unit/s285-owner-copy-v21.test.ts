@@ -39,6 +39,7 @@ import {
   reviewedInput,
 } from "@/lib/gmail-hub/reviewed-inputs";
 import { predatesChangeLine } from "@/lib/gmail-hub/communication-state";
+import { unsentDifferenceLine } from "@/lib/lease-renewal/unsent-message";
 import { sequenceHash } from "@/lib/gmail-hub/sequence-store";
 import { heldOnOwnerWordingPublish } from "@/lib/firestore/renewal-owner-copy-publication";
 import { ownerCopyV21Publication } from "@/lib/firestore/renewal-owner-copy-document";
@@ -404,6 +405,23 @@ describe("AC-S285-2 / R-S285-6 the publication's consequence and the named cause
     );
     expect(changedInputLine(OWNER_WORDING_UPDATED_INPUT)).toBe(
       "The owner message wording was updated",
+    );
+    // The lease step's held or out-of-date owner message names the same cause (S273 R-S273-3).
+    expect(unsentDifferenceLine(changes[0]!)).toBe(
+      "The owner message wording was updated.",
+    );
+    expect(unsentDifferenceLine(OWNER_WORDING_UPDATED_INPUT)).toBe(
+      "The owner message wording was updated.",
+    );
+    expect(
+      unsentDifferenceLine({
+        key: "template",
+        label: "Approved template",
+        previous: "Renewal tenant — supplied September 10 2026 v2.0",
+        current: "Renewal tenant — later",
+      }),
+    ).toBe(
+      "Approved template: Renewal tenant — supplied September 10 2026 v2.0 in the scheduled message, Renewal tenant — later on the lease.",
     );
     // A tenant template change keeps its own line.
     expect(

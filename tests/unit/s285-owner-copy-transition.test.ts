@@ -34,6 +34,7 @@ import {
 import { CommunicationSequenceRefusedError } from "@/lib/gmail-hub/current-message";
 import { addCalendarDays, localDateAt } from "@/lib/gmail-hub/schedule-calendar";
 import type { WorkflowCommunicationContext } from "@/lib/gmail-hub/workflow-context";
+import type { WorkflowMimeMessage } from "@/lib/gmail-runtime/workflow-mime";
 import {
   OWNER_COPY_PUBLICATION_NAMES,
   ownerTermContentBasis,
@@ -190,7 +191,7 @@ function setup() {
     notice: "none",
   };
   let sends = 0;
-  const send = vi.fn(async () => {
+  const send = vi.fn(async (_message: WorkflowMimeMessage) => {
     sends += 1;
     return { messageId: `message-${sends}`, threadId: "thread-1", labelIds: ["SENT"] };
   });
@@ -305,17 +306,33 @@ function setup() {
 }
 
 describe("AC-S285-2 the release holds no review and pauses no message", () => {
-  it("ARCH-S285-2 / BEH-S285-5: with v2.1 present and unpublished, an owner message authorized under v2.0 sends at its time as reviewed", async () => {
+  it("ARCH-S285-2 / BEH-S285-5: unpublished v2.1 leaves a pre-release v2.0 schedule's exact review intact", async () => {
     const f = setup();
     const scheduled = await f.authorize((await f.draft()).id, "schedule");
-    expect(scheduled.authorization!.initial.plainText).not.toContain("renewal term");
+    const authorization = scheduled.authorization!;
+    expect(authorization.initial.plainText).not.toContain("renewal term");
+    const path = `${COMMUNICATION_SEQUENCE_COLLECTIONS.sequences}/${scheduled.id}`;
+    const record = f.db.store.get(path)!;
+    // The serving build did not store the S272/S273/S274 review metadata.
+    delete record.authorizedInputs;
+    delete record.authorizedContentBasis;
+    delete record.wordingSavedAfterRevision;
+    delete record.unsentHistory;
     const result = await f.tick(scheduled.id);
-    expect(result.status).not.toBe("paused");
-    expect(f.send).toHaveBeenCalledTimes(1);
+    expect(result.status).toBe("sent");
     const after = (await f.store.get(scheduled.id))!;
     expect(after.pause ?? null).toBeNull();
     expect(after.confirmedCount).toBe(1);
-    expect(f.send.mock.calls.length).toBe(1);
+    expect(after.authorization).toEqual(authorization);
+    expect(f.send).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        to: authorization.to,
+        cc: authorization.cc,
+        subject: authorization.initial.subject,
+        body: authorization.initial.plainText,
+        htmlBody: authorization.initial.htmlBody,
+      }),
+    );
   });
 
   it("BEH-S285-5: before publication a new owner review authorizes as before", async () => {

@@ -215,6 +215,65 @@ export function setSheetCells(rehearsal, leaseId, cells) {
   return writeFlags(rehearsal, { ...flags, sheetCells });
 }
 
+/**
+ * S284 W12-05 (S276 AC-S276-3), test-only: make the rehearsal server's next write of a reminder
+ * pause for a recorded tenant response fail, once (true), or clear that (false). The server's
+ * provider boundary refuses that one Firestore transaction write and marks the fault fired
+ * (scripts/lib/one-path-rehearsal/firestore-fault.mjs); nothing else is touched. Resolves with
+ * { armed, fired }: whether it is still waiting, and whether it fired since it was last set.
+ */
+export function setTenantResponsePauseFault(rehearsal, on) {
+  const file = rehearsal.files?.firestoreFault;
+  if (!file) throw new Error("This rehearsal names no Firestore fault file.");
+  rmSync(`${file}.fired`, { force: true });
+  if (on)
+    writeFileSync(file, `${JSON.stringify({ armedAt: new Date().toISOString() })}\n`);
+  else rmSync(file, { force: true });
+  return tenantResponsePauseFault(rehearsal);
+}
+
+/** S284 W12-05: the fault's state, as setTenantResponsePauseFault reports it. */
+export function tenantResponsePauseFault(rehearsal) {
+  const file = rehearsal.files?.firestoreFault;
+  if (!file) return { armed: false, fired: false };
+  return { armed: existsSync(file), fired: existsSync(`${file}.fired`) };
+}
+
+/**
+ * S284 W12-13 (test-only): serve these owners of record for one existing fixture lease, as
+ * RentVine would after its owners changed (for example two owners who share one address, or an
+ * owner whose address is not the one a message went to), or the fixture's own owners again with
+ * null. Each owner is a synthetic name and an example.invalid address. The app reads it on its
+ * next RentVine read ("Refresh data"). Rows are never added.
+ */
+export function setOwnerRoster(rehearsal, leaseId, owners) {
+  if (!Object.values(rehearsal.groups).flat().includes(Number(leaseId)))
+    throw new Error("Choose an existing fixture lease.");
+  if (
+    owners !== null &&
+    (!Array.isArray(owners) ||
+      owners.length < 1 ||
+      owners.length > 4 ||
+      owners.some(
+        (owner) =>
+          !/^[A-Z][A-Za-z ]{1,60}$/.test(String(owner?.name)) ||
+          !/^[^@\s<>]+@example\.invalid$/i.test(String(owner?.email)),
+      ))
+  )
+    throw new Error(
+      "Give one to four synthetic owners with example.invalid addresses, or null.",
+    );
+  const flags = readFlags(rehearsal);
+  const ownerRosters = { ...(flags.ownerRosters ?? {}) };
+  if (owners === null) delete ownerRosters[String(leaseId)];
+  else
+    ownerRosters[String(leaseId)] = owners.map(({ name, email }) => ({
+      name: String(name),
+      email: String(email),
+    }));
+  return writeFlags(rehearsal, { ...flags, ownerRosters });
+}
+
 /** S252: every RentVine control flag off, as the rehearsal starts (reset.mjs). */
 export function clearRentvineFlags(rehearsal) {
   return writeFlags(rehearsal, {});
