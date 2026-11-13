@@ -30,7 +30,19 @@ import {
   NOVEMBER_5_MIX_PATH,
   readNovember5Mix,
 } from "./november-5-mix.mjs";
-import { forceSourceRefresh, runSeeds } from "./seeds.mjs";
+import { forceSourceRefresh, runSeeds, SEED_STEPS } from "./seeds.mjs";
+
+/**
+ * The seed steps the running rehearsal started with, as scripts/one-path-rehearsal.mjs runs them:
+ * a compiled synthetic-mail run leaves the replied owner message out (the S260 driver reads that
+ * lease's field as absent there). S284 passes these to resetRehearsalState, so a qualification
+ * replay or journey that starts again starts from the same state the run itself started from.
+ */
+export function startingSeedSteps(rehearsal) {
+  return rehearsal?.compiledMail != null
+    ? SEED_STEPS.filter(({ name }) => name !== "replied-owner-message")
+    : SEED_STEPS;
+}
 
 /** The mix as the running rehearsal loaded it (the same business date). */
 export function rehearsalMix(rehearsal) {
@@ -42,9 +54,11 @@ export function rehearsalMix(rehearsal) {
 
 /**
  * Reset and seed again. `browser` is a Playwright browser of the calling driver; a context of its
- * own is used and closed. Resolves with the seed results, in the shape rehearsal.json records.
+ * own is used and closed. `steps` are the seed steps to run (every step when left out, as before;
+ * startingSeedSteps(rehearsal) for the run's own starting state). Resolves with the seed results,
+ * in the shape rehearsal.json records.
  */
-export async function resetRehearsalState({ rehearsal, browser }) {
+export async function resetRehearsalState({ rehearsal, browser, steps = SEED_STEPS }) {
   const origin = rehearsal.origin;
   await resetStandIns(rehearsal);
   await clearEmulatorDocuments(rehearsal);
@@ -77,12 +91,15 @@ export async function resetRehearsalState({ rehearsal, browser }) {
     // The seeds expect the server's first read to show the recorded cycle dates, as it does when
     // the harness starts, so the server reads RentVine again now, while those dates are served.
     const refreshed = await forceSourceRefresh(page);
-    const seeds = await runSeeds({
-      page,
-      mix: rehearsalMix(rehearsal),
-      rehearsal,
-      origin,
-    });
+    const seeds = await runSeeds(
+      {
+        page,
+        mix: rehearsalMix(rehearsal),
+        rehearsal,
+        origin,
+      },
+      steps,
+    );
     // A driver reads what the seeds made (for example the replied lease's message id) from
     // rehearsal.json, so the description names this state's seeds; the first ones are kept beside.
     const file = join(rehearsal.runDir, REHEARSAL_FILE);

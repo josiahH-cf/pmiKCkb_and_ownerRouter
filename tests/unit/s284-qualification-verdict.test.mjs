@@ -1,6 +1,7 @@
 import { format } from "prettier";
 import { describe, expect, it } from "vitest";
 import {
+  COMPILED_MAIL_IDENTITY,
   HUMAN_NOT_RUN,
   KNOWN_HARNESS_REFUSAL_HOSTS,
   MATRIX_VERSION,
@@ -12,6 +13,7 @@ import {
   W12_JOURNEYS,
   W12_MATRIX,
   YES,
+  compiledMailProblem,
   renderQualificationReport,
   scoreQualification,
   scoreW12Matrix,
@@ -23,6 +25,10 @@ const baselineSource = "7f4cf234c18c0b80a0ed88bc08d70e174ae9c311";
 const buildId = "exact-build-0001";
 const otherBuild = "other-build-0002";
 const runId = "20261113T120000Z-cccccccc";
+// The compiled synthetic mail's identity as rehearsal.json and the compiled log entry record it.
+const mail = Object.fromEntries(
+  COMPILED_MAIL_IDENTITY.map((key, index) => [key, String(index + 1).repeat(64)]),
+);
 
 const passing = ({ id, checks }) => ({
   id,
@@ -37,6 +43,9 @@ const completeRun = (overrides = {}) => ({
   harnessSource: source,
   overlay: false,
   harnessUncommitted: false,
+  compiled: true,
+  compiledMail: mail,
+  buildCompiledMail: { ...mail },
   runId,
   only: null,
   results: W12_MATRIX.map(passing),
@@ -150,6 +159,7 @@ describe("AC-S284-3 one exact build, scored complete only when it is", () => {
       status: "complete",
       verdict: YES,
       bound: true,
+      admissible: true,
       refusals: [],
       gaps: [],
       only: null,
@@ -173,6 +183,7 @@ describe("AC-S284-3 one exact build, scored complete only when it is", () => {
       servedSource: source,
       buildId,
       buildSource: source,
+      compiledMail: mail.adapter,
       runId,
     });
   });
@@ -321,6 +332,120 @@ describe("AC-S284-3 one exact build, scored complete only when it is", () => {
     expect(
       withRow(5, (row) => ({ ...row, verdict: UNVERIFIED })).journeys[5].verdict,
     ).toBe(UNVERIFIED);
+  });
+});
+
+describe("R-S284-3 one compiled build with the synthetic mail", () => {
+  const withoutDraftStandIn = Object.fromEntries(
+    Object.entries(mail).filter(([key]) => key !== "draftStandIn"),
+  );
+
+  it("binds the run to the compiled synthetic mail the build was compiled with", () => {
+    expect(
+      compiledMailProblem({
+        compiled: true,
+        compiledMail: mail,
+        buildCompiledMail: { ...mail },
+      }),
+    ).toBeNull();
+    expect(compiledMailProblem()).toBe("compiled");
+    expect(COMPILED_MAIL_IDENTITY).toEqual([
+      "adapter",
+      "worker",
+      "sourcePreview",
+      "draftStandIn",
+      "nextConfig",
+      "isolatedNextConfig",
+    ]);
+  });
+
+  it.each([
+    [{ compiled: false }, "compiled"],
+    [{ compiledMail: null }, "synthetic-mail"],
+    [
+      {
+        compiledMail: { ...mail, adapter: "not-a-digest" },
+        buildCompiledMail: { ...mail, adapter: "not-a-digest" },
+      },
+      "synthetic-mail",
+    ],
+    [
+      { compiledMail: withoutDraftStandIn, buildCompiledMail: withoutDraftStandIn },
+      "synthetic-mail",
+    ],
+    [{ buildCompiledMail: null }, "synthetic-mail-build"],
+    [{ buildCompiledMail: { ...mail, worker: "f".repeat(64) } }, "synthetic-mail-build"],
+  ])(
+    "refuses a run that did not use the compiled synthetic mail build (%o)",
+    (overrides, code) => {
+      const result = scoreW12Matrix(completeRun(overrides));
+      expect(result).toMatchObject({
+        status: "refused",
+        verdict: NO,
+        bound: false,
+        admissible: false,
+        refusals: [{ code }],
+        counts: { checksPassed: 0 },
+      });
+      expect(result.identities.compiledMail).toBeNull();
+      expect(new Set(Object.values(verdicts(result)))).toEqual(new Set([UNVERIFIED]));
+    },
+  );
+
+  it("never admits a development run or a run limited with --only", () => {
+    const development = scoreW12Matrix(
+      completeRun({
+        buildId: null,
+        buildSource: null,
+        overlay: true,
+        compiled: false,
+        compiledMail: null,
+        buildCompiledMail: null,
+        runId: "20261113T120000Z-cccccccc-overlay",
+        only: ["W12-03"],
+        results: [passing(W12_MATRIX[2])],
+      }),
+    );
+    expect(development).toMatchObject({
+      status: "refused",
+      verdict: NO,
+      bound: false,
+      admissible: false,
+    });
+    expect(development.refusals.map(({ code }) => code)).toEqual([
+      "build-id",
+      "build-source",
+      "overlay",
+      "compiled",
+    ]);
+    expect(
+      scoreW12Matrix(
+        completeRun({ only: ["W12-03"], results: [passing(W12_MATRIX[2])] }),
+      ),
+    ).toMatchObject({ status: "incomplete", verdict: UNVERIFIED, admissible: false });
+    expect(scoreW12Matrix(completeRun())).toMatchObject({
+      status: "complete",
+      admissible: true,
+    });
+  });
+
+  it("states the compiled synthetic mail in the report", () => {
+    const report = renderQualificationReport(scoreQualification({ run: completeRun() }));
+    expect(report).toContain(`- Compiled synthetic mail adapter: \`${mail.adapter}\``);
+    const refused = renderQualificationReport(
+      scoreQualification({ run: completeRun({ compiledMail: null }) }),
+    );
+    expect(refused).toContain("- Compiled synthetic mail adapter: not recorded");
+    expect(refused).toContain(
+      "The run is refused: the run did not use the compiled synthetic mail. Nothing it recorded counts for this build.",
+    );
+    expect(
+      renderQualificationReport(
+        scoreQualification({ run: completeRun({ buildCompiledMail: null }) }),
+      ),
+    ).toContain(
+      "The run is refused: the compiled synthetic mail is not the one compiled into the build.",
+    );
   });
 });
 
@@ -568,6 +693,44 @@ describe("AC-S284-4 preservation replays on the same build", () => {
     ).toBe("refused");
   });
 
+  it("never raises a replay its own verdict module read No or UNVERIFIED", () => {
+    const declared = replays();
+    declared.s260.verdict = NO;
+    declared.s271.verdict = UNVERIFIED;
+    const scored = scoreQualification({
+      run: completeRun(),
+      staffPath: cleanStaffPath,
+      replays: declared,
+      changedPins: pins,
+    });
+    expect(scored.preservation.s260).toMatchObject({
+      status: "scored",
+      verdict: NO,
+      reasons: ["module-no"],
+    });
+    expect(scored.preservation.s271).toMatchObject({
+      status: "scored",
+      verdict: UNVERIFIED,
+      reasons: ["module-unverified"],
+    });
+    const report = flat(renderQualificationReport(scored));
+    expect(report).toContain("12 of 12 rows Yes; its own verdict module read No | No |");
+    expect(report).toContain(
+      "9 of 9 rows Yes; N10-02 on the staff path; its own verdict module read UNVERIFIED | UNVERIFIED |",
+    );
+    // A module Yes leaves the rows to decide: a row that reads No still fails the replay.
+    const rowNo = replays();
+    rowNo.s271.verdict = YES;
+    rowNo.s271.journeys[0] = { ...rowNo.s271.journeys[0], verdict: NO };
+    expect(
+      scoreQualification({
+        run: completeRun(),
+        staffPath: cleanStaffPath,
+        replays: rowNo,
+      }).preservation.s271,
+    ).toMatchObject({ verdict: NO, reasons: [] });
+  });
+
   it("passes an S252 result outside its bound only as a changed pin with its suite", () => {
     const unscoped = scoreQualification({
       run: completeRun(),
@@ -610,6 +773,7 @@ describe("AC-S284-5 the report", () => {
     );
     expect(report).toContain(`- Served source: \`${source}\``);
     expect(report).toContain(`- Compiled build: \`${buildId}\`, made from \`${source}\``);
+    expect(report).toContain(`- Compiled synthetic mail adapter: \`${mail.adapter}\``);
     expect(report).toContain(`- Private run: \`${runId}\``);
     expect(report).toContain("Engineering verdict: **Yes** on the W12 matrix.");
     expect(report).toContain("Acceptance checks passed: 90 of 90.");

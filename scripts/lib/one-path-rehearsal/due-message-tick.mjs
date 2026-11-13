@@ -8,13 +8,41 @@
 // To make a scheduled message due now without waiting for its date, the tick first moves that one
 // message's due time to the present in the emulator (a harness change to emulator state, never a
 // product write path). Every address it calls is checked to be 127.0.0.1.
+//
+// S284 R-S284-3: on a compiled synthetic-mail build (rehearsal.compiledMail) the same worker runs
+// inside that build instead: the tick asks the S260 synthetic worker route the isolated compile
+// adds (tests/browser/fixtures/s260-compiled-mail-worker.ts) with the run's own worker token, as
+// the S260 and S271 drivers do, so a journey's scheduled send is made by the build it qualifies.
+// The message is made due the same way; the route takes no input and its clock stays the present.
 import { spawn } from "node:child_process";
 import { join } from "node:path";
 
 const LOOPBACK_HOST = /^127\.0\.0\.1:\d{1,5}$/;
 const LOOPBACK_ORIGIN = /^http:\/\/127\.0\.0\.1:\d{1,5}$/;
+const REHEARSAL_ORIGIN = /^http:\/\/(?:localhost|127\.0\.0\.1):\d{1,5}$/;
 const PRELOAD = "tests/browser/renewal-novdec-journey-network.mjs";
 const TICK = "scripts/lib/one-path-rehearsal/due-message-tick-run.ts";
+const COMPILED_WORKER = "/api/rehearsal/s260-mail-worker";
+
+/** One run of the worker compiled into the synthetic-mail build; resolves with its counts. */
+async function compiledWorkerTick(rehearsal) {
+  const origin = String(rehearsal.origin);
+  if (!REHEARSAL_ORIGIN.test(origin))
+    throw new Error("The rehearsal's origin is not a loopback address.");
+  const token = process.env.S260_SYNTHETIC_WORKER_TOKEN;
+  if (!/^[a-f0-9]{64}$/.test(String(token)))
+    throw new Error(
+      "This process holds no synthetic worker token for the compiled build.",
+    );
+  const response = await fetch(origin + COMPILED_WORKER, {
+    method: "POST",
+    headers: { authorization: `Bearer ${token}` },
+    redirect: "error",
+  });
+  if (response.status !== 200)
+    throw new Error(`The compiled synthetic worker answered HTTP ${response.status}.`);
+  return response.json();
+}
 
 async function makeDue(rehearsal, sequenceId) {
   if (!LOOPBACK_HOST.test(rehearsal.firestoreEmulatorHost))
@@ -42,6 +70,7 @@ export async function runDueMessageTick(rehearsal, { sequenceId } = {}) {
   if (!LOOPBACK_ORIGIN.test(String(rehearsal.standInOrigin)))
     throw new Error("The rehearsal's mail stand-in is not on 127.0.0.1.");
   if (sequenceId) await makeDue(rehearsal, sequenceId);
+  if (rehearsal.compiledMail != null) return compiledWorkerTick(rehearsal);
   const output = await new Promise((done, fail) => {
     const child = spawn(process.execPath, ["node_modules/tsx/dist/cli.mjs", TICK], {
       stdio: ["ignore", "pipe", "pipe"],

@@ -28,7 +28,10 @@
 #                      driver. Arguments after -- are passed to it.
 #   --compiled         Build once in the guarded rehearsal and serve that exact production build.
 #   --compiled-synthetic-mail  Use the S260 Gmail test adapter and worker in that isolated compile.
-#                      Requires --compiled and the exact S260 driver from a clean current commit.
+#                      Requires --compiled and the exact S260, S271 or S284 qualification driver
+#                      (scripts/lib/one-path-rehearsal/compiled-mail.mjs) from a clean current
+#                      commit. While a driver runs it may ask for the server to start again from
+#                      the same build (S284 R-S284-4; scripts/one-path-rehearsal.mjs).
 #   --no-seeds         Load the source leases only; skip every app-state seed.
 #   --hold-automatic-comparison
 #                      Keep the rehearsal's automatic preparation setting off, including after

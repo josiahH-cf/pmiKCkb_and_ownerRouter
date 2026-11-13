@@ -7,7 +7,8 @@
 // connection outside the harness's known ones and no unresolved effect is recorded (BEH-S284-2).
 // A journey that did not run reads UNVERIFIED, never Yes. A run limited with --only is
 // incomplete, and a run whose build was made from another source than the one served is refused
-// (AC-S284-3).
+// (AC-S284-3), as is a run that did not use the compiled synthetic mail build (R-S284-3). Only a
+// complete run is admissible as qualification evidence; a development run is never admissible.
 //
 // scoreQualification adds the fail-first baseline (R-S284-1), the static staff-path check
 // (ARCH-S284-2), the preservation replays on the same build with each changed pin and the suite
@@ -92,6 +93,17 @@ const STAFF_PATH_COUNTED = [...STAFF_PATH_ACTIONS, "unresolved"];
 // tests/browser/one-path-journey-driver.mjs). Every other refused connection counts.
 export const KNOWN_HARNESS_REFUSAL_HOSTS = Object.freeze(["registry.npmjs.org"]);
 
+// R-S284-3: the compiled synthetic mail's identity, as scripts/lib/one-path-rehearsal/compiled-mail.mjs
+// records it in rehearsal.json and in the compiled log entry: one SHA-256 digest per isolated input.
+export const COMPILED_MAIL_IDENTITY = Object.freeze([
+  "adapter",
+  "worker",
+  "sourcePreview",
+  "draftStandIn",
+  "nextConfig",
+  "isolatedNextConfig",
+]);
+
 // R-S284-5: sizing reads, never gates, and run only under a launch that names them.
 export const PRODUCTION_READS = Object.freeze([
   Object.freeze({
@@ -107,6 +119,7 @@ export const PRODUCTION_READS = Object.freeze([
 ]);
 
 const SHA = /^[a-f0-9]{40}$/;
+const DIGEST = /^[a-f0-9]{64}$/;
 const BUILD_ID = /^[A-Za-z0-9_-]{6,64}$/;
 const RUN_ID = /^\d{8}T\d{6}Z-[a-f0-9]{8}(?:-[a-z]+)?$/;
 // An authorizing reference names a record (an owner launch, a staff session, a document or its
@@ -151,12 +164,44 @@ function recordedChecks(checks) {
 }
 
 /**
+ * R-S284-3: whether the run used the compiled synthetic mail build, bound the way the S260 verdict
+ * module binds it (tests/browser/one-path-november-9-qualification-verdict.mjs): the build is a
+ * compiled one, the rehearsal's compiled-mail identity holds an exact digest for every isolated
+ * input, and it is the identity compiled into the build. Null when it did; otherwise the refusal
+ * code: "compiled" (no compiled build), "synthetic-mail" (no exact compiled-mail identity) or
+ * "synthetic-mail-build" (the rehearsal's identity is not the build's).
+ */
+export function compiledMailProblem({
+  compiled = false,
+  compiledMail = null,
+  buildCompiledMail = null,
+} = {}) {
+  if (compiled !== true) return "compiled";
+  if (
+    compiledMail === null ||
+    typeof compiledMail !== "object" ||
+    !COMPILED_MAIL_IDENTITY.every((key) => DIGEST.test(String(compiledMail[key] ?? "")))
+  )
+    return "synthetic-mail";
+  if (JSON.stringify(compiledMail) !== JSON.stringify(buildCompiledMail ?? null))
+    return "synthetic-mail-build";
+  return null;
+}
+
+/**
  * ARCH-S284-1 and AC-S284-3: the W12 matrix verdict for one run on one exact build.
  *
  * From the rehearsal's own records: servedSource is rehearsal.servedVersion; buildId and
  * buildSource are the compiled log entry's buildId and source; harnessSource, overlay and
- * harnessUncommitted are run.harness_sha, rehearsal.overlay and run.harness_uncommitted; runId is
- * the private run directory's name; only is the --only list, or null.
+ * harnessUncommitted are run.harness_sha, rehearsal.overlay and run.harness_uncommitted; compiled,
+ * compiledMail and buildCompiledMail are rehearsal.compiled, rehearsal.compiledMail and the
+ * compiled log entry's compiledMail (R-S284-3, compiledMailProblem); runId is the private run
+ * directory's name; only is the --only list, or null.
+ *
+ * A run is admissible as qualification evidence only when it is complete: bound to one exact
+ * compiled synthetic-mail build and not limited with --only. A development run (an overlay, the
+ * development mail adapter, no build id) still scores its journeys' recorded checks for diagnosis
+ * in the driver, but it is refused here and never admissible.
  *
  * results holds one row per journey that ran: { id, checks, error?, verdict?, source?, buildId? }
  * with checks as { "AC-S272-1": true, ... } or [{ id, passed }]. Only true is a pass and false a
@@ -172,6 +217,9 @@ export function scoreW12Matrix(run) {
     harnessSource = null,
     overlay = false,
     harnessUncommitted = false,
+    compiled = false,
+    compiledMail = null,
+    buildCompiledMail = null,
     runId = null,
     only = null,
     results = [],
@@ -186,6 +234,8 @@ export function scoreW12Matrix(run) {
     refusals.push({ code: "harness-source" });
   if (flagged(overlay)) refusals.push({ code: "overlay" });
   if (flagged(harnessUncommitted)) refusals.push({ code: "harness-uncommitted" });
+  const mailProblem = compiledMailProblem({ compiled, compiledMail, buildCompiledMail });
+  if (mailProblem) refusals.push({ code: mailProblem });
   const bound = refusals.length === 0;
 
   if (!Array.isArray(results)) refusals.push({ code: "results-shape" });
@@ -314,12 +364,15 @@ export function scoreW12Matrix(run) {
     status,
     verdict,
     bound,
+    // Qualification evidence only from a complete run on one exact compiled synthetic-mail build.
+    admissible: status === "complete",
     refusals,
     gaps,
     identities: {
       servedSource: exact(SHA, servedSource),
       buildId: exact(BUILD_ID, buildId),
       buildSource: exact(SHA, buildSource),
+      compiledMail: mailProblem === null ? exact(DIGEST, compiledMail.adapter) : null,
       runId: exact(RUN_ID, runId),
     },
     only: subset === null ? null : inOrder(W12_JOURNEYS, subset),
@@ -493,16 +546,34 @@ function rowReplay(replay, expected, binding, adjust = (rows) => rows) {
     }),
   );
   const missing = rows.filter((row) => !row.ran).map((row) => row.id);
+  const fromRows = rows.some((row) => row.verdict === NO)
+    ? NO
+    : rows.some((row) => row.verdict === UNVERIFIED)
+      ? UNVERIFIED
+      : YES;
+  // The replay's own verdict module (its matrix verdict, when the replay carries one) is never
+  // raised: rows that read Yes cannot lift a replay its module read No or UNVERIFIED.
+  const declared =
+    replay.verdict === NO || replay.verdict === UNVERIFIED ? replay.verdict : null;
+  const verdict =
+    declared === NO
+      ? NO
+      : declared === UNVERIFIED && fromRows === YES
+        ? UNVERIFIED
+        : fromRows;
   return {
     status: "scored",
-    verdict: rows.some((row) => row.verdict === NO)
-      ? NO
-      : rows.some((row) => row.verdict === UNVERIFIED)
-        ? UNVERIFIED
-        : YES,
+    verdict,
     buildId: exact(BUILD_ID, replay.buildId),
     rows,
-    reasons: missing.length ? ["missing"] : [],
+    reasons: [
+      ...(missing.length ? ["missing"] : []),
+      ...(declared === NO
+        ? ["module-no"]
+        : declared === UNVERIFIED
+          ? ["module-unverified"]
+          : []),
+    ],
   };
 }
 
@@ -568,9 +639,11 @@ function budgetReplay(replay, binding, pins) {
 /**
  * R-S284-4 and AC-S284-4: the S260 and S271 replays and the scoped S252 budgets, each bound to the
  * W12 matrix's build id and served source, and the changed pins, each with the suite that changed
- * it ({ pin, suite }). s260 and s271 are { source, buildId, journeys: [{ id, verdict }] } (the
- * verdict modules' own outputs fit); s252 is { source, buildId, checks, budgets } with
- * [{ id, passed }] entries. N10-02 reads Yes only on the staff path (staffPath, the scored gate).
+ * it ({ pin, suite }). s260 and s271 are { source, buildId, verdict?, journeys: [{ id, verdict }] }
+ * (the verdict modules' own outputs fit: novemberNineMatrixVerdict and novemberTenMatrixVerdict);
+ * their own matrix verdict, when present, caps the replay (a module No is No, a module UNVERIFIED
+ * is at most UNVERIFIED). s252 is { source, buildId, checks, budgets } with [{ id, passed }]
+ * entries. N10-02 reads Yes only on the staff path (staffPath, the scored gate).
  */
 export function scorePreservationReplays(input) {
   const {
@@ -702,6 +775,10 @@ const RUN_REASONS = {
     "the rehearsal harness is a different commit than the served source",
   overlay: () => "the served tree is an uncommitted overlay",
   "harness-uncommitted": () => "the rehearsal harness has uncommitted changes",
+  compiled: () => "the served application is not a compiled build",
+  "synthetic-mail": () => "the run did not use the compiled synthetic mail",
+  "synthetic-mail-build": () =>
+    "the compiled synthetic mail is not the one compiled into the build",
   "results-shape": () => "the journey results are not a list",
   "records-shape": () => "the refused connections or unresolved effects are not a list",
   "outside-matrix": ({ total }) => `${total} result row(s) name no W12 journey`,
@@ -719,6 +796,8 @@ const REPLAY_REASONS = {
   source: "refused: bound to another source than the W12 matrix",
   duplicate: "refused: a row is recorded more than once",
   missing: "some rows did not run",
+  "module-no": "its own verdict module read No",
+  "module-unverified": "its own verdict module read UNVERIFIED",
   empty: "no results recorded",
   unscoped: "a result outside its bound has no changed pin",
 };
@@ -1049,6 +1128,7 @@ export function renderQualificationReport(scored) {
     "",
     `- Served source: ${code(exact(SHA, identities.servedSource))}`,
     `- Compiled build: ${code(exact(BUILD_ID, identities.buildId))}, made from ${code(exact(SHA, identities.buildSource))}`,
+    `- Compiled synthetic mail adapter: ${code(exact(DIGEST, identities.compiledMail))}`,
     `- Private run: ${code(exact(RUN_ID, identities.runId))}`,
     `- Run: ${oneOf(RUN_STATUSES, matrix.status, "refused")}`,
     "",

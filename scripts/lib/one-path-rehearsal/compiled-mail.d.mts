@@ -1,5 +1,6 @@
 export const S260_DRIVER: "tests/browser/one-path-november-9-qualification-driver.mjs";
 export const S271_DRIVER: "tests/browser/one-path-november-10-qualification-driver.mjs";
+export const S284_DRIVER: "tests/browser/one-path-november-12-qualification-driver.mjs";
 export const COMPILED_MAIL_DRIVERS: readonly string[];
 
 export interface CompiledMailRequest {

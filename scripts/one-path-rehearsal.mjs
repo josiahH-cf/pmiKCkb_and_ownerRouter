@@ -18,6 +18,8 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  renameSync,
+  rmSync,
   writeFileSync,
 } from "node:fs";
 import { createServer, Socket } from "node:net";
@@ -120,6 +122,9 @@ const files = {
   serverLog: join(output, "server.log"),
   driverNetworkLog: join(output, "driver-network.jsonl"),
   mailClock: join(output, "s260-mail-clock.json"),
+  // S284 R-S284-4: a driver asks for the server to be started again (answerServerRestarts).
+  serverRestartRequest: join(output, "server-restart-request.json"),
+  serverRestartAnswer: join(output, "server-restart.json"),
 };
 
 const compiledMail = flag("--compiled-synthetic-mail")
@@ -136,6 +141,8 @@ const compiledMail = flag("--compiled-synthetic-mail")
   : null;
 
 let server = null;
+// Starts the server again from what startServer built or prepared, never building again.
+let relaunchServer = null;
 let browser = null;
 let standIns = null;
 let exitCode = 1;
@@ -233,7 +240,12 @@ try {
   } else {
     await browser.close();
     browser = null;
-    exitCode = await runDriver(rehearsal);
+    const stopAnswering = answerServerRestarts(rehearsal.origin);
+    try {
+      exitCode = await runDriver(rehearsal);
+    } finally {
+      stopAnswering();
+    }
   }
 
   const refused = refusedConnections(rehearsal);
@@ -440,12 +452,62 @@ async function startServer(port) {
       buildId: readFileSync("temp/e2e/.next/BUILD_ID", "utf8").trim(),
     });
   }
-  const child = launch(
-    [compiled ? "start" : "dev", "-p", String(port), "-H", "127.0.0.1"],
-    compiledMail?.environment,
-  );
+  const serve = [compiled ? "start" : "dev", "-p", String(port), "-H", "127.0.0.1"];
+  relaunchServer = () => launch(serve, compiledMail?.environment);
+  const child = launch(serve, compiledMail?.environment);
   record({ event: "server-started", pid: child.pid, port });
   return child;
+}
+
+/**
+ * S284 R-S284-4: while a driver runs, it may ask for the server to be started again, so a replay
+ * or a journey starts on a server that remembers nothing of an earlier one (its comparison cache,
+ * its last RentVine read). The build is never made again: a compiled run serves the same output,
+ * whose build id the "compiled" event records, with the same environment; a development run starts
+ * the development server again. The driver writes files.serverRestartRequest with a nonce; the
+ * answer in files.serverRestartAnswer carries that nonce, the new server's pid and whether it is
+ * ready. The emulators, the stand-ins and the run directory are untouched.
+ */
+function answerServerRestarts(origin) {
+  let busy = false;
+  const answer = async () => {
+    let nonce = null;
+    try {
+      nonce = JSON.parse(readFileSync(files.serverRestartRequest, "utf8")).nonce ?? null;
+    } catch {
+      nonce = null;
+    }
+    rmSync(files.serverRestartRequest, { force: true });
+    const reply = { nonce, at: new Date().toISOString() };
+    try {
+      assert.ok(
+        relaunchServer,
+        "The server was never started, so it cannot start again.",
+      );
+      await stopServer();
+      server = relaunchServer();
+      await waitForServer(origin);
+      Object.assign(reply, { ready: true, pid: server.pid });
+    } catch (error) {
+      Object.assign(reply, {
+        ready: false,
+        error: String(error?.message ?? error).slice(0, 400),
+      });
+    }
+    record({ event: "server-restarted", ...reply });
+    writeFileSync(`${files.serverRestartAnswer}.new`, `${JSON.stringify(reply)}\n`, {
+      mode: 0o600,
+    });
+    renameSync(`${files.serverRestartAnswer}.new`, files.serverRestartAnswer);
+  };
+  const timer = setInterval(() => {
+    if (busy || !existsSync(files.serverRestartRequest)) return;
+    busy = true;
+    answer().finally(() => {
+      busy = false;
+    });
+  }, 500);
+  return () => clearInterval(timer);
 }
 
 async function waitForServer(base) {

@@ -41,6 +41,7 @@ import {
   COMPILED_MAIL_DRIVERS,
   S260_DRIVER,
   S271_DRIVER,
+  S284_DRIVER,
   compiledMailAdmits,
 } from "@/scripts/lib/one-path-rehearsal/compiled-mail.mjs";
 
@@ -329,7 +330,7 @@ describe("S254 fence: the Gmail effect boundary", () => {
   });
 });
 
-describe("S260/S271 fence: the compiled synthetic mail admits two exact drivers only", () => {
+describe("S260/S271/S284 fence: the compiled synthetic mail admits three exact drivers only", () => {
   const cwd = "/tmp/pmi-kc-one-path-rehearsal-Ab12Cd/worktree";
   const sha = "a".repeat(40);
   const clean = {
@@ -343,17 +344,20 @@ describe("S260/S271 fence: the compiled synthetic mail admits two exact drivers 
     harnessSha: sha,
   };
 
-  it("names exactly the S260 and S271 qualification drivers", () => {
+  it("names exactly the S260, S271 and S284 qualification drivers", () => {
     expect(S260_DRIVER).toBe(
       "tests/browser/one-path-november-9-qualification-driver.mjs",
     );
     expect(S271_DRIVER).toBe(
       "tests/browser/one-path-november-10-qualification-driver.mjs",
     );
-    expect([...COMPILED_MAIL_DRIVERS]).toEqual([S260_DRIVER, S271_DRIVER]);
+    expect(S284_DRIVER).toBe(
+      "tests/browser/one-path-november-12-qualification-driver.mjs",
+    );
+    expect([...COMPILED_MAIL_DRIVERS]).toEqual([S260_DRIVER, S271_DRIVER, S284_DRIVER]);
   });
 
-  it.each([S260_DRIVER, S271_DRIVER])(
+  it.each([S260_DRIVER, S271_DRIVER, S284_DRIVER])(
     "admits %s from a clean compiled commit in its disposable worktree",
     (driver) => {
       expect(compiledMailAdmits({ ...clean, driver: `${cwd}/${driver}` })).toBe(true);
@@ -362,6 +366,9 @@ describe("S260/S271 fence: the compiled synthetic mail admits two exact drivers 
 
   it.each([
     "tests/browser/one-path-november-10-baseline-driver.mjs",
+    "tests/browser/one-path-november-12-baseline-driver.mjs",
+    "tests/browser/one-path-november-12-w12-04.mjs",
+    "tests/browser/one-path-journey-driver.mjs",
     "tests/browser/one-path-smoke-driver.mjs",
     "tests/browser/one-path-stand-in-proof-driver.mjs",
     "tests/browser/one-path-november-10-qualification-driver.mjs.bak",

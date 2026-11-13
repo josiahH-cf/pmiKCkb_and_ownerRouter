@@ -16,8 +16,15 @@ const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 
 export const S260_DRIVER = "tests/browser/one-path-november-9-qualification-driver.mjs";
 export const S271_DRIVER = "tests/browser/one-path-november-10-qualification-driver.mjs";
+// S284 R-S284-3 and R-S284-4: the November 12 driver runs the W12 matrix and, on the same build,
+// the S260 and S271 drivers above and the S252 journey driver as its preservation replays.
+export const S284_DRIVER = "tests/browser/one-path-november-12-qualification-driver.mjs";
 /** The exact drivers the compiled synthetic mail admits, and no other file. */
-export const COMPILED_MAIL_DRIVERS = Object.freeze([S260_DRIVER, S271_DRIVER]);
+export const COMPILED_MAIL_DRIVERS = Object.freeze([
+  S260_DRIVER,
+  S271_DRIVER,
+  S284_DRIVER,
+]);
 const DISPOSABLE_WORKTREE = /^\/tmp\/pmi-kc-one-path-rehearsal-[^/]+\/worktree$/;
 
 /**
@@ -68,7 +75,7 @@ export function setupCompiledMail({
       servedSha,
       harnessSha,
     }),
-    "Compiled synthetic mail admits only the exact S260 or S271 driver on a clean compiled commit.",
+    "Compiled synthetic mail admits only the exact S260, S271 or S284 driver on a clean compiled commit.",
   );
   const original = readFileSync(CONFIG, "utf8");
   assert.match(original, /export default nextConfig;\s*$/);
