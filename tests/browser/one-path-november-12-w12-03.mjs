@@ -381,7 +381,10 @@ async function readLeaseHold(ctx, page, leaseId, line) {
   const { kit } = ctx;
   await kit.openLease(page, leaseId, "?step=ask-owner");
   const now = kit.now(page);
-  const changedValue = now.getByText(line, { exact: true });
+  const changedValue = now
+    .locator('[data-renewal-field="now-detail"]')
+    .filter({ hasText: /^Owner message held on / })
+    .filter({ hasText: line });
   const review = kit
     .primary(page)
     .filter({ hasText: /^Review the updated owner message$/ });
