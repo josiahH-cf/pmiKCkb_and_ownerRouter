@@ -24,9 +24,9 @@
 //     filled as staff fill them, after the owner message, the owner's answer and the dates.
 //   - Time passes only through the worker tick (kit.tick makes the named message due first).
 //   - Outside parties act through the stand-in hooks: the tenant's reply (deliverOwnerReply, which
-//     replies from the sent message's recipient) and, test-only, a one-shot refusal of the server's
-//     next reminder-pause write (setTenantResponsePauseFault, S284 W12-05: the "pause write
-//     failure" AC-S276-3 injects; scripts/lib/one-path-rehearsal/firestore-fault.mjs).
+//     replies from the sent message's recipient), the one-shot synthetic send hold, and the
+//     one-shot refusal of the server's next reminder-pause write (setTenantResponsePauseFault,
+//     the "pause write failure" AC-S276-3 injects).
 //   - An Admin saves the follow-up interval on Admin > Renewal notice rules.
 //   - An Approver uses "Publish the standard follow-up message" in the tenant message editor.
 // Nothing here posts an app route; the kit waits for the requests staff clicks make.
@@ -40,7 +40,10 @@ import { existsSync, readFileSync } from "node:fs";
 
 import {
   deliverOwnerReply,
+  holdNextMailSend,
+  releaseHeldMailSend,
   setTenantResponsePauseFault,
+  standInState,
   tenantResponsePauseFault,
 } from "../../scripts/lib/one-path-rehearsal/control.mjs";
 import {
@@ -1153,33 +1156,41 @@ async function racePart(ctx, page, leaseId) {
   const { form, select } = await openTenantForm(ctx, page, leaseId, "full");
   await chooseResponse(ctx, page, select, form, "accepted");
   const known = new Set((await occurrencesOf(ctx, sequenceId)).map((entry) => entry.id));
-  setTenantResponsePauseFault(rehearsal, true);
+  await holdNextMailSend(rehearsal);
+  let ticking;
   let saved;
   let fault;
-  let firstTick;
+  let released;
   let claimedFirst = null;
   try {
-    const ticking = kit.tick(sequenceId).catch((error) => ({ error: String(error) }));
-    // Save the moment the worker has claimed the due reminder (or once it is done).
+    setTenantResponsePauseFault(rehearsal, true);
+    ticking = kit.tick(sequenceId).catch((error) => ({ error: String(error) }));
+    // The synthetic mailbox holds acceptance while staff Save. Its request proves the worker
+    // admitted and dispatched this specific occurrence before the response.
     const deadline = Date.now() + 90_000;
     let done = false;
-    ticking.then(() => (done = true));
+    void ticking.then(() => (done = true));
     while (Date.now() < deadline && !done) {
-      const claimed = (await occurrencesOf(ctx, sequenceId)).find(
-        (entry) => !known.has(entry.id),
-      );
-      if (claimed) {
+      if ((await standInState(rehearsal)).mail.sendHeld) {
+        const claimed = (await occurrencesOf(ctx, sequenceId)).find(
+          (entry) => !known.has(entry.id),
+        );
+        if (!claimed) throw new Error("The held send has no admitted occurrence.");
         claimedFirst = { state: claimed.state, claimedAtMs: claimed.claimedAtMs };
         break;
       }
       await page.waitForTimeout(150);
     }
+    if (!claimedFirst)
+      throw new Error("The synthetic mailbox held no admitted reminder.");
     saved = await saveResponse(ctx, page, form, leaseId);
-    firstTick = tickCounts(await ticking);
   } finally {
     fault = tenantResponsePauseFault(rehearsal);
     setTenantResponsePauseFault(rehearsal, false);
+    released = await releaseHeldMailSend(rehearsal);
+    await ticking;
   }
+  const firstTick = tickCounts(await ticking);
   const state = await workspaceState(ctx, page, leaseId);
   const savedAtMs = Date.parse(state?.tenantResponse?.recordedAt ?? "");
   const afterRace = await tenantSequence(ctx, leaseId, sequenceId);
@@ -1188,6 +1199,12 @@ async function racePart(ctx, page, leaseId) {
   const occurrences = await occurrencesOf(ctx, sequenceId);
   const mail = await tenantMail(ctx, leaseId);
   const mailIds = new Set(mail.map((message) => message.id));
+  const providerAttemptsAfterSave = mailCalls(ctx).filter(
+    (entry) =>
+      entry.method === "POST" &&
+      entry.path === "/messages/send" &&
+      Date.parse(entry.at) >= savedAtMs,
+  ).length;
   const before = occurrences.filter(
     (occurrence) => Number(occurrence.claimedAtMs) < savedAtMs,
   );
@@ -1208,6 +1225,11 @@ async function racePart(ctx, page, leaseId) {
   const result =
     Number.isFinite(savedAtMs) &&
     saved.status === 200 &&
+    fault.fired &&
+    released.released &&
+    Number(claimedFirst.claimedAtMs) < savedAtMs &&
+    firstTick.sent === 1 &&
+    providerAttemptsAfterSave === 0 &&
     state?.tenantResponse?.outcome === "accepted" &&
     after.every((occurrence) => occurrence.state !== "sent") &&
     lateExplained &&
@@ -1219,6 +1241,7 @@ async function racePart(ctx, page, leaseId) {
     part: "race",
     claimedFirst,
     fault,
+    released,
     saved: { status: saved.status, reminders: saved.reminders, at: saved.clickedAt },
     savedAtMs,
     firstTick,
@@ -1230,6 +1253,7 @@ async function racePart(ctx, page, leaseId) {
       beforeSave: Number(occurrence.claimedAtMs) < savedAtMs,
     })),
     confirmedCount: sequence?.confirmedCount ?? null,
+    providerAttemptsAfterSave,
     tenantMessages: mail.length,
     lateMail: lateMail.length,
     lateExplained,
