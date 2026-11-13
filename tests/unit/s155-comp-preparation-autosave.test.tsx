@@ -230,7 +230,9 @@ describe("S155 comparison preparation autosave", () => {
     expect(urls.filter((url) => url.includes("operating-sheet"))).toHaveLength(0);
     expect(urls.filter((url) => url.includes("rentvine-writeback"))).toHaveLength(0);
     expect(urls.filter((url) => url.includes("renewal-notice-draft"))).toHaveLength(0);
-    // The saved market value is an app record with a separate, still unconfirmed Sheet intent.
-    expect(stub.current().sourceUpdates.market_value).toMatchObject({ state: "pending" });
+    // Rewritten on purpose for S278 R-S278-1: the saved comparison figure is an app record only.
+    // It no longer prepares a Sheet Market value; that comes from the reviewed Rent to recommend.
+    expect(stub.current().preparation?.market.pmiNumber).toBe(1300);
+    expect(stub.current().sourceUpdates.market_value).toBeUndefined();
   });
 });

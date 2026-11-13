@@ -146,7 +146,10 @@ describe("gatherNeedsDecisionInbox", () => {
     );
     const result = await resolveApprovalsState(editor as never);
     expect(result.items).toEqual([]);
-    expect(result.summary).toContain("stale");
+    // S280 R-S280-4 replaced the stale sentence on purpose; the summary still names the old read.
+    expect(result.summary).toContain(
+      "Renewal data is older than its freshness limit. Refresh to read it again before deciding.",
+    );
     expect(result.summary).not.toMatch(/Nothing needs your decision/);
     expect(listApprovalQueue).toHaveBeenCalledTimes(1);
     expect(loadRenewalRunViews).toHaveBeenCalledTimes(1);

@@ -39,6 +39,8 @@ import {
   ownerTermContentBasis,
 } from "@/lib/lease-renewal/owner-copy-version";
 import { countOwnerMessagesHeldOnPublish } from "@/lib/firestore/renewal-owner-copy-publication";
+import { senderSignatureEvidence } from "@/lib/firestore/renewal-sender-signature-choice";
+import type { SenderSignatureChoice } from "@/lib/lease-renewal/sender-signature-choice";
 
 const actor: AuthenticatedUser = {
   uid: "synthetic-s285-staff",
@@ -47,6 +49,18 @@ const actor: AuthenticatedUser = {
   role: "Editor",
 };
 const LEASE = "2850";
+/**
+ * The sender's saved signature choice (blank), as the message preparation stores it. The reviewed
+ * target carries its evidence, and the store checks it again when it authorizes a send or schedule.
+ */
+const SIGNATURE_CHOICE: SenderSignatureChoice = {
+  actorUid: actor.uid,
+  email: actor.email,
+  revision: 1,
+  operationId: "5c1d2e3f-4a5b-4c6d-8e7f-0000000028a1",
+  updatedAt: "2026-11-01T15:00:00.000Z",
+  signature: null,
+};
 const CYCLE = "5c1d2e3f-4a5b-4c6d-8e7f-000000002850";
 /** 11/12/2026, 12:00 PM CST. */
 const NOW = Date.parse("2026-11-12T18:00:00.000Z");
@@ -125,13 +139,7 @@ function targetFor(
     sourceRefs: [`rentvine:lease:${LEASE}`],
     label: "101 Sample Pl",
     noticeCycleId: CYCLE,
-    signatureSetup: {
-      uid: actor.uid,
-      email: actor.email,
-      revision: 1,
-      contentHash: "s".repeat(64),
-      choice: "blank",
-    },
+    signatureSetup: senderSignatureEvidence(SIGNATURE_CHOICE),
     materialSourceHash: sequenceHash({
       to: f.to,
       notice: f.notice,
@@ -170,6 +178,7 @@ const wording = (f: Facts) =>
 
 function setup() {
   const db = new FakeFirestore({ fieldPaths: true });
+  db.seed(`renewal_sender_signature_choices/${actor.uid}`, SIGNATURE_CHOICE);
   const store = new FirestoreCommunicationSequenceStore(db as unknown as Firestore);
   let nowMs = NOW;
   const facts: Facts = {

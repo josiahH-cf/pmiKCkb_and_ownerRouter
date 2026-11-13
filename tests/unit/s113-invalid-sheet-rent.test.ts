@@ -58,12 +58,15 @@ describe("S113 typed Sheet rent source", () => {
       expect(row.guidance.overallStatus).not.toBe("blocked");
     },
   );
-  it("retains a valid comparison and an actual numeric disagreement as advisory evidence", async () => {
+  it("retains a valid comparison and reads an actual numeric disagreement as information", async () => {
     const agree = await desk("$1,250");
     expect(agree.guidance.rentVerification.state).toBe("verified");
     clearLiveLeaseCache();
     const conflict = await desk("$1,400");
-    expect(conflict.guidance.rentVerification.state).toBe("needs_verification");
+    // Rewritten on purpose for S280 R-S280-6: a readable Sheet rent that differs from RentVine
+    // is information, so RentVine's rent is verified as the basis and nothing is withheld.
+    expect(conflict.guidance.rentVerification.state).toBe("verified");
+    expect(conflict.openConflicts).toBe(0);
     expect(conflict.guidance.currentBaseRent).toBe(1250);
     // S157: the numeric difference is shown, never used to withhold work.
     expect(conflict.guidance.overallStatus).toBe(agree.guidance.overallStatus);
