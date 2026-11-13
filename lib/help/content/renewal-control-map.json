@@ -1731,9 +1731,9 @@
     "role": "button",
     "scope": "",
     "availability": "conditional",
-    "expectation": "Template approvers can publish the standard follow-up from the tenant message editor. Future reviews start with that wording. The tenant offer and messages already authorized keep their reviewed wording.",
+    "expectation": "Template approvers can publish the standard follow-up from the tenant message editor. Each new review starts with the published wording.",
     "source": ["components/lease-renewal/FollowUpCopyPublication.tsx"],
-    "who": "Approver",
+    "who": "Approver or Admin",
     "actions": ["click-button:Full view"]
   }
 ]
