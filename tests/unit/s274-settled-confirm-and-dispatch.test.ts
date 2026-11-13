@@ -137,7 +137,11 @@ function setup() {
     initial: plainCommunicationMessage("Lease update", "A reviewed update."),
     followUp: null,
   };
-  /** The saved draft: saved once, then read as it stands (a refused confirm writes nothing). */
+  /**
+   * The saved draft: saved once, then read as it stands (a refused confirm writes nothing). The
+   * first save reads the target once to admit the workflow, so a test that queues the confirm's
+   * reads saves first.
+   */
   async function save() {
     return (await store.get(draft.id)) ?? service.save(actor, draft, 0, randomUUID());
   }
@@ -178,6 +182,7 @@ function setup() {
     send,
     claim,
     resolveTarget,
+    save,
     authorize,
     setCurrent: (next: VerifiedCommunicationTarget) => {
       current = next;
@@ -192,6 +197,7 @@ function setup() {
 describe("S274 ARCH-S274-1: confirm compares only on a settled read", () => {
   it("ARCH-S274-1 / AC-S274-1: a read superseded by an admission in flight is read again and the message is authorized", async () => {
     const f = setup();
+    await f.save();
     f.queue.push(target(NOT_READY));
     const sequence = await f.authorize("schedule");
     expect(sequence.state).toBe("active");
@@ -203,6 +209,7 @@ describe("S274 ARCH-S274-1: confirm compares only on a settled read", () => {
 
   it("R-S274-2 / AC-S274-1: a retirement status unavailable only because the read is not fresh settles inside the bound", async () => {
     const f = setup();
+    await f.save();
     f.queue.push(
       target({
         materialSourceHash: "8".repeat(64),
@@ -219,6 +226,7 @@ describe("S274 ARCH-S274-1: confirm compares only on a settled read", () => {
 
   it("a refused admission (floors advanced while reading) is a read in flight, read again", async () => {
     const f = setup();
+    await f.save();
     f.resolveTarget.mockRejectedValueOnce(new LeaseReadNotSettledError("read_in_flight"));
     expect((await f.authorize("schedule")).state).toBe("active");
     expect(f.waits).toEqual([1_500]);
@@ -239,6 +247,8 @@ describe("S274 ARCH-S274-1: confirm compares only on a settled read", () => {
       randomUUID(),
     );
     const before = await f.store.get(s.id);
+    // The save's own admission read is not part of the confirm's bound.
+    f.resolveTarget.mockClear();
     const refusal = f.service.authorize(actor, {
       id: s.id,
       expectedVersion: s.version,
@@ -262,6 +272,7 @@ describe("S274 ARCH-S274-1: confirm compares only on a settled read", () => {
 
   it("an unreadable source is never treated as unchanged: it is refused at once, not waited on", async () => {
     const f = setup();
+    await f.save();
     f.resolveTarget.mockRejectedValueOnce(new Error("source offline"));
     await expect(f.authorize("send")).rejects.toThrow("source offline");
     expect(f.waits).toEqual([]);
