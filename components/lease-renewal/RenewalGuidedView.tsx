@@ -1093,7 +1093,10 @@ function GuidedPane({
       !(
         advisory.id === "advisory:current_rent_sources" &&
         (shown.id === "check-numbers" || context.preparation?.numbers.state === "agree")
-      ),
+      ) &&
+      // S279 R-S279-3: the check appears once on the screen. The stage line above already reads
+      // both facts and links the fix, so the issue list does not repeat it here.
+      !(advisory.id === "advisory:waiting_check" && stage.check),
   );
   return (
     <>
