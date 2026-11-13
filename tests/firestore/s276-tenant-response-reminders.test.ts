@@ -419,6 +419,37 @@ describe("S276 R-S276-3: a due reminder is held even when the pause was not writ
     expect((await f.store.get(offer.id))!.pause?.cause).toBe(TENANT_RESPONSE_PAUSE_CAUSE);
   });
 
+  it("AC-S276-3: the final dispatch check refuses a claimed reminder when the response saved but the pause failed", async () => {
+    const f = await fixture();
+    const offer = await f.offerWithFollowUps();
+    const canDispatch = f.store.canDispatch.bind(f.store);
+    let responseSavedBeforeDispatch = false;
+    vi.spyOn(f.store, "canDispatch").mockImplementationOnce(async (occurrence) => {
+      const claimed = await f.store.get(offer.id);
+      const saved = await f.recordResponse("accepted", failingPause);
+      const afterSave = await f.store.get(offer.id);
+      responseSavedBeforeDispatch =
+        claimed?.unresolvedOccurrenceId === occurrence.id &&
+        saved.state?.tenantResponse?.outcome === "accepted" &&
+        saved.tenantReminders?.state === "failed" &&
+        afterSave?.state === "active";
+      return canDispatch(occurrence);
+    });
+    const held = await f.tick(offer.id);
+    expect(responseSavedBeforeDispatch).toBe(true);
+    expect(f.send).toHaveBeenCalledTimes(1);
+    expect(held.status).toBe("refused");
+    expect(held.sequence).toMatchObject({
+      state: "paused",
+      confirmedCount: 1,
+      unresolvedOccurrenceId: null,
+      pause: { cause: TENANT_RESPONSE_PAUSE_CAUSE, byUid: actor.uid },
+    });
+    expect(
+      (await f.store.listOccurrences(offer.id)).occurrences.map(({ state }) => state),
+    ).toEqual(["sent", "refused"]);
+  });
+
   it("AC-S276-3: an occurrence claimed before the save is reported truthfully as sent, and nothing follows it", async () => {
     const f = await fixture();
     const offer = await f.offerWithFollowUps();
