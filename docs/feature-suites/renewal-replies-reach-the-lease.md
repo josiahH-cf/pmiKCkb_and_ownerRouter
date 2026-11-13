@@ -215,8 +215,10 @@ lease checks now and says when it last checked.
 
 - **AC-S275-1** — Falsify ARCH-S275-1 and BEH-S275-1 in the guarded rehearsal with the
   mail stand-in, using only visible controls, the stand-in reply hook and the worker
-  tick. The desk row, the lease reply text and the evidence choice appear, with "Who
-  approved" and the outcome still unselected. Repeat for a tenant.
+  tick. The desk row, the lease reply text and the evidence choice appear. The decision
+  is unselected on arrival. When staff choose an eligible owner reply, S285 R-S285-5
+  selects the uniquely matched owner and shows the reason. The amount stays blank until
+  staff enter it. Repeat the reply and decision checks for a tenant.
 - **AC-S275-2** — Falsify ARCH-S275-2 and BEH-S275-2. With no tick, the lease check
   produces the same state. Advance the mailbox cursor past the reply first: the check
   still finds it. Fail one of two thread reads: the other sequence is observed, the
