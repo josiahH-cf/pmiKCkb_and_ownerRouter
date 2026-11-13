@@ -1812,12 +1812,17 @@ try {
         exact: true,
       });
       await directory.waitFor();
+      // S286 R-S286-1: the renewal Space card reads how the work is done, and its guidance page
+      // links to the Renewal Desk (the card's href and the desk link's lease context are kept).
       const procedure = page.getByRole("link", {
-        name: /Open the owner outreach checklist/,
+        name: /Read how owner outreach is done/,
       });
       await procedure.tap();
       await page.waitForURL((url) => url.searchParams.get("tab") === "process");
-      const workLink = page.getByRole("link", { name: "Open renewal work", exact: true });
+      const workLink = page.getByRole("link", {
+        name: "Open the Renewal Desk",
+        exact: true,
+      });
       await workLink.waitFor();
       assert.equal(await workLink.getAttribute("href"), desk);
       const procedurePath = new URL(page.url()).pathname;
