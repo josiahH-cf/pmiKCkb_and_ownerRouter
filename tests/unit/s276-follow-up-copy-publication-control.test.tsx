@@ -27,7 +27,9 @@ describe("S276 R-S276-8 follow-up copy publication", () => {
     const request = vi.fn(() => answer.promise);
     const onPublished = vi.fn();
     vi.stubGlobal("fetch", request);
-    render(<FollowUpCopyPublication status="unpublished" onPublished={onPublished} />);
+    const { rerender } = render(
+      <FollowUpCopyPublication status="unpublished" onPublished={onPublished} />,
+    );
     const publish = screen.getByRole("button", {
       name: "Publish the standard follow-up message",
     });
@@ -44,6 +46,7 @@ describe("S276 R-S276-8 follow-up copy publication", () => {
     expect(onPublished).not.toHaveBeenCalled();
     answer.resolve(Response.json({ status: "approved" }));
     await waitFor(() => expect(onPublished).toHaveBeenCalledOnce());
+    rerender(<FollowUpCopyPublication status="approved" onPublished={onPublished} />);
     expect(screen.getByRole("status")).toHaveTextContent(
       "The standard follow-up message is published.",
     );

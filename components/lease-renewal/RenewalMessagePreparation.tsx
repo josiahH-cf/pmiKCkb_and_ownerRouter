@@ -2288,7 +2288,18 @@ function MessagePreparationEditor({
               />
             ) : (
               <FollowUpCopyPublication
-                onPublished={() => void load().catch((error) => setNotice(error.message))}
+                onPublished={() => {
+                  const known = currentRef.current;
+                  if (known) {
+                    const approved = {
+                      ...known,
+                      followUpCopyStatus: "approved" as const,
+                    };
+                    currentRef.current = approved;
+                    setCurrent(approved);
+                  }
+                  void load().catch((error) => setNotice(error.message));
+                }}
                 status={current.followUpCopyStatus}
               />
             )}

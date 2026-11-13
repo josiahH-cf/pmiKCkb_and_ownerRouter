@@ -12,11 +12,10 @@ export function FollowUpCopyPublication({
   onPublished: () => void;
 }>) {
   const [publishing, setPublishing] = useState(false);
-  const [published, setPublished] = useState(false);
   const [error, setError] = useState("");
   const inFlight = useRef(false);
   if (status === undefined) return null;
-  if (published || status === "approved")
+  if (status === "approved")
     return (
       <p data-renewal-field="follow-up-copy-published" role="status">
         The standard follow-up message is published.
@@ -36,7 +35,6 @@ export function FollowUpCopyPublication({
       });
       const result = await response.json().catch(() => null);
       if (response.ok && result?.status === "approved") {
-        setPublished(true);
         onPublished();
       } else {
         setError(
