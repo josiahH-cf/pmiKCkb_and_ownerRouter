@@ -79,10 +79,12 @@ import {
 import {
   DESK,
   PREPARATION_ROUTE,
+  REFRESH_ROUTE,
   SEQUENCES_ROUTE,
   WORKING_ROUTE,
   ownerRecommendationAmounts,
 } from "./one-path-november-12-kit.mjs";
+import { serverProviderCalls } from "./one-path-november-12-provider-log.mjs";
 
 const CHECKS = [
   "AC-S273-1",
@@ -610,10 +612,9 @@ async function dismiss(dialog) {
 
 /**
  * Confirm the open update review with its button and wait for both requests the one confirmation
- * makes: the wording save, then the authorization (`kind`). `around` wraps the click (a stand-in
- * hook set before it, cleared after).
+ * makes: the wording save, then the authorization (`kind`).
  */
-async function confirmUpdate(ctx, page, dialog, kind, { before, after } = {}) {
+async function confirmUpdate(ctx, page, dialog, kind, { before } = {}) {
   const { kit } = ctx;
   const saved = kit.appResponse(page, SEQUENCES_ROUTE, {
     match: (body) => kit.sequenceAction(body) === "save",
@@ -624,17 +625,11 @@ async function confirmUpdate(ctx, page, dialog, kind, { before, after } = {}) {
     timeout: 180_000,
   });
   await before?.();
-  let save = null;
-  let auth = null;
-  try {
-    await dialog
-      .getByRole("button", { name: kind === "send" ? SEND : SCHEDULE, exact: true })
-      .click();
-    save = await saved.catch(() => null);
-    auth = await authorized.catch(() => null);
-  } finally {
-    await after?.();
-  }
+  await dialog
+    .getByRole("button", { name: kind === "send" ? SEND : SCHEDULE, exact: true })
+    .click();
+  const save = await saved.catch(() => null);
+  const auth = await authorized.catch(() => null);
   const body = auth ? await auth.json().catch(() => null) : null;
   if (auth?.status() === 200)
     await dialog.waitFor({ state: "hidden", timeout: 60_000 }).catch(() => undefined);
@@ -655,6 +650,29 @@ async function confirmUpdate(ctx, page, dialog, kind, { before, after } = {}) {
     statusLines,
     dialog: await updateDialogState(ctx, dialog),
   };
+}
+
+/** Use the lease header's source refresh, allowing one retry after its per-Editor force window. */
+async function forceLeaseRefresh(ctx, page) {
+  const button = page.getByRole("button", { name: "Refresh data", exact: true });
+  const click = async () => {
+    const answer = ctx.kit
+      .appResponse(page, REFRESH_ROUTE, {
+        match: (body) => body?.mode === "force",
+        timeout: 60_000,
+      })
+      .catch(() => null);
+    await button.click({ timeout: 30_000 });
+    const response = await answer;
+    return {
+      status: response?.status() ?? null,
+      body: response ? await response.json().catch(() => null) : null,
+    };
+  };
+  const first = await click();
+  if (first.body?.throttled !== true) return first;
+  await page.waitForTimeout(10_000);
+  return click();
 }
 
 /** Compare market's Rent to recommend, as staff read it. */
@@ -1379,6 +1397,8 @@ async function ownerPart(ctx, page) {
 
   // Once the earlier time has passed: the update starts empty with Send now.
   await waitUntil(page, (scheduled.nextDueAtMs ?? Date.now()) + 15_000);
+  const refreshPage = await ctx.newPage("Editor");
+  await kit.openLease(refreshPage, leaseId, "?step=ask-owner");
   const { pastTime, sendMode, failed, failWrites } = await guard(
     ctx,
     "owner update with a failure after the save",
@@ -1395,15 +1415,42 @@ async function ownerPart(ctx, page) {
       };
       await first.dialog.getByRole("button", { name: "Send now", exact: true }).click();
       const sendMode = await updateDialogState(ctx, first.dialog);
-      // A failure after the wording save: RentVine cannot be read for the authorization.
-      const failFrom = ctx.writes.length;
-      const failed = await confirmUpdate(ctx, page, first.dialog, "send", {
-        before: () => setRentvineOutage(rehearsal, OUTAGE_PATH),
-        after: () => setRentvineOutage(rehearsal, null),
-      });
-      if (failed.authStatus === null) ctx.unresolved("W12-02 owner update: no answer");
+      // Refresh in the second tab while the review stays open, so authorization cannot use the
+      // earlier healthy lease cache after the wording saves.
+      const callsBefore = serverProviderCalls(rehearsal).length;
+      setRentvineOutage(rehearsal, OUTAGE_PATH);
+      let failed;
+      let failWrites;
+      try {
+        const forced = await forceLeaseRefresh(ctx, refreshPage);
+        const outageReads = serverProviderCalls(rehearsal)
+          .slice(callsBefore)
+          .filter(
+            (call) =>
+              call.served === "rentvine" &&
+              call.outage === true &&
+              call.path?.endsWith(`/${OUTAGE_PATH}`),
+          ).length;
+        ctx.record({ part: "owner source outage", forced, outageReads });
+        if (
+          forced.status !== 200 ||
+          forced.body?.refreshed !== true ||
+          forced.body.state !== "expired" ||
+          forced.body.lastError !== true ||
+          outageReads === 0
+        )
+          throw new Error(
+            "The lease refresh did not reach the synthetic RentVine outage.",
+          );
+        const failFrom = ctx.writes.length;
+        failed = await confirmUpdate(ctx, page, first.dialog, "send");
+        failWrites = writesSince(ctx, failFrom);
+        if (failed.authStatus === null) ctx.unresolved("W12-02 owner update: no answer");
+      } finally {
+        setRentvineOutage(rehearsal, null);
+      }
       if (failed.dialog.open) await dismiss(first.dialog);
-      return { pastTime, sendMode, failed, failWrites: writesSince(ctx, failFrom) };
+      return { pastTime, sendMode, failed, failWrites };
     },
     {
       pastTime: { ran: false },
@@ -1412,7 +1459,17 @@ async function ownerPart(ctx, page) {
       failWrites: [],
     },
   );
-  setRentvineOutage(rehearsal, null);
+  const restored = await forceLeaseRefresh(ctx, refreshPage).finally(() =>
+    refreshPage.close().catch(() => undefined),
+  );
+  ctx.record({ part: "owner source recovered", restored });
+  if (
+    restored.status !== 200 ||
+    restored.body?.refreshed !== true ||
+    restored.body.state !== "fresh" ||
+    restored.body.lastError !== false
+  )
+    throw new Error("The lease refresh did not restore the synthetic RentVine read.");
   const afterFailure = await sequencesOf(ctx, leaseId, who);
   const stepRetry = await guard(
     ctx,
