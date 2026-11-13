@@ -55,7 +55,13 @@ W12-12 does not reproduce as stated: the filter is ignored and the button names 
 Prepare covers the month's 5 This batch leases, so nine leases are never prepared. The same
 reading came in iteration run `20261113T091108Z-7f4cf234-named`.
 
-Static staff-path check on the starting state: ORCHESTRATOR FILLS
+Static staff-path check on the starting state: fails. `node scripts/check-staff-path-calls.mjs`
+exits 1 with 5 direct calls of the sequences route in 2 of 6 scanned files: the seed's send
+(`scripts/lib/one-path-rehearsal/seeds.mjs`, line 107) and refresh (line 271), and in
+`tests/browser/one-path-november-10-core-journeys.mjs` the N10-03 schedule (line 425), the N10-02
+duplicate-send probe (line 540) and the N10-02 refresh (line 585). S284 names the two refresh
+posts; the check also finds the other three, and all five move to staff paths. This batch's
+November 12 files scan clean.
 
 ## Test-only harness hooks
 
