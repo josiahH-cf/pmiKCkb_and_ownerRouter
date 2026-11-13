@@ -109,12 +109,12 @@ function fixture() {
     if (failing.has(id)) throw new Error("Synthetic thread read failure.");
     return structuredClone(threads.get(id) ?? { id, truncated: false, messages: [] });
   });
-  const endReason = vi.fn(
-    async (
-      _s: CommunicationSequence,
-      _nowMs: number,
-    ): Promise<ReplyWatchEndReason | null> => null,
-  );
+  const endReason = vi.fn<
+    (
+      sequence: CommunicationSequence,
+      nowMs: number,
+    ) => Promise<ReplyWatchEndReason | null>
+  >(async () => null);
   const service = new WorkflowCommunicationSequenceService({
     store,
     now: () => nowMs,

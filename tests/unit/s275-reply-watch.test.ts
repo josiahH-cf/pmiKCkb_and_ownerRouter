@@ -236,12 +236,12 @@ function setup() {
       findWorkflowMessage: async (id) => sent.get(id) ?? null,
     }),
   );
-  const endReason = vi.fn(
-    async (
-      _s: CommunicationSequence,
-      _nowMs: number,
-    ): Promise<ReplyWatchEndReason | null> => null,
-  );
+  const endReason = vi.fn<
+    (
+      sequence: CommunicationSequence,
+      nowMs: number,
+    ) => Promise<ReplyWatchEndReason | null>
+  >(async () => null);
   const deps = {
     store,
     resolveTarget: vi.fn(async () => target),
