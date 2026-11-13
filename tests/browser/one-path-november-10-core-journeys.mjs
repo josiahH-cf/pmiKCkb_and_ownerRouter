@@ -8,14 +8,17 @@ import {
   setSourceCycleDate,
 } from "../../scripts/lib/one-path-rehearsal/control.mjs";
 import {
+  confirmReviewDialog,
   forceSourceRefresh,
+  openOwnerReview,
+  openReviewDialog,
+  reachLeasePrimary,
   sendOwnerMessage,
 } from "../../scripts/lib/one-path-rehearsal/seeds.mjs";
 import { baseRentCharges } from "../../scripts/lib/one-path-rehearsal/synthetic-charges.mjs";
 import {
   addDays,
   addYears,
-  centralDate,
   compositionText,
   firestoreValue,
   sha256,
@@ -410,36 +413,43 @@ export async function journeyN1003(ctx, page) {
   const composition = await reads.composition();
   assert.deepEqual(composition.target.blockers ?? [], [], "The tenant offer is ready");
   const sentBefore = (await kit.sentMail()).length;
-  const staged = await kit.post(page, SEQUENCES, {
-    action: "save",
-    expectedVersion: 0,
-    operationId: uuid(),
-    draft: {
-      id: uuid(),
-      context: composition.context,
-      initial: composition.initial,
-      followUp: null,
-    },
-  });
-  assert.equal(staged.status, 200, JSON.stringify(staged.body));
-  const scheduled = await kit.post(page, SEQUENCES, {
-    action: "schedule",
-    id: staged.body.sequence.id,
-    expectedVersion: staged.body.sequence.version,
-    operationId: uuid(),
-    reviewedDraftHash: staged.body.reviewedDraftHash,
-    reviewedTargetHash: composition.reviewedTargetHash,
-    schedule: {
-      firstDate: centralDate(1),
-      time: "09:15",
-      timeZone: "America/Chicago",
-      everyDays: null,
-      endDate: null,
-      sendLimit: 1,
-    },
-  });
+  // S284 R-S284-2: the tenant offer is scheduled through its own visible Schedule control and
+  // review ("Schedule this message"); the click makes the request this waits on.
+  const offered = await reachLeasePrimary(
+    page,
+    lease.leaseId,
+    "offer-tenant",
+    "Review tenant offer",
+  );
+  assert.equal(
+    offered.name,
+    "Review tenant offer",
+    "The tenant offer is ready to review",
+  );
+  const scheduleInNow = kit
+    .now(page)
+    .getByRole("button", { name: "Schedule", exact: true });
+  const scheduleControl = (await scheduleInNow
+    .waitFor({ timeout: 20_000 })
+    .then(() => true)
+    .catch(() => false))
+    ? scheduleInNow
+    : page.getByRole("button", { name: "Schedule", exact: true }).first();
+  const scheduleReview = await openReviewDialog(
+    page,
+    scheduleControl,
+    "Review and schedule",
+  );
+  const scheduled = await confirmReviewDialog(
+    page,
+    scheduleReview,
+    "Schedule this message",
+  );
   assert.equal(scheduled.status, 200, JSON.stringify(scheduled.body));
   const sequence = scheduled.body.sequence;
+  assert.equal(sequence.confirmedCount, 0, "Scheduled, not sent");
+  assert.equal((await kit.sentMail()).length, sentBefore);
+  record({ id: "N10-03", check: "scheduled-by-visible-control", state: sequence.state });
   // The source must change to a date staff have not already resolved: `later` is the RentVine
   // date the keep-working choice above covers, so it leaves the offer's facts as they were.
   const changedAgain = addYears(end, 2);
@@ -529,25 +539,36 @@ export async function journeyN1002(ctx, page) {
   notice.refreshes = (await admitNoticeSource(kit, page, leaseId)).refreshes;
   record({ id: "N10-02", check: "notice-admission", ...notice });
   const sentBefore = (await kit.sentMail()).length;
-  await setNextSend(rehearsal, "unconfirmed");
-  const message = await sendOwnerMessage(page, leaseId);
-  assert.equal(message.refusal, undefined, message.refusal);
-  const sequenceId = message.sequenceId;
-  let sequence = (await kit.read(page, SEQUENCES + "?id=" + sequenceId)).sequence;
-  assert.equal(sequence.state, "needs_reconciliation");
-  assert.ok(sequence.unresolvedOccurrenceId);
-  assert.equal((await kit.sentMail()).length, sentBefore + 1);
-  const retry = await kit.post(page, SEQUENCES, {
-    action: "send",
-    id: sequenceId,
-    expectedVersion: sequence.version,
-    operationId: uuid(),
-    reviewedDraftHash: message.sent.body?.reviewedDraftHash ?? null,
-    reviewedTargetHash: (await reads.composition("renewal_owner")).reviewedTargetHash,
-    schedule: null,
-  });
-  assert.equal(retry.status, 409, JSON.stringify(retry.body));
-  assert.equal((await kit.sentMail()).length, sentBefore + 1);
+  // S284 R-S284-2: the duplicate-send probe is a second page that opened the same review before
+  // the first Send. Its Send then comes from a stale review: the server refuses it, the stale page
+  // shows the refusal, and the sent-mail count is unchanged.
+  const origin = new URL(page.url()).origin;
+  const stalePage = await page.context().newPage();
+  let message;
+  let sequenceId;
+  let sequence;
+  let stale;
+  try {
+    const staleReview = await openOwnerReview(stalePage, leaseId, { origin });
+    assert.equal(staleReview.refusal, undefined, staleReview.refusal);
+    await setNextSend(rehearsal, "unconfirmed");
+    message = await sendOwnerMessage(page, leaseId, { origin });
+    assert.equal(message.refusal, undefined, message.refusal);
+    sequenceId = message.sequenceId;
+    sequence = (await kit.read(page, SEQUENCES + "?id=" + sequenceId)).sequence;
+    assert.equal(sequence.state, "needs_reconciliation");
+    assert.ok(sequence.unresolvedOccurrenceId);
+    assert.equal((await kit.sentMail()).length, sentBefore + 1);
+    stale = await confirmReviewDialog(stalePage, staleReview.dialog, "Send this message");
+    assert.ok(
+      stale.status >= 400,
+      "The stale review's Send is refused: " + JSON.stringify(stale.body),
+    );
+    assert.ok(stale.alert, "The stale page shows the refusal");
+    assert.equal((await kit.sentMail()).length, sentBefore + 1);
+  } finally {
+    await stalePage.close().catch(() => undefined);
+  }
   await kit.open(page, kit.href(leaseId, "?step=ask-owner"));
   const reconcile = kit
     .now(page)
@@ -575,7 +596,8 @@ export async function journeyN1002(ctx, page) {
     id: "N10-02",
     check: "reconciled",
     state: sequence.state,
-    retry: retry.status,
+    staleSend: stale.status,
+    staleAlert: Boolean(stale.alert),
   });
 
   const reply = await deliverOwnerReply(rehearsal, {

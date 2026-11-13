@@ -26,6 +26,24 @@ describe("S275 R-S275-8: the seed and N10-02 reach the reply through staff paths
     expect(result.violations.filter(({ action }) => action === "refresh")).toEqual([]);
   });
 
+  it("S284 R-S284-2 the seed's send, the N10-03 schedule and the N10-02 duplicate-send probe use staff controls", () => {
+    const result = checkStaffPathCalls(files);
+    expect(result.violations).toEqual([]);
+    expect(result.passed).toBe(true);
+    const seed = read(REHEARSAL_SEED);
+    expect(seed).toContain(
+      'confirmReviewDialog(page, review.dialog, "Send this message")',
+    );
+    const journeys = read(NOVEMBER_10_CORE_JOURNEYS);
+    expect(journeys).toContain('"Review and schedule"');
+    expect(journeys).toContain('"Schedule this message"');
+    // The probe is a second page on the same review, confirmed after the first Send.
+    expect(journeys).toContain("const stalePage = await page.context().newPage();");
+    expect(journeys).toContain(
+      'assert.ok(stale.alert, "The stale page shows the refusal");',
+    );
+  });
+
   it("R-S275-8 the seed reads the reply through the worker tick and N10-02 through the visible check", () => {
     const seed = read(REHEARSAL_SEED);
     expect(seed).toContain('import { runDueMessageTick } from "./due-message-tick.mjs";');

@@ -716,15 +716,22 @@ describe("S254: seeds and drivers", () => {
   });
 
   it("a send made by a seed or a driver goes through the app's own reviewed send", () => {
+    // S284 R-S284-2 (rewritten on purpose): the seed's send is the lease's own visible review and
+    // "Send this message"; the click makes the request, and the seed only waits for its answer.
     const send = seeds.slice(
       seeds.indexOf("export async function sendOwnerMessage"),
       seeds.indexOf("/**", seeds.indexOf("export async function sendOwnerMessage")),
     );
-    expect(send).toContain("/api/gmail-hub/composition?purpose=renewal_owner&lease=");
-    expect(send).toContain('action: "save"');
-    expect(send).toContain('action: "send"');
-    expect(send).toContain("reviewedDraftHash: saved.body.reviewedDraftHash");
-    expect(send).toContain("reviewedTargetHash,");
+    expect(send).toContain(
+      "const review = await openOwnerReview(page, leaseId, options);",
+    );
+    expect(send).toContain(
+      'const sent = await confirmReviewDialog(page, review.dialog, "Send this message");',
+    );
+    expect(send).not.toContain('action: "send"');
+    expect(send).not.toContain("/api/gmail-hub/composition");
+    expect(seeds).toContain('"Review owner message"');
+    expect(seeds).toContain('"Review and send"');
     // No seed reaches the mail stand-in's send by itself; only its controls are called.
     expect(seeds).not.toMatch(/messages\/send|gmail\/v1/);
     expect(proof).not.toMatch(/messages\/send|gmail\/v1/);

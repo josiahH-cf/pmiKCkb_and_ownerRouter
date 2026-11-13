@@ -81,46 +81,154 @@ export function sequenceStanding(sequence) {
     .join(", ");
 }
 
+// S284 R-S284-2: the staff controls a seed or a journey uses to send or schedule a renewal message.
+// Each click is the app's own request; these helpers only wait for its answer.
+const LEASE_PAGE_PREFIX = "/lease-renewal/live/desk/lease/";
+const EXACT_REVIEW = '[data-renewal-field="exact-review"]';
+const squash = (text) =>
+  String(text ?? "")
+    .replace(/\s+/g, " ")
+    .trim();
+/** The origin the signed-in page is on; every lease page opens there. */
+const originOf = (page) => new URL(page.url()).origin;
+
+/** The Now card's one primary action, polled until it reads `wanted` or the time runs out. */
+async function nowPrimary(page, wanted, timeoutMs) {
+  const button = page.locator("#renewal-now-primary");
+  const deadline = Date.now() + timeoutMs;
+  let name = null;
+  for (;;) {
+    if (await button.isVisible().catch(() => false))
+      name = squash(await button.innerText().catch(() => ""));
+    if (name === wanted || Date.now() >= deadline) return name;
+    await page.waitForTimeout(1000);
+  }
+}
+
 /**
- * Send one lease's owner message from the app, as staff do through the composer's routes: read
- * the message the app prepared, save it, then send it with the reviewed message and recipient
- * hashes. Returns the step reached, the answers, and the refusal when a step was refused. In the
- * rehearsal the message goes to the mail stand-in; nothing here can address a real mailbox.
+ * Open one lease step and wait until its primary action reads `wanted`. When the step asks for a
+ * fresh RentVine read, the visible "Refresh data" is used as staff use it, at most three times.
+ * Resolves with the primary's last name and the refreshes used.
  */
-export async function sendOwnerMessage(page, leaseId) {
-  const uuid = () => page.evaluate(() => crypto.randomUUID());
-  const composition = await route(
-    page,
-    `/api/gmail-hub/composition?purpose=renewal_owner&lease=${leaseId}`,
+export async function reachLeasePrimary(page, leaseId, step, wanted, options = {}) {
+  const origin = options.origin ?? originOf(page);
+  let name = null;
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    await page.goto(
+      `${origin}${LEASE_PAGE_PREFIX}${encodeURIComponent(leaseId)}?step=${step}`,
+      { waitUntil: "domcontentloaded" },
+    );
+    await page
+      .getByRole("region", { name: "Current renewal stage" })
+      .waitFor({ timeout: 120_000 })
+      .catch(() => undefined);
+    name = await nowPrimary(page, wanted, 60_000);
+    if (name === wanted) return { name, refreshes: attempt };
+    const refreshData = page.locator("#renewal-refresh").first();
+    if (attempt === 3 || !(await refreshData.isVisible().catch(() => false))) break;
+    const read = page
+      .waitForResponse(
+        (response) => new URL(response.url()).pathname === "/api/lease-renewal/refresh",
+        { timeout: 120_000 },
+      )
+      .catch(() => null);
+    await refreshData.click();
+    await read;
+  }
+  return { name, refreshes: null };
+}
+
+/** Click a review entry and wait for its dialog with the exact review shown. */
+export async function openReviewDialog(page, trigger, title) {
+  await trigger.click();
+  const dialog = page.getByRole("dialog", { name: title });
+  await dialog.locator(EXACT_REVIEW).waitFor({ timeout: 120_000 });
+  return dialog;
+}
+
+/**
+ * Confirm an open review with its named button and wait for the send or schedule request that
+ * click makes. Resolves with the answer in `routeFromPage`'s shape ({ status, body, text }) and
+ * the dialog's own alert when the server refused it and the dialog stayed open.
+ */
+export async function confirmReviewDialog(page, dialog, buttonName) {
+  const answer = page.waitForResponse(
+    (response) => {
+      if (new URL(response.url()).pathname !== "/api/gmail-hub/sequences") return false;
+      if (response.request().method() !== "POST") return false;
+      const asked = response.request().postDataJSON()?.action;
+      return asked === "send" || asked === "schedule";
+    },
+    { timeout: 180_000 },
   );
-  if (composition.status !== 200)
-    return { step: "composition", refusal: refusal(composition) };
-  const { context, initial, reviewedTargetHash, target } = composition.body;
-  if (target?.blockers?.length)
-    return { step: "composition", refusal: `Blocked: ${target.blockers.join(" ")}` };
-  const saved = await route(page, "/api/gmail-hub/sequences", {
-    action: "save",
-    draft: { id: await uuid(), context, initial, followUp: null },
-    expectedVersion: 0,
-    operationId: await uuid(),
-  });
-  if (saved.status !== 200) return { step: "save", refusal: refusal(saved) };
-  const sequenceId = saved.body.sequence.id;
-  const sent = await route(page, "/api/gmail-hub/sequences", {
-    action: "send",
-    id: sequenceId,
-    expectedVersion: saved.body.sequence.version,
-    operationId: await uuid(),
-    reviewedDraftHash: saved.body.reviewedDraftHash,
-    reviewedTargetHash,
-    schedule: null,
-  });
+  await dialog.getByRole("button", { name: buttonName, exact: true }).click();
+  const response = await answer;
+  const text = await response.text().catch(() => "");
+  let body = null;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    body = null;
+  }
+  const status = response.status();
+  let alert = null;
+  if (status >= 400) {
+    const shown = dialog.locator('.ui-dialog-error[role="alert"]');
+    alert = (await shown
+      .waitFor({ timeout: 15_000 })
+      .then(() => true)
+      .catch(() => false))
+      ? squash(await shown.innerText())
+      : null;
+  } else {
+    await dialog.waitFor({ state: "hidden", timeout: 60_000 }).catch(() => undefined);
+  }
+  return { status, body, text: text.slice(0, 300), alert };
+}
+
+/**
+ * Ask the owner: open the lease's Ask the owner step, choose "Review owner message" and wait for
+ * the exact review. Resolves with the open dialog, or with the refusal when the step offered
+ * another action.
+ */
+export async function openOwnerReview(page, leaseId, options = {}) {
+  const reached = await reachLeasePrimary(
+    page,
+    leaseId,
+    "ask-owner",
+    "Review owner message",
+    options,
+  );
+  if (reached.name !== "Review owner message")
+    return {
+      refusal: `The Ask the owner step offered "${reached.name ?? "no action"}", not Review owner message.`,
+    };
+  return {
+    dialog: await openReviewDialog(
+      page,
+      page.locator("#renewal-now-primary"),
+      "Review and send",
+    ),
+    refreshes: reached.refreshes,
+  };
+}
+
+/**
+ * Send one lease's owner message from the app as staff do (S284 R-S284-2): open the lease's Ask
+ * the owner step, review the owner message and choose "Send this message". Returns the step
+ * reached, the send's answer, and the refusal when a step was refused. In the rehearsal the
+ * message goes to the mail stand-in; nothing here can address a real mailbox.
+ */
+export async function sendOwnerMessage(page, leaseId, options = {}) {
+  const review = await openOwnerReview(page, leaseId, options);
+  if (review.refusal) return { step: "review", refusal: review.refusal };
+  const sent = await confirmReviewDialog(page, review.dialog, "Send this message");
   return {
     step: "send",
-    sequenceId,
-    sent,
-    to: target?.to ?? [],
-    ...(sent.status === 200 ? {} : { refusal: refusal(sent) }),
+    sequenceId: sent.body?.sequence?.id ?? null,
+    sent: { status: sent.status, body: sent.body, text: sent.text },
+    to: sent.body?.sequence?.authorization?.to ?? [],
+    ...(sent.status === 200 ? {} : { refusal: sent.alert ?? refusal(sent) }),
   };
 }
 
@@ -221,7 +329,7 @@ async function noticeAdmission({ page, origin }) {
  * rehearsal's mail adapter refuses the send in the Demo environment; that is reported, and the
  * lease is then simply a lease with no message sent.
  */
-async function repliedOwnerMessage({ page, mix, rehearsal }) {
+async function repliedOwnerMessage({ page, mix, rehearsal, origin }) {
   if (rehearsal.mailAdapter === false)
     return { state: "skipped", detail: "The mail adapter is held for this session." };
   const role = mix.roles.replied;
@@ -255,7 +363,7 @@ async function repliedOwnerMessage({ page, mix, rehearsal }) {
     });
     if (entered.status !== 200) return { state: "skipped", detail: refusal(entered) };
   }
-  const message = await sendOwnerMessage(page, leaseId);
+  const message = await sendOwnerMessage(page, leaseId, { origin });
   if (message.refusal)
     return {
       state: "skipped",
