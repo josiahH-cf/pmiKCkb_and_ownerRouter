@@ -22,7 +22,7 @@
 // unreadable thread) and time passes only through kit.tick. Reads are pages, GET routes, the
 // rehearsal's own Firestore emulator and the stand-ins' state. The phases, in order:
 //   owner    the starting sequence's state: the desk row right after the tick and again, the lease
-//            step, the reply text read live and the evidence choice with nothing selected.
+//            step, the reply text read live and the unselected evidence choices.
 //   tenant   the same lease: staff save the owner's answer from the reply (the worker then stops
 //            visiting that message), send the tenant offer, the tenant replies, one tick; the desk
 //            and the step for the tenant. Then "Retire from renewals" closes the cycle (the worker
@@ -112,6 +112,8 @@ const OWNER_REPLY_FORM = "#renewal-owner-decision-from-reply";
 const TENANT_REPLY_FORM = "#renewal-tenant-decision-from-reply";
 const OWNER_REPLY_CHOICE = /^Approved in the reply received /;
 const TENANT_REPLY_CHOICE = /^Accepted in the reply received /;
+const OWNER_SELECTED_LINE =
+  "Selected because this reply came from the address the owner message was sent to.";
 /** The controls that read stored data only and no longer read as Gmail refreshes (R-S275-5). */
 const RETIRED_REFRESH_LABELS = [
   "Refresh linked Gmail now",
@@ -343,6 +345,23 @@ export async function checkW1204(ctx, page, start) {
           (!messageId || message.id === messageId),
       )
       .sort((a, b) => String(a.at).localeCompare(String(b.at)));
+  /** S285 R-S285-5 selects the sole addressed owner once staff choose the matched reply. */
+  const ownerMatchesReply = (decision, sent, reply) => {
+    const owners = kit.row(prepared)?.portfolio?.owners ?? [];
+    if (owners.length !== 1) return false;
+    const [owner] = owners;
+    const recipients = sent?.authorization?.to ?? [];
+    const email = owner.email?.trim().toLowerCase();
+    return (
+      Boolean(email) &&
+      recipients.length === 1 &&
+      recipients[0]?.trim().toLowerCase() === email &&
+      reply?.from?.trim().toLowerCase() === email &&
+      Boolean(decision.whoValue) &&
+      decision.whoLabel === `${owner.name} (owner of record)` &&
+      decision.whoReason === OWNER_SELECTED_LINE
+    );
+  };
   /** Whether the worker left this record untouched between two reads. */
   const unvisited = (before, after) =>
     Boolean(before && after) &&
@@ -436,8 +455,8 @@ export async function checkW1204(ctx, page, start) {
   }
   /**
    * The reply decision on the Now card: the reply text read live, the evidence choices and how
-   * many are selected on arrival. Choosing the reply (a choice, never a save) then shows "Who
-   * approved in this reply" (owner only), whose value is read. The page is left without saving.
+   * many are selected on arrival. Choosing the reply then shows "Who approved in this reply"
+   * (owner only), its selected option and its reason. The page is left without saving.
    */
   async function readDecision(form, choice, sequenceId, { who = null } = {}) {
     const fieldset = page.locator(form);
@@ -454,11 +473,19 @@ export async function checkW1204(ctx, page, start) {
     const values = await choices.evaluateAll((nodes) => nodes.map((node) => node.value));
     const index = values.findIndex((value) => value.includes(sequenceId));
     let whoValue = null;
+    let whoLabel = null;
+    let whoReason = null;
     let amountValue = null;
     if (index >= 0 && who) {
       await choices.nth(index).check();
       const select = fieldset.getByLabel(who, { exact: true });
-      if (await kit.shownWithin(select, 15_000)) whoValue = await select.inputValue();
+      if (await kit.shownWithin(select, 15_000)) {
+        whoValue = await select.inputValue();
+        whoLabel = squash(await select.locator("option:checked").textContent());
+      }
+      whoReason = await kit.visibleText(
+        fieldset.locator('[data-renewal-field="owner-approver-selected"]'),
+      );
       const amount = fieldset.getByLabel("Amount approved", { exact: true });
       if (await kit.shownWithin(amount, 5_000)) amountValue = await amount.inputValue();
     }
@@ -470,6 +497,8 @@ export async function checkW1204(ctx, page, start) {
       choices: values.length,
       namesThisMessage: index >= 0,
       whoValue,
+      whoLabel,
+      whoReason,
       amountValue,
     };
   }
@@ -689,7 +718,7 @@ export async function checkW1204(ctx, page, start) {
         decision.replyText === squash(reply.text) &&
         decision.namesThisMessage === true &&
         decision.checkedOnArrival === 0 &&
-        decision.whoValue === "" &&
+        ownerMatchesReply(decision, owner, reply) &&
         decision.amountValue === "" &&
         unsaved,
     );
@@ -1098,9 +1127,8 @@ export async function checkW1204(ctx, page, start) {
     const leaseCheck = await checkFromLease(prepared, "ask-owner");
     const workerAfter = plainFields(await kit.readDocument(WORKER_STATE));
     const aFound = await sequenceDoc(a.id);
-    const day = centralDay(
-      (await inboundOn(replyA.threadId, replyA.messageId)).at(-1)?.at,
-    );
+    const receivedA = (await inboundOn(replyA.threadId, replyA.messageId)).at(-1);
+    const day = centralDay(receivedA?.at);
     const step = await readStep(prepared, "ask-owner", ownerDecisionLeads);
     const decision = await readDecision(OWNER_REPLY_FORM, OWNER_REPLY_CHOICE, a.id, {
       who: "Who approved in this reply",
@@ -1141,7 +1169,8 @@ export async function checkW1204(ctx, page, start) {
         decision.replyText === squash(textA) &&
         decision.namesThisMessage === true &&
         decision.checkedOnArrival === 0 &&
-        decision.whoValue === "" &&
+        ownerMatchesReply(decision, a, receivedA) &&
+        decision.amountValue === "" &&
         unsaved,
     );
     await scanForBodies("check", [textA, textB]);
