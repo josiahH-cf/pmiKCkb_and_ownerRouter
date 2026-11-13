@@ -97,16 +97,18 @@ not required.
   editable and every existing validation, preview and refusal of S189 R-S189-9 applies
   to the values staff confirm. Unticking and ticking again restores what staff last
   typed in this review, not the starting values.
-- **R-S276-8 — Publish the follow-up message with the tenant copy.** The tenant copy
-  gains one follow-up body: "We are following up on your lease renewal offer for
+- **R-S276-8 — Publish the follow-up message as its own copy.** The standard follow-up
+  body is its own versioned copy record, separate from the tenant offer copy, so the
+  tenant offer's published wording and every tenant message in flight are untouched by
+  this suite. The body reads: "We are following up on your lease renewal offer for
   {property address}. Your lease ends on {lease end date}." then the offer's existing
   terms sentence with the reviewed rent and dates, then "Please let us know whether you
   plan to stay or leave, and we'll get the documents out if you plan to stay." It uses
-  the existing first-name greeting and sender signature rules. The copy version moves
-  through the existing template publication by an existing template approver. Until the
-  new version reads back approved, the form opens with the timing filled in and the
-  message blank, and says "The standard follow-up message is not published yet. Write
-  the follow-up, or ask a template approver to publish it."
+  the existing first-name greeting and sender signature rules. An existing template
+  approver publishes it through the existing template publication. Until it reads back
+  approved, the form opens with the timing filled in and the message blank, and says
+  "The standard follow-up message is not published yet. Write the follow-up, or ask a
+  template approver to publish it." Shipping or publishing it holds no message.
 
 **In scope / out of scope.**
 
@@ -136,7 +138,7 @@ confirmed schedule is dispatched (S190, S192).
 
 The tenant response form in Guided and Full, the workspace save route, the sequence
 pause causes and labels, dispatch checks, the Communications detail, the tenant offer
-review's follow-up form, the tenant copy and its publication record, Help and the
+review's follow-up form, the follow-up copy and its publication record, Help and the
 control map.
 
 **Authority and evidence map.**
@@ -247,6 +249,9 @@ confirms.
   After publication the message holds the address, the lease end and the reviewed rent
   and dates once each, with the greeting and signature rules applied, and no unresolved
   token. Change the reviewed rent before confirming: the follow-up message follows it.
+  With this suite shipped and nothing published, the tenant offer's publication still
+  reads approved with an unchanged content hash, and a tenant offer authorized before
+  the release dispatches as reviewed.
 
 **Forbidden actions / hard gates.**
 
@@ -260,8 +265,9 @@ send as test proof.
 
 Standalone on the current response form and sequence engine. S272's rules govern Resume
 after the pause, and its content basis covers the follow-up message. S275 supplies
-observed replies. S285 moves the owner copy version through the same publication; when
-both ship together they share one version. S284 qualifies the batch.
+observed replies. S285 adds an owner copy version through the same publication control.
+The two are separate records, and neither holds a message by being shipped. S284
+qualifies the batch.
 
 **Standalone delivery contract.**
 
@@ -272,8 +278,9 @@ both ship together they share one version. S284 qualifies the batch.
   no offer has been sent from the app.
 - **Externally blocked effect:** The publication of the follow-up copy in production is
   a staff action by an existing template approver after release. Until then the form
-  opens with the timing filled in and the message blank. The renewal lead's confirmation
-  of the reminder default is a staff review item, not a gate.
+  opens with the timing filled in and the message blank, and no tenant message is held.
+  The renewal lead's confirmation of the reminder default is a staff review item, not a
+  gate.
 - **Produces for downstream suites:** A recorded response that every send check reads.
 
 **Verification and delivery contract.**

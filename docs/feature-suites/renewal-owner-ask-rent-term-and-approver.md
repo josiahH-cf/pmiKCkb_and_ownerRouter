@@ -32,6 +32,11 @@ Verified by a read-only trace of the serving source:
   that day does not repeat. No surface supplies a term, so staff type every end date.
 - "Who approved" opens with nothing selected, including when the selected reply came
   from the only owner on the lease.
+- Every send and dispatch check binds the approved copy's content hash and blocks a
+  message whose copy is not published (`lib/gmail-hub/sequence-dependencies.ts`,
+  `lib/firestore/renewal-message-publication.ts`). Replacing the one copy constant would
+  therefore hold every owner review and pause every unsent authorized owner message at
+  release until an approver published the new text. R-S285-6 prevents that.
 
 Three rules produced that state and are retired by the owner's November 12, 2026
 direction to carry every audit proposal: S263 R-S263-2 as first written (no term length
@@ -66,16 +71,26 @@ housing-assistance renew-or-not messages keep their own facts and are outside th
   end. A changed start recomputes only an unsaved suggestion; a saved end stays and any
   inconsistency is shown for review (S263 R-S263-3). Month-to-month, non-renewal and
   inspection-only cases show no option.
-- **R-S285-2 — State the term in the owner message and ask for both.** The owner message
-  that recommends a rent states the proposed term directly after the recommendation
-  sentence, "The renewal term would run from 01/01/2027 through 12/31/2027.", and its
-  request paragraph asks for the rent and the term. The owner copy moves from version
-  v2.0 to v2.1 through the existing template publication: an existing template approver
-  publishes it, and until then the existing readiness line names the unpublished copy
-  and holds the review. A staff edit of the response request keeps the term sentence.
-- **R-S285-3 — Require the renewal dates before the owner review.** The owner message's
-  readiness list gains one line, "Renewal dates", read from the saved working start and
-  end. When either is missing the line reads "Renewal dates: enter the start and end"
+- **R-S285-2 — State the term in the owner message and ask for both.** Under owner copy
+  v2.1 the owner message that recommends a rent states the proposed term directly after
+  the recommendation sentence, "The renewal term would run from 01/01/2027 through
+  12/31/2027.", and its request paragraph asks for the rent and the term. A staff edit
+  of the response request keeps the term sentence. An existing template approver
+  publishes v2.1 through the existing template publication.
+- **R-S285-6 — Change the wording only when an approver publishes it.** The app carries
+  owner copy v2.0 and v2.1, and the copy in use is the newest version whose publication
+  reads back approved. Until v2.1 is published, owner messages are composed, reviewed,
+  scheduled and sent under v2.0 exactly as they are today: the release holds no review
+  and pauses no message. Ask the owner shows an approver one line, "New owner wording
+  that asks about the term is ready to publish.", beside the existing publish control.
+  Before it publishes, the control states the consequence: "Publishing changes the owner
+  message. 3 unsent owner messages were reviewed with the current wording and will be
+  held for review." After publication those messages are held under the existing rule
+  that changed wording needs a new review, with the cause named "The owner message
+  wording was updated" (S274), and each is repaired by the one update of S273.
+- **R-S285-3 — Require the renewal dates before the owner review.** While the copy in
+  use states the term, the owner message's readiness list gains one line, "Renewal
+  dates", read from the saved working start and end. When either is missing the line reads "Renewal dates: enter the start and end"
   and its fix opens the Working renewal terms editor in the same outcome, with the
   next-day start (S263 R-S263-1) and the end choices above. Review, Schedule and the
   Gmail draft are held as they are for a missing amount (S249 R-S249-10). The dates join
@@ -124,9 +139,13 @@ inference and can be changed before a launch without changing the structure:
   currently available in that price range and let us know how you want to proceed with
   this year's rent and whether the renewal term works for you." The owner or the client
   may supply other wording; the publication step approves the exact text.
-- Assumption: an owner message that recommends a rent is held until both dates are
-  saved. The alternative, sending without a term when dates are missing, would bring
-  back the second approval.
+- Assumption: once v2.1 is in use, an owner message that recommends a rent is held
+  until both dates are saved. The alternative, sending without a term when dates are
+  missing, would bring back the second approval.
+- Assumption: messages reviewed under v2.0 are held for review when an approver
+  publishes v2.1, as the existing changed-wording rule requires, and the approver is
+  told the count first. The alternative, letting them send as reviewed, would change
+  the dispatch rule.
 - The addresses, names, amounts and dates above are synthetic rehearsal values.
 
 **Cross-product impacts.**
@@ -152,9 +171,13 @@ date previews that read the working terms
   editor calls it with the months staff chose and never with a value staff did not
   choose. A test that renders the editor with a saved start and an empty end and expects
   the 12 month choice fails on the starting state.
-- **ARCH-S285-2** — The owner copy is one versioned constant with one publication record
-  per version. Composition writes the term sentence from the saved working dates only,
-  and the dates are part of the digest the review authorizes.
+- **ARCH-S285-2** — The owner copy is a versioned set with one publication record per
+  version. One resolver returns the newest published version to every composer,
+  readiness check, content basis and dispatch check. Composition writes the term
+  sentence from the saved working dates only under a version that states it, and the
+  dates are then part of the digest the review authorizes. A dispatch test with v2.1
+  present and unpublished proves that an owner message authorized under v2.0 still
+  sends.
 - **ARCH-S285-3** — The coverage default and the approver selection are projections
   computed on read from the confirmed owner message, the working terms revision, the
   roster and the selected reply. Neither is stored until staff save the answer through
@@ -175,6 +198,10 @@ date previews that read the working terms
 - **BEH-S285-4** — When the owner approves a 6 month term instead, staff change the
   working end in the same outcome, the coverage names the new dates, and the tenant
   offer, the RentVine preview and the packet facts read them.
+- **BEH-S285-5** — After the release and before publication, an owner message scheduled
+  earlier sends at its time with its reviewed wording and a new owner review works as it
+  did. When an approver publishes, the count stated beforehand equals the messages then
+  held, and each is repaired in one update.
 
 **Human litmus outcome.**
 
@@ -197,6 +224,7 @@ the dates.
 | R-S285-3 dates before the owner review        | ARCH-S285-2          | BEH-S285-2             | Ask once, record once | AC-S285-2. Readiness line, hold, fix landing and content basis.            |
 | R-S285-4 coverage the message asked for       | ARCH-S285-3          | BEH-S285-3, BEH-S285-4 | Ask once, record once | AC-S285-3. Default in each case and the Documents result.                  |
 | R-S285-5 the owner who replied                | ARCH-S285-3          | BEH-S285-3             | Ask once, record once | AC-S285-4. One positive and five negative cases, no address stored.        |
+| R-S285-6 wording changes only on publication  | ARCH-S285-2          | BEH-S285-5             | Ask once, record once | AC-S285-2. Nothing held by the release; stated count equals messages held. |
 | Safety boundary across the requirements above | ARCH-S285-3          | BEH-S285-1             | Ask once, record once | AC-S285-5. No save, send or provider write outside the staff action shown. |
 
 **Preservation set.**
@@ -215,8 +243,10 @@ the dates.
   required, and coverage binds to the working terms revision. Any case that asserts an
   empty approver for a linked reply from the sole owner is rewritten on purpose for
   R-S285-5.
-- `tests/unit/s249-one-message-record.test.ts`: the recommendation sentence. The owner
-  copy version assertions move to v2.1 on purpose.
+- `tests/unit/s249-one-message-record.test.ts`: the recommendation sentence and every
+  v2.0 assertion, which stay true while v2.0 is the copy in use. A v2.1 case is added.
+- `tests/firestore/s188-s191-communication-sequences.test.ts`: an owner message
+  authorized before this suite ships still dispatches as reviewed.
 - The month-to-month, non-renewal and assisted owner messages and their tests.
 
 **Adversarial acceptance checks.**
@@ -228,13 +258,18 @@ the dates.
   unmount the editor: zero saves. Change the start after choosing and before saving: the
   suggestion follows. Change it after saving: the saved end stays and the inconsistency
   is shown.
-- **AC-S285-2** — Falsify ARCH-S285-2 and BEH-S285-2. With copy v2.1 unpublished, the
-  readiness line names it and the review is held. After publication the composed message
-  holds the term sentence once, after the recommendation, in the HTML and the plain
-  text. With a date missing, Review, Schedule and the Gmail draft are held and the fix
-  lands in the editor. Change a date after the review: the authorization's content basis
-  no longer matches. A custom response request keeps the term sentence. A month-to-month
-  or assisted owner message is unchanged.
+- **AC-S285-2** — Falsify ARCH-S285-2, BEH-S285-2 and BEH-S285-5. With copy v2.1
+  unpublished: an owner message is composed, reviewed, scheduled and dispatched under
+  v2.0 with no hold and no pause, no "Renewal dates" line appears, an approver sees the
+  ready-to-publish line and an Editor sees no publish control. The publish control
+  states the count of unsent authorized owner messages, and that count equals the
+  messages held after publishing, each with the named cause and one update to repair
+  it. After publication the composed message holds the term sentence once, after the
+  recommendation, in the HTML and the plain text. With a date missing, Review, Schedule
+  and the Gmail draft are held and the fix lands in the editor. Change a date after the
+  review: the authorization's content basis no longer matches. A custom response
+  request keeps the term sentence. A month-to-month or assisted owner message is
+  unchanged under either version.
 - **AC-S285-3** — Falsify BEH-S285-3 and BEH-S285-4. Message with a term, dates
   unchanged: the form opens on the broader coverage and Documents shows no dates notice
   after saving. Dates changed after the message: it opens on "Base rent only" with the
@@ -255,8 +290,9 @@ the dates.
 No end date saved without the staff choice and Save. No term other than the one staff
 chose or typed. No coverage wider than the evidence staff reviewed. No approver stored
 from a suggestion staff did not review. No amount, date or decision parsed from a reply.
-No owner copy in use before its publication reads back approved. No provider write, send
-or protected path edit.
+No owner copy in use before its publication reads back approved. No review held and no
+authorized message paused by the release itself. No provider write, send or protected
+path edit.
 
 **Dependencies / sequencing.**
 
@@ -268,14 +304,16 @@ the batch.
 
 **Standalone delivery contract.**
 
-- **Deliverable now:** The end-date choices, copy v2.1 with its publication, the
-  readiness line, the coverage default and the approver selection, with tests, Help rows
-  and control map rows, reaching `ALL_GATES_GREEN`.
+- **Deliverable now:** The end-date choices, copy v2.1 with its publication control and
+  the transition that holds nothing, the readiness line, the coverage default and the
+  approver selection, with tests, Help rows and control map rows, reaching
+  `ALL_GATES_GREEN`.
 - **Consumes, but does not assume:** S272's content basis. Without it the dates still
   enter the existing material source check for the message.
 - **Externally blocked effect:** The publication of copy v2.1 in production is a staff
-  action by an existing template approver after release. Until then production holds
-  the owner review with the existing unpublished-copy line. No other input is missing.
+  action by an existing template approver, at a time they choose. Until then production
+  keeps asking about rent alone under v2.0, and nothing is held. No other input is
+  missing.
 - **Produces for downstream suites:** A stated term in the owner message and a coverage
   that Documents reads without a second owner contact.
 
@@ -286,8 +324,8 @@ the batch.
 2. Run focused unit and rendered checks for every ARCH, BEH and AC row, with synthetic
    leases, the mail stand-in and no provider effect.
 3. For an authorized candidate run `bash scripts/verify.sh` and `npm run test:e2e:core`,
-   complete the scoped S284 qualification and follow the current release gates. Include
-   the copy v2.1 publication step in the release plan.
+   complete the scoped S284 qualification and follow the current release gates. The
+   release publishes no copy: publishing v2.1 is a separate staff action.
 4. Report `ALL_GATES_GREEN` only for completed verification, `BUDGET_EXHAUSTED` only under
    an explicit budget, and `BLOCKED` only for an exact unavailable input or authority.
 
