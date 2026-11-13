@@ -21,8 +21,8 @@ the current code and live service. Date-stamped history is not authority.
 
 ## Present production truth — November 10 renewal walkthrough
 
-Production serves `7f4cf234c18c0b80a0ed88bc08d70e174ae9c311` / `pmi-kc-app-recovery-d8c6629da8bc4d73` at 100% canonical traffic.
-The receipt-bound rollback from staff workflow audit chunk 1 verified at `2026-11-13T19:25:24.889Z`.
+Production serves `7f4cf234c18c0b80a0ed88bc08d70e174ae9c311` / `pmi-kc-app-recovery-aea5d595d8cc4e00` at 100% canonical traffic.
+The latest receipt-bound rollback from staff workflow audit chunk 1 verified at `2026-11-13T20:22:24.224Z`.
 [Chunk 1 attempt evidence](docs/evidence/staff-workflow-audit-chunk1-attempts-2026-11-13.md). The original November 10 delivery was
 verified on `pmi-kc-app-rmwcvtvpl-13e72fe3f01f`.
 Run `943a91a6-c659-4234-95ea-3582d0a4011e` consumed its permit after one successful application build `053961ec-41a0-4553-bc03-f37ecf2d8926`.

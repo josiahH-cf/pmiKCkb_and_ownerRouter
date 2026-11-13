@@ -54,6 +54,32 @@ fingerprint `sha256:ba367a33db4a619ae67c7d9d3e06d27c2b154fa16c9c567f4212fa14f024
 Independent GETs confirmed 100% canonical traffic on the recovery revision. The annual GET
 readiness job is PAUSED and the minute worker is ENABLED with the captured targets and calendars.
 
+## Observation stopped on an expired Admin session
+
+Exact main `231a43d8014c0ba3e59345f74098cd0a9e1f1180` carries the same tested application
+source and the previous attempt record. All seven jobs passed.
+[Exact-main CI 43493225756](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/43493225756).
+
+Run `aea5d595-d8cc-4e00-ba56-d2e575d4cc6f` used the one successful regional build
+`d64d7555-55e2-43f1-a634-ca2fb71b3bce` and passed guarded assurance for
+`pmi-kc-app-rmwfe8295-0364a58ea817`. Candidate receipt `c7fd7cf5-0c9d-40d5-a2ce-fc3878d2e248`
+was used for the promotion verified at `2026-11-13T20:08:40.440Z`.
+
+The first observation checkpoint passed. The second at 348,382 ms failed after
+the managed Admin session expired. Twelve route checks detected an authentication mismatch,
+and the renewal workspace could not be selected. The browser guard blocked sign-in requests
+before they were sent. RentVine and Sheet still read 375 stable source and projected records.
+The unsigned browser returned zero rendered rows. There were zero candidate 5xx and zero
+unresolved effects.
+
+The same controller shifted canonical traffic to the prepared recovery revision. Its first
+receipt verification also encountered the expired browser session. The approved unattended
+sign-in reused the existing Google session and established a fresh app session. Under the
+existing receipt `a75ba17e-2ac1-4319-bc17-5720e8928a2c`, rollback verification passed at
+`2026-11-13T20:22:24.224Z`. Canonical traffic returned to the exact November 10 image and
+source via `pmi-kc-app-recovery-aea5d595d8cc4e00`. The failed observation and its traffic operation remain separate
+from the recovered verification.
+
 Chunk 1 remains queued. The replacement needs exact-main CI, a fresh permit, one application
 build, candidate assurance, receipt-bound promotion, two observation checkpoints and final
 readbacks. S284 production counts and human verdict remain NOT RUN.
