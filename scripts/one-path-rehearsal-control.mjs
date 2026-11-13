@@ -23,6 +23,10 @@
 //   recording-cycles on|off             serve the recorded cycle dates of the renewed leases
 //   sheet-cell <lease id> <column> <text>|clear
 //                                       serve one operating Sheet cell of an existing row (S284)
+//   owner-email <lease id> <address>|clear
+//                                       serve another example.invalid address for the lease's
+//                                       first owner, as RentVine would after a change (S284)
+//   rentvine-latency <path> <ms>|clear  answer one RentVine read path slowly, at most 5000 ms (S284)
 //   process-draft <definition id>       write a renewal process Draft with placeholder staff,
 //                                       as the production process seed does (S284)
 //   refused                             connections the provider boundary refused (L58)
@@ -42,6 +46,8 @@ import {
   setNextSend,
   setRecordingCycles,
   setRentvineOutage,
+  setOwnerEmail,
+  setRentvineLatency,
   setRewording,
   setSheetCells,
   setStatusUnreadable,
@@ -120,6 +126,12 @@ else if (command === "sheet-cell" && first && second === "clear")
   result = setSheetCells(rehearsal, first, null);
 else if (command === "sheet-cell" && first && second && argv[3] !== undefined)
   result = setSheetCells(rehearsal, first, { [second]: argv[3] });
+else if (command === "rentvine-latency" && first === "clear")
+  result = setRentvineLatency(rehearsal, null);
+else if (command === "rentvine-latency" && first && second)
+  result = setRentvineLatency(rehearsal, first, Number(second));
+else if (command === "owner-email" && first && second)
+  result = setOwnerEmail(rehearsal, first, second === "clear" ? null : second);
 else if (command === "process-draft" && first)
   result = await seedRenewalProcessDraft(rehearsal, first);
 else if (command === "refused") result = refusedConnections(rehearsal);
