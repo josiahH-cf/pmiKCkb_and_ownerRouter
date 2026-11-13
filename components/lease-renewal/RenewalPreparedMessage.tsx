@@ -575,6 +575,7 @@ export function PreparedMessageSlot({
   offCycleHold = null,
   sent = null,
   unsent = null,
+  pricingBasis = null,
   chargeReview = null,
   onSaveSignature,
   onSignatureSetupSaved,
@@ -609,6 +610,7 @@ export function PreparedMessageSlot({
      * projection the Now card reads; its repair or recovery replaces the step's send actions.
      */
     unsent?: UnsentMessageView | null;
+    pricingBasis?: ReactNode;
     /** S264: Review offer charges for the tenant offer, shown after its working terms. */
     chargeReview?: ReactNode;
   } & PreparedMessageHandlers
@@ -652,6 +654,7 @@ export function PreparedMessageSlot({
       actionsSlot={guidedInline ? null : actions}
       api={api}
       chargeReview={chargeReview}
+      pricingBasis={pricingBasis}
       full={full}
       guidedInline={guidedInline}
       deliveryHeld={deliveryHeld}
@@ -669,6 +672,7 @@ export function PreparedMessageSlot({
 function PreparedMessageBlock({
   api,
   chargeReview,
+  pricingBasis,
   preparation,
   previewSlot,
   actionsSlot,
@@ -683,6 +687,7 @@ function PreparedMessageBlock({
 }: Readonly<{
   api: PreparedMessageApi;
   chargeReview: ReactNode;
+  pricingBasis: ReactNode;
   preparation: RenewalPreparation | null;
   previewSlot: HTMLElement | null;
   actionsSlot: HTMLElement | null;
@@ -2124,6 +2129,7 @@ function PreparedMessageBlock({
               {reviewLabel}
             </Button>
           ) : null}
+          {pricingBasis}
           {groups}
         </div>
       ) : previewSlot ? (

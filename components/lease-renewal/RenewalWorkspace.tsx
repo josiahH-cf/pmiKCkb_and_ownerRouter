@@ -876,23 +876,15 @@ export function RenewalWorkspace({
                                 >
                                   {/* S120 (R120.1): prepare the message first; record outreach and the later
                       response after actual contact. The order is chronology, not a gate. */}
-                                  {/* S270: the current base and read-only recommendation with its
-                                    edit link lead Ask the owner's Work, before its named group.
-                                    S281 R-S281-1: in Guided the Now card carries the same facts
-                                    line before its primary action, so only Full shows it here. */}
+                                  {/* S281 R-S281-1: keep the Full facts above the recipients and
+                                    the primary action. Guided shows these facts in the Now card. */}
                                   {separated && section.id === "owner" ? (
-                                    <div
-                                      className="ui-stack-tight"
-                                      id="renewal-owner-pricing-basis"
-                                    >
-                                      <RentRecommendationSummary
-                                        base={baseRentFacts}
-                                        market
-                                        placement="full"
-                                        preparation={stageContext.preparation ?? null}
-                                      />
-                                      <RenewalPricingPolicyPanel />
-                                    </div>
+                                    <RentRecommendationSummary
+                                      base={baseRentFacts}
+                                      market
+                                      placement="full"
+                                      preparation={stageContext.preparation ?? null}
+                                    />
                                   ) : null}
                                   {section.id === "owner" || section.id === "tenant" ? (
                                     <RenewalMessagePreparation
@@ -902,6 +894,13 @@ export function RenewalWorkspace({
                                       canManageResources={can(role, "manageAdmin")}
                                       outcomeContext={
                                         separated ? stageContext : undefined
+                                      }
+                                      pricingBasis={
+                                        separated && section.id === "owner" ? (
+                                          <div id="renewal-owner-pricing-basis">
+                                            <RenewalPricingPolicyPanel />
+                                          </div>
+                                        ) : undefined
                                       }
                                       // S270: the outcome's one named group holds the message
                                       // options and the outreach or contact records together.

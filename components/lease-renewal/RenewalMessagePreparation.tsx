@@ -286,6 +286,8 @@ type MessageOwnerProps = Readonly<{
    * message options and these records share the outcome's one named group.
    */
   secondaryWork?: ReactNode;
+  /** The owner's pricing controls follow the primary action, before the named groups. */
+  pricingBasis?: ReactNode;
   /** S270: Ask the owner's Working renewal terms reveal, in Work above the named group. */
   workingTerms?: ReactNode;
 }>;
@@ -460,6 +462,7 @@ function MessageOwner({
   sent = null,
   unsent = null,
   secondaryWork,
+  pricingBasis,
   workingTerms,
 }: MessageOwnerProps & {
   compact?: boolean;
@@ -487,10 +490,12 @@ function MessageOwner({
       sent={sent}
       unsent={unsent}
       secondaryWork={secondaryWork}
+      pricingBasis={pricingBasis}
       workingTerms={workingTerms}
     />
   ) : (
     <>
+      {pricingBasis}
       {workingTerms}
       {secondaryWork}
     </>
@@ -857,6 +862,7 @@ function MessagePreparationEditor({
   sent = null,
   unsent = null,
   secondaryWork,
+  pricingBasis,
   workingTerms,
 }: {
   leaseId: string;
@@ -872,6 +878,7 @@ function MessagePreparationEditor({
   /** S273 R-S273-3: the step's held or out-of-date unsent message. */
   unsent?: UnsentMessageView | null;
   secondaryWork?: ReactNode;
+  pricingBasis?: ReactNode;
   workingTerms?: ReactNode;
 }) {
   const router = useRouter();
@@ -1855,11 +1862,11 @@ function MessagePreparationEditor({
   const preparedInlineGuided = Boolean(
     compact && focusView?.outcomeLayout && focusView.view === "guided",
   );
-  const preparedHostsCharges =
-    preparedPreviewInNow ||
-    Boolean(
-      preparedData && compact && (focusView?.view === "full" || preparedInlineGuided),
-    );
+  const preparedInline = Boolean(
+    preparedData && compact && (focusView?.view === "full" || preparedInlineGuided),
+  );
+  const preparedHostsCharges = preparedPreviewInNow || preparedInline;
+  const preparedHostsPricing = preparedInline && Boolean(nowCard);
   const evidenceHost = useOfferChargeEvidenceHost(
     channel === "tenant" && Boolean(offerReview),
   );
@@ -1938,6 +1945,7 @@ function MessagePreparationEditor({
       {/* S281 R-S281-1 / R-S281-12: in the outcome layout the one Working renewal terms editor
           is Work, above the named message groups. */}
       {secondaryWork !== undefined ? workingTerms : null}
+      {preparedHostsPricing ? null : pricingBasis}
       {preparedData ? (
         <PreparedMessageSlot
           data={preparedData}
@@ -1946,6 +1954,7 @@ function MessagePreparationEditor({
           offCycleHold={offCycleHold}
           sent={sent}
           unsent={unsent}
+          pricingBasis={preparedHostsPricing ? pricingBasis : null}
           chargeReview={preparedHostsCharges ? chargeReview : null}
           onCopy={() => copy("formatted")}
           onDraftCreate={async () => {

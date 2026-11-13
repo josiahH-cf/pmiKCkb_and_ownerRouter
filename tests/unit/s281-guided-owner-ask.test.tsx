@@ -282,6 +282,26 @@ describe(
   },
 );
 
+it("R-S281-1: the Full owner action follows facts and recipients before the pricing controls", async () => {
+  const fake = await open({ step: "ask-owner" });
+  const user = userEvent.setup();
+  await user.click(viewButton("Full view"));
+  await settle();
+  const owner = document.querySelector('section[data-renewal-outcome="ask-owner"]')!;
+  const facts = owner.querySelector('[data-renewal-field="owner-pricing-summary"]')!;
+  const recipients = owner.querySelector('[data-renewal-field="full-recipients"]')!;
+  const primary = owner.querySelector("[data-renewal-work-primary]")!;
+  const pricing = document.getElementById("renewal-owner-pricing-basis")!;
+  const message = owner.querySelector('details[data-renewal-group="Message"]')!;
+  expect(recipients).toBeInTheDocument();
+  expect(primary).toBeVisible();
+  expect(follows(facts, recipients)).toBe(true);
+  expect(follows(recipients, primary)).toBe(true);
+  expect(follows(primary, pricing)).toBe(true);
+  expect(follows(pricing, message)).toBe(true);
+  expect(fake.writes()).toEqual([]);
+});
+
 describe("S281 Rent to recommend in place (R-S281-11)", { timeout: 120_000 }, () => {
   it("ARCH-S281-5 / BEH-S281-8 / AC-S281-7: Edit opens the one editor in place; a typed value survives Full and back; Enter saves $1,425.00 and returns focus to the primary", async () => {
     const fake = await open({ step: "ask-owner" });
