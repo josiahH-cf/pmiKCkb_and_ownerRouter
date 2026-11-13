@@ -485,7 +485,26 @@ function projectAudience(
         )
       : null;
   // S273 R-S273-5: the cycle's earlier attempts for this audience, read only.
-  const earlierAttempts = earlierAttemptViews(messages);
+  const earlierAttempts = earlierAttemptViews(
+    messages.map((message) => {
+      const superseded = message.unsent;
+      return superseded?.cause === "newer_message_sent" && superseded.atMs !== null
+        ? {
+            ...message,
+            attempts: [
+              ...(message.attempts ?? []),
+              {
+                state: "held" as const,
+                atMs: superseded.atMs,
+                cause: superseded.cause,
+                endedAtMs: superseded.atMs,
+                resolution: "superseded" as const,
+              },
+            ],
+          }
+        : message;
+    }),
+  );
   return {
     audience,
     state,

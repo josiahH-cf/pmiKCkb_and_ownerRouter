@@ -566,6 +566,17 @@ describe("S273 R-S273-3: the step and the desk row say what is true and offer on
       ).messageCue,
     ).toBeUndefined();
   });
+
+  it("keeps a superseded hold in Verification without making the lease appear to need a new send", () => {
+    const outreach = evidenceFor([held("newer_message_sent")]);
+    const stage = stageFor(outreach);
+    expect(summarizeRenewalStage(stage).messageCue).toBeUndefined();
+    const tenant = projectOutreachEvidence(outreach, EVIDENCE_CYCLE).tenant;
+    expect(tenant.unsent).toBeUndefined();
+    expect(tenant.earlierAttempts?.[0]?.line).toBe(
+      "Held on 11/12/2026, 12:21 PM CST: A newer message for this renewal was sent.",
+    );
+  });
 });
 
 describe("S273 R-S273-4: the update carries the earlier time and refuses a communication it cannot update", () => {

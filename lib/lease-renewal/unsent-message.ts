@@ -126,13 +126,13 @@ export interface UnsentAttemptRecord {
   readonly authorizationRevision: number;
 }
 
-/** R-S273-5: one earlier attempt as the evidence carries it (records plus a cancellation). */
+/** R-S273-5: one earlier attempt as the evidence carries it, including superseded holds. */
 export interface EarlierAttemptEvidence {
   readonly state: UnsentWorkState | "cancelled";
   readonly atMs: number | null;
   readonly cause: UnsentPauseCause | null;
   readonly endedAtMs: number;
-  readonly resolution: "updated" | "resumed" | "resolved" | "cancelled";
+  readonly resolution: "updated" | "resumed" | "resolved" | "cancelled" | "superseded";
 }
 
 /** R-S273-5: one earlier attempt as the Verification list reads it. */
@@ -688,7 +688,7 @@ export function earlierAttemptsOf(
 }
 
 const RESOLUTION_WORDS: Record<
-  Exclude<EarlierAttemptEvidence["resolution"], "cancelled">,
+  Exclude<EarlierAttemptEvidence["resolution"], "cancelled" | "superseded">,
   string
 > = {
   updated: "then updated",
@@ -701,6 +701,8 @@ export function earlierAttemptLine(attempt: EarlierAttemptEvidence): string {
   const ended = formatBusinessTimestamp(attempt.endedAtMs);
   if (attempt.resolution === "cancelled")
     return `Cancelled on ${ended} before it was sent.`;
+  if (attempt.resolution === "superseded")
+    return `Held on ${ended}: ${SEQUENCE_PAUSE_CAUSE_LABELS.newer_message_sent}.`;
   const when = at(attempt.atMs);
   const cause = attempt.cause ? SEQUENCE_PAUSE_CAUSE_LABELS[attempt.cause] : null;
   const opening =
