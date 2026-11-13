@@ -544,7 +544,12 @@ function servedRow(mix, row, flags) {
         ? mix.recordedCycles[id]
         : undefined;
   const unreadable = flags.statusUnreadable?.[id];
-  if (recorded === undefined && !unreadable) return row;
+  // S284 W12-03 (test-only): the owner's synthetic address RentVine serves for this lease.
+  const ownerEmail = flags.ownerEmails?.[id];
+  const owners = row.portfolio?.owners;
+  const changedOwner =
+    typeof ownerEmail === "string" && Array.isArray(owners) && owners.length > 0;
+  if (recorded === undefined && !unreadable && !changedOwner) return row;
   const lease = {
     ...row.lease,
     ...(recorded === undefined ? {} : { endDate: recorded }),
@@ -552,14 +557,28 @@ function servedRow(mix, row, flags) {
   // L09: a status that cannot be read is either absent or an id the status table does not hold.
   if (unreadable === "unresolved") lease.leaseStatusID = 999;
   else if (unreadable) delete lease.leaseStatusID;
-  return { ...row, lease };
+  return {
+    ...row,
+    lease,
+    ...(changedOwner
+      ? {
+          portfolio: {
+            ...row.portfolio,
+            owners: owners.map((owner, index) =>
+              index === 0 ? { ...owner, email: ownerEmail } : owner,
+            ),
+          },
+        }
+      : {}),
+  };
 }
 
 /**
  * The stand-in's answer to one RentVine read, as `{ body }`; an undefined body is a 404. Flags:
  * `recordingCycles` serves each renewed lease's recorded end date in place of its current one
- * (so the app's own save records that cycle), and `statusUnreadable` names leases whose status is
- * served as "missing" or "unresolved".
+ * (so the app's own save records that cycle), `statusUnreadable` names leases whose status is
+ * served as "missing" or "unresolved", and `ownerEmails` (S284 W12-03, test-only) serves another
+ * synthetic address for one lease's first owner, as an owner whose contact changed in RentVine.
  */
 export function rentvineStandInResponse(mix, url, flags = {}) {
   const path = url.pathname.replace(/^\/api\/manager\//, "").replace(/\/$/, "");
@@ -572,7 +591,10 @@ export function rentvineStandInResponse(mix, url, flags = {}) {
   if (path === "leases/export") {
     const page = Number(url.searchParams.get("page") ?? 1);
     return {
-      body: page === 1 ? leases.map((row) => servedRow(mix, row, flags)) : [],
+      body:
+        page === 1
+          ? leases.map((row) => withOwnerRoster(servedRow(mix, row, flags), flags))
+          : [],
     };
   }
   // The Connections health check reads one record from the same synthetic inventory.
@@ -605,6 +627,24 @@ export function rentvineStandInResponse(mix, url, flags = {}) {
       url.searchParams.get("includes") === "tenants"
         ? { lease: { ...detail, tenants: [] } }
         : { lease: detail },
+  };
+}
+
+/**
+ * S284 W12-13 (test-only): the `ownerRosters` flag serves, by lease id, these synthetic owners of
+ * record in place of the fixture's, as RentVine would after the owners changed (two owners who
+ * share one address, or an owner at another address). Every other row's owners are served as the
+ * fixture has them. Reads only.
+ */
+function withOwnerRoster(row, flags) {
+  const owners = flags?.ownerRosters?.[String(row.lease.leaseID)];
+  if (!Array.isArray(owners) || !owners.length || !row.portfolio) return row;
+  return {
+    ...row,
+    portfolio: {
+      ...row.portfolio,
+      owners: owners.map(({ name, email }) => ({ name, email })),
+    },
   };
 }
 

@@ -12,12 +12,16 @@ import {
   NOTICE_RULES_UNCONFIRMED_NEXT,
   type RenewalFollowUpProjection,
 } from "@/lib/lease-renewal/follow-up-projection";
+import { leaseWaitingPartyWords } from "@/lib/lease-renewal/lease-waiting";
 
+// S279 R-S279-1: the card names who the lease waits on in the same words as the step's waiting
+// line, the stage line and the lease status ("the owner", "the PMI KC team"), so every surface
+// agrees word for word.
 const PARTY_LABELS = {
-  team: "team",
-  owner: "owner",
-  tenant: "tenant",
-  document_coordinator: "document coordinator",
+  team: leaseWaitingPartyWords("team"),
+  owner: leaseWaitingPartyWords("owner"),
+  tenant: leaseWaitingPartyWords("tenant"),
+  document_coordinator: "the document coordinator",
   unresolved_source: "an unresolved source",
 } as const;
 

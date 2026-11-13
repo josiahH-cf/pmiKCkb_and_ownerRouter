@@ -116,6 +116,8 @@ export interface RentvineStandInFlags {
   recurringCharges?: Record<string, unknown[]>;
   /** S284 (test-only): Sheet cells served in place of the fixture's, by lease id and column. */
   sheetCells?: Record<string, Record<string, string>>;
+  /** S284 W12-13 (test-only): synthetic owners of record served in place of a lease's own. */
+  ownerRosters?: Record<string, { name: string; email: string }[]>;
 }
 
 export const NOVEMBER_5_MIX_PATH: string;

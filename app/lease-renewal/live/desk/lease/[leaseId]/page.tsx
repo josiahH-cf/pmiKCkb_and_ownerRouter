@@ -13,7 +13,10 @@ import { readTenantAcceptanceCheck } from "@/lib/lease-renewal/tenant-offer-comp
 import { offerPacketComparisons } from "@/lib/lease-renewal/offer-packet-parity";
 import { ownerRosterFingerprint } from "@/lib/firestore/renewal-workspace";
 import { projectRenewalDeskIdentity } from "@/lib/lease-renewal/desk-identity";
-import { listLeaseOwnerReplies } from "@/lib/gmail-hub/sequence-store";
+import {
+  listLeaseOwnerReplies,
+  listLeaseTenantReplies,
+} from "@/lib/gmail-hub/sequence-store";
 import { listOwnerAnswerChoices } from "@/lib/gmail-hub/owner-answer-choices";
 import { readLeaseOutreachEvidence } from "@/lib/firestore/renewal-outreach-records";
 import { UNREADABLE_OUTREACH_EVIDENCE_INPUT } from "@/lib/lease-renewal/outreach-evidence";
@@ -465,6 +468,8 @@ export default async function LiveRenewalLeaseWorkspacePage({
   const ownerApprovalChoices: OwnerApprovalChoices = {
     roster: ownerRoster,
     replies: ownerAnswerChoices.replies,
+    // S275 R-S275-4: a tenant reply is an evidence choice for the tenant's answer, as an owner's is.
+    tenantReplies: await listLeaseTenantReplies(leaseId).catch(() => []),
     // PR #162 review: an owner choice is sent back with the roster it was made from.
     rosterFingerprint: ownerRoster ? ownerRosterFingerprint(ownerRoster) : null,
     ownerMessageTerm: ownerAnswerChoices.ownerMessageTerm,

@@ -253,38 +253,49 @@ export async function runCommunicationWorker(input: {
       counts.failures += 1;
     }
   };
+  // The watched page and the catch-up read never keep the open page's cursor and counts from being
+  // finished: a failed read counts one failure, keeps that pass's cursor where it was, and the run
+  // still finishes, so scheduled sends past the first open page are never stalled by it.
   if (watching && !outOfTime()) {
-    const watched = await deps.store.listWatched!(watchCursor, limit);
-    let completedWatch = true;
-    for (const original of watched.sequences) {
-      if (outOfTime()) {
-        completedWatch = false;
-        break;
+    try {
+      const watched = await deps.store.listWatched!(watchCursor, limit);
+      let completedWatch = true;
+      for (const original of watched.sequences) {
+        if (outOfTime()) {
+          completedWatch = false;
+          break;
+        }
+        watchCursor = original.id;
+        await visitWatched(original, "watched");
       }
-      watchCursor = original.id;
-      await visitWatched(original, "watched");
+      if (completedWatch) watchCursor = watched.cursor;
+    } catch {
+      counts.failures += 1;
     }
-    if (completedWatch) watchCursor = watched.cursor;
   }
   // S275 R-S275-7: one pass over completed records sent before the marker existed. Each such
   // message is observed once (its earlier reply is recorded with its actual received time) or has
   // its watch ended, through the same normal writes; the pass then never runs again.
   if (watching && !catchUp.done && deps.store.listCatchUp && !outOfTime()) {
-    const legacy = await deps.store.listCatchUp(catchUp.cursor, limit);
-    let completedCatchUp = true;
-    let next = catchUp.cursor;
-    for (const original of legacy.sequences) {
-      if (outOfTime()) {
-        completedCatchUp = false;
-        break;
+    try {
+      const legacy = await deps.store.listCatchUp(catchUp.cursor, limit);
+      let completedCatchUp = true;
+      let next = catchUp.cursor;
+      for (const original of legacy.sequences) {
+        if (outOfTime()) {
+          completedCatchUp = false;
+          break;
+        }
+        next = original.id;
+        if (!needsReplyWatchCatchUp(original)) continue;
+        await visitWatched(original, "caughtUp");
       }
-      next = original.id;
-      if (!needsReplyWatchCatchUp(original)) continue;
-      await visitWatched(original, "caughtUp");
+      catchUp = completedCatchUp
+        ? { cursor: legacy.cursor, done: legacy.cursor === null }
+        : { cursor: next, done: false };
+    } catch {
+      counts.failures += 1;
     }
-    catchUp = completedCatchUp
-      ? { cursor: legacy.cursor, done: legacy.cursor === null }
-      : { cursor: next, done: false };
   }
   await store.finish(claim, cursor, now(), counts, { watchCursor, catchUp });
   return { status: "processed" as const, ...counts, more: cursor !== null };

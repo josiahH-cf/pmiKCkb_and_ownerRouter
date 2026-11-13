@@ -180,6 +180,54 @@ export function setRecurringCharges(rehearsal, leaseId, charges) {
   return writeFlags(rehearsal, { ...flags, recurringCharges });
 }
 
+/** The mail stand-in's only accepted recipients (scripts/lib/one-path-rehearsal/stand-ins.mjs). */
+const SYNTHETIC_ADDRESS = /^[^@\s<>]+@example\.invalid$/i;
+
+/**
+ * S284 W12-03 (test-only): serve another synthetic address for one existing fixture lease's first
+ * owner, as an owner whose contact RentVine changed, or the fixture's own again with null. The app
+ * reads it on its next RentVine read ("Refresh data", or the next read after the minute).
+ */
+export function setOwnerEmail(rehearsal, leaseId, email) {
+  if (!Object.values(rehearsal.groups).flat().includes(Number(leaseId)))
+    throw new Error("Choose an existing fixture lease.");
+  if (email !== null && !SYNTHETIC_ADDRESS.test(String(email)))
+    throw new Error("Give an example.invalid address, or null.");
+  const flags = readFlags(rehearsal);
+  const ownerEmails = { ...(flags.ownerEmails ?? {}) };
+  if (email === null) delete ownerEmails[String(leaseId)];
+  else ownerEmails[String(leaseId)] = String(email);
+  return writeFlags(rehearsal, { ...flags, ownerEmails });
+}
+
+/** The longest delay the provider boundary applies to one RentVine read path. */
+export const REHEARSAL_RENTVINE_LATENCY_MAX_MS = 5000;
+
+/**
+ * S284 W12-03 (test-only): make RentVine answer one read path slowly (for example leases/export,
+ * by 1500 ms), as a large account's export does, or at once again with null. The provider
+ * boundary applies it to every process of the rehearsal on its next read of that path.
+ */
+export function setRentvineLatency(rehearsal, path, ms = 0) {
+  const flags = readFlags(rehearsal);
+  if (path === null) {
+    const rest = { ...flags };
+    delete rest.rentvineLatency;
+    return writeFlags(rehearsal, rest);
+  }
+  if (!/^[a-z][a-z0-9/-]*$/.test(String(path)))
+    throw new Error("Name a RentVine read path, for example leases/export.");
+  const delay = Number(ms);
+  if (!Number.isInteger(delay) || delay < 1 || delay > REHEARSAL_RENTVINE_LATENCY_MAX_MS)
+    throw new Error(
+      `Give a delay from 1 to ${REHEARSAL_RENTVINE_LATENCY_MAX_MS} milliseconds.`,
+    );
+  return writeFlags(rehearsal, {
+    ...flags,
+    rentvineLatency: { path: String(path), ms: delay },
+  });
+}
+
 /** The operating Sheet's columns, as the provider boundary's Sheet stand-in serves its header. */
 export const REHEARSAL_SHEET_COLUMNS = 19;
 
@@ -213,6 +261,65 @@ export function setSheetCells(rehearsal, leaseId, cells) {
       Object.entries(cells).map(([column, text]) => [String(Number(column)), text]),
     );
   return writeFlags(rehearsal, { ...flags, sheetCells });
+}
+
+/**
+ * S284 W12-05 (S276 AC-S276-3), test-only: make the rehearsal server's next write of a reminder
+ * pause for a recorded tenant response fail, once (true), or clear that (false). The server's
+ * provider boundary refuses that one Firestore transaction write and marks the fault fired
+ * (scripts/lib/one-path-rehearsal/firestore-fault.mjs); nothing else is touched. Resolves with
+ * { armed, fired }: whether it is still waiting, and whether it fired since it was last set.
+ */
+export function setTenantResponsePauseFault(rehearsal, on) {
+  const file = rehearsal.files?.firestoreFault;
+  if (!file) throw new Error("This rehearsal names no Firestore fault file.");
+  rmSync(`${file}.fired`, { force: true });
+  if (on)
+    writeFileSync(file, `${JSON.stringify({ armedAt: new Date().toISOString() })}\n`);
+  else rmSync(file, { force: true });
+  return tenantResponsePauseFault(rehearsal);
+}
+
+/** S284 W12-05: the fault's state, as setTenantResponsePauseFault reports it. */
+export function tenantResponsePauseFault(rehearsal) {
+  const file = rehearsal.files?.firestoreFault;
+  if (!file) return { armed: false, fired: false };
+  return { armed: existsSync(file), fired: existsSync(`${file}.fired`) };
+}
+
+/**
+ * S284 W12-13 (test-only): serve these owners of record for one existing fixture lease, as
+ * RentVine would after its owners changed (for example two owners who share one address, or an
+ * owner whose address is not the one a message went to), or the fixture's own owners again with
+ * null. Each owner is a synthetic name and an example.invalid address. The app reads it on its
+ * next RentVine read ("Refresh data"). Rows are never added.
+ */
+export function setOwnerRoster(rehearsal, leaseId, owners) {
+  if (!Object.values(rehearsal.groups).flat().includes(Number(leaseId)))
+    throw new Error("Choose an existing fixture lease.");
+  if (
+    owners !== null &&
+    (!Array.isArray(owners) ||
+      owners.length < 1 ||
+      owners.length > 4 ||
+      owners.some(
+        (owner) =>
+          !/^[A-Z][A-Za-z ]{1,60}$/.test(String(owner?.name)) ||
+          !/^[^@\s<>]+@example\.invalid$/i.test(String(owner?.email)),
+      ))
+  )
+    throw new Error(
+      "Give one to four synthetic owners with example.invalid addresses, or null.",
+    );
+  const flags = readFlags(rehearsal);
+  const ownerRosters = { ...(flags.ownerRosters ?? {}) };
+  if (owners === null) delete ownerRosters[String(leaseId)];
+  else
+    ownerRosters[String(leaseId)] = owners.map(({ name, email }) => ({
+      name: String(name),
+      email: String(email),
+    }));
+  return writeFlags(rehearsal, { ...flags, ownerRosters });
 }
 
 /** S252: every RentVine control flag off, as the rehearsal starts (reset.mjs). */

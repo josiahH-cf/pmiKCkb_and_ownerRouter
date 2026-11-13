@@ -11,7 +11,7 @@
 // no provider request.
 import { randomUUID } from "node:crypto";
 import { deleteApp, initializeApp, type App } from "firebase-admin/app";
-import { getFirestore, type Firestore } from "firebase-admin/firestore";
+import { FieldValue, getFirestore, type Firestore } from "firebase-admin/firestore";
 import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
@@ -232,7 +232,8 @@ async function fixture(options: { readTenantResponse?: boolean } = {}) {
       | "awaiting_response"
       | "accepted"
       | "counter_change_requested"
-      | "declined_nonrenewing",
+      | "declined_nonrenewing"
+      | "needs_verification",
     reminders?: TenantReminderControl,
   ) {
     const current = (await getRenewalWorkspace(actor, LEASE, db))!;
@@ -342,6 +343,20 @@ describe("S276 R-S276-2 / R-S276-4: a recorded response stops the offer's remind
       }
     },
   );
+
+  it("R-S276-2: a response still needing verification leaves the existing reminder authorized", async () => {
+    const f = await fixture();
+    const offer = await f.offerWithFollowUps();
+    const saved = await f.recordResponse("needs_verification");
+    expect(saved.state?.tenantResponse?.outcome).toBe("needs_verification");
+    expect(saved).not.toHaveProperty("tenantReminders");
+    expect(await f.store.get(offer.id)).toMatchObject({
+      state: "active",
+      nextDueAtMs: offer.nextDueAtMs,
+    });
+    expect((await f.tick(offer.id)).status).toBe("sent");
+    expect(f.send).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe("S276 R-S276-3: a due reminder is held even when the pause was not written", () => {
@@ -427,18 +442,32 @@ describe("S276 R-S276-3: a due reminder is held even when the pause was not writ
 });
 
 describe("S276 AC-S276-7: the release holds no review and pauses no message by itself", () => {
-  it("AC-S276-7: a tenant offer with follow-ups and no recorded response dispatches as reviewed", async () => {
+  it("AC-S276-7: a pre-release tenant offer with follow-ups dispatches the exact reviewed reminder", async () => {
     const f = await fixture();
     const offer = await f.offerWithFollowUps();
-    const authorization = (await f.store.get(offer.id))!.authorization!;
+    const authorization = offer.authorization!;
+    const followUp = authorization.followUp!;
+    // The serving build did not store the S272/S273/S274 review metadata.
+    await db
+      .collection(COMMUNICATION_SEQUENCE_COLLECTIONS.sequences)
+      .doc(offer.id)
+      .update({
+        authorizedInputs: FieldValue.delete(),
+        authorizedContentBasis: FieldValue.delete(),
+        wordingSavedAfterRevision: FieldValue.delete(),
+        unsentHistory: FieldValue.delete(),
+      });
     const reminder = await f.tick(offer.id);
     expect(reminder.status).toBe("sent");
     expect(reminder.sequence.confirmedCount).toBe(2);
-    // The send basis it was reviewed on is the one it dispatched on: nothing was re-reviewed.
-    expect(reminder.sequence.authorization).toMatchObject({
-      revision: authorization.revision,
-      payloadHash: authorization.payloadHash,
-      materialSourceHash: authorization.materialSourceHash,
+    expect(reminder.sequence.authorization).toEqual(authorization);
+    expect(reminder.sequence.pause ?? null).toBeNull();
+    expect(f.send.mock.calls[1]?.[0]).toMatchObject({
+      to: authorization.to,
+      cc: authorization.cc,
+      subject: followUp.subject,
+      body: followUp.plainText,
+      htmlBody: followUp.htmlBody,
     });
     expect(f.send).toHaveBeenCalledTimes(2);
   });

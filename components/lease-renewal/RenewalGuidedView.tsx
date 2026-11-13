@@ -115,7 +115,14 @@ import {
   OWNER_DECISION_FROM_REPLY_ID,
   RenewalOwnerDecisionFromReply,
 } from "./RenewalOwnerDecisionFromReply";
-import { OWNER_DECISION_AFTER_REPLY_LABEL } from "@/lib/lease-renewal/workspace-state";
+import {
+  TENANT_DECISION_FROM_REPLY_ID,
+  RenewalTenantDecisionFromReply,
+} from "./RenewalTenantDecisionFromReply";
+import {
+  OWNER_DECISION_AFTER_REPLY_LABEL,
+  TENANT_DECISION_AFTER_REPLY_LABEL,
+} from "@/lib/lease-renewal/workspace-state";
 import { RenewalStageHeader } from "./RenewalStageHeader";
 
 /**
@@ -1356,7 +1363,10 @@ function GuidedPane({
       !(
         advisory.id === "advisory:current_rent_sources" &&
         (shown.id === "check-numbers" || context.preparation?.numbers.state === "agree")
-      ),
+      ) &&
+      // S279 R-S279-3: the check appears once on the screen. The stage line above already reads
+      // both facts and links the fix, so the issue list does not repeat it here.
+      !(advisory.id === "advisory:waiting_check" && stage.check),
   );
   return (
     <>
@@ -1676,6 +1686,18 @@ function NowCard({
     manual.ownerApproval.replies.length > 0
       ? manual.ownerApproval
       : null;
+  // S275 R-S275-4: a tenant reply behaves the same way: "Record the tenant's decision" leads, and
+  // the decision is recorded here with the reply text and the reply as an evidence choice.
+  const tenantReplyChoices = manual?.ownerApproval?.tenantReplies ?? [];
+  const tenantReplies =
+    canEdit &&
+    isCurrent &&
+    !blocker &&
+    shown.id === "offer-tenant" &&
+    shown.primary?.label === TENANT_DECISION_AFTER_REPLY_LABEL &&
+    tenantReplyChoices.length > 0
+      ? tenantReplyChoices
+      : null;
   // S249 R-S249-8: on the step that sends its audience's message, the one primary action is
   // "Review and send", given by the lease's one message record, while the step asks for its send.
   const filler = nowCard?.primaries[shown.id];
@@ -1960,6 +1982,10 @@ function NowCard({
       document.getElementById(OWNER_DECISION_FROM_REPLY_ID)?.focus();
       return;
     }
+    if (tenantReplies && primary.label === TENANT_DECISION_AFTER_REPLY_LABEL) {
+      document.getElementById(TENANT_DECISION_FROM_REPLY_ID)?.focus();
+      return;
+    }
     const step = shown.primary ?? recordWhatHappened ?? definition.primary;
     // S281 R-S281-4: on Documents, while packet inputs or the packet's evaluation are the current
     // need, the primary lands on the Document preparation card's first control.
@@ -2189,6 +2215,13 @@ function NowCard({
         disabled={manual.pending}
         // S262: the reviewed answer learns whether its save was confirmed.
         onRecord={(action) => manual.record(action)}
+      />
+    ) : tenantReplies && manual && priority.state !== "reconcile" ? (
+      // S275 R-S275-4: the tenant's decision from the reply, as the owner's.
+      <RenewalTenantDecisionFromReply
+        disabled={manual.pending}
+        onRecord={(action) => manual.record(action)}
+        replies={tenantReplies}
       />
     ) : null;
 

@@ -29814,6 +29814,31 @@
         "ownerUnitFilesPassed": ["tests/unit/s275-reply-check-controls.test.tsx"]
       },
       {
+        "owner": "components/lease-renewal/RenewalTenantDecisionFromReply.tsx",
+        "cohort": "renewals",
+        "kind": "asynchronous",
+        "lifetime": "shared finite wait or owning operation",
+        "ownerTests": ["tests/unit/s275-tenant-decision-from-reply.test.tsx"],
+        "inspected": true,
+        "checks": [
+          {
+            "test": "Current owning source inspection: components/lease-renewal/RenewalTenantDecisionFromReply.tsx (S275 R-S275-4: Tenant reply read live, Accepted in the reply received, Asked for a change and Declined / not renewing with nothing chosen, and Record this decision)",
+            "outcome": "passed",
+            "environment": "staff workflow audit chunk 1 branch claude/staff-audit-chunk-1, W12-04 check writing, 2026-11-13; privacy-safe static strings only",
+            "evidence": "source read while writing the W12-04 candidate checks"
+          },
+          {
+            "test": "tests/unit/s275-tenant-decision-from-reply.test.tsx",
+            "outcome": "passed",
+            "environment": "native WSL lane mirror of the chunk 1 worktree, vitest, 2026-11-13; 5 tests",
+            "evidence": "private scratchpad log w1204-units-2.log"
+          }
+        ],
+        "plannedChecks": [],
+        "compiledCoverage": "Mounted unit coverage of the reply read, the choices and the recorded actions; the W12-04 rehearsal journey covers it in a browser separately.",
+        "ownerUnitFilesPassed": ["tests/unit/s275-tenant-decision-from-reply.test.tsx"]
+      },
+      {
         "owner": "components/spaces/RenewalProcessGuidance.tsx",
         "cohort": "knowledge_processes",
         "kind": "presentation",

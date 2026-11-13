@@ -26,13 +26,13 @@ export const HELP_CHANGELOG: readonly HelpChangelogEntry[] = [
       "publish-a-process",
       "outreach-checklist",
     ],
-    contentDigest: "558e18dd6c5f3ba16c26f505f2e66361600ede892a7355c3d3466ce3666700d0",
+    contentDigest: "2da9c6943edfbc8143e7c5a9145e612879b870d581a3d42e5d9edf5a3f7a60d3",
   },
   {
     version: "V5.0",
     date: "2026-11-13",
     summary:
-      "V5.0, the renewal Spaces show their published process as guidance with Open the Renewal Desk and start no checklist run, and an earlier renewal run reads as a record. A sent renewal message stays watched for its answer: the lease shows Last checked for a reply with Check for a reply now, Communications offers Check Gmail now, and Reload worklist and Reload linked conversations reload what the app stored. A refused or paused renewal message names what changed, and a lease still being re-read says Nothing was sent. The renewal rent shows its basis wherever it appears, a covered lease offers the agreement's amount, and the owner's answer offers Same as recommended and says what its coverage means at Documents. Who a lease waits on comes from its own messages, with one Needs a check line and its fix. An off-cycle lease end date is reviewed on Check the numbers with Include in this renewal month or Keep on hold.",
+      "V5.0, the renewal Spaces show their published process as guidance with Open the Renewal Desk and start no checklist run, and an earlier renewal run reads as a record. A sent renewal message stays watched for its answer: the lease shows Last checked for a reply with Check for a reply now, Communications offers Check Gmail now, and Reload worklist and Reload linked conversations reload what the app stored. A tenant reply shows its words on Offer the tenant with Accepted in the reply received as a choice, as an owner reply does on Ask the owner. A refused or paused renewal message names what changed, and a lease still being re-read says Nothing was sent. The renewal rent shows its basis wherever it appears, a covered lease offers the agreement's amount, and the owner's answer offers Same as recommended and says what its coverage means at Documents. Who a lease waits on comes from its own messages, with one Needs a check line and its fix. An off-cycle lease end date is reviewed on Check the numbers with Include in this renewal month or Keep on hold.",
     affectedGuides: [
       "work-a-renewal",
       "train-and-review",
@@ -44,7 +44,7 @@ export const HELP_CHANGELOG: readonly HelpChangelogEntry[] = [
       "publish-a-process",
       "outreach-checklist",
     ],
-    contentDigest: "fa697d41083be7fade0ace8a90e996ced73796676719a12fe3d4fbb06abd903d",
+    contentDigest: "8ba9b674c343fac400adacb21acb3c75fdf5f6e3a502da8735d35a97c1c85de9",
   },
   {
     version: "V4.0",

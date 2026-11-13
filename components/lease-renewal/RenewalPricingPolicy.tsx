@@ -474,6 +474,11 @@ export function StandingAgreementSummary() {
  * existing recovery. A typed amount still wins (S250 R-S250-4): once the base holds an amount the
  * action is gone. It is not a second amount editor (S247 R-S247-14), sends nothing and changes no
  * RentVine rent. "Set renewal base rent" lands focus on the action.
+ *
+ * The panel keeps this block mounted while the pricing read follows a new working revision (each
+ * save starts one), so what the click did stays shown: the saved line, or a refused adoption's
+ * existing recovery after the record is read again, even when another operator's amount now holds
+ * the base and nothing is offered any more.
  */
 export function StandingAgreementAdoption() {
   const c = useRenewalPricingPolicy();
@@ -482,6 +487,7 @@ export function StandingAgreementAdoption() {
   const container = useRef<HTMLDivElement>(null);
   const [pending, setPending] = useState(false);
   const [saved, setSaved] = useState<{ amount: number; text: string } | null>(null);
+  const [refused, setRefused] = useState(false);
   const view = c?.view ?? null;
   const record = working?.record ?? null;
   const offer =
@@ -499,14 +505,17 @@ export function StandingAgreementAdoption() {
     typeof base === "number" &&
     Math.abs(base - saved.amount) < 0.005 &&
     record?.fields.terms_rent?.origin === "adopted_source";
-  if (!working || (!offer && !adopted)) return null;
-  const state = working.states.terms_rent ?? AUTOSAVE_IDLE;
+  const state = working?.states.terms_rent ?? AUTOSAVE_IDLE;
+  // A stale read refused this adoption: its recovery stays until the base is saved again here.
+  const refusal = refused && state.phase === "failed";
+  if (!working || (!offer && !adopted && !refusal)) return null;
   async function adopt() {
     if (!working || !offer || lock.current) return;
     lock.current = true;
     setPending(true);
     try {
       const ok = await working.save("terms_rent", offer.amount, offer.save);
+      setRefused(!ok);
       if (ok) {
         setSaved({
           amount: offer.amount,
@@ -548,10 +557,13 @@ export function StandingAgreementAdoption() {
             subject="Renewal base rent"
           />
         </>
-      ) : saved ? (
+      ) : adopted && saved ? (
         <p data-renewal-field="standing-adoption-saved" role="status">
           {saved.text}
         </p>
+      ) : refusal ? (
+        // Nothing is offered now, so a retry could not adopt: the recovery names what happened.
+        <AutosaveStatus state={state} subject="Renewal base rent" />
       ) : null}
     </div>
   );
@@ -717,8 +729,14 @@ export function RenewalPricingPolicyPanel() {
           {legacy && !agreementOnNow ? (
             <p role="status">{view.authority.reason}</p>
           ) : null}
-          {/* S277 R-S277-1: the agreement amount is one reviewed action where the fix lands. */}
-          <StandingAgreementAdoption />
+        </>
+      )}
+      {/* S277 R-S277-1: the agreement amount is one reviewed action where the fix lands. It stays
+          mounted while the read above follows a save's new working revision, so the saved line or
+          a refusal's recovery is not lost. */}
+      <StandingAgreementAdoption />
+      {c.error || !view ? null : (
+        <>
           {!basisOnNow ? <StandingAgreementSummary /> : null}
           {!legacy ? <StandingRuleNotice /> : null}
           {legacy ? (

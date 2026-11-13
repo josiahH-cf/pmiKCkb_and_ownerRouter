@@ -669,7 +669,8 @@ export async function journeyN1002(ctx, page) {
     });
     assert.equal(moved.status, 200, JSON.stringify(moved.body));
   }
-  const stale = page.waitForResponse(
+  // The stale page's Send above is `stale`; this is the save made against a moved revision.
+  const staleSave = page.waitForResponse(
     (response) =>
       new URL(response.url()).pathname === WORKSPACE &&
       response.request().method() === "POST" &&
@@ -678,7 +679,7 @@ export async function journeyN1002(ctx, page) {
   await review
     .getByRole("button", { name: "Save the owner's answer", exact: true })
     .click();
-  assert.equal((await stale).status(), 409);
+  assert.equal((await staleSave).status(), 409);
   await page
     .getByText(/was not saved/)
     .first()
