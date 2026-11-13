@@ -1237,6 +1237,10 @@ export async function journeyW1210(ctx, page) {
   ).length;
   await reachPrimary(ctx, page, leaseId, "ask-owner", "Review owner message");
   const link = page.locator('a[data-renewal-field="composer-link"]').first();
+  // S281 R-S281-12 moved "Open in Communications" into the closed "Other ways to send" group on
+  // purpose: open the disclosure that holds it by its summary, as staff do. Where the link is
+  // already shown (the baseline) this opens nothing, so both builds reach the same state.
+  await kit.reveal(page, 'a[data-renewal-field="composer-link"]');
   await link.waitFor({ timeout: 30_000 });
   const posts = [];
   const opened = page.context().waitForEvent("page", { timeout: 60_000 });
@@ -1377,9 +1381,23 @@ export async function journeyW1211(ctx, page) {
 // ---- W12-12: Prepare under a filter ---------------------------------------------------------------
 
 /**
+ * The Working batch search term of the candidate adaptation below: in the November 5 mix it shows
+ * 5 of the 9 monthly rows by address (every tenant name reads "Example", so the desk table's term
+ * would show all nine there), 3 of the month's 5 preparation targets.
+ */
+export const W1212_BATCH_SEARCH = "Sample";
+
+/**
  * W12-12: narrow the month with the visible filter staff have, then "Prepare {month} leases" on the
  * Working batch. The baseline's Working batch has no filter of its own; its desk table filters
  * the leases ("Filter lease/location") and the Working batch control returns to the month.
+ *
+ * Candidate adaptation (S283 R-S283-2): on a build whose Working batch has its own search box,
+ * Prepare follows that box and not the desk table's filter, so after the same desk table steps the
+ * sequence also types W1212_BATCH_SEARCH (or ctx.options.w1212Search) into it before Prepare, the
+ * way staff narrow the month on that build. On the baseline (no such box) nothing changes. The
+ * extra observations (the search, the shown targets, the line, the leases posted and the lookups
+ * by lease) are additive.
  */
 export async function journeyW1212(ctx, page) {
   const { kit } = ctx;
@@ -1443,6 +1461,30 @@ export async function journeyW1212(ctx, page) {
     .evaluateAll(
       (nodes) => new Set(nodes.map((node) => node.getAttribute("data-batch-lease"))).size,
     );
+  // The candidate adaptation: narrow the month in the Working batch's own search box.
+  let batchSearchTerm = null;
+  if (batchFilterControls > 0) {
+    batchSearchTerm = ctx.options?.w1212Search ?? W1212_BATCH_SEARCH;
+    await batch.getByRole("searchbox").first().fill(batchSearchTerm);
+    await page.waitForTimeout(800);
+    log.add("Working batch searched", { term: batchSearchTerm });
+  }
+  const shownRows = await page
+    .locator('section[aria-label="Working batch"] tr[data-batch-lease]')
+    .evaluateAll((nodes) =>
+      nodes.map((node) => ({
+        leaseId: node.getAttribute("data-batch-lease"),
+        group: node.getAttribute("data-batch-group"),
+        preparation: node.getAttribute("data-batch-preparation"),
+      })),
+    );
+  const shownTargetRows = [
+    ...new Set(
+      shownRows
+        .filter((row) => row.group === "this_batch" && row.preparation !== "held")
+        .map((row) => row.leaseId),
+    ),
+  ].filter(Boolean);
   let prepare = page.locator("[data-kickoff-prepare]").first();
   await prepare.waitFor({ timeout: 60_000 });
   if (await prepare.isDisabled()) {
@@ -1451,11 +1493,17 @@ export async function journeyW1212(ctx, page) {
     await prepare.waitFor({ timeout: 60_000 });
   }
   const buttonName = kit.squash(await prepare.innerText());
-  const targets = Number(
-    (await page
-      .locator('section[aria-label="Batch preparation"]')
+  const preparation = page.locator('section[aria-label="Batch preparation"]').first();
+  const targets = Number((await preparation.getAttribute("data-kickoff-targets")) ?? NaN);
+  const monthTargets = Number(
+    (await preparation.getAttribute("data-kickoff-month-targets")) ?? NaN,
+  );
+  const scopeLine = kit.squash(
+    await preparation
+      .locator("[data-kickoff-scope]")
       .first()
-      .getAttribute("data-kickoff-targets")) ?? NaN,
+      .innerText()
+      .catch(() => ""),
   );
   const posted = [];
   const listen = (request) => {
@@ -1488,6 +1536,11 @@ export async function journeyW1212(ctx, page) {
     .count()
     .catch(() => 0);
   const prepared = [...new Set(posted.filter(Boolean))];
+  const lookupsByLease = Object.fromEntries(
+    Object.entries(comparisonsAfter)
+      .map(([leaseId, count]) => [leaseId, count - (comparisonsBefore[leaseId] ?? 0)])
+      .filter(([, count]) => count !== 0),
+  );
   return {
     observed: {
       monthlyRenewalsButton: monthlyText,
@@ -1507,6 +1560,17 @@ export async function journeyW1212(ctx, page) {
       comparisonRequests:
         Object.values(comparisonsAfter).reduce((sum, count) => sum + count, 0) -
         Object.values(comparisonsBefore).reduce((sum, count) => sum + count, 0),
+      // The candidate adaptation's observations (null or empty on the baseline).
+      workingBatchSearch: batchSearchTerm,
+      rowsShownAfterSearch: new Set(shownRows.map((row) => row.leaseId)).size,
+      shownTargets: shownTargetRows,
+      monthTargets: Number.isFinite(monthTargets) ? monthTargets : null,
+      scopeLine: scopeLine || null,
+      postedLeases: posted.filter(Boolean),
+      preparedOutsideShown: prepared.filter(
+        (leaseId) => !shownTargetRows.includes(leaseId),
+      ).length,
+      lookupsByLease,
     },
     steps: log.steps,
   };

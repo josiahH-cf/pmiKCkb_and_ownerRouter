@@ -211,7 +211,8 @@ export function writeRenewalStepAddress(stepId: string) {
   if (url.searchParams.get("step") === stepId) return;
   url.searchParams.set("step", stepId);
   window.history.replaceState(
-    window.history.state,
+    // Let the Next router preserve its own state and learn this address before a refresh.
+    null,
     "",
     `${url.pathname}${url.search}${url.hash}`,
   );
@@ -982,13 +983,20 @@ export function RenewalGuidedView({
   // S281 R-S281-13 (ARCH-S281-6): the address names the step shown. The first step shown keeps
   // the address it was opened with; every later step shown (a followed advance, a selection, a
   // return) replaces the `step` value in place.
-  const addressStep = useRef<string | null>(null);
+  const initialStep = useRef(shown.id);
+  const addressStep = useRef(shown.id);
   useEffect(() => {
     if (!guided) return;
-    const previous = addressStep.current;
+    const currentAddress = new URLSearchParams(window.location.search).get("step");
+    if (
+      addressStep.current !== shown.id ||
+      (currentAddress !== null &&
+        shown.id !== initialStep.current &&
+        currentAddress !== shown.id)
+    )
+      writeRenewalStepAddress(shown.id);
     addressStep.current = shown.id;
-    if (previous !== null && previous !== shown.id) writeRenewalStepAddress(shown.id);
-  }, [guided, shown.id]);
+  }, [guided, selectedStepId, shown.id]);
 
   const choose = useCallback(
     (id: RenewalPathStepId) => {
@@ -1957,6 +1965,7 @@ function NowCard({
     // need, the primary lands on the Document preparation card's first control.
     if (
       shown.id === "documents" &&
+      step.target === "renewal-manual-documents" &&
       document.querySelector(
         `#${DOCUMENT_PREPARATION_ID} :is([data-packet-lead="packet_input"], [data-packet-lead="ready"])`,
       ) &&

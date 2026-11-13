@@ -8,6 +8,7 @@ import { describe, expect, it } from "vitest";
 import { buildNeedsDecisionInbox } from "@/lib/approval/needs-decision-inbox";
 import { buildRenewalReviewBoard } from "@/lib/approval/renewal-review";
 import { buildWritebackApprovalQueue } from "@/lib/approval/writeback-approval-queue";
+import { mapLeasesToNonSheetCandidates } from "@/lib/integrations/rentvine/lease-mapper";
 import {
   PRECEDENCE_CONFIRMED,
   PRECEDENCE_TABLE,
@@ -411,5 +412,82 @@ describe("S280 BEH-S280-6: the lease's numbers check reads the same rule", () =>
     const check = renewalNumbersCheck({ ...facts, contractualRent: null });
     expect(check.state).toBe("difference");
     expect(check.sheetNotes.some((note) => note.includes("current rent"))).toBe(false);
+  });
+});
+
+describe("S280 R-S280-6: the lease end as a RentVine lease read carries it (W12-09)", () => {
+  // The live lease mapper emits RentVine's lease end as `lease_end_date`, never `renewal_date`
+  // (F-RENEWAL-DATE-SEMANTICS), so the renewal date reconciliation alone never sees a RentVine
+  // value. On the operating Sheet a different Sheet lease end is still information on Live renewal
+  // review (R-S280-6, AC-S280-7), and still raises no flag.
+  const leaseEndRun = (sheetEnd: string, operatingSheet = true) =>
+    runRenewalPipeline({
+      runId: "live-review",
+      tables: [
+        [
+          HEADER as string[],
+          ...LEASES.map((lease, index) =>
+            sheetRow({
+              [TENANT]: lease.tenant,
+              [CURRENT_RENT]: `$${1900 + index * 10}`,
+              [RENEWAL_DATE]: sheetEnd,
+            }),
+          ),
+        ],
+      ],
+      nonSheetCandidates: mapLeasesToNonSheetCandidates(
+        LEASES.map((lease) => ({
+          leaseID: Number(lease.id),
+          tenantName: lease.tenant,
+          endDate: "2027-01-31",
+          currentRent: 1700,
+        })),
+        { readTimestamp: "2026-11-12T18:20:00.000Z" },
+      ).candidates,
+      recordJoinIds: RECORD_JOIN_IDS,
+      ...(operatingSheet ? { operatingSheet: true, leaseLabels: LEASE_LABELS } : {}),
+    });
+
+  it("AC-S280-7: the mapper's lease end gives one information row per lease and field, and no flag", () => {
+    const run = leaseEndRun("12/31/2026");
+    expect(run.flags).toEqual([]);
+    expect(
+      run.outcomes
+        .filter((outcome) => outcome.fieldKey === "renewal_date")
+        .every((outcome) => !outcome.reconciliation.raise_flag),
+    ).toBe(true);
+    const view = buildRenewalRunView(run, [], "Live renewal review");
+    expect(view.totalFlags).toBe(0);
+    const information = view.information ?? [];
+    expect(information).toHaveLength(6);
+    expect(new Set(information.map((row) => row.key)).size).toBe(6);
+    expect(
+      information.find(
+        (row) => row.leaseLabel === "102 Sample Pl" && row.fieldKey === "renewal_date",
+      ),
+    ).toMatchObject({
+      leaseId: "102",
+      sheetUpdateHref: "/lease-renewal/live/desk/lease/102#renewal-rent-and-charges",
+      line: "102 Sample Pl: the operating Sheet shows 12/31/2026 and RentVine shows 01/31/2027. RentVine is the basis.",
+    });
+  });
+
+  it("AC-S280-7: an equal or unreadable Sheet lease end adds nothing, and a synthetic run is unchanged", () => {
+    for (const sheetEnd of ["01/31/2027", "TBD"]) {
+      const run = leaseEndRun(sheetEnd);
+      expect(run.flags).toEqual([]);
+      expect(
+        (buildRenewalRunView(run, [], "Live renewal review").information ?? []).filter(
+          (row) => row.fieldKey === "renewal_date",
+        ),
+      ).toEqual([]);
+    }
+    const synthetic = leaseEndRun("12/31/2026", false);
+    expect(synthetic.outcomes.every((outcome) => outcome.information === undefined)).toBe(
+      true,
+    );
+    expect(synthetic.flags.filter((flag) => flag.fieldKey === "renewal_date")).toEqual(
+      [],
+    );
   });
 });

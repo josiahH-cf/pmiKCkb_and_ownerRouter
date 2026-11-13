@@ -102,7 +102,12 @@ import { useRenewalFocusView } from "./RenewalFocusViewContext";
 import { nowSlotKey, useRenewalNowCard } from "./RenewalNowCardContext";
 import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
 import { workingRecommendationBasis } from "@/lib/lease-renewal/kickoff-facts";
-import { MESSAGE_CONTROL_IDS } from "@/lib/lease-renewal/message-readiness";
+import {
+  MESSAGE_CONTROL_IDS,
+  WORKING_END_FIELD_ID,
+  WORKING_START_FIELD_ID,
+} from "@/lib/lease-renewal/message-readiness";
+import { startDateFixFromOffer } from "./RenewalDateProposal";
 import { useRenewalPricingPolicy } from "./RenewalPricingPolicy";
 import { RecommendationBasisLine, WorkingBaseBasisLine } from "./RenewalRentBasis";
 import {
@@ -992,6 +997,26 @@ function PreparedMessageBlock({
     !offCycleHold;
   const missingWords = needs.filter((item) => !item.ready && item.missing);
   const firstMissing = offCycleHold ? null : needs.find((item) => !item.ready);
+  const tenantDateFix =
+    api.channel === "tenant" && !offCycleHold && (!datesStart || !datesEnd)
+      ? !datesStart
+        ? {
+            field: "renewalStartDate",
+            target: WORKING_START_FIELD_ID,
+            label: GUIDED_PRIORITY_WORDS.enterRenewalStart,
+          }
+        : {
+            field: "renewalEndDate",
+            target: WORKING_END_FIELD_ID,
+            label: GUIDED_PRIORITY_WORDS.enterRenewalEnd,
+          }
+      : null;
+  const dateFixOrigin = `renewal-offer-date-fix-${base}`;
+  const focusTenantDate = () => {
+    if (!tenantDateFix) return;
+    startDateFixFromOffer(tenantDateFix.field, dateFixOrigin);
+    focusRenewalDashboardControl(tenantDateFix.target);
+  };
   const reviewLabel = ready
     ? KICKOFF_WORDS.reviewAndSend
     : offCycleHold
@@ -1538,10 +1563,12 @@ function PreparedMessageBlock({
 
   // R-S249-8: "Review and send" is the Now card's primary action while the step asks for its send.
   const runReview = (button: HTMLButtonElement) => {
-    if (!ready) {
+    if (!ready || (full && tenantDateFix)) {
       if (offCycleHold) {
         // S282 R-S282-4: the fix opens the lease end date review on Check the numbers.
         focusRenewalDashboardControl(offCycleHold.fix.target);
+      } else if (tenantDateFix && full) {
+        focusTenantDate();
       } else if (firstMissing?.key === "signature") {
         setSignatureOpen(true);
         requestAnimationFrame(() => {
@@ -1726,8 +1753,21 @@ function PreparedMessageBlock({
         aria-label="What sending needs"
         className="renewal-now-readiness"
         // S281 R-S281-12: a failing readiness line leads the step, so "Message" opens on its own.
-        data-renewal-promote={!ready ? true : undefined}
+        data-renewal-promote={!ready || (full && tenantDateFix) ? true : undefined}
       >
+        {full && tenantDateFix ? (
+          <li data-renewal-ready="missing">
+            <button
+              className="text-link"
+              data-renewal-fix-link
+              id={dateFixOrigin}
+              onClick={focusTenantDate}
+              type="button"
+            >
+              {tenantDateFix.label}
+            </button>
+          </li>
+        ) : null}
         {offCycleHold ? (
           <li data-renewal-ready="missing" data-renewal-readiness-key={offCycleHold.key}>
             {offCycleHold.text}

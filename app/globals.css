@@ -5669,6 +5669,14 @@ body {
   padding-left: var(--space-3);
 }
 
+/* The facts read as one block with the recipients line under it: the stack's own gap spaces
+   them, not each paragraph's default margins, so the status, the three amounts and the primary
+   action are on the first screen at 1280 by 800 (BEH-S281-1). */
+.renewal-now-owner-facts p,
+.renewal-active-group > [data-renewal-field="now-recipients"] {
+  margin: 0;
+}
+
 /* R-S281-2: the exact review keeps the decision and its buttons in view; the message body is
    last and scrolls in its own area. */
 .ui-confirmation-dialog.renewal-review-dialog .ui-dialog-actions {

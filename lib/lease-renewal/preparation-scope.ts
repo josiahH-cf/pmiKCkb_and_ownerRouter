@@ -30,6 +30,20 @@ export interface PreparationRow {
     | { readonly kind: "dated"; readonly dateIso: string }
     | { readonly kind: string };
   readonly kickoff?: { readonly needsComparison: boolean } | null;
+  /** False when a server-projected row has a current preparation hold. */
+  readonly preparationEligible?: boolean;
+  /**
+   * Whether preparing the lease would look a comparison up, whatever its stage (a row whose owner
+   * step is underway has no kickoff yet is still sent and looked up); null when unknown. Read before
+   * `kickoff` when the row carries it.
+   */
+  readonly comparisonNeeded?: boolean | null;
+}
+
+/** Whether preparing this row would look a comparison up; undefined when it is not known. */
+function comparisonNeededFor(row: PreparationRow): boolean | undefined {
+  if (row.comparisonNeeded !== undefined) return row.comparisonNeeded ?? undefined;
+  return row.kickoff ? row.kickoff.needsComparison : undefined;
 }
 
 /**
@@ -40,18 +54,25 @@ export interface PreparationRow {
 export function preparationTargets(
   thisBatchRows: readonly PreparationRow[],
 ): PreparationTarget[] {
-  return thisBatchRows.flatMap((row) =>
-    row.canOpen && row.placement.kind === "dated" && "dateIso" in row.placement
-      ? [
-          {
-            leaseId: row.leaseId,
-            address: row.unit ? `${row.address}, ${row.unit}` : row.address,
-            cycleDateIso: row.placement.dateIso,
-            ...(row.kickoff ? { needsComparison: row.kickoff.needsComparison } : {}),
-          },
-        ]
-      : [],
-  );
+  return thisBatchRows.flatMap((row) => {
+    const placement = row.placement;
+    if (
+      !row.canOpen ||
+      row.preparationEligible === false ||
+      placement.kind !== "dated" ||
+      !("dateIso" in placement)
+    )
+      return [];
+    const needsComparison = comparisonNeededFor(row);
+    return [
+      {
+        leaseId: row.leaseId,
+        address: row.unit ? `${row.address}, ${row.unit}` : row.address,
+        cycleDateIso: placement.dateIso,
+        ...(needsComparison === undefined ? {} : { needsComparison }),
+      },
+    ];
+  });
 }
 
 /** Lower-case words with runs of space collapsed, so a search matches what the table shows. */
