@@ -31,6 +31,7 @@ import { recordRenewalHold } from "@/lib/firestore/renewal-hold-notices";
 import { CommunicationAttachmentStore } from "./sequence-attachments";
 import { renewalNoticeMaterialIdentity } from "./renewal-material-source";
 import { renewalReviewedInputs } from "./renewal-reviewed-inputs";
+import { contentBasisInputs } from "./current-message";
 import { LEASE_READ_REREAD_WAITS_MS, LeaseReadNotSettledError } from "./reviewed-inputs";
 import { RenewalNoticeSourceError } from "@/lib/lease-renewal/notice-source-error";
 import { settleLiveLeaseRefresh } from "@/lib/lease-renewal/live-lease-cache";
@@ -364,6 +365,40 @@ async function renewalTarget(
         : []),
     ]),
   ];
+  const reviewedInputs = renewalReviewedInputs({
+    channel,
+    reply: Boolean(c.replyTo),
+    to,
+    cc,
+    signature: current.inputs.signature,
+    signatureSetup: current.signatureSetup,
+    facts: f,
+    publication:
+      current.publication.status === "approved"
+        ? {
+            name: current.publication.name,
+            contentHash: current.publication.contentHash,
+          }
+        : null,
+    offerSnapshotHash: offerBasis.offer ?? null,
+    notice,
+    dispositionRevision: current.dispositionRevision ?? null,
+    blockers: targetBlockers,
+  });
+  // S272 R-S272-1: the content basis, the part of the material source digest that feeds the
+  // wording, with the same part of the legacy digest (for the legacy or current choice dispatch
+  // makes) and the labelled values behind it. Recipients, notice identity and blockers stay in the
+  // material source digest only. A linked reply states no lease content and has none.
+  const legacyContentBasis = {
+    address: f.address,
+    currentRent: f.currentBaseRent?.value ?? null,
+    leaseEnd: f.leaseEndDate,
+    terms,
+    charges,
+    insuranceTransition: f.insuranceTransition?.applicable ?? null,
+    informationForm: null,
+    insuranceFlyer: null,
+  };
   const target: VerifiedCommunicationTarget = {
     context: c,
     to,
@@ -393,26 +428,15 @@ async function renewalTarget(
       : {}),
     // S274 ARCH-S274-1: whether this read settled; S274 ARCH-S274-3: what the review displays.
     readSettlement: current.readSettlement,
-    reviewedInputs: renewalReviewedInputs({
-      channel,
-      reply: Boolean(c.replyTo),
-      to,
-      cc,
-      signature: current.inputs.signature,
-      signatureSetup: current.signatureSetup,
-      facts: f,
-      publication:
-        current.publication.status === "approved"
-          ? {
-              name: current.publication.name,
-              contentHash: current.publication.contentHash,
-            }
-          : null,
-      offerSnapshotHash: offerBasis.offer ?? null,
-      notice,
-      dispositionRevision: current.dispositionRevision ?? null,
-      blockers: targetBlockers,
-    }),
+    reviewedInputs,
+    contentBasis:
+      contentBasis === null
+        ? null
+        : {
+            digest: sequenceHash(contentBasis),
+            legacyDigest: sequenceHash(legacyContentBasis),
+            values: contentBasisInputs(reviewedInputs),
+          },
     legacyMaterialSourceHash,
     // S265: the tenant resources as read now, and those the offer's decisions require. Only the
     // resources an exact authorized message includes are frozen and compared.

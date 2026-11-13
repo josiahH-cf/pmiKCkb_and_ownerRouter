@@ -8,8 +8,21 @@ import { applyBusinessSignature } from "@/lib/gmail-hub/business-signature";
 import type { StaffBusinessProfile } from "@/lib/staff/business-profile";
 import {
   SEQUENCE_PAUSE_CAUSE_LABELS,
+  SEQUENCE_REFUSAL_ACTION_LABELS,
+  describeSequenceDetailState,
+  describeSequenceRefusal,
   describeSequenceState,
+  refusalWithholdsAuthorization,
 } from "@/lib/gmail-hub/communication-state";
+import {
+  SEQUENCE_REFUSED_CODE,
+  isCurrentMessageScope,
+  newerSendRefusal,
+  wordingPredatesChange,
+  type NewerSend,
+  type SequenceRefusal,
+  type TargetContentBasis,
+} from "@/lib/gmail-hub/current-message";
 import {
   communicationEvidenceHeading,
   describeCommunicationEvidence,
@@ -54,6 +67,11 @@ interface SequencePayload {
   attemptsTruncated?: boolean;
   /** S233 R-S233-1: the attempts could not be read with this response; the last list is kept. */
   attemptsUnavailable?: boolean;
+  /**
+   * S272 R-S272-4: the newer confirmed send that stops this communication's authorization; null
+   * when none. Absent when the server could not read it; the last value is then kept.
+   */
+  newerSend?: NewerSend | null;
 }
 type Entry =
   | { id: string }
@@ -76,6 +94,9 @@ interface Composition {
     signatureSetup?: object | null;
     /** S274 R-S274-5: the inputs this review displays; sent back only to name what changed. */
     reviewedInputs?: ReviewedInput[];
+    /** S272 R-S272-1: the lease's current content basis; null for a linked reply. */
+    contentBasis?: TargetContentBasis | null;
+    outgoingContract?: boolean;
   };
   attachmentNotice: string | null;
   signatureParagraph?: RichCommunicationMessage["paragraphs"][number] | null;
@@ -113,9 +134,20 @@ async function jsonRequest<T>(url: string, body?: unknown): Promise<T> {
   if (!response.ok)
     throw Object.assign(
       new Error(payload.error ?? "This communication could not be saved or checked."),
-      { status: response.status },
+      {
+        status: response.status,
+        // S272 R-S272-6: the one typed refusal reason, when the route returned one.
+        ...(payload.code === SEQUENCE_REFUSED_CODE && payload.refusal
+          ? { refusal: payload.refusal as SequenceRefusal }
+          : {}),
+      },
     );
   return payload as T;
+}
+/** S272: the typed refusal a failed request carried, if any. */
+function sequenceRefusalOf(error: unknown): SequenceRefusal | null {
+  const refusal = (error as { refusal?: unknown } | null)?.refusal;
+  return refusal && typeof refusal === "object" ? (refusal as SequenceRefusal) : null;
 }
 export function CommunicationComposer({
   entry,
@@ -162,6 +194,11 @@ export function CommunicationComposer({
   } | null>(null);
   const [draft, setDraft] = useState<SequenceDraft | null>(null),
     [sequence, setSequence] = useState<CommunicationSequence | null>(null);
+  // S272: the saved wording's hash, the newer send that stops this authorization, and the typed
+  // refusal the last Resume, Send or Schedule met.
+  const [savedDraftHash, setSavedDraftHash] = useState(""),
+    [newerSend, setNewerSend] = useState<NewerSend | null>(null),
+    [actionRefusal, setActionRefusal] = useState<SequenceRefusal | null>(null);
   const [signatureOverride, setSignatureOpen] = useState<boolean | null>(null);
   const [reviewedTargetHash, setReviewedTargetHash] = useState("");
   const [target, setTarget] = useState<Composition["target"] | null>(null),
@@ -243,6 +280,8 @@ export function CommunicationComposer({
     version.current = p.sequence.version;
     hash.current = p.reviewedDraftHash;
     setSequence(p.sequence);
+    setSavedDraftHash(p.reviewedDraftHash);
+    if (p.newerSend !== undefined) setNewerSend(p.newerSend);
     if (p.attempts) {
       setAttempts(p.attempts);
       setAttemptsTruncated(p.attemptsTruncated === true);
@@ -500,6 +539,7 @@ export function CommunicationComposer({
     locked.current = true;
     setBusy(true);
     setError("");
+    setActionRefusal(null);
     try {
       let p: SequencePayload;
       if (["send", "schedule", "resume"].includes(action)) {
@@ -552,11 +592,15 @@ export function CommunicationComposer({
       );
       onChanged();
     } catch (e) {
-      setError(
-        e instanceof Error
-          ? e.message
-          : "The action could not be confirmed. Check its recorded state before trying again.",
-      );
+      // S272 R-S272-6: a typed refusal reads from its reason, with the actions that can succeed.
+      const refusal = sequenceRefusalOf(e);
+      if (refusal) setActionRefusal(refusal);
+      else
+        setError(
+          e instanceof Error
+            ? e.message
+            : "The action could not be confirmed. Check its recorded state before trying again.",
+        );
       try {
         accept(
           await jsonRequest<SequencePayload>(
@@ -566,6 +610,54 @@ export function CommunicationComposer({
       } catch {
         /* keep the last known state and wording */
       }
+    } finally {
+      locked.current = false;
+      setBusy(false);
+    }
+  };
+  /**
+   * S272 R-S272-5: "Update from the lease" loads the lease's current message into this
+   * communication's editable draft through the existing composition read and saves that wording
+   * once, even when it reads the same, so the save records the update. It sends, schedules and
+   * authorizes nothing; the existing one-click Send or Schedule then authorizes that exact end state.
+   */
+  const updateFromLease = async () => {
+    const d = currentDraft.current;
+    if (locked.current || !d || !isCurrentMessageScope(d.context)) return;
+    locked.current = true;
+    setBusy(true);
+    setError("");
+    setActionRefusal(null);
+    try {
+      if (saveFlight.current) await saveFlight.current.catch(() => undefined);
+      const next = await readComposition(
+        new URLSearchParams({ purpose: d.context.purpose, lease: d.context.entityId }),
+      );
+      const latest = currentDraft.current ?? d;
+      const updated: SequenceDraft = { ...latest, initial: next.initial };
+      loadedSignatureParagraph.current = next.signatureParagraph;
+      setTarget(next.target);
+      setReviewedTargetHash(next.reviewedTargetHash);
+      setAttachmentNotice(next.attachmentNotice);
+      setMessageRevision(next.messageRevision ?? null);
+      currentDraft.current = updated;
+      setDraft(updated);
+      saveIntent.current = {
+        action: "save",
+        draft: updated,
+        expectedVersion: version.current,
+        operationId: crypto.randomUUID(),
+      };
+      await save();
+      setStatus(
+        "Updated from the lease. Nothing was sent. Review the message, then Send or Schedule it.",
+      );
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message
+          : "The lease's current message could not be loaded. Your wording is kept.",
+      );
     } finally {
       locked.current = false;
       setBusy(false);
@@ -702,6 +794,35 @@ export function CommunicationComposer({
     blocks.length > 0 ||
     !!sequence?.unresolvedOccurrenceId;
   const resumeRepeats = sequence?.authorization?.schedule?.everyDays != null;
+  // S272 R-S272-5: the refusal this communication meets now, from the server's newer-send read
+  // and the lease's current content basis, so Communications offers only the actions that can
+  // succeed and says why for the rest. A refusal a Resume, Send or Schedule met is shown with it.
+  const standingRefusal: SequenceRefusal | null =
+    sequence &&
+    !terminal &&
+    sequence.authorization &&
+    isCurrentMessageScope(sequence.context)
+      ? newerSend ||
+        (sequence.state === "paused" && sequence.pause?.cause === "newer_message_sent")
+        ? newerSendRefusal(sequence.context, newerSend)
+        : savedDraftHash
+          ? wordingPredatesChange({
+              sequence,
+              draftHash: savedDraftHash,
+              contentBasis: target?.contentBasis,
+              outgoingContract: target?.outgoingContract,
+            })
+          : null
+      : null;
+  const refusals = [
+    ...(standingRefusal ? [standingRefusal] : []),
+    ...(actionRefusal && actionRefusal.reason !== standingRefusal?.reason
+      ? [actionRefusal]
+      : []),
+  ];
+  const authorizationWithheld = refusals.some((refusal) =>
+    refusalWithholdsAuthorization(refusal.reason),
+  );
   return (
     <section
       className="ui-card ui-stack communication-composer"
@@ -812,10 +933,12 @@ export function CommunicationComposer({
           data-communication-version={sequence.version}
         >
           {
-            describeSequenceState({
+            // S272 R-S272-5: the scheduled or paused time, with its zone.
+            describeSequenceDetailState({
               ...sequence,
               scheduled: !!sequence.authorization?.schedule,
-            }).label
+              timeZone: sequence.authorization?.schedule?.timeZone ?? null,
+            })
           }
         </p>
       ) : null}
@@ -891,6 +1014,55 @@ export function CommunicationComposer({
       {sequence?.unresolvedOccurrenceId ? (
         <p>An admitted send needs reconciliation. No second send will be attempted.</p>
       ) : null}
+      {refusals.map((refusal) => {
+        // S272 R-S272-5/R-S272-6: the reason line from the one typed reason, each changed value,
+        // and only the actions that can succeed ("Cancel future messages" stays below).
+        const view = describeSequenceRefusal(refusal);
+        return (
+          <div
+            className="ui-stack-tight"
+            data-communication-field="refusal"
+            data-refusal-reason={refusal.reason}
+            key={refusal.reason}
+            role="status"
+          >
+            <p>{view.text}</p>
+            {view.lines.length ? (
+              <ul aria-label="Changed on the lease">
+                {view.lines.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            ) : null}
+            {view.actions.includes("update_from_lease") ? (
+              <button
+                type="button"
+                disabled={busy || terminal}
+                onClick={() => void updateFromLease()}
+              >
+                {SEQUENCE_REFUSAL_ACTION_LABELS.update_from_lease}
+              </button>
+            ) : null}
+            {view.actions.includes("open_lease") ? (
+              <a
+                href={workflowEntityHref({
+                  entity_type: draft.context.entityType,
+                  entity_id: draft.context.entityId,
+                })}
+              >
+                {SEQUENCE_REFUSAL_ACTION_LABELS.open_lease}
+              </a>
+            ) : null}
+            {view.actions.includes("open_related") && refusal.relatedSequenceId ? (
+              <a
+                href={`/gmail-hub?communication=${encodeURIComponent(refusal.relatedSequenceId)}`}
+              >
+                {SEQUENCE_REFUSAL_ACTION_LABELS.open_related}
+              </a>
+            ) : null}
+          </div>
+        );
+      })}
       {(["initial", "followUp"] as const).map((which) => {
         const m = draft[which];
         if (!m) return null;
@@ -1069,14 +1241,18 @@ export function CommunicationComposer({
         >
           {saveNeedsRetry ? "Retry same save" : "Save draft"}
         </button>
-        <button disabled={initialBlocked} onClick={() => void run("send")}>
-          Send
-        </button>
-        <button disabled={initialBlocked} onClick={() => setScheduleOpen((v) => !v)}>
-          Schedule
-        </button>
+        {authorizationWithheld ? null : (
+          <>
+            <button disabled={initialBlocked} onClick={() => void run("send")}>
+              Send
+            </button>
+            <button disabled={initialBlocked} onClick={() => setScheduleOpen((v) => !v)}>
+              Schedule
+            </button>
+          </>
+        )}
       </div>
-      {scheduleOpen ? (
+      {scheduleOpen && !authorizationWithheld ? (
         <fieldset disabled={busy || terminal} className="ui-stack">
           <legend>Schedule this reviewed communication</legend>
           <div className="ui-row">
@@ -1181,7 +1357,11 @@ export function CommunicationComposer({
           Check recorded status
         </button>
       ) : null}
-      {sequence && !terminal && sequence.state === "paused" && nowMs !== null ? (
+      {sequence &&
+      !terminal &&
+      sequence.state === "paused" &&
+      !authorizationWithheld &&
+      nowMs !== null ? (
         <p data-communication-field="resume-timing">
           {describeResumeTiming(sequence, nowMs)}
         </p>
@@ -1194,7 +1374,7 @@ export function CommunicationComposer({
           <button disabled={busy} onClick={() => void run("cancel")}>
             Cancel future messages
           </button>
-          {sequence.state === "paused" ? (
+          {sequence.state === "paused" && !authorizationWithheld ? (
             <button
               disabled={initialBlocked || (resumeRepeats && !followUpReady)}
               onClick={() => void run("resume")}

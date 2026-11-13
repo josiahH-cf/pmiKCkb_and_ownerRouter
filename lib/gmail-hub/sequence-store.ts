@@ -34,6 +34,15 @@ import {
   type RecordedTenantResponse,
 } from "./tenant-response-hold";
 import {
+  CommunicationSequenceRefusedError,
+  currentMessageGuardKey,
+  currentMessageRefusal,
+  isCurrentMessageScope,
+  newerInitialSend,
+  relatedSequenceView,
+  type RelatedSequenceView,
+} from "./current-message";
+import {
   appendUnsentHistory,
   unsentAttemptOnSettle,
 } from "@/lib/lease-renewal/unsent-message";
@@ -113,8 +122,21 @@ export interface SequenceStore {
     action: string;
     dispositionRevision?: number;
     initialTenantAuthorization?: boolean;
+    /**
+     * S272 ARCH-S272-2: apply the one-current-message rules in this transaction, against the
+     * stored sequences for the same lease and audience: an older authorization after a newer
+     * confirmed send (R-S272-4) and another unsent initial message (R-S272-3). A refusal throws the
+     * typed refusal and writes nothing.
+     */
+    currentMessage?: boolean;
     apply(current: CommunicationSequence | null): CommunicationSequence;
   }): Promise<CommunicationSequence>;
+  /**
+   * S272: the stored sequences for one lease (every audience, reply and state), as the
+   * one-current-message rules read them. Optional so a store without it applies the rules only in
+   * its transactions.
+   */
+  relatedRenewalSequences?(entityId: string): Promise<RelatedSequenceView[]>;
   claim(
     id: string,
     nowMs: number,
@@ -260,6 +282,15 @@ function assertRecord(data: unknown): CommunicationSequence {
     throw new EditableLayerError("This communication state needs reconciliation.", 409);
   }
 }
+/** S272: stored sequence documents as related views; a purged or unusable record is skipped. */
+function relatedViews(
+  docs: readonly { id: string; data(): Record<string, unknown> | undefined }[],
+): RelatedSequenceView[] {
+  return docs.flatMap((doc) => {
+    const view = relatedSequenceView(doc.id, doc.data());
+    return view ? [view] : [];
+  });
+}
 /** One durable sequence owner alongside existing workflow links/receipts, never a second provider ledger. */
 export class FirestoreCommunicationSequenceStore implements SequenceStore {
   constructor(readonly db: Firestore = getAdminFirestore()) {}
@@ -381,11 +412,7 @@ export class FirestoreCommunicationSequenceStore implements SequenceStore {
     actorUid: string;
     nowMs: number;
   }): Promise<{ paused: string[] }> {
-    const snapshot = await this.db
-      .collection(COMMUNICATION_SEQUENCE_COLLECTIONS.sequences)
-      .where("context.entityId", "==", input.leaseId)
-      .limit(100)
-      .get();
+    const snapshot = await this.relatedQuery(input.leaseId).limit(100).get();
     const candidates = snapshot.docs.flatMap((doc) => {
       if (doc.get("purged")) return [];
       try {
@@ -460,6 +487,16 @@ export class FirestoreCommunicationSequenceStore implements SequenceStore {
       .get();
     return s.exists ? (s.data() as CommunicationOccurrence) : null;
   }
+  /** S272: every stored sequence for the lease, read as the one-current-message rules read them. */
+  private relatedQuery(entityId: string) {
+    return this.db
+      .collection(COMMUNICATION_SEQUENCE_COLLECTIONS.sequences)
+      .where("context.entityId", "==", entityId);
+  }
+  async relatedRenewalSequences(entityId: string): Promise<RelatedSequenceView[]> {
+    const snapshot = await this.relatedQuery(entityId).get();
+    return relatedViews(snapshot.docs);
+  }
   async write(i: Parameters<SequenceStore["write"]>[0]) {
     const operationRef = this.db
       .collection(COMMUNICATION_SEQUENCE_COLLECTIONS.operations)
@@ -522,6 +559,32 @@ export class FirestoreCommunicationSequenceStore implements SequenceStore {
           "This communication exceeds its supported size.",
           400,
         );
+      // S272 ARCH-S272-2: the one-current-message rules on stored sequence state, in the
+      // transaction that writes the authorization. Every initial authorization for a lease and
+      // audience reads and writes one guard record, so two confirmations from two tabs serialize
+      // and exactly one authorization exists; the later one then reads the first and is refused.
+      let currentMessageGuard: FirebaseFirestore.DocumentReference | null = null;
+      if (i.currentMessage && isCurrentMessageScope(next.context)) {
+        const guard = this.db
+          .collection(COMMUNICATION_SEQUENCE_COLLECTIONS.operations)
+          .doc(sequenceHash(currentMessageGuardKey(next.context)));
+        const [, related] = await Promise.all([
+          tx.get(guard),
+          tx.get(this.relatedQuery(next.context.entityId)),
+        ]);
+        const refusal = currentMessageRefusal({
+          subject: current ?? next,
+          next: {
+            ...(next.noticeCycleId !== undefined
+              ? { noticeCycleId: next.noticeCycleId }
+              : {}),
+            confirmedCount: next.confirmedCount,
+          },
+          related: relatedViews(related.docs),
+        });
+        if (refusal) throw new CommunicationSequenceRefusedError(refusal);
+        currentMessageGuard = guard;
+      }
       let tenantOfferClaim: FirebaseFirestore.DocumentReference | null = null;
       if (i.initialTenantAuthorization && next.noticeCycleId) {
         const key = sequenceHash([
@@ -603,6 +666,13 @@ export class FirestoreCommunicationSequenceStore implements SequenceStore {
           kind: "tenant_initial_offer",
           createdAtMs: i.nowMs,
         });
+      if (currentMessageGuard)
+        tx.set(currentMessageGuard, {
+          kind: "renewal_current_message",
+          sequenceId: next.id,
+          updatedAtMs: i.nowMs,
+          ...communicationsRetentionFields("bodyless_audit", i.nowMs),
+        });
       tx.set(this.ref(i.id), storedSequence(next));
       tx.create(operationRef, {
         actorUid: i.actorUid,
@@ -679,6 +749,45 @@ export class FirestoreCommunicationSequenceStore implements SequenceStore {
         .doc(occurrenceId);
       const previous = await tx.get(ref);
       if (previous.exists) return null; // any admitted attempt excludes a second call, including after a crash
+      // S272 R-S272-4 (ARCH-S272-2): an authorization granted before another communication for
+      // the same lease, cycle and audience recorded a confirmed initial send never dispatches. This
+      // claim admits nothing and pauses it with its own cause, in the same transaction; only
+      // "Cancel future messages" remains for its unsent work.
+      if (isCurrentMessageScope(s.context)) {
+        const related = await tx.get(this.relatedQuery(s.context.entityId));
+        const newer = newerInitialSend(s, relatedViews(related.docs));
+        if (newer) {
+          const paused: CommunicationSequence = {
+            ...s,
+            version: s.version + 1,
+            state: "paused",
+            nextDueAtMs: null,
+            pause: {
+              cause: "newer_message_sent",
+              byUid: "communication-worker",
+              atMs: nowMs,
+              evidenceIds: [`communication:${newer.sequenceId}`],
+            },
+            updatedAtMs: nowMs,
+          };
+          tx.set(this.ref(id), storedSequence(paused));
+          tx.set(
+            this.db
+              .collection(COMMUNICATION_SEQUENCE_COLLECTIONS.audit)
+              .doc(sequenceHash([id, s.version, "newer_message_sent", "audit"])),
+            {
+              action: "newer_message_sent",
+              sequenceId: id,
+              actorUid: "communication-worker",
+              version: paused.version,
+              atMs: nowMs,
+              state: paused.state,
+              ...communicationsRetentionFields("bodyless_audit", nowMs),
+            },
+          );
+          return null;
+        }
+      }
       // S276 R-S276-3 (ARCH-S276-2): a reminder of an offer authorized before the tenant's response
       // was recorded never dispatches, even when the pause at save time was not written. This claim
       // reads the lease's work record in the same transaction, admits nothing and pauses the

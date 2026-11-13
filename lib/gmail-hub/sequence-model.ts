@@ -176,6 +176,8 @@ export interface CommunicationSequence
       | "send_unconfirmed"
       | "unexpected_sender"
       | "resource_changed"
+      // S272 R-S272-4: a newer message for the same lease, cycle and audience was sent.
+      | "newer_message_sent"
       // S276 R-S276-2: staff recorded the tenant's response on the lease.
       | "tenant_response_recorded";
     byUid: string;
@@ -231,6 +233,19 @@ export interface CommunicationSequence
   replyWatch?: boolean;
   /** S275 R-S275-1: why and when the watch ended; absent while it holds or never applied. */
   replyWatchEnded?: import("./reply-watch").ReplyWatchEnded | null;
+  /**
+   * S272 R-S272-1: the content basis the authorization was reviewed on (its digest, the labelled
+   * values behind it and the wording it authorized), for the authorization revision it belongs to.
+   * Kept beside the authorization like the notice cycle, so its payload and replay binding are
+   * unchanged; absent on records authorized before it was kept.
+   */
+  authorizedContentBasis?: import("./current-message").AuthorizedContentBasis;
+  /**
+   * S272 R-S272-2: the authorization revision after which staff last saved this communication's
+   * wording (an edit, or an update from the lease). Absent until wording is saved after an
+   * authorization.
+   */
+  wordingSavedAfterRevision?: number;
   /**
    * S273 R-S273-5: this communication's earlier unsent attempts, oldest first (scheduled or held,
    * then updated or resumed; unconfirmed, then resolved). Kept beside the authorization like the
@@ -351,6 +366,12 @@ export interface VerifiedCommunicationTarget {
    * part of the reviewed target hash; a refusal or a hold names the inputs that differ.
    */
   reviewedInputs?: import("./reviewed-inputs").ReviewedInput[];
+  /**
+   * S272 R-S272-1: the content basis this read gives the wording (digest, legacy digest and the
+   * labelled values). Null for a linked reply; absent on targets that state no renewal content. Not
+   * part of the reviewed target hash.
+   */
+  contentBasis?: import("./current-message").TargetContentBasis | null;
 }
 export function communicationSendKey(
   context: WorkflowCommunicationContext,

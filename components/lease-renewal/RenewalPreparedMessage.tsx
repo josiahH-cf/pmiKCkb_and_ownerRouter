@@ -42,6 +42,14 @@ import {
   type ReviewedInput,
 } from "@/lib/gmail-hub/reviewed-inputs";
 import {
+  SEQUENCE_REFUSED_CODE,
+  type SequenceRefusal,
+} from "@/lib/gmail-hub/current-message";
+import {
+  SEQUENCE_REFUSAL_ACTION_LABELS,
+  sequenceRefusalMessage,
+} from "@/lib/gmail-hub/communication-state";
+import {
   UNSENT_MESSAGE_WORDS,
   carriedSendTime,
   scheduledStoredLine,
@@ -354,6 +362,7 @@ async function json<T>(url: string, body?: unknown): Promise<T> {
     error?: string;
     code?: string;
     changes?: ChangedInput[];
+    refusal?: SequenceRefusal;
   };
   if (!response.ok)
     throw Object.assign(new Error(payload.error ?? "This was not completed."), {
@@ -361,6 +370,10 @@ async function json<T>(url: string, body?: unknown): Promise<T> {
       // S274: the typed refusal the sequences route returns, when there is one.
       ...(typeof payload.code === "string" ? { code: payload.code } : {}),
       ...(Array.isArray(payload.changes) ? { changes: payload.changes } : {}),
+      // S272 R-S272-6: the one typed refusal reason, with the related communication.
+      ...(payload.refusal && typeof payload.refusal === "object"
+        ? { refusal: payload.refusal }
+        : {}),
     });
   return payload;
 }
@@ -369,11 +382,17 @@ async function json<T>(url: string, body?: unknown): Promise<T> {
 function refusalOf(error: unknown): {
   code: string | null;
   changes: readonly ChangedInput[];
+  sequenceRefusal: SequenceRefusal | null;
 } {
-  const value = error as { code?: unknown; changes?: unknown } | null;
+  const value = error as { code?: unknown; changes?: unknown; refusal?: unknown } | null;
   return {
     code: typeof value?.code === "string" ? value.code : null,
     changes: Array.isArray(value?.changes) ? (value.changes as ChangedInput[]) : [],
+    // S272 R-S272-6: the one typed refusal reason, when there is one.
+    sequenceRefusal:
+      value?.refusal && typeof value.refusal === "object"
+        ? (value.refusal as SequenceRefusal)
+        : null,
   };
 }
 
@@ -699,6 +718,8 @@ function PreparedMessageBlock({
   const [review, setReview] = useState<ReviewState | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  // S272 R-S272-3: the communication that already holds this renewal, for the refusal's link.
+  const [refusedCommunication, setRefusedCommunication] = useState<string | null>(null);
   const [changedReview, setChangedReview] = useState<string | null>(null);
   const [scheduleDate, setScheduleDate] = useState(tomorrowIso);
   const [scheduleTime, setScheduleTime] = useState("09:00");
@@ -1001,6 +1022,7 @@ function PreparedMessageBlock({
   ) => {
     setBusy(true);
     setMessage("");
+    setRefusedCommunication(null);
     setChangedReview(null);
     if (reloadAfter) setReloading(true);
     const epoch = reviewEpoch.current;
@@ -1336,6 +1358,7 @@ function PreparedMessageBlock({
     confirmLock.current = true;
     setBusy(true);
     setMessage("");
+    setRefusedCommunication(null);
     let sendingId: string | null = null;
     // S274 R-S274-5: a refusal for a real change reloads this review in place after the request.
     let reloadAfter: readonly ChangedInput[] | null = null;
@@ -1486,6 +1509,15 @@ function PreparedMessageBlock({
         // S274 R-S274-5: a fact the review showed really changed. The review is read again in place
         // with each changed value marked, and needs one more confirmation.
         reloadAfter = refusal.changes;
+      } else if (refusal.code === SEQUENCE_REFUSED_CODE && refusal.sequenceRefusal) {
+        // S272 R-S272-6: one typed reason; its text derives in one place. Nothing was sent,
+        // scheduled or written. A message already holding this renewal is named with its link.
+        setMessage(sequenceRefusalMessage(refusal.sequenceRefusal));
+        setRefusedCommunication(
+          refusal.sequenceRefusal.reason === "unsent_message_exists"
+            ? (refusal.sequenceRefusal.relatedSequenceId ?? null)
+            : null,
+        );
       } else {
         if (sendingId && outcomeUnknown(error)) setUnknownAuthorization(sendingId);
         setMessage(
@@ -2100,6 +2132,16 @@ function PreparedMessageBlock({
       >
         {review ? (
           <div className="ui-stack-tight" data-renewal-field="exact-review">
+            {refusedCommunication ? (
+              // S272 R-S272-3: open the communication that already holds this renewal.
+              <p data-renewal-field="refused-communication">
+                <a
+                  href={`/gmail-hub?communication=${encodeURIComponent(refusedCommunication)}`}
+                >
+                  {SEQUENCE_REFUSAL_ACTION_LABELS.open_related}
+                </a>
+              </p>
+            ) : null}
             {reloading ? (
               // S274 R-S274-5: confirm stays disabled while the review is read again.
               <p data-renewal-field="review-reloading" role="status">

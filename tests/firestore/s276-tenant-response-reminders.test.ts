@@ -111,6 +111,11 @@ function targetFor(cycleId: string): VerifiedCommunicationTarget {
       reviewedInput("cc", "Cc", null),
       ...content,
     ],
+    contentBasis: {
+      digest: sequenceHash(content),
+      legacyDigest: sequenceHash({ legacy: content }),
+      values: content,
+    },
   };
 }
 

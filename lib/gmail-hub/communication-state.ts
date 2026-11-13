@@ -42,6 +42,8 @@ export const SEQUENCE_PAUSE_CAUSE_LABELS: Record<SequencePauseCause, string> = {
   unexpected_sender:
     "A message arrived from an address not on this conversation, or from an automated sender",
   resource_changed: "A tenant link in this message changed or needs a new access check",
+  // S272 R-S272-4: the worker stopped an older authorization after a newer confirmed send.
+  newer_message_sent: "A newer message for this renewal was sent",
   // S276 R-S276-2 / R-S276-4: any recorded tenant response, a decline included, at save time.
   tenant_response_recorded: "The tenant's response was recorded by staff",
 };

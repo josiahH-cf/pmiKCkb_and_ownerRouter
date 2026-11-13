@@ -283,7 +283,11 @@ export function unsentWorkEvidence(
         }
       : null,
     basis: kept ? { digest: kept.digest, values: [...kept.values] } : null,
-    digestKind: authorization.signatureSetup ? "current" : "legacy",
+    // S272 R-S272-1 kept the digest contentDigestFor chose when it authorized: the legacy one only
+    // for an outgoing-contract target with no signature setup, which authorization refuses
+    // (SIGNATURE_SETUP_REQUIRED). A kept basis therefore compares with the current digest, with or
+    // without a signature setup.
+    digestKind: "current",
     wordingRevision: messageRevisionOf({
       subject: authorization.initial.subject,
       body: authorization.initial.plainText,
