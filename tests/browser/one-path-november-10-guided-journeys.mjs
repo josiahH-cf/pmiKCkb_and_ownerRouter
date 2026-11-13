@@ -39,6 +39,12 @@ export const GROUP_NAMES = {
   complete: [null, "Verify completion"],
 };
 
+// The R-S281-12 message and contact groups replace the earlier combined S270 labels.
+const RECORD_GROUPS = {
+  "ask-owner": "Outreach record",
+  "offer-tenant": "Record of contact",
+};
+
 async function guidedCheck(ctx, page, lease, step) {
   const { kit } = ctx;
   await kit.open(page, kit.href(lease, "?step=" + step));
@@ -413,7 +419,13 @@ export async function journeyN1008(ctx, page, mutations) {
     .locator("details[data-renewal-group]")
     .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-renewal-group")));
   for (const [step, [group]] of Object.entries(GROUP_NAMES))
-    if (group) assert.ok(groupLabels.includes(group), step + " has " + group);
+    if (group) {
+      const label = RECORD_GROUPS[step] ?? group;
+      assert.ok(
+        groupLabels.includes(label) || groupLabels.includes(group),
+        step + " has " + label,
+      );
+    }
   observed.namedGroupsClosedOnEntry =
     openOnEntry === 0 &&
     [...named, ...full].every((check) => check.report.openStacks === 0);
@@ -425,16 +437,19 @@ export async function journeyN1008(ctx, page, mutations) {
   // (such as the Guided lead) stays open by design.
   let group = null;
   for (const step of STEPS) {
-    const name = GROUP_NAMES[step][0];
-    if (!name) continue;
+    const legacyName = GROUP_NAMES[step][0];
+    if (!legacyName) continue;
     await kit.open(page, kit.href(lease, "?step=" + step));
     await kit
       .now(page)
       .locator(`[data-renewal-work][data-renewal-outcome="${step}"]`)
       .waitFor();
+    const name = RECORD_GROUPS[step] ?? legacyName;
     const candidate = kit
       .now(page)
-      .locator(`details[data-renewal-group="${name}"]`)
+      .locator(
+        `details[data-renewal-group="${name}"], details[data-renewal-group="${legacyName}"]`,
+      )
       .first();
     if (!(await candidate.count())) continue;
     await candidate.locator(":scope > summary").waitFor();
@@ -443,7 +458,12 @@ export async function journeyN1008(ctx, page, mutations) {
     );
     if (closed) {
       group = candidate;
-      record({ id: "N10-08", check: "disclosure-group", step, group: name });
+      record({
+        id: "N10-08",
+        check: "disclosure-group",
+        step,
+        group: await candidate.getAttribute("data-renewal-group"),
+      });
       break;
     }
   }
@@ -482,9 +502,9 @@ export async function journeyN1008(ctx, page, mutations) {
   );
   const owner = page.locator("details[data-renewal-group]").filter({ has: target });
   assert.equal(await owner.count(), 1);
-  assert.equal(
-    await owner.getAttribute("data-renewal-group"),
-    GROUP_NAMES["ask-owner"][0],
+  const ownerLabel = await owner.getAttribute("data-renewal-group");
+  assert.ok(
+    [RECORD_GROUPS["ask-owner"], GROUP_NAMES["ask-owner"][0]].includes(ownerLabel),
   );
   assert.notEqual(await owner.getAttribute("open"), null);
   const othersOpen = await page
@@ -496,7 +516,7 @@ export async function journeyN1008(ctx, page, mutations) {
             node.getAttribute("data-renewal-group") !== ownerLabel &&
             !node.hasAttribute("data-renewal-promoted"),
         ).length,
-      GROUP_NAMES["ask-owner"][0],
+      ownerLabel,
     );
   assert.equal(othersOpen, 0);
   assert.equal(await page.locator("details[data-renewal-verification][open]").count(), 0);
@@ -507,7 +527,7 @@ export async function journeyN1008(ctx, page, mutations) {
   await page.waitForFunction(
     (label) =>
       document.activeElement?.matches(`details[data-renewal-group="${label}"] > summary`),
-    GROUP_NAMES["ask-owner"][0],
+    ownerLabel,
   );
   observed.focusReturnedToSummary = true;
 
