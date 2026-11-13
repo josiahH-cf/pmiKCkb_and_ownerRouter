@@ -1853,9 +1853,8 @@ function MessagePreparationEditor({
       nowSlotKey(channel === "owner" ? "ask-owner" : "offer-tenant", "message-preview")
     ],
   );
-  // S264 (R-S264-2): Review offer charges is one control with one saved record. The prepared
-  // tenant offer shows it where it is shown (the Now card in Guided, the section in Full);
-  // otherwise it leads this card's own work.
+  // S264 R-S264-2/R-S264-6: the one charge review edits the current offer. Once S281 hides
+  // the sent Message, the same review belongs with the other charge controls in Record of contact.
   const focusView = useRenewalFocusView();
   // S281 R-S281-12: in the Guided outcome layout the prepared message renders in this card as
   // its named groups, as Full view does, so it hosts the charge review there too.
@@ -1865,7 +1864,12 @@ function MessagePreparationEditor({
   const preparedInline = Boolean(
     preparedData && compact && (focusView?.view === "full" || preparedInlineGuided),
   );
-  const preparedHostsCharges = preparedPreviewInNow || preparedInline;
+  const chargePlacement =
+    sent && preparedInline
+      ? "contact"
+      : preparedPreviewInNow || preparedInline
+        ? "preview"
+        : "work";
   const preparedHostsPricing = preparedInline && Boolean(nowCard);
   const evidenceHost = useOfferChargeEvidenceHost(
     channel === "tenant" && Boolean(offerReview),
@@ -1955,7 +1959,7 @@ function MessagePreparationEditor({
           sent={sent}
           unsent={unsent}
           pricingBasis={preparedHostsPricing ? pricingBasis : null}
-          chargeReview={preparedHostsCharges ? chargeReview : null}
+          chargeReview={chargePlacement === "preview" ? chargeReview : null}
           onCopy={() => copy("formatted")}
           onDraftCreate={async () => {
             await draft("create");
@@ -1977,7 +1981,7 @@ function MessagePreparationEditor({
           }
         />
       ) : null}
-      {chargeReview && !preparedHostsCharges ? chargeReview : null}
+      {chargePlacement === "work" ? chargeReview : null}
       {secondaryWork !== undefined ? null : workingTerms}
       <RenewalSecondaryWork
         // S270: one named group per outcome: the message options, then the outcome's records.
@@ -2008,6 +2012,7 @@ function MessagePreparationEditor({
         >
           Compose {channel} message in Communications
         </a>
+        {chargePlacement === "contact" ? chargeReview : null}
         {channel === "tenant" && offerReview ? (
           // S270: an authorized case charge is an optional choice of this offer; it joins the
           // same charge review and saves with the message.

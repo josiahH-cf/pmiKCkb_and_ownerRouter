@@ -10,6 +10,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { RenewalFocusViewProvider } from "@/components/lease-renewal/RenewalFocusViewContext";
 import { RenewalMessagePreparation } from "@/components/lease-renewal/RenewalMessagePreparation";
 import {
   RenewalNowCardProvider,
@@ -37,6 +38,12 @@ import type {
   RenewalStage,
   RenewalPathStepView,
 } from "@/lib/lease-renewal/renewal-stage";
+import {
+  SENT_AT_MS,
+  evidenceInput,
+  message,
+  recordedState,
+} from "@/tests/helpers/outreach-evidence-fixtures";
 
 // S264 with S269/S270 (Offer the tenant): Review offer charges is the active Work after the
 // working terms. Its first material unresolved row, else the open transition choice, leads the
@@ -45,14 +52,12 @@ import type {
 // outcome's options group and edits the same selection with the same save.
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+const CYCLE = "6c37bdcd-8264-4249-813f-0289307dd725";
+const workspace = { ...recordedState("701", [], CYCLE), termsRevision: 1 };
 vi.mock("@/components/lease-renewal/RenewalManualWorkspace", () => ({
   useRenewalManualWorkspace: () => ({
     leaseId: "701",
-    state: {
-      cycleId: "6c37bdcd-8264-4249-813f-0289307dd725",
-      termsRevision: 1,
-      preparation: null,
-    },
+    state: workspace,
   }),
 }));
 afterEach(() => {
@@ -252,7 +257,7 @@ function preparation(lines: OfferSourceLine[]) {
   const source = { state: "read" as const, asOf: "2026-11-10", lines, version: "src" };
   return {
     senderEmail: "fixture-staff@pmikcmetro.com",
-    cycleId: "6c37bdcd-8264-4249-813f-0289307dd725",
+    cycleId: CYCLE,
     saved: null,
     inputs,
     facts,
@@ -339,4 +344,81 @@ describe("S264 with S270: the one editor gives the lead and keeps the optional c
       ).toEqual(["renewal_processing"]),
     );
   });
+
+  it.each(["guided", "full"] as const)(
+    "keeps one current charge review under Record of contact after a confirmed send in %s",
+    async (view) => {
+      const sequenceId = "sent-offer-701";
+      const sentOffer = message({ audience: "tenant", cycleId: CYCLE, sequenceId });
+      const current = preparation([line("102", "9003", "12.50")]);
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (url: string) =>
+          Response.json(
+            url === `/api/gmail-hub/sequences?id=${sequenceId}`
+              ? {
+                  sequence: {
+                    id: sequenceId,
+                    context: { entityId: "701", purpose: "renewal_tenant" },
+                    state: "completed",
+                    confirmedCount: 1,
+                    nextDueAtMs: null,
+                    unresolvedOccurrenceId: null,
+                    lastSentAtMs: SENT_AT_MS,
+                    initial: {
+                      subject: "The sent offer",
+                      paragraphs: [
+                        [{ text: "The exact offer before any charge correction." }],
+                      ],
+                      attachmentIds: [],
+                    },
+                  },
+                }
+              : current,
+          ),
+        ),
+      );
+      const { container } = render(
+        <RenewalFocusViewProvider allowLegacyFocus={false} initialView={view}>
+          <RenewalNowCardProvider preparation={null}>
+            <RenewalMessagePreparation
+              channel="tenant"
+              canEdit
+              outcomeContext={{
+                leaseId: "701",
+                staffRecordUnavailable: false,
+                standingAgreement: null,
+                housingAssistance: null,
+                numbers: { verified: true, openDifferences: 0 },
+                term: { monthToMonth: false, reviewNeeded: false },
+                moveOutInitiated: false,
+                sourceRenewal: null,
+                verification: null,
+                handStatus: null,
+                outreach: evidenceInput([sentOffer]),
+              }}
+              secondaryWork={<p>Contact record</p>}
+            />
+            <div id="renewal-sent-message-tenant" />
+          </RenewalNowCardProvider>
+        </RenewalFocusViewProvider>,
+      );
+
+      await screen.findByText("The exact offer before any charge correction.");
+      expect(
+        container.querySelector('[data-renewal-message-work="tenant"]'),
+      ).toHaveAttribute("data-renewal-message-sent", "true");
+      const chargeReviews = container.querySelectorAll("#renewal-offer-charges");
+      expect(chargeReviews).toHaveLength(1);
+      expect(chargeReviews[0]?.closest("details")).toHaveAttribute(
+        "data-renewal-group",
+        "Record of contact",
+      );
+      expect(
+        container.querySelector(
+          '[data-renewal-group="Message"], [data-renewal-group="Other ways to send"]',
+        ),
+      ).toBeNull();
+    },
+  );
 });

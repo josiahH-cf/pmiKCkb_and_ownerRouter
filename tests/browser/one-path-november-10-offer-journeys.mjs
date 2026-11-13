@@ -628,6 +628,24 @@ export async function journeyN1004(ctx, page) {
 
   // Change only one selected charge: the corrected pet line, $45.00 to $50.00.
   await kit.open(page, kit.href(leaseId, "?step=offer-tenant"));
+  const offerWork = kit.now(page);
+  const sentOffer = offerWork.locator(
+    '[data-renewal-message-work="tenant"][data-renewal-message-sent]',
+  );
+  const contact = offerWork.locator('details[data-renewal-group="Record of contact"]');
+  if (await sentOffer.count()) {
+    assert.equal(
+      await offerWork.locator('details[data-renewal-group="Message"]').count(),
+      0,
+    );
+    assert.equal(
+      await offerWork.locator('details[data-renewal-group="Other ways to send"]').count(),
+      0,
+    );
+    await kit.toggleDisclosure(page, contact, true);
+    await contact.locator("#renewal-offer-charges").waitFor();
+    assert.equal(await review.count(), 1, "One review for the current offer after send");
+  }
   const changed = review
     .locator("#renewal-offer-charge-rentvine-61011")
     .locator("details")
@@ -1075,34 +1093,50 @@ export async function journeyN1005(ctx, page) {
     const leadFix = kit
       .now(page)
       .getByRole("button", { name: /^Shared resource link: / });
+    const message = kit.now(page).locator('details[data-renewal-group="Message"]');
+    const sentOffer = kit
+      .now(page)
+      .locator('[data-renewal-message-work="tenant"][data-renewal-message-sent]');
     let fix;
     let pendingResource;
-    if (priority.state === "wait") {
-      // N10-04's offer went out and awaits the tenant, so recording the answer leads (S269 rule
-      // 4) and nothing about the next offer competes with it. The next offer's exact pending
-      // resource is its readiness fix (R-S265-3), in the S281 Message disclosure.
+    if (await sentOffer.count()) {
+      // After a confirmed offer the tenant answer or its wait leads. S281 removes the editable
+      // preview; the exact pending resource for the next offer remains on Connections.
+      assert.ok(
+        priority.state === "wait" ||
+          (priority.state === "act" && priority.lead === "tenant-answer"),
+        JSON.stringify(priority),
+      );
+      assert.equal(
+        await leadFix.count(),
+        0,
+        "No resource fix competes with the tenant answer",
+      );
+      assert.equal(
+        await message.count(),
+        0,
+        "No editable Message after the confirmed offer",
+      );
+      pendingResource = composition.target.tenantResourceRequired.find(
+        (id) => composition.target.tenantResources?.[id]?.state === "source_pending",
+      );
+      assert.ok(pendingResource);
+      const nav = page.getByRole("navigation", { name: "Primary", exact: true });
+      const connections = nav.getByRole("link", { name: "Connections", exact: true });
+      await nav.getByRole("button", { name: "Admin", exact: true }).click();
+      await connections.click();
+      record({
+        id: "N10-05",
+        check: "pending-resource-in-connections",
+        priority,
+        pendingResource,
+      });
+    } else if (priority.state === "wait") {
+      // A wait leads over preparation for the next offer. Follow its exact readiness link.
       assert.equal(await leadFix.count(), 0, "No resource fix competes with the wait");
-      const message = kit.now(page).locator('details[data-renewal-group="Message"]');
       if (await message.count()) {
         await kit.toggleDisclosure(page, message, true);
         fix = message.getByRole("link", { name: /^Shared resource link: / }).first();
-      } else if (await kit.now(page).locator("[data-renewal-message-sent]").count()) {
-        // S281 R-S281-3 removes the editable preview after a confirmed offer. The exact
-        // resource remains on Connections for the next offer; keep the no-competing-fix pin.
-        const required = composition.target.tenantResourceRequired;
-        pendingResource = required.find(
-          (id) => composition.target.tenantResources?.[id]?.state === "source_pending",
-        );
-        assert.ok(pendingResource);
-        const nav = page.getByRole("navigation", { name: "Primary", exact: true });
-        const connections = nav.getByRole("link", { name: "Connections", exact: true });
-        await nav.getByRole("button", { name: "Admin", exact: true }).click();
-        await connections.click();
-        record({
-          id: "N10-05",
-          check: "pending-resource-in-connections",
-          pendingResource,
-        });
       } else {
         const options = page.locator(
           'details[data-renewal-group="Tenant offer options and record of contact"]',
