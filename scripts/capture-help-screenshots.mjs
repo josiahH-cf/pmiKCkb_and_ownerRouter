@@ -316,14 +316,7 @@ try {
     const sceneStatus = await scenes(true);
     // A long Next dev session accumulates compiled routes across both passes. Start the control
     // inventory with a fresh server over the same source, isolated emulator and fixed fixture.
-    await shutdown();
-    server = startServer(new URL(origin).port, "server-controls.log");
-    await waitForServer(origin);
-    const version = await fetch(origin + "/api/version");
-    assert.ok(version.ok, "The fresh control server version read must succeed.");
-    const controlSource = (await version.json()).commit;
-    assert.equal(controlSource, sourceSha);
-    record({ event: "control-server-ready", servedCommit: controlSource });
+    await restartControlServer("server-controls.log");
     const controlStatus = await controls();
     exitCode = controlStatus || sceneStatus;
   } else if (mode === "serve") {
@@ -662,8 +655,20 @@ async function controls(file) {
   }
   const report = [];
   let signedInAs = null;
+  let notificationsServerReady = false;
   for (const [key, entries] of byPage) {
     const [role, route] = key.split("|");
+    // Start the late Notifications screen inventory on a fresh dev server. Next has restarted
+    // under memory pressure here, interrupting menu hydration after the navigation returned 200.
+    // This boundary is between fixture groups, so no action or result needs to be repeated.
+    if (
+      verify &&
+      !notificationsServerReady &&
+      entries.some(({ owner }) => owner === "screen notifications")
+    ) {
+      await restartControlServer("server-controls-notifications.log");
+      notificationsServerReady = true;
+    }
     if (signedInAs !== role) {
       await signIn(page, role);
       signedInAs = role;
@@ -1034,6 +1039,19 @@ async function waitForServer(base) {
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
   throw new Error("The local dev server did not become ready.");
+}
+
+async function restartControlServer(logName) {
+  await shutdown();
+  server = startServer(new URL(origin).port, logName);
+  await waitForServer(origin);
+  const version = await fetch(origin + "/api/version", {
+    signal: AbortSignal.timeout(ROUTE_BUDGET_MS),
+  });
+  assert.ok(version.ok, "The fresh control server version read must succeed.");
+  const controlSource = (await version.json()).commit;
+  assert.equal(controlSource, sourceSha);
+  record({ event: "control-server-ready", servedCommit: controlSource, logName });
 }
 
 async function shutdown() {
