@@ -1028,10 +1028,19 @@ try {
       narrow,
       ["/api/lease-renewal/work-status"],
       async (page) => {
+        const revealFullView = async () => {
+          const details = page.locator("details[data-renewal-lease-details]");
+          if ((await details.getAttribute("open")) === null)
+            await toggleDisclosure(page, details, true);
+          const toggle = full(page);
+          await toggle.waitFor();
+          return toggle;
+        };
         await open(page, href());
         await status(page).waitFor();
         assert.equal(await status(page).count(), 1);
-        assert.equal(await full(page).getAttribute("aria-pressed"), "false");
+        const guidedFullToggle = await revealFullView();
+        assert.equal(await guidedFullToggle.getAttribute("aria-pressed"), "false");
         const stage = page.locator('[data-renewal-field="stage-line"]');
         const beforeNoteStage = await stage.innerText();
         const historicalId = randomUUID();
@@ -1085,8 +1094,9 @@ try {
           await status(page).evaluate((summary) => summary === document.activeElement),
           true,
         );
-        await full(page).click();
-        assert.equal(await full(page).getAttribute("aria-pressed"), "true");
+        const fullToggle = await revealFullView();
+        await fullToggle.click();
+        assert.equal(await fullToggle.getAttribute("aria-pressed"), "true");
         assert.equal(await status(page).count(), 1);
         const provider = page
           .getByRole("link", { name: "Open in RentVine", exact: true })
@@ -1119,13 +1129,12 @@ try {
         assert.equal(page.url(), leaseBeforeReturn);
         assert.equal(await status(page).count(), 1);
         await open(page, href(prepared, "?view=focus#renewal-section-documents"));
-        await page
-          .getByRole("button", { name: "Full view", pressed: true, exact: true })
-          .waitFor();
-        await page.waitForFunction(
-          () => document.activeElement?.closest("#renewal-section-documents") !== null,
+        await page.waitForFunction(() =>
+          Boolean(document.activeElement?.closest("#renewal-section-documents")),
         );
-        await full(page).click();
+        const legacyFullToggle = await revealFullView();
+        assert.equal(await legacyFullToggle.getAttribute("aria-pressed"), "true");
+        await legacyFullToggle.click();
         for (const step of [
           "check-numbers",
           "compare-market",
@@ -1184,7 +1193,9 @@ try {
       async (page) => {
         const route = "/api/lease-renewal/pricing-policy";
         const leaseRead = route + "?leaseId=" + covered;
-        await open(page, href(covered, "?step=ask-owner"));
+        // A covered owner step is omitted from Guided. Its pricing controls remain in Full.
+        const ownerPath = href(covered, "?view=full#renewal-section-owner");
+        await open(page, ownerPath);
         const owner = page.locator("#renewal-owner-pricing-basis");
         const basis = owner.getByRole("group", { name: "Pricing basis", exact: true });
         await basis.waitFor();
@@ -1323,7 +1334,7 @@ try {
           const unverified = await read(page, leaseRead);
           assert.equal(unverified.authority.covered, false);
           assert.match(unverified.authority.reason, /ended on/i);
-          await open(page, href(covered, "?step=ask-owner"));
+          await open(page, ownerPath);
           await owner
             .getByText(/ended on/i)
             .first()
@@ -1358,7 +1369,7 @@ try {
           const conflicting = await read(page, leaseRead);
           assert.equal(conflicting.authority.covered, false);
           assert.match(conflicting.authority.reason, /rent|amount/i);
-          await open(page, href(covered, "?step=ask-owner"));
+          await open(page, ownerPath);
           await owner
             .getByText(/rent.*rule|rule.*rent/i)
             .first()
@@ -1377,7 +1388,7 @@ try {
         await now(page).locator("[data-renewal-work]").waitFor();
         assert.equal(await owner.isVisible(), false);
         await full(page).click();
-        await owner.waitFor();
+        await basis.waitFor();
         assert.equal(await owner.count(), 1);
         return {
           covered: true,
