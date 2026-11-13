@@ -40,6 +40,9 @@ import {
 import { reviewedInput, type ReviewedInput } from "@/lib/gmail-hub/reviewed-inputs";
 import { addCalendarDays, localDateAt } from "@/lib/gmail-hub/schedule-calendar";
 import type { WorkflowCommunicationContext } from "@/lib/gmail-hub/workflow-context";
+import { GmailRuntimeClient } from "@/lib/gmail-runtime/client";
+import { GMAIL_COMPOSE_SCOPE } from "@/lib/gmail-runtime/scopes";
+import type { GmailHttpRequest } from "@/lib/gmail-runtime/transport";
 import type { WorkflowMimeMessage } from "@/lib/gmail-runtime/workflow-mime";
 import type { GmailMessageView } from "@/lib/gmail-runtime/types";
 import {
@@ -132,7 +135,10 @@ async function fixture(options: { readTenantResponse?: boolean } = {}) {
     string,
     { messageId: string; threadId: string; labelIds: string[]; sentAtMs: number }
   >();
-  const hook: { duringSend: (() => Promise<void>) | null } = { duringSend: null };
+  const hook: {
+    duringSend: (() => Promise<void>) | null;
+    duringComposeToken: (() => Promise<void>) | null;
+  } = { duringSend: null, duringComposeToken: null };
   const send = vi.fn(async (message: WorkflowMimeMessage) => {
     const during = hook.duringSend;
     hook.duringSend = null;
@@ -146,6 +152,13 @@ async function fixture(options: { readTenantResponse?: boolean } = {}) {
     mailbox.set(message.messageId, result);
     return result;
   });
+  const transportSend = vi.fn(async (request: GmailHttpRequest) => ({
+    status: 200,
+    json: async () => ({
+      id: request.method === "POST" ? "unexpected-reminder" : "unexpected-read",
+      threadId: "provider-thread",
+    }),
+  }));
   const createClient = vi.fn((subject: string) => ({
     subject,
     getProfile: async () => ({
@@ -159,7 +172,23 @@ async function fixture(options: { readTenantResponse?: boolean } = {}) {
       messages: [...replies],
       truncated: false,
     }),
-    sendWorkflowMessage: send,
+    sendWorkflowMessage: async (
+      message: WorkflowMimeMessage,
+      beforeTransport?: () => Promise<void>,
+    ) => {
+      const duringToken = hook.duringComposeToken;
+      if (!duringToken) return send(message);
+      hook.duringComposeToken = null;
+      const runtime = new GmailRuntimeClient({
+        subject,
+        transport: { send: transportSend },
+        getToken: async (scope) => {
+          if (scope === GMAIL_COMPOSE_SCOPE) await duringToken();
+          return "synthetic-compose-token";
+        },
+      });
+      return runtime.sendWorkflowMessage(message, beforeTransport);
+    },
     findWorkflowMessage: async (rfcMessageId: string) =>
       mailbox.get(rfcMessageId) ?? null,
   }));
@@ -267,6 +296,7 @@ async function fixture(options: { readTenantResponse?: boolean } = {}) {
     store,
     service,
     send,
+    transportSend,
     createClient,
     replies,
     hook,
@@ -424,17 +454,19 @@ describe("S276 R-S276-3: a due reminder is held even when the pause was not writ
     const offer = await f.offerWithFollowUps();
     const canDispatch = f.store.canDispatch.bind(f.store);
     let responseSavedBeforeDispatch = false;
-    vi.spyOn(f.store, "canDispatch").mockImplementationOnce(async (occurrence) => {
-      const claimed = await f.store.get(offer.id);
-      const saved = await f.recordResponse("accepted", failingPause);
-      const afterSave = await f.store.get(offer.id);
-      responseSavedBeforeDispatch =
-        claimed?.unresolvedOccurrenceId === occurrence.id &&
-        saved.state?.tenantResponse?.outcome === "accepted" &&
-        saved.tenantReminders?.state === "failed" &&
-        afterSave?.state === "active";
-      return canDispatch(occurrence);
-    });
+    vi.spyOn(f.store, "canDispatch").mockImplementationOnce(
+      async (occurrence, checkAt) => {
+        const claimed = await f.store.get(offer.id);
+        const saved = await f.recordResponse("accepted", failingPause);
+        const afterSave = await f.store.get(offer.id);
+        responseSavedBeforeDispatch =
+          claimed?.unresolvedOccurrenceId === occurrence.id &&
+          saved.state?.tenantResponse?.outcome === "accepted" &&
+          saved.tenantReminders?.state === "failed" &&
+          afterSave?.state === "active";
+        return canDispatch(occurrence, checkAt);
+      },
+    );
     const held = await f.tick(offer.id);
     expect(responseSavedBeforeDispatch).toBe(true);
     expect(f.send).toHaveBeenCalledTimes(1);
@@ -448,6 +480,34 @@ describe("S276 R-S276-3: a due reminder is held even when the pause was not writ
     expect(
       (await f.store.listOccurrences(offer.id)).occurrences.map(({ state }) => state),
     ).toEqual(["sent", "refused"]);
+  });
+
+  it("AC-S276-3: a response saved while obtaining the compose token stops entry into Gmail transport", async () => {
+    const f = await fixture();
+    const offer = await f.offerWithFollowUps();
+    let responseSavedWhilePreparingToken = false;
+    f.hook.duringComposeToken = async () => {
+      const claimed = await f.store.get(offer.id);
+      const saved = await f.recordResponse("accepted", failingPause);
+      responseSavedWhilePreparingToken =
+        Boolean(claimed?.unresolvedOccurrenceId) &&
+        saved.state?.tenantResponse?.outcome === "accepted" &&
+        saved.tenantReminders?.state === "failed";
+    };
+    const held = await f.tick(offer.id);
+    expect(responseSavedWhilePreparingToken).toBe(true);
+    expect(f.transportSend).not.toHaveBeenCalled();
+    expect(held.status).toBe("refused");
+    expect(held.sequence).toMatchObject({
+      state: "paused",
+      confirmedCount: 1,
+      unresolvedOccurrenceId: null,
+      pause: { cause: TENANT_RESPONSE_PAUSE_CAUSE, byUid: actor.uid },
+    });
+    expect((await f.store.listOccurrences(offer.id)).occurrences[1]).toMatchObject({
+      state: "refused",
+      reason: "paused_before_dispatch",
+    });
   });
 
   it("AC-S276-3: an occurrence claimed before the save is reported truthfully as sent, and nothing follows it", async () => {

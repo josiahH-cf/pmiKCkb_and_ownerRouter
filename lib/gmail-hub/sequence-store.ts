@@ -1,6 +1,6 @@
 import { assertSenderSignatureChoice } from "@/lib/firestore/renewal-sender-signature-choice";
 import { createHash } from "node:crypto";
-import { FieldPath, type Firestore } from "firebase-admin/firestore";
+import { FieldPath, type Firestore, type Transaction } from "firebase-admin/firestore";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { assertRenewalDispositionVersion } from "@/lib/firestore/renewal-cycle-disposition-read";
 import { offerChargeMappingVersionIn } from "@/lib/firestore/renewal-offer-charge-mappings";
@@ -146,7 +146,10 @@ export interface SequenceStore {
     sequence: CommunicationSequence;
     occurrence: CommunicationOccurrence;
   } | null>;
-  canDispatch(occurrence: CommunicationOccurrence): Promise<boolean>;
+  canDispatch(
+    occurrence: CommunicationOccurrence,
+    tenantReminderCheckAt?: number,
+  ): Promise<boolean>;
   settle(
     occurrence: CommunicationOccurrence,
     input: {
@@ -203,7 +206,7 @@ export interface SequenceStore {
 
 /**
  * S276 R-S276-3: the lease's two work-record heads by the store's own collection names (the dated
- * head first, otherwise the lease-bound record), so the claim transaction reads the recorded tenant
+ * head first, otherwise the lease-bound record), so dispatch reads the recorded tenant
  * response without importing the work-record store (which imports this one).
  */
 const RENEWAL_WORK_RECORD_HEADS = [
@@ -215,6 +218,16 @@ function renewalWorkRecordHeadRefs(db: Firestore, leaseId: string) {
   return RENEWAL_WORK_RECORD_HEADS.map((collection) =>
     db.collection(collection).doc(docId),
   );
+}
+async function readTenantResponseForDispatch(
+  tx: Transaction,
+  db: Firestore,
+  leaseId: string,
+) {
+  const heads = await Promise.all(
+    renewalWorkRecordHeadRefs(db, leaseId).map((ref) => tx.get(ref)),
+  );
+  return recordedTenantResponseOf(heads.find((head) => head.exists)?.data());
 }
 function missing(): never {
   throw new EditableLayerError("This communication no longer exists.", 404);
@@ -300,6 +313,36 @@ export class FirestoreCommunicationSequenceStore implements SequenceStore {
   async get(id: string) {
     const s = await this.ref(id).get();
     return s.exists && !s.get("purged") ? assertRecord(s.data()) : null;
+  }
+  private writeTenantResponseDispatchPause(
+    tx: Transaction,
+    s: CommunicationSequence,
+    response: RecordedTenantResponse,
+    nowMs: number,
+  ) {
+    const next: CommunicationSequence = {
+      ...s,
+      version: s.version + 1,
+      state: s.unresolvedOccurrenceId ? "needs_reconciliation" : "paused",
+      nextDueAtMs: null,
+      pause: tenantResponsePause(response, response.actorUid, nowMs),
+      updatedAtMs: nowMs,
+    };
+    tx.set(this.ref(s.id), storedSequence(next));
+    tx.set(
+      this.db
+        .collection(COMMUNICATION_SEQUENCE_COLLECTIONS.audit)
+        .doc(sequenceHash([s.id, s.version, TENANT_RESPONSE_PAUSE_CAUSE, "audit"])),
+      {
+        action: TENANT_RESPONSE_PAUSE_CAUSE,
+        sequenceId: s.id,
+        actorUid: "communication-worker",
+        version: next.version,
+        atMs: nowMs,
+        state: next.state,
+        ...communicationsRetentionFields("bodyless_audit", nowMs),
+      },
+    );
   }
   async list(
     after: string | null = null,
@@ -793,37 +836,13 @@ export class FirestoreCommunicationSequenceStore implements SequenceStore {
       // reads the lease's work record in the same transaction, admits nothing and pauses the
       // message under the response's cause.
       if (tenantReminderScope(s)) {
-        const heads = await Promise.all(
-          renewalWorkRecordHeadRefs(this.db, s.context.entityId).map((ref) =>
-            tx.get(ref),
-          ),
+        const response = await readTenantResponseForDispatch(
+          tx,
+          this.db,
+          s.context.entityId,
         );
-        const head = heads.find((snapshot) => snapshot.exists);
-        const response = recordedTenantResponseOf(head?.data());
         if (response && tenantResponseHolds(s, response)) {
-          const paused: CommunicationSequence = {
-            ...s,
-            version: s.version + 1,
-            state: "paused",
-            nextDueAtMs: null,
-            pause: tenantResponsePause(response, response.actorUid, nowMs),
-            updatedAtMs: nowMs,
-          };
-          tx.set(this.ref(id), storedSequence(paused));
-          tx.set(
-            this.db
-              .collection(COMMUNICATION_SEQUENCE_COLLECTIONS.audit)
-              .doc(sequenceHash([id, s.version, TENANT_RESPONSE_PAUSE_CAUSE, "audit"])),
-            {
-              action: TENANT_RESPONSE_PAUSE_CAUSE,
-              sequenceId: id,
-              actorUid: "communication-worker",
-              version: paused.version,
-              atMs: nowMs,
-              state: paused.state,
-              ...communicationsRetentionFields("bodyless_audit", nowMs),
-            },
-          );
+          this.writeTenantResponseDispatchPause(tx, s, response, nowMs);
           return null;
         }
       }
@@ -897,16 +916,33 @@ export class FirestoreCommunicationSequenceStore implements SequenceStore {
       return { sequence: next, occurrence };
     });
   }
-  async canDispatch(o: CommunicationOccurrence) {
-    const s = await this.get(o.sequenceId);
-    return (
-      !!s &&
+  async canDispatch(o: CommunicationOccurrence, tenantReminderCheckAt?: number) {
+    const stillClaimed = (s: CommunicationSequence | null): s is CommunicationSequence =>
+      s !== null &&
       s.state === "active" &&
       s.unresolvedOccurrenceId === o.id &&
       s.authorization?.revision === o.authorizationRevision &&
       s.authorization.payloadHash === o.payloadHash &&
-      s.senderEmail === o.senderEmail
-    );
+      s.senderEmail === o.senderEmail;
+    if (tenantReminderCheckAt === undefined || o.index === 0)
+      return stillClaimed(await this.get(o.sequenceId));
+    return this.db.runTransaction(async (tx) => {
+      const snapshot = await tx.get(this.ref(o.sequenceId));
+      if (!snapshot.exists || snapshot.get("purged")) return false;
+      const s = assertRecord(snapshot.data());
+      if (!stillClaimed(s)) return false;
+      if (!tenantReminderScope(s)) return true;
+      // Staff can save between claim and dispatch. Hold under the response's own cause even
+      // if its separate pause write failed. The existing settlement closes the refused claim.
+      const response = await readTenantResponseForDispatch(
+        tx,
+        this.db,
+        s.context.entityId,
+      );
+      if (!response || !tenantResponseHolds(s, response)) return true;
+      this.writeTenantResponseDispatchPause(tx, s, response, tenantReminderCheckAt);
+      return false;
+    });
   }
   async settle(o: CommunicationOccurrence, i: Parameters<SequenceStore["settle"]>[1]) {
     const ref = this.db
