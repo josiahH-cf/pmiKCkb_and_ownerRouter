@@ -44,7 +44,11 @@ import {
   setComparisonAllowance,
 } from "../../scripts/lib/one-path-rehearsal/control.mjs";
 import { runProcessHarness } from "../../scripts/lib/one-path-rehearsal/process-draft-seed.mjs";
-import { confirmReview, reachPrimary } from "./one-path-november-12-journeys.mjs";
+import {
+  confirmReview,
+  reachPrimary,
+  stepScheduleButton,
+} from "./one-path-november-12-journeys.mjs";
 import { DESK, KICKOFF_ROUTE } from "./one-path-november-12-kit.mjs";
 import { firestoreValue, plainValue } from "./one-path-november-10-kit.mjs";
 
@@ -810,13 +814,17 @@ export async function checkW1212(ctx, page, start) {
 
   // ---- AC-S283-2: an unfiltered run reaches the allowance part way through -------------------
   const allowanceRun = await part("unfiltered run to the allowance", async () => {
+    // The earlier filter run may have stored comparisons. Start from the seeded month so this
+    // case can force the allowance on an actual pending comparison with targets still to post.
+    await ctx.resetState();
     const runner = await open("Editor");
     await openBatch(kit, runner);
     const rows = await batchRows(runner);
     const snapshot = thisBatch(rows);
     const read = await readPrepare(kit, runner);
     const before = await effects(kit, rehearsal);
-    // Hold the run's first request in the browser until the allowance is reached.
+    // Hold the first request while staff change the visible filter and the stand-in
+    // leaves one comparison available. A later target must hit the allowance.
     let release = () => undefined;
     const gate = new Promise((done) => (release = done));
     let heldLease = null;
@@ -850,8 +858,12 @@ export async function checkW1212(ctx, page, start) {
     await search.fill("Ave");
     await runner.waitForTimeout(800);
     const shownMidRun = thisBatch(await batchRows(runner));
-    const allowance = await setComparisonAllowance(rehearsal, true);
-    release();
+    let allowance;
+    try {
+      allowance = await setComparisonAllowance(rehearsal, false, 1);
+    } finally {
+      release();
+    }
     await runner
       .locator("[data-kickoff-progress]")
       .filter({ hasText: /Preparation finished/ })
@@ -904,6 +916,7 @@ export async function checkW1212(ctx, page, start) {
     const finalRead = await readPrepare(kit, fresh);
     return {
       snapshot,
+      effectsAtStart: before,
       needing: rows
         .filter((row) => row.group === "this_batch" && row.needs)
         .map((row) => row.leaseId),
@@ -938,10 +951,7 @@ export async function checkW1212(ctx, page, start) {
     const leaseId = String(ctx.leases.prepared?.leaseId ?? 9101);
     const before = await effects(kit, rehearsal);
     await reachPrimary(ctx, page, leaseId, "ask-owner", "Review owner message");
-    const schedule = kit.now(page).getByRole("button", { name: "Schedule", exact: true });
-    const trigger = (await kit.shownWithin(schedule, 20_000))
-      ? schedule
-      : page.getByRole("button", { name: "Schedule", exact: true }).first();
+    const trigger = await stepScheduleButton(ctx, page);
     await trigger.click();
     const dialog = page.getByRole("dialog", { name: "Review and schedule" });
     await dialog
@@ -1803,6 +1813,7 @@ export async function checkW1212(ctx, page, start) {
       buttonStates(run.read, total, total) &&
       sameSet(run.snapshot, monthTargets) &&
       reachedIndex > 0 &&
+      sum(Object.values(run.lookupsToStop)) === 1 &&
       sameSet(run.posts, run.snapshot.slice(0, reachedIndex + 1)) &&
       run.posts.length === reachedIndex + 1 &&
       rest.length > 0 &&
@@ -1958,7 +1969,9 @@ export async function checkW1212(ctx, page, start) {
       !dates ||
       !wording ||
       !controls ||
-      !basis
+      !basis ||
+      !tagRun ||
+      !allowanceRun
     )
       return false;
     const readOnlyWrites = [
@@ -1967,10 +1980,10 @@ export async function checkW1212(ctx, page, start) {
       ...controls.writes,
     ].filter((path) => !["/api/personal-view", "/api/auth/demo"].includes(path));
     const clickLookups =
-      sum(Object.values(tagRun?.lookups ?? {})) +
       sum(Object.values(allowanceRun?.lookupsToStop ?? {})) +
       sum(Object.values(allowanceRun?.lookupsInContinue ?? {}));
-    const totalLookups = effectsAtEnd.lookupTotal - effectsAtStart.lookupTotal;
+    const totalLookups =
+      effectsAtEnd.lookupTotal - allowanceRun.effectsAtStart.lookupTotal;
     return (
       Object.keys(deskReads.lookups).length === 0 &&
       deskReads.preparationPosts === 0 &&
@@ -1979,10 +1992,11 @@ export async function checkW1212(ctx, page, start) {
       Object.keys(dates.lookups).length === 0 &&
       Object.keys(probes?.lookups ?? { x: 1 }).length === 0 &&
       totalLookups === clickLookups &&
-      effectsAtEnd.sent === effectsAtStart.sent &&
+      effectsAtEnd.sent === allowanceRun.effectsAtStart.sent &&
       effectsAtEnd.refused === effectsAtStart.refused &&
       (runs
-        ? effectsAtEnd.runs.length - effectsAtStart.runs.length === runs.created.length
+        ? effectsAtEnd.runs.length - allowanceRun.effectsAtStart.runs.length ===
+          runs.created.length
         : false)
     );
   })();

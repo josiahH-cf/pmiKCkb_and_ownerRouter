@@ -364,10 +364,22 @@ export function setRentvineOutage(rehearsal, path) {
  * usage count in the Firestore emulator. The emulator's owner token is a fixed word, not a
  * credential, and this call is refused unless the emulator is on 127.0.0.1.
  */
-export async function setComparisonAllowance(rehearsal, reached) {
+export async function setComparisonAllowance(rehearsal, reached, remaining) {
+  if (
+    remaining !== undefined &&
+    (!Number.isInteger(remaining) ||
+      remaining < 0 ||
+      remaining > REHEARSAL_COMPARISON_ALLOWANCE)
+  )
+    throw new Error("Give a valid remaining comparison count.");
   const now = new Date();
   const month = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
-  const billed = reached ? REHEARSAL_COMPARISON_ALLOWANCE : 0;
+  const billed =
+    remaining === undefined
+      ? reached
+        ? REHEARSAL_COMPARISON_ALLOWANCE
+        : 0
+      : REHEARSAL_COMPARISON_ALLOWANCE - remaining;
   await call(
     `http://${rehearsal.firestoreEmulatorHost}`,
     `/v1/projects/${rehearsal.projectId}/databases/(default)/documents/rentcast_usage/${month}`,

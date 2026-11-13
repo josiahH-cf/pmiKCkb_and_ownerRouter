@@ -2,6 +2,7 @@
 import "@testing-library/jest-dom/vitest";
 import { act, cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const router = vi.hoisted(() => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }));
@@ -158,10 +159,12 @@ function routes(state: RenewalWorkspaceState = manual()) {
 }
 
 async function open({
+  packetLeadPanel,
   step,
   working,
   state = manual(),
 }: {
+  packetLeadPanel?: ReactNode;
   step?: string;
   working?: ReturnType<typeof workingRecord>;
   state?: RenewalWorkspaceState;
@@ -172,7 +175,11 @@ async function open({
     manual: state,
     view: "default",
     workspace: live(record),
-    extra: { ...(step ? { selectedStepId: step } : {}), workingRecord: record },
+    extra: {
+      ...(step ? { selectedStepId: step } : {}),
+      ...(packetLeadPanel ? { packetLeadPanel } : {}),
+      workingRecord: record,
+    },
   });
   await settle();
   return fake;
@@ -443,6 +450,35 @@ describe("S281 renewal dates on the offer (R-S281-14)", { timeout: 120_000 }, ()
 });
 
 describe("S281 a manual record in view (R-S281-4)", { timeout: 120_000 }, () => {
+  it("AC-S281-4: after preparation, the Documents primary opens delivery even when a packet input is visible", async () => {
+    await open({
+      state: manualFixture({
+        owner: "approved_terms",
+        tenant: "accepted",
+        done: [
+          "owner_outreach",
+          "tenant_offer",
+          "information_form",
+          "form_returned",
+          "documents",
+        ],
+      }),
+      step: "documents",
+      packetLeadPanel: (
+        <div data-packet-lead="packet_input">
+          <button type="button">Review packet inputs</button>
+        </div>
+      ),
+    });
+    await userEvent
+      .setup()
+      .click(
+        within(nowCard()).getByRole("button", { name: "Deliver the required documents" }),
+      );
+    const delivery = document.getElementById("renewal-manual-document_delivery");
+    await waitFor(() => expect(delivery?.contains(document.activeElement)).toBe(true));
+  });
+
   it("BEH-S281-4 / AC-S281-4: Send the renewal information form lands on its status control in an open group; saving it moves focus to the next action", async () => {
     const state = manualFixture({
       owner: "approved_terms",
