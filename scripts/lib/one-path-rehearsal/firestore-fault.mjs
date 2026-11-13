@@ -24,7 +24,7 @@ const staffReminderPause = (path, data) =>
     /^gmail_communication_sequences\/[^/]+$/.test(path) &&
     data &&
     typeof data === "object" &&
-    data.state === "paused" &&
+    (data.state === "paused" || data.state === "needs_reconciliation") &&
     data.pause &&
     typeof data.pause === "object" &&
     data.pause.cause === TENANT_RESPONSE_PAUSE_CAUSE &&

@@ -29,6 +29,8 @@ export interface StandInState {
   mail: {
     nextSend: string;
     refusedRecipients: number;
+    /** The next synthetic Gmail send has entered its one-shot hold. */
+    sendHeld: boolean;
     mailboxes: {
       mailbox: string;
       historyId: string;

@@ -175,6 +175,29 @@ describe("S254 mail stand-in (L25, L27, L29, L36 to L38, L40)", () => {
     expect(kept.from).toContain(MAILBOX);
   });
 
+  it("holds exactly one synthetic send before acceptance until released (W12-05)", async () => {
+    const outgoing = message();
+    expect(await control("hold-mail-send")).toMatchObject({
+      status: 200,
+      body: { armed: true },
+    });
+    const sending = client().sendWorkflowMessage(outgoing);
+    try {
+      await expect.poll(() => standIns.describe().mail.sendHeld).toBe(true);
+      expect(standIns.describe().mail.mailboxes[0]?.messages).not.toContainEqual(
+        expect.objectContaining({ rfcMessageId: outgoing.messageId }),
+      );
+    } finally {
+      expect(await control("release-mail-send")).toMatchObject({
+        status: 200,
+        body: { released: true },
+      });
+      await sending;
+    }
+    expect(standIns.describe().mail.sendHeld).toBe(false);
+    expect((await sending).messageId).toBeDefined();
+  });
+
   it("delivers an owner reply on the thread, read as a person's reply (L36)", async () => {
     const outgoing = message();
     const sent = await client().sendWorkflowMessage(outgoing);

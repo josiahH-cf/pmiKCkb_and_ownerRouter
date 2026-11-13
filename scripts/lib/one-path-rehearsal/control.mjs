@@ -85,6 +85,11 @@ export const setMailThreadUnreadable = (rehearsal, threadId) =>
 /** L37 and L38: "unconfirmed", "unconfirmed-lost", "bounce" or "normal", for the next send only. */
 export const setNextSend = (rehearsal, mode) =>
   standInControl(rehearsal, "next-send", { mode });
+/** W12-05: hold the next synthetic send before acceptance while a staff response saves. */
+export const holdNextMailSend = (rehearsal) =>
+  standInControl(rehearsal, "hold-mail-send");
+export const releaseHeldMailSend = (rehearsal) =>
+  standInControl(rehearsal, "release-mail-send");
 /** L38: return a failed delivery for a message already sent. */
 export const bounceSentMessage = (rehearsal, options = {}) =>
   standInControl(rehearsal, "bounce", options);
