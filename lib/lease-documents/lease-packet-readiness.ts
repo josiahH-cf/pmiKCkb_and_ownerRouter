@@ -42,8 +42,58 @@ import type {
   RenewalPacketSnapshot,
 } from "@/lib/lease-documents/packet-types";
 
-export const ENGINEERING_DEFAULT_LABEL =
-  "Engineering default, not yet approved by the client";
+/**
+ * S283 R-S283-7: a form family or rule still on its default reads Needs Verification. A default
+ * still is not policy and holds nothing by itself; the Admin form-family field keeps its own hint.
+ */
+export const FORM_USE_NEEDS_VERIFICATION_LABEL =
+  "Needs Verification: PMI KC has not confirmed this form use.";
+
+/**
+ * S283 R-S283-3: a packet fact key's staff label, the one Packet inputs shows; readable words from
+ * the key's last part when Packet inputs has none. The key itself stays in Verification.
+ */
+export function packetFactStaffLabel(fieldKey: string): string {
+  const defined = PACKET_FACT_DEFINITIONS[fieldKey]?.label;
+  if (defined) return defined;
+  const last = fieldKey.split(".").at(-1) ?? fieldKey;
+  const words = last
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .trim()
+    .toLowerCase();
+  return words ? `${words.charAt(0).toUpperCase()}${words.slice(1)}` : fieldKey;
+}
+
+/** Every known packet fact key, longest first, so a longer key is replaced before its prefix. */
+const KNOWN_FACT_KEYS = Object.keys(PACKET_FACT_DEFINITIONS).sort(
+  (left, right) => right.length - left.length,
+);
+
+/**
+ * S283 R-S283-3: staff wording for a line that names packet fact keys. Each known key, and each
+ * extra key given, is replaced by its staff label. Pure.
+ */
+export function withStaffFactLabels(
+  text: string,
+  extraKeys: readonly (string | undefined)[] = [],
+): string {
+  const keys = [
+    ...new Set([
+      ...extraKeys.filter((key): key is string => Boolean(key)),
+      ...KNOWN_FACT_KEYS,
+    ]),
+  ].sort((left, right) => right.length - left.length);
+  let result = text;
+  for (const key of keys)
+    if (result.includes(key)) result = result.split(key).join(packetFactStaffLabel(key));
+  return result;
+}
+
+/** The Verification line for one fact key: its staff label and the key itself. */
+function verificationLine(fieldKey: string): string {
+  return `${packetFactStaffLabel(fieldKey)}: ${fieldKey}`;
+}
 
 /**
  * S268: what one missing item is. A packet input is a fact staff enter in Packet inputs; a source
@@ -59,8 +109,13 @@ export interface PacketPendingItem {
   readonly evidence: string;
   /** Who supplies it. */
   readonly role: string;
-  /** The exact line the Missing column shows. */
+  /** The exact missing line, as Documents' readiness evaluates it. */
   readonly text: string;
+  /**
+   * S283 R-S283-3: the same line in staff words, with each fact key replaced by its staff label;
+   * the key is listed in Verification. Absent when the line names no key.
+   */
+  readonly staffText?: string;
   /** The packet fact staff enter for it, when it is a packet input with one. */
   readonly fieldKey?: string;
 }
@@ -77,6 +132,13 @@ export interface LeasePacketFamilyRow {
   readonly map: string;
   /** Each missing input with who supplies it; empty when nothing is missing for this family. */
   readonly missing: readonly string[];
+  /**
+   * S283 R-S283-3: the same missing lines in staff words, which the Missing column shows; each
+   * raw fact key is in `verification`.
+   */
+  readonly staffMissing?: readonly string[];
+  /** S283 R-S283-3: the fact keys behind this family's lines, each with its staff label. */
+  readonly verification?: readonly string[];
   /** S268: the same missing items, each with its kind, evidence and responsible role. */
   readonly pending?: readonly PacketPendingItem[];
   /** Shared catalog preparation, kept separate from this output's blockers. */
@@ -103,6 +165,12 @@ export interface PacketContextReadiness {
   /** S268: the same missing context facts, structured as packet inputs. */
   readonly pending?: readonly PacketPendingItem[];
   readonly saved: string;
+  /** S283 R-S283-3: the basis lines in staff words (staff label, value and when it was read). */
+  readonly staffBasis?: readonly string[];
+  /** S283 R-S283-3: the missing lines in staff words. */
+  readonly staffMissing?: readonly string[];
+  /** S283 R-S283-3: the raw basis lines and fact keys, shown only in Verification. */
+  readonly verification?: readonly string[];
 }
 
 /**
@@ -142,14 +210,39 @@ export function safePacketReadFailure(error: unknown): string | null {
   return error instanceof EditableLayerError ? error.message : null;
 }
 
-/** A packet-input item for one evaluation blocker, with its exact Missing line. */
+/**
+ * A packet-input item for one evaluation blocker, with its exact Missing line. S283 R-S283-3: its
+ * staff line names the fact by its staff label, and the key goes to Verification.
+ */
 function inputItem(blocker: PacketBlocker, text: string): PacketPendingItem {
   return {
     kind: "packet_input",
     evidence: blocker.label,
     role: "staff",
     text,
-    ...(blocker.fieldKey ? { fieldKey: blocker.fieldKey } : {}),
+    ...(blocker.fieldKey
+      ? {
+          fieldKey: blocker.fieldKey,
+          staffText: `${withStaffFactLabels(blocker.label, [blocker.fieldKey])} (staff)`,
+        }
+      : {}),
+  };
+}
+
+/** S283 R-S283-3: the staff lines and the Verification lines of a list of missing items. */
+function staffProjection(pending: readonly PacketPendingItem[]): {
+  staffMissing: string[];
+  verification: string[];
+} {
+  return {
+    staffMissing: pending.map((item) => item.staffText ?? withStaffFactLabels(item.text)),
+    verification: [
+      ...new Set(
+        pending.flatMap((item) =>
+          item.fieldKey ? [verificationLine(item.fieldKey)] : [],
+        ),
+      ),
+    ],
   };
 }
 
@@ -180,22 +273,33 @@ export function projectPacketContextReadiness(input: {
     };
   const evidence = evaluation.classificationEvidence;
   const basis: string[] = [];
+  // S283 R-S283-3: the page shows each basis fact by its staff label; the raw line, with its key
+  // and source reference, is kept for Verification.
+  const staffBasis: string[] = [];
   for (const fact of [
     evidence?.transactionType,
     evidence?.managementOrigin,
     evidence?.activeLeaseExecuted,
     evidence?.formFamily,
   ]) {
-    if (fact)
+    if (fact) {
+      const readAt =
+        formatCentralTime(fact.source.retrievedAt) ?? "unreadable source time";
       basis.push(
-        `${fact.fieldKey}: ${String(fact.normalizedValue)} · ${fact.source.system}:${fact.source.reference}${fact.source.version ? ` · ${fact.source.version}` : ""} · ${formatCentralTime(fact.source.retrievedAt) ?? "unreadable source time"}`,
+        `${fact.fieldKey}: ${String(fact.normalizedValue)} · ${fact.source.system}:${fact.source.reference}${fact.source.version ? ` · ${fact.source.version}` : ""} · ${readAt}`,
       );
+      staffBasis.push(
+        `${packetFactStaffLabel(fact.fieldKey)}: ${packetFactValueLabel(fact.fieldKey, fact.normalizedValue)} · read ${readAt}`,
+      );
+    }
   }
   if (evidence?.formFamilyPolicy) {
     const policy = evidence.formFamilyPolicy;
+    const line = `Form-family compatibility: ${policy.formFamily} · ${policy.extensionCompatible ? "extension compatible" : "full lease required"}`;
     basis.push(
-      `Form-family compatibility: ${policy.formFamily} · ${policy.extensionCompatible ? "extension compatible" : "full lease required"} · ${policy.source.system}:${policy.source.reference}${policy.source.version ? ` · ${policy.source.version}` : ""}`,
+      `${line} · ${policy.source.system}:${policy.source.reference}${policy.source.version ? ` · ${policy.source.version}` : ""}`,
     );
+    staffBasis.push(line);
   }
   const pending = evaluation.packetContext
     ? []
@@ -205,6 +309,7 @@ export function projectPacketContextReadiness(input: {
           `${blocker.label} (${blocker.fieldKey ?? blocker.scope}; staff)`,
         ),
       );
+  const staff = staffProjection(pending);
   return {
     state: "current",
     label: evaluation.packetContext
@@ -215,7 +320,20 @@ export function projectPacketContextReadiness(input: {
     missing: pending.map((item) => item.text),
     pending,
     saved,
+    staffBasis,
+    staffMissing: staff.staffMissing,
+    verification: [...basis, ...staff.verification],
   };
+}
+
+/** S283 R-S283-3: a choice value by the label Packet inputs shows; other values as they are. */
+function packetFactValueLabel(fieldKey: string, value: unknown): string {
+  const choice = PACKET_FACT_DEFINITIONS[fieldKey]?.choices?.find(
+    (entry) => entry.value === value,
+  );
+  if (choice) return choice.label;
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  return String(value);
 }
 
 const APPLICABILITY_LABELS = {
@@ -563,17 +681,25 @@ export function projectLeasePacketReadiness(input: {
       useSource: !input.familyUse.readable
         ? "Configuration could not be read"
         : recordedUse?.source.system === "engineering_default"
-          ? ENGINEERING_DEFAULT_LABEL
+          ? FORM_USE_NEEDS_VERIFICATION_LABEL
           : "Recorded client decision",
       applicability: notUsed
         ? "Not used"
         : separate
           ? OWNER_ACKNOWLEDGMENT_SEPARATE_LABEL
           : APPLICABILITY_LABELS[applicability],
-      applicabilityReason,
+      // S283 R-S283-3: why the form applies, with each fact named by its staff label.
+      applicabilityReason:
+        applicabilityReason === null
+          ? null
+          : withStaffFactLabels(
+              applicabilityReason,
+              (evaluation?.blockers ?? []).map((blocker) => blocker.fieldKey),
+            ),
       original,
       map,
       missing: pending.map((item) => item.text),
+      ...staffProjection(pending),
       pending,
       catalogSetup,
     };

@@ -72,8 +72,51 @@ export const RENEWAL_PATH_LABELS: Record<RenewalPathStepId, string> = {
   "assisted-rent": "Rent for this renewal",
 };
 
-/** A step that does not apply reads this and asks for nothing (R-S247-2). */
-export const NOT_PART_OF_PATH_LABEL = "Not part of this lease's path";
+/**
+ * A step that does not apply asks for nothing (R-S247-2). S283 R-S283-7: the step list and the
+ * Focus pane show only the steps on this lease's path, so the earlier chip is retired; a step that
+ * is not used reads this where its section still appears.
+ */
+export const STEP_NOT_USED_LABEL = "This lease does not use this step";
+
+/** S283 R-S283-7: a Finish up item outside this lease's path; the item list leaves it out. */
+export const FOLLOW_UP_NOT_USED_LABEL = "Not used on this lease";
+
+/** S283 R-S283-7: a link that names a step this lease does not use opens the current step with this. */
+export const UNUSED_STEP_LINK_LINE =
+  "This lease does not use that step. Showing the current step.";
+
+/**
+ * S283 R-S283-7: the path line, naming why a standard step is absent from this lease's path, for
+ * example "Standing agreement: the owner step is skipped." Null when every standard step is on the
+ * path. It reads the projected steps only: a step marked not part of the path, or an owner step a
+ * standing agreement covers. Pure.
+ */
+export function renewalPathLine(
+  steps: readonly { readonly id: RenewalPathStepId; readonly state: string }[],
+): string | null {
+  const absent = (id: RenewalPathStepId) =>
+    steps.some((step) => step.id === id && step.state === "not_part");
+  const present = (id: RenewalPathStepId) => steps.some((step) => step.id === id);
+  const lines: string[] = [];
+  if (steps.some((step) => step.id === "ask-owner" && step.state === "covered"))
+    lines.push("Standing agreement: the owner step is skipped.");
+  if (
+    present("assisted-program-contact") &&
+    absent("compare-market") &&
+    absent("ask-owner")
+  )
+    lines.push(
+      "Housing assistance: the market comparison and the owner's rent decision are skipped unless you propose a change.",
+    );
+  if (present("non-renewal-handoff"))
+    lines.push(
+      absent("offer-tenant")
+        ? "Move-out notice in RentVine: the non-renewal handoff replaces the tenant offer, documents and finish-up."
+        : "Non-renewal: the non-renewal handoff replaces documents and finish-up.",
+    );
+  return lines.length ? lines.join(" ") : null;
+}
 
 /** S251 R-S251-4: the program contact step names the lease's own program. */
 export function assistedProgramContactLabel(program: string | null | undefined): string {

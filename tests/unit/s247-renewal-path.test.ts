@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
-  NOT_PART_OF_PATH_LABEL,
+  STEP_NOT_USED_LABEL,
   RENEWAL_PATH_DEFINITION,
   RENEWAL_PATH_LABELS,
   RENEWAL_PATH_STANDARD_STEPS,
@@ -149,11 +149,14 @@ describe("S247 R-S247-2: variants are slots in the definition", () => {
     );
     expect(stage.currentStepId).toBe("non-renewal-handoff");
     expect(stage.stage.label).toBe("Non-renewal handoff");
+    // S283 R-S283-7 (rewritten on purpose): the "Not part of this lease's path" chip is retired;
+    // which steps apply is unchanged.
     expect(stage.steps.find((step) => step.id === "documents")).toMatchObject({
       state: "not_part",
-      detail: NOT_PART_OF_PATH_LABEL,
+      detail: STEP_NOT_USED_LABEL,
       primary: null,
     });
+    expect(STEP_NOT_USED_LABEL).not.toMatch(/Not part of this lease's path/);
   });
 
   it("a RentVine move-out notice goes to the handoff without an offer step", () => {

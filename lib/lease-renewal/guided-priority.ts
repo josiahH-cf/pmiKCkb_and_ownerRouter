@@ -35,7 +35,7 @@ import {
 } from "./renewal-date-proposal";
 import {
   ASSISTED_CONTROL_IDS,
-  NOT_PART_OF_PATH_LABEL,
+  STEP_NOT_USED_LABEL,
   RENEWAL_PATH_LABELS,
   type RenewalPathStepId,
 } from "./renewal-path";
@@ -616,7 +616,8 @@ function cueFor(
       : "tenant";
   switch (state) {
     case "not_part":
-      return `${NOT_PART_OF_PATH_LABEL}.`;
+      // S283 R-S283-7: the retired chip text is replaced.
+      return `${STEP_NOT_USED_LABEL}.`;
     case "retired":
       // The retirement review is the lead; the stage line already says so.
       return null;

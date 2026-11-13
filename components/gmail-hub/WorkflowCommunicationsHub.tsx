@@ -20,7 +20,7 @@ import { CheckGmailNow } from "./CheckGmailNow";
 import { workflowEntityHref } from "@/lib/gmail-hub/workflow-context";
 import type { CommunicationSequence } from "@/lib/gmail-hub/sequence-model";
 import { changedInputLine } from "@/lib/gmail-hub/reviewed-inputs";
-import { describeNextDue } from "@/lib/gmail-hub/schedule-calendar";
+import { describeNextDue, describeScheduledFor } from "@/lib/gmail-hub/schedule-calendar";
 import { useMinuteClock } from "@/components/hooks/useMinuteClock";
 import { BUSINESS_TIME_ZONE } from "@/lib/lease-renewal/business-calendar";
 import { formatBusinessTimestamp } from "@/lib/date-display";
@@ -348,9 +348,9 @@ export function WorkflowCommunicationsHub({
           {health === "unavailable" ? (
             <p>Worker health could not be read; reload the worklist to try again.</p>
           ) : (
-            describeWorkerHealth(health, nowMs, (ms) =>
-              formatBusinessTimestamp(new Date(ms).toISOString()),
-            ).map((line) => <p key={line}>{line}</p>)
+            describeWorkerHealth(health, nowMs, (ms) => formatBusinessTimestamp(ms)).map(
+              (line) => <p key={line}>{line}</p>,
+            )
           )}
         </div>
       ) : null}
@@ -371,11 +371,17 @@ export function WorkflowCommunicationsHub({
               </p>
               {s.nextDueAtMs && !s.requiresReview && nowMs !== null ? (
                 <p data-communication-field="next-due">
-                  {describeNextDue(
-                    s.nextDueAtMs,
-                    s.scheduleTimeZone ?? BUSINESS_TIME_ZONE,
-                    nowMs,
-                  )}
+                  {/* S283 R-S283-1 (BEH-S283-1): a scheduled message nothing has sent yet. */}
+                  {s.confirmedCount === 0 && s.nextDueAtMs > nowMs
+                    ? describeScheduledFor(
+                        s.nextDueAtMs,
+                        s.scheduleTimeZone ?? BUSINESS_TIME_ZONE,
+                      )
+                    : describeNextDue(
+                        s.nextDueAtMs,
+                        s.scheduleTimeZone ?? BUSINESS_TIME_ZONE,
+                        nowMs,
+                      )}
                 </p>
               ) : null}
               {s.pause ? (

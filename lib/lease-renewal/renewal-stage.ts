@@ -46,7 +46,8 @@ import {
   type LeaseWaiting,
 } from "@/lib/lease-renewal/lease-waiting";
 import {
-  NOT_PART_OF_PATH_LABEL,
+  FOLLOW_UP_NOT_USED_LABEL,
+  STEP_NOT_USED_LABEL,
   RENEWAL_PATH_DEFINITION,
   assistedProgramContactLabel,
   renewalPathSteps,
@@ -771,7 +772,8 @@ function finishUpItems(
         label: MANUAL_ACTIVITIES[key].label,
         done: true,
         origin: null,
-        detail: NOT_PART_OF_PATH_LABEL,
+        // S283 R-S283-7: the retired chip text is gone; the Guided item list leaves this out.
+        detail: FOLLOW_UP_NOT_USED_LABEL,
         notPart: true,
       };
     const done = satisfied(key);
@@ -1038,7 +1040,9 @@ export function projectRenewalStage(
       return {
         ...base,
         state: "not_part",
-        detail: NOT_PART_OF_PATH_LABEL,
+        // S283 R-S283-7: the step list leaves this step out; where its section still appears it
+        // reads this instead of the retired chip.
+        detail: STEP_NOT_USED_LABEL,
         primary: null,
       };
     if (

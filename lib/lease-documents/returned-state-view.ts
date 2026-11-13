@@ -4,6 +4,7 @@
 // the approved original. Only the approved reviewed map for that exact original supplies signers.
 // Pure: it reads nothing and writes nothing, and the Dotloop line never sets a signed state.
 
+import { TIMESTAMP_INVALID_LABEL, formatBusinessTimestamp } from "@/lib/date-display";
 import type { ArtifactIntakeManifest } from "@/lib/lease-documents/artifact-intake-contract";
 import type { LoopAssociation } from "@/lib/lease-documents/dotloop-loop-association";
 import type {
@@ -19,15 +20,15 @@ export interface ReturnedDocumentVersion {
   readonly versionLabel: string;
 }
 
-const CENTRAL = new Intl.DateTimeFormat("en-US", {
-  timeZone: "America/Chicago",
-  dateStyle: "medium",
-  timeStyle: "short",
-});
-
+/**
+ * S283 R-S283-1: an instant in the settled shape of lib/date-display.ts ("10/20/2026, 10:00 AM CDT"),
+ * its zone named; null when it cannot be read, so each caller keeps its own unreadable wording.
+ */
 export function formatCentralTime(iso: string): string | null {
   const time = Date.parse(iso);
-  return Number.isFinite(time) ? `${CENTRAL.format(new Date(time))} Central` : null;
+  if (!Number.isFinite(time)) return null;
+  const label = formatBusinessTimestamp(iso);
+  return label === TIMESTAMP_INVALID_LABEL ? formatBusinessTimestamp(time) : label;
 }
 
 export function currentReturnedDocuments(input: {

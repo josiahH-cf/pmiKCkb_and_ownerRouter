@@ -3,7 +3,7 @@ import { HelpGuideLink } from "@/components/help/HelpGuideLink";
 import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import { formatCalendarDate } from "@/lib/date-display";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
 import { InfoTip } from "@/components/ui/InfoTip";
@@ -14,6 +14,13 @@ import {
   RENEWAL_DESK_LINK_LABEL,
   isGuidanceOnlyProcessDefinitionId,
 } from "@/lib/processes/guidance-only";
+import { newRunStartKey } from "@/lib/processes/run-start";
+import {
+  DEFAULT_APPROVER_FIELD_HINT,
+  DEFAULT_APPROVER_FIELD_LABEL,
+  RUN_OWNER_FIELD_HINT,
+  RUN_OWNER_FIELD_LABEL,
+} from "@/lib/processes/staff-fields";
 import type { ProcessDefinitionPublicationRead } from "@/lib/publication/process-definition-readback";
 import type {
   ExternalActionReadiness,
@@ -53,6 +60,7 @@ export function ProcessDefinitionDetailClient({
   );
   const [message, setMessage] = useState("Process definition loaded.");
   const [isBusy, setIsBusy] = useState(false);
+  const startKey = useRef<string | null>(null);
   const [needsReload, setNeedsReload] = useState(false);
   const [form, setForm] = useState(() => definitionToForm(initialDefinition));
   const [publicationNote, setPublicationNote] = useState("");
@@ -226,19 +234,31 @@ export function ProcessDefinitionDetailClient({
 
   async function startRun() {
     if (!canEdit || isBusy) return;
+    // S283 R-S283-4: one key per click; a repeated or double-clicked request returns the same run.
+    // The key is kept while the answer is unknown, so a retry after a lost answer reuses it.
+    startKey.current ??= newRunStartKey();
+    const key = startKey.current;
     await runMutation("Starting a workflow run.", async () => {
-      const { run } = await fetchWorkflow<{ run: WorkflowRunRecord }>(
-        `/api/process-definitions/${definition.id}/runs`,
-        {
-          body: JSON.stringify({
-            expected_revision: definition.revision,
-            due_date: runForm.due_date || undefined,
-            note: runForm.note || undefined,
-          }),
-          method: "POST",
-        },
-      );
-      window.location.assign(`/workflow-runs/${run.id}`);
+      try {
+        const { run } = await fetchWorkflow<{ run: WorkflowRunRecord }>(
+          `/api/process-definitions/${definition.id}/runs`,
+          {
+            body: JSON.stringify({
+              expected_revision: definition.revision,
+              due_date: runForm.due_date || undefined,
+              note: runForm.note || undefined,
+              start_key: key,
+            }),
+            method: "POST",
+          },
+        );
+        startKey.current = null;
+        window.location.assign(`/workflow-runs/${run.id}`);
+      } catch (error) {
+        // A definite refusal started nothing; the next click is a new request.
+        if (error instanceof WorkflowRequestError) startKey.current = null;
+        throw error;
+      }
     });
   }
 
@@ -342,36 +362,50 @@ export function ProcessDefinitionDetailClient({
               value={form.trigger}
             />
           </label>
+          {/* S283 R-S283-3: staff labels and hints; the stored values are unchanged. */}
           {guidanceOnly ? (
             <div className="workflow-two-column-fields">
               <p>
-                Owner UID <span className="muted">{GUIDANCE_ONLY_STAFF_FIELD_NOTE}</span>
+                {RUN_OWNER_FIELD_LABEL}{" "}
+                <span className="muted">{GUIDANCE_ONLY_STAFF_FIELD_NOTE}</span>
               </p>
               <p>
-                Approver UID{" "}
+                {DEFAULT_APPROVER_FIELD_LABEL}{" "}
                 <span className="muted">{GUIDANCE_ONLY_STAFF_FIELD_NOTE}</span>
               </p>
             </div>
           ) : (
             <div className="workflow-two-column-fields">
-              <label>
-                Owner UID
-                <input
-                  onChange={(event) =>
-                    setForm({ ...form, owner_uid: event.target.value })
-                  }
-                  value={form.owner_uid}
-                />
-              </label>
-              <label>
-                Approver UID
-                <input
-                  onChange={(event) =>
-                    setForm({ ...form, default_approver_uid: event.target.value })
-                  }
-                  value={form.default_approver_uid}
-                />
-              </label>
+              <div className="ui-stack-tight">
+                <label>
+                  {RUN_OWNER_FIELD_LABEL}
+                  <input
+                    aria-describedby="process-edit-owner-hint"
+                    onChange={(event) =>
+                      setForm({ ...form, owner_uid: event.target.value })
+                    }
+                    value={form.owner_uid}
+                  />
+                </label>
+                <span className="muted" id="process-edit-owner-hint">
+                  {RUN_OWNER_FIELD_HINT}
+                </span>
+              </div>
+              <div className="ui-stack-tight">
+                <label>
+                  {DEFAULT_APPROVER_FIELD_LABEL}
+                  <input
+                    aria-describedby="process-edit-approver-hint"
+                    onChange={(event) =>
+                      setForm({ ...form, default_approver_uid: event.target.value })
+                    }
+                    value={form.default_approver_uid}
+                  />
+                </label>
+                <span className="muted" id="process-edit-approver-hint">
+                  {DEFAULT_APPROVER_FIELD_HINT}
+                </span>
+              </div>
             </div>
           )}
           <label>

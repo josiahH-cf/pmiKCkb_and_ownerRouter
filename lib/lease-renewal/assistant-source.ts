@@ -315,6 +315,11 @@ export async function runRenewalAssistantSource(
     coverage: window,
     /** S246: false when the keep-working choices could not be read for this render. */
     cycleDateDecisionsAvailable: cycleDateDecisions !== null,
+    /**
+     * S283 R-S283-2 (ARCH-S283-2): the monthly comparison allowance as counts only, from the same
+     * support read; null when it could not be read. It reserves nothing.
+     */
+    kickoffAllowance: kickoffSupport?.allowance ?? null,
   };
 }
 

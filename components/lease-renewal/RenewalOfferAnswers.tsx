@@ -13,6 +13,7 @@
 import { useId, useState } from "react";
 
 import { Button, Field } from "@/components/ui";
+import { formatBusinessDate } from "@/lib/date-display";
 import type {
   OfferAnswerInput,
   OfferAnswersView,
@@ -104,10 +105,9 @@ export function useOfferAnswers(): OfferAnswersRead {
   return useRenewalNowCard()?.offerAnswers ?? { view: null, failed: false };
 }
 
+/** S283 R-S283-1: the business-zone day of the offer, as MM/DD/YYYY. */
 function day(at: string | null): string {
-  return at
-    ? new Date(at).toLocaleDateString("en-US", { timeZone: "America/Chicago" })
-    : "an unknown date";
+  return at ? formatBusinessDate(at, "an unknown date") : "an unknown date";
 }
 
 function candidateKey(candidate: OfferAnswerCandidateView): string {

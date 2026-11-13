@@ -152,7 +152,7 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
     expect(container.querySelector("#renewal-staff-status-log")).toBe(status);
   });
 
-  it("continues a covered owner step to the tenant offer while keeping the message tools reachable", async () => {
+  it("R-S283-7 leaves a covered owner step off the path with a path line that says why", async () => {
     stubRenewalRoutes(manualState());
     const workspace = getRenewalLeaseWorkspace("lease-318-cedar-7")!;
     const context = renewalStageContextFor(
@@ -174,21 +174,19 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
       manual: manualState(),
       view: "default",
     });
-    const user = userEvent.setup();
-    await user.click(within(guidedPane()).getByRole("button", { name: "Ask the owner" }));
-    expect(
-      within(nowCard()).getByRole("button", { name: "Continue to Offer the tenant" }),
-    ).toBeVisible();
-    expect(
-      within(nowCard()).queryByRole("button", { name: "Send the owner message" }),
-    ).toBeNull();
-    expect(nowCard()).toHaveTextContent(
-      "Covered by Example agreement: no owner message needed",
+    // S283 R-S283-7 (rewritten on purpose): a standing agreement's covered owner step is not on
+    // this lease's path, so the step list has no chip for it and the path line says why. The
+    // lease continues at the tenant offer.
+    const strip = within(guidedPane()).getByRole("navigation", { name: "Renewal path" });
+    expect(within(strip).queryByRole("button", { name: "Ask the owner" })).toBeNull();
+    expect(guidedPane()).toHaveTextContent(
+      "Standing agreement: the owner step is skipped.",
     );
-    await user.click(
-      within(nowCard()).getByRole("button", { name: "Continue to Offer the tenant" }),
-    );
-    expect(nowCard()).toHaveAttribute("data-renewal-now-step", "offer-tenant");
+    expect(guidedPane()).not.toHaveTextContent("Not part of this lease's path");
+    expect(nowCard()).not.toHaveAttribute("data-renewal-now-step", "ask-owner");
+    expect(
+      within(strip).getByRole("button", { name: "Offer the tenant" }),
+    ).toBeInTheDocument();
   });
 
   it("BEH-S247-1: a lease opens in Guided view with the path strip and one Now card", async () => {

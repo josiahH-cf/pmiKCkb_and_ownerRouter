@@ -21,6 +21,7 @@ import { listKickoffPreparations } from "@/lib/firestore/renewal-kickoff-prepara
 import type {
   KickoffObservationRow,
   KickoffSupportRead,
+  PreparationAllowanceCount,
 } from "@/lib/lease-renewal/kickoff-facts";
 import type { CapturedCompResult } from "@/lib/lease-renewal/market-observation";
 import {
@@ -85,14 +86,32 @@ export async function readKickoffSupport(
       .catch(() => null),
     listKickoffPreparations(leaseIds, db).catch(() => null),
   ]);
+  const quota = usage
+    ? evaluateRentcastQuota(rentcastUsedCalls(usage), resolveRentcastAllowance())
+    : null;
   return {
     observationsByLease: observations,
     signature,
     templateApproved: publication ? publication.status === "approved" : null,
-    allowanceReached: usage
-      ? evaluateRentcastQuota(rentcastUsedCalls(usage), resolveRentcastAllowance())
-          .exhausted
-      : null,
+    allowanceReached: quota ? quota.exhausted : null,
+    // S283 R-S283-2 (ARCH-S283-2): the same evaluation the reservation enforces, as counts only.
+    allowance: preparationAllowanceCount(quota),
     preparationsByLease: preparations,
+  };
+}
+
+/**
+ * S283 R-S283-2: the allowance as counts only (remaining and the monthly total), with no lease
+ * value. An unread usage record is null, never a full allowance. Pure.
+ */
+export function preparationAllowanceCount(
+  quota: { readonly remaining: number; readonly allowance: number } | null,
+): PreparationAllowanceCount | null {
+  if (!quota) return null;
+  if (!Number.isSafeInteger(quota.remaining) || !Number.isSafeInteger(quota.allowance))
+    return null;
+  return {
+    remaining: Math.max(0, quota.remaining),
+    total: Math.max(0, quota.allowance),
   };
 }

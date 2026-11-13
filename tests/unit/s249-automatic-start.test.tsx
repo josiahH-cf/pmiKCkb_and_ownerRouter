@@ -33,6 +33,9 @@ afterEach(() => {
   window.sessionStorage.clear();
 });
 
+// S283 R-S283-2: the button now states its count ("Prepare 2 January 2027 leases"); the labels
+// below are rewritten on purpose. One click, no automatic start, the month and cycle sent and the
+// server's checks are unchanged.
 describe("S249 November 9 click-only preparation", () => {
   it("mounting, a different month and remounting send no requests", async () => {
     const page = render(
@@ -40,7 +43,7 @@ describe("S249 November 9 click-only preparation", () => {
         <RenewalKickoffPreparation month="2027-01" targets={targets} canPrepare />
       </StrictMode>,
     );
-    await screen.findByRole("button", { name: "Prepare January 2027 leases" });
+    await screen.findByRole("button", { name: "Prepare 2 January 2027 leases" });
     page.rerender(<RenewalKickoffPreparation month="2027-02" targets={[]} canPrepare />);
     page.unmount();
     render(<RenewalKickoffPreparation month="2027-01" targets={targets} canPrepare />);
@@ -49,7 +52,9 @@ describe("S249 November 9 click-only preparation", () => {
 
   it("a deliberate alternate month click submits the exact selected month and cycle for each lease", async () => {
     render(<RenewalKickoffPreparation month="2027-01" targets={targets} canPrepare />);
-    fireEvent.click(screen.getByRole("button", { name: "Prepare January 2027 leases" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Prepare 2 January 2027 leases" }),
+    );
     await screen.findByText("Preparation finished for January 2027.");
     expect(
       request.mock.calls.map(([url, input]) => [url, JSON.parse(String(input.body))]),
@@ -81,7 +86,7 @@ describe("S249 November 9 click-only preparation", () => {
       />,
     );
     expect(
-      screen.getByRole("button", { name: "Prepare January 2027 leases" }),
+      screen.getByRole("button", { name: "Prepare 2 January 2027 leases" }),
     ).toBeDisabled();
     page.rerender(
       <RenewalKickoffPreparation month="2027-01" targets={targets} canPrepare={false} />,

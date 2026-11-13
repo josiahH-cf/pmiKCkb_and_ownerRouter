@@ -283,10 +283,16 @@ describe("R-S286-5 the renewal definition form", () => {
     );
 
     expect(screen.getAllByText(GUIDANCE_ONLY_STAFF_FIELD_NOTE)).toHaveLength(2);
-    expect(screen.getByText(/Owner UID/)).toBeInTheDocument();
-    expect(screen.getByText(/Approver UID/)).toBeInTheDocument();
-    expect(screen.queryByRole("textbox", { name: "Owner UID" })).toBeNull();
-    expect(screen.queryByRole("textbox", { name: "Approver UID" })).toBeNull();
+    // S283 R-S283-3: the two fields carry staff labels (rewritten on purpose).
+    expect(screen.getByText(/Run owner \(staff account ID\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Default approver \(staff account ID\)/)).toBeInTheDocument();
+    expect(screen.queryByText(/Owner UID|Approver UID/)).toBeNull();
+    expect(
+      screen.queryByRole("textbox", { name: "Run owner (staff account ID)" }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("textbox", { name: "Default approver (staff account ID)" }),
+    ).toBeNull();
     expect(screen.queryByDisplayValue("process-owner-PLACEHOLDER")).toBeNull();
     expect(screen.queryByRole("button", { name: "Start run" })).toBeNull();
     expect(screen.queryByRole("heading", { name: "Start run" })).toBeNull();
@@ -345,12 +351,13 @@ describe("R-S286-5 the renewal definition form", () => {
         initialRuns={[]}
       />,
     );
-    expect(screen.getByRole("textbox", { name: "Owner UID" })).toHaveValue(
-      "staff-owner-1",
-    );
-    expect(screen.getByRole("textbox", { name: "Approver UID" })).toHaveValue(
-      "staff-approver-1",
-    );
+    // S283 R-S283-3: the inputs carry staff labels (rewritten on purpose); the values are unchanged.
+    expect(
+      screen.getByRole("textbox", { name: "Run owner (staff account ID)" }),
+    ).toHaveValue("staff-owner-1");
+    expect(
+      screen.getByRole("textbox", { name: "Default approver (staff account ID)" }),
+    ).toHaveValue("staff-approver-1");
     expect(screen.getByRole("button", { name: "Start run" })).toBeEnabled();
     expect(screen.queryByText(GUIDANCE_ONLY_STAFF_FIELD_NOTE)).toBeNull();
   });

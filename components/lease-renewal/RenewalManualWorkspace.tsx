@@ -1,7 +1,11 @@
 "use client";
 import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import { isRenewalPresentationMove } from "./RenewalDashboardNavigation";
-import { formatCalendarDate, formatBusinessTimestamp } from "@/lib/date-display";
+import {
+  displayDateReplacer,
+  formatCalendarDate,
+  formatBusinessTimestamp,
+} from "@/lib/date-display";
 import {
   RenewalSectionHeading,
   renewalCardTitle,
@@ -623,8 +627,9 @@ function ActiveManualProvider({
                     )}{" "}
                     · {String(entry.actor_uid)} ·{" "}
                     {String((entry.action as Record<string, unknown>)?.kind)}
+                    {/* S283 R-S283-1: dates and instants in the record read in the settled shapes. */}
                     <pre style={{ whiteSpace: "pre-wrap" }}>
-                      {JSON.stringify(entry.action, null, 2)}
+                      {JSON.stringify(entry.action, displayDateReplacer, 2)}
                     </pre>
                   </li>
                 ))}

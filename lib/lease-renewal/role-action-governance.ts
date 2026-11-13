@@ -61,15 +61,18 @@ export const RENEWAL_GOVERNANCE_MATRIX = {
   },
   select_notice_timing_basis: {
     label: "Select the documented shared renewal notice timing basis",
-    roleCapability: "edit",
+    // S283 R-S283-5 (owner direction 2026-11-12): the shared basis is read on a lease and changed
+    // by an Admin in Renewal notice rules. This replaces the November 3 staff selection.
+    roleCapability: "manageAdmin",
     effect: "app_owned_write",
     externalRequirement: "none",
     actionKeys: [],
     // November 3 owner Q2: the explicit selection is the complete intent, with no extra Save.
     exactConfirmation: false,
     audit: "app_activity",
-    roleDeniedReason: "Editor access is required to select the documented notice basis.",
-    safeNextAction: "Continue read-only or ask an Admin to review your role.",
+    roleDeniedReason: "Only an Admin changes the shared notice timing basis.",
+    safeNextAction:
+      "Read it on the lease, or ask an Admin to change it in Renewal notice rules.",
   },
   record_discrepancy_disposition: {
     label: "Record an app-owned discrepancy disposition",

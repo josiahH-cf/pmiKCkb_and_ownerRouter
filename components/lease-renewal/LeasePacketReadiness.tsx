@@ -24,6 +24,16 @@ export function LeasePacketReadiness({
   const organizationNote = organizationDifferenceNote(
     rows.map((row) => row.organizations),
   );
+  // S283 R-S283-3: the page names each fact by its staff label; the raw fact keys and source
+  // references stay available in Verification.
+  const contextBasis = context?.staffBasis ?? context?.basis ?? [];
+  const contextMissing = context?.staffMissing ?? context?.missing ?? [];
+  const verification = [
+    ...new Set([
+      ...(context?.verification ?? []),
+      ...rows.flatMap((row) => row.verification ?? []),
+    ]),
+  ];
   return (
     <section
       aria-label="Form families for this lease"
@@ -43,16 +53,16 @@ export function LeasePacketReadiness({
               ? `Current facts checked ${formatCentralTime(context.observedAt) ?? "at an unreadable time"}.`
               : "Current facts unavailable."}
           </p>
-          {context.basis.length ? (
+          {contextBasis.length ? (
             <ul>
-              {context.basis.map((fact) => (
+              {contextBasis.map((fact) => (
                 <li key={fact}>{fact}</li>
               ))}
             </ul>
           ) : null}
-          {context.missing.length ? (
+          {contextMissing.length ? (
             <ul>
-              {context.missing.map((question) => (
+              {contextMissing.map((question) => (
                 <li key={question}>{question}</li>
               ))}
             </ul>
@@ -129,7 +139,9 @@ export function LeasePacketReadiness({
                   ) : null}
                 </td>
                 <td>
-                  {row.missing.length ? row.missing.join("; ") : "Nothing missing"}
+                  {(row.staffMissing ?? row.missing).length
+                    ? (row.staffMissing ?? row.missing).join("; ")
+                    : "Nothing missing"}
                   {row.questions?.length ? (
                     <ul data-form-questions>
                       {row.questions.map((question) => (
@@ -147,6 +159,16 @@ export function LeasePacketReadiness({
         <p className="muted" data-renewal-field="form-organization-difference">
           {organizationNote}
         </p>
+      ) : null}
+      {verification.length ? (
+        <details data-renewal-field="packet-fact-verification">
+          <summary>Verification</summary>
+          <ul>
+            {verification.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </details>
       ) : null}
       {selection ? (
         <div className="ui-stack-tight" data-renewal-field="dotloop-selection-freshness">

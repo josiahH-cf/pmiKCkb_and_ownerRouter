@@ -57,6 +57,10 @@ import {
   type RenewalBatchRowView,
 } from "@/lib/lease-renewal/renewal-batch-row";
 import { KICKOFF_WORDS } from "@/lib/lease-renewal/renewal-preparation";
+import {
+  matchesBatchSearch,
+  preparationTargets,
+} from "@/lib/lease-renewal/preparation-scope";
 import { fetchWithDeadline } from "@/lib/ui/fetch-lifetime";
 import {
   RenewalKickoffPreparation,
@@ -95,8 +99,11 @@ export interface RenewalWorkingBatchProps {
   readonly recordingPaused?: boolean;
   /** False when staff's keep-working choices could not be read for this render. */
   readonly decisionsAvailable?: boolean;
-  /** S249: deliberate preparation for the selected month. */
-  readonly kickoff?: Omit<KickoffPreparationProps, "targets" | "month"> | null;
+  /** S249: deliberate preparation for the selected month (S283: of the leases shown). */
+  readonly kickoff?: Omit<
+    KickoffPreparationProps,
+    "targets" | "month" | "monthTotal"
+  > | null;
 }
 
 function subscribeToUrl(onChange: () => void): () => void {
@@ -201,12 +208,18 @@ export function RenewalWorkingBatch({
   const sort = query.sort ?? null;
   // S251 R-S251-11: the additive `tag` key narrows every group to rows carrying that tag.
   const tagFilter: RenewalBatchTagFilter | null = query.tag ?? null;
+  // S283 R-S283-2: the search box narrows the table to rows whose address, unit or tenant names
+  // contain every word typed. It reads nothing and starts nothing.
+  const [search, setSearch] = useState("");
+  const searchId = useId();
   const shownRows = useMemo(
     () =>
-      tagFilter
-        ? rows.filter((row) => row.tags.some((tag) => tag.key === tagFilter))
-        : rows,
-    [rows, tagFilter],
+      rows.filter(
+        (row) =>
+          (!tagFilter || row.tags.some((tag) => tag.key === tagFilter)) &&
+          matchesBatchSearch(row, search),
+      ),
+    [rows, tagFilter, search],
   );
   const partition = useMemo(
     () => partitionRenewalBatch(shownRows, month),
@@ -379,17 +392,14 @@ export function RenewalWorkingBatch({
     ? RENEWAL_BATCH_GROUP_LABELS[openGroup]
     : "Monthly renewals";
   const scopeCount = cohorts.reduce((total, group) => total + partition.counts[group], 0);
-  const targets = partitionRenewalBatch(rows, month).groups.this_batch.flatMap((row) =>
-    row.canOpen && row.placement.kind === "dated"
-      ? [
-          {
-            leaseId: row.leaseId,
-            address: row.unit ? `${row.address}, ${row.unit}` : row.address,
-            cycleDateIso: row.placement.dateIso,
-          },
-        ]
-      : [],
+  // S283 R-S283-2 (ARCH-S283-4): Prepare covers the selected month's eligible leases the table
+  // shows under the active group, tag and search. This batch is shown only in the monthly view,
+  // so an open count group shows none of them. The month total is the same list unfiltered.
+  const monthTargets = preparationTargets(
+    partitionRenewalBatch(rows, month).groups.this_batch,
   );
+  const shownTargets =
+    openGroup === null ? preparationTargets(partition.groups.this_batch) : [];
   const setSort = (next: RenewalBatchSort | null) =>
     showBatch(renewalBatchHref(batchQueryFor({ sort: next })), "replace");
 
@@ -470,13 +480,26 @@ export function RenewalWorkingBatch({
           {...kickoff}
           key={month}
           month={month}
-          targets={targets}
+          monthTotal={monthTargets.length}
+          targets={shownTargets}
         />
       ) : null}
 
       <section aria-label="Other leases" className="ui-stack renewal-batch-others">
         <h2 className="renewal-batch-heading">Filter renewals</h2>
         <p className="muted renewal-batch-note">{partition.total} loaded leases</p>
+        <label className="renewal-batch-search" htmlFor={searchId}>
+          Search this month&rsquo;s leases
+          <input
+            autoComplete="off"
+            className="ui-input"
+            id={searchId}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Address, unit or tenant"
+            type="search"
+            value={search}
+          />
+        </label>
         <ul className="renewal-batch-counts">
           <li>
             <button

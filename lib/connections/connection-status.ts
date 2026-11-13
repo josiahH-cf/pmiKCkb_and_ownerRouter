@@ -55,6 +55,8 @@ export interface ConnectorStatus {
   detail: string;
   configuredCount: number;
   requiredCount: number;
+  /** S283 R-S283-6: true when the app has no sign-in for this connector, so no setup step exists. */
+  noSetup?: boolean;
 }
 
 export interface ConnectorView {
@@ -99,6 +101,16 @@ export function classifyConnector(
       detail:
         def.availabilityDetail ??
         "This capability is intentionally closed and has no connection setup step.",
+    };
+  }
+  // S283 R-S283-6: a connector the app has no sign-in for states that, with no Connect action.
+  if (def.connectAction === "none") {
+    return {
+      ...base,
+      state: "none",
+      label: "Not connected",
+      detail: `This app has no ${def.name} sign-in.`,
+      noSetup: true,
     };
   }
   // Lifecycle state outranks the short-lived read-only verification cache. A stale passed probe
@@ -212,6 +224,8 @@ export function summarizeConnections(statuses: ConnectorStatus[]): ConnectionSum
  * effect.
  */
 export function connectionNextStep(status: ConnectorStatus, canManage: boolean): string {
+  // S283 R-S283-6: nothing to set up here; the card offers no Connect button.
+  if (status.noSetup) return "No connection step is available in this app.";
   switch (status.state) {
     case "connected":
       return "No connection setup is needed. Action authority is checked separately when work runs.";

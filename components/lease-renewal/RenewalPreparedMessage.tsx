@@ -73,9 +73,11 @@ import { focusRenewalDashboardControl } from "./RenewalDashboardNavigation";
 import {
   addCalendarDays,
   CommunicationScheduleSchema,
+  describeScheduledFor,
   localDateAt,
   nextOccurrence,
   formatZonedInstant,
+  resolveWallTime,
 } from "@/lib/gmail-hub/schedule-calendar";
 import { useRenewalFocusView } from "./RenewalFocusViewContext";
 import { nowSlotKey, useRenewalNowCard } from "./RenewalNowCardContext";
@@ -351,10 +353,9 @@ export async function previewAgainWhileGenerationReplaced<T>(
   return current;
 }
 
+/** The date input's native value (YYYY-MM-DD) for tomorrow in the business zone. */
 function tomorrowIso(): string {
-  return new Date(Date.now() + 86_400_000).toLocaleDateString("en-CA", {
-    timeZone: BUSINESS_TIME_ZONE,
-  });
+  return localDateAt(Date.now() + 86_400_000, BUSINESS_TIME_ZONE);
 }
 
 export function PreparedMessageSlot({
@@ -981,9 +982,14 @@ function PreparedMessageBlock({
         accepted && includesFollowUps && next !== null && followUpPlan
           ? ` Next follow-up: ${formatZonedInstant(next, followUpPlan.schedule.timeZone)}.`
           : "";
+      // S283 R-S283-1 (BEH-S283-1): the scheduled instant in the settled shape, its zone named.
       setMessage(
         review.mode === "schedule"
-          ? `Scheduled for ${scheduleDate} at ${scheduleTime} Central. It counts as sent once Gmail accepts it.`
+          ? `${describeScheduledFor(
+              next ??
+                resolveWallTime(scheduleDate, scheduleTime, BUSINESS_TIME_ZONE).instantMs,
+              BUSINESS_TIME_ZONE,
+            )}. It counts as sent once Gmail accepts it.`
           : accepted
             ? `Sent. Gmail accepted the message; the lease now waits on the reply.${nextFollowUp}`
             : "The send is recorded, and Gmail has not confirmed it yet. The lease says what happens next.",

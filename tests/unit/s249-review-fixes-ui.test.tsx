@@ -161,11 +161,13 @@ describe("S249 C: the preparation loop belongs to the view that started it", () 
     });
   };
 
+  // S283 R-S283-2: the button states its count ("Prepare 2 December 2026 leases"); the name
+  // pattern below is rewritten on purpose.
+  const PREPARE_OR_CONTINUE = /Prepare \d+ (of \d+ )?December|Continue December/;
+
   it("leaving the batch mid-loop stops it: nothing further is sent and the next page is never refreshed", async () => {
     const view = render(<RenewalKickoffPreparation {...props} />);
-    fireEvent.click(
-      screen.getByRole("button", { name: /Prepare December|Continue December/ }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: PREPARE_OR_CONTINUE }));
     await advance(50);
     expect(calls).toEqual(["9101"]);
     view.unmount();
@@ -179,17 +181,13 @@ describe("S249 C: the preparation loop belongs to the view that started it", () 
 
   it("a remount never runs a second loop beside the first; an explicit continuation rechecks the same targets", async () => {
     const first = render(<RenewalKickoffPreparation {...props} />);
-    fireEvent.click(
-      screen.getByRole("button", { name: /Prepare December|Continue December/ }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: PREPARE_OR_CONTINUE }));
     await advance(50);
     expect(calls).toEqual(["9101"]);
     first.unmount();
     await advance(0);
     render(<RenewalKickoffPreparation {...props} />);
-    fireEvent.click(
-      screen.getByRole("button", { name: /Prepare December|Continue December/ }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: PREPARE_OR_CONTINUE }));
     await advance(50);
     // Answer whatever the remounted view asked, one lease at a time.
     for (let round = 0; round < 4; round += 1) {

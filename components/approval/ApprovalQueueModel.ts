@@ -13,13 +13,8 @@ export type QueueActionMode =
   | "disable"
   | "return"
   | "snooze";
-export type BulkActionMode =
-  | "approve"
-  | "assign"
-  | "disable"
-  | "execute"
-  | "return"
-  | "snooze";
+/** S283 R-S283-6: the bulk action list offers no Execute; each approved action runs from its own review. */
+export type BulkActionMode = "approve" | "assign" | "disable" | "return" | "snooze";
 
 export interface QueueDetail {
   activity: ApprovalQueueActivityRecord[];
@@ -97,7 +92,7 @@ export function canClientBulkUpdate(
   item: ApprovalQueueItemRecord,
   action: BulkActionMode,
 ) {
-  if (action === "execute" || isQueueItemTerminal(item.status)) {
+  if (isQueueItemTerminal(item.status)) {
     return false;
   }
 

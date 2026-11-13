@@ -18,9 +18,11 @@ import { Button, ConfirmationDialog, Field } from "@/components/ui";
 import { formatCalendarDate } from "@/lib/date-display";
 import { RENEWAL_DASHBOARD_SECTIONS } from "@/lib/lease-renewal/dashboard-sections";
 import {
-  NOT_PART_OF_PATH_LABEL,
+  STEP_NOT_USED_LABEL,
+  UNUSED_STEP_LINK_LINE,
   RENEWAL_PATH_DEFINITION,
   pathStepForLinkStep,
+  renewalPathLine,
   type NowCardSlot,
   type RenewalPathStepId,
 } from "@/lib/lease-renewal/renewal-path";
@@ -116,8 +118,14 @@ const STATE_WORDS: Record<RenewalPathStepState, string> = {
   open: "Open",
   waiting: "Waiting",
   covered: "Covered",
-  not_part: NOT_PART_OF_PATH_LABEL,
+  // S283 R-S283-7: the path strip leaves these steps out; the word is kept for completeness only.
+  not_part: STEP_NOT_USED_LABEL,
 };
+
+/** S283 R-S283-7: a step this lease does not use: not part of its path, or a covered owner step. */
+function stepUnused(step: Pick<RenewalPathStepView, "state"> | undefined): boolean {
+  return step?.state === "not_part" || step?.state === "covered";
+}
 
 const WORKSPACE_ROUTE = "/api/lease-renewal/workspace";
 
@@ -544,7 +552,7 @@ export function RenewalFullOutcome({
       <div className="ui-stack-tight" data-renewal-work={full ? true : undefined}>
         <div className="ui-stack-tight" hidden={!full}>
           {blocker ? <p role="alert">{blocker.label}</p> : null}
-          {step.state === "not_part" ? <p>{NOT_PART_OF_PATH_LABEL}.</p> : null}
+          {step.state === "not_part" ? <p>{STEP_NOT_USED_LABEL}.</p> : null}
           {step.state === "waiting" && stage.waiting && current ? (
             <p data-renewal-field="waiting">{renewalStageWaitingLine(stage.waiting)}</p>
           ) : null}
@@ -831,10 +839,15 @@ export function RenewalGuidedView({
       linked: followsProgress ? null : linked,
     });
   }
+  // S283 R-S283-7: a link (or a restored choice) that names a step this lease does not use opens
+  // the current step, and says so.
+  const linkedUnused =
+    linked !== null && stepUnused(stage.steps.find((step) => step.id === linked));
   const shownId =
-    linked && stage.steps.some((step) => step.id === linked)
+    linked && !linkedUnused && stage.steps.some((step) => step.id === linked)
       ? linked
       : stage.currentStepId;
+  const unusedLink = linkedUnused && chosen === null;
   const rememberStep = view?.rememberStep;
   useEffect(() => {
     rememberStep?.(preferred);
@@ -1025,6 +1038,7 @@ export function RenewalGuidedView({
       shown={shown}
       showInFull={(id) => view.showInFull(id)}
       stage={stage}
+      unusedLink={unusedLink}
     />,
     view.slot,
   );
@@ -1065,6 +1079,7 @@ function GuidedPane({
   shown,
   showInFull,
   stage,
+  unusedLink = false,
 }: GuidedLinks &
   Readonly<{
     announcement: string;
@@ -1077,7 +1092,13 @@ function GuidedPane({
     shown: RenewalPathStepView;
     showInFull: (id: string | null) => void;
     stage: RenewalStage;
+    /** S283 R-S283-7: the address named a step this lease does not use. */
+    unusedLink?: boolean;
   }>) {
+  // S283 R-S283-7: only the steps on this lease's path are listed, and the path line says why a
+  // standard step is absent.
+  const pathSteps = stage.steps.filter((step) => !stepUnused(step));
+  const pathLine = renewalPathLine(stage.steps);
   const view = useRenewalFocusView();
   // S249 R-S249-1 (D-OP-7): where the numbers check states "Numbers agree" on RentVine, an
   // operating Sheet difference is information on that check, never a second item to work.
@@ -1108,9 +1129,14 @@ function GuidedPane({
           </ul>
         </div>
       ) : null}
+      {unusedLink ? (
+        <p data-renewal-field="unused-step-link" role="status">
+          {UNUSED_STEP_LINK_LINE}
+        </p>
+      ) : null}
       <nav aria-label="Renewal path" className="renewal-path-strip">
         <ol className="renewal-path-steps">
-          {stage.steps.map((step) => (
+          {pathSteps.map((step) => (
             <li
               className="renewal-path-step"
               data-renewal-path-state={step.state}
@@ -1134,6 +1160,11 @@ function GuidedPane({
           ))}
         </ol>
       </nav>
+      {pathLine ? (
+        <p className="muted" data-renewal-field="path-line">
+          {pathLine}
+        </p>
+      ) : null}
       {view?.nowSlot
         ? createPortal(
             <NowCard
@@ -1823,7 +1854,7 @@ function NowCard({
       >
         {cueKind === "not-part" ? (
           <p data-renewal-field="not-part" data-renewal-priority-cue>
-            {NOT_PART_OF_PATH_LABEL}.
+            {STEP_NOT_USED_LABEL}.
           </p>
         ) : cueKind === "blocker" ? (
           blockerNode
@@ -1885,15 +1916,18 @@ function NowCard({
         {shown.id === "finish-up" && stage.finishUp.length > 0 ? (
           // R-S248-7: each item in its own words: recorded by staff or verified by the receipt.
           <ul aria-label="Finish up items" className="renewal-finish-up-items">
-            {stage.finishUp.map((item) => (
-              <li
-                data-renewal-finish-up-item={item.key}
-                data-renewal-finish-up-origin={item.origin ?? "open"}
-                key={item.key}
-              >
-                {item.label}: {item.detail}
-              </li>
-            ))}
+            {/* S283 R-S283-7: an item outside this lease's path is left out. */}
+            {stage.finishUp
+              .filter((item) => !item.notPart)
+              .map((item) => (
+                <li
+                  data-renewal-finish-up-item={item.key}
+                  data-renewal-finish-up-origin={item.origin ?? "open"}
+                  key={item.key}
+                >
+                  {item.label}: {item.detail}
+                </li>
+              ))}
           </ul>
         ) : null}
         {shown.id === "finish-up" && shown.state !== "not_part" && nowCard?.finishUp ? (

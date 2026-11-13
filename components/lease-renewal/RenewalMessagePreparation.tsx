@@ -373,10 +373,7 @@ function TenantOfferProgress({
         <p>Current delivery details require a read.</p>
       )}
       {sequence?.lastSentAtMs ? (
-        <p>
-          Last confirmed send{" "}
-          {formatBusinessTimestamp(new Date(sequence.lastSentAtMs).toISOString())}.
-        </p>
+        <p>Last confirmed send {formatBusinessTimestamp(sequence.lastSentAtMs)}.</p>
       ) : null}
       {sequence?.pause ? (
         <p>{SEQUENCE_PAUSE_CAUSE_LABELS[sequence.pause.cause]}</p>
