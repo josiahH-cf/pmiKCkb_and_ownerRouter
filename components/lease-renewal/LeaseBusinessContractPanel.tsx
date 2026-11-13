@@ -4,6 +4,7 @@ import {
   LEASE_FIELD_AUTHORITY_CONTRACT,
   LEASE_LIVE_LIFECYCLE_OWNERSHIP,
   LEASE_SYSTEM_OWNERSHIP_CONTRACT,
+  type LeaseCadenceSupport,
 } from "@/lib/lease-renewal/business-contract";
 
 export function LeaseBusinessContractPanel() {
@@ -98,7 +99,7 @@ export function LeaseBusinessContractPanel() {
   );
 }
 
-function statusLabel(status: (typeof LEASE_CADENCE_CONTRACT)[number]["status"]) {
+function statusLabel(status: LeaseCadenceSupport) {
   switch (status) {
     case "supported":
       return "Supported";

@@ -3,6 +3,7 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { communicationsRetentionFields } from "@/lib/gmail-hub/retention-policy";
 import type { WorkflowCommunicationLink } from "@/lib/gmail-hub/workflow-context";
 import {
   buildRenewalFollowUpProjection,
@@ -97,10 +98,8 @@ function olderThread(actorUid: string): WorkflowCommunicationLink {
     contact_observation_state: "current",
     created_at_ms: at,
     updated_at_ms: at,
-    retention_policy_ref: "communications-retention:v1.0",
-    retention_class: "workflow_link",
-    expires_at_ms: null,
-  } as WorkflowCommunicationLink;
+    ...communicationsRetentionFields("workflow_link", at),
+  };
 }
 
 /** The card's projection as the live desk builds it: the viewer's links, the lease's waiting. */

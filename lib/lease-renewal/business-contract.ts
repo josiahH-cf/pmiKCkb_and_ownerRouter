@@ -2,6 +2,9 @@
 // Sources: lease-renewal-discovery-reference.md §§1-3 and
 // lease-renewal-connector-design.md §3.4. This module contains rules only, never customer values.
 
+/** How far the app supports a cadence rule today; a rule moves to "supported" once it lands. */
+export type LeaseCadenceSupport = "supported" | "partial" | "absent";
+
 export const LEASE_CADENCE_CONTRACT = Object.freeze([
   {
     id: "candidate_window",
