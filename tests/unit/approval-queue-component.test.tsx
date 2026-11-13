@@ -318,8 +318,11 @@ describe("ApprovalQueue bulk UI", () => {
     ).toEqual(["Approve", "Return for Revision", "Assign", "Snooze", "Disable Action"]);
     expect(screen.queryByRole("option", { name: "Execute" })).toBeNull();
     expect(screen.queryByText(/Execute skips every current item/)).toBeNull();
+    // The 50 selected fixture items are High-risk approvals, so the preview names them first.
     expect(
-      screen.getByText("The server checks every selected item again before updating it."),
+      screen.getByText(
+        "50 High-risk approval(s) require confirmation. The server checks every selected item again before updating it.",
+      ),
     ).toBeInTheDocument();
   });
 
