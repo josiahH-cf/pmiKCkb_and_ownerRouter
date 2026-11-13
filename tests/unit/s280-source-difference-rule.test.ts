@@ -295,15 +295,14 @@ describe("S280 ARCH-S280-4: the pipeline on the operating Sheet (fail-first)", (
     expect(run.outcomes.every((outcome) => outcome.information === undefined)).toBe(true);
   });
 
-  it("AC-S280-7: varied one at a time, every other case stays a decision and nothing is applied", () => {
-    const base = {
-      runId: "live-review",
-      recordJoinIds: { 1: "lease:101" },
-      operatingSheet: true,
-      leaseLabels: LEASE_LABELS,
-    } as const;
+  const base = {
+    runId: "live-review",
+    recordJoinIds: { 1: "lease:101" },
+    operatingSheet: true,
+    leaseLabels: LEASE_LABELS,
+  } as const;
 
-    // RentVine unreadable.
+  it("AC-S280-7: unreadable RentVine stays a decision and nothing is applied", () => {
     const unreadable = runRenewalPipeline({
       ...base,
       tables: [
@@ -319,64 +318,79 @@ describe("S280 ARCH-S280-4: the pipeline on the operating Sheet (fail-first)", (
       ],
     });
     expect(unreadable.flags.map((flag) => flag.fieldKey)).toContain("current_rent");
-
-    // A market value conflict and an owner decision conflict.
-    const specs: ReconcilableFieldSpec[] = [
-      {
-        fieldKey: "market_value",
-        sheetSource: "sheet_tab3",
-        joinKind: "name",
-        joinFieldKey: "tenant_name",
-        tab: "Renewals",
-        fieldLabel: "Market value",
-      },
-      {
-        fieldKey: "owner_pricing_confirmed",
-        sheetSource: "sheet_tab3",
-        joinKind: "name",
-        joinFieldKey: "tenant_name",
-        tab: "Renewals",
-        fieldLabel: "Owner pricing confirmed",
-      },
-    ];
-    const others = runRenewalPipeline({
-      ...base,
-      fieldSpecs: specs,
-      tables: [
-        [
-          HEADER as string[],
-          sheetRow({
-            [TENANT]: "Avery Sample",
-            [MARKET_VALUE]: "$1,400",
-            [PRICING]: "yes",
-          }),
-        ],
-      ],
-      nonSheetCandidates: [
-        rentvine("101", "Avery Sample", {
-          market_value: { value: 2000, confidence: "Verified" },
-        }),
-        {
-          source: "owner_email",
-          source_system: "Owner email",
-          joinKind: "name",
-          joinValue: "Avery Sample",
-          joinId: "lease:101",
-          fields: { owner_pricing_confirmed: { value: false, confidence: "Likely" } },
-        },
-      ],
-    });
-    expect(others.flags.map((flag) => flag.fieldKey).sort()).toEqual([
-      "market_value",
-      "owner_pricing_confirmed",
-    ]);
-    for (const outcome of [...unreadable.outcomes, ...others.outcomes]) {
+    for (const outcome of unreadable.outcomes) {
       expect(outcome.information).toBeUndefined();
       expect(outcome.reconciliation.auto_apply_allowed).toBe(false);
     }
     expect(unreadable.production_allowed).toBe(false);
-    expect(others.production_allowed).toBe(false);
   });
+
+  const conflictCases = [
+    {
+      fieldKey: "market_value",
+      fieldLabel: "Market value",
+      column: MARKET_VALUE,
+      sheet: "$1,400",
+      other: {
+        source: "rentcast",
+        source_system: "RentCast",
+        joinKind: "name",
+        joinValue: "Avery Sample",
+        joinId: "lease:101",
+        fields: { market_value: { value: 2000, confidence: "Verified" } },
+      },
+    },
+    {
+      fieldKey: "owner_pricing_confirmed",
+      fieldLabel: "Owner pricing confirmed",
+      column: PRICING,
+      sheet: "yes",
+      other: {
+        source: "owner_email",
+        source_system: "Owner email",
+        joinKind: "name",
+        joinValue: "Avery Sample",
+        joinId: "lease:101",
+        fields: { owner_pricing_confirmed: { value: false, confidence: "Likely" } },
+      },
+    },
+  ] satisfies readonly {
+    fieldKey: string;
+    fieldLabel: string;
+    column: number;
+    sheet: string;
+    other: NonSheetCandidate;
+  }[];
+
+  it.each(conflictCases)(
+    "AC-S280-7: the $fieldKey conflict stays a decision and nothing is applied",
+    ({ fieldKey, fieldLabel, column, sheet, other }) => {
+      const spec: ReconcilableFieldSpec = {
+        fieldKey,
+        fieldLabel,
+        sheetSource: "sheet_tab3",
+        joinKind: "name",
+        joinFieldKey: "tenant_name",
+        tab: "Renewals",
+      };
+      const run = runRenewalPipeline({
+        ...base,
+        fieldSpecs: [spec],
+        tables: [
+          [HEADER as string[], sheetRow({ [TENANT]: "Avery Sample", [column]: sheet })],
+        ],
+        nonSheetCandidates: [other],
+      });
+      expect(run.flags.map((flag) => flag.fieldKey)).toEqual([fieldKey]);
+      expect(run.outcomes).toHaveLength(1);
+      expect(run.outcomes[0]).toMatchObject({
+        fieldKey,
+        reconciliation: { raise_flag: true, auto_apply_allowed: false },
+      });
+      expect(run.outcomes[0]?.information).toBeUndefined();
+      expect(run.production_allowed).toBe(false);
+    },
+  );
 });
 
 describe("S280 BEH-S280-6: the lease's numbers check reads the same rule", () => {

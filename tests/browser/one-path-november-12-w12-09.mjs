@@ -51,9 +51,8 @@
 // one the rule keeps as a decision (here the Sheet rent that cannot be read). The "two fields" are
 // therefore the rent (decision rows) and the lease end (information rows): rows equal the lease and
 // field pairs when each pair is shown exactly once, as a decision or as information. The market
-// value and owner decision conflicts of AC-S280-7 have no second source in the live review (no
-// staff control or stand-in supplies one); they are covered by tests/unit/s280-source-difference-
-// rule.test.ts and are recorded here as not stageable, not as passed.
+// value and owner decision conflicts of AC-S280-7 have no second source in the live review.
+// The two independent reconciliation cases run on the served tree under the network guard.
 import {
   deliverOwnerReply,
   setNextSend,
@@ -71,6 +70,7 @@ import {
   sendTenantOffer,
 } from "./one-path-november-12-journeys.mjs";
 import { DESK, WORKING_ROUTE, WORKSPACE_ROUTE } from "./one-path-november-12-kit.mjs";
+import { runRehearsalVitest } from "./one-path-november-12-unit-run.mjs";
 
 export const W1209_CHECKS = Object.freeze([
   "AC-S280-1",
@@ -99,6 +99,7 @@ export const FOLLOW_WORDS = Object.freeze({
 const STEP = Object.freeze({ owner: "ask-owner", tenant: "offer-tenant" });
 const LIVE = "/lease-renewal/live";
 const QUEUE = "/approval-queue";
+const SOURCE_DIFFERENCE_TEST = "tests/unit/s280-source-difference-rule.test.ts";
 const DESK_LINK = "Open the Renewal Desk.";
 /** R-S280-4 and the stale sentence it removed. */
 const RETAINED_READ =
@@ -1281,7 +1282,8 @@ export async function checkW1209(ctx, page, start) {
       taskMeaning;
   }
 
-  // AC-S280-7: the four screens agree on information, and RentVine unreadable is a decision.
+  // AC-S280-7: four surfaces show the RentVine/Sheet rule. The two non-live source conflicts
+  // are checked independently against the reconciliation pipeline.
   {
     const base = p3;
     const numbersOk =
@@ -1374,6 +1376,21 @@ export async function checkW1209(ctx, page, start) {
       workingRent.writes.length === 2 &&
       workingRent.writes.every((write) => write.path === WORKING_ROUTE),
     );
+    const pipeline = await runRehearsalVitest(rehearsal, "w1209-source-rule", "unit", [
+      SOURCE_DIFFERENCE_TEST,
+    ]);
+    const pipelineCases = ["market_value", "owner_pricing_confirmed"].map((field) => {
+      const title = `AC-S280-7: the ${field} conflict stays a decision and nothing is applied`;
+      const cases = pipeline.cases.filter(
+        (entry) => entry.file === SOURCE_DIFFERENCE_TEST && entry.name.endsWith(title),
+      );
+      return { field, passed: cases.length === 1 && cases[0].status === "passed" };
+    });
+    const pipelineOk =
+      pipeline.code === 0 &&
+      pipeline.refused === 0 &&
+      pipeline.totals?.failed === 0 &&
+      pipelineCases.every((entry) => entry.passed);
     verdicts["AC-S280-7"] = {
       numbersOk,
       dashboardOk,
@@ -1381,10 +1398,23 @@ export async function checkW1209(ctx, page, start) {
       liveOk,
       unreadableOk,
       workingRentOk,
-      notStaged: ["market value conflict", "owner decision conflict"],
+      pipelineOnly: {
+        cases: pipelineCases,
+        totals: pipeline.totals,
+        networkRefusals: pipeline.refused,
+        code: pipeline.code,
+        error: pipeline.error,
+        tail: pipeline.tail,
+      },
     };
     checks["AC-S280-7"] =
-      numbersOk && dashboardOk && queueOk && liveOk && unreadableOk && workingRentOk;
+      numbersOk &&
+      dashboardOk &&
+      queueOk &&
+      liveOk &&
+      unreadableOk &&
+      workingRentOk &&
+      pipelineOk;
   }
 
   // AC-S280-3: named rows, one per lease and field, own links, and counts that agree.
