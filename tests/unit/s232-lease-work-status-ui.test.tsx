@@ -136,10 +136,13 @@ describe("S232 desk row and Focus status (R-S232-4)", { timeout: 60_000 }, () =>
     const conflict = statusCell(2);
     expect(conflict).toHaveAttribute("data-lease-status", "needs_check");
     expect(conflict).toHaveTextContent("Needs a check");
-    // No single status to filter by, so the badge is not a status link.
+    // The overall badge keeps the row's overall status and its one filter link, so the release
+    // reconciliation reads one overall status per row; the check is named on its own line.
+    expect(within(conflict).queryByRole("link", { name: /Needs a check/ })).toBeNull();
+    expect(conflict.querySelectorAll("a.renewal-status-link")).toHaveLength(1);
     expect(
-      within(conflict).queryByRole("link", { name: /Needs a check|Waiting/ }),
-    ).toBeNull();
+      conflict.querySelector('[data-renewal-field="needs-check"]'),
+    ).toHaveTextContent("Needs a check");
     expect(lines(conflict)).toEqual({
       waiting: null,
       check: CHECK,
