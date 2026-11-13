@@ -656,7 +656,8 @@ async function saveFollowUpInterval(ctx, days) {
     const saved = admin
       .getByRole("status")
       .filter({ hasText: "Saved as a new immutable policy version." });
-    return kit.shownWithin(saved, 60_000);
+    const visible = await kit.shownWithin(saved, 60_000);
+    return visible;
   } finally {
     await admin.close().catch(() => undefined);
   }
