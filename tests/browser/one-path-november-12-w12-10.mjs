@@ -52,7 +52,12 @@ import {
   sendTenantOffer,
   waitForPrimary,
 } from "./one-path-november-12-journeys.mjs";
-import { DESK, WORKING_ROUTE, WORKSPACE_ROUTE } from "./one-path-november-12-kit.mjs";
+import {
+  DESK,
+  WORKING_ROUTE,
+  WORKSPACE_ROUTE,
+  ownerRecommendationAmounts,
+} from "./one-path-november-12-kit.mjs";
 
 export const W1210_CHECKS = Object.freeze([
   "AC-S281-1",
@@ -1548,18 +1553,14 @@ export async function checkW1210(ctx, page, start) {
       page.waitForTimeout(30_000).then(() => "none"),
     ]);
     // The message and the readiness list are derived again from the saved amount.
-    await page
-      .waitForFunction(
-        (amount) => {
-          const now = document.querySelector("[data-renewal-now-step]");
-          const message = [
-            ...(now?.querySelectorAll('details[data-renewal-group="Message"]') ?? []),
-          ].find((node) => node.getBoundingClientRect().height > 0);
-          return (message?.textContent ?? "").includes(amount);
-        },
-        usd(IN_PLACE_AMOUNT).replace(/\.00$/, ""),
-        { timeout: 20_000 },
-      )
+    const amount = usd(IN_PLACE_AMOUNT);
+    const messagePreview = page.locator(
+      `${NOW} details[data-renewal-group="Message"]:visible [aria-label="Message preview"]`,
+    );
+    await messagePreview
+      .filter({ hasText: `Our reviewed rental analysis suggests ${amount} per month.` })
+      .first()
+      .waitFor({ state: "attached", timeout: 20_000 })
       .catch(() => undefined);
     await page.waitForTimeout(1000);
     const after = await page.evaluate(() => {
@@ -1572,16 +1573,17 @@ export async function checkW1210(ctx, page, start) {
             '[data-renewal-owner-facts] [data-renewal-field="owner-recommended-rent"]',
           ),
         ),
-        message: text(
-          [
-            ...(now?.querySelectorAll('details[data-renewal-group="Message"]') ?? []),
-          ].find((node) => node.getBoundingClientRect().height > 0),
-        ).slice(0, 4000),
         readiness: text(now?.querySelector('ul[aria-label="What sending needs"]')),
         editors: document.querySelectorAll("#renewal-now-rent-to-recommend").length,
       };
     });
-    const amount = usd(IN_PLACE_AMOUNT);
+    const message = squash(
+      await messagePreview
+        .first()
+        .textContent({ timeout: 3_000 })
+        .catch(() => null),
+    );
+    const recommendations = ownerRecommendationAmounts(message);
     const plain = amount.replace(/\.00$/, "");
     // The readiness list names what sending needs, not amounts (S249): its Rent to recommend line
     // is derived again from the saved amount and reads ready, with no earlier amount left in it.
@@ -1589,16 +1591,21 @@ export async function checkW1210(ctx, page, start) {
     const earlier = beforeFacts.match(/\$[\d,]+(\.\d\d)?/)?.[0] ?? null;
     book.note(
       "AC-S281-7",
-      "Save in place: the facts line, the message and the readiness list show $1,425.00 and focus is on the primary",
+      "Save in place: the facts and message recommendation show $1,425.00, the readiness line is ready and focus is on the primary",
       status === 200 &&
         after.focus === "renewal-now-primary" &&
         after.facts.includes(plain) &&
-        (after.message.includes(amount) || after.message.includes(plain)) &&
+        recommendations.length === 1 &&
+        recommendations[0] === amount &&
         rentLine &&
         (earlier === null || earlier === amount || !after.readiness.includes(earlier)) &&
-        (earlier === null || earlier === amount || !after.message.includes(earlier)) &&
         after.editors <= 1,
-      { status, earlier, after: { ...after, message: after.message.slice(0, 300) } },
+      {
+        status,
+        earlier,
+        recommendations,
+        after: { ...after, message: message.slice(0, 300) },
+      },
     );
     // A stale read: another Editor page saves first, then this page's save is refused with the
     // existing recovery.
