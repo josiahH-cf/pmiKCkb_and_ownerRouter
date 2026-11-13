@@ -32,7 +32,8 @@
 //       question "What work is assigned to me today?".
 //   P3  a Sheet rent and a Sheet lease end that differ from RentVine on the three leases with a
 //       Sheet row: the numbers check, the Dashboard, the Approval Queue and Live renewal review.
-//   P4  RentVine unreadable on one of them (its lease read fails): the same screens.
+//   P4  RentVine unreadable on one of them (its lease read fails): the same screens; a different
+//       app working rent remains a decision on the lease and is then cleared through its control.
 //   P5  the Sheet rent unreadable on all three, so each rent difference is a decision again: named
 //       rows, their links, the counts on the Dashboard, the Approval Queue and Live renewal review.
 //   P6  the renewal read aged past its limit: retained rows, Refresh, and a decision control on a
@@ -69,7 +70,7 @@ import {
   sendOwnerMessage,
   sendTenantOffer,
 } from "./one-path-november-12-journeys.mjs";
-import { DESK, WORKSPACE_ROUTE } from "./one-path-november-12-kit.mjs";
+import { DESK, WORKING_ROUTE, WORKSPACE_ROUTE } from "./one-path-november-12-kit.mjs";
 
 export const W1209_CHECKS = Object.freeze([
   "AC-S280-1",
@@ -797,6 +798,63 @@ export async function checkW1209(ctx, page, start) {
     }
   });
 
+  const workingRent = await part(
+    "P4 an app working rent differs from RentVine",
+    async () => {
+      const leaseId = sheetLeases.find((id) => id !== prepared && id !== replied);
+      if (!leaseId) throw new Error("No comparison lease without message work.");
+      const target = "#renewal-working-current-rent input";
+      await kit.openLease(page, leaseId, "?view=full");
+      if (!(await kit.reveal(page, target)))
+        throw new Error("The working current rent control could not be opened.");
+      const field = page.locator(target).first();
+      const prior = await field.inputValue();
+      const amount = fact(leaseId).rent + 25;
+      const save = async (value) => {
+        const response = kit.appResponse(page, WORKING_ROUTE, {
+          match: (body) => body?.field === "current_rent",
+        });
+        if (value === "") {
+          await page
+            .locator("#renewal-working-current-rent")
+            .getByRole("button", { name: "Clear the working value", exact: true })
+            .click();
+        } else {
+          await field.fill(value);
+          await field.blur();
+        }
+        return (await response).status();
+      };
+      const mark = ctx.writes.length;
+      const priorEffects = await outsideCounts(rehearsal);
+      const saved = await save(String(amount));
+      let numbers;
+      let restored;
+      try {
+        numbers = await numbersCheck(leaseId);
+      } finally {
+        await kit.openLease(page, leaseId, "?view=full");
+        if (!(await kit.reveal(page, target)))
+          throw new Error(
+            "The working current rent could not be restored through the control.",
+          );
+        restored = await save(prior);
+      }
+      const afterEffects = await outsideCounts(rehearsal);
+      return {
+        leaseId,
+        amount,
+        saved,
+        numbers,
+        restored,
+        effects: JSON.stringify(priorEffects) === JSON.stringify(afterEffects),
+        writes: ctx.writes
+          .slice(mark)
+          .filter((write) => write.path !== "/api/personal-view"),
+      };
+    },
+  );
+
   // ==== P5: the Sheet rent cannot be read, so the rent difference is a decision ===================
   const p5 = await part("P5 decisions on three leases", async () => {
     serveDifferences(() => "TBD");
@@ -1283,6 +1341,7 @@ export async function checkW1209(ctx, page, start) {
       !base.live.cards.some((card) => differenceRow(card.head)) &&
       base.live.info.length === expectedInfo.length &&
       expectedInfo.every((expected) => infoMatches(base.live.info, expected) === 1) &&
+      base.live.info.every((row) => row.link?.endsWith("#renewal-rent-and-charges")) &&
       unique(base.live.info.map((row) => row.id)) &&
       !base.live.infoDecisionWords,
     );
@@ -1305,19 +1364,27 @@ export async function checkW1209(ctx, page, start) {
         )
         .every((expected) => infoMatches(unreadable.live.info, expected) === 1),
     );
+    const workingRentOk = Boolean(
+      workingRent?.saved === 200 &&
+      workingRent.restored === 200 &&
+      workingRent.effects &&
+      workingRent.numbers.shown &&
+      workingRent.numbers.state === "difference" &&
+      workingRent.numbers.line.includes(noteMoney(workingRent.amount)) &&
+      workingRent.writes.length === 2 &&
+      workingRent.writes.every((write) => write.path === WORKING_ROUTE),
+    );
     verdicts["AC-S280-7"] = {
       numbersOk,
       dashboardOk,
       queueOk,
       liveOk,
       unreadableOk,
-      notStaged: [
-        "staff working value differs from RentVine",
-        "market value conflict",
-        "owner decision conflict",
-      ],
+      workingRentOk,
+      notStaged: ["market value conflict", "owner decision conflict"],
     };
-    checks["AC-S280-7"] = numbersOk && dashboardOk && queueOk && liveOk && unreadableOk;
+    checks["AC-S280-7"] =
+      numbersOk && dashboardOk && queueOk && liveOk && unreadableOk && workingRentOk;
   }
 
   // AC-S280-3: named rows, one per lease and field, own links, and counts that agree.
