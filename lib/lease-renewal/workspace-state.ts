@@ -477,6 +477,18 @@ export interface RenewalWorkspaceState {
        * It is bound to that exact message; absent on every staff-recorded value.
        */
       derivedFrom?: { sequenceId: string; occurrenceId: string };
+      /**
+       * S278 R-S278-1: a Market value prepared from the reviewed current-cycle recommendation,
+       * bound to that exact entry and how it was reviewed. Absent on every other value.
+       */
+      fromRecommendation?: {
+        field: "terms_rent" | "recommended_rent";
+        revision: number;
+        eventId: string;
+        review: "staff_save" | "owner_message_review";
+      };
+      /** S278 R-S278-3: when the confirmed update's receipt was created, once it is read back. */
+      receiptAt?: string;
     }
   >;
   /**
@@ -838,11 +850,11 @@ export function manualActionSheetIntent(
   }
   const source = action.source ?? STAFF_RECORD_SOURCE;
   if (action.kind === "preparation") {
-    // S118 (R118.3): the saved PMI recommendation is the one figure the Sheet market value
-    // takes; the low/high range stays app evidence. Preparing is not writing.
-    return action.pmiNumber !== undefined
-      ? { field: "market_value", value: action.pmiNumber, source }
-      : null;
+    // S278 R-S278-1: the Sheet market value takes the reviewed Rent to recommend (S118 R118.3),
+    // prepared from the working record by `market-value-source.ts`. The comparison figure this
+    // form saves, often filled from the provider's point estimate, no longer feeds the Sheet, and
+    // the low/high range stays app evidence. Preparing is not writing.
+    return null;
   }
   if (!field || !outcome) return null;
   const shape = sheetFieldShape(field);
@@ -1125,13 +1137,15 @@ export function planRenewalWorkspaceAction(
       : manualActionSheetIntent(action);
   if (action.kind === "activity" && !intent && SHEET_ACTIVITY[action.activity])
     delete next.sourceUpdates[SHEET_ACTIVITY[action.activity]!];
-  // S118: a preparation saved without a recommendation withdraws an unconfirmed market value;
-  // a value already read back from the Sheet stays on record.
+  // S278 R-S278-1: a comparison save withdraws an unconfirmed market value an earlier comparison
+  // figure prepared; a value read back from the Sheet stays on record, and a Market value
+  // prepared from the reviewed Rent to recommend is not the comparison's to withdraw.
   if (
     action.kind === "preparation" &&
     !intent &&
     next.sourceUpdates.market_value &&
-    next.sourceUpdates.market_value.state !== "verified"
+    next.sourceUpdates.market_value.state !== "verified" &&
+    !next.sourceUpdates.market_value.fromRecommendation
   )
     delete next.sourceUpdates.market_value;
   if (intent)

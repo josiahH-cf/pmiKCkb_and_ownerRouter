@@ -65,6 +65,7 @@ import { RenewalWorkingTermsReveal } from "@/components/lease-renewal/RenewalWor
 import { formatMoneyReference } from "@/lib/lease-renewal/current-rent-display";
 import { RenewalNowCardProvider } from "@/components/lease-renewal/RenewalNowCardContext";
 import type { FinishUpPreparation } from "@/lib/lease-renewal/finish-up-preparation";
+import type { SourceUpdatesPageInput } from "@/lib/lease-renewal/source-updates-list";
 import type { TenantAcceptanceRead } from "@/lib/lease-renewal/tenant-acceptance-hold";
 import { renewalStageContextFor } from "@/lib/lease-renewal/renewal-stage-context";
 import { initialRenewalWorkspaceView } from "@/lib/lease-renewal/workspace-view";
@@ -225,6 +226,7 @@ export function RenewalWorkspace({
   policySheetValue = null,
   policyTodayIso = null,
   finishUpPreparation = null,
+  sourceUpdatesPage = null,
   tenantAcceptance = null,
 }: Readonly<{
   compScreenshotExecutable?: boolean;
@@ -303,6 +305,11 @@ export function RenewalWorkspace({
    * working terms and this page's reads. Read only; null where the page did not assemble them.
    */
   finishUpPreparation?: FinishUpPreparation | null;
+  /**
+   * S278 R-S278-3: the page's Sheet row values and open Sheet proposal for Finish up's one list
+   * of source updates. Read only.
+   */
+  sourceUpdatesPage?: Omit<SourceUpdatesPageInput, "finishUp"> | null;
   /**
    * S264 R-S264-6: this page's read of the tenant's recorded acceptance against the current
    * offer's charges; the stage holds Offer the tenant while it answers an earlier offer.
@@ -706,6 +713,11 @@ export function RenewalWorkspace({
                     >
                       <RenewalManualProvider
                         ownerApproval={ownerApprovalChoices}
+                        sourceUpdatesPage={
+                          sourceUpdatesPage
+                            ? { ...sourceUpdatesPage, finishUp: finishUpPreparation }
+                            : { sheetValues: null, finishUp: finishUpPreparation }
+                        }
                         outreachEvidence={
                           stageContext.outreach
                             ? {

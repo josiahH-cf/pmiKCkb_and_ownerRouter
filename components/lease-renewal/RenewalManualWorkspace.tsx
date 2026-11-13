@@ -92,6 +92,9 @@ import {
   useOfferAnswers,
 } from "./RenewalOfferAnswers";
 import { SHEET_FIELD_LABELS } from "@/lib/lease-renewal/sheet-writeback/field-intent";
+import { SHEET_SET_WORDS } from "@/lib/lease-renewal/sheet-writeback/set-words";
+import type { SourceUpdatesPageInput } from "@/lib/lease-renewal/source-updates-list";
+import { RenewalSourceUpdatesList } from "./RenewalSourceUpdatesList";
 import type { TenantReminderStop } from "@/lib/gmail-hub/tenant-response-hold";
 import {
   TENANT_RESPONSE_REVIEW_WORDS,
@@ -121,6 +124,15 @@ interface ManualContext {
   ) => Promise<void>;
   /** S248 R-S248-11: prepare the Sheet update a derived outreach record holds. */
   prepareDerivedSource: (record: DerivedOutreachRecord) => Promise<void>;
+  /** S278 R-S278-1: prepare the Market value update from the reviewed Rent to recommend. */
+  prepareMarketValue?: () => Promise<void>;
+  /** S278 R-S278-4: prepare one review of the lease row's listed recorded Sheet cells. */
+  prepareSourceSet?: (
+    entries: readonly { field: keyof typeof SHEET_FIELD_LABELS; eventId: string }[],
+    marketValue: boolean,
+  ) => Promise<void>;
+  /** S278 R-S278-3: the page's Sheet read, open Sheet proposal and Finish up previews. */
+  sourceUpdatesPage?: SourceUpdatesPageInput | null;
   /** S234 R-S234-1: the owners of record and owner-thread replies an approval can name. */
   ownerApproval?: OwnerApprovalChoices;
   /** S248: the lease's message evidence, read into the staff lane as the desk row reads it. */
@@ -202,6 +214,8 @@ interface ManualProviderProps {
   ownerApproval?: OwnerApprovalChoices;
   /** S248: the lease's renewal message evidence (the stage context's), or none. */
   outreachEvidence?: LeaseOutreachEvidence | null;
+  /** S278 R-S278-3: what the page read for Finish up's source update list. */
+  sourceUpdatesPage?: SourceUpdatesPageInput | null;
 }
 export function RenewalManualProvider(props: ManualProviderProps) {
   return props.initialState === undefined && !props.unavailable ? (
@@ -262,6 +276,7 @@ function ActiveManualProvider({
   unavailable = false,
   ownerApproval,
   outreachEvidence,
+  sourceUpdatesPage = null,
 }: ManualProviderProps) {
   const pricing = useRenewalPricingPolicy();
   const [pausedReadback, setPaused] = useState<boolean | null>(null);
@@ -586,6 +601,104 @@ function ActiveManualProvider({
       setDeliberate(false);
     }
   }
+  // S278 R-S278-1: the server derives the Market value from the reviewed Rent to recommend.
+  async function prepareMarketValue() {
+    if (paused) {
+      setMessage("Saved in the app. Sheet updates are paused.");
+      return;
+    }
+    const current = stateRef.current;
+    if (!current) return;
+    setDeliberate(true);
+    try {
+      const response = await fetch("/api/lease-renewal/workspace", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          operation: "prepare_market_value",
+          leaseId,
+          cycleId: current.cycleId,
+        }),
+      });
+      const result = await response.json();
+      if (typeof result.writeback_paused === "boolean")
+        setPaused(result.writeback_paused);
+      if (!response.ok)
+        throw new Error(result.error ?? "This Sheet update could not be prepared.");
+      applyState(result.state);
+      setMessage(
+        "Sheet update prepared. Read the exact change under Lease details, then choose Apply Sheet update.",
+      );
+      router.refresh();
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "This Sheet update could not be prepared.",
+      );
+    } finally {
+      setDeliberate(false);
+    }
+  }
+  // S278 R-S278-4: one review of the lease row's listed recorded Sheet cells.
+  async function prepareSourceSet(
+    entries: readonly { field: keyof typeof SHEET_FIELD_LABELS; eventId: string }[],
+    marketValue: boolean,
+  ) {
+    if (paused) {
+      setMessage("Saved in the app. Sheet updates are paused.");
+      return;
+    }
+    const current = stateRef.current;
+    if (!current) return;
+    setDeliberate(true);
+    try {
+      const response = await fetch("/api/lease-renewal/workspace", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          operation: "prepare_source_set",
+          leaseId,
+          cycleId: current.cycleId,
+          entries,
+          marketValue,
+        }),
+      });
+      const result = (await response.json()) as {
+        state?: RenewalWorkspaceState | null;
+        prepared?: string[];
+        leftOut?: { field: string; message: string }[];
+        remaining?: number;
+        error?: string;
+        writeback_paused?: boolean;
+      };
+      if (typeof result.writeback_paused === "boolean")
+        setPaused(result.writeback_paused);
+      if (result.state !== undefined) applyState(result.state);
+      if (!response.ok)
+        throw new Error(result.error ?? "These Sheet updates could not be prepared.");
+      const prepared = result.prepared ?? [];
+      const lines = [
+        prepared.length > 1
+          ? `Sheet updates prepared: ${prepared.join(", ")}. Read the exact changes under Review Sheet updates, then choose ${SHEET_SET_WORDS.apply(prepared.length)}.`
+          : prepared.length === 1
+            ? "Sheet update prepared. Read the exact change under Lease details, then choose Apply Sheet update."
+            : "No Sheet update was prepared.",
+        ...(result.leftOut ?? []).map((item) => `${item.field}: ${item.message}`),
+        ...(result.remaining ? [SHEET_SET_WORDS.remaining(result.remaining)] : []),
+      ];
+      setMessage(lines.join(" "));
+      router.refresh();
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "These Sheet updates could not be prepared.",
+      );
+    } finally {
+      setDeliberate(false);
+    }
+  }
   async function reload() {
     setDeliberate(true);
     try {
@@ -627,6 +740,9 @@ function ActiveManualProvider({
         record,
         prepareSource,
         prepareDerivedSource,
+        prepareMarketValue,
+        prepareSourceSet,
+        sourceUpdatesPage,
         ownerApproval,
         outreachEvidence: outreachEvidence ?? null,
         activityDrafts,
@@ -884,64 +1000,12 @@ export function RenewalManualSection({
       ) : null}
       {section === "documents" &&
       (!documentOutcome || documentOutcome === "finish-up") ? (
-        <div className="ui-stack" id="renewal-manual-source-updates">
-          <RenewalSectionHeading id="source-updates" as="h3">
-            Source updates
-          </RenewalSectionHeading>
-          {state && derivedSheetValue ? (
-            // S248 R-S248-11: the derived tenant offer holds the same Sheet value a staff record
-            // holds; preparing it is a deliberate step and its update is confirmed separately.
-            <p data-renewal-derived-source={derivedSheetValue.intent.field}>
-              {SHEET_FIELD_LABELS[derivedSheetValue.intent.field]}:{" "}
-              {String(derivedSheetValue.intent.value)} :{" "}
-              {context.writebackPaused
-                ? "Sheet updates are paused"
-                : "The Sheet changes only when you confirm its update"}
-              .{" "}
-              <Button
-                variant="secondary"
-                disabled={context.pending || context.writebackPaused}
-                onClick={() =>
-                  void context.prepareDerivedSource(derivedSheetValue.record)
-                }
-              >
-                Prepare the Sheet update for{" "}
-                {SHEET_FIELD_LABELS[derivedSheetValue.intent.field].toLowerCase()}
-              </Button>
-            </p>
-          ) : null}
-          {state && Object.values(state.sourceUpdates).length ? (
-            <ul>
-              {Object.values(state.sourceUpdates).map((update) => (
-                <li key={update.eventId}>
-                  {SHEET_FIELD_LABELS[update.intent.field]}: {String(update.intent.value)}{" "}
-                  :{" "}
-                  {update.state === "verified"
-                    ? "Read back after confirmed update"
-                    : context.writebackPaused
-                      ? "Saved in the app. Sheet updates are paused"
-                      : "Saved in the app. The Sheet changes only when you confirm its update"}
-                  {update.reason ? ` · ${update.reason}` : ""}.{" "}
-                  <a href="#renewal-step-verify-renewal">Review Sheet updates</a>
-                  {update.state !== "verified" ? (
-                    <Button
-                      variant="secondary"
-                      disabled={context.pending || context.writebackPaused}
-                      onClick={() =>
-                        void context.prepareSource(update.intent.field, update.eventId)
-                      }
-                    >
-                      Prepare the Sheet update for{" "}
-                      {SHEET_FIELD_LABELS[update.intent.field].toLowerCase()}
-                    </Button>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>No source update is recorded for this lease.</p>
-          )}
-        </div>
+        // S278 R-S278-3: one list of every source update the renewal still needs, in order. The
+        // derived tenant offer (S248 R-S248-11) is one of its rows.
+        <RenewalSourceUpdatesList
+          context={context}
+          derived={state ? derivedSheetValue : null}
+        />
       ) : null}
     </Card>
   );

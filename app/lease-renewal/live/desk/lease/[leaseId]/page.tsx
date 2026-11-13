@@ -729,6 +729,51 @@ export default async function LiveRenewalLeaseWorkspacePage({
             attemptSummary={attemptSummary}
             auxiliaryFailures={auxiliaryFailures}
             finishUpPreparation={finishUpPreparation}
+            sourceUpdatesPage={
+              // S278 R-S278-3: the Sheet row read and the lease's open Sheet proposal for
+              // Finish up's one list of source updates. Read only.
+              {
+                sheetValues:
+                  sheetFieldsRead.status === "available"
+                    ? (sheetFields?.row?.fieldValues ?? null)
+                    : null,
+                ...(sheetProposalRead.status === "available"
+                  ? {
+                      openSheetProposal: sheetProposal
+                        ? {
+                            previewHash: sheetProposal.previewHash,
+                            fields: sheetProposal.effects.flatMap((entry) =>
+                              entry.effect.kind === "field_update"
+                                ? [entry.effect.field]
+                                : [],
+                            ),
+                            // S278 R-S278-5: a combined run that stopped never resumes,
+                            // so its unattempted cells wait for a fresh preview.
+                            settled:
+                              sheetEffects !== null &&
+                              (sheetEffects.every((entry) =>
+                                ["succeeded", "failed"].includes(entry.state),
+                              ) ||
+                                (sheetEffects.length > 1 &&
+                                  sheetEffects.some((entry) =>
+                                    ["succeeded", "failed"].includes(entry.state),
+                                  ) &&
+                                  sheetEffects.every(
+                                    (entry) =>
+                                      !["running", "ambiguous"].includes(entry.state),
+                                  ))),
+                            failed: (sheetEffects ?? []).flatMap((entry) =>
+                              entry.state === "failed" &&
+                              typeof entry.effect.field === "string"
+                                ? [entry.effect.field]
+                                : [],
+                            ),
+                          }
+                        : null,
+                    }
+                  : {}),
+              }
+            }
             tenantAcceptance={tenantAcceptance}
             sheetWritebackPaused={isOperatingSheetWritebackPaused()}
             policyMaterial={policyMaterial}

@@ -91,6 +91,15 @@ export const RENEWAL_WORKSPACE_COLLECTIONS = {
   observations: "lease_renewal_market_observations",
 } as const;
 const leaseId = z.string().regex(/^[1-9]\d*$/);
+/** S278 R-S278-1: the recommendation entry a Market value update is bound to. */
+const RecommendationBindingSchema = z
+  .object({
+    field: z.enum(["terms_rent", "recommended_rent"]),
+    revision: z.number().int().positive(),
+    eventId: z.string().min(1).max(200),
+    review: z.enum(["staff_save", "owner_message_review"]),
+  })
+  .strict();
 const staff = z
   .object({
     eventId: z.string(),
@@ -198,6 +207,10 @@ const stateSchema = z
             })
             .strict()
             .optional(),
+          // S278 R-S278-1: a Market value from the reviewed recommendation, bound to that entry.
+          fromRecommendation: RecommendationBindingSchema.optional(),
+          // S278 R-S278-3: the confirmed update's receipt time, once read back.
+          receiptAt: z.string().datetime().optional(),
         })
         .strict(),
     ),
@@ -1101,6 +1114,12 @@ export async function recordDerivedSourceUpdate(
     return next;
   });
 }
+/** The status fields a server-derived source status may change. */
+export type WorkspaceSourceStatusUpdate = Pick<
+  RenewalWorkspaceState["sourceUpdates"][string],
+  "state" | "proposalId" | "executionId" | "reason" | "receiptAt"
+>;
+
 /** Server-derived source status, conditional on the same current staff event and cycle. */
 export async function recordWorkspaceSourceStatus(
   actor: AuthenticatedUser,
@@ -1109,16 +1128,42 @@ export async function recordWorkspaceSourceStatus(
     cycleId: string;
     field: string;
     eventId: string;
-    update: Pick<
-      RenewalWorkspaceState["sourceUpdates"][string],
-      "state" | "proposalId" | "executionId" | "reason"
-    >;
+    update: WorkspaceSourceStatusUpdate;
+  },
+  db: Firestore = getAdminFirestore(),
+) {
+  await recordWorkspaceSourceStatuses(
+    actor,
+    {
+      leaseId: input.leaseId,
+      cycleId: input.cycleId,
+      updates: [{ field: input.field, eventId: input.eventId, update: input.update }],
+    },
+    db,
+  );
+}
+
+/**
+ * S278 R-S278-4: several server-derived source statuses of one lease and cycle in one
+ * transaction, each conditional on its own current staff event. All apply or none do; each
+ * changed status keeps its own activity entry.
+ */
+export async function recordWorkspaceSourceStatuses(
+  actor: AuthenticatedUser,
+  input: {
+    leaseId: string;
+    cycleId: string;
+    updates: readonly {
+      field: string;
+      eventId: string;
+      update: WorkspaceSourceStatusUpdate;
+    }[];
   },
   db: Firestore = getAdminFirestore(),
 ) {
   assertActor(actor, true);
+  if (input.updates.length === 0) return;
   const refs = headRefs(db, input.leaseId);
-  const audit = db.collection(RENEWAL_WORKSPACE_COLLECTIONS.activity).doc(randomUUID());
   await db.runTransaction(async (tx) => {
     const [dated, leaseBound] = await Promise.all([
       tx.get(refs.dated),
@@ -1127,48 +1172,133 @@ export async function recordWorkspaceSourceStatus(
     const located = currentHead(refs, dated, leaseBound, input.leaseId);
     const current = located?.state ?? null;
     const head = located?.ref ?? refs.dated;
-    const entry = current?.sourceUpdates[input.field];
-    if (
-      !current ||
-      current.cycleId !== input.cycleId ||
-      !entry ||
-      entry.eventId !== input.eventId
-    )
+    if (!current || current.cycleId !== input.cycleId)
       throw new EditableLayerError(
         "The staff fact changed while its source update was being prepared. Review the current record.",
         409,
       );
-    const updated = {
-      eventId: entry.eventId,
-      intent: entry.intent,
-      // S248 R-S248-11: a derived value keeps the message it is bound to through each status.
-      ...(entry.derivedFrom ? { derivedFrom: entry.derivedFrom } : {}),
-      ...input.update,
-    };
-    if (hashExecutionPreview(entry) === hashExecutionPreview(updated)) return;
+    const sourceUpdates = { ...current.sourceUpdates };
+    const changed: (typeof input.updates)[number][] = [];
+    for (const item of input.updates) {
+      const entry = sourceUpdates[item.field];
+      if (!entry || entry.eventId !== item.eventId)
+        throw new EditableLayerError(
+          "The staff fact changed while its source update was being prepared. Review the current record.",
+          409,
+        );
+      const updated = {
+        eventId: entry.eventId,
+        intent: entry.intent,
+        // S248 R-S248-11: a derived value keeps the message it is bound to through each status.
+        ...(entry.derivedFrom ? { derivedFrom: entry.derivedFrom } : {}),
+        // S278 R-S278-1: a Market value keeps the recommendation it is bound to.
+        ...(entry.fromRecommendation
+          ? { fromRecommendation: entry.fromRecommendation }
+          : {}),
+        ...item.update,
+      };
+      if (hashExecutionPreview(entry) === hashExecutionPreview(updated)) continue;
+      sourceUpdates[item.field] = updated;
+      changed.push(item);
+    }
+    if (changed.length === 0) return;
     const next = parseState(
-      {
-        ...current,
-        revision: current.revision + 1,
-        sourceUpdates: { ...current.sourceUpdates, [input.field]: updated },
-      },
+      { ...current, revision: current.revision + 1, sourceUpdates },
       input.leaseId,
     );
     tx.set(head, next);
     tx.set(db.collection(RENEWAL_WORKSPACE_COLLECTIONS.cycles).doc(input.cycleId), next);
-    tx.create(audit, {
+    const recordedAt = new Date().toISOString();
+    for (const item of changed)
+      tx.create(db.collection(RENEWAL_WORKSPACE_COLLECTIONS.activity).doc(randomUUID()), {
+        lease_id: input.leaseId,
+        cycle_id: input.cycleId,
+        actor_uid: actor.uid,
+        recorded_at: recordedAt,
+        action: {
+          kind: "source_update_status",
+          field: item.field,
+          eventId: item.eventId,
+          ...item.update,
+        },
+        previous_revision: current.revision,
+        next_state: next,
+      });
+  });
+}
+
+/**
+ * S278 R-S278-1: record the Market value the reviewed current-cycle recommendation prepares, as a
+ * pending source update bound to that recommendation entry. The server derived the value and the
+ * binding from its own reads. A value already recorded for the same entry is kept as it is; one
+ * from an earlier recommendation or from the retired comparison figure is replaced while it is
+ * not read back. Recording writes nothing to the Sheet.
+ */
+export async function recordRecommendationMarketValue(
+  actor: AuthenticatedUser,
+  input: {
+    leaseId: string;
+    cycleId: string;
+    eventId: string;
+    intent: SheetFieldIntent;
+    fromRecommendation: z.infer<typeof RecommendationBindingSchema>;
+  },
+  db: Firestore = getAdminFirestore(),
+): Promise<RenewalWorkspaceState> {
+  assertActor(actor, true);
+  if (input.intent.field !== "market_value")
+    throw new EditableLayerError("Only the Market value is prepared this way.", 400);
+  const refs = headRefs(db, input.leaseId);
+  return db.runTransaction(async (tx) => {
+    const [dated, leaseBound] = await Promise.all([
+      tx.get(refs.dated),
+      tx.get(refs.leaseBound),
+    ]);
+    const located = currentHead(refs, dated, leaseBound, input.leaseId);
+    const current = located?.state ?? null;
+    if (!current || !located || current.cycleId !== input.cycleId)
+      throw new EditableLayerError(
+        "This lease's work record changed. Reload the current activity.",
+        409,
+      );
+    const existing = current.sourceUpdates.market_value;
+    if (existing?.eventId === input.eventId) return current;
+    if (
+      existing?.state === "verified" &&
+      hashExecutionPreview(existing.intent) === hashExecutionPreview(input.intent)
+    )
+      return current;
+    const next = parseState(
+      {
+        ...current,
+        revision: current.revision + 1,
+        sourceUpdates: {
+          ...current.sourceUpdates,
+          market_value: {
+            eventId: input.eventId,
+            intent: input.intent,
+            state: "pending",
+            fromRecommendation: input.fromRecommendation,
+          },
+        },
+      },
+      input.leaseId,
+    );
+    tx.set(located.ref, next);
+    tx.set(db.collection(RENEWAL_WORKSPACE_COLLECTIONS.cycles).doc(input.cycleId), next);
+    tx.create(db.collection(RENEWAL_WORKSPACE_COLLECTIONS.activity).doc(randomUUID()), {
       lease_id: input.leaseId,
       cycle_id: input.cycleId,
       actor_uid: actor.uid,
       recorded_at: new Date().toISOString(),
       action: {
-        kind: "source_update_status",
-        field: input.field,
+        kind: "recommendation_market_value",
+        field: "market_value",
         eventId: input.eventId,
-        ...input.update,
+        fromRecommendation: input.fromRecommendation,
       },
       previous_revision: current.revision,
-      next_state: next,
     });
+    return next;
   });
 }

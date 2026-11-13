@@ -35,6 +35,11 @@ import {
   type SheetAppendLifecycleState,
 } from "@/lib/lease-renewal/sheet-writeback/proposal-store";
 import { sheetRuntimeBindingMatches } from "@/lib/lease-renewal/sheet-writeback/runtime-binding";
+import {
+  isManualSheetReference,
+  manualSheetSetHash,
+  parseManualSheetReference,
+} from "@/lib/lease-renewal/sheet-writeback/manual-reference";
 import { workingCurrentRent } from "@/lib/lease-renewal/working-record";
 
 export interface S98AppendClaimInput {
@@ -94,14 +99,12 @@ export async function claimLeaseScopedS113FieldUpdate(
     // S160: only a staff-intent update is claimable. An update carrying a reconciliation
     // approval is a retired shape and can never be confirmed again.
     if (!effect.effect.staffIntent || effect.effect.authorization) return "blocked";
-    if (proposal.evidenceRef.includes(":manual:")) {
+    if (isManualSheetReference(proposal.evidenceRef)) {
       // A staff-recorded fact stays bound to the exact recorded event it was prepared from (value
-      // integrity). The work record may be a dated cycle or the lease-bound record (S154).
-      const reference =
-        /^workspace:([1-9]\d*):cycle:([a-f0-9-]{36}):manual:([a-f0-9-]{36})$/.exec(
-          proposal.evidenceRef,
-        );
-      if (!reference || reference[1] !== input.leaseId) return "blocked";
+      // integrity). The work record may be a dated cycle or the lease-bound record (S154). S278
+      // R-S278-4: a lease row's listed cells are bound to the ordered set of their recorded events.
+      const reference = parseManualSheetReference(proposal.evidenceRef);
+      if (!reference || reference.leaseId !== input.leaseId) return "blocked";
       const heads = renewalWorkspaceHeadRefs(db, input.leaseId);
       const [dated, leaseBound] = await Promise.all([
         transaction.get(heads.dated),
@@ -116,14 +119,30 @@ export async function claimLeaseScopedS113FieldUpdate(
       const pending = state?.sourceUpdates[effect.effect.staffIntent.field];
       if (
         !state ||
-        state.cycleId !== reference[2] ||
+        state.cycleId !== reference.cycleId ||
         !pending ||
-        pending.eventId !== reference[3] ||
         pending.proposalId !== proposal.generationId ||
         hashExecutionPreview(pending.intent) !==
           hashExecutionPreview(effect.effect.staffIntent)
       )
         return "blocked";
+      if (
+        reference.kind === "single" &&
+        (pending.eventId !== reference.eventId || proposal.effects.length !== 1)
+      )
+        return "blocked";
+      if (reference.kind === "set") {
+        const entries: { field: string; eventId: string }[] = [];
+        for (const entry of proposal.effects ?? []) {
+          const field =
+            entry.effect.kind === "field_update" ? entry.effect.staffIntent?.field : null;
+          const recorded = field ? state.sourceUpdates[field] : undefined;
+          if (!field || !recorded || recorded.proposalId !== proposal.generationId)
+            return "blocked";
+          entries.push({ field, eventId: recorded.eventId });
+        }
+        if (manualSheetSetHash(entries) !== reference.setHash) return "blocked";
+      }
       // S248 R-S248-11: a value from the app's confirmed send is claimable only while staff have
       // not removed that message as the renewal outreach, read in this same transaction.
       if (pending.derivedFrom) {
