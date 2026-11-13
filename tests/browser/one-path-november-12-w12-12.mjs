@@ -1381,7 +1381,12 @@ export async function checkW1212(ctx, page, start) {
       }
       await kit.openPath(rolePage, "/approval-queue");
       await rolePage.locator("div.page").first().waitFor({ timeout: 90_000 });
-      const bulk = rolePage.locator('section[aria-label="Bulk actions"]').first();
+      const otherViews = rolePage.locator("details").filter({
+        has: rolePage.locator("summary", { hasText: "Other views" }),
+      });
+      await kit.openDisclosure(otherViews);
+      await otherViews.getByRole("tab", { name: "All items", exact: true }).click();
+      const bulk = otherViews.getByRole("region", { name: "Bulk actions", exact: true });
       const bulkShown = await kit.shownWithin(bulk, 30_000);
       const bulkRead = bulkShown
         ? {
