@@ -329,6 +329,8 @@ describe("S280 ARCH-S280-4: the pipeline on the operating Sheet (fail-first)", (
     {
       fieldKey: "market_value",
       fieldLabel: "Market value",
+      testTitle:
+        "AC-S280-7: the market value conflict stays a decision and nothing is applied",
       column: MARKET_VALUE,
       sheet: "$1,400",
       other: {
@@ -343,6 +345,8 @@ describe("S280 ARCH-S280-4: the pipeline on the operating Sheet (fail-first)", (
     {
       fieldKey: "owner_pricing_confirmed",
       fieldLabel: "Owner pricing confirmed",
+      testTitle:
+        "AC-S280-7: the owner decision conflict stays a decision and nothing is applied",
       column: PRICING,
       sheet: "yes",
       other: {
@@ -357,14 +361,14 @@ describe("S280 ARCH-S280-4: the pipeline on the operating Sheet (fail-first)", (
   ] satisfies readonly {
     fieldKey: string;
     fieldLabel: string;
+    testTitle: string;
     column: number;
     sheet: string;
     other: NonSheetCandidate;
   }[];
 
-  it.each(conflictCases)(
-    "AC-S280-7: the $fieldKey conflict stays a decision and nothing is applied",
-    ({ fieldKey, fieldLabel, column, sheet, other }) => {
+  for (const { testTitle, fieldKey, fieldLabel, column, sheet, other } of conflictCases) {
+    it(testTitle, () => {
       const spec: ReconcilableFieldSpec = {
         fieldKey,
         fieldLabel,
@@ -389,8 +393,8 @@ describe("S280 ARCH-S280-4: the pipeline on the operating Sheet (fail-first)", (
       });
       expect(run.outcomes[0]?.information).toBeUndefined();
       expect(run.production_allowed).toBe(false);
-    },
-  );
+    });
+  }
 });
 
 describe("S280 BEH-S280-6: the lease's numbers check reads the same rule", () => {
