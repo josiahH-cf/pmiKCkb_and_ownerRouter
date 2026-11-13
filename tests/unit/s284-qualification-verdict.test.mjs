@@ -403,7 +403,8 @@ describe("R-S284-3 one compiled build with the synthetic mail", () => {
         buildCompiledMail: null,
         runId: "20261113T120000Z-cccccccc-overlay",
         only: ["W12-03"],
-        results: [passing(W12_MATRIX[2])],
+        // A development server has no build id, so its rows record none.
+        results: [{ ...passing(W12_MATRIX[2]), buildId: null }],
       }),
     );
     expect(development).toMatchObject({
