@@ -1,6 +1,13 @@
 # Current plan
 
-Updated: 2026-11-12 (UTC).
+Updated: 2026-11-13 (UTC).
+
+## Staff workflow audit in progress
+
+Chunk 1 retains all six queue rows. The first run stopped at candidate assurance. The
+replacement stopped during observation and the receipt-bound rollback verified the November
+10 source on its prepared recovery revision. Chunk 2 qualification continues.
+[Chunk 1 attempt evidence](evidence/staff-workflow-audit-chunk1-attempts-2026-11-13.md).
 
 ## Completed November 10 batch
 

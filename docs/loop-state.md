@@ -12,7 +12,10 @@ Work is isolated on `claude/staff-workflow-audit-s272-s286-5fb728`, based on exa
 verified gcloud and ADC token refreshes. Focused checks run per suite; the full gate, core
 E2E, the S284 matrix and the release run once on the cumulative head.
 
-Production serves `7f4cf234c18c0b80a0ed88bc08d70e174ae9c311` / `pmi-kc-app-rmwcvtvpl-13e72fe3f01f` at 100% canonical traffic.
+Production serves `7f4cf234c18c0b80a0ed88bc08d70e174ae9c311` / `pmi-kc-app-recovery-d8c6629da8bc4d73` at 100% canonical traffic.
+The receipt-bound rollback from staff workflow audit chunk 1 verified at `2026-11-13T19:25:24.889Z`.
+[Chunk 1 attempt evidence](evidence/staff-workflow-audit-chunk1-attempts-2026-11-13.md). The original November 10 delivery was
+verified on `pmi-kc-app-rmwcvtvpl-13e72fe3f01f`.
 Run `943a91a6-c659-4234-95ea-3582d0a4011e` consumed its permit after one successful application build `053961ec-41a0-4553-bc03-f37ecf2d8926`.
 Two observation checkpoints passed in 402,737 ms. All 375 source, projected and rendered
 lease records matched with zero discrepancies, candidate 5xx, unresolved effects or guarded
@@ -77,8 +80,9 @@ The owner resolved the Gmail profile scope on November 8 for the existing guarde
 
 ## Awaiting release
 
-Staff workflow audit chunk 1, released early at the owner's direction (2026-11-13) while chunk 2
-(S272, S273, S276, S278, S280, S281, S283, S285 and the S284 qualification) is still in development.
+Staff workflow audit chunk 1, queued for a separate early release at the owner's direction
+while chunk 2 (S272, S273, S276, S278, S280, S281, S283, S285 and S284) is in development.
+Run `d8c6629d` ended in a verified rollback. Keep all six rows until a fresh run delivers them.
 
 1. 152 S274 Refuse or hold a renewal message only for a settled change, and name it `42f7cd9a`
 2. 153 S275 Bring an owner or tenant reply to the lease through visible controls `d7a9a0f7`
