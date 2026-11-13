@@ -1025,10 +1025,13 @@ export function RenewalGuidedView({
       returnTo.stepId === stage.currentStepId ? "follow-current" : returnTo.stepId,
     );
   }, [returnTo, stage.currentStepId]);
-  // S281 R-S281-11: the in-place editor closes when another step is shown.
-  useEffect(() => {
+  // S281 R-S281-11: the in-place editor closes when another step is shown. The shown step is
+  // compared with the one seen at the last render, so the reset happens during that render.
+  const [rentStepSeen, setRentStepSeen] = useState(shown.id);
+  if (rentStepSeen !== shown.id) {
+    setRentStepSeen(shown.id);
     if (rentInPlaceFor !== null && rentInPlaceFor !== shown.id) setRentInPlaceFor(null);
-  }, [rentInPlaceFor, shown.id]);
+  }
   const toggleRentInPlace = useCallback(() => {
     // Opening focuses the editor; closing leaves focus on "Edit".
     if (!rentInPlace) pendingFocus.current = RENT_TO_RECOMMEND_ID;

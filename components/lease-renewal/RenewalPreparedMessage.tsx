@@ -19,10 +19,10 @@ import {
   useCallback,
   useEffect,
   useId,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
@@ -439,10 +439,18 @@ export async function previewAgainWhileGenerationReplaced<T>(
   return current;
 }
 
+/** The clock at the moment a review is read (called from handlers, never during render). */
+function clockNowMs(): number {
+  return Date.now();
+}
+
 /** The date input's native value (YYYY-MM-DD) for tomorrow in the business zone. */
 function tomorrowIso(): string {
   return localDateAt(Date.now() + 86_400_000, BUSINESS_TIME_ZONE);
 }
+
+/** The sent message's host never notifies; it is read again on each render. */
+const noHostSubscription = () => () => {};
 
 /**
  * S281 R-S281-3: after a confirmed send, the exact sent message and its receipt, read only, inside
@@ -458,10 +466,12 @@ function SentMessageEvidence({
   leaseId: string;
   receipt: SentMessageReceipt;
 }>) {
-  const [host, setHost] = useState<HTMLElement | null>(null);
-  useLayoutEffect(() => {
-    setHost(document.getElementById(`renewal-sent-message-${channel}`));
-  }, [channel]);
+  // The Verification host is read from the page after each render; the server render has none.
+  const host = useSyncExternalStore(
+    noHostSubscription,
+    () => document.getElementById(`renewal-sent-message-${channel}`),
+    () => null,
+  );
   const [read, setRead] = useState<{
     readonly id: string;
     readonly message: RichCommunicationMessage | null;
@@ -1223,7 +1233,7 @@ function PreparedMessageBlock({
         return;
       }
       if (epoch !== reviewEpoch.current) return;
-      const carried = reloadAfter ? null : carriedSendTime(repair, Date.now());
+      const carried = reloadAfter ? null : carriedSendTime(repair, clockNowMs());
       if (!reloadAfter) {
         setScheduleDate(carried?.date ?? "");
         setScheduleTime(carried?.time ?? "");
@@ -1238,7 +1248,7 @@ function PreparedMessageBlock({
         sequence,
         signatureParagraph: composition.signatureParagraph ?? null,
         noticeCycleId: composition.target.noticeCycleId ?? null,
-        reviewedAtMs: Date.now(),
+        reviewedAtMs: clockNowMs(),
         // Known only once the confirmation saves the wording.
         reviewedDraftHash: "",
         reviewedTargetHash: composition.reviewedTargetHash,
