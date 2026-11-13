@@ -23,8 +23,11 @@ describe("S276 R-S276-8 follow-up copy publication", () => {
   });
 
   it("publishes from one click and shows the server's approved readback", async () => {
-    const answer = Promise.withResolvers<Response>();
-    const request = vi.fn(() => answer.promise);
+    let approve!: (response: Response) => void;
+    const answer = new Promise<Response>((resolve) => {
+      approve = resolve;
+    });
+    const request = vi.fn(() => answer);
     const onPublished = vi.fn();
     vi.stubGlobal("fetch", request);
     const { rerender } = render(
@@ -44,7 +47,7 @@ describe("S276 R-S276-8 follow-up copy publication", () => {
       }),
     );
     expect(onPublished).not.toHaveBeenCalled();
-    answer.resolve(Response.json({ status: "approved" }));
+    approve(Response.json({ status: "approved" }));
     await waitFor(() => expect(onPublished).toHaveBeenCalledOnce());
     rerender(<FollowUpCopyPublication status="approved" onPublished={onPublished} />);
     expect(screen.getByRole("status")).toHaveTextContent(
