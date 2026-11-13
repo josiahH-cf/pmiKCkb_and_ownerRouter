@@ -555,14 +555,9 @@ async function captureScene(scene) {
         "",
         verifiedIdentifier,
       );
-    } else if (processVersionId && scene.id === "process-start-run") {
-      verifiedIdentifier = processVersionId;
-      verifiedText = await identifierBounds(
-        page.getByText(/^Definition version:/),
-        "Definition version: ",
-        verifiedIdentifier,
-      );
     }
+    // S286: the renewal-process-guidance scene (which replaced process-start-run) shows the
+    // published steps and sources, with no generated identifier to exclude.
     assert.ok(verifiedText.every((box) => box.y >= 0 && box.y < scene.viewport.height));
     const png =
       framePhase !== undefined

@@ -2287,13 +2287,13 @@ export const PROCESS_AUDIT_CASES = deepFreeze([
     reviewer_refs: ["reviewer-pass#Governance-2"],
     expected: {
       user_action:
-        "Click Refresh attention and inspect only bodyless workflow-linked rows or an honest unavailable state.",
+        "Click Reload linked conversations and inspect only bodyless workflow-linked rows or an honest unavailable state.",
       preconditions_and_role: "Admin; use only the documented live_read boundary.",
       data_mode: "live_read",
       app_validation:
-        "The refresh is a targeted app read and does not browse unrelated mailbox content.",
+        "The reload rereads the stored linked conversations and does not browse unrelated mailbox content.",
       visible_result:
-        "The attention list refreshes without exposing message bodies or creating mailbox state.",
+        "The linked conversations list reloads without exposing message bodies or creating mailbox state.",
       persisted_change: "No persisted change is expected.",
       downstream_handoff: "The owning record or next safe audit surface remains visible.",
       receipt_audit_or_idempotency_evidence:

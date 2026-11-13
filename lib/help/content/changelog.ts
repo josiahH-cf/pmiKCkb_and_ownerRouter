@@ -8,6 +8,24 @@ import type { HelpChangelogEntry } from "@/lib/help/types";
  */
 export const HELP_CHANGELOG: readonly HelpChangelogEntry[] = [
   {
+    version: "V5.0",
+    date: "2026-11-13",
+    summary:
+      "V5.0, the renewal Spaces show their published process as guidance with Open the Renewal Desk and start no checklist run, and an earlier renewal run reads as a record. A sent renewal message stays watched for its answer: the lease shows Last checked for a reply with Check for a reply now, Communications offers Check Gmail now, and Reload worklist and Reload linked conversations reload what the app stored. A refused or paused renewal message names what changed, and a lease still being re-read says Nothing was sent. The renewal rent shows its basis wherever it appears, a covered lease offers the agreement's amount, and the owner's answer offers Same as recommended and says what its coverage means at Documents. Who a lease waits on comes from its own messages, with one Needs a check line and its fix. An off-cycle lease end date is reviewed on Check the numbers with Include in this renewal month or Keep on hold.",
+    affectedGuides: [
+      "work-a-renewal",
+      "train-and-review",
+      "compare-rent",
+      "owner-message",
+      "tenant-offer",
+      "update-sources",
+      "notifications",
+      "publish-a-process",
+      "outreach-checklist",
+    ],
+    contentDigest: "fa697d41083be7fade0ace8a90e996ced73796676719a12fe3d4fbb06abd903d",
+  },
+  {
     version: "V4.0",
     date: "2026-11-10",
     summary:

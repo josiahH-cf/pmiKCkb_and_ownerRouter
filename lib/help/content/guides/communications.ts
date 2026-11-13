@@ -62,7 +62,7 @@ export const COMMUNICATIONS_GUIDES: readonly HelpGuide[] = [
         result:
           "Once Gmail accepts the message, the lease reads Waiting on owner response on its page and its desk row with nothing more to enter. A send Gmail has not confirmed reads Check whether the message went out, and a failed delivery reads Delivery failed with Check the address and send again.",
         effect: "explicit-send",
-        note: "Review owner message stays the Now card's primary action while the message is ready, and Full view opens the same review from Review and send. When an input is missing, What sending needs names it with its fix, for example Set up your signature.",
+        note: "Review owner message stays the Now card's primary action while the message is ready, and Full view opens the same review from Review and send. When an input is missing, What sending needs names it with its fix, for example Set up your signature. When a recipient or a source fact changed after the review opened, nothing is sent: the review stays open, reloads the current message and names What changed, one line per change, such as Rent to recommend: was the earlier amount, now the current one; read it and confirm again. While the lease is still being re-read, the review says The lease is being re-read. Nothing was sent. Try again in a moment.",
       },
       {
         id: "schedule-owner-message",
@@ -255,7 +255,25 @@ export const COMMUNICATIONS_GUIDES: readonly HelpGuide[] = [
         result:
           "What happened to each message lists every attempt as Accepted by Gmail, Failed delivery, Not confirmed, checking or Not sent, and each incoming message as Reply received or Automatic response. Linked history lists each confirmed send; Read linked thread shows the conversation, and Reply in Communications starts a reply from it.",
         effect: "reads",
-        note: "Accepted by Gmail means Gmail took the message; Gmail shows neither delivery nor reading. Refresh linked incoming checks the linked threads for new replies.",
+        note: "Accepted by Gmail means Gmail took the message; Gmail shows neither delivery nor reading. Refresh linked incoming checks the linked threads for new replies, also on a completed message still watched for its answer. Check Gmail now on the Incoming or Scheduled view checks your own mailbox once for every watched message.",
+      },
+      {
+        id: "check-for-a-reply",
+        action:
+          "While the lease waits on the owner, read Last checked for a reply under the waiting line on the Now card, and choose Check for a reply now to check again.",
+        control: {
+          label: "Check for a reply now",
+          role: "button",
+          region: "region:Now",
+          availability: "conditional",
+          source: ["lib/lease-renewal/outreach-evidence.ts"],
+        },
+        route: WORKSPACE,
+        where: "Guided view, the Now card on Ask the owner, under the waiting line",
+        result:
+          "The app checks this lease's sent messages for a reply once and reads the step again. A reply shows as Owner replied with its date, and Record the owner's answer leads. Otherwise the line reads Last checked for a reply: with the time, and a check that did not finish reads Reply check failed at with the time and Try again while the step keeps waiting.",
+        effect: "reads",
+        note: "The app keeps watching a sent message for its answer until the answer is recorded, the cycle closes or the lease end passes, so a reply to a message whose follow-ups are finished still reaches the lease. Not checked yet means no check has run. The button shows to Editors and above while a sent or watched message exists, and Offer the tenant has the same line and button. A check records no answer.",
       },
       {
         id: "watch-follow-up",
@@ -274,9 +292,9 @@ export const COMMUNICATIONS_GUIDES: readonly HelpGuide[] = [
         where:
           "Tenant offer and response, Tenant offer options and record of contact, Waiting and follow-up card",
         result:
-          "The card shows who the renewal is waiting on, the last verified contact and when follow-up is due. A linked thread or a dismissed due item is stored with this lease for staff.",
+          "The card shows who the renewal is waiting on and the last contact, read from the lease's own messages the same way as the step's waiting line, or No contact recorded yet, and when follow-up is due. When the step already shows its waiting line, the card adds only the follow-up date and the notice rules line. A linked thread or a dismissed due item is stored with this lease for staff.",
         effect: "saves-in-app",
-        note: "Link or refresh exact Gmail evidence holds Exact Gmail thread ID, Reason for linking and Link exact thread. Linking or refreshing reads the thread only, and follow-up timing sets no reminder.",
+        note: "Link or refresh exact Gmail evidence holds Exact Gmail thread ID, Reason for linking and Link exact thread. Linking or refreshing reads the thread only, and follow-up timing sets no reminder. While the renewal notice rules are not confirmed, the card reads Renewal notice rules are not confirmed. Next: an Admin confirms them in Admin, Renewal notice rules., which links there for an Admin, and no follow-up date shows.",
       },
       {
         id: "resume-reviewed-sequence",
@@ -292,7 +310,7 @@ export const COMMUNICATIONS_GUIDES: readonly HelpGuide[] = [
         route: COMMUNICATIONS,
         where: "Communications, Incoming view, Open communication",
         result:
-          "The paused communication says why it paused, such as A reply was received or Failed delivery reported. After a fresh review, Resume reviewed sequence restarts the reviewed follow-ups on their schedule.",
+          "The paused communication says why it paused, such as A reply was received, Failed delivery reported, or The lease or recipient facts changed with What changed naming each change. After a fresh review, Resume reviewed sequence restarts the reviewed follow-ups on their schedule.",
         effect: "explicit-send",
         note: "When the reply is the owner's answer, record it under Owner response instead of resuming. Resume needs a fresh review of the current message and recipients.",
       },
@@ -314,7 +332,7 @@ export const COMMUNICATIONS_GUIDES: readonly HelpGuide[] = [
         result:
           "No response, Revision requested and Declined / non-renewal save when you choose them. Approved saves only through Save the owner's answer: the recorded approval then reads who approved, how and when, with a line naming what it covers, Amount approved becomes the offer amount for this renewal, and Continue to Offer the tenant appears.",
         effect: "saves-in-app",
-        note: "What the owner's answer covers is Base rent only, or Base rent and the renewal dates once both dates are saved in Working renewal terms; other charges are reviewed with the tenant offer. When the reviewed tenant offer lists charges, Approved also shows The owner approved these exact offer charges with those charges; check it only when the owner approved them as listed. It counts with Base rent and the renewal dates, and the saved approval then reads The owner's approval covers the current offer, charges included; without it, the approval covers the base and dates, not the offer's charges. The review shows Recommended base rent beside Amount approved, with Change the answer to go back. Rent to recommend stays your recommendation and is never replaced by the approved amount. After an owner reply, the Now card on Ask the owner leads with Record the owner's answer: choose the Approved in the reply received option, enter the amount and coverage and Who approved in this reply, then review and save; Asked for a change and Declined / non-renewal use Record this decision. Owner response here covers an authorized representative, another written channel or a conversation. How they approved offers Reply in this lease's renewal thread when a linked reply exists, Another written channel or Conversation. If the amount, the dates or the charges change later, the line reads Owner approval no longer covers and names what changed; ask the owner again, then choose Record a new approval. Revision requested also asks What the owner asked to change.",
+        note: "When this cycle has a rent to recommend, Same as recommended, with that amount in parentheses, fills Amount approved; change it when the owner approved another amount. What the owner's answer covers is Base rent only, or Base rent and the renewal dates once both dates are saved in Working renewal terms; other charges are reviewed with the tenant offer. Before the dates are saved, To record that the owner also approved the dates, enter the renewal dates first. offers Enter the renewal dates in Working renewal terms, and Return to the owner's answer brings you back with your entries kept. Under the choice, the answer says what it means at Documents: This answer covers the base rent only. Documents will ask for the owner's approval of the renewal dates and charges., or that it covers the base rent and the renewal dates, so Documents asks for no second approval of the dates. When the reviewed tenant offer lists charges, Approved also shows The owner approved these exact offer charges with those charges; check it only when the owner approved them as listed. It counts with Base rent and the renewal dates, and the saved approval then reads The owner's approval covers the current offer, charges included; without it, the approval covers the base and dates, not the offer's charges. The review shows Recommended base rent with its basis, such as entered by staff, beside Amount approved, with Change the answer to go back. Once saved, Offer amount for this renewal adds Approved by the owner on with the date. Rent to recommend stays your recommendation and is never replaced by the approved amount. After an owner reply, the Now card on Ask the owner leads with Record the owner's answer: choose the Approved in the reply received option, enter the amount and coverage and Who approved in this reply, then review and save; Asked for a change and Declined / non-renewal use Record this decision. Owner response here covers an authorized representative, another written channel or a conversation. How they approved offers Reply in this lease's renewal thread when a linked reply exists, Another written channel or Conversation. If the amount, the dates or the charges change later, the line reads Owner approval no longer covers and names what changed; ask the owner again, then choose Record a new approval. Revision requested also asks What the owner asked to change.",
       },
     ],
     result:
@@ -322,6 +340,7 @@ export const COMMUNICATIONS_GUIDES: readonly HelpGuide[] = [
     doesNotDo: [
       "The app sends nothing on its own, and Gmail shows neither delivery nor reading; Accepted by Gmail means only that Gmail took the message.",
       "An owner reply records no answer by itself; the answer is recorded only when you choose it.",
+      "Check for a reply now and Check Gmail now only read: they send nothing and record no answer.",
       "Copying the message, saving a draft or creating an unsent Gmail draft sends nothing and records no delivery.",
       "Recording an owner response approves nothing on the owner's behalf and writes nothing to RentVine or the Sheet.",
       "A recorded approval covers only what it names: the base rent alone, the base rent and the renewal dates, or with The owner approved these exact offer charges, that exact offer's charges as well. An approval of an earlier offer never covers the current offer's charges, and after a covered value changes the owner's approval needs recording again.",
@@ -330,7 +349,7 @@ export const COMMUNICATIONS_GUIDES: readonly HelpGuide[] = [
     ],
     relatedGuides: ["compare-rent", "tenant-offer", "work-a-renewal"],
     relatedScreens: ["communications"],
-    lastUpdated: "2026-11-10",
+    lastUpdated: "2026-11-13",
     navItems: ["communications"],
   },
 ];

@@ -12,7 +12,7 @@ export const COMMUNICATIONS_SCREENS: readonly HelpScreenReference[] = [
     routes: ["/gmail-hub"],
     who: "All staff",
     summary:
-      "Workflow Communications is where staff review, save, send and schedule the renewal messages they start from a lease. The list has four views, Incoming, Outgoing, Drafts and Scheduled, with filters and the sending worker's health lines; Incoming also shows Linked conversations with the Gmail connection for your own mailbox. Opening a communication shows the workflow communication composer with its responsible sender, recipients, wording, files, recorded state and what happened to each message. Messages go out only on your Send or Schedule, follow-ups pause on a reply or a failed delivery until a fresh review and Resume, and Gmail shows neither delivery nor reading. Mailbox management stays in Gmail.",
+      "Workflow Communications is where staff review, save, send and schedule the renewal messages they start from a lease. The list has four views, Incoming, Outgoing, Drafts and Scheduled, with filters and the sending worker's health lines; Incoming and Scheduled offer Check Gmail now, and Incoming also shows Linked conversations with the Gmail connection for your own mailbox. A sent renewal message stays watched for its answer until the answer is recorded or the cycle ends, and a reply that arrives is brought to its lease. Opening a communication shows the workflow communication composer with its responsible sender, recipients, wording, files, recorded state and what happened to each message. Messages go out only on your Send or Schedule, follow-ups pause on a reply, a failed delivery or a changed recipient or source fact until a fresh review and Resume, and Gmail shows neither delivery nor reading. Mailbox management stays in Gmail.",
     controls: [
       {
         label: "Incoming",
@@ -105,12 +105,30 @@ export const COMMUNICATIONS_SCREENS: readonly HelpScreenReference[] = [
         who: "All staff",
       },
       {
-        label: "Refresh worklist",
+        label: "Check Gmail now",
+        role: "button",
+        region: LIST,
+        availability: "required",
+        source: ["components/gmail-hub/CheckGmailNow.tsx"],
+        does: "Shown on Incoming and Scheduled. Checks your own mailbox once for replies and failed delivery reports on the linked conversations and on every watched or open renewal message, then reloads the lists. It reads Gmail checked at with the time, and names any renewal message it could not read this time. A check whose answer was lost is sent again as the same check. It sends nothing.",
+        who: "All staff",
+      },
+      {
+        label: "Reload worklist",
         role: "button",
         region: LIST,
         availability: "required",
         source: HUB_SOURCE,
-        does: "Reads the shared list and the worker health lines again. Changes nothing.",
+        does: "Reads the shared list and the worker health lines again from what the app has stored. It does not check Gmail and changes nothing.",
+        who: "All staff",
+      },
+      {
+        label: "What changed",
+        role: "list",
+        region: LIST,
+        availability: "conditional",
+        source: HUB_SOURCE,
+        does: "Under a communication paused because the lease or recipient facts changed: one line for each change, such as Rent to recommend: was the earlier amount, now the current one, or New hold with its text. Review the current message before resuming.",
         who: "All staff",
       },
       {
@@ -137,7 +155,16 @@ export const COMMUNICATIONS_SCREENS: readonly HelpScreenReference[] = [
         region: LIST,
         availability: "required",
         source: ["components/gmail-hub/LiveGmailWorkspace.tsx"],
-        does: "Shows whether Gmail is connected for your own mailbox and, when it is, the linked renewal and maintenance conversations that need attention.",
+        does: "Shows whether Gmail is connected for your own mailbox and, when it is, the linked renewal and maintenance conversations that need attention. A renewal row names its lease first, then Renewal communication and its status, and opens that communication in place.",
+        who: "All staff",
+      },
+      {
+        label: "Reload linked conversations",
+        role: "button",
+        region: LIST,
+        availability: "conditional",
+        source: ["components/gmail-hub/LiveGmailWorkspace.tsx"],
+        does: "Reads the stored linked conversations again while Gmail is connected. It does not check Gmail; Check Gmail now does.",
         who: "All staff",
       },
       {
@@ -240,7 +267,7 @@ export const COMMUNICATIONS_SCREENS: readonly HelpScreenReference[] = [
         region: COMPOSER,
         availability: "conditional",
         source: COMPOSER_SOURCE,
-        does: "Sends the reviewed message now from the responsible sender's mailbox once its current checks pass. Only the responsible sender can choose it.",
+        does: "Sends the reviewed message now from the responsible sender's mailbox once its current checks pass. Only the responsible sender can choose it. When a recipient or source fact changed after the review, nothing is sent and the composer names each change, such as To: was one address, now another; review the current message before Send or Schedule.",
         who: "Renewal staff",
       },
       {
@@ -294,8 +321,17 @@ export const COMMUNICATIONS_SCREENS: readonly HelpScreenReference[] = [
         region: COMPOSER,
         availability: "conditional",
         source: COMPOSER_SOURCE,
-        does: "Restarts a paused communication after a fresh review of the current message and recipients.",
+        does: "Restarts a paused communication after a fresh review of the current message and recipients. A pause for changed lease or recipient facts lists What changed above it.",
         who: "Renewal staff",
+      },
+      {
+        label: "What changed",
+        role: "list",
+        region: COMPOSER,
+        availability: "conditional",
+        source: COMPOSER_SOURCE,
+        does: "Under Paused: The lease or recipient facts changed: each change with its earlier and current value where the app kept them. A message whose due time came while the lease was being re-read is not paused: it says Nothing was sent and is checked again on the next run.",
+        who: "All staff",
       },
       {
         label: "Refresh linked incoming",
@@ -303,7 +339,7 @@ export const COMMUNICATIONS_SCREENS: readonly HelpScreenReference[] = [
         region: COMPOSER,
         availability: "conditional",
         source: COMPOSER_SOURCE,
-        does: "Checks the linked threads for replies and failed delivery reports. Sends nothing.",
+        does: "Checks the linked threads for replies and failed delivery reports, including on a completed message still watched for its answer. Sends nothing.",
         who: "Renewal staff",
       },
       {
@@ -345,6 +381,6 @@ export const COMMUNICATIONS_SCREENS: readonly HelpScreenReference[] = [
     ],
     guides: ["owner-message", "tenant-offer"],
     navItems: ["communications"],
-    lastUpdated: "2026-11-04",
+    lastUpdated: "2026-11-13",
   },
 ];

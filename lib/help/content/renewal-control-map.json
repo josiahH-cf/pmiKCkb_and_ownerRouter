@@ -1247,7 +1247,7 @@
     "role": "label",
     "scope": "region:Owner approval",
     "availability": "conditional",
-    "expectation": "The monthly base rent exactly as the owner approved it, typed by staff. Nothing fills it from the recommendation or the reply.",
+    "expectation": "The monthly base rent exactly as the owner approved it, entered by staff. Nothing fills it by itself; when this cycle has a rent to recommend, Same as recommended, with that amount in parentheses, fills it on your choice. A note under the coverage choice says what the answer means at Documents, and before the dates are saved Enter the renewal dates in Working renewal terms opens them.",
     "source": ["components/lease-renewal/RenewalOwnerAnswer.tsx"],
     "actions": [
       "click-button:Full view",
@@ -1535,5 +1535,93 @@
       "click-button:Full view",
       "open-summary:Owner message options and outreach record"
     ]
+  },
+  {
+    "step": "131",
+    "page": "workspace:verify-renewal",
+    "control": "Lease end date review",
+    "role": "region",
+    "scope": "",
+    "availability": "conditional",
+    "expectation": "Shown on Check the numbers for a lease whose end date in the renewal window is not a month end: the RentVine end date, Include in this renewal month or Keep on hold with a required Reason, Save, the recorded decision with who and when, and Earlier decisions. A decision applies to that exact end date.",
+    "source": ["lib/lease-renewal/off-cycle-review.ts"],
+    "actions": ["click-button:Full view"]
+  },
+  {
+    "step": "132",
+    "page": "workspace:verify-renewal",
+    "control": "Include in this renewal month",
+    "role": "label",
+    "scope": "region:Lease end date review",
+    "availability": "conditional",
+    "expectation": "Saved with a Reason: the off-cycle lease belongs to this renewal month, so its preparation and sending continue and the off-cycle line leaves the stage. Editors and above.",
+    "source": ["lib/lease-renewal/off-cycle-review.ts"],
+    "actions": ["click-button:Full view"]
+  },
+  {
+    "step": "133",
+    "page": "workspace:verify-renewal",
+    "control": "Keep on hold",
+    "role": "label",
+    "scope": "region:Lease end date review",
+    "availability": "conditional",
+    "expectation": "Saved with a Reason: the lease's preparation and sending wait, and the stage line reads Off-cycle end date on hold with the reason, who set it and when. Editors and above.",
+    "source": ["lib/lease-renewal/off-cycle-review.ts"],
+    "actions": ["click-button:Full view"]
+  },
+  {
+    "step": "134",
+    "page": "workspace:verify-renewal",
+    "control": "Review the lease end date",
+    "role": "button",
+    "scope": "region:Now",
+    "availability": "conditional",
+    "expectation": "The Now card's fix while an off-cycle end date needs review or is on hold, also offered in What sending needs; it opens Lease end date review at Include in this renewal month. It saves nothing.",
+    "source": ["lib/lease-renewal/off-cycle-review.ts"],
+    "actions": ["click-button:Check the numbers"]
+  },
+  {
+    "step": "135",
+    "page": "workspace:owner-decision",
+    "control": "Check for a reply now",
+    "role": "button",
+    "scope": "region:Now",
+    "availability": "conditional",
+    "expectation": "Under the waiting line on Ask the owner or Offer the tenant, beside Last checked for a reply: checks this lease's sent messages for a reply once and reads the step again. A failed check reads Reply check failed at with the time. It records no answer and sends nothing. Editors and above.",
+    "source": ["lib/lease-renewal/outreach-evidence.ts"],
+    "actions": ["click-button:Ask the owner"]
+  },
+  {
+    "step": "138",
+    "page": "workspace:owner-decision",
+    "control": "Enter the renewal dates in Working renewal terms",
+    "role": "link",
+    "scope": "region:Now",
+    "availability": "conditional",
+    "expectation": "Shown in the owner's answer before the renewal dates are saved: opens the renewal start date in Working renewal terms, with Return to the owner's answer to come back. It saves nothing.",
+    "source": ["components/lease-renewal/RenewalOwnerAnswer.tsx"],
+    "actions": ["click-button:Ask the owner"]
+  },
+  {
+    "step": "139",
+    "page": "workspace:owner-decision",
+    "control": "Return to the owner's answer",
+    "role": "button",
+    "scope": "",
+    "availability": "conditional",
+    "expectation": "Shown in Working renewal terms after Enter the renewal dates in Working renewal terms: returns to Amount approved in the owner's answer with the entries kept.",
+    "source": ["components/lease-renewal/RenewalOwnerAnswer.tsx"],
+    "actions": ["click-button:Ask the owner"]
+  },
+  {
+    "step": "140",
+    "page": "workspace:owner-decision",
+    "control": "Record the response",
+    "role": "link",
+    "scope": "region:Current renewal stage",
+    "availability": "conditional",
+    "expectation": "The fix words at the end of a Needs a check stage line, when the staff record and the lease's messages disagree about a reply: opens the Owner response or Tenant response editor that settles it. Record the owner outreach and Record the tenant offer do the same for an outreach the staff record does not show.",
+    "source": ["lib/lease-renewal/lease-waiting.ts"],
+    "actions": []
   }
 ]

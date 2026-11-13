@@ -247,6 +247,7 @@ export const APPROVAL_QUEUE_AND_NOTIFICATIONS_GUIDES: readonly HelpGuide[] = [
         result:
           "The notification is marked read, and its linked page opens, such as an Approval Queue item.",
         effect: "saves-in-app",
+        note: "A reply to a renewal message you sent reads Owner replied or Tenant replied with the lease, for example read the reply and record the owner's decision, and opens that lease on Ask the owner or Offer the tenant. It names no address or message; record the answer on the lease.",
       },
       {
         id: "mark-all-read",
@@ -371,6 +372,6 @@ export const APPROVAL_QUEUE_AND_NOTIFICATIONS_GUIDES: readonly HelpGuide[] = [
     ],
     relatedGuides: ["approve-or-deny"],
     relatedScreens: ["notifications", "approval-queue"],
-    lastUpdated: "2026-11-04",
+    lastUpdated: "2026-11-13",
   },
 ];

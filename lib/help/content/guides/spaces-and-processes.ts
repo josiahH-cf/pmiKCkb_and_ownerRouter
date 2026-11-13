@@ -9,10 +9,10 @@ export const SPACES_AND_PROCESSES_GUIDES: readonly HelpGuide[] = [
     title: "Publish a process definition",
     audience: "Approver or Admin",
     purpose:
-      "Change a process definition, save it against the revision you reviewed, publish it through the Publication checks and read the Active immutable version that every new run records.",
+      "Change a process definition, save it against the revision you reviewed, publish it through the Publication checks and read the Active immutable version. A renewal process's Space shows that version as guidance; any other process records it on every new run.",
     prerequisites: [
-      "You are signed in with edit access, which the Editor, Approver and Admin roles have. Without it the page says Editing, publishing, or starting this process requires Editor access and offers Request access.",
-      "Publishing sets the version every new run follows, so this guide is written for the Approvers and Admins who look after a process.",
+      "You are signed in with edit access, which the Editor, Approver and Admin roles have. Without it a renewal process's page says Editing or publishing this process requires Editor access, any other process's page says Editing, publishing, or starting this process requires Editor access, and both offer Request access.",
+      "Publishing sets the version staff read on a renewal Space and the version every new run of another process follows, so this guide is written for the Approvers and Admins who look after a process.",
       "An Admin has enabled a publication policy for the Space. Without one, Publish says No enabled Live publication policy covers this Space.",
     ],
     steps: [
@@ -45,24 +45,9 @@ export const SPACES_AND_PROCESSES_GUIDES: readonly HelpGuide[] = [
         route: "/spaces",
         where: "Internal Processes, Space cards",
         result:
-          "The Space page opens on its Overview, with Overview and Process links under Space views.",
+          "The Space page opens on How this work is done, with the published steps, Sources and Open the Renewal Desk.",
         effect: "reads",
-      },
-      {
-        id: "open-process-tab",
-        action: "Select Process under Space views.",
-        control: {
-          label: "Process",
-          role: "link",
-          region: "navigation:Space views",
-          availability: "required",
-          source: ["app/spaces/[spaceId]/page.tsx"],
-        },
-        route: "/spaces/[spaceId]",
-        where: "Space page, Space views",
-        result:
-          "The Process tab shows the definition's status, its Immutable version line, its Steps and its Recent runs.",
-        effect: "reads",
+        note: "A Space whose process starts runs, such as Move-In, opens on its Overview with Overview and Process under Space views; Process shows the definition's status, its Immutable version line, its Steps, its Recent runs and View full process →.",
       },
       {
         id: "open-definition",
@@ -71,15 +56,14 @@ export const SPACES_AND_PROCESSES_GUIDES: readonly HelpGuide[] = [
           label: "View full process →",
           role: "link",
           availability: "required",
-          source: ["components/spaces/ProcessSummaryPanel.tsx"],
-          actions: ["click-link:Process"],
+          source: ["components/spaces/RenewalProcessGuidance.tsx"],
         },
         route: "/spaces/[spaceId]",
-        where: "Space page, Process tab",
+        where: "Space page, How this work is done, at the end",
         result:
-          "The Process Definition page opens with the definition form, Save and Publish, the Publication panel, Start run and Recent Runs.",
+          "The Process Definition page opens with the definition form, Save and Publish, the Publication panel, Renewal work and Recent Runs. Owner UID and Approver UID read Not used: this process starts no runs.",
         effect: "reads",
-        note: "Processes lists every definition you can open, and Back to Processes on this page opens it.",
+        note: "Processes lists every definition you can open, and Back to Processes on this page opens it. On a process that starts runs, the page has Owner UID and Approver UID fields and a Start run panel in place of Renewal work.",
       },
       {
         id: "edit-fields",
@@ -111,7 +95,7 @@ export const SPACES_AND_PROCESSES_GUIDES: readonly HelpGuide[] = [
         result:
           "The message reads Process definition saved. When someone saved a newer revision first, the save is refused, your edits stay in the form, and Compare saved process and Load current saved definition appear.",
         effect: "saves-in-app",
-        note: "Saving changes to an Active definition returns it to Draft. The Publication panel then reads Prior immutable version: until the next Publish, and a run started in the meantime reads Not pinned (draft).",
+        note: "Saving changes to an Active definition returns it to Draft. The Publication panel then reads Prior immutable version: until the next Publish, and in the meantime the renewal Space reads Renewals are worked on the Renewal Desk in place of the steps. On a process that starts runs, a run started in the meantime reads Not pinned (draft). A renewal process saves with no run owner or approver, and the values already stored stay as they are.",
       },
       {
         id: "publish-version",
@@ -143,7 +127,7 @@ export const SPACES_AND_PROCESSES_GUIDES: readonly HelpGuide[] = [
         route: "/processes/[definitionId]",
         where: "Process Definition, Publication panel",
         result:
-          "Active immutable version: names the version every new run records as its Definition version. Only a validated version becomes Active, and publication grants no external action or role.",
+          "Active immutable version: names the published version. The renewal Space shows that version's steps and sources as guidance, and on a process that starts runs every new run records it as its Definition version. Only a validated version becomes Active, and publication grants no external action or role.",
         effect: "reads",
       },
       {
@@ -164,16 +148,16 @@ export const SPACES_AND_PROCESSES_GUIDES: readonly HelpGuide[] = [
       },
     ],
     result:
-      "The definition reads Active, the Publication panel names its Active immutable version, and every run started from it records that version.",
+      "The definition reads Active, the Publication panel names its Active immutable version, and the renewal Space shows that version as guidance.",
     doesNotDo: [
       "Publishing never sends a message, starts a run or changes RentVine, the operating Sheet or Dotloop.",
       "Publication grants no external action and no role; only a validated version becomes Active.",
       "Saving does not publish: saved changes are not Active until Publish passes the Publication checks.",
-      "Runs already started keep the version they recorded; a new version does not change them.",
+      "Runs already started keep the version they recorded; a new version does not change them, and an earlier renewal run stays a read-only record.",
     ],
     relatedGuides: ["outreach-checklist"],
     relatedScreens: ["spaces", "space", "process-definition", "processes"],
-    lastUpdated: "2026-11-04",
+    lastUpdated: "2026-11-13",
     navItems: ["internal-processes"],
   },
 ];

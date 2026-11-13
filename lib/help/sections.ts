@@ -46,7 +46,7 @@ export const HELP_SECTIONS: readonly HelpSection[] = [
     id: "spaces-and-processes",
     title: "Spaces and processes",
     summary:
-      "Open a Space, start and complete a process run and publish a process definition.",
+      "Open a Space, read a renewal process as guidance and publish a process definition.",
   },
   {
     id: "approval-queue-and-notifications",
@@ -67,7 +67,7 @@ export const HELP_SECTIONS: readonly HelpSection[] = [
     id: "workflow-runs",
     title: "Workflow runs",
     summary:
-      "Start the Owner Renewal Outreach checklist from its Space, complete its steps and read the run.",
+      "Read how renewal work is done on the renewal Spaces, open the Renewal Desk and read an earlier run as a record.",
   },
   {
     id: "maintenance-history",

@@ -83,7 +83,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         route: DESK,
         where: "Renewals desk, at the top",
         result:
-          "The table lists the selected month's targets first and unfinished earlier leases after them. Sort by stage, date or rent. Each row distinguishes staff action, a scheduled send, waiting and an unconfirmed result.",
+          "The table lists the selected month's targets first and unfinished earlier leases after them. Sort by stage, date or rent. Each row distinguishes staff action, a scheduled send, waiting and an unconfirmed result. Current base rent and Rent to recommend show in dollars, with the recommendation's basis, such as suggested from the stored comparison, and Approved with the owner's amount once it is recorded.",
         effect: "reads",
         note: "Previous month and Next month change the month shown. Choose a count above the table, such as Renewed in RentVine, confirm and close or Not renewal targets, to list its leases. Choose the button that names the month to prepare its eligible leases. The app reuses stored comparisons, follows the RentCast allowance and keeps owner drafts in the app. Changing the month or opening the desk starts no preparation.",
       },
@@ -102,7 +102,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "The lease opens in this tab in Guided view at its current step: the stage line says who it waits on and since when, the Renewal path names each step, and the Now card shows its primary action after the heading and any alert, followed by the supporting next-step and detail text. ← Back to renewals returns to the same month, group and place.",
         effect: "reads",
-        note: "Each row shows the address and unit, the tenant names, the end date, one stage line, one next step link and at most three tags, such as Standing agreement or Housing assistance. A missing input is named on the row and opens the lease where it is fixed.",
+        note: "Each row shows the address and unit, the tenant names, the end date, one stage line, one next step link and at most three tags, such as Standing agreement or Housing assistance. A missing input is named on the row and opens the lease where it is fixed. Who the lease waits on and the last contact come from the lease's own sent messages and replies. When the staff record and those messages disagree, the row reads Needs a check, and the lease's stage line names both facts and the fix, for example Needs a check: The staff record says waiting on the owner. The owner replied on 09/29/2026. Record the response.; the fix words open the editor that settles it. After the tenant accepts, while the information form or its return is still outstanding, the stage reads Preparing lease documents / Dotloop.",
       },
       {
         id: "read-the-path",
@@ -121,7 +121,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "On a prepared lease Check the numbers and Compare market rent read Done and the Now card is on Ask the owner. Choosing a step shows it in the Now card, and any step can be worked while an earlier one is open. Choosing a step saves nothing. While you inspect another step, Next step names the current work and Show current step takes you there.",
         effect: "reads",
-        note: "Each step leads with the one field or exact fix it needs now, such as Correct the current base rent, Verify current lease end, Rent to recommend, Record the owner's answer, Set renewal base rent, Enter renewal start date or Review offer charges, and the field it names is the one that takes focus. A fix that belongs to another step opens there and offers the way back, such as Return to tenant offer. Check the numbers shows Current base rent, the monthly base rent with where it comes from, and names a separate charge such as pet rent apart from it. It states Numbers agree on RentVine, or names the one difference to settle with its fix; an operating Sheet value shows there only when it differs.",
+        note: "Each step leads with the one field or exact fix it needs now, such as Correct the current base rent, Verify current lease end, Review the lease end date, Rent to recommend, Record the owner's answer, Set renewal base rent, Enter renewal start date or Review offer charges, and the field it names is the one that takes focus. On a lease under a standing agreement with no renewal base rent yet, Set renewal base rent lands on the button that names the agreement's amount under Pricing basis. A fix that belongs to another step opens there and offers the way back, such as Return to tenant offer or Return to the owner's answer. Check the numbers shows Current base rent, the monthly base rent with where it comes from, and names a separate charge such as pet rent apart from it. It states Numbers agree on RentVine, or names the one difference to settle with its fix; an operating Sheet value shows there only when it differs.",
       },
       {
         id: "open-verification",
@@ -194,7 +194,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "Once Gmail accepts the message, the lease reads Waiting on owner response on its page and its desk row with nothing more to enter, and its outreach record names the message, the time and the sender it came from.",
         effect: "explicit-send",
-        note: "Schedule opens Review and schedule. Check the required Date and Time (Central), then choose Schedule this message. Create Gmail draft instead makes an unsent draft that you send from Gmail; choose I sent it from Gmail once you have. If creation is uncertain, use the one Recover exact Gmail attempt beside the preview on Now. Full view keeps this check in Unsent Gmail draft. Your authored wording stays as written when inputs change. The Now card names that change and offers Return to the standard wording to rebuild from current inputs, with Undo the last refinement to recover your wording.",
+        note: "Schedule opens Review and schedule. Check the required Date and Time (Central), then choose Schedule this message. Create Gmail draft instead makes an unsent draft that you send from Gmail; choose I sent it from Gmail once you have. If creation is uncertain, use the one Recover exact Gmail attempt beside the preview on Now. Full view keeps this check in Unsent Gmail draft. Your authored wording stays as written when inputs change. The Now card names that change and offers Return to the standard wording to rebuild from current inputs, with Undo the last refinement to recover your wording. When a recipient or a source fact changed after the review opened, nothing is sent: the review stays open, says Loading the current message from the lease…, then shows the current message with What changed, one line per change, such as Rent to recommend: was the earlier amount, now the current one; read it and confirm again. While the lease is still being re-read, the review says The lease is being re-read. Nothing was sent. Try again in a moment.",
       },
       {
         id: "wait-for-the-owner",
@@ -212,7 +212,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "An owner reply shows here as Owner replied with its date and the reply, and Record the owner's answer becomes the next step. A message Gmail has not confirmed reads Check whether the message went out, and a failed delivery reads Delivery failed with Check the address and send again.",
         effect: "reads",
-        note: "Record what happened, Send again and Work a later step now stay available while the lease waits. While Gmail has not confirmed a message, Check whether the message went out comes first, ahead of an owner reply, and Send again appears once that check settles; Owner response in Full view still records the reply. This was not the renewal outreach asks for a reason. Remove the derived record reopens the step and brings focus to Now. Keep it returns to the correction action.",
+        note: "Under the waiting line, Last checked for a reply gives the time the app last checked this lease's sent messages for a reply, or Not checked yet, and Check for a reply now checks again at once; a check that did not finish reads Reply check failed at with the time and Try again, and the lease keeps waiting. The app keeps watching a sent message for its answer until the answer is recorded, so a reply still reaches the lease after the message's follow-ups are finished. Record what happened, Send again and Work a later step now stay available while the lease waits. While Gmail has not confirmed a message, Check whether the message went out comes first, ahead of an owner reply, and Send again appears once that check settles; Owner response in Full view still records the reply. This was not the renewal outreach asks for a reason. Remove the derived record reopens the step and brings focus to Now. Keep it returns to the correction action.",
       },
       {
         id: "record-the-owner-decision",
@@ -230,7 +230,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "The answer saves with your name and time. An approval records Amount approved as the offer amount for this renewal, what the answer covers, who approved, the reply it came in and the time that reply was received, and Continue to Offer the tenant appears. Record the owner's answer starts with no choice made, and a reply records an answer only when you choose one.",
         effect: "saves-in-app",
-        note: "What the owner's answer covers is Base rent only, or Base rent and the renewal dates once both dates are saved; other charges are reviewed with the tenant offer. The review lists Recommended base rent beside Amount approved, and Change the answer returns to your entries. Rent to recommend stays your recommendation: the approved amount never replaces it, and when no earlier recommendation exists the lease says so. Owner reply reads the observed message from the linked conversation. A failed read offers Try again and keeps your entries. Retry keeps keyboard focus while reading and leads into the reply when ready. If you already moved to an answer, focus stays there. A partial reply says to read the full conversation. Owner response in Full view records an approval from an authorized representative, another written channel or a conversation: choose Approved, enter Amount approved and what it covers, then Who approved, How they approved and When they approved, and choose Review the owner's answer and Save the owner's answer. When the reviewed tenant offer lists charges, Owner response also shows The owner approved these exact offer charges; check it only when the owner approved those charges as listed. Record a new approval starts a new answer after one is saved.",
+        note: "When this cycle has a rent to recommend, Same as recommended, with that amount in parentheses, fills Amount approved; change it when the owner approved another amount. What the owner's answer covers is Base rent only, or Base rent and the renewal dates once both dates are saved; other charges are reviewed with the tenant offer. Before the dates are saved, Enter the renewal dates in Working renewal terms opens the dates, and Return to the owner's answer brings you back with your entries kept. The answer says what its coverage means at Documents: This answer covers the base rent only. Documents will ask for the owner's approval of the renewal dates and charges., or that it covers the base rent and the renewal dates, so Documents asks for no second approval of the dates. The review lists Recommended base rent with its basis, such as entered by staff, beside Amount approved, and Change the answer returns to your entries. Once saved, Offer amount for this renewal adds Approved by the owner on with the date. Rent to recommend stays your recommendation: the approved amount never replaces it, and when no earlier recommendation exists the lease says so. Owner reply reads the observed message from the linked conversation. A failed read offers Try again and keeps your entries. Retry keeps keyboard focus while reading and leads into the reply when ready. If you already moved to an answer, focus stays there. A partial reply says to read the full conversation. Owner response in Full view records an approval from an authorized representative, another written channel or a conversation: choose Approved, enter Amount approved and what it covers, then Who approved, How they approved and When they approved, and choose Review the owner's answer and Save the owner's answer. When the reviewed tenant offer lists charges, Owner response also shows The owner approved these exact offer charges; check it only when the owner approved those charges as listed. Record a new approval starts a new answer after one is saved.",
       },
       {
         id: "offer-the-tenant",
@@ -247,7 +247,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         where: "Guided view, the Now card on Offer the tenant",
         result:
           "Once Gmail accepts the offer, the lease reads Waiting on tenant response. Prepare the tenant offer and record the response covers copying the offer, a Gmail draft and Communications.",
-        note: "Review offer charges lists each charge line for this offer with its source and the exact totals; Prepare the tenant offer and record the response explains each choice. When the offer needs a shared flyer or form that is not ready for tenants, the Now card leads with Shared resource link and the resource's name. In the exact review, you can authorize follow-ups after the tenant offer. Enter their wording, interval, time, timezone and stopping bound. The next follow-up is due after confirmed acceptance. A verified tenant reply pauses unsent follow-ups. Record the decision separately.",
+        note: "Review offer charges lists each charge line for this offer with its source and the exact totals; Prepare the tenant offer and record the response explains each choice. The totals' Renewal base rent names where the amount comes from: from the standing agreement by name, entered by staff with what the agreement gives when they differ, approved by the owner with the date, or adopted for the offer by staff. The exact review repeats it under the lease. When the offer needs a shared flyer or form that is not ready for tenants, the Now card leads with Shared resource link and the resource's name. In the exact review, you can authorize follow-ups after the tenant offer. Enter their wording, interval, time, timezone and stopping bound. The next follow-up is due after confirmed acceptance. A verified tenant reply pauses unsent follow-ups. Record the decision separately.",
         effect: "explicit-send",
       },
       {
@@ -263,7 +263,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         route: LEASE,
         where: "Guided view, under the Now card on Offer the tenant",
         result:
-          "The answer saves when you choose it. After Accepted, a lease that still needs the renewal information form names Send the renewal information form and then Record the returned information form, each recorded as Information form sent and Information form returned, before Documents and signatures; Declined / not renewing goes to the non-renewal handoff. Recording it accepts nothing for the tenant.",
+          "The answer saves when you choose it. After Accepted, a lease that still needs the renewal information form names Send the renewal information form and then Record the returned information form, each recorded as Information form sent and Information form returned, before Documents and signatures, and meanwhile the stage reads Preparing lease documents / Dotloop; Declined / not renewing goes to the non-renewal handoff. Recording it accepts nothing for the tenant.",
         effect: "saves-in-app",
         note: "After Accepted, Counter / change requested or Declined / not renewing, name the offer the tenant answered: choose it in Which offer does this answer respond to?, then choose Record the offer this answers. For a Gmail draft you sent yourself, also enter Where you verified it was sent. Answers the offer then names that offer, and an acceptance tied to no offer or to an earlier one reads Current acceptance needs verification with the reason. Prepare the tenant offer and record the response explains each choice.",
       },
@@ -339,7 +339,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "Coverage lets you continue to Offer the tenant. When saving a pricing basis, choose This lease only or Every lease in this owner's portfolio. A recommendation outside the rule returns the lease to Ask the owner with the reason shown.",
         effect: "saves-in-app",
-        note: "The desk row carries the Standing agreement tag. Choose Owner decides each renewal when an owner decision is needed each cycle.",
+        note: "The desk row carries the Standing agreement tag. Choose Owner decides each renewal when an owner decision is needed each cycle. While the renewal base rent is empty, Pricing basis also says what the agreement gives: its name, the amount and the rule applied to the current rent, such as 3 percent on the current rent. One button names that amount, Use the amount from the agreement. Choosing it saves the amount as the renewal base rent with the agreement as its basis and says Nothing was sent and no RentVine rent changed. Set renewal base rent on Offer the tenant lands on that button. Once the base holds an amount, typed or adopted, the button is gone, and a typed amount reads as entered by staff, with what the agreement gives when it differs. Wherever the renewal rent shows, such as the owner message review, Prepare future renewal rent in RentVine and Finish up, its basis line says where it came from.",
       },
       {
         id: "work-an-assisted-lease",
@@ -358,6 +358,24 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
           "Once the numbers agree, Continue names and opens the program-contact step. The path asks you to contact the named program about the renewal process, then Ask the owner whether to renew this tenant (Renew, Do not renew or No answer yet), then Rent for this renewal (Keep the current rent or Propose a change), with nothing chosen for you. Keep the current rent leaves the comparison and the owner's rent decision out of the path, Propose a change brings them in, and Do not renew moves the lease to the non-renewal handoff.",
         effect: "saves-in-app",
         note: "The program-contact step names the program and its saved contact, or says no program contact is saved yet, with Enter the program contact or Edit the program contact. Either one takes you to the contact box in Housing assistance, the one place the contact is edited: on Check the numbers in Guided view, or in Lease information in Full view. After Yes is chosen, Program name is required. An empty name shows what to enter, and the choice saves when the name is complete. Saving is visible; a failed save keeps your entry and offers Try again. Newer typing stays in its field while an earlier save finishes. The desk row carries the Housing assistance tag. Animal follow-up records the outside work staff actually did. Animal charges and agreement in Readiness opens Packet inputs. Charges and agreements for an assistance animal wait for the approved rule. When RentVine wording mentions housing assistance and the field is unset, the lease reads RentVine mentions housing assistance. Set the field? and nothing changes until you set it.",
+      },
+      {
+        id: "review-the-lease-end-date",
+        action:
+          "When the lease ends on a day that is not a month end, choose Review the lease end date. In Lease end date review, choose Include in this renewal month or Keep on hold, enter a short Reason and choose Save.",
+        control: {
+          label: "Include in this renewal month",
+          role: "radio",
+          region: "region:Lease end date review",
+          availability: "conditional",
+          source: ["lib/lease-renewal/off-cycle-review.ts"],
+        },
+        route: LEASE,
+        where: "Check the numbers, Lease term, Lease end date review",
+        result:
+          "The decision saves with your name, the date and the reason, and reads Off-cycle end date: included by or on hold by, with who and when. Include in this renewal month takes the lease into the month and lets its work continue. Keep on hold makes the stage line read Off-cycle end date on hold with the reason, who set it and when, and the lease's preparation and sending wait.",
+        effect: "saves-in-app",
+        note: "The review states the end date, This lease ends 01/14/2027, which is not a month end., and Source: RentVine lease end date. Until it is decided, the stage line reads Needs verification: Off-cycle end date, the Now card leads with Review the lease end date, and What sending needs lists Lease end date: needs review (off-cycle) first with the same fix. A decision belongs to that exact end date, so a changed end date needs a new review; Earlier decisions lists the past ones. The desk row's reason adds Off-cycle end date: included by or on hold by with who and when, and the month's preparation waits for each such lease until it is included, and says why. To leave a lease out of renewal work, use Retire from renewals under Record work. Saving a review sends nothing and changes nothing in RentVine.",
       },
       {
         id: "choose-full-view",
@@ -582,7 +600,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
       "prepare-documents",
     ],
     relatedScreens: ["renewal-desk", "lease-workspace", "live-renewal-review"],
-    lastUpdated: "2026-11-10",
+    lastUpdated: "2026-11-13",
     navItems: ["lease-renewal"],
     spaces: ["lease-renewals"],
   },
@@ -764,7 +782,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "Every role reads the shared links and their state; only an Admin changes them. Offer charge mappings opens for an Admin only.",
         effect: "reads",
-        note: "Who owns the Owner Renewal Outreach process and who receives its work by default is a team decision that is still open. While the published process keeps placeholder owner and approver assignments, Start run creates no run and says so. Hand work to a person directly and note it in Work status; an Admin records the responsible staff on the process only after the team names them.",
+        note: "Renewal work is not handed out as a checklist run: the renewal Spaces show their published process as guidance with Open the Renewal Desk, start no run, and need no run owner or approver. Hand a lease to a person directly and note it in Work status.",
       },
     ],
     result:
@@ -784,7 +802,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
       "my-work-and-profile",
     ],
     relatedScreens: ["renewal-desk", "lease-workspace"],
-    lastUpdated: "2026-11-10",
+    lastUpdated: "2026-11-13",
     navItems: ["lease-renewal"],
     spaces: ["lease-renewals"],
   },
@@ -943,9 +961,9 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         route: LEASE,
         where: "Market rent comparison, Work",
         result:
-          "The amount saves in the app. Ask the owner shows this same amount and links back to its editor.",
+          "The amount saves in the app. Ask the owner shows this same amount and links back to its editor, with a line naming its basis, who saved it and when: Rent to recommend, the amount, then entered by with who entered it and the date.",
         effect: "saves-in-app",
-        note: "Preparation can fill an empty amount using a verified basis. Your saved amount takes precedence. Rent to recommend stays your recommendation to the owner: the amount the owner approves is recorded with the owner's answer and never replaces it. The offer uses this amount until the owner's answer is saved; after that, Use this amount for the offer adopts a changed recommendation for the offer deliberately, and it is not an owner approval.",
+        note: "Preparation can fill an empty amount using a verified basis, and the line then says so, for example suggested from the stored comparison (median of 5), saved by monthly preparation on 11/12/2026, or from the standing agreement, not saved yet. The owner message review repeats the same line. Your saved amount takes precedence. Rent to recommend stays your recommendation to the owner: the amount the owner approves is recorded with the owner's answer and never replaces it. The offer uses this amount until the owner's answer is saved; after that, Use this amount for the offer adopts a changed recommendation for the offer deliberately, and it is not an owner approval.",
       },
       {
         id: "enter-working-terms",
@@ -978,7 +996,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
     ],
     relatedGuides: ["work-a-renewal", "owner-message", "tenant-offer", "update-sources"],
     relatedScreens: ["lease-workspace"],
-    lastUpdated: "2026-11-09",
+    lastUpdated: "2026-11-13",
   },
   {
     id: "tenant-offer",
@@ -1027,7 +1045,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         where:
           "Offer the tenant, Review offer charges, on the Now card or under Tenant message preparation in Full view",
         result:
-          "Each choice saves with the tenant message, and the totals show Renewal base rent, Monthly and One time. What the totals still need names each missing amount, date or source, and First names the line to settle next until every line is decided.",
+          "Each choice saves with the tenant message, and the totals show Renewal base rent with where it comes from, such as from the standing agreement by name, Monthly and One time. What the totals still need names each missing amount, date or source, and First names the line to settle next until every line is decided.",
         effect: "saves-in-app",
         note: "Each RentVine line and each case entry is its own row with its source. A line no mapping names is decided for this lease with What this charge is for this lease and its source. Confirm this line again appears when the meaning or source of a decided line changed. Lines that ended before the renewal, start after it, belong to the rent account or are a separate requirement are listed under Charge lines that do not apply, for review only. Add a charge for this lease only, in Tenant offer options and record of contact, adds a charge with its amount, date, trigger and Authorized case source or approved policy, and Remove this charge takes it out. No one-time fee is selected unless its approved policy or an authorized case source supports it. An Admin keeps the shared meaning of each RentVine account in Offer charge mappings.",
       },
@@ -1252,7 +1270,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
       "prepare-documents",
     ],
     relatedScreens: ["lease-workspace", "communications"],
-    lastUpdated: "2026-11-10",
+    lastUpdated: "2026-11-13",
   },
   {
     id: "update-sources",
@@ -1339,6 +1357,7 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
         result:
           "A preview of the later billing schedule saves in the app. Today's billing and the Sheet current rent stay as they are.",
         effect: "saves-in-app",
+        note: "Working renewal rent names where its amount comes from, for example approved by the owner with the date, and Finish up's Final working terms carries the same line.",
       },
       {
         id: "apply-sheet-update",
@@ -1462,6 +1481,6 @@ export const LEASE_RENEWALS_GUIDES: readonly HelpGuide[] = [
     ],
     relatedGuides: ["work-a-renewal", "compare-rent", "tenant-offer"],
     relatedScreens: ["lease-workspace"],
-    lastUpdated: "2026-11-09",
+    lastUpdated: "2026-11-13",
   },
 ];

@@ -604,6 +604,20 @@
   {
     "kind": "inline",
     "location": "components/workflows/ProcessDefinitionDetailClient.tsx",
+    "text": "Editing or publishing this process requires Editor access.",
+    "describes": "Renewal process definition note on the edit capability: a renewal process is guidance and starts no run (S286)",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/workflows/ProcessDefinitionDetailClient.tsx",
+    "text": "Publishing pins an immutable version. The renewal Space shows the published version as guidance.",
+    "describes": "Unpublished renewal process: publishing pins the version the renewal Space shows as guidance (S286)",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/workflows/ProcessDefinitionDetailClient.tsx",
     "text": "One per line: label | system | action | readiness | missing setup | approval owner | rollback note | Action Registry key",
     "describes": "Format hint for the process action references field",
     "disposition": "keep"
@@ -647,15 +661,30 @@
     "kind": "inline",
     "location": "app/spaces/[spaceId]/page.tsx",
     "text": "Use this page for the process and checklist. Open renewal work",
-    "describes": "The renewal procedure directs staff to its separately named working lease",
+    "describes": "The renewal procedure directs staff to its separately named working lease; the renewal Space now shows the process as guidance with Open the Renewal Desk and has no checklist",
+    "disposition": "remove",
+    "contradicts": ["S286"]
+  },
+  {
+    "kind": "inline",
+    "location": "app/spaces/page.tsx",
+    "text": "Read how owner outreach is done",
+    "describes": "Internal Processes card line for the owner outreach process, read as guidance (S286 R-S286-6)",
     "disposition": "keep"
   },
   {
     "kind": "inline",
     "location": "app/spaces/page.tsx",
-    "text": "Open the tenant offer and documents checklist",
-    "describes": "Internal Processes link to the named tenant offer and document procedure",
-    "disposition": "keep"
+    "text": "Read how the tenant offer and documents are done",
+    "describes": "Internal Processes card line for the tenant offer and document process, read as guidance rather than run as a checklist",
+    "disposition": "correct",
+    "contradicts": ["S286"],
+    "corrections": [
+      {
+        "before": "Open the tenant offer and documents checklist",
+        "after": "Read how the tenant offer and documents are done"
+      }
+    ]
   },
   {
     "kind": "inline",

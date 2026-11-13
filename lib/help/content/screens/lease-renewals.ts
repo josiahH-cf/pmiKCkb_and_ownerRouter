@@ -229,7 +229,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
     routes: [DESK],
     who: "Renewal staff",
     summary:
-      "Renewals opens one monthly table. The selected month comes first and unfinished carryover follows. The counts above the table filter its rows. Sort by stage, date or rent, or choose All leases and filters for the wider worklist and saved views.",
+      "Renewals opens one monthly table. The selected month comes first and unfinished carryover follows. The counts above the table filter its rows. Sort by stage, date or rent, or choose All leases and filters for the wider worklist and saved views. Rents show in dollars with the recommendation's basis and the owner-approved amount, a row reads Needs a check when the staff record and the lease's messages disagree, and an off-cycle lease's reason names its end date review: Off-cycle end date: included by or on hold by, with who and when.",
     controls: [
       // The map's recorded Refresh data name describes the same button listed below.
       ...renewalControlMapScreenControls(DESK).filter(
@@ -446,7 +446,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
     guides: ["work-a-renewal", "train-and-review"],
     navItems: ["lease-renewal"],
     spaces: ["lease-renewals"],
-    lastUpdated: "2026-11-10",
+    lastUpdated: "2026-11-13",
   },
   {
     id: "lease-workspace",
@@ -454,7 +454,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
     routes: [LEASE],
     who: "Renewal staff",
     summary:
-      "The lease page holds one renewal from its facts to completion. A lease opens in Guided view: the stage line, the Renewal path from Check the numbers to Complete, and one Now card that leads with the one field or fix the step needs now, such as Review owner message, and the step's own controls shown in place, with optional work and read-only verification in named groups below. Full view shows every section: Lease details, Market rent comparison, Owner approval, Tenant offer and response, and Documents and completion. Recorded work saves in the app, a message goes out only after your Send this message, and RentVine and the operating Sheet change only through an exact preview you confirm yourself.",
+      "The lease page holds one renewal from its facts to completion. A lease opens in Guided view: the stage line, the Renewal path from Check the numbers to Complete, and one Now card that leads with the one field or fix the step needs now, such as Review owner message, and the step's own controls shown in place, with optional work and read-only verification in named groups below. Who the lease waits on comes from its own sent messages and replies; when the staff record disagrees, the stage line reads Needs a check with both facts and the fix as a link. While a step waits, the Now card shows Last checked for a reply with Check for a reply now, and wherever the renewal rent shows, its basis line says where the amount comes from. Full view shows every section: Lease details, Market rent comparison, Owner approval, Tenant offer and response, and Documents and completion. Recorded work saves in the app, a message goes out only after your Send this message, and RentVine and the operating Sheet change only through an exact preview you confirm yourself.",
     controls: [
       ...WORKSPACE_MAP_CONTROLS,
       ...WORKSPACE_ABOUT_CONTROLS,
@@ -464,7 +464,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         region: "region:Renewal pricing policy",
         availability: "conditional",
         source: ["lib/lease-renewal/standing-agreement.ts"],
-        does: "Choose whether the owner decides each renewal or a verified standing agreement supplies the rule. Review the lease or portfolio scope before saving.",
+        does: "Choose whether the owner decides each renewal or a verified standing agreement supplies the rule. Review the lease or portfolio scope before saving. On a covered lease with no renewal base rent, it names what the agreement gives and offers one button that names that amount: choosing it saves the amount as the renewal base rent with the agreement as its basis, sends nothing and changes no RentVine rent. Set renewal base rent lands on that button.",
         who: "Renewal staff",
         route: LEASE,
         actions: ["click-button:Ask the owner"],
@@ -486,7 +486,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
         region: "region:Now",
         availability: "conditional",
         source: ["components/lease-renewal/RenewalOwnerAnswer.tsx"],
-        does: "Shown on Ask the owner once the owner replies: Approved in that reply, Asked for a change or Declined / non-renewal, with none chosen. An approval asks Amount approved, What the owner's answer covers and Who approved in this reply, then Review the owner's answer and Save the owner's answer; Record this decision saves a change or a decline.",
+        does: "Shown on Ask the owner once the owner replies: Approved in that reply, Asked for a change or Declined / non-renewal, with none chosen. An approval asks Amount approved, with Same as recommended when a rent to recommend exists, What the owner's answer covers and Who approved in this reply, then Review the owner's answer and Save the owner's answer; Record this decision saves a change or a decline. A note says what the coverage means at Documents.",
         who: "Renewal staff",
         route: LEASE,
         actions: ["click-button:Ask the owner"],
@@ -840,7 +840,7 @@ export const LEASE_RENEWALS_SCREENS: readonly HelpScreenReference[] = [
       "update-sources",
       "prepare-documents",
     ],
-    lastUpdated: "2026-11-10",
+    lastUpdated: "2026-11-13",
   },
   {
     id: "live-renewal-review",

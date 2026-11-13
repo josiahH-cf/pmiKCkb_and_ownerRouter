@@ -29712,6 +29712,137 @@
           "tests/unit/s246-batch-view.test.tsx",
           "tests/unit/s246-assurance-landmarks.test.tsx"
         ]
+      },
+      {
+        "owner": "components/gmail-hub/CheckGmailNow.tsx",
+        "cohort": "operations_communications",
+        "kind": "asynchronous",
+        "lifetime": "shared finite wait or owning operation",
+        "ownerTests": ["tests/unit/s275-reply-check-controls.test.tsx"],
+        "inspected": true,
+        "checks": [
+          {
+            "test": "Current owning source inspection: components/gmail-hub/CheckGmailNow.tsx (S275 R-S275-5: one Check Gmail now on Incoming and Scheduled, busy label, status or alert line, attempt key reused after a lost answer)",
+            "outcome": "passed",
+            "environment": "staff workflow audit chunk 1 branch claude/staff-audit-chunk-1, Help and controls review, 2026-11-13; privacy-safe static strings only",
+            "evidence": "source read during the Help V5.0 content update"
+          },
+          {
+            "test": "tests/unit/s275-reply-check-controls.test.tsx",
+            "outcome": "passed",
+            "environment": "native WSL lane mirror of the chunk 1 worktree, vitest, 2026-11-13; 4 tests",
+            "evidence": "private scratchpad log hc-owner-units.log"
+          }
+        ],
+        "plannedChecks": [],
+        "compiledCoverage": "Mounted unit coverage of the check, its busy state and the reload after it; the W12-04 rehearsal journey covers it in a browser separately.",
+        "ownerUnitFilesPassed": ["tests/unit/s275-reply-check-controls.test.tsx"]
+      },
+      {
+        "owner": "components/lease-renewal/RenewalOffCycleReview.tsx",
+        "cohort": "renewals",
+        "kind": "asynchronous",
+        "lifetime": "shared finite wait or owning operation",
+        "ownerTests": ["tests/unit/s282-off-cycle-review-ui.test.tsx"],
+        "inspected": true,
+        "checks": [
+          {
+            "test": "Current owning source inspection: components/lease-renewal/RenewalOffCycleReview.tsx (S282 R-S282-1: Lease end date review region, Include in this renewal month or Keep on hold, required Reason, Save, recorded decision, Earlier decisions, read-only and reload states)",
+            "outcome": "passed",
+            "environment": "staff workflow audit chunk 1 branch claude/staff-audit-chunk-1, Help and controls review, 2026-11-13; privacy-safe static strings only",
+            "evidence": "source read during the Help V5.0 content update"
+          },
+          {
+            "test": "tests/unit/s282-off-cycle-review-ui.test.tsx",
+            "outcome": "passed",
+            "environment": "native WSL lane mirror of the chunk 1 worktree, vitest, 2026-11-13; 10 tests",
+            "evidence": "private scratchpad log hc-owner-units.log"
+          }
+        ],
+        "plannedChecks": [],
+        "compiledCoverage": "Mounted unit coverage of the review form and its states; the W12-11 rehearsal journey covers it in a browser separately.",
+        "ownerUnitFilesPassed": ["tests/unit/s282-off-cycle-review-ui.test.tsx"]
+      },
+      {
+        "owner": "components/lease-renewal/RenewalRentBasis.tsx",
+        "cohort": "renewals",
+        "kind": "presentation",
+        "lifetime": "immediate rendered state",
+        "ownerTests": ["tests/unit/s277-agreement-adoption.test.tsx"],
+        "inspected": true,
+        "checks": [
+          {
+            "test": "Current owning source inspection: components/lease-renewal/RenewalRentBasis.tsx (S277 R-S277-2 / R-S277-6: the working base and recommendation basis lines read from the one basis projection; reading saves, sends and looks up nothing)",
+            "outcome": "passed",
+            "environment": "staff workflow audit chunk 1 branch claude/staff-audit-chunk-1, Help and controls review, 2026-11-13; privacy-safe static strings only",
+            "evidence": "source read during the Help V5.0 content update"
+          },
+          {
+            "test": "tests/unit/s277-agreement-adoption.test.tsx",
+            "outcome": "passed",
+            "environment": "native WSL lane mirror of the chunk 1 worktree, vitest, 2026-11-13; 6 tests",
+            "evidence": "private scratchpad log hc-owner-units.log"
+          }
+        ],
+        "plannedChecks": [],
+        "compiledCoverage": "Mounted unit coverage of the basis lines with the agreement adoption; the W12-06 rehearsal journey covers them in a browser separately.",
+        "ownerUnitFilesPassed": ["tests/unit/s277-agreement-adoption.test.tsx"]
+      },
+      {
+        "owner": "components/lease-renewal/RenewalReplyCheck.tsx",
+        "cohort": "renewals",
+        "kind": "asynchronous",
+        "lifetime": "shared finite wait or owning operation",
+        "ownerTests": ["tests/unit/s275-reply-check-controls.test.tsx"],
+        "inspected": true,
+        "checks": [
+          {
+            "test": "Current owning source inspection: components/lease-renewal/RenewalReplyCheck.tsx (S275 R-S275-3: Last checked for a reply, Not checked yet or Reply check failed at, and Check for a reply now for staff who can edit)",
+            "outcome": "passed",
+            "environment": "staff workflow audit chunk 1 branch claude/staff-audit-chunk-1, Help and controls review, 2026-11-13; privacy-safe static strings only",
+            "evidence": "source read during the Help V5.0 content update"
+          },
+          {
+            "test": "tests/unit/s275-reply-check-controls.test.tsx",
+            "outcome": "passed",
+            "environment": "native WSL lane mirror of the chunk 1 worktree, vitest, 2026-11-13; 4 tests",
+            "evidence": "private scratchpad log hc-owner-units.log"
+          }
+        ],
+        "plannedChecks": [],
+        "compiledCoverage": "Mounted unit coverage of the line and the check; the W12-04 rehearsal journey covers it in a browser separately.",
+        "ownerUnitFilesPassed": ["tests/unit/s275-reply-check-controls.test.tsx"]
+      },
+      {
+        "owner": "components/spaces/RenewalProcessGuidance.tsx",
+        "cohort": "knowledge_processes",
+        "kind": "presentation",
+        "lifetime": "immediate rendered state",
+        "ownerTests": [
+          "tests/unit/s286-renewal-guidance-render.test.tsx",
+          "tests/unit/s286-renewal-space-page.test.ts"
+        ],
+        "inspected": true,
+        "checks": [
+          {
+            "test": "Current owning source inspection: components/spaces/RenewalProcessGuidance.tsx (S286 R-S286-1: How this work is done with the published steps and Sources, or Renewals are worked on the Renewal Desk, and Open the Renewal Desk; no run or checklist control)",
+            "outcome": "passed",
+            "environment": "staff workflow audit chunk 1 branch claude/staff-audit-chunk-1, Help and controls review, 2026-11-13; privacy-safe static strings only",
+            "evidence": "source read during the Help V5.0 content update"
+          },
+          {
+            "test": "tests/unit/s286-renewal-guidance-render.test.tsx; tests/unit/s286-renewal-space-page.test.ts",
+            "outcome": "passed",
+            "environment": "native WSL lane mirror of the chunk 1 worktree, vitest, 2026-11-13; 12 and 13 tests",
+            "evidence": "private scratchpad log hc-owner-units.log"
+          }
+        ],
+        "plannedChecks": [],
+        "compiledCoverage": "Rendered unit coverage of both guidance states and the Space page; the W12-14 rehearsal journey covers it in a browser separately.",
+        "ownerUnitFilesPassed": [
+          "tests/unit/s286-renewal-guidance-render.test.tsx",
+          "tests/unit/s286-renewal-space-page.test.ts"
+        ]
       }
     ],
     "cohorts": [

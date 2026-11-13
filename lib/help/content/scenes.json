@@ -1,5 +1,5 @@
 {
-  "version": "V4.0",
+  "version": "V5.0",
   "routeParameters": {
     "leaseId": "4821",
     "propertyKey": "4821",
@@ -476,24 +476,24 @@
       "frame": "viewport",
       "source": "rehearsal",
       "alt": "The Publication panel of the Owner Renewal Outreach process definition, naming its Active immutable version.",
-      "caption": "Publication names the Active version new runs record."
+      "caption": "Publication names the Active version the renewal Space shows as guidance."
     },
     {
-      "id": "process-start-run",
+      "id": "renewal-process-guidance",
       "guide": "outreach-checklist",
-      "step": "start-run",
-      "route": "/processes/[definitionId]",
+      "step": "read-the-guidance",
+      "route": "/spaces/[spaceId]",
       "role": "Editor",
       "fixture": "Owner Renewal Outreach definition published as Active version 1",
       "viewport": {
         "width": 1280,
         "height": 800
       },
-      "region": "heading:Start run",
+      "region": "heading:How this work is done",
       "frame": "viewport",
       "source": "rehearsal",
-      "alt": "The Start run panel with the Due date and Start note fields and the Start run button.",
-      "caption": "Start run creates an internal checklist run."
+      "alt": "The Owner Renewal Outreach Space under How this work is done, with the published steps, Sources and Open the Renewal Desk.",
+      "caption": "A renewal Space shows its process as guidance and starts no run."
     },
     {
       "id": "approval-queue-item",

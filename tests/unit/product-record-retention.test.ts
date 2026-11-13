@@ -155,6 +155,9 @@ const DIRECT_PRODUCT_RECORD_REFERENCE_INVENTORY = {
   workflow_runs: [
     "lib/firestore/workflow-run-step-checks.ts",
     "lib/firestore/workflows.ts",
+    // S286: the app refuses a renewal run start, so the isolated help rehearsal seeds its one
+    // earlier renewal run record straight to its emulator, stamped with the retention contract.
+    "scripts/lib/help-rehearsal-fixtures.mjs",
   ],
 } satisfies Record<ProductRecordCollection, readonly string[]>;
 
@@ -242,7 +245,11 @@ const PRODUCT_RECORD_WRITER_INVENTORY = {
   application_presentation_versions: ["lib/firestore/presentation-settings.ts"],
   presentation_settings_operations: ["lib/firestore/presentation-settings.ts"],
   support_reports: ["lib/firestore/support-reports.ts"],
-  workflow_runs: ["lib/firestore/workflows.ts"],
+  workflow_runs: [
+    "lib/firestore/workflows.ts",
+    // S286: the help rehearsal's earlier renewal run record, emulator only.
+    "scripts/lib/help-rehearsal-fixtures.mjs",
+  ],
 } satisfies Record<ProductRecordCollection, readonly string[]>;
 
 describe("S51 product and communications retention separation", () => {

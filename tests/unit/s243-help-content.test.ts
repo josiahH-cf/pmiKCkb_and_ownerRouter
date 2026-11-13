@@ -33,7 +33,8 @@ const R_S243_1 = [
   ["lease-renewals", "Prepare the tenant offer and record the response"],
   ["lease-renewals", "Update RentVine and the operating Sheet"],
   ["documents-and-dotloop", "Prepare documents and hand off to Dotloop"],
-  ["workflow-runs", "Run the Owner Renewal Outreach checklist"],
+  // S286: renewal processes are guidance and start no checklist run; the guide keeps its id.
+  ["workflow-runs", "Read a renewal process as guidance"],
   ["spaces-and-processes", "Publish a process definition"],
   ["approval-queue-and-notifications", "Approve or deny in the Approval Queue"],
   ["approval-queue-and-notifications", "Read and act on Notifications"],
@@ -145,7 +146,16 @@ describe("S243 R-S243-2 / R-S243-3: references, glossary and What changed", () =
     };
     for (let index = 1; index < versions.length; index += 1)
       expect(rank(versions[index - 1])).toBeGreaterThan(rank(versions[index]));
-    expect(versions).toEqual(["V4.0", "V3.0", "V2.2", "V2.1", "V2.0", "V1.1", "V1.0"]);
+    expect(versions).toEqual([
+      "V5.0",
+      "V4.0",
+      "V3.0",
+      "V2.2",
+      "V2.1",
+      "V2.0",
+      "V1.1",
+      "V1.0",
+    ]);
   });
 });
 
@@ -244,7 +254,12 @@ describe("S243 R-S243-7 / BEH-S243-4 / AC-S243-7: consolidation", () => {
     // S252: the 70 rows of the starting map are kept by step id (tests/unit/s252-control-map-
     // continuity.test.ts), and the working batch and Guided view add their own rows.
     expect(renewalControlMap.length).toBeGreaterThanOrEqual(70);
-    expect(renewalControlMap.length).toBe(126);
+    // The November 12 staff workflow audit (chunk 1) adds rows 131 to 135 and 138 to 140: the
+    // off-cycle end date review, the reply check, the owner answer's dates link and return, and
+    // the stage line's check fix. The two controls whose names always carry a dollar amount (the
+    // standing agreement amount and Same as recommended) are described by the lease page's
+    // Pricing basis control and the Amount approved row, since Help text carries no dollar figure.
+    expect(renewalControlMap.length).toBe(134);
     expect(
       renewalControlMap.filter((row) => row.availability === "required").length,
     ).toBeGreaterThanOrEqual(41);

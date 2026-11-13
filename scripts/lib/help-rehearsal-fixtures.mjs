@@ -3,14 +3,15 @@
 // addresses), and every write goes to the Firestore emulator named by FIRESTORE_EMULATOR_HOST.
 // Nothing here can reach a provider or a production store. The capture script runs under the
 // TypeScript loader, so the app's own record builders and services shape these documents: the
-// process is published, its run started, the operational page approved and published and the
-// queue item created through the same functions the app's routes call, and each result is read
-// back through the app's own readers before the rehearsal starts.
+// process is published, the operational page approved and published and the queue item created
+// through the same functions the app's routes call, and each result is read back through the
+// app's own readers before the rehearsal starts. The renewal run start is refused (S286), so the
+// one run the run page shows is seeded as an earlier record and read back the same way.
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { initializeApp } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { FieldValue, getFirestore } from "firebase-admin/firestore";
 
 import { demoRecords } from "../demo-firestore.mjs";
 
@@ -92,7 +93,7 @@ export async function seedHelpRehearsal() {
   // publication policy for the reviewed bytes and revision, and the definition is published
   // through the app's publication service, which writes the immutable version, content chunks,
   // publication record and the definition's version pin. Production has no run of it; the one
-  // run below exists only so the run page renders.
+  // earlier run below exists only so the run page renders as a record.
   const {
     buildOwnerRenewalOutreachDefinitionRecord,
     OWNER_RENEWAL_OUTREACH_DEFINITION_ID,
@@ -166,22 +167,70 @@ export async function seedHelpRehearsal() {
   assert.equal(publication.state, "verified", "The published version did not read back.");
   assert.equal(publication.versionNumber, 1);
 
-  // 2. One checklist run of the published version, started by the local demo Editor through the
-  // app's run start under the trusted run id the help routes name. Its checklist stays untouched.
-  const run = await startWorkflowRun(
-    editor,
-    active.id,
-    {
-      expected_revision: active.revision,
-      note: "Started for the help rehearsal with synthetic data only.",
-    },
-    db,
-    { runId: ROUTES.runId },
+  // 2. S286: a renewal process is guidance and starts no run, so the app's run start refuses it
+  // for every caller and creates nothing. The run page help documents an earlier run kept as a
+  // record, so one open run of the published version is seeded as an earlier record under the
+  // trusted run id the help routes name: the exact fields startWorkflowRun wrote before S286
+  // (pinned version, process name, default approver as Owner, first step as the stored next
+  // action, the local demo Editor as starter, the product retention stamp) and its one "started"
+  // Timeline entry, written straight to the emulator. Its checklist stays untouched, and the
+  // app's own reader reads it back as a guidance-only record.
+  await assert.rejects(
+    startWorkflowRun(
+      editor,
+      active.id,
+      { expected_revision: active.revision, note: "Refused for the help rehearsal." },
+      db,
+      { runId: ROUTES.runId },
+    ),
+    /Renewal work is done on the Renewal Desk\. This process is guidance\./,
+    "The renewal run start was not refused.",
   );
+  const { stampProductRecordRetention } =
+    await import("../../lib/operations/product-record-retention.ts");
+  const { getWorkflowRun } = await import("../../lib/firestore/workflows.ts");
+  const { isGuidanceOnlyWorkflowRun } =
+    await import("../../lib/processes/guidance-only.ts");
+  const startedAt = FieldValue.serverTimestamp();
+  await db
+    .collection("workflow_runs")
+    .doc(ROUTES.runId)
+    .create(
+      stampProductRecordRetention("workflow_runs", {
+        id: ROUTES.runId,
+        data_mode: "live",
+        definition_id: active.id,
+        space_id: active.space_id ?? spaceId,
+        definition_version_id: active.active_version_id,
+        process_name: active.name,
+        status: "In Progress",
+        owner_uid: active.default_approver_uid,
+        next_action: active.steps[0]?.title ?? "Review workflow run.",
+        due_date: now.slice(0, 10),
+        started_by_uid: editor.uid,
+        created_at: startedAt,
+        updated_at: startedAt,
+      }),
+    );
+  const timelineId = randomUUID();
+  await db
+    .collection("workflow_run_timeline")
+    .doc(timelineId)
+    .create({
+      id: timelineId,
+      run_id: ROUTES.runId,
+      actor_uid: editor.uid,
+      event_type: "started",
+      summary: `Started for the help rehearsal with synthetic data only. Definition version: ${active.active_version_id}.`,
+      new_status: "In Progress",
+      created_at: startedAt,
+    });
+  const run = await getWorkflowRun(editor, ROUTES.runId, db);
   const { listStepChecksForRun } =
     await import("../../lib/firestore/workflow-run-step-checks.ts");
   assert.equal(run.status, "In Progress");
   assert.equal(run.definition_version_id, active.active_version_id);
+  assert.ok(isGuidanceOnlyWorkflowRun(run), "The earlier run is not a renewal record.");
   assert.deepEqual(await listStepChecksForRun(editor, run.id, db), []);
 
   // 3. A read-only operational page on the Space, drafted, approved and published by the local

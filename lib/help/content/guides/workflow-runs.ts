@@ -1,20 +1,25 @@
 import type { HelpGuide } from "@/lib/help/types";
 
-const RUN_PANEL = "components/desk/SpaceDeskRunPanel.tsx";
+const GUIDANCE = "components/spaces/RenewalProcessGuidance.tsx";
+const GUIDANCE_WORDS = "lib/processes/guidance-only.ts";
 const RUN_PAGE = "components/workflows/WorkflowRunClient.tsx";
 
+// S286 (help V5.0): renewal work has one place, the Renewal Desk. The three renewal Spaces show
+// their published process as guidance with Open the Renewal Desk, start no checklist run, and an
+// earlier run of a renewal process stays readable as a record. The guide keeps its id so earlier
+// links and What changed entries still open it.
 export const WORKFLOW_RUNS_GUIDES: readonly HelpGuide[] = [
   {
     id: "outreach-checklist",
     section: "workflow-runs",
-    title: "Run the Owner Renewal Outreach checklist",
+    title: "Read a renewal process as guidance",
     audience: "Renewal staff",
     purpose:
-      "Work the Owner Renewal Outreach process as an internal checklist: start a run from its published definition, check or skip each step as the work happens, complete the run and find it again later.",
+      "Read how owner outreach is done on the Owner Renewal Outreach + Comp Lookup Space, follow Open the Renewal Desk to work the leases, and read an earlier checklist run as a record. Renewal work is done on the Renewal Desk, so a renewal process starts no checklist run.",
     prerequisites: [
-      "You are signed in with edit access, which the Editor, Approver and Admin roles have.",
-      "The Owner Renewal Outreach + Comp Lookup process is published as Active version 1, so a new run records that immutable version. It has no runs until staff start one.",
-      "The steps point to work done on the lease renewal workspace and in Communications; the checklist records what staff marked.",
+      "You are signed in. Reading a Space, a process definition or a run needs no edit access.",
+      "The Owner Renewal Outreach + Comp Lookup process is published as Active version 1, so its Space shows the six published steps. A renewal Space whose process has no published version says Renewals are worked on the Renewal Desk.",
+      "The lease work itself, from the owner message to the recorded outcome, is done on the Renewal Desk; Work a renewal from the desk to a recorded outcome explains it.",
     ],
     steps: [
       {
@@ -30,7 +35,8 @@ export const WORKFLOW_RUNS_GUIDES: readonly HelpGuide[] = [
         },
         route: "/",
         where: "Top bar, Operations menu, on every page",
-        result: "Internal Processes opens with one card for each Space.",
+        result:
+          "Internal Processes opens with one card for each Space. The Owner Renewal Outreach + Comp Lookup card reads Read how owner outreach is done with the state Guidance.",
         effect: "reads",
       },
       {
@@ -45,151 +51,74 @@ export const WORKFLOW_RUNS_GUIDES: readonly HelpGuide[] = [
         route: "/spaces",
         where: "Internal Processes, Space cards",
         result:
-          "The Space opens on its Overview. The Workflow card lists the six steps, and until staff start a run the Run card says No run yet and offers Start run.",
+          "The Space opens on How this work is done. It has no Start run, no checklist and no Overview or Process views.",
+        effect: "reads",
+        note: "The Lease Renewals and Tenant Renewal Notice + DotLoop Follow-Up Spaces read the same way: Guidance when their process is published, Worked on the Renewal Desk when it is not.",
+      },
+      {
+        id: "read-the-guidance",
+        scene: "renewal-process-guidance",
+        action:
+          "Read the short outcome and the six published steps, and open a link under Sources to read the procedure it cites.",
+        control: {
+          label: "How this work is done",
+          role: "heading",
+          availability: "required",
+          source: [GUIDANCE_WORDS],
+        },
+        route: "/spaces/[spaceId]",
+        where: "Space page, How this work is done",
+        result:
+          "Each step shows its title and its description. Each web link under Sources opens in a new tab, and a source that is not a web address shows as its name. Reading saves nothing.",
         effect: "reads",
       },
       {
-        id: "open-process-tab",
-        action: "Select Process under Space views.",
+        id: "open-the-renewal-desk",
+        action: "Select Open the Renewal Desk to work the leases.",
         control: {
-          label: "Process",
+          label: "Open the Renewal Desk",
           role: "link",
-          region: "navigation:Space views",
           availability: "required",
-          source: ["app/spaces/[spaceId]/page.tsx"],
+          source: [GUIDANCE_WORDS],
         },
         route: "/spaces/[spaceId]",
-        where: "Space page, Space views",
+        where: "Space page, How this work is done, below the steps",
         result:
-          "The Process tab shows the status Active, the Immutable version line with the published version, the six steps and Recent runs, which reads No workflow runs yet until staff start one.",
+          "The Renewal Desk opens on the working batch, where each lease is worked step by step in Guided view and its work is recorded on the lease.",
         effect: "reads",
       },
       {
         id: "open-process-definition",
-        action: "Select View full process → to open the process definition.",
+        action: "Select View full process → to read the whole definition.",
         control: {
           label: "View full process →",
           role: "link",
           availability: "required",
-          source: ["components/spaces/ProcessSummaryPanel.tsx"],
-          actions: ["click-link:Process"],
+          source: [GUIDANCE],
         },
         route: "/spaces/[spaceId]",
-        where: "Space page, Process tab",
+        where: "Space page, How this work is done, at the end",
         result:
-          "The Process Definition page opens. Its Start run panel says Creates an internal checklist. External changes use their separate confirmation controls.",
+          "The Process Definition page opens. Owner UID and Approver UID read Not used: this process starts no runs, and the Renewal work panel says Renewal work is done on the Renewal Desk. This process is guidance. with Open the Renewal Desk. Recent Runs lists any earlier run of this process.",
         effect: "reads",
+        note: "Approvers and Admins keep editing and publishing the process here; Publish a process definition explains it.",
       },
       {
-        id: "start-run",
-        scene: "process-start-run",
+        id: "read-earlier-run",
         action:
-          "In Start run, pick a Due date, add a Start note that says which renewal the run is for, and select Start run.",
-        control: {
-          label: "Start run",
-          role: "button",
-          availability: "required",
-          source: ["components/workflows/ProcessDefinitionDetailClient.tsx"],
-        },
-        route: "/processes/[definitionId]",
-        where: "Process Definition, Start run panel",
-        result:
-          "The app creates the run and opens its Workflow Run page: status In Progress, Next Action Gather facts and Definition version set to the published version. Without a Due date the run is due today. While the published version still carries placeholder owner or approver assignments, the page says so and no run is created.",
-        effect: "saves-in-app",
-        note: "Start run on the Space Overview also starts a run, without a due date or note, while the process has no run. When Start run reports placeholder owner or approver assignments, record the responsible staff in Owner UID and Approver UID on the definition and publish that reviewed version first.",
-      },
-      {
-        id: "read-run",
-        action: "Read the run page.",
-        control: {
-          label: "Outcome",
-          role: "heading",
-          availability: "required",
-          source: [RUN_PAGE],
-        },
-        route: "/workflow-runs/[runId]",
-        where: "Workflow Run, Outcome panel",
-        result:
-          "The run shows its Owner, Next Action, Due Date, Started By and Definition version. Outcome counts the checklist, for example Checklist: 0 of 6 complete, and names the incomplete steps; Timeline records the start.",
-        effect: "reads",
-      },
-      {
-        id: "open-checklist",
-        action: "Open the Space again from Internal Processes to work the steps.",
+          "To read an earlier run, select its name under Recent Runs and read its Checklist.",
         control: {
           label: "Checklist",
           role: "heading",
           availability: "conditional",
-          source: [RUN_PANEL],
-        },
-        route: "/spaces/[spaceId]",
-        where: "Space page, Overview, Checklist card",
-        result:
-          "The Overview shows the Checklist for the newest run. Each step has a To do pill, Check, Skip and its own Reason to skip field, and the Workflow card adds This run: with the run's version.",
-        effect: "reads",
-      },
-      {
-        id: "check-step",
-        action: "When a step's work is done, select Check on that step.",
-        control: {
-          label: "Check",
-          role: "button",
-          availability: "conditional",
-          source: [RUN_PANEL],
-        },
-        route: "/spaces/[spaceId]",
-        where: "Space page, Overview, Checklist card",
-        result:
-          "The step's pill reads Done and the Workflow card moves the current step to the next open one. A check records the checklist only; it does not verify a source or change RentVine or the operating Sheet.",
-        effect: "saves-in-app",
-      },
-      {
-        id: "skip-step",
-        action:
-          "For a step that does not apply, type why in its Reason to skip field and select Skip.",
-        control: {
-          label: "Skip",
-          role: "button",
-          availability: "conditional",
-          source: [RUN_PANEL],
-        },
-        route: "/spaces/[spaceId]",
-        where: "Space page, Overview, Checklist card",
-        result:
-          "The pill reads Skipped and the reason shows under the step. Without a reason the page says A reason is required to skip a step.",
-        effect: "saves-in-app",
-        note: "Clear returns a checked or skipped step to To do while the run is open.",
-      },
-      {
-        id: "open-run",
-        action: "Open the run from Recent Runs on the Process Definition page.",
-        control: {
-          label: "Owner Renewal Outreach + Comp Lookup",
-          role: "link",
-          availability: "conditional",
-          source: ["lib/lease-renewal/owner-renewal-outreach/process-template.ts"],
-        },
-        route: "/processes/[definitionId]",
-        where: "Process Definition, Recent Runs panel",
-        result:
-          "Recent Runs lists each run by name with its status, due date and Definition version; selecting one opens its run page with the current checklist count.",
-        effect: "reads",
-      },
-      {
-        id: "complete-run",
-        action:
-          "When every step is Checked or Skipped, add the outcome in Notes and select Complete run.",
-        control: {
-          label: "Complete run",
-          role: "button",
-          availability: "required",
           source: [RUN_PAGE],
         },
         route: "/workflow-runs/[runId]",
-        where: "Workflow Run, Outcome panel",
+        where: "Workflow Run, Checklist panel",
         result:
-          "The run reads Completed, your notes show as Outcome Notes and the Timeline records the change. Complete run stays unavailable while any step is open, and Fail run closes a run that cannot finish.",
-        effect: "saves-in-app",
+          "The run opens read only with its Owner, Due Date, Started By and Definition version, and Next Action reads None. Checklist says This run is kept as a record. Renewal work continues on the Renewal Desk., lists each step as Done, Skipped with its reason, or To do, and offers Open the Renewal Desk. Timeline keeps the run's history.",
+        effect: "reads",
+        note: "An earlier renewal run appears in no next action list: not My Work, the Space card, the process summary or Ask.",
       },
       {
         id: "find-runs",
@@ -203,20 +132,20 @@ export const WORKFLOW_RUNS_GUIDES: readonly HelpGuide[] = [
         route: "/processes",
         where: "Processes, Recent runs",
         result:
-          "Recent runs lists the newest runs across processes with due date, owner, status and Definition version. The Space's Process tab and the Process Definition page list this process's runs too.",
+          "Recent runs lists the newest runs across processes with due date, owner, status and Definition version, and each name opens its run.",
         effect: "reads",
         note: "Back to Processes on the Process Definition page opens Processes.",
       },
     ],
     result:
-      "The run reads Completed with its outcome notes and timeline, each step shows Done or Skipped with its reason, and the run is listed under Recent Runs.",
+      "You have read how owner outreach is done, opened the Renewal Desk where the leases are worked, and read any earlier run as a record.",
     doesNotDo: [
-      "A run is an internal checklist only: it sends no message and changes nothing in RentVine, the operating Sheet or Dotloop.",
-      "Checking a step does not verify a source, approve renewal terms or prove that a message was delivered.",
-      "Owner messages, source updates and Dotloop steps keep their own preview and confirmation controls on their own pages; the checklist never starts them.",
-      "Starting a run does not change the published process or its Active version.",
+      "A renewal process starts no checklist run: its Space, its Process Definition page and Anticipated work offer no Start run, and a direct start answers Renewal work is done on the Renewal Desk. This process is guidance.",
+      "An earlier renewal run is never completed, failed, changed or deleted; its checklist only reads.",
+      "Reading the guidance sends no message and changes nothing in RentVine, the operating Sheet or Dotloop.",
+      "The published steps record no lease work; each lease's work is recorded on that lease on the Renewal Desk.",
     ],
-    relatedGuides: ["publish-a-process", "owner-message", "work-a-renewal"],
+    relatedGuides: ["work-a-renewal", "publish-a-process", "owner-message"],
     relatedScreens: [
       "spaces",
       "space",
@@ -224,7 +153,7 @@ export const WORKFLOW_RUNS_GUIDES: readonly HelpGuide[] = [
       "workflow-run",
       "processes",
     ],
-    lastUpdated: "2026-11-04",
+    lastUpdated: "2026-11-13",
     spaces: ["owner-renewal-outreach"],
   },
 ];

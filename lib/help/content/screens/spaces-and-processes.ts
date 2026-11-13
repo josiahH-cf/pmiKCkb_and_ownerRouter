@@ -10,8 +10,10 @@ const SPACE_RECORDS = "components/spaces/SpaceDetailClient.tsx";
 const ANTICIPATED = "components/spaces/AnticipatedWorkSection.tsx";
 const LIST = "components/workflows/ProcessDefinitionListClient.tsx";
 const DETAIL = "components/workflows/ProcessDefinitionDetailClient.tsx";
+// S286: the three renewal Spaces show their process as guidance and start no run.
+const GUIDANCE = "components/spaces/RenewalProcessGuidance.tsx";
+const GUIDANCE_WORDS = "lib/processes/guidance-only.ts";
 const SHOW_ANTICIPATED = ["click-button:Show anticipated work"];
-const OPEN_PROCESS_TAB = ["click-link:Process"];
 
 export const SPACES_AND_PROCESSES_SCREENS: readonly HelpScreenReference[] = [
   {
@@ -20,7 +22,7 @@ export const SPACES_AND_PROCESSES_SCREENS: readonly HelpScreenReference[] = [
     routes: ["/spaces"],
     who: "All staff",
     summary:
-      "Internal Processes lists every Space as a card with its name, its process category and its state, such as Published process, Draft process, Needs a process or Read-only history. Lease Renewals opens the renewal desk; every other card opens its Space page. Anticipated work shows the renewal work coming up, with Start run beside it, only when you ask.",
+      "Internal Processes lists every Space as a card with its name, a line on what it opens and its state, such as Published process, Draft process, Needs a process or Read-only history. The three renewal cards read Guidance when their process is published and Worked on the Renewal Desk when it is not, or Connections needed while a connection they use is missing. Lease Renewals opens the renewal desk; every other card opens its Space page. Anticipated work shows the renewal work coming up, with a link to where each is worked, only when you ask.",
     controls: [
       {
         label: "Internal Processes",
@@ -35,7 +37,7 @@ export const SPACES_AND_PROCESSES_SCREENS: readonly HelpScreenReference[] = [
         role: "heading",
         availability: "required",
         source: [SPACES],
-        does: "Opens the renewal desk at Lease Renewal. The card adds a count of items waiting on you when there are any.",
+        does: "Reads Work leases on the Renewals desk and opens the renewal desk at Lease Renewal. The card adds a count of items waiting on you when there are any.",
         who: "All staff",
       },
       {
@@ -43,7 +45,7 @@ export const SPACES_AND_PROCESSES_SCREENS: readonly HelpScreenReference[] = [
         role: "heading",
         availability: "required",
         source: [SPACES],
-        does: "Opens the Owner Renewal Outreach Space with its published process, its checklist runs and its approved sources.",
+        does: "Reads Read how owner outreach is done. Opens the Owner Renewal Outreach Space, which shows its published process as guidance with Open the Renewal Desk and its approved sources.",
         who: "All staff",
       },
       {
@@ -51,7 +53,7 @@ export const SPACES_AND_PROCESSES_SCREENS: readonly HelpScreenReference[] = [
         role: "heading",
         availability: "required",
         source: [SPACES],
-        does: "Opens the tenant renewal notice Space and shows its process state.",
+        does: "Reads Read how the tenant offer and documents are done. Opens the tenant renewal notice Space, which shows its process as guidance with Open the Renewal Desk.",
         who: "All staff",
       },
       {
@@ -136,32 +138,12 @@ export const SPACES_AND_PROCESSES_SCREENS: readonly HelpScreenReference[] = [
         who: "All staff",
       },
       {
-        label: "Start run",
-        role: "button",
-        region: "Anticipated work",
-        availability: "conditional",
-        source: ["components/console/StartRunButton.tsx"],
-        does: "Starts one internal checklist run for that process and shows Run started with View the run. It sends nothing and changes no source. A process that still carries placeholder owner or approver assignments starts no run and says so.",
-        who: "All staff",
-        actions: SHOW_ANTICIPATED,
-      },
-      {
-        label: "View the run",
-        role: "link",
-        region: "Anticipated work",
-        availability: "conditional",
-        source: ["components/console/StartRunButton.tsx"],
-        does: "Opens the run you just started.",
-        who: "All staff",
-        actions: SHOW_ANTICIPATED,
-      },
-      {
         label: "Open the space",
         role: "link",
         region: "Anticipated work",
         availability: "conditional",
         source: ["components/console/ConsoleAnticipatedWork.tsx"],
-        does: "Opens the Space when its row cannot start a run here.",
+        does: "Opens where that renewal work is done: the renewal desk for Lease Renewals, and for the owner and tenant processes their Space, which shows the process as guidance with Open the Renewal Desk. Renewal work starts no run here.",
         who: "All staff",
         actions: SHOW_ANTICIPATED,
       },
@@ -191,7 +173,7 @@ export const SPACES_AND_PROCESSES_SCREENS: readonly HelpScreenReference[] = [
       "move-out-deposit-disposition",
       "owner-onboarding",
     ],
-    lastUpdated: "2026-11-04",
+    lastUpdated: "2026-11-13",
   },
   {
     id: "space",
@@ -199,7 +181,7 @@ export const SPACES_AND_PROCESSES_SCREENS: readonly HelpScreenReference[] = [
     routes: ["/spaces/[spaceId]"],
     who: "All staff",
     summary:
-      "A Space page opens from its card on Internal Processes. A Space that carries a process has Space views: Overview is its desk, with the Workflow steps, Connected tools, notice timing rules for renewal Spaces and the Run or Checklist card for the newest run, and Process summarizes the definition with View full process →. A Space without a process holds its SOP, Templates, Tools, Placeholders and Change Log, and retained maintenance Spaces are read-only history. Every Space lists any published Operational pages, and its last panel adds the sources the app can cite for that Space.",
+      "A Space page opens from its card on Internal Processes. A renewal Space (Lease Renewals, Owner Renewal Outreach + Comp Lookup, Tenant Renewal Notice + DotLoop Follow-Up) shows its published process under How this work is done, with the steps, Sources, Open the Renewal Desk and the notice timing rules; with no published process it reads Renewals are worked on the Renewal Desk. It starts no run and has no checklist. Any other Space that carries a process has Space views: Overview is its desk, with the Workflow steps, Connected tools and the Run or Checklist card for the newest run, and Process summarizes the definition with View full process →. A Space without a process holds its SOP, Templates, Tools, Placeholders and Change Log, and retained maintenance Spaces are read-only history. Every Space lists any published Operational pages, and its last panel adds the sources the app can cite for that Space.",
     controls: [
       {
         label: "Back to Internal Processes",
@@ -210,12 +192,36 @@ export const SPACES_AND_PROCESSES_SCREENS: readonly HelpScreenReference[] = [
         who: "All staff",
       },
       {
+        label: "How this work is done",
+        role: "heading",
+        availability: "conditional",
+        source: [GUIDANCE_WORDS],
+        does: "Shown on a renewal Space: the published process's short outcome and its steps with their descriptions, read only. Without a published version it reads Renewals are worked on the Renewal Desk.",
+        who: "All staff",
+      },
+      {
+        label: "Sources",
+        role: "heading",
+        availability: "conditional",
+        source: [GUIDANCE],
+        does: "The published process's source links. A web link opens in a new tab; any other source shows as its name.",
+        who: "All staff",
+      },
+      {
+        label: "Open the Renewal Desk",
+        role: "link",
+        availability: "conditional",
+        source: [GUIDANCE_WORDS],
+        does: "Opens the Renewal Desk, where the leases are worked. When the Space was opened for one lease, it opens that lease.",
+        who: "All staff",
+      },
+      {
         label: "Overview",
         role: "link",
         region: "navigation:Space views",
         availability: "conditional",
         source: [SPACE_PAGE],
-        does: "Shows the Space desk on a Space that carries a process.",
+        does: "Shows the Space desk on a Space whose process starts runs. A renewal Space has no Space views.",
         who: "All staff",
       },
       {
@@ -256,7 +262,7 @@ export const SPACES_AND_PROCESSES_SCREENS: readonly HelpScreenReference[] = [
         role: "heading",
         availability: "conditional",
         source: [RUN_PANEL],
-        does: "Shown while the process has no run: it says No run yet and offers Start run.",
+        does: "Shown on a Space whose process starts runs, while it has no run: it says No run yet and offers Start run.",
         who: "All staff",
       },
       {
@@ -264,7 +270,7 @@ export const SPACES_AND_PROCESSES_SCREENS: readonly HelpScreenReference[] = [
         role: "button",
         availability: "conditional",
         source: [RUN_PANEL],
-        does: "Starts the first checklist run for this process. The run is an internal checklist and sends nothing. While the process carries placeholder owner or approver assignments, no run starts and the page says so.",
+        does: "Starts the first checklist run for a process that starts runs. The run is an internal checklist and sends nothing. While the process carries placeholder owner or approver assignments, no run starts and the page says so. A renewal Space has no Start run.",
         who: "All staff",
       },
       {
@@ -272,7 +278,7 @@ export const SPACES_AND_PROCESSES_SCREENS: readonly HelpScreenReference[] = [
         role: "heading",
         availability: "conditional",
         source: [RUN_PANEL],
-        does: "Shows the newest run's steps with To do, Done or Skipped pills. A closed run's checklist is read-only.",
+        does: "Shows the newest run's steps with To do, Done or Skipped pills on a Space whose process starts runs. A closed run's checklist is read-only.",
         who: "All staff",
       },
       {
@@ -313,27 +319,24 @@ export const SPACES_AND_PROCESSES_SCREENS: readonly HelpScreenReference[] = [
         role: "heading",
         availability: "conditional",
         source: [SUMMARY],
-        does: "Lists the process steps in order on the Process tab.",
+        does: "Lists the process steps in order on the Process tab of a Space whose process starts runs.",
         who: "All staff",
-        actions: OPEN_PROCESS_TAB,
       },
       {
         label: "Recent runs",
         role: "heading",
         availability: "conditional",
         source: [SUMMARY],
-        does: "Lists up to five recent runs with status, next action and Definition version, or No workflow runs yet.",
+        does: "Lists up to five recent runs with status, next action and Definition version, or No workflow runs yet. An earlier renewal run is a record and is not listed here.",
         who: "All staff",
-        actions: OPEN_PROCESS_TAB,
       },
       {
         label: "View full process →",
         role: "link",
         availability: "conditional",
-        source: [SUMMARY],
-        does: "Opens the Process Definition page, where staff edit, publish and start runs.",
+        source: [SUMMARY, GUIDANCE],
+        does: "Opens the Process Definition page, where staff edit and publish the process. A process that starts runs also starts them there; a renewal process does not.",
         who: "All staff",
-        actions: OPEN_PROCESS_TAB,
       },
       {
         label: "Approved sources the app can cite",
@@ -449,7 +452,7 @@ export const SPACES_AND_PROCESSES_SCREENS: readonly HelpScreenReference[] = [
       },
     ],
     guides: ["publish-a-process", "outreach-checklist"],
-    lastUpdated: "2026-11-04",
+    lastUpdated: "2026-11-13",
   },
   {
     id: "operational-page",
@@ -594,7 +597,7 @@ export const SPACES_AND_PROCESSES_SCREENS: readonly HelpScreenReference[] = [
     routes: ["/processes/[definitionId]"],
     who: "All staff",
     summary:
-      "A Process Definition page shows one definition: the form with Save and Publish, the Publication panel with its immutable version, Start run and Recent Runs. Saving carries the revision you loaded, publishing runs the Publication checks on the saved definition, and a run started here is an internal checklist.",
+      "A Process Definition page shows one definition: the form with Save and Publish, the Publication panel with its immutable version, and Recent Runs. A renewal process (Lease Renewal, Owner Renewal Outreach + Comp Lookup, Tenant Renewal Notice + DotLoop Follow-Up) shows Owner UID and Approver UID as Not used: this process starts no runs and a Renewal work panel with Open the Renewal Desk; its published version is the guidance its Space shows. Any other process has a Start run panel, and a run started there is an internal checklist. Saving carries the revision you loaded, and publishing runs the Publication checks on the saved definition.",
     controls: [
       {
         label: "Back to Processes",
@@ -631,17 +634,17 @@ export const SPACES_AND_PROCESSES_SCREENS: readonly HelpScreenReference[] = [
       {
         label: "Owner UID",
         role: "label",
-        availability: "required",
+        availability: "conditional",
         source: [DETAIL],
-        does: "The staff account that owns the process.",
+        does: "The staff account that owns a process that starts runs. On a renewal process it reads Not used: this process starts no runs, and the value already stored stays as it is.",
         who: "All staff",
       },
       {
         label: "Approver UID",
         role: "label",
-        availability: "required",
+        availability: "conditional",
         source: [DETAIL],
-        does: "The default approver; a new run lists this account as its Owner.",
+        does: "The default approver of a process that starts runs; a new run lists this account as its Owner. On a renewal process it reads Not used: this process starts no runs.",
         who: "All staff",
       },
       {
@@ -744,28 +747,44 @@ export const SPACES_AND_PROCESSES_SCREENS: readonly HelpScreenReference[] = [
         who: "All staff",
       },
       {
+        label: "Renewal work",
+        role: "heading",
+        availability: "conditional",
+        source: [DETAIL],
+        does: "Shown on a renewal process in place of Start run. It says Renewal work is done on the Renewal Desk. This process is guidance.",
+        who: "All staff",
+      },
+      {
+        label: "Open the Renewal Desk",
+        role: "link",
+        availability: "conditional",
+        source: [GUIDANCE_WORDS],
+        does: "In Renewal work: opens the Renewal Desk, where the leases are worked.",
+        who: "All staff",
+      },
+      {
         label: "Due date MM/DD/YYYY",
         role: "textbox",
-        availability: "required",
+        availability: "conditional",
         source: [DETAIL],
         sourceText: "Due date",
-        does: "The new run's due date; without one the run is due today.",
+        does: "On a process that starts runs: the new run's due date; without one the run is due today.",
         who: "All staff",
       },
       {
         label: "Start note",
         role: "textbox",
-        availability: "required",
+        availability: "conditional",
         source: [DETAIL],
-        does: "A note recorded in the run's Timeline when it starts.",
+        does: "On a process that starts runs: a note recorded in the run's Timeline when it starts.",
         who: "All staff",
       },
       {
         label: "Start run",
         role: "button",
-        availability: "required",
+        availability: "conditional",
         source: [DETAIL],
-        does: "Creates an internal checklist run and opens its run page. A run of an Active definition records its immutable version, and a Draft run reads Not pinned (draft). While the definition carries placeholder owner or approver assignments, no run is created and the page says so.",
+        does: "On a process that starts runs: creates an internal checklist run and opens its run page. A run of an Active definition records its immutable version, and a Draft run reads Not pinned (draft). While the definition carries placeholder owner or approver assignments, no run is created and the page says so. A renewal process has no Start run.",
         who: "All staff",
       },
       {
@@ -773,7 +792,7 @@ export const SPACES_AND_PROCESSES_SCREENS: readonly HelpScreenReference[] = [
         role: "heading",
         availability: "required",
         source: [DETAIL],
-        does: "Lists this process's runs with status, due date and Definition version, each linking to its run page, or says No workflow runs exist for this process.",
+        does: "Lists this process's runs with status, due date and Definition version, each linking to its run page, or says No workflow runs exist for this process. An earlier run of a renewal process opens as a read-only record.",
         who: "All staff",
       },
       {
@@ -794,6 +813,6 @@ export const SPACES_AND_PROCESSES_SCREENS: readonly HelpScreenReference[] = [
       },
     ],
     guides: ["publish-a-process", "outreach-checklist"],
-    lastUpdated: "2026-11-04",
+    lastUpdated: "2026-11-13",
   },
 ];

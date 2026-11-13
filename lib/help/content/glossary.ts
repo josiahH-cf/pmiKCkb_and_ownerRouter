@@ -81,6 +81,13 @@ export const HELP_GLOSSARY: readonly HelpGlossaryTerm[] = [
     relatedGuides: ["work-a-renewal", "owner-message"],
   },
   {
+    id: "off-cycle-end-date",
+    term: "Off-cycle end date",
+    definition:
+      "A lease end date in the renewal window that is not the last day of a month. Staff record one review of that exact date on Check the numbers, Include in this renewal month or Keep on hold, with a reason; until the lease is included, its preparation and sending wait.",
+    relatedGuides: ["work-a-renewal"],
+  },
+  {
     id: "offer-charge-mapping",
     term: "Offer charge mapping",
     definition:
@@ -153,14 +160,14 @@ export const HELP_GLOSSARY: readonly HelpGlossaryTerm[] = [
     id: "space",
     term: "Space",
     definition:
-      "A work area of the app for one kind of work, such as lease renewals or a process. Internal Processes, in the Operations menu, lists every Space with a card.",
+      "A work area of the app for one kind of work, such as lease renewals or a process. Internal Processes, in the Operations menu, lists every Space with a card. A renewal Space shows its process as guidance and starts no run; the leases are worked on the Renewal Desk.",
     relatedGuides: ["find-your-way"],
   },
   {
     id: "standing-agreement",
     term: "Standing agreement",
     definition:
-      "An owner's recorded rule for renewal rent, applied to this lease or every lease in the owner's portfolio. A lease it covers needs no owner message, and its rent to recommend is the rule applied to the current rent.",
+      "An owner's recorded rule for renewal rent, applied to this lease or every lease in the owner's portfolio. A lease it covers needs no owner message, and its rent to recommend is the rule applied to the current rent. Under Pricing basis, the button that names the agreement's amount sets the renewal base rent from the agreement, with the agreement as its basis.",
     relatedGuides: ["work-a-renewal"],
   },
   {
