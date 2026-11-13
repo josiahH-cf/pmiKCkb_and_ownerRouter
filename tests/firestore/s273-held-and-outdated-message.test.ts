@@ -149,6 +149,11 @@ function fixture(purpose: Purpose = "renewal_tenant") {
   };
   const store = new FirestoreCommunicationSequenceStore(db);
   const mailbox = new Map<string, { messageId: string; body: string }>();
+  // The exact readback the renewal delivery policy confirms a send with, by RFC message id.
+  const accepted = new Map<
+    string,
+    { messageId: string; threadId: string; labelIds: string[]; sentAtMs: number }
+  >();
   const send = vi.fn(async (message: WorkflowMimeMessage) => {
     const result = {
       messageId: `provider-${mailbox.size + 1}`,
@@ -157,6 +162,7 @@ function fixture(purpose: Purpose = "renewal_tenant") {
       sentAtMs: clock.ms,
     };
     mailbox.set(message.messageId, { messageId: result.messageId, body: message.body });
+    accepted.set(message.messageId, result);
     return result;
   });
   const service = new WorkflowCommunicationSequenceService({
@@ -183,7 +189,7 @@ function fixture(purpose: Purpose = "renewal_tenant") {
       }),
       getThread: async (threadId) => ({ id: threadId, messages: [], truncated: false }),
       sendWorkflowMessage: send,
-      findWorkflowMessage: async () => null,
+      findWorkflowMessage: async (rfcMessageId) => accepted.get(rfcMessageId) ?? null,
     }),
   });
   const scheduleFor = (ms: number) => ({
