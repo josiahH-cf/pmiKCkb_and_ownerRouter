@@ -59,12 +59,12 @@ The owner resolved the Gmail profile scope on November 8 for the existing guarde
   decision can authorize it. No new permission, login, API, identity or source was needed/created
   to diagnose it. The live SDK exception is not exposed; missing effective permission is
   independently sufficient to prevent that read. Keep the app's honest non-runnable state.
-- **B-PROCESS-OWNER:** the published guidance preserves original placeholder owner/default
-  approver values. Future run ownership currently derives from default_approver_uid. Dan/team
-  must identify the responsible managed staff; the team maps existing UIDs without guessing or
-  reinstating a general Dan approval. This holds staff routing, not current publication.
+- **November 12 staff workflow audit:** S272–S286 (intakes 150–164) are AUTHORING READY and
+  unlaunched. Owner direction of November 12 carried every audit proposal, retired the rules
+  that held ten of them and retired B-PROCESS-OWNER. The suite index's November 12 section and
+  the router's Action authority record it. Each suite marks its inferred specifics as assumptions.
 - Canonical U1–U6 in docs/open-blockers.md own real form/legal/map, case/terms, timing exceptions,
-  human acceptance/signing, later exact-key authority and the two specific decisions above.
+  human acceptance/signing, later exact-key authority and the specific decision above.
   All eight originals are recovered/private; do not request those files, membership or login again.
 
 ## Awaiting release

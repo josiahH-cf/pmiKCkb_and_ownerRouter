@@ -638,6 +638,8 @@ Resolve each lease and cycle from current source evidence and preserve the exist
 RentCast action gate, cache, verification fence and monthly allowance. Preparation may save an
 app-owned recommendation and owner draft through their current owners. The November 5 D-OP-1
 permission is superseded. Opening a page, changing its scope or viewing evidence starts no lookup.
+Owner direction 2026-11-12: the click prepares the selected month's eligible leases that the active
+filters show (S283). A filter narrows the run and never widens it.
 
 S113 (`docs/feature-suites/renewal-workflow-consolidation.md`) is the completed product implementation:
 F1 dashboard/facts, F2 corrections/source updates, F3 comps/messages, F4 manual progress, then F5
@@ -656,10 +658,51 @@ their existing contracts remain separate. Authentication/release assurance conti
   correction. Do not wait for a hypothetical provider-owned idempotency/tombstone seam or ask again
   for this feature authorization. Actual permissions, connection failures and observed conflicts
   still apply to the exact attempted write; app claims do not establish collaborator isolation.
+  Owner direction 2026-11-12: one reviewed preview and one confirmation may apply up to ten listed
+  recognized cells of one existing lease row, each with its own one-attempt claim, readback and
+  receipt (S278). No range, other row, formula or unattended write is added.
 - Preserve row append. Row deletion and historical proof reruns remain unavailable. A field
   correction is a new current-state preview/confirmation, not automatic historical restore.
 - This owner direction authorizes corresponding present-truth/router/spec reconciliation, not new
   roles, identities, action keys, sends, budget changes, customer values or provider-proof targets.
+
+### Owner-directed staff workflow audit unblock — 2026-11-12
+
+The owner directed that every proposal of the
+[November 12 staff workflow audit](docs/evidence/staff-workflow-audit-2026-11-12.md) be carried
+and that the rules which held ten of them be retired. S272–S286 (intakes 150–164) are AUTHORING
+READY in `docs/feature-suites/README.md`. Authoring is not implementation, activation or
+delivery, and serving behavior is unchanged until a suite is delivered. The owner supplied no
+specifics, so each suite marks its inferred values as assumptions the owner can change before a
+launch. These decisions replace the earlier rules named beside them:
+
+- A renewal end date is offered as a 12 month choice staff make (S285). This replaces S263's rule
+  that no term length is offered.
+- The owner who replied opens selected when the reply came from the address the message was sent
+  to (S285). This replaces S234's rule against any preselection. No amount or decision is read
+  from a reply.
+- One owner message asks for rent and term, through a new copy version published by an existing
+  template approver (S285).
+- Preparation covers the leases the filters show (S283). This replaces the whole-month scope.
+- One confirmation may apply a lease row's listed Sheet cells (S278). This replaces one
+  confirmation per field.
+- The shared notice basis is read on a lease and changed by an Admin (S283). This replaces the
+  November 3 staff selection.
+- The follow-up form opens with editable starting values (S276). This replaces S189's rule against
+  any starting cadence. Nothing is authorized until staff confirm the review.
+- The QuickBooks Connect button and the bulk Execute option are removed, and two internal labels
+  are replaced (S283).
+- The three renewal Spaces show their process as guidance and start no runs (S286).
+  B-PROCESS-OWNER is retired.
+- Four Guided layout pins are replaced: in-place editing of Rent to recommend and of the renewal
+  dates, named message groups, and an address that names the step shown (S281).
+- A RentVine and Sheet difference in rent or lease dates is information on every screen (S280).
+  This extends D-OP-7.
+
+Nothing here opens an action key, changes a `production_allowed` value, edits a protected path or
+authorizes a send, a provider write or a paid lookup outside the existing exact staff-confirmed
+contracts. Every permanent safety boundary above still applies. If building any of these needs a
+protected-path change, prepare and surface it for the owner.
 
 ### Owner-authorized activation program — current boundary
 

@@ -5,6 +5,7 @@
 
 > Status: AUTHORING READY, intake 140. Thursday fixes. Implementation and verification
 > pending.
+> November 12 intake 163 is AUTHORING READY for the coverage the answer opens on (S285).
 
 **Goal.**
 
@@ -122,7 +123,11 @@ work using unverified legacy terms needs an exact current review.
   only its exact current-cycle working-base revision. A later base revision makes it
   earlier evidence. A date or charge change never expands that scope. Legacy records
   retain their actual covered facts. Existing independent S156/S161 preparation and send
-  paths retain their own gates.
+  paths retain their own gates. Amended on November 12, 2026 by owner direction (S285
+  R-S285-4): when the cycle's latest confirmed owner message stated the renewal term and
+  the saved working dates still equal it, the coverage choice opens on base rent and the
+  renewal dates. Staff still choose and review the coverage, and it never exceeds the
+  evidence they save.
 - **R-S262-4 — Preserve communications evidence.** Show an unresolved provider send with
   its own reconciliation action before retry. Staff-recorded outreach and responses retain
   actual provenance and use the same editor from linked verified replies or the manual

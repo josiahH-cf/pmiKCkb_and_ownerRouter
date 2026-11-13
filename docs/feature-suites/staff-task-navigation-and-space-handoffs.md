@@ -4,6 +4,7 @@
 # S256 — Find staff work and process guidance by task
 
 > Status: AUTHORING READY, intake 126. Owner-confirmed November 7 scope. Implementation and qualification await an execution instruction.
+> November 12 intake 164 is AUTHORING READY for renewal Spaces that show guidance and start no runs (S286).
 
 **Goal.**
 
@@ -87,7 +88,9 @@ and S242–S244 guide and reference coverage.
 - **BEH-S256-1** — A staff member opens Operations and finds Communications, with
   role-appropriate access and a predictable way back.
 - **BEH-S256-2** — A newcomer can pick the renewal desk to work leases or pick the
-  matching process to read and run its existing checklist, and recognize the destination.
+  matching process to read how the work is done, and recognize the destination. Amended
+  on November 12, 2026 by owner direction (S286 R-S286-6): a renewal process is guidance
+  and starts no checklist.
 - **BEH-S256-3** — Existing direct and linked entries still land in the expected
   authorized record or list and communicate missing or unavailable context.
 

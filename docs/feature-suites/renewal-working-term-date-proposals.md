@@ -4,7 +4,8 @@
 # S263 — Propose renewal dates from the verified current term
 
 > Status: AUTHORING READY, intake 141. Thursday fixes. Implementation and verification
-> pending.
+> pending. November 12 intake 163 is AUTHORING READY for the end-date choice in S285,
+> which replaces the earlier rule that no term length may be offered.
 
 **Goal.**
 
@@ -62,24 +63,28 @@ continue without a gap for this case. The act of loading the suggestion neither 
 date nor assumes a fixed future term. Keep any existing confirmed working start and its
 basis.
 
-Suggest an end only when exact case evidence supplies an intended duration and calendar
-convention for the chosen start. When that basis is absent, as with the existing date
-fields alone, **Enter renewal end date** is the ordinary path. No new duration input or
-default is required for this batch. If the chosen start changes, recalculate only a
-still-unsaved suggestion from current evidence. Preserve a previously saved end and
-surface any resulting inconsistency for exact review.
+Offer an end beside manual entry as a choice staff make: a 12 month term, and the
+current lease's length when it is a different whole number of months (owner direction of
+November 12, 2026; S285 R-S285-1). The end is the day before the same calendar day that
+many months after the chosen start. Choosing an option and completing the existing save
+establishes the intended term for this case. Loading the choice saves nothing. When the
+start's day does not repeat in the end month, **Enter renewal end date** is the path. If
+the chosen start changes, recalculate only a still-unsaved suggestion. Preserve a
+previously saved end and surface any resulting inconsistency for exact review.
 
 - **R-S263-1 — Propose the next calendar day.** Offer the explicit next-day choice above
   through the existing working-date editor on an eligible verified fixed term. Use
   date-only arithmetic on the authoritative inclusive lease end. Preserve the calendar
   display convention. Save only on the case-specific deliberate choice after checking the
   active cycle, current verified end and the field revision.
-- **R-S263-2 — Suggest an end only with a known term.** Propose a renewal end only when an
-  authoritative intended duration and inclusive/exclusive convention determine a unique
-  date for that lease and cycle. Where there is no such basis or month-end and leap rules
-  make the outcome ambiguous, leave the end editable and say what is needed. Existing
-  policy for valid specific dates is preserved. The walkthrough example does not establish
-  a default year, day of month or term length.
+- **R-S263-2 — Suggest an end from the term staff choose.** Offer the 12 month choice,
+  and the current lease's length when it differs, through the existing working-date
+  editor (S285 R-S285-1). The convention is an inclusive end: the day before the same
+  calendar day that many months after the start. Save only on the deliberate choice and
+  the existing Save. Where the start's day does not repeat in the end month, leave the
+  end editable and say what is needed. Existing policy for valid specific dates is
+  preserved. Amended on November 12, 2026 by owner direction: the earlier text allowed a
+  suggestion only from case evidence of an intended duration and offered none otherwise.
 - **R-S263-3 — Preserve confirmed working dates.** Use one existing lease/cycle
   working-date editor and the S262 current-cycle read and write rule. Suggest only for the
   corresponding authoritatively empty field. A staff-entered or explicitly accepted date,
@@ -104,8 +109,9 @@ legal-form date rule.
 - An unresolved current lease end is source pending for the proposal and the offer's
   contractual end-date statement. Staff can still enter supported working terms and
   prepare an incomplete draft.
-- A case with no authoritative future duration and convention uses manual end-date entry.
-  The walkthrough example establishes no shared length or day of month.
+- The offered term is 12 months by owner direction of November 12, 2026, and staff can
+  always type another end. S285 records the 12 month figure as an assumption the owner
+  can change.
 
 **Cross-product impacts.**
 
@@ -127,9 +133,9 @@ the exact date owner and read-only source facts.
   source fingerprint and the fixed-term eligibility. It projects into the existing editor
   without saving. The real editor's explicit choice supplies the case intent and accepts
   only that reviewed start against the current cycle and revision.
-- **ARCH-S263-2** — Require explicit support for duration and convention in the same
-  proposal projection. No placeholder date enters the authoritative effective-terms
-  projection.
+- **ARCH-S263-2** — The same proposal projection computes the end from the months staff
+  chose and the inclusive-end convention. No date enters the authoritative
+  effective-terms projection before staff choose or type it and save.
 - **ARCH-S263-3** — Reuse the existing working-record save and date validation. Check both
   source basis and current revision at acceptance. Keep historical source and prior
   reviewed artifacts separate.
@@ -143,9 +149,9 @@ the exact date owner and read-only source facts.
 - **BEH-S263-1** — A synthetic current term ending November 30 proposes December 1.
   December 31 proposes January 1 of the next year, and leap/year cases follow the calendar
   without timezone shifts.
-- **BEH-S263-2** — For a synthetic, expressly reviewed January 1 through December 31
-  one-year term the full range is proposed. A shorter term, unknown duration or ambiguous
-  month-end asks staff for the exact end.
+- **BEH-S263-2** — For a synthetic January 1 start the 12 month choice gives December 31
+  and saves only when staff choose it. A start whose day does not repeat in the end
+  month asks staff for the exact end.
 - **BEH-S263-3** — On return from the offer, a permitted correction remains and the same
   preview updates. A stale suggestion cannot replace the current choice. An invalid year
   or date shows the exact field to correct.
@@ -168,7 +174,7 @@ the same tenant preview with the exact reviewed range.
 | Requirement                                                 | Architecture outcome | Behavior outcome | Human litmus                                      | Deterministic evidence / falsification                                                 |
 | ----------------------------------------------------------- | -------------------- | ---------------- | ------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | R-S263-1 Propose the next calendar day                      | ARCH-S263-1          | BEH-S263-1       | Verify the lease dates before reviewing the offer | AC-S263-1. Proposal fixtures and the existing Guided and Full edit destination.        |
-| R-S263-2 Suggest an end only with a known term              | ARCH-S263-2          | BEH-S263-2       | Verify the lease dates before reviewing the offer | AC-S263-2. Date proposal and missing-field output across representative term variants. |
+| R-S263-2 Suggest an end from the term staff choose          | ARCH-S263-2          | BEH-S263-2       | Verify the lease dates before reviewing the offer | AC-S263-2. Date proposal and missing-field output across representative term variants. |
 | R-S263-3 Preserve confirmed working dates                   | ARCH-S263-3          | BEH-S263-3       | Verify the lease dates before reviewing the offer | AC-S263-3. Working revision, prepared body, exact review and refusal assertions.       |
 | R-S263-4 Keep original, proposed and reviewed dates legible | ARCH-S263-4          | BEH-S263-4       | Verify the lease dates before reviewing the offer | AC-S263-4. Compiled navigation, state continuity and claim-basis preservation.         |
 
@@ -187,10 +193,11 @@ the same tenant preview with the exact reviewed range.
   saves only after the deliberate choice. Test year and leap transitions, date-only
   arithmetic and missing, disputed, stale, non-renewal and month-to-month sources. No
   ineligible case offers a suggestion.
-- **AC-S263-2** — Exercise known exact duration and convention, short term, deliberate
-  gap, leap anniversary and absent convention. With the existing date fields alone, the
-  end remains a reachable manual input and no term length is assumed. Change the start
-  after an end was entered and verify the saved end stays visible for review.
+- **AC-S263-2** — Exercise the 12 month choice, the current lease's length, a short
+  term, a deliberate gap and a leap anniversary. The end remains a reachable manual
+  input, and no end is saved until staff choose or type one and save. Change the start
+  after an end was entered and verify the saved end stays visible for review. S285
+  AC-S285-1 carries the calendar cases.
 - **AC-S263-3** — Drive correction, explicit suggestion acceptance, old records and
   concurrent reloads. Exercise a new cycle on the same lease with the earlier dates still
   in storage. The new offer and packet cannot read them as current. No source write is
@@ -205,7 +212,8 @@ the same tenant preview with the exact reviewed range.
 
 **Forbidden actions / hard gates.**
 
-No fabricated duration, term conversion, provider write, approved date or automatic send.
+No end date saved without the staff choice, and no term conversion, provider write,
+approved date or automatic send.
 Preserve the current S253 date hold. Existing roles, scoped effects, exact-target
 authorization, claims and receipt/reconciliation gates remain in force.
 
@@ -221,9 +229,9 @@ the exact draft remains available with a date hold.
   validation, manual end-date fallback, exact navigation, refusal, old-record
   compatibility and Help.
 - **Consumes, but does not assume.** Current-cycle future fields under S262, verified
-  contract end and applicable duration/convention where available. Start can be chosen
-  from the verified end without a general duration rule. Otherwise use the exact manual or
-  source correction path.
+  contract end and the term staff choose. Start can be chosen from the verified end, and
+  the end from the 12 month choice. Otherwise use the exact manual or source correction
+  path.
 - **Externally blocked effect.** AC-S263-2 and AC-S263-3 hold the affected output until
   required verified dates are recorded.
 - **Produces for downstream suites.** The same dated working terms for offer charges,

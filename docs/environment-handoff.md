@@ -130,9 +130,9 @@ signature or Dotloop key activation is inferred. Both Dotloop write keys remain 
 
 The live S240 inventory remains non-runnable. **U6/B-GCP-REINDEX** asks Josiah as project owner
 for one narrow scope-deviation decision from S240's explicit IAM exclusion; the permission
-proposal is prepared and unexecuted, with no new grant applied. **U4/B-PROCESS-OWNER** preserves
-the specific team responsibility input for the process's existing staffing placeholders; it is
-not a general Dan approval. Legal/map, case-data and human acceptance holds remain separately
+proposal is prepared and unexecuted, with no new grant applied. The B-PROCESS-OWNER staffing
+input is retired by owner direction of November 12, 2026, because renewal processes become
+guidance that starts no runs (S286). Legal/map, case-data and human acceptance holds remain separately
 owned in [the canonical unblock packet](open-blockers.md). The application queue is delivered;
 consumed receipts do not authorize another run and documentation-only closure does not deploy.
 See [the exact delivery and configuration evidence](evidence/application-gap-delivery-2026-11-03.md).
