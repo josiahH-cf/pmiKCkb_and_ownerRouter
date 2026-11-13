@@ -126,6 +126,13 @@ const FORMS_SECTION = 'section[aria-label="Form families for this lease"]';
 /** A date in daylight time for the scheduled owner message (the rehearsal date is in November). */
 const DAYLIGHT_DATE = "2027-03-16";
 const DAYLIGHT_TIME = "09:00";
+// The December search shows these three of five targets. Four earlier leases are carryovers.
+const DECEMBER_TARGETS = ["9101", "9102", "9103", "9104", "9105"];
+const DECEMBER_SAMPLE_TARGETS = ["9101", "9103", "9105"];
+const DECEMBER_CARRYOVERS = ["9106", "9107", "9108", "9109"];
+// The next month's fixed-term targets have no cached comparison from December's search run.
+const JANUARY_TARGETS = ["9110", "9111", "9112", "9113", "9114", "9115", "9116"];
+const JANUARY_AVE_TARGET = "9114";
 
 // R-S283-1: the renderings S283 lists, scanned for direct formatting (ARCH-S283-1).
 const LISTED_DATE_FILES = [
@@ -282,6 +289,24 @@ async function openBatch(kit, page, search = "") {
     .first()
     .waitFor({ timeout: 90_000 });
   return batch;
+}
+
+async function openAllowanceBatch(kit, page) {
+  const batch = await openBatch(kit, page);
+  const next = batch
+    .getByRole("navigation", { name: "Working month" })
+    .getByRole("link", { name: /^Next month/ });
+  const month = await next.getAttribute("data-batch-month-target");
+  if (!monthInWords(month))
+    throw new Error("The next working month has no valid target.");
+  await next.click();
+  const selected = page.locator(
+    `section[aria-label="Working batch"][data-batch-month="${month}"]`,
+  );
+  await selected.getByRole("region", { name: "Batch preparation" }).waitFor({
+    timeout: 90_000,
+  });
+  return selected;
 }
 
 /** The Working batch rows in table order, once each, with their group, need and tags. */
@@ -814,15 +839,22 @@ export async function checkW1212(ctx, page, start) {
 
   // ---- AC-S283-2: an unfiltered run reaches the allowance part way through -------------------
   const allowanceRun = await part("unfiltered run to the allowance", async () => {
-    // The earlier filter run may have stored comparisons. Start from the seeded month so this
-    // case can force the allowance on an actual pending comparison with targets still to post.
+    // The reset clears stored comparisons, but the served build's address cache survives it.
+    // Choose the next month through the desk so the earlier filtered run cannot warm its targets.
     await ctx.resetState();
     const runner = await open("Editor");
-    await openBatch(kit, runner);
+    const batch = await openAllowanceBatch(kit, runner);
     const rows = await batchRows(runner);
     const snapshot = thisBatch(rows);
     const read = await readPrepare(kit, runner);
     const before = await effects(kit, rehearsal);
+    const needing = rows
+      .filter((row) => row.group === "this_batch" && row.needs)
+      .map((row) => row.leaseId);
+    if (!sameSet(snapshot, JANUARY_TARGETS) || !sameSet(needing, JANUARY_TARGETS))
+      throw new Error(
+        `The allowance fixture needs seven unprepared next-month targets. Shown: ${snapshot.join(", ")}. Needing comparisons: ${needing.join(", ")}.`,
+      );
     // Hold the first request while staff change the visible filter and the stand-in
     // leaves one comparison available. A later target must hit the allowance.
     let release = () => undefined;
@@ -850,16 +882,17 @@ export async function checkW1212(ctx, page, start) {
       new Promise((done) => setTimeout(() => done(false), 60_000)),
     ]);
     // Mid-run: the search narrows the table to rows the run already holds and leaves out others.
-    const search = runner
-      .locator('section[aria-label="Working batch"]')
-      .first()
-      .getByRole("searchbox")
-      .first();
-    await search.fill("Ave");
-    await runner.waitForTimeout(800);
-    const shownMidRun = thisBatch(await batchRows(runner));
+    const search = batch.getByRole("searchbox");
+    let shownMidRun;
     let allowance;
     try {
+      await search.fill("Ave");
+      await batch
+        .locator(
+          `tbody[data-batch-list="this_batch"][data-batch-count="1"] tr[data-batch-lease="${JANUARY_AVE_TARGET}"]`,
+        )
+        .waitFor({ timeout: 30_000 });
+      shownMidRun = thisBatch(await batchRows(runner));
       allowance = await setComparisonAllowance(rehearsal, false, 1);
     } finally {
       release();
@@ -896,13 +929,17 @@ export async function checkW1212(ctx, page, start) {
 
     // The line before a click while the allowance is reached: how many it covers.
     const reader = await open("Editor");
-    await openBatch(kit, reader);
+    await openAllowanceBatch(kit, reader);
     const atAllowance = await readPrepare(kit, reader);
 
     // Open again, and Continue the same run with nothing filtered.
     const reopened = await setComparisonAllowance(rehearsal, false);
     await search.fill("");
-    await runner.waitForTimeout(800);
+    await batch
+      .locator(
+        `tbody[data-batch-list="this_batch"][data-batch-count="${JANUARY_TARGETS.length}"]`,
+      )
+      .waitFor({ timeout: 30_000 });
     const continueButton = runner.locator("[data-kickoff-prepare]").first();
     const continueName = squash(await continueButton.innerText().catch(() => ""));
     const continueWatch = watchPreparation(runner);
@@ -911,21 +948,20 @@ export async function checkW1212(ctx, page, start) {
     const afterContinue = await effects(kit, rehearsal);
     // The month as it reads now, in a fresh visit.
     const fresh = await open("Editor");
-    await openBatch(kit, fresh);
+    await openAllowanceBatch(kit, fresh);
     const finalRows = await batchRows(fresh);
     const finalRead = await readPrepare(kit, fresh);
     return {
       snapshot,
       effectsAtStart: before,
-      needing: rows
-        .filter((row) => row.group === "this_batch" && row.needs)
-        .map((row) => row.leaseId),
+      needing,
       read,
       heldInTime,
       heldLease,
       shownMidRun,
       allowance,
       posts,
+      postMonths: [...new Set(watch.posts.map((post) => post.month))],
       answers,
       progress,
       outcomes,
@@ -935,6 +971,7 @@ export async function checkW1212(ctx, page, start) {
       reopened,
       continueName,
       continuePosts: continueWatch.posts.map((post) => post.leaseId),
+      continueMonths: [...new Set(continueWatch.posts.map((post) => post.month))],
       continueAnswers: continueWatch.answers,
       continued,
       lookupsInContinue: lookupDelta(afterStop, afterContinue),
@@ -1749,8 +1786,17 @@ export async function checkW1212(ctx, page, start) {
     const startLookups = sum(Object.values(observedStart.lookupsByLease ?? {}));
     const startOk =
       Boolean(observedStart.workingBatchSearch) &&
-      startShown.length > 0 &&
-      startShown.length < total &&
+      observedStart.monthlyLeases ===
+        DECEMBER_TARGETS.length + DECEMBER_CARRYOVERS.length &&
+      observedStart.rowsShownAfterSearch === 5 &&
+      sameSet(monthTargets, DECEMBER_TARGETS) &&
+      sameSet(
+        deskReads.rows
+          .filter((row) => row.group === "carried_over")
+          .map((row) => row.leaseId),
+        DECEMBER_CARRYOVERS,
+      ) &&
+      sameSet(startShown, DECEMBER_SAMPLE_TARGETS) &&
       observedStart.monthTargets === total &&
       buttonStates(
         { button: observedStart.prepareButton, month: deskReads.unfiltered.month },
@@ -1774,7 +1820,7 @@ export async function checkW1212(ctx, page, start) {
       parseLine(unfiltered.line)?.shown === total &&
       unfiltered.targets === total &&
       buttonStates(deskReads.searched, deskReads.searchedTargets.length, total) &&
-      deskReads.searchedTargets.length === startShown.length &&
+      sameSet(deskReads.searchedTargets, startShown) &&
       deskReads.grouped.targets === 0 &&
       deskReads.grouped.disabled === true &&
       buttonStates(deskReads.grouped, 0, total) &&
@@ -1815,10 +1861,16 @@ export async function checkW1212(ctx, page, start) {
     const runOk =
       run.heldInTime &&
       run.heldLease === run.snapshot[0] &&
-      buttonStates(run.read, total, total) &&
-      sameSet(run.snapshot, monthTargets) &&
-      reachedIndex > 0 &&
+      run.read.month === deskReads.nextMonth.month &&
+      run.read.month !== unfiltered.month &&
+      buttonStates(run.read, JANUARY_TARGETS.length, JANUARY_TARGETS.length) &&
+      sameSet(run.snapshot, JANUARY_TARGETS) &&
+      sameSet(run.needing, JANUARY_TARGETS) &&
+      sameSet(run.shownMidRun, [JANUARY_AVE_TARGET]) &&
+      sameSet(run.postMonths, [run.read.month]) &&
+      reachedIndex === 1 &&
       sum(Object.values(run.lookupsToStop)) === 1 &&
+      run.lookupsToStop[run.snapshot[0]] === 1 &&
       sameSet(run.posts, run.snapshot.slice(0, reachedIndex + 1)) &&
       run.posts.length === reachedIndex + 1 &&
       rest.length > 0 &&
@@ -1843,6 +1895,7 @@ export async function checkW1212(ctx, page, start) {
     const unsettled = [reachedLease, ...rest];
     const continueOk =
       /^Continue [A-Z][a-z]+ \d{4} preparation$/.test(run.continueName) &&
+      sameSet(run.continueMonths, [run.read.month]) &&
       sameSet(run.continuePosts, unsettled) &&
       run.continuePosts.length === unsettled.length &&
       run.continueAnswers.every((answer) =>
