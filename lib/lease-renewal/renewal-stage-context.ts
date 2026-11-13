@@ -4,11 +4,6 @@
 // staff record with exactly the facts the desk row used. Pure.
 
 import type { DeskLeaseRow } from "@/lib/lease-renewal/desk-model";
-import {
-  deskLeaseWorkStatusInput,
-  leaseWorkStatusLines,
-  projectLeaseWorkStatus,
-} from "@/lib/lease-renewal/lease-work-status";
 import type { LeaseOutreachEvidenceInput } from "@/lib/lease-renewal/outreach-evidence";
 import {
   projectRenewalStage,
@@ -74,22 +69,12 @@ export function renewalStageCycleDateIso(
 export function renewalStageContextFor(
   row: StageRow,
   outreach: LeaseOutreachEvidenceInput | null,
-  sourceReadAtIso: string | null,
+  // Kept for the callers' shape; S279 retired the linked-thread status this once fed (R-S279-2).
+  _sourceReadAtIso: string | null,
 ): RenewalStageContext {
   const action = row.guidance.action;
   const target = row.renewalTarget;
   const term = row.leaseTerm;
-  const status = projectLeaseWorkStatus(
-    deskLeaseWorkStatusInput(
-      {
-        ...row,
-        followUp: row.followUp
-          ? { waiting: row.followUp.waiting, lastContact: row.followUp.lastContact }
-          : null,
-      },
-      sourceReadAtIso,
-    ),
-  );
   const workStatus = row.workStatus;
   return {
     leaseId: row.id,
@@ -168,11 +153,8 @@ export function renewalStageContextFor(
       workStatus?.state === "recorded" && workStatus.cycleRelation === "current"
         ? { key: workStatus.status, label: workStatus.label }
         : null,
-    lastContactAtIso: row.followUp?.lastContact.atIso ?? null,
-    threadCheck:
-      status.check && status.check.linkedThread
-        ? leaseWorkStatusLines(status).check
-        : null,
+    // S279 R-S279-2: the stage reads who, since when, the last contact and the check from the
+    // lease's own message evidence below; no viewer's linked Gmail thread enters the context.
     outreach,
     cycleDateIso: renewalStageCycleDateIso(row),
   };

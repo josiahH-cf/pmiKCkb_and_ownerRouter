@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  LEASE_WAITING_VERSION,
+  leaseWaitingCheck,
+  type LeaseWaiting,
+} from "@/lib/lease-renewal/lease-waiting";
+import {
   deskLeaseWorkStatusInput,
   focusLeaseWorkStatusInput,
   projectLeaseWorkStatus,
-  type LeaseWorkStatusFollowUp,
 } from "@/lib/lease-renewal/lease-work-status";
 import {
   projectRenewalActions,
@@ -149,27 +153,33 @@ describe("S142 guidance parity", () => {
   }, 120_000);
 
   it("S232 R-S232-4: Focus shows the desk row's status, waiting-on and evidence across the matrix", () => {
-    const source = {
-      kind: "gmail_thread" as const,
-      linkId: "link-1",
-      threadId: "thread-1",
-      messageId: "message-1",
-      purpose: "renewal_owner" as const,
+    // S279 (rewritten on purpose, R-S279-2): the thread side is the lease's own waiting projection,
+    // with and without a disagreement, never one viewer's linked Gmail thread.
+    const base: LeaseWaiting = {
+      version: LEASE_WAITING_VERSION,
+      readable: true,
+      cycleId: null,
+      audience: "owner",
+      party: "owner",
+      sinceIso: "2026-09-28T15:00:00.000Z",
+      lastContactIso: "2026-09-28T15:00:00.000Z",
+      check: null,
     };
-    const lastContact = {
-      state: "verified" as const,
-      atIso: "2026-09-29T15:00:00.000Z",
-      source,
-    };
-    const THREADS: readonly (LeaseWorkStatusFollowUp | null)[] = [
+    const check = leaseWaitingCheck({
+      activity: "owner_outreach",
+      audience: "owner",
+      subject: "response",
+      staffRecord: "says the owner response is No response",
+      appEvidence: "show an owner reply received",
+      staffFact: "waiting on the owner",
+      evidenceAtMs: Date.parse("2026-09-29T15:00:00.000Z"),
+    });
+    const THREADS: readonly (LeaseWaiting | null)[] = [
       null,
-      { waiting: { state: "not_waiting", party: null, source }, lastContact },
-      ...(["owner", "tenant", "team"] as const).map(
-        (party): LeaseWorkStatusFollowUp => ({
-          waiting: { state: "verified", party, source },
-          lastContact,
-        }),
-      ),
+      base,
+      { ...base, audience: null, party: "team", sinceIso: null },
+      { ...base, check },
+      { ...base, readable: false, check },
     ];
     let compared = 0;
     const checks = new Set<string>();
@@ -183,22 +193,17 @@ describe("S142 guidance parity", () => {
         const { snapshot, workspace } = actionFixture({ ...environment, manual: state });
         // The Focus facts are the desk row's own follow-up facts and read time.
         expect(snapshot.leaseStatus).toEqual({
-          followUp: workspace.summary.followUp
-            ? {
-                waiting: workspace.summary.followUp.waiting,
-                lastContact: workspace.summary.followUp.lastContact,
-              }
-            : null,
+          waiting: workspace.summary.leaseWaiting ?? null,
           sourceReadAtIso: workspace.dataCurrency?.readAtIso ?? null,
         });
         const live = snapshot.manual.readable ? snapshot.manual.state : null;
         const standing =
           snapshot.standingOwnerAuthority?.covered === true &&
           snapshot.standingOwnerAuthority.manualRevision === (live?.revision ?? 0);
-        for (const followUp of THREADS) {
+        for (const leaseWaiting of THREADS) {
           const desk = projectLeaseWorkStatus(
             deskLeaseWorkStatusInput(
-              { ...workspace.summary, guidance: workspace.guidance, followUp },
+              { ...workspace.summary, guidance: workspace.guidance, leaseWaiting },
               snapshot.leaseStatus!.sourceReadAtIso,
             ),
           );
@@ -207,7 +212,7 @@ describe("S142 guidance parity", () => {
               serverStatus: snapshot.guidance.status,
               staffRecord: snapshot.manual,
               standingOwnerAuthority: standing,
-              followUp,
+              waiting: leaseWaiting,
               sourceReadAtIso: snapshot.leaseStatus!.sourceReadAtIso,
             }),
           );
@@ -215,7 +220,7 @@ describe("S142 guidance parity", () => {
           if (desk.check) checks.add(desk.status);
           if (JSON.stringify(desk) !== JSON.stringify(focus))
             mismatches.push(
-              `${JSON.stringify({ manual, environment, followUp: followUp?.waiting })}: desk ${JSON.stringify(desk)}, focus ${JSON.stringify(focus)}`,
+              `${JSON.stringify({ manual, environment, waiting: leaseWaiting })}: desk ${JSON.stringify(desk)}, focus ${JSON.stringify(focus)}`,
             );
         }
       }

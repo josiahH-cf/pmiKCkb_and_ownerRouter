@@ -58,6 +58,7 @@ import {
 import type { RenewalPathStepId } from "@/lib/lease-renewal/renewal-path";
 import {
   KICKOFF_WORDS,
+  MARKED_FACTS,
   SEND_READINESS_KEYS,
   sendReady,
   withLiveKickoff,
@@ -632,6 +633,9 @@ function PreparedMessageBlock({
   );
   // The items Send needs. For the owner they come from the one projection; for the tenant offer
   // they are the same four read from its own message.
+  const signatureReady =
+    api.signaturePresent &&
+    !api.marked.some((entry) => entry.trim().toLowerCase() === MARKED_FACTS.signature);
   const needs = live
     ? live.items.filter((item) => SEND_READINESS_KEYS.includes(item.key))
     : [
@@ -659,8 +663,9 @@ function PreparedMessageBlock({
         {
           key: "signature" as const,
           label: "Your signature",
-          ready: api.signaturePresent,
-          missing: api.signaturePresent ? null : "your signature",
+          // S279 R-S279-6: the row and the message's own marker are one read.
+          ready: signatureReady,
+          missing: signatureReady ? null : "your signature",
           fix: null,
         },
         {

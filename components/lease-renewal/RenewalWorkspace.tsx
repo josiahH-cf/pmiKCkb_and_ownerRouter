@@ -1721,7 +1721,11 @@ function PhaseContent({
               id="renewal-card-follow-up"
               title={renewalCardTitle("waiting-follow-up", "Waiting and follow-up")}
             >
-              <RenewalFollowUpStatus projection={workspace.followUp} />
+              <RenewalFollowUpStatus
+                admin={role === "Admin"}
+                projection={workspace.followUp}
+                stepWaitingShown={Boolean(workspace.summary.renewalStage?.waiting)}
+              />
               {!can(role, "edit") ? (
                 <p className="muted">
                   Updating renewal follow-up state requires Editor access in Renewals.{" "}
@@ -1924,7 +1928,11 @@ function PhaseContent({
         <>
           {!consolidated && workspace.followUp ? (
             <Card title={renewalCardTitle("waiting-follow-up", "Waiting and follow-up")}>
-              <RenewalFollowUpStatus projection={workspace.followUp} />
+              <RenewalFollowUpStatus
+                admin={role === "Admin"}
+                projection={workspace.followUp}
+                stepWaitingShown={Boolean(workspace.summary.renewalStage?.waiting)}
+              />
               {!can(role, "edit") ? (
                 <p className="muted">
                   Updating renewal follow-up state requires Editor access in Renewals.{" "}

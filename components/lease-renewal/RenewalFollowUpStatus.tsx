@@ -1,9 +1,17 @@
+import Link from "next/link";
+
 import {
   formatBusinessTimestamp,
   formatCalendarDateOrTimestamp,
 } from "@/lib/date-display";
 import { StatusPill } from "@/components/ui";
-import type { RenewalFollowUpProjection } from "@/lib/lease-renewal/follow-up-projection";
+import {
+  NOTICE_RULES_ADMIN_HREF,
+  NOTICE_RULES_ADMIN_PLACE,
+  NOTICE_RULES_UNCONFIRMED_LABEL,
+  NOTICE_RULES_UNCONFIRMED_NEXT,
+  type RenewalFollowUpProjection,
+} from "@/lib/lease-renewal/follow-up-projection";
 
 const PARTY_LABELS = {
   team: "team",
@@ -13,11 +21,27 @@ const PARTY_LABELS = {
   unresolved_source: "an unresolved source",
 } as const;
 
-/** Shared accessible rendering for the exact projection carried by desk and workspace. */
+/**
+ * Shared accessible rendering for the exact projection carried by desk and workspace.
+ *
+ * S279 R-S279-1: the waiting state and last contact come from the lease's own message evidence,
+ * the same facts as the step's waiting line. Where the step already shows that line
+ * (`stepWaitingShown`), the card shows only what it adds: the next follow-up date and the policy
+ * note. S279 R-S279-5: unconfirmed notice rules name their Admin panel; an Admin gets its link.
+ */
 export function RenewalFollowUpStatus({
   projection,
   compact = false,
-}: Readonly<{ projection: RenewalFollowUpProjection; compact?: boolean }>) {
+  stepWaitingShown = false,
+  admin = false,
+}: Readonly<{
+  projection: RenewalFollowUpProjection;
+  compact?: boolean;
+  /** The step's waiting line on the same screen already says who, since when and last contact. */
+  stepWaitingShown?: boolean;
+  /** The viewer is an Admin, who can open the notice rules panel. */
+  admin?: boolean;
+}>) {
   const waiting =
     projection.waiting.state === "needs_verification"
       ? "Waiting state needs verification"
@@ -27,31 +51,62 @@ export function RenewalFollowUpStatus({
   const contact =
     projection.lastContact.state === "verified" && projection.lastContact.atIso
       ? `Last verified contact: ${formatBusinessTimestamp(projection.lastContact.atIso)}`
-      : "Last contact: Needs Verification";
+      : projection.lastContact.state === "none"
+        ? "No contact recorded yet"
+        : "Last contact: Needs Verification";
+  const unconfirmed =
+    projection.policy.state === "unset" || projection.policy.state === "unreadable";
   const policy =
     (projection.policy.state === "confirmed" || projection.policy.state === "disabled") &&
     projection.policy.version !== null &&
     projection.policy.effectiveScope
       ? `Policy version ${projection.policy.version} · ${projection.policy.effectiveScope} rule`
-      : "Timing policy not confirmed";
+      : NOTICE_RULES_UNCONFIRMED_LABEL;
   const due = dueLabel(projection);
 
   return (
     <div className={compact ? "ui-stack-tight" : "ui-stack"}>
-      <div className="ui-row">
-        <strong>{waiting}</strong>
-        {projection.waiting.state === "needs_verification" ? (
-          <StatusPill value="Needs Verification">Needs Verification</StatusPill>
-        ) : null}
-      </div>
-      <span className="muted">{contact}</span>
-      <span className="muted">{policy}</span>
+      {stepWaitingShown ? null : (
+        <>
+          <div className="ui-row">
+            <strong>{waiting}</strong>
+            {projection.waiting.state === "needs_verification" ? (
+              <StatusPill value="Needs Verification">Needs Verification</StatusPill>
+            ) : null}
+          </div>
+          <span className="muted">{contact}</span>
+        </>
+      )}
+      {unconfirmed ? (
+        <span className="muted" data-renewal-field="notice-rules-unconfirmed">
+          {NOTICE_RULES_UNCONFIRMED_LABEL}. Next: <NoticeRulesNext admin={admin} />
+        </span>
+      ) : (
+        <span className="muted">{policy}</span>
+      )}
       <span className="muted">{due}</span>
-      {projection.attentionState === "dismissed" ? (
+      {!stepWaitingShown && projection.attentionState === "dismissed" ? (
         <span className="muted">In-app due attention: Dismissed with audit evidence</span>
       ) : null}
-      {!compact ? <span className="muted">Next: {projection.nextAction}</span> : null}
+      {!compact && !stepWaitingShown && !unconfirmed ? (
+        <span className="muted">Next: {projection.nextAction}</span>
+      ) : null}
     </div>
+  );
+}
+
+/** "an Admin confirms them in Admin, Renewal notice rules.", the place linked for an Admin. */
+function NoticeRulesNext({ admin }: Readonly<{ admin: boolean }>) {
+  if (!admin) return <>{NOTICE_RULES_UNCONFIRMED_NEXT}</>;
+  const [before] = NOTICE_RULES_UNCONFIRMED_NEXT.split(NOTICE_RULES_ADMIN_PLACE);
+  return (
+    <>
+      {before}
+      <Link href={NOTICE_RULES_ADMIN_HREF} prefetch={false}>
+        {NOTICE_RULES_ADMIN_PLACE}
+      </Link>
+      .
+    </>
   );
 }
 
@@ -66,7 +121,7 @@ function dueLabel(projection: RenewalFollowUpProjection): string {
     case "disabled":
       return "Follow-up timing is disabled by confirmed policy";
     case "unset":
-      return "No due date until timing policy is confirmed";
+      return "No follow-up date until the renewal notice rules are confirmed";
     case "not_applicable":
       return "No external follow-up is due from the current waiting state";
   }

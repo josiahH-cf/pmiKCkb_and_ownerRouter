@@ -1,14 +1,18 @@
 // S232 R-S232-4 (ARCH-S232-2, BEH-S232-3): one status, waiting-on party, evidence source and next
-// action per lease, read by both the desk row and Focus. The staff record and the linked Gmail
-// thread are two waiting facts; when both are known and they disagree the lease reads "Needs a
-// check" with both facts, and neither wins by precedence. Pure and client-safe; nothing here reads
-// a provider, records anything or derives outreach.
+// action per lease, read by both the desk row and Focus. When the staff record and the message
+// evidence disagree the lease reads "Needs a check" with both facts, and neither wins by
+// precedence.
+//
+// S279 R-S279-2 / R-S279-3: the comparison reads the one waiting projection (`lease-waiting.ts`):
+// the staff record against the current message's own thread in the lease's evidence, never one
+// viewer's own mailbox links, so every staff member reads the same status. The check names the fix.
+// Pure and client-safe; nothing here reads a provider, records anything or derives outreach.
 
 import { formatCalendarDateOrTimestamp } from "@/lib/date-display";
 import { staffLaneGuidance } from "@/lib/lease-renewal/desk-guidance";
 import type { DeskLeaseRow } from "@/lib/lease-renewal/desk-model";
 import type { RenewalOverallStatus } from "@/lib/lease-renewal/desk-query-v2";
-import type { RenewalFollowUpProjection } from "@/lib/lease-renewal/follow-up-projection";
+import type { LeaseWaiting, LeaseWaitingCheck } from "@/lib/lease-renewal/lease-waiting";
 import type { OutreachFill } from "@/lib/lease-renewal/outreach-evidence";
 import {
   manualRenewalSummary,
@@ -18,12 +22,6 @@ import {
 type StaffLane = Pick<
   ReturnType<typeof manualRenewalSummary>,
   "complete" | "waitingParty"
->;
-
-/** The follow-up facts the status compares and cites; serializable from server to client. */
-export type LeaseWorkStatusFollowUp = Pick<
-  RenewalFollowUpProjection,
-  "waiting" | "lastContact"
 >;
 
 export type LeaseWorkStatusState = RenewalOverallStatus | "needs_check";
@@ -37,8 +35,11 @@ export interface LeaseWorkStatusInput {
   readonly staffRecordedAtIso: string | null;
   /** True when the staff-record read failed, so nothing about it is known. */
   readonly staffRecordUnavailable?: boolean;
-  /** The follow-up projection's waiting fact and last contact for this lease. */
-  readonly followUp: LeaseWorkStatusFollowUp | null;
+  /**
+   * S279: the one waiting projection over the lease's own message evidence; null when the
+   * evidence was not read. No viewer identity or mailbox link enters it.
+   */
+  readonly waiting: LeaseWaiting | null;
   /** When the RentVine read behind this view was taken. */
   readonly sourceReadAtIso: string | null;
 }
@@ -48,8 +49,8 @@ export interface LeaseWorkStatus {
   readonly label: string;
   /** Who the lease waits on, in words; null once complete or when the staff lane does not guide. */
   readonly waitingOn: string | null;
-  /** Both waiting facts, in words, when the staff record and the linked thread disagree. */
-  readonly check: { readonly staffRecord: string; readonly linkedThread: string } | null;
+  /** Both facts and the fix, when the staff record and the current message's thread disagree. */
+  readonly check: LeaseWaitingCheck | null;
   /** The record the status comes from and its time. */
   readonly evidence: {
     readonly source: "staff_record" | "staff_record_unavailable" | "source_read";
@@ -74,50 +75,6 @@ const PARTY = {
   owner: "the owner",
   tenant: "the tenant",
 } as const;
-
-/** The staff record's waiting fact: whose move it names, or complete. */
-function staffFact(lane: StaffLane, recorded: boolean): string {
-  if (!recorded) return "has no work recorded yet";
-  return lane.complete ? "says complete" : `says waiting on ${PARTY[lane.waitingParty]}`;
-}
-
-type ThreadFact = {
-  readonly party: keyof typeof PARTY | "none" | "outside";
-  readonly words: string;
-};
-
-/**
- * The linked Gmail thread's waiting fact, or null when no thread fact is known. A process-step
- * fallback is not a thread fact, so it is never compared with the staff record.
- */
-function threadFact(followUp: LeaseWorkStatusFollowUp | null): ThreadFact | null {
-  const waiting = followUp?.waiting;
-  if (!waiting || waiting.source?.kind !== "gmail_thread") return null;
-  if (waiting.state === "not_waiting")
-    return { party: "none", words: "not waiting on anyone" };
-  if (waiting.state !== "verified") return null;
-  switch (waiting.party) {
-    case "owner":
-      return { party: "owner", words: `waiting on ${PARTY.owner}` };
-    case "tenant":
-      return { party: "tenant", words: `waiting on ${PARTY.tenant}` };
-    case "team":
-      return { party: "staff", words: `waiting on ${PARTY.staff}` };
-    case "unresolved_source":
-      return { party: "outside", words: "waiting on someone outside PMI KC" };
-    default:
-      return null;
-  }
-}
-
-/** True when the thread's fact says the same as the staff record's. */
-function agrees(lane: StaffLane, thread: ThreadFact): boolean {
-  if (lane.complete) return thread.party === "none";
-  // Not waiting on anyone outside PMI KC is the team's own move.
-  if (lane.waitingParty === "staff")
-    return thread.party === "staff" || thread.party === "none";
-  return thread.party === lane.waitingParty;
-}
 
 /** Build the one lease status. Pure; every fact comes from the passed records. */
 export function projectLeaseWorkStatus(input: LeaseWorkStatusInput): LeaseWorkStatus {
@@ -152,14 +109,11 @@ export function projectLeaseWorkStatus(input: LeaseWorkStatusInput): LeaseWorkSt
           nothingRecorded: Boolean(lane),
         };
   if (!lane) return { ...plain(input.status), waitingOn: null, check: null, evidence };
-  const thread = threadFact(input.followUp);
-  if (thread && !agrees(lane, thread)) {
-    return {
-      ...plain("needs_check"),
-      waitingOn: null,
-      check: { staffRecord: staffFact(lane, recorded), linkedThread: thread.words },
-      evidence,
-    };
+  // R-S279-3: a check exists only when the staff record and the same message's evidence really
+  // disagree; an app-confirmed send with no reply is one fact, never a check.
+  const check = input.waiting?.readable ? input.waiting.check : null;
+  if (check) {
+    return { ...plain("needs_check"), waitingOn: null, check, evidence };
   }
   return {
     status: input.status,
@@ -181,13 +135,14 @@ export function staffLaneStatus(status: RenewalOverallStatus): boolean {
 
 /**
  * The desk row's input: the guidance status it carries and the same staff lane that guidance read
- * (a row with nothing recorded is guided by the first staff activity).
+ * (a row with nothing recorded is guided by the first staff activity), with the row's own waiting
+ * projection.
  */
 export function deskLeaseWorkStatusInput(
   row: Pick<
     DeskLeaseRow,
     "guidance" | "manualProgress" | "staffRecordedAtIso" | "staffRecordUnavailable"
-  > & { readonly followUp?: LeaseWorkStatusFollowUp | null },
+  > & { readonly leaseWaiting?: LeaseWaiting | null },
   sourceReadAtIso: string | null,
 ): LeaseWorkStatusInput {
   const status = row.guidance.overallStatus;
@@ -198,14 +153,15 @@ export function deskLeaseWorkStatusInput(
       : null,
     staffRecordedAtIso: row.staffRecordedAtIso ?? null,
     ...(row.staffRecordUnavailable ? { staffRecordUnavailable: true } : {}),
-    followUp: row.followUp ?? null,
+    waiting: row.leaseWaiting ?? null,
     sourceReadAtIso,
   };
 }
 
 /**
- * Focus's input: the live staff record (recomputed after each save) with the server's follow-up
- * facts and read time. A status the staff lane does not decide keeps the server's value.
+ * Focus's input: the live staff record (recomputed after each save) with the waiting projection
+ * read against that same record and the server's read time. A status the staff lane does not
+ * decide keeps the server's value.
  */
 export function focusLeaseWorkStatusInput(input: {
   readonly serverStatus: RenewalOverallStatus;
@@ -213,12 +169,13 @@ export function focusLeaseWorkStatusInput(input: {
     | { readonly readable: false }
     | { readonly readable: true; readonly state: RenewalWorkspaceState | null };
   readonly standingOwnerAuthority: boolean;
-  readonly followUp: LeaseWorkStatusFollowUp | null;
+  /** S279: the waiting projection for this lease, read against the same staff record. */
+  readonly waiting: LeaseWaiting | null;
   readonly sourceReadAtIso: string | null;
   /** S248: the lease's message evidence read into the staff lane, as the desk row reads it. */
   readonly evidence?: OutreachFill | null;
 }): LeaseWorkStatusInput {
-  const shared = { followUp: input.followUp, sourceReadAtIso: input.sourceReadAtIso };
+  const shared = { waiting: input.waiting, sourceReadAtIso: input.sourceReadAtIso };
   if (!input.staffRecord.readable)
     return {
       status: "needs_verification",
@@ -279,9 +236,8 @@ export function leaseWorkStatusLines(status: LeaseWorkStatus): {
   const evidence = status.evidence;
   return {
     waiting: status.waitingOn ? `Waiting on: ${status.waitingOn}` : null,
-    check: status.check
-      ? `The staff record ${status.check.staffRecord}; the linked Gmail thread says ${status.check.linkedThread}.`
-      : null,
+    // R-S279-3: both facts and the fix, in the same words as the stage line.
+    check: status.check ? status.check.sentence : null,
     evidence:
       evidence.source === "staff_record"
         ? `From the staff record${at(", saved", evidence.atIso)}`

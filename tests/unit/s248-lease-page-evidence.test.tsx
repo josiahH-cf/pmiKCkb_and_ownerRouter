@@ -182,7 +182,16 @@ describe(
       const card = nowCard();
       const primary = card.querySelector("[data-renewal-now-primary]")!;
       expect(primary).toHaveTextContent(RENEWAL_STAGE_NEXT_STEP.settleCheck);
-      expect(within(card).getByText(/^Needs a check: The staff record/)).toBeVisible();
+      // S279 R-S279-3 (rewritten on purpose): the check reads once on the screen, in the stage
+      // line with its fix; the Now card's primary action settles it.
+      const stageLine = document.querySelector('[data-renewal-field="stage-line"]')!;
+      expect(stageLine.textContent).toMatch(/^Needs a check: The staff record/);
+      expect(within(card).queryByText(/Needs a check: The staff record/)).toBeNull();
+      expect(
+        [...document.body.querySelectorAll("p, span, li")].filter((node) =>
+          (node.textContent ?? "").startsWith("Needs a check: The staff record"),
+        ),
+      ).toHaveLength(1);
       expect(
         within(card).queryByRole("button", { name: /Send the owner message/ }),
       ).toBeNull();

@@ -67,11 +67,10 @@ export function buildRenewalActionSnapshot(
     !input.unavailableSources.has("attempt_summary");
   // S232 R-S232-4: the desk row's one status projection; its waiting-on party is the only one.
   const sourceReadAtIso = workspace.dataCurrency?.readAtIso ?? null;
-  const followUp = summary.followUp
-    ? { waiting: summary.followUp.waiting, lastContact: summary.followUp.lastContact }
-    : null;
+  // S279 R-S279-2: the lease's own waiting projection, the same for every viewer.
+  const waiting = summary.leaseWaiting ?? null;
   const leaseStatus = projectLeaseWorkStatus(
-    deskLeaseWorkStatusInput({ ...summary, guidance, followUp }, sourceReadAtIso),
+    deskLeaseWorkStatusInput({ ...summary, guidance }, sourceReadAtIso),
   );
   return {
     leaseId: summary.id,
@@ -111,7 +110,7 @@ export function buildRenewalActionSnapshot(
       waitingOn: guidance.overallStatus === "waiting" ? leaseStatus.waitingOn : null,
     },
     progressStateAvailable: !input.unavailableSources.has("progress"),
-    leaseStatus: { followUp, sourceReadAtIso },
+    leaseStatus: { waiting, sourceReadAtIso },
     process: process
       ? {
           status: process.status,

@@ -38,6 +38,11 @@ export type RenewalFollowUpSource =
   | {
       kind: "renewal_process";
       ref: string;
+    }
+  | {
+      /** S279 R-S279-1: the lease's own renewal message evidence for its current cycle. */
+      kind: "outreach_evidence";
+      cycleId: string | null;
     };
 
 export interface RenewalFollowUpWaiting {
@@ -47,10 +52,30 @@ export interface RenewalFollowUpWaiting {
 }
 
 export interface RenewalFollowUpLastContact {
-  state: "verified" | "needs_verification";
+  /** "none": the lease's own evidence holds no counted message yet (S279), so nothing to verify. */
+  state: "verified" | "needs_verification" | "none";
   atIso: string | null;
   source: Extract<RenewalFollowUpSource, { kind: "gmail_thread" }> | null;
 }
+
+/**
+ * S279 R-S279-1 / R-S279-2: who has the move and the last contact from the one waiting projection
+ * (`lease-waiting.ts`) over the lease's own message evidence. No viewer identity enters it.
+ */
+export interface RenewalFollowUpOutreachContact {
+  /** Whose move it is; null once nobody outside the work is waited on (complete). */
+  readonly party: "owner" | "tenant" | "team" | null;
+  readonly lastContactIso: string | null;
+  readonly cycleId: string | null;
+}
+
+/** S279 R-S279-5: the unconfirmed notice rules line, its next step and the Admin panel it names. */
+export const NOTICE_RULES_UNCONFIRMED_LABEL = "Renewal notice rules are not confirmed";
+export const NOTICE_RULES_UNCONFIRMED_NEXT =
+  "an Admin confirms them in Admin, Renewal notice rules.";
+/** The words of the next step that name the Admin panel; an Admin sees them as its link. */
+export const NOTICE_RULES_ADMIN_PLACE = "Admin, Renewal notice rules";
+export const NOTICE_RULES_ADMIN_HREF = "/admin?task=renewal#admin-renewal-notice-rules";
 
 export interface RenewalFollowUpPolicy {
   state: "confirmed" | "disabled" | "unset" | "unreadable";
@@ -119,6 +144,14 @@ export interface RenewalFollowUpProjectionInput {
   >;
   processFallback?: RenewalProcessWaitingFallback | null;
   dismissedAttentionKeys?: readonly string[];
+  /**
+   * S279 R-S279-1 / R-S279-2: the lease's own waiting facts. When given, the waiting state, the
+   * last contact, the due date and the next step read them and never a viewer's own mailbox link;
+   * the process-step fallback applies only when the evidence could not be read (null). The links
+   * still name the person's own linked thread and drive only that person's attention. Absent: the
+   * pre-S279 link-based reading, kept for callers that read no evidence.
+   */
+  outreachContact?: RenewalFollowUpOutreachContact | null;
 }
 
 function exactLeaseRef(leaseId: string): string {
@@ -137,9 +170,13 @@ function isExactLeaseLink(link: WorkflowCommunicationLink, leaseId: string): boo
 }
 
 function linkOrder(link: WorkflowCommunicationLink): number {
+  // S279 R-S279-3: the link a confirmed send writes carries no observed contact yet; its send
+  // time places it, so the current message's thread is not ranked behind an older thread.
   return link.contact_observation_state === "needs_verification"
     ? link.updated_at_ms
-    : (link.last_contact_at_ms ?? 0);
+    : (link.last_contact_at_ms ??
+        (link.contact_observation_state === undefined ? link.created_at_ms : 0) ??
+        0);
 }
 
 /** Select one current channel deterministically; a rewrite cannot outrank newer provider evidence. */
@@ -261,6 +298,39 @@ function buildContactState(
   };
 }
 
+/**
+ * S279 R-S279-1 / R-S279-2: the waiting state and last contact from the lease's own message
+ * evidence. When that evidence was read the older process step is never a fallback; when it could
+ * not be read (null) only the process step's own waiting fact may stand, and contact needs a check.
+ */
+function outreachContactState(
+  input: RenewalFollowUpProjectionInput,
+  outreach: RenewalFollowUpOutreachContact | null,
+): ReturnType<typeof buildContactState> {
+  if (!outreach) {
+    return {
+      waiting: input.processFallback
+        ? {
+            state: "verified",
+            party: input.processFallback.party,
+            source: { kind: "renewal_process", ref: input.processFallback.sourceRef },
+          }
+        : { state: "needs_verification", party: null, source: null },
+      lastContact: { state: "needs_verification", atIso: null, source: null },
+    };
+  }
+  const source = { kind: "outreach_evidence", cycleId: outreach.cycleId } as const;
+  return {
+    waiting:
+      outreach.party === null
+        ? { state: "not_waiting", party: null, source }
+        : { state: "verified", party: outreach.party, source },
+    lastContact: outreach.lastContactIso
+      ? { state: "verified", atIso: outreach.lastContactIso, source: null }
+      : { state: "none", atIso: null, source: null },
+  };
+}
+
 function policyKey(
   scope: NoticeRuleScope,
   input: RenewalFollowUpProjectionInput,
@@ -283,10 +353,11 @@ function buildPolicy(input: RenewalFollowUpProjectionInput): RenewalFollowUpPoli
     effectiveKey: policyKey(source.scope, input),
   };
 
+  // S279 R-S279-5: the line names what is unconfirmed in the words of its Admin panel.
   if (input.policy.state === "invalid" || input.policy.state === "unreadable") {
     return {
       state: "unreadable",
-      label: "Timing policy not confirmed",
+      label: NOTICE_RULES_UNCONFIRMED_LABEL,
       ...common,
       intervalDays: null,
     };
@@ -294,7 +365,7 @@ function buildPolicy(input: RenewalFollowUpProjectionInput): RenewalFollowUpPoli
   if (input.policy.state !== "saved" || !resolved.fullyVerified) {
     return {
       state: "unset",
-      label: "Timing policy not confirmed",
+      label: NOTICE_RULES_UNCONFIRMED_LABEL,
       ...common,
       intervalDays: null,
     };
@@ -414,7 +485,8 @@ function nextAction(
   due: RenewalFollowUpDue,
 ): string {
   if (policy.state === "unset" || policy.state === "unreadable") {
-    return "Ask an Admin to confirm and version the client timing policy.";
+    // S279 R-S279-5: the owner of the step and where it is done.
+    return NOTICE_RULES_UNCONFIRMED_NEXT;
   }
   if (due.state === "needs_verification") {
     return "Refresh or relink the exact Gmail thread before relying on contact state.";
@@ -443,10 +515,18 @@ export function buildRenewalFollowUpProjection(
     input.leaseId,
     input.preferredPurpose,
   );
-  const contact = buildContactState(input, selected);
+  // The person's own linked thread: its control and that person's attention read it.
+  const linkContact = buildContactState(input, selected);
+  // S279 R-S279-2: the status every viewer reads comes from the lease's own evidence when given.
+  const contact =
+    input.outreachContact === undefined
+      ? linkContact
+      : outreachContactState(input, input.outreachContact);
   const policy = buildPolicy(input);
   const due = dueFrom(input, contact, policy);
-  const workItem = buildAttention(input, contact, policy, due);
+  // A person's link attention still drives only that person's notifications.
+  const linkDue = contact === linkContact ? due : dueFrom(input, linkContact, policy);
+  const workItem = buildAttention(input, linkContact, policy, linkDue);
   const dismissed = Boolean(
     workItem && input.dismissedAttentionKeys?.includes(workItem.dedupeKey),
   );

@@ -21,6 +21,7 @@ import {
 import { describeRenewalTerms } from "@/lib/lease-renewal/current-rent-display";
 import { effectiveRenewalTerms } from "@/lib/lease-renewal/effective-terms";
 import { outreachFillFor } from "@/lib/lease-renewal/outreach-evidence";
+import { leaseWaitingFor } from "@/lib/lease-renewal/lease-waiting";
 import {
   focusLeaseWorkStatusInput,
   projectLeaseWorkStatus,
@@ -240,14 +241,23 @@ export function RenewalFocusViewPane({
         }
       : snapshot.standingOwnerAuthority;
     const state = staffRecord.readable ? staffRecord.state : null;
+    const standingOwnerAuthority =
+      authority?.covered === true && authority.manualRevision === (state?.revision ?? 0);
+    // S279 R-S279-2: the waiting projection read against the live staff record from the lease's
+    // own evidence, as the desk row reads it; the server's projection when no evidence was read.
+    const waiting = snapshot.outreach
+      ? leaseWaitingFor(state, snapshot.outreach.input, {
+          leaseId: snapshot.leaseId,
+          cycleDateIso: snapshot.outreach.cycleDateIso,
+          standingOwnerAuthority,
+        })
+      : snapshot.leaseStatus.waiting;
     return projectLeaseWorkStatus(
       focusLeaseWorkStatusInput({
         serverStatus: snapshot.guidance.status,
         staffRecord,
-        standingOwnerAuthority:
-          authority?.covered === true &&
-          authority.manualRevision === (state?.revision ?? 0),
-        followUp: snapshot.leaseStatus.followUp,
+        standingOwnerAuthority,
+        waiting,
         sourceReadAtIso: snapshot.leaseStatus.sourceReadAtIso,
         evidence: outreachFillFor(state, snapshot.outreach),
       }),
@@ -538,7 +548,8 @@ function FocusPane({
             Lease status:{" "}
             <strong data-renewal-field="status-label">{leaseStatus.label}</strong>
           </span>
-          <LeaseWorkStatusLines status={leaseStatus} />
+          {/* S279 R-S279-3: the stage line above carries the check and its fix, once. */}
+          <LeaseWorkStatusLines showCheck={false} status={leaseStatus} />
         </p>
       ) : null}
       {complete ? (

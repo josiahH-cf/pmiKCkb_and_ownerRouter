@@ -87,6 +87,7 @@ import {
 import { projectRentvineLeaseStatus } from "@/lib/lease-renewal/rentvine-lease-status";
 import { readLeaseStatusTable } from "@/lib/lease-renewal/lease-status-table";
 import { staffRecordLatestAtIso } from "@/lib/lease-renewal/lease-work-status";
+import { leaseWaitingFor, type LeaseWaiting } from "@/lib/lease-renewal/lease-waiting";
 import {
   EMPTY_OUTREACH_EVIDENCE_INPUT,
   UNREADABLE_OUTREACH_EVIDENCE_INPUT,
@@ -1077,6 +1078,22 @@ function toLiveSummary(
     stageLabel: step?.label ?? null,
     nextAction: stageIndex >= 0 ? STAGE_NEXT_ACTION[stageIndex] : null,
     openConflicts,
+    // S279 ARCH-S279-1 / ARCH-S279-2: the one waiting projection from this lease's own message
+    // evidence and staff record, read as the stage reads it; absent when no evidence read was
+    // attempted. No viewer identity enters it.
+    ...(context.outreach && leaseId
+      ? {
+          leaseWaiting: leaseWaitingFor(manual ?? null, context.outreach, {
+            leaseId,
+            cycleDateIso: renewalStageCycleDateIso({
+              leaseTerm: classification.termProjection,
+              endDateIso: classification.endDateIso,
+            }),
+            standingOwnerAuthority: renewalPricing?.authority.covered === true,
+            housingAssistance: assisted,
+          }),
+        }
+      : {}),
   };
   return withCurrentLifecycle(summaryBase, progress, progressStateAvailable);
 }
@@ -1422,7 +1439,11 @@ function buildLiveFollowUp(input: {
   readTimestamp: string;
   sources: RenewalFollowUpSources;
   process?: RenewalProcessProjection;
+  /** S279: the row's one waiting projection; absent when no evidence read was attempted. */
+  leaseWaiting?: LeaseWaiting;
 }) {
+  const hints = input.process ? processFollowUpHints(input.process) : {};
+  const waiting = input.leaseWaiting;
   return buildRenewalFollowUpProjection({
     leaseId: input.leaseId,
     propertyKey: propertyKeyOf(input.view),
@@ -1431,7 +1452,28 @@ function buildLiveFollowUp(input: {
     links: input.sources.links,
     policy: input.sources.policy,
     dismissedAttentionKeys: input.sources.dismissedAttentionKeys,
-    ...(input.process ? processFollowUpHints(input.process) : {}),
+    ...hints,
+    // S279 R-S279-1 / R-S279-2: the card's waiting state and last contact come from the same
+    // evidence as the step line; the person's linked thread is the current step's audience.
+    ...(waiting
+      ? {
+          ...(waiting.audience
+            ? {
+                preferredPurpose:
+                  waiting.audience === "owner"
+                    ? ("renewal_owner" as const)
+                    : ("renewal_tenant" as const),
+              }
+            : {}),
+          outreachContact: waiting.readable
+            ? {
+                party: waiting.party,
+                lastContactIso: waiting.lastContactIso,
+                cycleId: waiting.cycleId,
+              }
+            : null,
+        }
+      : {}),
   });
 }
 
@@ -2284,6 +2326,7 @@ export async function loadLiveRenewalDesk(
               readTimestamp,
               sources: followUpSources,
               ...(progressStateAvailable ? { process } : {}),
+              ...(summary.leaseWaiting ? { leaseWaiting: summary.leaseWaiting } : {}),
             }),
           }),
           { process, dataCheck, rentDecision: currentRentDecision },
@@ -2305,6 +2348,9 @@ export async function loadLiveRenewalDesk(
                     view,
                     readTimestamp,
                     sources: followUpSources,
+                    ...(summary.leaseWaiting
+                      ? { leaseWaiting: summary.leaseWaiting }
+                      : {}),
                   }),
                 }
               : summary,
@@ -2543,6 +2589,7 @@ export async function loadLiveRenewalLeaseWorkspace(
       readTimestamp,
       sources: followUpSources,
       process,
+      ...(summary.leaseWaiting ? { leaseWaiting: summary.leaseWaiting } : {}),
     });
     summary = {
       ...withCurrentLifecycle(summary, progress, true, process.status === "complete"),

@@ -458,6 +458,13 @@ export interface OutreachCheck {
   readonly staffRecord: string;
   /** The app's evidence, in words. */
   readonly appEvidence: string;
+  /**
+   * S279 R-S279-3: what the staff record says, without its save time ("waiting on the tenant",
+   * "Owner outreach is waiting"), for the check's one sentence.
+   */
+  readonly staffFact: string;
+  /** S279 R-S279-3: when the evidence happened: the accepted send, or the observed reply. */
+  readonly evidenceAtMs: number;
 }
 
 export const EMPTY_OUTREACH_FILL: OutreachFill = Object.freeze({
@@ -539,6 +546,8 @@ export function outreachFill(
         subject: "outreach",
         staffRecord: `says ${ACTIVITY_WORDS[activity]} is ${STAFF_OUTCOME_WORDS[staff.outcome]} (saved ${at(recordedMs)})`,
         appEvidence: `show the ${audience} message accepted by Gmail ${at(derived.sentAtMs)}`,
+        staffFact: `${ACTIVITY_WORDS[activity]} is ${STAFF_OUTCOME_WORDS[staff.outcome]}`,
+        evidenceAtMs: derived.sentAtMs,
       });
       return null;
     }
@@ -567,6 +576,8 @@ export function outreachFill(
       subject: "response",
       staffRecord: `says ${waitingWords} (saved ${at(recordedMs)})`,
       appEvidence: `show ${audience === "owner" ? "an owner" : "a tenant"} reply received ${at(reply)}`,
+      staffFact: `waiting on the ${audience}`,
+      evidenceAtMs: reply,
     });
     return null;
   };

@@ -40,6 +40,12 @@ import {
   type OutreachFill,
 } from "@/lib/lease-renewal/outreach-evidence";
 import {
+  audienceContact,
+  currentOutreachCheck,
+  projectLeaseWaiting,
+  type LeaseWaiting,
+} from "@/lib/lease-renewal/lease-waiting";
+import {
   NOT_PART_OF_PATH_LABEL,
   RENEWAL_PATH_DEFINITION,
   assistedProgramContactLabel,
@@ -146,13 +152,18 @@ export interface RenewalStageContext {
   readonly offCycleEndDate?: { readonly endDateIso: string } | null;
   /** S119: the hand-set staff work status for the current cycle, when one is saved. */
   readonly handStatus: { readonly key: RenewalWorkStatus; readonly label: string } | null;
-  /** S75: the last contact the follow-up projection observed. */
-  readonly lastContactAtIso: string | null;
   /**
-   * S232 R-S232-4: the staff record and the linked Gmail thread disagree, in both facts' words, as
-   * `leaseWorkStatusLines` writes them; null when they agree or no thread fact is known.
+   * Retired by S279 R-S279-2: this was the last contact one viewer's own linked Gmail thread
+   * showed. The stage reads the last contact from the lease's own message evidence only, so this
+   * value is ignored; it stays optional for contexts built before S279.
    */
-  readonly threadCheck: string | null;
+  readonly lastContactAtIso?: string | null;
+  /**
+   * Retired by S279 R-S279-2 / R-S279-3: this was S232's comparison with one viewer's own linked
+   * Gmail thread. The check now compares the staff record with the current message's own thread
+   * in the lease's evidence (`lease-waiting.ts`), so this value is ignored.
+   */
+  readonly threadCheck?: string | null;
   /** S248: this lease's linked renewal messages, records and drafts; null when not read. */
   readonly outreach: LeaseOutreachEvidenceInput | null;
   /**
@@ -244,8 +255,10 @@ export interface RenewalStageWaiting {
 
 export interface RenewalStageCheck {
   readonly kind: "evidence" | "linked_thread";
-  /** Both facts in one sentence. */
+  /** Both facts and the fix in one sentence (S279 R-S279-3). */
   readonly sentence: string;
+  /** S279 R-S279-3: the fix and the editor it opens; the stage line links it. */
+  readonly fix?: { readonly label: string; readonly target: string };
 }
 
 export interface RenewalDerivedFact {
@@ -276,6 +289,11 @@ export interface RenewalStage {
   readonly check: RenewalStageCheck | null;
   /** The S248 evidence disagreement itself, when that is the check. */
   readonly evidenceCheck: OutreachCheck | null;
+  /**
+   * S279 ARCH-S279-1: the one waiting projection (who, since when, last contact and the check)
+   * the step line, the "Waiting and follow-up" card and the desk row read.
+   */
+  readonly leaseWaiting: LeaseWaiting;
   /** R-S248-10: facts the app derived, with where they came from. */
   readonly derived: readonly RenewalDerivedFact[];
   /** R-S247-8: the hand-set status and the derived stage in one line when they differ. */
@@ -348,10 +366,6 @@ function stageLabel(key: RenewalWorkStatus): string {
 /** "since 11/04/2026", from an instant or a calendar date. */
 function since(iso: string | null): string {
   return iso ? ` since ${formatCalendarDateOrTimestamp(iso).split(",")[0]}` : "";
-}
-
-function msIso(ms: number | null): string | null {
-  return ms === null ? null : new Date(ms).toISOString();
 }
 
 type Lane = ReturnType<typeof manualRenewalSummary>;
@@ -470,7 +484,12 @@ function audienceStep(
       ACTIVITY_NEXT_STEP[formActivity] ?? MANUAL_ACTIVITIES[formActivity].label;
     return {
       state: "current",
-      stage: definition.stage,
+      // S279 R-S279-4: with the acceptance recorded the offer is no longer being prepared. The
+      // outstanding work, the information form ahead of the documents, reads as the path's next
+      // stage in the existing closed list.
+      stage: definition.next
+        ? RENEWAL_PATH_DEFINITION[definition.next].stage
+        : definition.stage,
       nextStep: label,
       primary: { label, target: `renewal-manual-${formActivity}` },
       detail: null,
@@ -502,7 +521,8 @@ function audienceStep(
           : definition.stage,
       nextStep: RENEWAL_STAGE_NEXT_STEP.settleCheck,
       primary: { label: RENEWAL_STAGE_NEXT_STEP.settleCheck, target },
-      detail: `Needs a check: The staff record ${check.staffRecord}; the app's records ${check.appEvidence}.`,
+      // S279 R-S279-3: the check appears once on the screen, in the stage line with its fix.
+      detail: null,
       waiting: null,
     };
   }
@@ -523,13 +543,11 @@ function audienceStep(
       };
     }
     // R-S247-5: waiting is a state; who, since when, the last contact and what is watched.
-    const derived = evidence.derived;
+    // S279 ARCH-S279-1: since and last contact follow the one rule over the lease's own evidence.
+    const contact = audienceContact(evidence);
     const staffRecord = state ? currentStaffActivity(state, outreachKey) : null;
     const sinceIso =
-      msIso(derived?.sentAtMs ?? null) ??
-      staffRecord?.occurredAt ??
-      staffRecord?.recordedAt ??
-      null;
+      contact.sinceIso ?? staffRecord?.occurredAt ?? staffRecord?.recordedAt ?? null;
     return {
       state: "waiting",
       stage: definition.waitingStage ?? definition.stage,
@@ -539,8 +557,7 @@ function audienceStep(
       waiting: {
         party: `the ${who}`,
         sinceIso,
-        lastContactIso:
-          msIso(evidence.lastSentAtMs) ?? evaluation.context.lastContactAtIso ?? sinceIso,
+        lastContactIso: contact.lastContactIso ?? sinceIso,
         watching: definition.waiting!.watching,
       },
     };
@@ -575,7 +592,8 @@ function audienceStep(
         waiting: {
           party: "the scheduled send",
           sinceIso: null,
-          lastContactIso: evaluation.context.lastContactAtIso,
+          // S279: a scheduled message is no contact; an earlier counted message may be.
+          lastContactIso: audienceContact(evidence).lastContactIso,
           watching: `The ${who} message is counted as sent only once Gmail accepts it.`,
         },
         scheduled: true,
@@ -677,10 +695,10 @@ function assistedAnswerStep(evaluation: Evaluation): {
       detail: sentence,
       waiting: null,
     };
-  const derived = evidence.derived;
+  const contact = audienceContact(evidence);
   const staffRecord = state ? currentStaffActivity(state, "owner_outreach") : null;
   const sinceIso =
-    msIso(derived?.sentAtMs ?? null) ??
+    contact.sinceIso ??
     staffRecord?.occurredAt ??
     staffRecord?.recordedAt ??
     state?.ownerResponse?.occurredAt ??
@@ -695,8 +713,7 @@ function assistedAnswerStep(evaluation: Evaluation): {
     waiting: {
       party: "the owner",
       sinceIso,
-      lastContactIso:
-        msIso(evidence.lastSentAtMs) ?? evaluation.context.lastContactAtIso ?? sinceIso,
+      lastContactIso: contact.lastContactIso ?? sinceIso,
       watching: definition.waiting!.watching,
     },
   };
@@ -1158,21 +1175,27 @@ export function projectRenewalStage(
       ? {
           party: RENEWAL_PATH_DEFINITION.documents.waiting!.party,
           sinceIso: deliveryRecord.occurredAt ?? deliveryRecord.recordedAt,
-          lastContactIso: scopedContext.lastContactAtIso,
+          // S279: the tenant thread's last contact in the lease's own evidence, else the delivery.
+          lastContactIso:
+            audienceContact(evidence.tenant).lastContactIso ??
+            deliveryRecord.occurredAt ??
+            deliveryRecord.recordedAt,
           watching: RENEWAL_PATH_DEFINITION.documents.waiting!.watching,
         }
       : null;
   const waiting = audience?.waiting ?? documentsWaiting;
   const evidenceLine = audience?.detail ?? null;
-  // R-S248-9 first; S232's staff-record and linked-thread disagreement keeps its own words.
-  const check: RenewalStageCheck | null = fill.checks[0]
+  // S279 ARCH-S279-1 / R-S279-3: the one waiting projection over the lease's own evidence. Its
+  // check is the staff record against the current message's own thread, with both facts and the
+  // fix; no viewer's linked thread is read (R-S279-2).
+  const leaseWaiting = projectLeaseWaiting({ evidence, fill, lane });
+  const check: RenewalStageCheck | null = leaseWaiting.check
     ? {
         kind: "evidence",
-        sentence: `The staff record ${fill.checks[0].staffRecord}; the app's records ${fill.checks[0].appEvidence}.`,
+        sentence: leaseWaiting.check.sentence,
+        fix: leaseWaiting.check.fix,
       }
-    : scopedContext.threadCheck
-      ? { kind: "linked_thread", sentence: scopedContext.threadCheck }
-      : null;
+    : null;
   const recordedAtIso = latestRecordIso(state, fill);
   const retired = scopedContext.cycleDisposition?.state === "retired";
   const dispositionUnavailable = scopedContext.cycleDisposition?.state === "unavailable";
@@ -1253,7 +1276,8 @@ export function projectRenewalStage(
         : step,
     ),
     check,
-    evidenceCheck: fill.checks[0] ?? null,
+    evidenceCheck: currentOutreachCheck(fill, lane),
+    leaseWaiting,
     derived,
     handStatusLine,
     blocker: retired

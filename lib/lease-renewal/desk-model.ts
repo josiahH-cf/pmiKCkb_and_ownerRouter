@@ -47,6 +47,7 @@ import type {
 } from "@/lib/lease-renewal/renewal-process";
 import type { EffectiveRuleView } from "@/lib/lease-renewal/notice-rules";
 import type { RenewalFollowUpProjection } from "@/lib/lease-renewal/follow-up-projection";
+import type { LeaseWaiting } from "@/lib/lease-renewal/lease-waiting";
 import type { OwnerRenewalDraft } from "@/lib/lease-renewal/owner-draft";
 import type { RenewalReadinessResult } from "@/lib/lease-renewal/renewal-readiness";
 import type { RenewalOwnerDecision } from "@/lib/lease-renewal/renewal-progress";
@@ -315,6 +316,12 @@ export interface DeskLeaseSummaryBase {
   };
   /** S75: one source-backed contact/policy projection on canonical Live cards. */
   followUp?: RenewalFollowUpProjection;
+  /**
+   * S279 ARCH-S279-1: the one waiting projection (who, since when, last contact and the status
+   * check) over this lease's own message evidence, read against the staff record. The same for
+   * every viewer; absent when the evidence was not read for this row.
+   */
+  leaseWaiting?: LeaseWaiting;
 }
 
 export interface DeskLeaseSummary extends DeskLeaseSummaryBase {

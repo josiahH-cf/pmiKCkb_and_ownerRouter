@@ -112,10 +112,14 @@ describe("buildRenewalFollowUpProjection", () => {
     });
     expect(projection.policy).toMatchObject({
       state: "unset",
-      label: "Timing policy not confirmed",
+      // S279 R-S279-5 (rewritten on purpose): the line names the Admin panel's own words.
+      label: "Renewal notice rules are not confirmed",
       version: null,
       intervalDays: null,
     });
+    expect(projection.nextAction).toBe(
+      "an Admin confirms them in Admin, Renewal notice rules.",
+    );
     expect(projection.due).toEqual({ state: "unset", atIso: null });
     expect(projection.attention).toBeNull();
   });

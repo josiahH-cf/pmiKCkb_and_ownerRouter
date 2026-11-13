@@ -31,6 +31,8 @@ import {
   stubRenewalRoutes,
 } from "@/tests/helpers/focus-workspace";
 import { actionFixture, manualFixture } from "@/tests/helpers/renewal-action-fixtures";
+import { leaseWaitingFor } from "@/lib/lease-renewal/lease-waiting";
+import { evidenceInput, message } from "@/tests/helpers/outreach-evidence-fixtures";
 
 // S232 R-S232-5 (BEH-S232-4, AC-S232-3): every issue names the missing input by its visible label,
 // who resolves it (the person the app records, otherwise the role) and a working in-app link, the
@@ -93,14 +95,6 @@ const initiatedMoveOut = {
   freshness: "fresh",
   observedAtIso: "2026-10-29T12:00:00.000Z",
 } as unknown as DeskLeaseSummaryBase["moveOut"];
-const SOURCE = {
-  kind: "gmail_thread" as const,
-  linkId: "link-1",
-  threadId: "thread-1",
-  messageId: "message-1",
-  purpose: "renewal_owner" as const,
-};
-
 /**
  * Every issue the projection produces for these inputs, by id; a tagged input's issues carry the
  * tag, since the timing variants share one id.
@@ -121,18 +115,26 @@ function issuesOf(
 }
 
 const ALL = () => {
-  const { workspace } = actionFixture({ manual: awaitingOwner });
-  const tenantThread = {
-    ...(workspace.summary.followUp ?? workspace.followUp!),
-    waiting: { state: "verified" as const, party: "tenant" as const, source: SOURCE },
-  };
+  // S279 (rewritten on purpose): the disagreement is the staff record's "No response", saved after
+  // the owner's observed reply on the lease's own message, never one viewer's linked thread.
+  const ownerReplied = leaseWaitingFor(
+    awaitingOwner,
+    evidenceInput([
+      message({
+        cycleId: awaitingOwner.cycleId,
+        acceptedAtMs: Date.parse("2026-09-28T15:00:00.000Z"),
+        replyAtMs: Date.parse("2026-09-29T15:00:00.000Z"),
+      }),
+    ]),
+    { leaseId: awaitingOwner.leaseId, cycleDateIso: "2026-12-31" },
+  );
   return issuesOf(
     input({
       manual: awaitingOwner,
       // The owner the source records; an unverified label is never named as a person.
       summary: { ownerNameLabels: ["Sample Owner LLC", "Needs Verification"] },
     }),
-    input({ manual: awaitingOwner, summary: { followUp: tenantThread } }),
+    input({ manual: awaitingOwner, summary: { leaseWaiting: ownerReplied } }),
     input({ readComplete: false }),
     input({ currencyState: "expired" }),
     input({ progressStateAvailable: false }),
@@ -209,12 +211,19 @@ describe("S232 actionable issues (R-S232-5)", () => {
         },
       },
     });
-    // The staff record and the linked thread disagree: a check with both facts, not a party.
+    // The staff record and the message disagree: a check with both facts and the fix, not a party.
     expect(issues.get("advisory:waiting_check")).toMatchObject({
       reason:
-        "Needs a check. The staff record says waiting on the owner; the linked Gmail thread says waiting on the tenant.",
+        "Needs a check. The staff record says waiting on the owner. The owner replied on 09/29/2026. Record the response.",
       needs: "Who has the move on this renewal",
-      resolveAt: { kind: "control", label: "Review the staff record" },
+      resolveAt: {
+        kind: "control",
+        label: "Record the response",
+        destination: {
+          kind: "workspace_anchor",
+          targetId: "renewal-manual-owner_response",
+        },
+      },
     });
     expect(issues.get("advisory:notice_timing:cannot_determine#basis")).toMatchObject({
       needs: "The reviewed move-out timing basis",

@@ -14,7 +14,7 @@ vi.mock("next/navigation", () => ({
 import { RenewalDeskTable } from "@/components/lease-renewal/RenewalDeskTable";
 import type { DeskLeaseRow } from "@/lib/lease-renewal/desk-model";
 import { DEFAULT_RENEWAL_DESK_QUERY_V2 } from "@/lib/lease-renewal/desk-query-v2";
-import type { LeaseWorkStatusFollowUp } from "@/lib/lease-renewal/lease-work-status";
+import { leaseWaitingFor, type LeaseWaiting } from "@/lib/lease-renewal/lease-waiting";
 import type { RenewalWorkspaceState } from "@/lib/lease-renewal/workspace-state";
 import {
   focusPane,
@@ -22,12 +22,15 @@ import {
   settle,
   stubRenewalRoutes,
 } from "@/tests/helpers/focus-workspace";
+import { evidenceInput, message } from "@/tests/helpers/outreach-evidence-fixtures";
 import { actionFixture, manualFixture } from "@/tests/helpers/renewal-action-fixtures";
 
 // S232 R-S232-4 (BEH-S232-3): the desk row and Focus show one status, who the lease waits on and
 // the record behind it; a disagreement reads "Needs a check" with both facts; a brand-new record
-// shows its next action, never the "Owner decision" phase label. Synthetic records only; nothing
-// here reaches a provider.
+// shows its next action, never the "Owner decision" phase label. S279 (rewritten on purpose,
+// R-S279-2 / R-S279-3): the disagreement is the staff record against the lease's own message
+// evidence, with the fix, never one viewer's linked Gmail thread; on the lease page the stage line
+// carries it once. Synthetic records only; nothing here reaches a provider.
 
 const PINNED_NOW = new Date("2026-09-30T17:00:00.000Z");
 beforeEach(() => {
@@ -40,29 +43,32 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const SOURCE = {
-  kind: "gmail_thread" as const,
-  linkId: "link-1",
-  threadId: "thread-1",
-  messageId: "message-1",
-  purpose: "renewal_owner" as const,
-};
-const tenantThread: LeaseWorkStatusFollowUp = {
-  waiting: { state: "verified", party: "tenant", source: SOURCE },
-  lastContact: { state: "verified", atIso: "2026-09-29T15:00:00.000Z", source: SOURCE },
-};
+/** The owner replied on 09/29; the staff record saved "No response" on 09/30, after it. */
+function ownerReplied(state: RenewalWorkspaceState): LeaseWaiting {
+  return leaseWaitingFor(
+    state,
+    evidenceInput([
+      message({
+        cycleId: state.cycleId,
+        acceptedAtMs: Date.parse("2026-09-28T15:00:00.000Z"),
+        replyAtMs: Date.parse("2026-09-29T15:00:00.000Z"),
+      }),
+    ]),
+    { leaseId: state.leaseId, cycleDateIso: "2026-12-31" },
+  );
+}
+const CHECK =
+  "The staff record says waiting on the owner. The owner replied on 09/29/2026. Record the response.";
 
 function row(
   manual: RenewalWorkspaceState | null,
-  followUp?: LeaseWorkStatusFollowUp,
+  leaseWaiting?: LeaseWaiting,
 ): DeskLeaseRow {
   const { workspace } = actionFixture({ manual });
   const summary = workspace.summary;
   return {
     ...summary,
-    ...(followUp
-      ? { followUp: { ...(summary.followUp ?? workspace.followUp!), ...followUp } }
-      : {}),
+    ...(leaseWaiting ? { leaseWaiting } : {}),
     guidance: workspace.guidance,
     processState: null,
   };
@@ -93,7 +99,11 @@ describe("S232 desk row and Focus status (R-S232-4)", { timeout: 60_000 }, () =>
     render(
       <RenewalDeskTable
         role="Editor"
-        rows={[row(null), row(awaitingOwner), row(awaitingOwner, tenantThread)]}
+        rows={[
+          row(null),
+          row(awaitingOwner),
+          row(awaitingOwner, ownerReplied(awaitingOwner)),
+        ]}
         shortcuts={{ available: false, tokenFor: () => null }}
         sourceReadOk
         sourceReadAtIso="2026-09-30T17:00:00.000Z"
@@ -132,33 +142,30 @@ describe("S232 desk row and Focus status (R-S232-4)", { timeout: 60_000 }, () =>
     ).toBeNull();
     expect(lines(conflict)).toEqual({
       waiting: null,
-      check:
-        "The staff record says waiting on the owner; the linked Gmail thread says waiting on the tenant.",
+      check: CHECK,
       evidence: "From the staff record, saved 09/30/2026, 7:00 AM CDT",
     });
     // The relabeled step filter still exists for saved links.
     expect(screen.getByLabelText("Recorded progress step")).toBeInTheDocument();
   });
 
-  it("reads Needs a check in Focus from the lease's own linked-thread marker", async () => {
+  it("reads Needs a check in Focus from the lease's own message evidence, the check shown once", async () => {
     const manual = manualFixture({ owner: "no_response", done: ["owner_outreach"] });
     stubRenewalRoutes(manual);
     const { workspace } = actionFixture({ manual });
-    const followUp = {
-      ...(workspace.summary.followUp ?? workspace.followUp!),
-      ...tenantThread,
-    };
     await renderWorkspace({
-      workspace: { ...workspace, summary: { ...workspace.summary, followUp } },
+      workspace: {
+        ...workspace,
+        summary: { ...workspace.summary, leaseWaiting: ownerReplied(manual) },
+      },
       manual,
     });
     const status = within(focusPane())
       .getByText(/^Lease status:/)
       .closest("p") as HTMLElement;
     expect(status).toHaveTextContent("Lease status: Needs a check");
-    expect(lines(status).check).toBe(
-      "The staff record says waiting on the owner; the linked Gmail thread says waiting on the tenant.",
-    );
+    // S279 R-S279-3: the stage line above carries the sentence and its fix; Focus does not repeat it.
+    expect(lines(status).check).toBeNull();
   });
 
   it("shows the desk row's lines in Focus and updates them from the readback after a save", async () => {

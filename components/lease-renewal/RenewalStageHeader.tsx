@@ -22,6 +22,32 @@ const activities = [
   { label: "Staff completion", target: "renewal-manual-complete" },
 ];
 
+/**
+ * S279 R-S279-3: the stage line, with a disagreement's fix as a link to the editor that settles it.
+ * The text reads exactly `stage.stageLine`; only the fix's words become the link.
+ */
+function StageLineText({ stage }: Readonly<{ stage: RenewalStage }>) {
+  const fix = stage.check?.fix;
+  const words = fix ? `${fix.label}.` : null;
+  if (!fix || !words || !stage.stageLine.endsWith(words)) return <>{stage.stageLine}</>;
+  return (
+    <>
+      {stage.stageLine.slice(0, stage.stageLine.length - words.length)}
+      <a
+        data-renewal-field="check-fix"
+        href={`#${fix.target}`}
+        onClick={(event) => {
+          event.preventDefault();
+          focusRenewalDashboardControl(fix.target);
+        }}
+      >
+        {fix.label}
+      </a>
+      .
+    </>
+  );
+}
+
 /** The shared stage stays above the path while the person opens an actual work record. */
 export function RenewalStageHeader({
   canEdit,
@@ -76,7 +102,7 @@ export function RenewalStageHeader({
           data-renewal-stage={stage.stage.key}
           data-renewal-current-step={stage.currentStepId}
         >
-          {stage.stageLine}
+          <StageLineText stage={stage} />
         </p>
         <Button
           aria-controls={id}
@@ -97,11 +123,12 @@ export function RenewalStageHeader({
           {formatBusinessTimestamp(disposition.record.at)}.
         </p>
       ) : null}
-      {stage.check || stage.handStatusLine ? (
+      {/* S279 R-S279-3: a disagreement reads once, in the stage line above with its fix; this
+          disclosure keeps only the hand-set status beside the recorded stage. */}
+      {stage.handStatusLine ? (
         <details>
           <summary>Needs a check</summary>
-          {stage.check ? <p>{stage.check.sentence}</p> : null}
-          {stage.handStatusLine ? <p>{stage.handStatusLine}</p> : null}
+          <p>{stage.handStatusLine}</p>
         </details>
       ) : null}
       <div

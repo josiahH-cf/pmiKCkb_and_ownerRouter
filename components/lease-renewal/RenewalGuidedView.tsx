@@ -579,7 +579,6 @@ export function RenewalFullOutcome({
         >
           {/* S270: the outcome's named read-only Verification. */}
           <summary>{GUIDED_VERIFICATION_LABELS[stepId]}</summary>
-          {current && stage.check ? <p>{stage.check.sentence}</p> : null}
           {current && stage.evidenceLine && stage.evidenceLine !== step.detail ? (
             <p>{stage.evidenceLine}</p>
           ) : null}
@@ -950,7 +949,10 @@ export function RenewalGuidedView({
     const before = previous.current;
     previous.current = { current: stage.currentStepId, line: stage.stageLine };
     if (before.current === stage.currentStepId && before.line === stage.stageLine) return;
-    setAnnouncement(`${stage.stageLine}. Next step: ${stage.nextStep.label}.`);
+    // S279: a check's line already ends with its fix and a period.
+    setAnnouncement(
+      `${stage.stageLine.replace(/\.$/, "")}. Next step: ${stage.nextStep.label}.`,
+    );
   }, [stage]);
 
   // A link to a control outside the shown step chooses the step that holds it, or opens Full
@@ -1821,11 +1823,8 @@ function NowCard({
         ) : null}
         {cueKind !== "blocker" ? blockerNode : null}
         {cueKind !== "waiting" ? waitingNode : null}
-        {stage.check && isCurrent && !shown.detail?.startsWith("Needs a check") ? (
-          <p className="renewal-notice" data-renewal-field="needs-check" role="note">
-            Needs a check: {stage.check.sentence}
-          </p>
-        ) : null}
+        {/* S279 R-S279-3: a check reads once, in the stage line above with its fix; the Now
+            card's one primary action settles it. */}
         {/* R-S269-2: the active input group: the outcome's decision facts, its field, the one
             primary action or exact fix with its reason, and the exact return. */}
         <div
@@ -2061,8 +2060,12 @@ function NowCard({
         <details data-renewal-verification key={shown.id}>
           {/* S270: the variant's equivalent named Verification. */}
           <summary>{GUIDED_VERIFICATION_LABELS[shown.id]}</summary>
-          <p>{shown.detail ?? stage.evidenceLine ?? stage.stageLine}</p>
-          {stage.check ? <p>{stage.check.sentence}</p> : null}
+          {/* S279 R-S279-3: the stage line's check is not repeated here. */}
+          <p>
+            {shown.detail ??
+              stage.evidenceLine ??
+              (stage.check ? stage.stage.label : stage.stageLine)}
+          </p>
         </details>
       ) : null}
     </>

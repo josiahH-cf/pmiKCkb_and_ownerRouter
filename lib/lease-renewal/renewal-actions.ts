@@ -11,7 +11,7 @@ import {
 import type { DeskVerificationCause } from "@/lib/lease-renewal/desk-guidance";
 import type { DeskLeaseAction } from "@/lib/lease-renewal/desk-model";
 import type { RenewalOverallStatus } from "@/lib/lease-renewal/desk-query-v2";
-import type { LeaseWorkStatusFollowUp } from "@/lib/lease-renewal/lease-work-status";
+import type { LeaseWaiting } from "@/lib/lease-renewal/lease-waiting";
 import type {
   RenewalProcessStatus,
   RenewalProcessStepId,
@@ -151,7 +151,8 @@ export interface RenewalActionSnapshot {
    * Focus shows the same status, waiting-on and evidence as the desk row.
    */
   readonly leaseStatus?: {
-    readonly followUp: LeaseWorkStatusFollowUp | null;
+    /** S279: the server's waiting projection; Focus recomputes it against the live record. */
+    readonly waiting: LeaseWaiting | null;
     readonly sourceReadAtIso: string | null;
   };
   readonly process: {

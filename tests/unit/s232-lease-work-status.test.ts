@@ -1,67 +1,57 @@
 import { describe, expect, it } from "vitest";
 
 import type { DeskLeaseRow } from "@/lib/lease-renewal/desk-model";
+import { leaseWaitingFor, type LeaseWaiting } from "@/lib/lease-renewal/lease-waiting";
 import {
   deskLeaseWorkStatusInput,
   leaseWorkStatusLines,
   projectLeaseWorkStatus,
   staffRecordLatestAtIso,
-  type LeaseWorkStatusFollowUp,
 } from "@/lib/lease-renewal/lease-work-status";
+import type { RenewalWorkspaceState } from "@/lib/lease-renewal/workspace-state";
 import { actionFixture, manualFixture } from "@/tests/helpers/renewal-action-fixtures";
+import { evidenceInput, message } from "@/tests/helpers/outreach-evidence-fixtures";
 
 // S232 R-S232-4 (ARCH-S232-2, BEH-S232-3): one status, waiting-on party and evidence per lease from
-// the staff record, compared with the linked Gmail thread's waiting marker; a disagreement reads
-// "Needs a check" with both facts. Synthetic records only.
+// the staff record. S279 (rewritten on purpose, R-S279-2 / R-S279-3): the staff record is compared
+// with the current message's own thread in the lease's evidence, never one viewer's linked Gmail
+// thread; a real disagreement still reads "Needs a check" with both facts, now with the fix.
+// Synthetic records only.
 
 const READ_AT = "2026-09-30T17:00:00.000Z";
+/** 10:00 Central on September 28 and September 29, 2026, before the staff record's save. */
+const SENT = Date.parse("2026-09-28T15:00:00.000Z");
+const REPLY = Date.parse("2026-09-29T15:00:00.000Z");
 
-function thread(
-  waiting: "owner" | "tenant" | "team" | "unresolved_source" | "none" | "unknown",
-): LeaseWorkStatusFollowUp {
-  const source = {
-    kind: "gmail_thread" as const,
-    linkId: "link-1",
-    threadId: "thread-1",
-    messageId: "message-1",
-    purpose: "renewal_owner" as const,
-  };
-  return {
-    waiting:
-      waiting === "none"
-        ? { state: "not_waiting", party: null, source }
-        : waiting === "unknown"
-          ? { state: "needs_verification", party: null, source: null }
-          : { state: "verified", party: waiting, source },
-    lastContact: { state: "verified", atIso: "2026-09-29T15:00:00.000Z", source },
-  };
+/** The lease's own waiting projection over a message to the owner, read against `state`. */
+function evidence(
+  state: RenewalWorkspaceState | null,
+  options: { audience?: "owner" | "tenant"; replied?: boolean } = {},
+): LeaseWaiting {
+  return leaseWaitingFor(
+    state,
+    evidenceInput([
+      message({
+        audience: options.audience ?? "owner",
+        cycleId: state?.cycleId ?? null,
+        acceptedAtMs: SENT,
+        replyAtMs: options.replied ? REPLY : null,
+      }),
+    ]),
+    { leaseId: "lease-318-cedar-7", cycleDateIso: "2026-12-31" },
+  );
 }
-
-/** The process-step fallbacks the follow-up projection uses when no thread marker is known. */
-const PROCESS_FALLBACKS: readonly LeaseWorkStatusFollowUp[] = (
-  [
-    ["document_coordinator", "document-packet"],
-    ["unresolved_source", "verify-renewal"],
-  ] as const
-).map(([party, step]) => ({
-  waiting: {
-    state: "verified",
-    party,
-    source: { kind: "renewal_process", ref: `renewal-process:v1:${step}` },
-  },
-  lastContact: { state: "needs_verification", atIso: null, source: null },
-}));
 
 /** The desk row the live desk builds for this staff record, with its real guidance. */
 function deskRow(
   manual: NonNullable<Parameters<typeof actionFixture>[0]>["manual"],
-  followUp: LeaseWorkStatusFollowUp | null = null,
+  leaseWaiting: LeaseWaiting | null = null,
 ): Pick<
   DeskLeaseRow,
   "guidance" | "manualProgress" | "staffRecordedAtIso" | "staffRecordUnavailable"
-> & { followUp: LeaseWorkStatusFollowUp | null } {
+> & { leaseWaiting: LeaseWaiting | null } {
   const { workspace } = actionFixture({ manual });
-  return { ...workspace.summary, guidance: workspace.guidance, followUp };
+  return { ...workspace.summary, guidance: workspace.guidance, leaseWaiting };
 }
 
 function statusOf(row: ReturnType<typeof deskRow>) {
@@ -88,10 +78,8 @@ describe("S232 one status, waiting-on and evidence (R-S232-4)", () => {
   });
 
   it("names the owner or tenant only while they have the move, citing the staff record's time", () => {
-    const awaitingOwner = deskRow(
-      manualFixture({ owner: "no_response", done: ["owner_outreach"] }),
-      thread("owner"),
-    );
+    const owner = manualFixture({ owner: "no_response", done: ["owner_outreach"] });
+    const awaitingOwner = deskRow(owner, evidence(owner));
     expect(awaitingOwner.guidance.overallStatus).toBe("waiting");
     expect(statusOf(awaitingOwner).lines).toEqual({
       waiting: "Waiting on: the owner",
@@ -108,7 +96,7 @@ describe("S232 one status, waiting-on and evidence (R-S232-4)", () => {
         done: ["owner_outreach", "tenant_offer"],
       }),
     ]) {
-      const row = deskRow(manual, thread("team"));
+      const row = deskRow(manual, evidence(manual));
       expect(row.guidance.overallStatus).toBe("ready");
       expect(row.guidance.action.kind).toBe("act");
       expect(statusOf(row).status).toMatchObject({
@@ -118,25 +106,18 @@ describe("S232 one status, waiting-on and evidence (R-S232-4)", () => {
       });
     }
 
-    const tenant = deskRow(
-      manualFixture({
-        owner: "approved_terms",
-        tenant: "awaiting_response",
-        done: ["owner_outreach", "tenant_offer"],
-      }),
-      thread("tenant"),
-    );
-    expect(statusOf(tenant).status).toMatchObject({
-      status: "waiting",
-      waitingOn: "the tenant",
-      check: null,
+    const tenantState = manualFixture({
+      owner: "approved_terms",
+      tenant: "awaiting_response",
+      done: ["owner_outreach", "tenant_offer"],
     });
+    expect(
+      statusOf(deskRow(tenantState, evidence(tenantState, { audience: "tenant" })))
+        .status,
+    ).toMatchObject({ status: "waiting", waitingOn: "the tenant", check: null });
 
-    const complete = deskRow(
-      manualFixture({ owner: "approved_terms", completion: true }),
-      thread("none"),
-    );
-    expect(statusOf(complete)).toMatchObject({
+    const completeState = manualFixture({ owner: "approved_terms", completion: true });
+    expect(statusOf(deskRow(completeState, evidence(completeState)))).toMatchObject({
       status: {
         status: "complete",
         label: "Completed: recorded by staff",
@@ -146,37 +127,47 @@ describe("S232 one status, waiting-on and evidence (R-S232-4)", () => {
     });
   });
 
-  it("reads Needs a check with both facts when the staff record and the linked thread disagree", () => {
+  it("reads Needs a check with both facts and the fix when the staff record and the message disagree", () => {
+    // The staff record saved "No response" on 09/30 after the owner's reply on 09/29.
     const owner = manualFixture({ owner: "no_response", done: ["owner_outreach"] });
-    expect(statusOf(deskRow(owner, thread("tenant")))).toMatchObject({
-      status: { status: "needs_check", label: "Needs a check", waitingOn: null },
+    expect(statusOf(deskRow(owner, evidence(owner, { replied: true })))).toMatchObject({
+      status: {
+        status: "needs_check",
+        label: "Needs a check",
+        waitingOn: null,
+        check: {
+          audience: "owner",
+          subject: "response",
+          fix: {
+            label: "Record the response",
+            target: "renewal-manual-owner_response",
+          },
+        },
+      },
       lines: {
         waiting: null,
         check:
-          "The staff record says waiting on the owner; the linked Gmail thread says waiting on the tenant.",
+          "The staff record says waiting on the owner. The owner replied on 09/29/2026. Record the response.",
         evidence: "From the staff record, saved 09/30/2026, 7:00 AM CDT",
       },
     });
-    expect(statusOf(deskRow(owner, thread("none"))).lines.check).toBe(
-      "The staff record says waiting on the owner; the linked Gmail thread says not waiting on anyone.",
-    );
-    expect(statusOf(deskRow(owner, thread("unresolved_source"))).lines.check).toBe(
-      "The staff record says waiting on the owner; the linked Gmail thread says waiting on someone outside PMI KC.",
-    );
-    // Nothing recorded while the thread waits on the owner: the outreach is not on the record.
-    expect(statusOf(deskRow(null, thread("owner"))).lines.check).toBe(
-      "The staff record has no work recorded yet; the linked Gmail thread says waiting on the owner.",
-    );
-    const complete = manualFixture({ owner: "approved_terms", completion: true });
-    expect(statusOf(deskRow(complete, thread("tenant"))).lines.check).toBe(
-      "The staff record says complete; the linked Gmail thread says waiting on the tenant.",
+    const tenant = manualFixture({
+      owner: "approved_terms",
+      tenant: "awaiting_response",
+      done: ["owner_outreach", "tenant_offer"],
+    });
+    expect(
+      statusOf(deskRow(tenant, evidence(tenant, { audience: "tenant", replied: true })))
+        .lines.check,
+    ).toBe(
+      "The staff record says waiting on the tenant. The tenant replied on 09/29/2026. Record the response.",
     );
   });
 
-  it("compares only a known thread marker, never the process-step fallback", () => {
+  it("an accepted send with no reply is one fact, never a check", () => {
     const owner = manualFixture({ owner: "no_response", done: ["owner_outreach"] });
-    for (const followUp of [thread("unknown"), ...PROCESS_FALLBACKS, null])
-      expect(statusOf(deskRow(owner, followUp)).status).toMatchObject({
+    for (const waiting of [evidence(owner), null])
+      expect(statusOf(deskRow(owner, waiting)).status).toMatchObject({
         status: "waiting",
         waitingOn: "the owner",
         check: null,
@@ -184,7 +175,7 @@ describe("S232 one status, waiting-on and evidence (R-S232-4)", () => {
   });
 
   it("fails closed when the staff record could not be read", () => {
-    const row = deskRow("unreadable", thread("owner"));
+    const row = deskRow("unreadable", evidence(null));
     expect(row.guidance.overallStatus).toBe("needs_verification");
     expect("label" in row.guidance.action && row.guidance.action.label).toBe(
       "Saved renewal progress could not be read. Refresh to see it.",

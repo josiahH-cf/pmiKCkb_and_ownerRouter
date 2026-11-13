@@ -55,6 +55,15 @@ export const KICKOFF_FIX_TARGETS = {
   markedValues: "renewal-message-owner-readiness",
 } as const;
 
+/**
+ * S279 R-S279-6: the marker names the owner message uses for facts the readiness list also has a
+ * row for (`missingValueMarker` in renewal-message-content.ts), compared lower case.
+ */
+export const MARKED_FACTS = {
+  rentToRecommend: "rent to recommend",
+  signature: "sender signature",
+} as const;
+
 export interface RenewalPreparationFix {
   readonly label: string;
   /** An existing control on the lease page. */
@@ -648,6 +657,13 @@ export function withLiveKickoff(
             "Entered by staff. A later proposal never replaces it.",
         }
       : preparation.rent;
+  // S279 R-S279-6 (ARCH-S279-3): the message's marked values and the rows that name the same
+  // facts are one read. A fact the shown message still marks as missing never reads ready beside
+  // it; once the refreshed message no longer marks it, the whole list is recomputed from that read.
+  const markedFacts = live.marked ?? null;
+  const marks = (fact: string) =>
+    markedFacts !== null &&
+    markedFacts.some((entry) => entry.trim().toLowerCase() === fact);
   const items = preparation.items.map((item): RenewalKickoffItem => {
     const set = (
       ready: boolean | null | undefined,
@@ -665,14 +681,29 @@ export function withLiveKickoff(
           };
     switch (item.key) {
       case "rent":
+        if (marks(MARKED_FACTS.rentToRecommend))
+          return {
+            key: item.key,
+            label: item.label,
+            ready: false,
+            missing: "the rent to recommend",
+            fix: {
+              label: "Enter the rent to recommend",
+              target: KICKOFF_FIX_TARGETS.rentToRecommend,
+            },
+          };
         return rent.value !== null
           ? { ...item, ready: true, missing: null, fix: null }
           : item;
       case "signature":
-        return set(live.signature, "your signature", {
-          label: "Set up your signature",
-          target: KICKOFF_FIX_TARGETS.signature,
-        });
+        return set(
+          marks(MARKED_FACTS.signature) ? false : live.signature,
+          "your signature",
+          {
+            label: "Set up your signature",
+            target: KICKOFF_FIX_TARGETS.signature,
+          },
+        );
       case "recipient":
         return set(live.recipientReady, "a verified owner recipient", {
           label: "Add the owner's email on the owner record in RentVine",

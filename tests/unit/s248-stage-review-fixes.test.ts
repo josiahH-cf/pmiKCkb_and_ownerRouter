@@ -79,7 +79,12 @@ describe("S248 Needs a check never asks for a new send", () => {
       label: RENEWAL_STAGE_NEXT_STEP.settleCheck,
       target: "renewal-manual-owner_outreach",
     });
-    expect(ask.detail).toMatch(/^Needs a check: The staff record /);
+    // S279 R-S279-3 (rewritten on purpose): the check reads once, in the stage line with its
+    // fix, so the step's own detail no longer repeats it.
+    expect(ask.detail).toBeNull();
+    expect(stage.stageLine).toBe(
+      "Needs a check: The staff record says Owner outreach is waiting. The app's records show the owner message accepted by Gmail on 11/04/2026. Record the owner outreach.",
+    );
     for (const label of [stage.nextStep.label, ask.primary?.label])
       expect(label).not.toMatch(/Send the owner message/);
   });

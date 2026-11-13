@@ -216,6 +216,11 @@ export function projectRenewalIssues(input: RenewalIssueInput): RenewalIssueProj
   const actionDestination: RenewalIssueDestination =
     "destination" in guidance.action ? guidance.action.destination : { kind: "none" };
   if (leaseStatus.check) {
+    // S279 R-S279-3: the check names its fix and the editor that records it.
+    const fixAt = {
+      kind: "workspace_anchor" as const,
+      targetId: leaseStatus.check.fix.target,
+    };
     issues.push({
       id: "advisory:waiting_check",
       kind: "advisory",
@@ -224,10 +229,11 @@ export function projectRenewalIssues(input: RenewalIssueInput): RenewalIssueProj
       reason: `Needs a check. ${leaseWorkStatusLines(leaseStatus).check}`,
       needs: "Who has the move on this renewal",
       responsible: "Staff review",
-      destination: actionDestination,
-      resolveAt: controlAt(actionDestination, "Review the staff record") ?? {
-        kind: "outside_app",
-        statement: "Correct the waiting marker on the linked Gmail thread.",
+      destination: fixAt,
+      resolveAt: {
+        kind: "control",
+        label: leaseStatus.check.fix.label,
+        destination: fixAt,
       },
     });
   } else if (guidance.overallStatus === "waiting" && leaseStatus.waitingOn) {
