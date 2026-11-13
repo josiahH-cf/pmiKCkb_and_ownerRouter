@@ -20,7 +20,10 @@ import {
   startDateFixFromOffer,
   type RenewalLeaseEndFacts,
 } from "@/components/lease-renewal/RenewalDateProposal";
-import { RENEWAL_FOCUS_REQUEST_EVENT } from "@/components/lease-renewal/RenewalDashboardNavigation";
+import {
+  RENEWAL_FOCUS_REQUEST_EVENT,
+  RENEWAL_STEP_PRIMARY_REQUEST_EVENT,
+} from "@/components/lease-renewal/RenewalDashboardNavigation";
 import {
   RenewalWorkingRecordProvider,
   WorkingDateField,
@@ -218,6 +221,10 @@ describe("AC-S263-4 Return to tenant offer", () => {
   it("BEH-S263-4: a date fix opened from Offer the tenant offers the way back, and only then", () => {
     renderTerms();
     expect(screen.queryByRole("button", { name: "Return to tenant offer" })).toBeNull();
+    // The offer's readiness control the fix started from is still on the page.
+    const landing = document.createElement("div");
+    landing.id = "renewal-message-tenant-readiness";
+    document.body.append(landing);
     act(() =>
       startDateFixFromOffer("renewalStartDate", "renewal-message-tenant-readiness"),
     );
@@ -227,7 +234,31 @@ describe("AC-S263-4 Return to tenant offer", () => {
     document.addEventListener(RENEWAL_FOCUS_REQUEST_EVENT, listener);
     fireEvent.click(screen.getByRole("button", { name: "Return to tenant offer" }));
     document.removeEventListener(RENEWAL_FOCUS_REQUEST_EVENT, listener);
+    landing.remove();
     expect(requested).toEqual(["renewal-message-tenant-readiness"]);
+    expect(screen.queryByRole("button", { name: "Return to tenant offer" })).toBeNull();
+  });
+
+  // Rewritten on purpose for S281 R-S281-5: when the earlier landing element is absent, the
+  // return lands on the Offer step's primary action instead.
+  it("R-S281-5: with its landing element gone, the return asks for the Offer step's primary action", () => {
+    renderTerms();
+    act(() =>
+      startDateFixFromOffer("renewalStartDate", "renewal-message-tenant-readiness"),
+    );
+    const focusRequests: string[] = [];
+    const stepRequests: string[] = [];
+    const onFocus = (event: Event) =>
+      focusRequests.push((event as CustomEvent<{ id: string }>).detail.id);
+    const onStep = (event: Event) =>
+      stepRequests.push((event as CustomEvent<{ stepId: string }>).detail.stepId);
+    document.addEventListener(RENEWAL_FOCUS_REQUEST_EVENT, onFocus);
+    document.addEventListener(RENEWAL_STEP_PRIMARY_REQUEST_EVENT, onStep);
+    fireEvent.click(screen.getByRole("button", { name: "Return to tenant offer" }));
+    document.removeEventListener(RENEWAL_FOCUS_REQUEST_EVENT, onFocus);
+    document.removeEventListener(RENEWAL_STEP_PRIMARY_REQUEST_EVENT, onStep);
+    expect(stepRequests).toEqual(["offer-tenant"]);
+    expect(focusRequests).not.toContain("renewal-message-tenant-readiness");
     expect(screen.queryByRole("button", { name: "Return to tenant offer" })).toBeNull();
   });
 });
