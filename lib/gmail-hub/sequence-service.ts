@@ -194,7 +194,10 @@ export interface SequenceMailClient {
   subject: string;
   getProfile(): Promise<GmailProfile>;
   getThread(id: string): Promise<GmailThreadView>;
-  sendWorkflowMessage(message: WorkflowMimeMessage): Promise<GmailSendResult>;
+  sendWorkflowMessage(
+    message: WorkflowMimeMessage,
+    beforeTransport?: () => Promise<void>,
+  ): Promise<GmailSendResult>;
   findWorkflowMessage(
     rfcMessageId: string,
     expected: WorkflowMimeMessage,
@@ -1657,10 +1660,11 @@ export class WorkflowCommunicationSequenceService {
       ...threading,
       verifyThreading: true,
     };
+    const reminder = tenantReminderScope(claim.sequence);
     let attempted = false;
     try {
       await this.deps.assertRuntimeAction(communicationSendKey(s.context));
-      if (!(await this.deps.store.canDispatch(o)))
+      if (!(await this.deps.store.canDispatch(o, reminder ? this.now() : undefined)))
         return {
           status: "refused",
           sequence: await this.deps.store.settle(o, {
@@ -1670,7 +1674,16 @@ export class WorkflowCommunicationSequenceService {
           }),
         };
       attempted = true;
-      const sent = await client.sendWorkflowMessage(message);
+      const sent = reminder
+        ? await client.sendWorkflowMessage(message, async () => {
+            attempted = false;
+            if (!(await this.deps.store.canDispatch(o, this.now())))
+              throw new Error(
+                "The claimed reminder is no longer authorized to dispatch.",
+              );
+            attempted = true;
+          })
+        : await client.sendWorkflowMessage(message);
       const readback = await client.findWorkflowMessage(o.rfcMessageId, message);
       if (
         !readback ||
