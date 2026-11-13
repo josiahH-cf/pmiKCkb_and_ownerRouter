@@ -840,8 +840,9 @@ async function resolveRoute(page, route) {
 async function signIn(page, role) {
   const url = `${origin}/sign-in`;
   const navigation = { waitUntil: "domcontentloaded" };
+  let response;
   try {
-    await page.goto(url, navigation);
+    response = await page.goto(url, navigation);
   } catch (error) {
     const interrupted =
       error instanceof errors.TimeoutError ||
@@ -857,13 +858,14 @@ async function signIn(page, role) {
     const version = await fetch(origin + "/api/version", {
       signal: AbortSignal.timeout(ROUTE_BUDGET_MS),
     });
-    assert.ok(
-      version.ok,
-      "The control server version read must succeed after a restart.",
-    );
+    assert.ok(version.ok, "The Help server version read must succeed after a restart.");
     assert.equal((await version.json()).commit, served.commit);
-    await page.goto(url, navigation);
+    response = await page.goto(url, navigation);
   }
+  assert.ok(
+    response?.ok() && new URL(page.url()).origin === origin,
+    `Local demo ${role} sign-in navigation failed (HTTP ${response?.status() ?? "none"}).`,
+  );
   const ok = await page.evaluate(
     `fetch("/api/auth/demo",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({role:${JSON.stringify(role)}})}).then(r=>r.ok)`,
   );
