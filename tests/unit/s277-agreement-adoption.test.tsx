@@ -15,7 +15,15 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const router = vi.hoisted(() => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => router,
+  usePathname: () => "/lease-renewal/live/desk/lease/9102",
+  useSearchParams: () => new URLSearchParams("step=offer-tenant"),
+}));
 
 import { focusRenewalDashboardControl } from "@/components/lease-renewal/RenewalDashboardNavigation";
 import { RenewalPricingForLease } from "@/components/lease-renewal/RenewalPricingForLease";
@@ -34,7 +42,10 @@ import type {
   RenewalWorkingRecord,
   WorkingFieldEntry,
 } from "@/lib/lease-renewal/working-record";
+import { emptyRenewalWorkspace } from "@/lib/lease-renewal/workspace-state";
+import { renderWorkspace, stubRenewalRoutes } from "@/tests/helpers/focus-workspace";
 import { jsonResponse } from "@/tests/helpers/rent-charge-fixtures";
+import { getRenewalLeaseWorkspace } from "@/tests/helpers/sample-desk";
 
 const LEASE = "9102";
 const CYCLE = "0f1c8f6e-6d1c-4bd3-9d7a-00000000000a";
@@ -221,6 +232,69 @@ function renderLease(initial: RenewalWorkingRecord | null = null) {
 }
 
 describe("AC-S277-1 adopt the agreement amount where the fix lands", () => {
+  it("follows and returns from the adoption while the covered owner step stays off the Guided path", async () => {
+    const sample = getRenewalLeaseWorkspace("lease-318-cedar-7")!;
+    const manual = emptyRenewalWorkspace(LEASE, CYCLE, {
+      kind: "lease_end",
+      dateIso: "2026-12-31",
+      source: "RentVine lease end",
+    });
+    const fake = stubRenewalRoutes(manual, {
+      other({ url }) {
+        if (url.startsWith("/api/lease-renewal/pricing-policy"))
+          return Response.json(pricing());
+        if (url.startsWith("/api/lease-renewal/working-record"))
+          return Response.json({ record: null });
+        return null;
+      },
+    });
+    await renderWorkspace({
+      view: "default",
+      workspace: {
+        ...sample,
+        summary: { ...sample.summary, id: LEASE },
+        live: {
+          leaseId: LEASE,
+          ownerDecision: null,
+          ownerDecisionCurrent: false,
+          ownerOutcome: null,
+          ownerResponseRecordable: false,
+          tenantOfferDraftId: null,
+          tenantOutcome: null,
+          processVersion: sample.process.version,
+          complete: false,
+        },
+      },
+      manual,
+      extra: { selectedStepId: "offer-tenant", workingRecord: null },
+    });
+    const now = screen.getByRole("region", { name: "Now", exact: true });
+    const path = screen.getByRole("navigation", { name: "Renewal path" });
+    const ownerStep = () => within(path).queryByRole("button", { name: "Ask the owner" });
+    const adoption = () => document.getElementById(STANDING_ADOPTION_CONTROL_ID);
+    await waitFor(() => expect(adoption()).not.toBeNull());
+    expect(now).toHaveAttribute("data-renewal-now-step", "offer-tenant");
+    expect(ownerStep()).toBeNull();
+    expect(adoption()).not.toBeVisible();
+
+    const fix = within(now).getByRole("button", { name: "Set renewal base rent" });
+    const originalAdoption = adoption();
+    const user = userEvent.setup();
+    await user.click(fix);
+    const useAgreement = await within(now).findByRole("button", { name: ADOPT });
+    expect(adoption()).toBe(originalAdoption);
+    expect(adoption()).toContainElement(useAgreement);
+    expect(useAgreement).toHaveFocus();
+    expect(ownerStep()).toBeNull();
+    expect(within(now).queryByRole("group", { name: "Pricing basis" })).toBeNull();
+
+    await user.click(within(now).getByRole("button", { name: "Return to tenant offer" }));
+    await waitFor(() => expect(fix).toHaveFocus());
+    expect(adoption()).not.toBeVisible();
+    expect(now).toHaveAttribute("data-renewal-now-step", "offer-tenant");
+    expect(fake.writes()).toEqual([]);
+  });
+
   it("ARCH-S277-1: the Pricing basis owner of a covered lease with an empty base holds the adoption action and the agreement's result", async () => {
     renderLease();
     const owner = screen.getByRole("region", { name: "Renewal pricing policy" });

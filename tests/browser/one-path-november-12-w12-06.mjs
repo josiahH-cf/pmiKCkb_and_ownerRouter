@@ -705,7 +705,16 @@ export async function checkW1206(ctx, page, start) {
 
   const agreementFact = await phase("agreementFact", async () => {
     const entry = await workingEntry(kit, page, covered.leaseId);
-    const expected = `Rent to recommend ${money(amount)}: from ${agreementName}, saved by ${entry?.recordedByLabel} on ${centralDay(entry?.recordedAt)}.`;
+    if (
+      entry?.origin !== "adopted_source" ||
+      entry.value !== amount ||
+      !entry.recordedByLabel ||
+      !Number.isFinite(Date.parse(entry.recordedAt))
+    )
+      throw new Error(
+        "The agreement adoption did not read back with its recorder and date.",
+      );
+    const expected = `Rent to recommend ${money(amount)}: from ${agreementName}, saved by ${entry.recordedByLabel} on ${centralDay(entry.recordedAt)}.`;
     const text = await askOwnerFactLine(kit, page, covered.leaseId, (value) =>
       same(value, expected),
     );
@@ -731,7 +740,6 @@ export async function checkW1206(ctx, page, start) {
       message,
       ok:
         same(text, expected) &&
-        Boolean(entry?.recordedByLabel) &&
         entry.recordedByLabel !== WORDS.preparation &&
         (!message || (same(message.basis, expected) && message.showsAmount)),
     };

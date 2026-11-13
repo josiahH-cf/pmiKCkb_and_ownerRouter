@@ -52,6 +52,7 @@ import {
   keepSettledMessageBases,
 } from "@/lib/lease-renewal/unsent-message";
 import type { RenewalIssue } from "@/lib/lease-renewal/renewal-issues";
+import { STANDING_ADOPTION_CONTROL_ID } from "@/lib/lease-renewal/standing-agreement";
 import { currentAcceptanceRead } from "@/lib/lease-renewal/tenant-acceptance-hold";
 import { fetchWithDeadline } from "@/lib/ui/fetch-lifetime";
 import {
@@ -200,6 +201,8 @@ interface GuidedReturn {
    * return focuses it, else the control named by `targetId`.
    */
   readonly element?: HTMLElement | null;
+  /** An exact fix shown on this step while its own step is outside the path. */
+  readonly revealTarget?: string;
 }
 
 /** S281 R-S281-5: a focus target is an existing control's id or the exact element to return to. */
@@ -1084,7 +1087,9 @@ export function RenewalGuidedView({
       shown.id === stage.currentStepId &&
       (stage.stage.key === "retired" ||
         context.cycleDisposition?.state === "unavailable");
-    const targets = (inactive ? [] : shown.controls)
+    const revealTarget = returnTo?.stepId === shown.id ? returnTo.revealTarget : null;
+    const controls = revealTarget ? [...shown.controls, revealTarget] : shown.controls;
+    const targets = (inactive ? [] : controls)
       .map((id) => document.getElementById(id))
       .filter(
         (element): element is HTMLElement => element !== null && body.contains(element),
@@ -1206,6 +1211,14 @@ export function RenewalGuidedView({
         return;
       }
       if (!id || !element) return;
+      // S277/S283: the covered owner step is skipped. Reveal just its adoption on the Offer step
+      // and keep the exact fix as the way back.
+      if (id === STANDING_ADOPTION_CONTROL_ID && pendingReturn.current) {
+        event.preventDefault();
+        pendingFocus.current = id;
+        setReturnTo({ ...pendingReturn.current, revealTarget: id });
+        return;
+      }
       if (!element.closest("[data-renewal-focus-hidden]")) {
         // S281 R-S281-5: a fix link followed further down the same step offers the way back to
         // the exact link it started from.
@@ -1283,7 +1296,11 @@ export function RenewalGuidedView({
       onRentToggle={toggleRentInPlace}
       onReturn={returnToOrigin}
       rentInPlace={rentInPlace}
-      returnTo={returnTo && returnTo.stepId !== shown.id ? returnTo : null}
+      returnTo={
+        returnTo && (returnTo.stepId !== shown.id || returnTo.revealTarget)
+          ? returnTo
+          : null
+      }
       shown={shown}
       showInFull={(id) => view.showInFull(id)}
       stage={stage}
@@ -1307,7 +1324,7 @@ function focusControl(target: string): boolean {
 type GuidedLinks = Readonly<{
   /** S269: follow an exact fix to its owning control, keeping this outcome for its return. */
   followFix: (lead: GuidedPriorityInput, from: RenewalPathStepId) => void;
-  /** S269: the outcome an exact fix started in, while another outcome is shown. */
+  /** S269: the outcome an exact fix started in, while its destination is shown. */
   returnTo: GuidedReturn | null;
   onReturn: () => void;
   extensions?: GuidedPriorityExtensions;
