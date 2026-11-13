@@ -16,6 +16,11 @@
 //                           S269 governs.
 export const CHANGED_PINS = Object.freeze([
   Object.freeze({ pin: "journey.owner-decision", suite: "S262" }),
+  // The S285 fact changed inside the old budget. The separate four-action proof must pass.
+  Object.freeze({
+    pin: "journey.owner-decision.replyingOwnerPreselection",
+    suite: "S285",
+  }),
   Object.freeze({ pin: "journey.layout-steps", suite: "S269" }),
   Object.freeze({ pin: "N09-03.exactEditorReturn", suite: "S281" }),
   Object.freeze({ pin: "N10-01.ownerDraftResumed.editInPlace", suite: "S281" }),

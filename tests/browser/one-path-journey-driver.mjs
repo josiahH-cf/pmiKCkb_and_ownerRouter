@@ -380,9 +380,8 @@ async function journey(browser) {
   const view = lease(page);
   const route = (path) => routeFromPage(page, path);
   const mix = rehearsalMix(rehearsal);
-  const ownerEmailOf = (leaseId) =>
-    mix.leases.find((row) => row.lease.leaseID === Number(leaseId))?.portfolio.owners[0]
-      ?.email ?? null;
+  const preparedOwner = mix.leases.find((row) => row.lease.leaseID === Number(prepared))
+    ?.portfolio.owners[0];
   // The exact thread and sequence of each send made through the page.
   const sends = [];
   page.on("response", (response) => {
@@ -659,7 +658,7 @@ async function journey(browser) {
   });
   const kickoffCount = countActions(log.since(mark));
   const mail = (await standInState(rehearsal)).mail;
-  const ownerAddress = ownerEmailOf(prepared);
+  const ownerAddress = preparedOwner?.email;
   const sentToOwner = mail.mailboxes
     .flatMap((box) => box.messages ?? [])
     .filter((message) => ownerAddress && JSON.stringify(message).includes(ownerAddress));
@@ -826,7 +825,7 @@ async function journey(browser) {
   const sendRecord = sends.findLast((entry) => entry.status === 200) ?? null;
   const reply = await deliverOwnerReply(rehearsal, {
     threadId: sendRecord?.threadId ?? undefined,
-    to: ownerEmailOf(prepared) ?? undefined,
+    to: preparedOwner?.email,
     text: "Synthetic owner reply: the renewal terms are approved.",
   }).catch((error) => ({ error: String(error?.message ?? error) }));
   await view.open(prepared, "?step=ask-owner");
@@ -916,11 +915,9 @@ async function journey(browser) {
   }
   await view.open(prepared);
 
-  // J08 the owner's decision from the observed reply (L36): at most three actions, nothing
-  // preselected. November 10 (S262 R-S262-1): the approving branch of "Record the owner's
-  // answer" asks Amount approved, typed exactly as the owner gave it and never prefilled, and who
-  // approved, then shows Review the owner's answer before Save the owner's answer. Each is
-  // counted: no budget is met by removing a review or a confirmation (AC-S252-1).
+  // J08 keeps the original S252 three-action measure. S262 requires the outcome, empty
+  // amount, evidence, review and save. S285 supplies the uniquely matched owner after staff
+  // choose the reply. Count all four remaining actions and verify the exact reply and owner.
   mark = log.mark();
   const decisionObserved = {};
   const decision = view.now().locator('[data-renewal-field="owner-decision-from-reply"]');
@@ -941,11 +938,21 @@ async function journey(browser) {
     decisionObserved.amountApproved = kickoffObserved.prepared?.rent ?? null;
     await amount.fill(String(decisionObserved.amountApproved ?? ""));
     log.act("decision", "entry", "Amount approved");
-    const party = decision.getByLabel("Who approved in this reply");
+    const party = decision.getByLabel("Who approved in this reply", { exact: true });
     await party.waitFor({ state: "visible" });
     const partyPreselected = await party.inputValue();
-    await party.selectOption({ index: 1 });
-    log.act("decision", "choice", "Who approved in this reply");
+    const ownerLabel = `${preparedOwner?.name} (owner of record)`;
+    const selectedReason = decision.locator(
+      '[data-renewal-field="owner-approver-selected"]',
+    );
+    decisionObserved.replyingOwnerSelected =
+      Boolean(
+        partyPreselected && preparedOwner?.email && reply.from === preparedOwner.email,
+      ) &&
+      squash(await party.locator("option:checked").textContent()) === ownerLabel &&
+      (await shownWithin(selectedReason, 15_000)) &&
+      squash(await selectedReason.textContent()) ===
+        "Selected because this reply came from the address the owner message was sent to.";
     await decision
       .getByRole("button", { name: "Review the owner's answer", exact: true })
       .click();
@@ -960,23 +967,43 @@ async function journey(browser) {
       exact: true,
     });
     const confirmShown = answerReviewShown && (await shownWithin(confirm, 15_000));
-    const saved = page
-      .waitForResponse(
-        (response) =>
-          response.request().method() === "POST" &&
-          new URL(response.url()).pathname === "/api/lease-renewal/workspace",
-        { timeout: 20_000 },
-      )
-      .then(async (response) => ({
-        status: response.status(),
-        body: await response.text().then((text) => text.slice(0, 400)),
-      }))
-      .catch(() => null);
     if (confirmShown) {
+      const saved = page
+        .waitForResponse(
+          (response) => {
+            const request = response.request();
+            if (
+              request.method() !== "POST" ||
+              new URL(response.url()).pathname !== "/api/lease-renewal/workspace"
+            )
+              return false;
+            const payload = request.postDataJSON();
+            return (
+              payload?.leaseId === String(prepared) &&
+              payload.action?.kind === "owner_response"
+            );
+          },
+          { timeout: 20_000 },
+        )
+        .catch(() => null);
       await confirm.click();
       log.act("decision", "confirmation", "Save the owner's answer");
+      const response = await saved;
+      const body = await response?.json().catch(() => null);
+      const approval = body?.state?.ownerResponse?.approval;
+      decisionObserved.saved = {
+        status: response?.status() ?? null,
+        error: body?.error ?? null,
+      };
+      decisionObserved.savedReplyingOwner =
+        Boolean(partyPreselected && sendRecord?.id && reply.messageId) &&
+        approval?.party?.kind === "owner" &&
+        approval.party.label === preparedOwner?.name &&
+        approval.party.sourceRef === partyPreselected &&
+        approval.channel?.kind === "linked_reply" &&
+        approval.channel.sequenceId === sendRecord.id &&
+        approval.channel.messageId === reply.messageId;
     }
-    decisionObserved.saved = await saved;
     decisionObserved.alert = squash(
       await decision
         .locator('[role="alert"]')
@@ -1018,6 +1045,25 @@ async function journey(browser) {
         "the lease moves on to Offer the tenant": afterDecision === "offer-tenant",
       },
     },
+  );
+
+  const count = countActions(log.since(mark));
+  check(
+    "journey.owner-decision.replyingOwner",
+    "the exact replying owner is selected, the amount starts empty, and outcome, amount, review and confirmation record the same owner and reply on one page (S262, S285)",
+    decisionShown &&
+      preselected === 0 &&
+      decisionObserved.amountPrefilled === "" &&
+      decisionObserved.replyingOwnerSelected &&
+      decisionObserved.saved?.status === 200 &&
+      decisionObserved.savedReplyingOwner &&
+      afterDecision === "offer-tenant" &&
+      openPages(context).length === 1 &&
+      count.actions === 4 &&
+      count.choices === 2 &&
+      count.entries === 1 &&
+      count.confirmations === 1,
+    { ...decisionObserved, count },
   );
 
   // J09 to J13: the rest of the path to Complete on the guided path (L53, L17), with hand records
