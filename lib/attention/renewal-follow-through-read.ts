@@ -36,8 +36,8 @@ import type { LeaseMessageBasis } from "@/lib/lease-renewal/unsent-message";
 import { withReadDeadline } from "@/lib/observability/read-lifetime";
 
 const SEQUENCE_COLLECTION = "gmail_communication_sequences";
-/** The viewer's own communications read per Dashboard load. */
-export const OWN_SEQUENCE_SCAN_LIMIT = 300;
+/** The viewer's own communications read per page. */
+export const OWN_SEQUENCE_PAGE_SIZE = 300;
 /** At most this many leases are followed per load (one Firestore `in` read). */
 export const OWN_FOLLOW_THROUGH_LEASE_LIMIT = 30;
 /** At most this many scheduled messages are compared with the lease per load. */
@@ -121,6 +121,7 @@ export async function readOwnRenewalFollowThrough(
   dependencies: OwnFollowThroughDependencies = {},
 ): Promise<OwnFollowThroughRead> {
   if (!hasSpaceAccess(user, "renewals")) return { state: "not_eligible", rows: [] };
+  const deadline = performance.now() + OWN_FOLLOW_THROUGH_WAIT_MS;
   try {
     return await withReadDeadline(async (): Promise<OwnFollowThroughRead> => {
       const db = (dependencies.db ?? getAdminFirestore)();
@@ -128,9 +129,10 @@ export async function readOwnRenewalFollowThrough(
         .collection(SEQUENCE_COLLECTION)
         .where("responsibleUid", "==", user.uid)
         .orderBy(FieldPath.documentId())
-        .limit(OWN_SEQUENCE_SCAN_LIMIT);
+        .limit(OWN_SEQUENCE_PAGE_SIZE);
       const latest = new Map<string, number>();
       let after: string | undefined;
+      let scanIncomplete = false;
       for (;;) {
         const page = await (after ? ownQuery.startAfter(after) : ownQuery).get();
         for (const doc of page.docs) {
@@ -139,14 +141,20 @@ export async function readOwnRenewalFollowThrough(
           const id = sequence.context.entityId;
           latest.set(id, Math.max(latest.get(id) ?? 0, sequence.updatedAtMs));
         }
-        if (page.size < OWN_SEQUENCE_SCAN_LIMIT) break;
+        if (page.size < OWN_SEQUENCE_PAGE_SIZE) break;
+        // Keep time for the selected leases' facts instead of spending the whole read on history.
+        if (performance.now() >= deadline - OWN_FOLLOW_THROUGH_BASIS_WAIT_MS - 3_000) {
+          scanIncomplete = true;
+          break;
+        }
         after = page.docs.at(-1)!.id;
       }
       const leaseIds = [...latest]
         .sort(([idA, atA], [idB, atB]) => atB - atA || idA.localeCompare(idB))
         .slice(0, OWN_FOLLOW_THROUGH_LEASE_LIMIT)
         .map(([id]) => id);
-      if (leaseIds.length === 0) return { state: "ok" as const, rows: [] };
+      if (leaseIds.length === 0)
+        return { state: "ok", rows: [], ...(scanIncomplete ? { incomplete: true } : {}) };
 
       // Every renewal communication of those leases, so "current" sees a teammate's newer one.
       const related = await db
@@ -170,7 +178,10 @@ export async function readOwnRenewalFollowThrough(
 
       const readBasis = dependencies.readMessageBasis ?? defaultReadMessageBasis;
       const bases = new Map<string, LeaseMessageBasis | null>();
-      const scheduled = scheduledOwnMessages(user.uid, sequences);
+      const newest = new Map(leaseIds.map((id, index) => [id, index]));
+      const scheduled = scheduledOwnMessages(user.uid, sequences).sort(
+        (a, b) => newest.get(a.leaseId)! - newest.get(b.leaseId)!,
+      );
       await Promise.all(
         scheduled
           .slice(0, OWN_FOLLOW_THROUGH_BASIS_READ_LIMIT)
@@ -197,7 +208,8 @@ export async function readOwnRenewalFollowThrough(
           leaseFacts: facts,
           messageBases: bases,
         }),
-        ...(latest.size > leaseIds.length ||
+        ...(scanIncomplete ||
+        latest.size > leaseIds.length ||
         scheduled.length > OWN_FOLLOW_THROUGH_BASIS_READ_LIMIT
           ? { incomplete: true as const }
           : {}),
