@@ -1390,8 +1390,11 @@ export async function checkW1209(ctx, page, start) {
     const pipeline = await runRehearsalVitest(rehearsal, "w1209-source-rule", "unit", [
       SOURCE_DIFFERENCE_TEST,
     ]);
-    const pipelineCases = ["market_value", "owner_pricing_confirmed"].map((field) => {
-      const title = `AC-S280-7: the ${field} conflict stays a decision and nothing is applied`;
+    const pipelineCases = [
+      ["market_value", "market value"],
+      ["owner_pricing_confirmed", "owner decision"],
+    ].map(([field, label]) => {
+      const title = `AC-S280-7: the ${label} conflict stays a decision and nothing is applied`;
       const cases = pipeline.cases.filter(
         (entry) => entry.file === SOURCE_DIFFERENCE_TEST && entry.name.endsWith(title),
       );
