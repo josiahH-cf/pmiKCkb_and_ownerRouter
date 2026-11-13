@@ -1410,7 +1410,13 @@ export function renewalMessageCue(
   ] as const) {
     const unsent = stage.evidence[audience]?.unsent;
     const step = stage.steps.find((item) => item.id === stepId);
-    if (unsent?.cue && unsentNeedsStaff(unsent) && step && step.state !== "not_part")
+    if (
+      unsent?.cue &&
+      unsentNeedsStaff(unsent) &&
+      step &&
+      step.state !== "not_part" &&
+      step.state !== "done"
+    )
       return { kind: unsent.cue.kind, label: unsent.cue.label, stepId };
   }
   return undefined;

@@ -71,17 +71,19 @@ describe("S276 ARCH-S276-2: the recorded tenant response is an input to dispatch
     expect(SEQUENCE_PAUSE_CAUSE_LABELS.reply).toBe("A reply was received");
   });
 
-  it("R-S276-2 / R-S276-4: accepted, a change request, a decline and needs verification are responses; the unset state is not", () => {
+  it("R-S276-2 / R-S276-4: only acceptance, a change request or a decline establishes a response", () => {
     for (const outcome of [
       "accepted",
       "counter_change_requested",
       "declined_nonrenewing",
-      "needs_verification",
     ])
       expect(isRecordedTenantResponse(outcome), outcome).toBe(true);
     expect(isRecordedTenantResponse("awaiting_response")).toBe(false);
+    expect(isRecordedTenantResponse("needs_verification")).toBe(false);
+    expect(isRecordedTenantResponse("unknown_outcome")).toBe(false);
     expect(isRecordedTenantResponse(null)).toBe(false);
     expect(recordedTenantResponseOf(head("awaiting_response"))).toBeNull();
+    expect(recordedTenantResponseOf(head("needs_verification"))).toBeNull();
   });
 
   it("ARCH-S276-2: reads the response from a stored work record, and nothing from an unreadable one", () => {

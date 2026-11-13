@@ -468,8 +468,12 @@ function projectAudience(
   // S273 R-S273-1 (ARCH-S273-1): the audience's unsent authorized work in this cycle (one at most
   // since S272; the newest when an older record holds more), read against the lease's current
   // values when this read has them (R-S273-2). Both audiences use this same projection.
+  // A superseded message still belongs to verification history, but the accepted outreach
+  // has the current step. A newer unconfirmed attempt still needs reconciliation.
   const unsentMessage =
-    pending.filter((message) => Boolean(message.unsent)).at(-1) ?? null;
+    pending
+      .filter((message) => message.unsent && message.unsent.cause !== "newer_message_sent")
+      .at(-1) ?? null;
   const unsent =
     unsentMessage && unsentMessage.unsent
       ? projectUnsentMessage(

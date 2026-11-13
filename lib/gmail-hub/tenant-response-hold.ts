@@ -1,6 +1,6 @@
 // S276 R-S276-2 / R-S276-3 / R-S276-4 (ARCH-S276-2): a tenant response staff recorded on the lease
-// is an input to dispatch for that lease's tenant renewal messages in the same cycle. Saving any
-// response (accepted, a change request, a decline or "needs verification") pauses the unsent
+// is an input to dispatch for that lease's tenant renewal messages in the same cycle. Saving
+// an acceptance, a change request or a decline pauses the unsent
 // reminders of an offer authorized before it, under its own cause; dispatch and the claim read the
 // same recorded response, so a reminder that becomes due after the response is held even when the
 // pause could not be written at save time.
@@ -18,14 +18,16 @@ import type { CommunicationSequence } from "./sequence-model";
 /** R-S276-2: the pause cause, in the cause list and the label map. */
 export const TENANT_RESPONSE_PAUSE_CAUSE = "tenant_response_recorded" as const;
 
-/** The tenant outcomes that are not a response yet. Every other saved outcome is a response. */
-const NOT_A_RESPONSE: ReadonlySet<string> = new Set(["awaiting_response"]);
+/** The outcomes that establish the tenant's response under R-S276-2. */
+const RECORDED_TENANT_RESPONSES: ReadonlySet<string> = new Set([
+  "accepted",
+  "counter_change_requested",
+  "declined_nonrenewing",
+]);
 
 /** True when a saved tenant outcome is a response that ends the offer's reminders. */
 export function isRecordedTenantResponse(outcome: string | null | undefined): boolean {
-  return (
-    typeof outcome === "string" && outcome.length > 0 && !NOT_A_RESPONSE.has(outcome)
-  );
+  return typeof outcome === "string" && RECORDED_TENANT_RESPONSES.has(outcome);
 }
 
 /** The recorded tenant response as dispatch reads it, from the lease's current work record. */
