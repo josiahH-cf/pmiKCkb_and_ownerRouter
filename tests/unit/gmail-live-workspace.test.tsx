@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { LiveGmailWorkspace } from "@/components/gmail-hub/LiveGmailWorkspace";
@@ -76,13 +76,19 @@ describe("LiveGmailWorkspace workflow boundary (AC-GW-1, AC-GW-12)", () => {
       screen.getByText(/Last contact 11\/14\/2023, 4:13 PM CST/),
     ).toBeInTheDocument();
 
+    // S275 R-S275-5: the disclosure keeps the connection details only; the page's one Gmail
+    // check ("Check Gmail now", WorkflowCommunicationsHub) runs the read-only refresh, and the
+    // list's own button reloads stored data under a name that does not read as a Gmail refresh.
     fireEvent.click(screen.getByText("Gmail connection and refresh"));
-    fireEvent.click(screen.getByRole("button", { name: "Refresh linked Gmail now" }));
-    expect(await screen.findByText(/Refresh completed at/)).toBeInTheDocument();
-    const post = calls.find(
-      (call) => call.url.endsWith("/refresh") && call.method === "POST",
+    expect(screen.queryByRole("button", { name: "Refresh linked Gmail now" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Refresh attention" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Reload linked conversations" }));
+    await waitFor(() =>
+      expect(
+        calls.filter((call) => call.url.endsWith("/communications")).length,
+      ).toBeGreaterThanOrEqual(2),
     );
-    expect(JSON.parse(post?.body ?? "{}").attemptKey).toMatch(/^[a-f0-9-]{36}$/i);
+    expect(calls.some((call) => call.url.endsWith("/refresh"))).toBe(false);
     expect(calls.some((call) => call.url.endsWith("/watch"))).toBe(false);
   });
 });

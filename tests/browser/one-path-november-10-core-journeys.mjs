@@ -582,16 +582,27 @@ export async function journeyN1002(ctx, page) {
     threadId: sequence.threads[0].threadId,
     text: "Synthetic owner reply: approved at a base rent of 1875 per month.",
   });
-  const refreshed = await kit.post(page, SEQUENCES, {
-    action: "refresh",
-    id: sequenceId,
-  });
-  assert.equal(refreshed.status, 200);
+  // S275 R-S275-8: the reply reaches the lease the staff way: the waiting step's visible
+  // "Check for a reply now" (R-S275-3), whose own click makes the request this waits on.
+  await kit.open(page, kit.href(leaseId, "?step=ask-owner"));
+  const checkNow = kit
+    .now(page)
+    .getByRole("button", { name: "Check for a reply now", exact: true });
+  await checkNow.waitFor();
+  const checked = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === SEQUENCES &&
+      response.request().method() === "POST" &&
+      response.request().postDataJSON()?.action === "refresh",
+  );
+  await checkNow.click();
+  assert.equal((await checked).status(), 200);
+  const observedReply = (await kit.read(page, SEQUENCES + "?id=" + sequenceId)).sequence;
   assert.equal(
-    refreshed.body.sequence.inbound.find((entry) => entry.messageId === reply.messageId)
-      ?.kind,
+    observedReply.inbound.find((entry) => entry.messageId === reply.messageId)?.kind,
     "human",
   );
+  record({ id: "N10-02", check: "reply-by-visible-check", state: observedReply.state });
 
   // The owner's answer from the eligible reply: review, a concurrent change, then the save.
   const answer = async () => {

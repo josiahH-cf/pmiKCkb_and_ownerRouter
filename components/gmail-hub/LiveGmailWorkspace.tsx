@@ -14,6 +14,8 @@ interface CommunicationAttention {
   purpose: "renewal_owner" | "renewal_tenant" | "maintenance_owner";
   status: "linked" | "draft_created" | "sent" | "attention_required";
   href: string;
+  /** S275 R-S275-6: the lease label the renewal communication stores, when it has one. */
+  label?: string;
   createdAtMs: number;
   attentionAtMs?: number;
   waitingOn?: "team" | "owner" | "resident" | "vendor" | "outside" | "none";
@@ -22,23 +24,41 @@ interface CommunicationAttention {
   contactObservationState?: "current" | "needs_verification";
   contactObservationReason?: "thread_unavailable" | "thread_unreadable";
 }
+interface LiveGmailWorkspaceProps {
+  authenticatedEmail: string;
+  /**
+   * S275 R-S275-5: changes after the page's one "Check Gmail now" ran, so the connection line and
+   * the linked conversations are read again.
+   */
+  reloadToken?: number;
+  /**
+   * S275 R-S275-6: opens a linked conversation in place; true when it handled the link, so the
+   * row never changes the address without opening the communication.
+   */
+  onOpen?: (href: string) => boolean;
+}
 export function LiveGmailWorkspace({
   authenticatedEmail,
-}: {
-  authenticatedEmail: string;
-}) {
+  reloadToken,
+  onOpen,
+}: LiveGmailWorkspaceProps) {
   return (
     <OwnedLiveGmailWorkspace
       key={authenticatedEmail}
       authenticatedEmail={authenticatedEmail}
+      reloadToken={reloadToken}
+      onOpen={onOpen}
     />
   );
 }
-function OwnedLiveGmailWorkspace({ authenticatedEmail }: { authenticatedEmail: string }) {
+function OwnedLiveGmailWorkspace({
+  authenticatedEmail,
+  reloadToken = 0,
+  onOpen,
+}: LiveGmailWorkspaceProps) {
   const hasMailbox = /^[^@\s]+@[^@\s]+$/.test(authenticatedEmail);
   const health = useOperation(authenticatedEmail);
   const attention = useOperation(authenticatedEmail);
-  const refresh = useOperation(authenticatedEmail);
   const scope = useRef(authenticatedEmail);
   const [checkedFor, setCheckedFor] = useState<string | null>(null);
   const [connection, setConnection] = useState<
@@ -53,7 +73,6 @@ function OwnedLiveGmailWorkspace({ authenticatedEmail }: { authenticatedEmail: s
     null,
   );
   const [error, setError] = useState("");
-  const refreshKey = useRef<string | null>(null);
   const loadCommunications = useCallback(async () => {
     const account = authenticatedEmail;
     const result = await attention.controller.run(
@@ -123,6 +142,7 @@ function OwnedLiveGmailWorkspace({ authenticatedEmail }: { authenticatedEmail: s
       setMessage(data.reason ?? data.error ?? WAITING_ON_GMAIL);
     }
   }, [authenticatedEmail, health.controller, loadCommunications]);
+  // S275 R-S275-5: read again on load and after the page's "Check Gmail now".
   useEffect(() => {
     let current = true;
     if (hasMailbox)
@@ -132,7 +152,7 @@ function OwnedLiveGmailWorkspace({ authenticatedEmail }: { authenticatedEmail: s
     return () => {
       current = false;
     };
-  }, [hasMailbox, checkConnection]);
+  }, [hasMailbox, checkConnection, reloadToken]);
   const sameAccount = checkedFor === authenticatedEmail;
   const state =
     hasMailbox && (!sameAccount || health.snapshot.phase === "pending")
@@ -154,39 +174,6 @@ function OwnedLiveGmailWorkspace({ authenticatedEmail }: { authenticatedEmail: s
   }));
   const needingAttention = described.filter((entry) => entry.state.needsAttention);
   const otherLinked = described.filter((entry) => !entry.state.needsAttention);
-  async function refreshMailbox() {
-    if (!connected || refresh.snapshot.phase === "pending") return;
-    refreshKey.current ??= globalThis.crypto.randomUUID();
-    const account = authenticatedEmail;
-    const result = await refresh.controller.run(
-      "Refreshing linked Gmail",
-      async (signal) => {
-        const response = await fetchWithDeadline("/api/gmail-hub/refresh", {
-          signal,
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ attemptKey: refreshKey.current }),
-        });
-        const data = await response.json();
-        if (!response.ok || !["processed", "duplicate"].includes(data.status))
-          throw new Error(data.error ?? "The refresh was not confirmed.");
-        return data;
-      },
-    );
-    if (scope.current !== account || result.outcome === "superseded") return;
-    if (result.outcome === "succeeded") {
-      refreshKey.current = null;
-      setSyncMessage(
-        result.value.status === "duplicate"
-          ? "The original read-only refresh is confirmed."
-          : `Refresh completed at ${formatBusinessTimestamp(new Date())}.`,
-      );
-      await loadCommunications();
-    } else
-      setError(
-        "Refresh outcome is unconfirmed. Recover the original refresh with Refresh linked Gmail; its attempt key is retained.",
-      );
-  }
   return (
     <article className="panel ui-stack live-gmail-workspace">
       <div className="ui-spread">
@@ -238,13 +225,14 @@ function OwnedLiveGmailWorkspace({ authenticatedEmail }: { authenticatedEmail: s
         >
           <div className="ui-spread">
             <h3>Needs attention</h3>
+            {/* S275 R-S275-5: this reads the stored list again; it does not check Gmail. */}
             <Button
               busy={attention.snapshot.phase === "pending"}
-              busyLabel="Refreshing attention…"
+              busyLabel="Reloading linked conversations…"
               onClick={() => void loadCommunications()}
               variant="secondary"
             >
-              Refresh attention
+              Reload linked conversations
             </Button>
           </div>
           {communications === null ? (
@@ -258,12 +246,12 @@ function OwnedLiveGmailWorkspace({ authenticatedEmail }: { authenticatedEmail: s
               {needingAttention.length === 0 ? (
                 <p className="muted">No linked renewal communication needs attention.</p>
               ) : (
-                <CommunicationList entries={needingAttention} />
+                <CommunicationList entries={needingAttention} onOpen={onOpen} />
               )}
               {otherLinked.length > 0 ? (
                 <>
                   <h3>Other linked conversations</h3>
-                  <CommunicationList entries={otherLinked} />
+                  <CommunicationList entries={otherLinked} onOpen={onOpen} />
                 </>
               ) : null}
             </>
@@ -276,18 +264,11 @@ function OwnedLiveGmailWorkspace({ authenticatedEmail }: { authenticatedEmail: s
         </p>
       ) : null}
       {connected ? (
+        // S275 R-S275-5: connection details only; the page's one "Check Gmail now" checks Gmail.
         <Disclosure summary="Gmail connection and refresh">
           <div className="gmail-live-identity">
             <strong>{mailbox}</strong>
             <span className="muted">{syncMessage}</span>
-            <Button
-              busy={refresh.snapshot.phase === "pending"}
-              busyLabel="Refreshing linked Gmail…"
-              onClick={() => void refreshMailbox()}
-              variant="secondary"
-            >
-              Refresh linked Gmail now
-            </Button>
           </div>
         </Disclosure>
       ) : null}
@@ -296,11 +277,13 @@ function OwnedLiveGmailWorkspace({ authenticatedEmail }: { authenticatedEmail: s
 }
 function CommunicationList({
   entries,
+  onOpen,
 }: Readonly<{
   entries: ReadonlyArray<{
     communication: CommunicationAttention;
     state: ReturnType<typeof describeCommunicationState>;
   }>;
+  onOpen?: (href: string) => boolean;
 }>) {
   return (
     <ul className="compact-list">
@@ -311,7 +294,23 @@ function CommunicationList({
           }
           key={communication.id}
         >
-          <Link href={communication.href} prefetch={false}>
+          {/* S275 R-S275-6: the row names the lease and opens the communication in place. */}
+          <Link
+            href={communication.href}
+            onClick={(event) => {
+              if (
+                onOpen &&
+                !event.metaKey &&
+                !event.ctrlKey &&
+                !event.shiftKey &&
+                event.button === 0 &&
+                onOpen(communication.href)
+              )
+                event.preventDefault();
+            }}
+            prefetch={false}
+          >
+            {communication.label ? `${communication.label} · ` : ""}
             {communication.lane === "renewals" ? "Renewal" : "Maintenance"} communication
             · {state.status}
           </Link>

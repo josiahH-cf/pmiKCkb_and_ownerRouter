@@ -15,7 +15,8 @@
 //   notice-admission        built here: the desk is read, RentVine is read again and the desk is
 //                           read again, so move-out evidence shows as it does day to day.
 //   replied-owner-message   built here: the replied lease's owner message is sent from the app
-//                           and an owner reply is delivered by the mail stand-in.
+//                           and an owner reply is delivered by the mail stand-in; one worker
+//                           tick (due-message-tick.mjs) reads it onto the lease (S275 R-S275-8).
 //   standing-agreement      built here (S250): as the Admin the rule policy and the covered
 //                           lease's agreement (roles.covered) are saved; as the Editor it is
 //                           applied to that lease's verified portfolio.
@@ -36,6 +37,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { deliverOwnerReply, setRecordingCycles } from "./control.mjs";
+import { runDueMessageTick } from "./due-message-tick.mjs";
 
 const FORMS_SEED_MODULE = "tests/browser/one-path-forms-seed.mjs";
 
@@ -214,7 +216,8 @@ async function noticeAdmission({ page, origin }) {
 
 /**
  * The replied lease: its owner message is sent from the app through the mail stand-in, then the
- * stand-in delivers the owner's reply and the app reads the thread. A commit without the
+ * stand-in delivers the owner's reply and one run of the app's own worker reads the thread. A
+ * commit without the
  * rehearsal's mail adapter refuses the send in the Demo environment; that is reported, and the
  * lease is then simply a lease with no message sent.
  */
@@ -268,13 +271,22 @@ async function repliedOwnerMessage({ page, mix, rehearsal }) {
     to: owner,
     text: role.ownerReply?.text,
   });
-  const observed = await route(page, "/api/gmail-hub/sequences", {
-    action: "refresh",
-    id: message.sequenceId,
-  });
+  // S275 R-S275-8: the reply reaches the lease the way it does for staff: one run of the app's
+  // own worker (the tick helper stands in for the minute worker) observes the watched message.
+  // The sequences route is only read here.
+  let tick;
+  try {
+    tick = await runDueMessageTick(rehearsal);
+  } catch (error) {
+    tick = { error: String(error?.message ?? error).slice(0, 200) };
+  }
+  const observed = await route(
+    page,
+    `/api/gmail-hub/sequences?id=${encodeURIComponent(message.sequenceId)}`,
+  );
   return {
     state: "seeded",
-    detail: `Lease ${leaseId}: sent on thread ${reply.threadId}, owner reply delivered, thread read (HTTP ${observed.status}, ${sequenceStanding(observed.body?.sequence)}).`,
+    detail: `Lease ${leaseId}: sent on thread ${reply.threadId}, owner reply delivered, one worker run (${tick.error ? `failed: ${tick.error}` : `${tick.watchObserved ?? 0} watched message(s) read`}), thread read (HTTP ${observed.status}, ${sequenceStanding(observed.body?.sequence)}).`,
     sequenceId: message.sequenceId,
   };
 }

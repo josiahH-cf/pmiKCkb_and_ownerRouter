@@ -16,6 +16,7 @@ import {
 } from "@/lib/gmail-hub/workflow-context";
 import { workflowComposerHref } from "@/lib/gmail-hub/composer-navigation";
 import { LiveGmailWorkspace } from "./LiveGmailWorkspace";
+import { CheckGmailNow } from "./CheckGmailNow";
 import { workflowEntityHref } from "@/lib/gmail-hub/workflow-context";
 import type { CommunicationSequence } from "@/lib/gmail-hub/sequence-model";
 import { changedInputLine } from "@/lib/gmail-hub/reviewed-inputs";
@@ -97,54 +98,61 @@ export function WorkflowCommunicationsHub({
   const changed = useCallback(() => {
     void load();
   }, [load]);
+  // S275 R-S275-5: the page's one Gmail check, and a counter that reloads the linked list after it.
+  const [linkedReload, setLinkedReload] = useState(0);
+  const checked = useCallback(() => {
+    setLoading(true);
+    void load();
+    setLinkedReload((count) => count + 1);
+  }, [load]);
+  const syncRoute = useCallback(() => {
+    setLegacy(null);
+    const q = new URLSearchParams(window.location.search),
+      id = q.get("communication"),
+      compose = q.get("compose");
+    if (q.has("workflow")) {
+      const entityType = q.get("workflow"),
+        entityId = q.get("record"),
+        purpose = q.get("purpose");
+      const result = WorkflowCommunicationContextSchema.safeParse({
+        lane: entityType === "maintenance_ticket" ? "maintenance" : "renewals",
+        entityType,
+        entityId,
+        purpose,
+        actionKey: "gmail.mailbox.read",
+        sourceRefs: [],
+      });
+      if (result.success && result.data.lane === "renewals") {
+        setEntry(null);
+        setLegacy(result.data);
+      } else setError("Choose a linked conversation from its authorized workflow.");
+    } else if (
+      id &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+    )
+      setEntry({ id });
+    else if (
+      compose === "reply" &&
+      q.get("reply_from") &&
+      q.get("reply_thread") &&
+      q.get("reply_sender") &&
+      q.get("reply_parent")
+    )
+      setEntry({
+        reply_from: q.get("reply_from")!,
+        reply_thread: q.get("reply_thread")!,
+        reply_sender: q.get("reply_sender")!,
+        reply_parent: q.get("reply_parent")!,
+      });
+    else if (
+      (compose === "renewal_owner" || compose === "renewal_tenant") &&
+      q.get("lease")
+    )
+      setEntry({ lease: q.get("lease")!, purpose: compose });
+    else if (id || compose) setError("Choose a communication from its real lease.");
+    else setEntry(null);
+  }, []);
   useEffect(() => {
-    const syncRoute = () => {
-      setLegacy(null);
-      const q = new URLSearchParams(window.location.search),
-        id = q.get("communication"),
-        compose = q.get("compose");
-      if (q.has("workflow")) {
-        const entityType = q.get("workflow"),
-          entityId = q.get("record"),
-          purpose = q.get("purpose");
-        const result = WorkflowCommunicationContextSchema.safeParse({
-          lane: entityType === "maintenance_ticket" ? "maintenance" : "renewals",
-          entityType,
-          entityId,
-          purpose,
-          actionKey: "gmail.mailbox.read",
-          sourceRefs: [],
-        });
-        if (result.success && result.data.lane === "renewals") {
-          setEntry(null);
-          setLegacy(result.data);
-        } else setError("Choose a linked conversation from its authorized workflow.");
-      } else if (
-        id &&
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
-      )
-        setEntry({ id });
-      else if (
-        compose === "reply" &&
-        q.get("reply_from") &&
-        q.get("reply_thread") &&
-        q.get("reply_sender") &&
-        q.get("reply_parent")
-      )
-        setEntry({
-          reply_from: q.get("reply_from")!,
-          reply_thread: q.get("reply_thread")!,
-          reply_sender: q.get("reply_sender")!,
-          reply_parent: q.get("reply_parent")!,
-        });
-      else if (
-        (compose === "renewal_owner" || compose === "renewal_tenant") &&
-        q.get("lease")
-      )
-        setEntry({ lease: q.get("lease")!, purpose: compose });
-      else if (id || compose) setError("Choose a communication from its real lease.");
-      else setEntry(null);
-    };
     const timer = setTimeout(() => {
       syncRoute();
       void load();
@@ -154,7 +162,27 @@ export function WorkflowCommunicationsHub({
       clearTimeout(timer);
       window.removeEventListener("popstate", syncRoute);
     };
-  }, [load]);
+  }, [load, syncRoute]);
+  /**
+   * S275 R-S275-6: a Linked conversations row on this page opens its communication in place: the
+   * address changes and the communication opens, with no page reload. Other links navigate.
+   */
+  const openHref = useCallback(
+    (href: string) => {
+      let target: URL;
+      try {
+        target = new URL(href, window.location.origin);
+      } catch {
+        return false;
+      }
+      if (target.origin !== window.location.origin || target.pathname !== "/gmail-hub")
+        return false;
+      window.history.pushState(null, "", `${target.pathname}${target.search}`);
+      syncRoute();
+      return true;
+    },
+    [syncRoute],
+  );
 
   const visible = [...items]
     .filter((s) => {
@@ -258,6 +286,10 @@ export function WorkflowCommunicationsHub({
       <p>
         Start a message from its lease. The team can continue the same linked work here.
       </p>
+      {/* S275 R-S275-5: one Gmail check, visible on load on the Incoming and Scheduled tabs. */}
+      {tab === "Incoming" || tab === "Scheduled" ? (
+        <CheckGmailNow onChecked={checked} />
+      ) : null}
       <div className="ui-row">
         <label>
           Filter workflow, sender or status
@@ -306,7 +338,7 @@ export function WorkflowCommunicationsHub({
             void load();
           }}
         >
-          Refresh worklist
+          Reload worklist
         </button>
       </div>
       {error ? <p role="alert">{error}</p> : null}
@@ -314,7 +346,7 @@ export function WorkflowCommunicationsHub({
       {health && nowMs !== null ? (
         <div className="ui-stack" data-communication-field="worker-health">
           {health === "unavailable" ? (
-            <p>Worker health could not be read; refresh the worklist to try again.</p>
+            <p>Worker health could not be read; reload the worklist to try again.</p>
           ) : (
             describeWorkerHealth(health, nowMs, (ms) =>
               formatBusinessTimestamp(new Date(ms).toISOString()),
@@ -408,7 +440,11 @@ export function WorkflowCommunicationsHub({
         </button>
       ) : null}
       {tab === "Incoming" ? (
-        <LiveGmailWorkspace authenticatedEmail={authenticatedEmail} />
+        <LiveGmailWorkspace
+          authenticatedEmail={authenticatedEmail}
+          onOpen={openHref}
+          reloadToken={linkedReload}
+        />
       ) : null}
     </section>
   );

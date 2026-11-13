@@ -32,6 +32,14 @@ export interface GmailHubRuntimeDependencies {
   assertRuntimeActionExecutable(action: string): Promise<void>;
   now?(): number;
   observeSequence?(sequenceId: string): Promise<void>;
+  /**
+   * S275 R-S275-2: observe every watched or open renewal message of this staff mailbox directly,
+   * independent of the mailbox history cursor; each message stands alone.
+   */
+  checkMailboxSequences?(
+    actor: AuthenticatedUser,
+    skip: ReadonlySet<string>,
+  ): Promise<MailboxSequenceCheck>;
   createToken?(): string;
   workflowLinkTtlDays?: number;
   isApprovedWorkflowTemplate?(context: WorkflowCommunicationContext): boolean;
@@ -94,11 +102,35 @@ export function createGmailHubRuntimeDependencies(
     isApprovedWorkflowTemplate: isApprovedWorkflowReplyTemplate,
     labelEffects: new FirestoreGmailLabelEffectStore(),
     dataMode: environment.dataMode,
+    ...createSequenceReplyCheck(),
+  };
+}
+
+/** S275 R-S275-2: what the direct pass over one mailbox's messages did; counts only. */
+export interface MailboxSequenceCheck {
+  readonly observed: number;
+  readonly notChecked: number;
+  readonly ended: number;
+}
+
+/**
+ * S275 ARCH-S275-2: the one sequence reply check every refresh path receives: the push route, the
+ * manual Gmail check and the worker's mailbox sync. `observeSequence` reads one linked message
+ * that the mailbox history named (strict: an incomplete read holds the push cursor), and
+ * `checkMailboxSequences` reads each watched or open message of the mailbox directly.
+ */
+export function createSequenceReplyCheck(): Pick<
+  GmailHubRuntimeDependencies,
+  "observeSequence" | "checkMailboxSequences"
+> {
+  const service = async () =>
+    (await import("./sequence-dependencies")).createCommunicationSequenceService();
+  return {
     observeSequence: async (id) => {
-      const { createCommunicationSequenceService } =
-        await import("./sequence-dependencies");
-      await createCommunicationSequenceService().observeAuthorized(id);
+      await (await service()).observeAuthorized(id);
     },
+    checkMailboxSequences: async (actor, skip) =>
+      (await service()).observeMailbox(actor, { skip }),
   };
 }
 
@@ -195,6 +227,10 @@ export function createGmailHubService(actor: AuthenticatedUser) {
     store: dependencies.store,
     assertEffectEnvironment: dependencies.assertEffectEnvironment,
     assertRuntimeActionExecutable: dependencies.assertRuntimeActionExecutable,
+    // S275 ARCH-S275-2: the manual Gmail check and the worker's mailbox sync pass the sequence
+    // reply check, isolated per message, and the manual check reads every watched or open message.
+    observeSequence: dependencies.observeSequence,
+    checkMailboxSequences: dependencies.checkMailboxSequences,
     now: dependencies.now,
     createToken: dependencies.createToken,
     workflowLinkTtlDays: dependencies.workflowLinkTtlDays,

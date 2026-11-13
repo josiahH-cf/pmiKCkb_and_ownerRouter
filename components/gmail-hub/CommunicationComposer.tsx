@@ -2,6 +2,7 @@
 
 import { RenewalSenderSignatureForm } from "@/components/lease-renewal/RenewalSenderSignatureForm";
 import { hasCurrentRenewalAuthorization } from "@/lib/gmail-hub/delivery-policy";
+import { replyWatchApplies } from "@/lib/gmail-hub/reply-watch";
 import { buildManagedGmailThreadDestination } from "@/lib/lease-renewal/desk-destinations";
 import { applyBusinessSignature } from "@/lib/gmail-hub/business-signature";
 import type { StaffBusinessProfile } from "@/lib/staff/business-profile";
@@ -1195,6 +1196,14 @@ export function CommunicationComposer({
           </button>
           <button disabled={busy} onClick={() => void showStaff()}>
             Choose responsible sender
+          </button>
+        </div>
+      ) : null}
+      {/* S275 R-S275-1: a completed message still watched for its answer can be checked now. */}
+      {sequence && terminal && replyWatchApplies(sequence) ? (
+        <div className="ui-row">
+          <button disabled={busy} onClick={() => void run("refresh")}>
+            Refresh linked incoming
           </button>
         </div>
       ) : null}

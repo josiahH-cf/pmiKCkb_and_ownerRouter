@@ -220,6 +220,15 @@ export interface CommunicationSequence
     revision: number;
     inputs: import("./reviewed-inputs").ReviewedInput[];
   };
+  /**
+   * S275 R-S275-1: the indexed watched marker the store derives on every write
+   * (`replyWatchApplies`): a completed renewal message stays on the worker's watched page until
+   * its answer is known. Absent on records written before S275, which the worker's one catch-up
+   * pass observes once (R-S275-7).
+   */
+  replyWatch?: boolean;
+  /** S275 R-S275-1: why and when the watch ended; absent while it holds or never applied. */
+  replyWatchEnded?: import("./reply-watch").ReplyWatchEnded | null;
   observation: {
     checkedAtMs: number;
     state: "current" | "unavailable";

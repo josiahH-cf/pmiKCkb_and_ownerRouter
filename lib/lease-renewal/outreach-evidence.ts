@@ -60,6 +60,16 @@ export interface LinkedRenewalMessageEvidence {
     readonly receivedAtMs: number;
     readonly occurrenceId: string;
   }[];
+  /**
+   * S275 ARCH-S275-3: the message's reply observation: whether a check can still read its threads
+   * (watched or open after a confirmed send), when the last check ran and whether it read cleanly.
+   * Absent on evidence read before S275; no content, subject or address.
+   */
+  readonly check?: {
+    readonly checkable: boolean;
+    readonly checkedAtMs: number | null;
+    readonly state: "current" | "unavailable" | null;
+  };
 }
 
 /** An unsent Gmail draft prepared for this lease, audience and cycle (S162 draft head). */
@@ -146,6 +156,11 @@ export interface AudienceOutreachEvidence {
   readonly draftSinceMs: number | null;
   /** The communication whose admitted send needs the existing reconcile action. */
   readonly unconfirmedSequenceId: string | null;
+  /**
+   * S275 R-S275-3: the counted messages a reply check can still read, with the last check time
+   * and the time of the latest check that did not read cleanly. Null when none can be checked.
+   */
+  readonly replyCheck?: ReplyCheckEvidence | null;
   /** Derived records staff removed with "This was not the renewal outreach"; history only. */
   readonly corrected: readonly {
     readonly occurrenceId: string;
@@ -153,6 +168,15 @@ export interface AudienceOutreachEvidence {
     readonly reason: string;
     readonly atMs: number;
   }[];
+}
+
+/** S275 R-S275-3: what the waiting step's reply check reads and checks. */
+export interface ReplyCheckEvidence {
+  /** The communications "Check for a reply now" observes, each once. */
+  readonly sequenceIds: readonly string[];
+  readonly lastCheckedAtMs: number | null;
+  /** The latest check of any of them that did not read cleanly; null when every one read. */
+  readonly failedAtMs: number | null;
 }
 
 export interface OutreachEvidence {
@@ -394,6 +418,23 @@ function projectAudience(
     if (draftSinceMs !== null) candidates.push({ state: "draft", atMs: draftSinceMs });
     state = candidates.sort((left, right) => right.atMs - left.atMs)[0]?.state ?? "none";
   }
+  // S275 R-S275-3: the counted messages a reply check can still read, and their last checks.
+  const checkable = counted.filter(({ message }) => message.check?.checkable === true);
+  const checkTimes = checkable.flatMap(({ message }) =>
+    message.check?.checkedAtMs != null ? [message.check.checkedAtMs] : [],
+  );
+  const failedChecks = checkable.flatMap(({ message }) =>
+    message.check?.state === "unavailable" && message.check.checkedAtMs != null
+      ? [message.check.checkedAtMs]
+      : [],
+  );
+  const replyCheck: ReplyCheckEvidence | null = checkable.length
+    ? {
+        sequenceIds: checkable.map(({ message }) => message.sequenceId),
+        lastCheckedAtMs: latest(checkTimes),
+        failedAtMs: latest(failedChecks),
+      }
+    : null;
   return {
     audience,
     state,
@@ -407,7 +448,33 @@ function projectAudience(
     draftSinceMs,
     unconfirmedSequenceId: unconfirmed?.sequenceId ?? null,
     corrected,
+    ...(replyCheck ? { replyCheck } : {}),
   };
+}
+
+/** S275 R-S275-3: the exact words of the waiting step's reply check. */
+export const REPLY_CHECK_WORDS = {
+  check: "Check for a reply now",
+  checking: "Checking for a reply…",
+  lastChecked: "Last checked for a reply",
+  notChecked: "Not checked yet",
+} as const;
+
+/**
+ * S275 R-S275-3: the line under a waiting step: when the reply check last ran, that none has run
+ * yet, or that the latest one failed. A failure keeps the step waiting.
+ */
+export function replyCheckLine(check: ReplyCheckEvidence | null | undefined): string {
+  if (!check) return REPLY_CHECK_WORDS.notChecked;
+  if (check.failedAtMs !== null) return replyCheckFailedLine(check.failedAtMs);
+  return check.lastCheckedAtMs === null
+    ? REPLY_CHECK_WORDS.notChecked
+    : `${REPLY_CHECK_WORDS.lastChecked}: ${at(check.lastCheckedAtMs)}`;
+}
+
+/** S275 R-S275-3: "Reply check failed at 11/12/2026, 12:21 PM CST. Try again." */
+export function replyCheckFailedLine(atMs: number): string {
+  return `Reply check failed at ${at(atMs)}. Try again.`;
 }
 
 /** ARCH-S248-1: the lease cycle's evidence for both audiences. Pure. */

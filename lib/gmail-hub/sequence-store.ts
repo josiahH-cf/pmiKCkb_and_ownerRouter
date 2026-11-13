@@ -24,6 +24,7 @@ import {
   tenantResourceEffectVerdict,
 } from "@/lib/lease-renewal/tenant-resource-inclusion";
 import { businessDateIso } from "@/lib/lease-renewal/business-calendar";
+import { replyWatchApplies, type ReplyWatchEnded } from "./reply-watch";
 import type {
   CommunicationInboundEvidence,
   CommunicationOccurrence,
@@ -144,6 +145,26 @@ export interface SequenceStore {
     sequenceId: string,
     limit?: number,
   ): Promise<{ occurrences: CommunicationOccurrence[]; truncated: boolean }>;
+  /**
+   * S275 R-S275-1: one page of watched messages, by the indexed marker alone, so completed and
+   * cancelled history never enters the page.
+   */
+  listWatched?(
+    after: string | null,
+    limit: number,
+  ): Promise<{ sequences: CommunicationSequence[]; cursor: string | null }>;
+  /**
+   * S275 R-S275-7: one page of completed renewal records for the one-time catch-up of messages
+   * sent before the marker existed. The worker stops calling it once a pass reaches the end.
+   */
+  listCatchUp?(
+    after: string | null,
+    limit: number,
+  ): Promise<{ sequences: CommunicationSequence[]; cursor: string | null }>;
+  /** S275 R-S275-2: the open and watched messages a reply check reads, capped. */
+  listReplyCheckable?(limit: number): Promise<CommunicationSequence[]>;
+  /** S275 R-S275-1: end one message's watch with its reason; no other field changes. */
+  endReplyWatch?(id: string, ended: ReplyWatchEnded): Promise<CommunicationSequence>;
 }
 function missing(): never {
   throw new EditableLayerError("This communication no longer exists.", 404);
@@ -166,6 +187,9 @@ function storedSequence(s: CommunicationSequence) {
   return {
     ...s,
     ...sequenceRetentionFields(s),
+    // S275 R-S275-1: the indexed watched marker, derived on every write so it can never disagree
+    // with the record it marks; a cancelled or answered message drops off the watched page.
+    replyWatch: replyWatchApplies(s),
     retention_attachment_ids: [
       ...new Set([
         ...s.initial.attachmentIds,
@@ -239,6 +263,83 @@ export class FirestoreCommunicationSequenceStore implements SequenceStore {
         .map((doc) => assertRecord(doc.data())),
       cursor: page.size === limit ? page.docs.at(-1)!.id : null,
     };
+  }
+  /** S275 R-S275-1: the watched page, served by the marker's automatic single-field index. */
+  async listWatched(after: string | null, limit: number) {
+    return this.pageWhere("replyWatch", true, after, limit);
+  }
+  /**
+   * S275 R-S275-7: completed records for the one-time catch-up, in document order. The worker
+   * keeps only renewal records without the marker; this pass ends once and never runs again.
+   */
+  async listCatchUp(after: string | null, limit: number) {
+    return this.pageWhere("state", "completed", after, limit);
+  }
+  /** S275 R-S275-2: open and watched records a reply check reads, each read capped at `limit`. */
+  async listReplyCheckable(limit: number) {
+    const collection = this.db.collection(COMMUNICATION_SEQUENCE_COLLECTIONS.sequences);
+    const bound = Math.min(200, Math.max(1, limit));
+    const [open, watched] = await Promise.all([
+      collection
+        .where("state", "in", [...OPEN_SEQUENCE_STATES])
+        .orderBy(FieldPath.documentId())
+        .limit(bound)
+        .get(),
+      collection
+        .where("replyWatch", "==", true)
+        .orderBy(FieldPath.documentId())
+        .limit(bound)
+        .get(),
+    ]);
+    const seen = new Set<string>();
+    const sequences: CommunicationSequence[] = [];
+    for (const doc of [...open.docs, ...watched.docs]) {
+      if (seen.has(doc.id) || doc.get("purged")) continue;
+      seen.add(doc.id);
+      try {
+        sequences.push(assertRecord(doc.data()));
+      } catch {
+        // A record that needs reconciliation is left to its own controls.
+      }
+    }
+    return sequences;
+  }
+  private async pageWhere(
+    field: string,
+    value: unknown,
+    after: string | null,
+    limit: number,
+  ) {
+    const bound = Math.min(100, Math.max(1, limit));
+    const base = this.db
+      .collection(COMMUNICATION_SEQUENCE_COLLECTIONS.sequences)
+      .where(field, "==", value)
+      .orderBy(FieldPath.documentId());
+    const page = await (after ? base.startAfter(after) : base).limit(bound).get();
+    const sequences: CommunicationSequence[] = [];
+    for (const doc of page.docs) {
+      if (doc.get("purged")) continue;
+      try {
+        sequences.push(assertRecord(doc.data()));
+      } catch {
+        // An unreadable record is skipped here; its own controls report it.
+      }
+    }
+    return {
+      sequences,
+      cursor: page.size === bound ? page.docs.at(-1)!.id : null,
+    };
+  }
+  /** S275 R-S275-1: record why and when the watch ended; the marker drops with it. */
+  async endReplyWatch(id: string, ended: ReplyWatchEnded) {
+    return this.db.runTransaction(async (tx) => {
+      const snapshot = await tx.get(this.ref(id));
+      const s = snapshot.exists ? assertRecord(snapshot.data()) : missing();
+      if (s.replyWatchEnded || !replyWatchApplies(s)) return s;
+      const next: CommunicationSequence = { ...s, replyWatchEnded: ended };
+      tx.set(this.ref(id), storedSequence(next));
+      return next;
+    });
   }
   async listOccurrences(sequenceId: string, limit = 200) {
     const snapshot = await this.db
@@ -770,6 +871,36 @@ export class FirestoreCommunicationSequenceStore implements SequenceStore {
       return next;
     });
   }
+}
+
+/**
+ * S275 R-S275-6: the lease label each named renewal communication stores ("101 Sample Pl"), for a
+ * notification or a Linked conversations row the caller already admitted by workflow access. One
+ * bounded read by id; labels only, never a body, subject or address.
+ */
+export async function readCommunicationLabels(
+  sequenceIds: readonly string[],
+  db: Firestore = getAdminFirestore(),
+): Promise<Map<string, string>> {
+  const ids = [
+    ...new Set(sequenceIds.filter((id) => /^[A-Za-z0-9_-]{1,128}$/.test(id))),
+  ].slice(0, 100);
+  if (!ids.length) return new Map();
+  const collection = db.collection(COMMUNICATION_SEQUENCE_COLLECTIONS.sequences);
+  const snapshots = await db.getAll(...ids.map((id) => collection.doc(id)));
+  const labels = new Map<string, string>();
+  for (const snapshot of snapshots) {
+    if (!snapshot.exists || snapshot.get("purged")) continue;
+    const context = snapshot.get("context") as { entityType?: string } | undefined;
+    const label = snapshot.get("workflowLabel");
+    if (
+      context?.entityType === "renewal_lease" &&
+      typeof label === "string" &&
+      label.trim()
+    )
+      labels.set(snapshot.id, label.trim().slice(0, 200));
+  }
+  return labels;
 }
 
 /**

@@ -85,6 +85,11 @@ export { GMAIL_HUB_ACTIONS };
 
 export interface GmailHubServiceDependencies {
   observeSequence?(sequenceId: string): Promise<void>;
+  /** S275 R-S275-2: the manual check's direct pass over this mailbox's watched and open messages. */
+  checkMailboxSequences?(
+    actor: AuthenticatedUser,
+    skip: ReadonlySet<string>,
+  ): Promise<{ observed: number; notChecked: number; ended: number }>;
   createClient(subject: string): GmailRuntimeClient;
   store: GmailStateStore;
   assertEffectEnvironment(): void;
@@ -198,13 +203,31 @@ export class GmailHubService {
    * dedupe identity; the provider history cursor can only advance, and no Gmail message or label is
    * changed. A first refresh registers the current cursor without scanning historical inbox data.
    */
-  async refreshMailbox(input: { attemptKey: string }) {
+  async refreshMailbox(
+    input: { attemptKey: string },
+    /**
+     * S275 R-S275-2: the manual check also reads every watched or open message of this mailbox
+     * directly (`directCheck`, on by default). The worker's sync turns it off: the worker reads
+     * each of those messages itself in the same run.
+     */
+    options: { readonly directCheck?: boolean } = {},
+  ) {
     if (!/^[a-f0-9-]{36}$/i.test(input.attemptKey)) {
       throw new GmailHubError("Gmail refresh attempt key is invalid.", 409);
     }
     const client = await this.createRuntimeClient(GMAIL_HUB_ACTIONS.read);
     const profile = await client.getProfile();
     const nowMs = this.now();
+    // S275 ARCH-S275-2: the sequence reply check, isolated per message, and the messages it read.
+    const observed = new Set<string>();
+    const observeSequence = isolatedSequenceCheck(
+      this.dependencies.observeSequence,
+      observed,
+    );
+    const directCheck = async () =>
+      options.directCheck === false || !this.dependencies.checkMailboxSequences
+        ? null
+        : this.dependencies.checkMailboxSequences(this.actor, observed).catch(() => null);
     let state = await this.dependencies.store.getMailboxState(this.mailboxEmail);
     if (!state) {
       await this.dependencies.store.saveMailboxState({
@@ -215,11 +238,13 @@ export class GmailHubService {
         health: "connected",
         updated_at_ms: nowMs,
       });
+      const sequences = await directCheck();
       return {
         status: "initialized" as const,
         addedCount: 0,
         matchedCount: 0,
         historyId: profile.historyId,
+        ...(sequences ? { sequences } : {}),
       };
     }
     if (state.user_uid !== this.actor.uid && state.user_uid !== "unknown") {
@@ -238,18 +263,29 @@ export class GmailHubService {
       };
       await this.dependencies.store.saveMailboxState(state);
     }
-    return processGmailPushNotification({
-      messageId: `manual-${hashWatchBoundary(
-        `${this.actor.uid}:${this.mailboxEmail}:${input.attemptKey}`,
-      )}`,
-      mailboxEmail: this.mailboxEmail,
-      historyId: profile.historyId,
-      source: "manual",
-      store: this.dependencies.store,
-      client,
-      now: this.now,
-      observeSequence: this.dependencies.observeSequence,
-    });
+    let history: Awaited<ReturnType<typeof processGmailPushNotification>>;
+    try {
+      history = await processGmailPushNotification({
+        messageId: `manual-${hashWatchBoundary(
+          `${this.actor.uid}:${this.mailboxEmail}:${input.attemptKey}`,
+        )}`,
+        mailboxEmail: this.mailboxEmail,
+        historyId: profile.historyId,
+        source: "manual",
+        store: this.dependencies.store,
+        client,
+        now: this.now,
+        observeSequence,
+      });
+    } catch (error) {
+      // R-S275-2: the direct pass does not depend on the history read, so a reply the cursor
+      // passed (or a history read that failed) is still checked before the failure is reported.
+      await directCheck();
+      throw error;
+    }
+    if (history.status === "duplicate") return history;
+    const sequences = await directCheck();
+    return { ...history, ...(sequences ? { sequences } : {}) };
   }
 
   async linkExistingThread(input: {
@@ -1479,6 +1515,27 @@ function extractEmailAddress(value: string): string | undefined {
   const angle = normalized.match(/<([^<>\s]+@[^<>\s]+)>/);
   const candidate = (angle?.[1] ?? normalized).trim().toLowerCase();
   return /^[^@\s]+@[^@\s]+$/.test(candidate) ? candidate : undefined;
+}
+
+/**
+ * S275 R-S275-2: a manual check or a worker sync never fails the mailbox for one message. The
+ * message's own record already says it was not read cleanly (S233 R-S233-4). Each message is read
+ * once per check; `observed` names those read, so the direct pass does not read them again.
+ */
+export function isolatedSequenceCheck(
+  observe: ((sequenceId: string) => Promise<void>) | undefined,
+  observed: Set<string>,
+): ((sequenceId: string) => Promise<void>) | undefined {
+  if (!observe) return undefined;
+  return async (sequenceId) => {
+    if (observed.has(sequenceId)) return;
+    observed.add(sequenceId);
+    try {
+      await observe(sequenceId);
+    } catch {
+      // Recorded on the message itself; the rest of the check carries on.
+    }
+  };
 }
 
 export async function processGmailPushNotification(input: {

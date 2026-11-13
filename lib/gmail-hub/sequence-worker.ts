@@ -10,12 +10,20 @@ import {
   type WorkflowCommunicationSequenceService,
 } from "./sequence-service";
 import { hasSpaceAccess } from "@/lib/auth/session";
+import { needsReplyWatchCatchUp, replyWatchApplies } from "./reply-watch";
+import type { CommunicationSequence } from "./sequence-model";
 
 const LEASE_MS = 180_000;
+/** S275 R-S275-7: the one-time catch-up of messages sent before the watched marker existed. */
+export const REPLY_WATCH_CATCH_UP_VERSION = "s275-reply-watch-catch-up-v1";
 export interface CommunicationWorkerCheckpoint {
   cursor: string | null;
   runId: string;
   expiresAtMs: number;
+  /** S275 R-S275-1: where the watched page resumes; null starts at the first watched message. */
+  watchCursor?: string | null;
+  /** S275 R-S275-7: the catch-up's resume point, and whether its one pass reached the end. */
+  catchUp?: { cursor: string | null; done: boolean };
 }
 export class CommunicationWorkerStore {
   constructor(readonly db: Firestore = getAdminFirestore()) {}
@@ -32,9 +40,26 @@ export class CommunicationWorkerStore {
       if (typeof state?.expiresAtMs === "number" && state.expiresAtMs > nowMs)
         return null;
       const cursor = typeof state?.cursor === "string" ? state.cursor : null;
+      const watchCursor =
+        typeof state?.watchCursor === "string" ? state.watchCursor : null;
+      const stored = state?.catchUp as
+        | { version?: unknown; cursor?: unknown; done?: unknown }
+        | undefined;
+      const catchUp =
+        stored?.version === REPLY_WATCH_CATCH_UP_VERSION
+          ? {
+              cursor: typeof stored.cursor === "string" ? stored.cursor : null,
+              done: stored.done === true,
+            }
+          : { cursor: null, done: false };
       const next = { cursor, runId, expiresAtMs: nowMs + LEASE_MS };
-      tx.set(this.ref(), { ...next, startedAtMs: nowMs });
-      return next;
+      tx.set(this.ref(), {
+        ...next,
+        watchCursor,
+        catchUp: { version: REPLY_WATCH_CATCH_UP_VERSION, ...catchUp },
+        startedAtMs: nowMs,
+      });
+      return { ...next, watchCursor, catchUp };
     });
   }
   async finish(
@@ -42,11 +67,14 @@ export class CommunicationWorkerStore {
     cursor: string | null,
     nowMs: number,
     counts: Record<string, number>,
+    watch: Pick<CommunicationWorkerCheckpoint, "watchCursor" | "catchUp"> = {},
   ) {
     return this.db.runTransaction(async (tx) => {
       const doc = await tx.get(this.ref());
       if (doc.data()?.runId !== claim.runId) return false;
       const startedAtMs = doc.data()?.startedAtMs;
+      const watchCursor = watch.watchCursor ?? claim.watchCursor ?? null;
+      const catchUp = watch.catchUp ?? claim.catchUp ?? null;
       tx.set(this.ref(), {
         runId: claim.runId,
         cursor,
@@ -55,6 +83,11 @@ export class CommunicationWorkerStore {
         ...(typeof startedAtMs === "number" ? { startedAtMs } : {}),
         finishedAtMs: nowMs,
         counts,
+        // S275: the watched page and the catch-up keep their own places between runs.
+        watchCursor,
+        ...(catchUp
+          ? { catchUp: { version: REPLY_WATCH_CATCH_UP_VERSION, ...catchUp } }
+          : {}),
       });
       return true;
     });
@@ -101,7 +134,10 @@ export async function runCommunicationWorker(input: {
   const claim = await store.claim(started);
   if (!claim) return { status: "already_running" as const };
   const limit = Math.min(50, Math.max(1, input.maxSequences ?? 20));
-  const page = await input.service.deps.store.list(claim.cursor, limit, {
+  const deps = input.service.deps;
+  const outOfTime = () =>
+    now() - started >= Math.min(120_000, input.maxDurationMs ?? 55_000);
+  const page = await deps.store.list(claim.cursor, limit, {
     openOnly: true,
   });
   const counts: Record<string, number> = {
@@ -119,8 +155,38 @@ export async function runCommunicationWorker(input: {
   const syncedMailboxes = new Set<string>();
   // S233 R-S233-4: a mailbox whose sync failed is not retried this run; its sequences are marked.
   const failedMailboxes = new Set<string>();
+  /**
+   * Current staff authority, the stored real workflow scope and this run's mailbox sync, before
+   * any mailbox construction. Null when the message was not checked this run (it says so).
+   */
+  const prepareActor = async (original: CommunicationSequence) => {
+    const actor = await deps.readActor(original.responsibleUid);
+    assertCommunicationStaff(actor, "read");
+    if (!hasSpaceAccess(actor, original.context.lane))
+      throw new Error("Workflow Space unavailable.");
+    const mailbox = actor.email.toLowerCase();
+    if (deps.syncMailbox && !syncedMailboxes.has(mailbox)) {
+      let synced = !failedMailboxes.has(mailbox);
+      if (synced)
+        try {
+          await deps.syncMailbox(actor);
+          syncedMailboxes.add(mailbox);
+        } catch {
+          failedMailboxes.add(mailbox);
+          counts.failures += 1;
+          synced = false;
+        }
+      if (!synced) {
+        // Not checked this run: the record says so, and nothing is sent from it.
+        await input.service.markNotChecked(original);
+        counts.notChecked += 1;
+        return null;
+      }
+    }
+    return actor;
+  };
   for (const original of page.sequences) {
-    if (now() - started >= Math.min(120_000, input.maxDurationMs ?? 55_000)) {
+    if (outOfTime()) {
       completedPage = false;
       break;
     }
@@ -133,30 +199,9 @@ export async function runCommunicationWorker(input: {
       continue;
     }
     try {
-      // Current staff authority and the stored real workflow scope precede any mailbox construction.
-      const actor = await input.service.deps.readActor(original.responsibleUid);
-      assertCommunicationStaff(actor, "read");
-      if (!hasSpaceAccess(actor, original.context.lane))
-        throw new Error("Workflow Space unavailable.");
-      const mailbox = actor.email.toLowerCase();
-      if (input.service.deps.syncMailbox && !syncedMailboxes.has(mailbox)) {
-        let synced = !failedMailboxes.has(mailbox);
-        if (synced)
-          try {
-            await input.service.deps.syncMailbox(actor);
-            syncedMailboxes.add(mailbox);
-          } catch {
-            failedMailboxes.add(mailbox);
-            counts.failures += 1;
-            synced = false;
-          }
-        if (!synced) {
-          // Not checked this run: the record says so, and nothing is sent from it.
-          await input.service.markNotChecked(original);
-          counts.notChecked += 1;
-          counts.held += 1;
-          continue;
-        }
+      if (!(await prepareActor(original))) {
+        counts.held += 1;
+        continue;
       }
       const observed = await input.service.observe(original);
       counts.observed += 1;
@@ -174,7 +219,66 @@ export async function runCommunicationWorker(input: {
     } // Value-free operational evidence; no raw provider response.
   }
   if (completedPage) cursor = page.cursor;
-  await store.finish(claim, cursor, now(), counts);
+
+  // S275 R-S275-1: the watched page. A completed renewal message whose answer is not yet known is
+  // observed only (never dispatched); the lease record's end conditions are read first, and an
+  // ended watch is recorded so the message never enters this page again. Visits are bounded by
+  // the same page limit and run time, and never grow with terminal history.
+  let watchCursor = claim.watchCursor ?? null;
+  let catchUp = claim.catchUp ?? { cursor: null, done: false };
+  const watching = Boolean(
+    deps.replyWatchEndReason && deps.store.listWatched && deps.store.endReplyWatch,
+  );
+  const visitWatched = async (original: CommunicationSequence, key: string) => {
+    counts[key] = (counts[key] ?? 0) + 1;
+    if (!replyWatchApplies(original)) return;
+    try {
+      const settled = await input.service.settleReplyWatch(original);
+      if (settled.ended) {
+        counts.watchEnded = (counts.watchEnded ?? 0) + 1;
+        return;
+      }
+      if (!(await prepareActor(original))) return;
+      await input.service.observe(original);
+      counts.watchObserved = (counts.watchObserved ?? 0) + 1;
+    } catch {
+      counts.failures += 1;
+    }
+  };
+  if (watching && !outOfTime()) {
+    const watched = await deps.store.listWatched!(watchCursor, limit);
+    let completedWatch = true;
+    for (const original of watched.sequences) {
+      if (outOfTime()) {
+        completedWatch = false;
+        break;
+      }
+      watchCursor = original.id;
+      await visitWatched(original, "watched");
+    }
+    if (completedWatch) watchCursor = watched.cursor;
+  }
+  // S275 R-S275-7: one pass over completed records sent before the marker existed. Each such
+  // message is observed once (its earlier reply is recorded with its actual received time) or has
+  // its watch ended, through the same normal writes; the pass then never runs again.
+  if (watching && !catchUp.done && deps.store.listCatchUp && !outOfTime()) {
+    const legacy = await deps.store.listCatchUp(catchUp.cursor, limit);
+    let completedCatchUp = true;
+    let next = catchUp.cursor;
+    for (const original of legacy.sequences) {
+      if (outOfTime()) {
+        completedCatchUp = false;
+        break;
+      }
+      next = original.id;
+      if (!needsReplyWatchCatchUp(original)) continue;
+      await visitWatched(original, "caughtUp");
+    }
+    catchUp = completedCatchUp
+      ? { cursor: legacy.cursor, done: legacy.cursor === null }
+      : { cursor: next, done: false };
+  }
+  await store.finish(claim, cursor, now(), counts, { watchCursor, catchUp });
   return { status: "processed" as const, ...counts, more: cursor !== null };
 }
 let testVerifier:

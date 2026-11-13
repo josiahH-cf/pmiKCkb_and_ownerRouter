@@ -65,6 +65,7 @@ import {
   type SequenceStore,
 } from "./sequence-store";
 import type { WorkflowCommunicationContext } from "./workflow-context";
+import { replyCheckable, type ReplyWatchEndReason } from "./reply-watch";
 import {
   authorizedOccurrenceBasis,
   projectTenantResourceInclusion,
@@ -212,6 +213,15 @@ export interface CommunicationSequenceDependencies {
     occurrence: CommunicationOccurrence & { gmailMessageId: string },
     sentAtMs: number,
   ): Promise<void>;
+  /**
+   * S275 R-S275-1: why a watched message's watch ends now, read from the lease record (its answer,
+   * its cycle and its lease end), or null while it holds. Absent, the worker pages no watched
+   * message, exactly as before the watch.
+   */
+  replyWatchEndReason?(
+    sequence: CommunicationSequence,
+    nowMs: number,
+  ): Promise<ReplyWatchEndReason | null>;
 }
 export function assertCommunicationStaff(
   actor: AuthenticatedUser,
@@ -974,6 +984,72 @@ export class WorkflowCommunicationSequenceService {
       complete: false,
       reason: "mailbox_sync_failed",
     });
+  }
+
+  /**
+   * S275 R-S275-1: the lease record's verdict on one watched message. When its watch ends the
+   * reason is recorded and the message leaves the watched page; otherwise nothing is written.
+   */
+  async settleReplyWatch(
+    s: CommunicationSequence,
+  ): Promise<{ ended: ReplyWatchEndReason | null; sequence: CommunicationSequence }> {
+    const store = this.deps.store;
+    if (!this.deps.replyWatchEndReason || !store.endReplyWatch)
+      return { ended: null, sequence: s };
+    const nowMs = this.now();
+    const reason = await this.deps.replyWatchEndReason(s, nowMs);
+    if (!reason) return { ended: null, sequence: s };
+    return {
+      ended: reason,
+      sequence: await store.endReplyWatch(s.id, { reason, atMs: nowMs }),
+    };
+  }
+
+  /**
+   * S275 R-S275-2: the manual Gmail check (and any caller that names a staff mailbox) observes
+   * every watched or open message of that mailbox directly, independent of the mailbox history
+   * cursor, so a reply the cursor has passed is still found. Each message stands alone: one whose
+   * thread read is incomplete is recorded as not checked this run and never fails the others.
+   */
+  async observeMailbox(
+    actor: AuthenticatedUser,
+    options: { readonly skip?: ReadonlySet<string>; readonly limit?: number } = {},
+  ): Promise<{ observed: number; notChecked: number; ended: number }> {
+    assertCommunicationStaff(actor, "read");
+    const counts = { observed: 0, notChecked: 0, ended: 0 };
+    if (!this.deps.store.listReplyCheckable) return counts;
+    const mailbox = actor.email.toLowerCase();
+    const candidates = (
+      await this.deps.store.listReplyCheckable(options.limit ?? 100)
+    ).filter(
+      (s) =>
+        replyCheckable(s) &&
+        hasSpaceAccess(actor, s.context.lane) &&
+        (s.senderEmail.toLowerCase() === mailbox ||
+          s.threads.some((t) => t.senderEmail.toLowerCase() === mailbox)),
+    );
+    for (const original of candidates) {
+      if (options.skip?.has(original.id)) continue;
+      try {
+        let s = original;
+        if (s.state === "completed") {
+          const settled = await this.settleReplyWatch(s);
+          if (settled.ended) {
+            counts.ended += 1;
+            continue;
+          }
+          s = settled.sequence;
+        }
+        const observed = await this.observe(s);
+        if (observed.observation?.state === "current") counts.observed += 1;
+        else counts.notChecked += 1;
+      } catch {
+        counts.notChecked += 1;
+        // Not checked this run: the record says so, and the other messages carry on.
+        await this.markNotChecked(original).catch(() => undefined);
+      }
+    }
+    return counts;
   }
   async dispatch(id: string): Promise<{
     status:

@@ -42,7 +42,27 @@ import {
   type ResolveTargetOptions,
   type SettledCommunicationTarget,
 } from "./sequence-service";
-import { communicationSendKey, type VerifiedCommunicationTarget } from "./sequence-model";
+import {
+  communicationSendKey,
+  type CommunicationSequence,
+  type VerifiedCommunicationTarget,
+} from "./sequence-model";
+import type { Firestore } from "firebase-admin/firestore";
+import { getAdminFirestore } from "@/lib/firestore/admin";
+import { businessDateIso } from "@/lib/lease-renewal/business-calendar";
+import {
+  currentRenewalWorkspaceState,
+  renewalWorkspaceHeadRefs,
+} from "@/lib/firestore/renewal-workspace";
+import {
+  dispositionRef,
+  readDispositionRecord,
+} from "@/lib/firestore/renewal-cycle-disposition-read";
+import {
+  replyWatchEndReason,
+  type ReplyWatchEndReason,
+  type ReplyWatchLeaseFacts,
+} from "./reply-watch";
 import {
   WorkflowCommunicationContextSchema,
   type WorkflowCommunicationContext,
@@ -73,9 +93,17 @@ export function createCommunicationSequenceService() {
     readBusinessProfile: (actor) => readBusinessProfile(actor),
     assertEffectEnvironment: () => assertGmailEffectEnvironment(descriptor, standIn),
     assertRuntimeAction: assertProductionRuntimeActionExecutable,
+    // S275 ARCH-S275-2: the worker's mailbox sync passes the sequence reply check for the linked
+    // threads its history names; the worker then observes each open and watched message itself,
+    // so the sync skips the manual check's direct pass.
     syncMailbox: async (actor) => {
-      await createGmailHubService(actor).refreshMailbox({ attemptKey: randomUUID() });
+      await createGmailHubService(actor).refreshMailbox(
+        { attemptKey: randomUUID() },
+        { directCheck: false },
+      );
     },
+    // S275 R-S275-1: the lease record's end conditions for a watched message.
+    replyWatchEndReason: (sequence, nowMs) => readReplyWatchEndReason(sequence, nowMs),
     readLinkedThreads: async (actor, context) =>
       (
         await getGmailHubDependencies().store.listCommunicationLinks(
@@ -99,6 +127,44 @@ export function createCommunicationSequenceService() {
       if (record) await writeRenewalOutreachRecord(record);
     },
   });
+}
+/**
+ * S275 R-S275-1: the lease record facts a watched message's end conditions read: the current work
+ * record (its cycle, answers, completion and lease end) and the latest retire or restore record.
+ * Read-only. A read that fails keeps the watch, so a reply is never missed for a read error.
+ */
+export async function readReplyWatchEndReason(
+  sequence: CommunicationSequence,
+  nowMs: number,
+  db: Firestore = getAdminFirestore(),
+): Promise<ReplyWatchEndReason | null> {
+  const todayIso = businessDateIso(nowMs);
+  if (sequence.state === "cancelled")
+    return replyWatchEndReason(sequence, {
+      workspace: null,
+      disposition: null,
+      todayIso,
+    });
+  const leaseId = sequence.context.entityId;
+  if (!/^[1-9]\d*$/.test(leaseId)) return null;
+  try {
+    const heads = renewalWorkspaceHeadRefs(db, leaseId);
+    const [dated, leaseBound, dispositionDoc] = await Promise.all([
+      heads.dated.get(),
+      heads.leaseBound.get(),
+      dispositionRef(db, leaseId).get(),
+    ]);
+    const workspace = currentRenewalWorkspaceState(db, leaseId, dated, leaseBound);
+    let disposition: ReplyWatchLeaseFacts["disposition"] = null;
+    try {
+      disposition = readDispositionRecord(dispositionDoc, leaseId);
+    } catch {
+      disposition = null;
+    }
+    return replyWatchEndReason(sequence, { workspace, disposition, todayIso });
+  } catch {
+    return null;
+  }
 }
 export async function readCurrentCommunicationActor(
   uid: string,

@@ -35,6 +35,7 @@ import type {
   CommunicationOccurrence,
   CommunicationSequence,
 } from "@/lib/gmail-hub/sequence-model";
+import { replyCheckable } from "@/lib/gmail-hub/reply-watch";
 import {
   OUTREACH_AUDIENCES,
   type GmailDraftEvidence,
@@ -139,6 +140,16 @@ export function linkedRenewalMessageEvidence(
           ]
         : [],
     ),
+    // S275 ARCH-S275-3: the reply observation's last check time and state, and whether a check
+    // can still read this message's threads. Times and states only.
+    check: {
+      checkable: replyCheckable(sequence),
+      checkedAtMs:
+        typeof sequence.observation?.checkedAtMs === "number"
+          ? sequence.observation.checkedAtMs
+          : null,
+      state: sequence.observation?.state ?? null,
+    },
   };
 }
 

@@ -69,6 +69,7 @@ import {
 } from "@/lib/lease-renewal/working-record";
 import { housingAssistanceWork } from "@/lib/lease-renewal/housing-assistance-source";
 import { nowSlotKey, useRenewalNowCard } from "./RenewalNowCardContext";
+import { RenewalReplyCheck } from "./RenewalReplyCheck";
 import {
   PreparedNumbersCheck,
   RentToRecommendField,
@@ -546,6 +547,10 @@ export function RenewalFullOutcome({
           {step.state === "not_part" ? <p>{NOT_PART_OF_PATH_LABEL}.</p> : null}
           {step.state === "waiting" && stage.waiting && current ? (
             <p data-renewal-field="waiting">{renewalStageWaitingLine(stage.waiting)}</p>
+          ) : null}
+          {/* S275 R-S275-3: the reply check beside the waiting line. */}
+          {step.state === "waiting" && stage.waiting && current && delivery ? (
+            <RenewalReplyCheck canEdit={canEdit} check={delivery.replyCheck} />
           ) : null}
           {step.detail && !blocker && step.state !== "waiting" ? (
             <p>{step.detail}</p>
@@ -1666,12 +1671,18 @@ function NowCard({
             ? "priority"
             : null;
   const waitingNode = waitingLine ? (
-    <p
-      data-renewal-field="waiting"
-      data-renewal-priority-cue={cueKind === "waiting" ? true : undefined}
-    >
-      {waitingLine}
-    </p>
+    <>
+      <p
+        data-renewal-field="waiting"
+        data-renewal-priority-cue={cueKind === "waiting" ? true : undefined}
+      >
+        {waitingLine}
+      </p>
+      {/* S275 R-S275-3: when the app last checked for a reply, and the check itself. */}
+      {audience && evidence ? (
+        <RenewalReplyCheck canEdit={canEdit} check={evidence.replyCheck} />
+      ) : null}
+    </>
   ) : null;
   const blockerNode = blockerLine ? (
     <p

@@ -75,18 +75,18 @@ describe("S233 worker health on the communications hub (R-S233-5)", () => {
     ]);
   });
 
-  it("says when the health could not be read, and reads it again on Refresh worklist", async () => {
+  it("says when the health could not be read, and reads it again on Reload worklist (S275 R-S275-5 label)", async () => {
     healthResponses.push(() => Response.json({ error: "Unavailable" }, { status: 503 }));
     render(<WorkflowCommunicationsHub authenticatedEmail="staff@pmikcmetro.com" />);
     await waitFor(() =>
       expect(healthBlock()).toHaveTextContent(
-        "Worker health could not be read; refresh the worklist to try again.",
+        "Worker health could not be read; reload the worklist to try again.",
       ),
     );
     // The worklist itself still loads.
     expect(screen.queryByRole("alert")).toBeNull();
     healthResponses.push(() => Response.json({ ...HEALTH, complete: false }));
-    await userEvent.click(screen.getByRole("button", { name: "Refresh worklist" }));
+    await userEvent.click(screen.getByRole("button", { name: "Reload worklist" }));
     await waitFor(() =>
       expect(healthBlock()).toHaveTextContent(
         "Counts cover the first open communications read; more are open.",
