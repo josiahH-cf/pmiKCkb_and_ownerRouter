@@ -734,7 +734,7 @@ export function RenewalOfferCharges({
 
 /**
  * S264 with S270: "Add a charge for this lease only" is an optional choice, so it sits in the
- * outcome's options group (Tenant offer options and record of contact). It edits the same
+ * outcome's options group (S281: Record of contact). It edits the same
  * selection the review owns and saves through the same message save; the new row then appears in
  * Review offer charges until its amount, date, trigger and source are entered.
  */

@@ -35,7 +35,7 @@ import {
 } from "./renewal-date-proposal";
 import {
   ASSISTED_CONTROL_IDS,
-  NOT_PART_OF_PATH_LABEL,
+  STEP_NOT_USED_LABEL,
   RENEWAL_PATH_LABELS,
   type RenewalPathStepId,
 } from "./renewal-path";
@@ -137,8 +137,10 @@ export const GUIDED_SECONDARY_WORK_LABELS: Readonly<
 > = {
   "check-numbers": "Correct other lease facts",
   "compare-market": "Comparison inputs and deliberate rerun",
-  "ask-owner": "Owner message options and outreach record",
-  "offer-tenant": "Tenant offer options and record of contact",
+  // S281 R-S281-12: the message and the other ways to send have their own named groups
+  // (GUIDED_MESSAGE_GROUP_LABELS); this one holds the records of contact.
+  "ask-owner": "Outreach record",
+  "offer-tenant": "Record of contact",
   documents: "Other packet and handoff work",
   "finish-up": "Other follow-ups",
   complete: null,
@@ -148,6 +150,18 @@ export const GUIDED_SECONDARY_WORK_LABELS: Readonly<
   "assisted-owner-renewal-answer": null,
   "assisted-rent": null,
 };
+
+/**
+ * S281 R-S281-12: on Ask the owner and Offer the tenant, below the primary action, Work has three
+ * named groups, closed on entry: "Message" (the current wording, its readiness list and "Reason to
+ * include"), "Other ways to send" (Schedule, "Create Gmail draft instead", Copy and "Open in
+ * Communications"), then the outcome's record group (GUIDED_SECONDARY_WORK_LABELS). After a
+ * confirmed send the first two are not rendered (R-S281-3).
+ */
+export const GUIDED_MESSAGE_GROUP_LABELS = {
+  message: "Message",
+  otherWays: "Other ways to send",
+} as const;
 
 /** Every input, fix or action an outcome can lead with, by its own key. */
 export type GuidedInputKey =
@@ -454,13 +468,15 @@ function missingInputs(facts: GuidedPriorityFacts): GuidedPriorityInput[] {
             reason: "The offer needs the renewal base rent.",
           }),
         );
+      // S281 R-S281-14: the renewal dates open in place on the offer itself (the one Working
+      // renewal terms editor moves here while it is open), so the dates are this outcome's own.
       if (working && working.effectiveDate === null)
         list.push(
           input({
             key: "renewal-start",
             label: GUIDED_PRIORITY_WORDS.enterRenewalStart,
             target: ext.renewalStart?.target ?? WORKING_START_FIELD_ID,
-            owner: "ask-owner",
+            owner: "offer-tenant",
             kind: "field",
             reason: "The offer needs the renewal start date.",
           }),
@@ -471,7 +487,7 @@ function missingInputs(facts: GuidedPriorityFacts): GuidedPriorityInput[] {
             key: "renewal-end",
             label: GUIDED_PRIORITY_WORDS.enterRenewalEnd,
             target: ext.renewalEnd?.target ?? WORKING_END_FIELD_ID,
-            owner: "ask-owner",
+            owner: "offer-tenant",
             kind: "field",
             reason: "The offer needs the renewal end date.",
           }),
@@ -616,7 +632,8 @@ function cueFor(
       : "tenant";
   switch (state) {
     case "not_part":
-      return `${NOT_PART_OF_PATH_LABEL}.`;
+      // S283 R-S283-7: the retired chip text is replaced.
+      return `${STEP_NOT_USED_LABEL}.`;
     case "retired":
       // The retirement review is the lead; the stage line already says so.
       return null;

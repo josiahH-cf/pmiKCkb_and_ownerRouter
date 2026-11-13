@@ -37,6 +37,21 @@ vi.mock("@/lib/lease-renewal/live-desk", () => ({
     throw new Error("The Dashboard must not read the live renewal desk.");
   }),
 }));
+// S280: the viewer's own renewal follow-through and the team line are their own reads, streamed
+// beside the attention gather; they are stubbed here so the Dashboard render stays offline. The
+// team line's desk read never blocks the attention panel or the question box.
+const readOwnRenewalFollowThrough = vi.fn(async () => ({
+  state: "ok" as const,
+  rows: [],
+}));
+const loadRenewalTeamLine = vi.fn(async () => null);
+vi.mock("@/lib/attention/renewal-follow-through-read", () => ({
+  readOwnRenewalFollowThrough: (...args: unknown[]) =>
+    readOwnRenewalFollowThrough(...(args as [])),
+}));
+vi.mock("@/lib/attention/renewal-team-line-read", () => ({
+  loadRenewalTeamLine: (...args: unknown[]) => loadRenewalTeamLine(...(args as [])),
+}));
 
 import { ConsoleView } from "@/components/console/ConsoleView";
 
@@ -186,5 +201,20 @@ describe("ConsoleView (S146/S147 AI-first Dashboard)", () => {
       "href",
       "/approval-queue",
     );
+  });
+
+  it("S280 BEH-S280-5: starts the viewer's own follow-through and the team line beside the queue, and shows the line", async () => {
+    loadRenewalTeamLine.mockResolvedValueOnce({
+      count: 12,
+      month: "2026-12",
+      href: "/lease-renewal/live/desk",
+    } as never);
+    await renderView(editorUser);
+    expect(await screen.findByTestId("renewal-team-line")).toHaveTextContent(
+      "12 renewals have a next action for the team. Open the Renewal Desk.",
+    );
+    expect(readOwnRenewalFollowThrough).toHaveBeenCalledTimes(1);
+    expect(loadRenewalTeamLine).toHaveBeenCalledTimes(1);
+    expect(screen.getByLabelText(/Question/)).toBeEnabled();
   });
 });

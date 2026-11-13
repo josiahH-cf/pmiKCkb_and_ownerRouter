@@ -233,6 +233,22 @@ const StoredFieldArchiveSchema = z
   })
   .strict();
 
+/**
+ * S278 R-S278-4: the archive of a replaced or discarded proposal of a lease row's listed cells:
+ * every cell's attempt identity, so each receipt stays reachable after the slot is reused.
+ */
+const StoredFieldSetArchiveSchema = z
+  .object({
+    version: z.literal("operating-sheet-field-set-archive/v1"),
+    proposal: StoredProposalSchema,
+    execution_ids: z.array(z.string().min(1).max(500)).min(2).max(10),
+    effect_hashes: z.array(HashSchema).min(2).max(10),
+    archived_at: IsoSchema,
+    archived_by_uid: z.string().min(1).max(128),
+    archived_reason: z.enum(["replacement", "discard"]),
+  })
+  .strict();
+
 async function prepareFieldArchive(
   transaction: Transaction,
   db: Firestore,
@@ -245,20 +261,26 @@ async function prepareFieldArchive(
   const proposal = proposalFromStoredData(data);
   const fields = proposal.effects.filter((entry) => entry.effect.kind === "field_update");
   if (!fields.length) return null;
-  if (fields.length !== 1 || proposal.effects.length !== 1)
+  // S278 R-S278-4: a proposal holds one field update, or a lease row's listed cells (each a field
+  // update); a field update never shares a proposal with an append.
+  if (fields.length !== proposal.effects.length)
     throw new EditableLayerError(
       "Review the existing Sheet generation before replacement.",
       409,
     );
-  const effect = fields[0];
-  const id = sheetWritebackExecutionId(proposal, effect);
-  const execution = await transaction.get(
-    db.collection(EXTERNAL_EXECUTION_COLLECTIONS.records).doc(id),
+  const ids = fields.map((effect) => sheetWritebackExecutionId(proposal, effect));
+  const executions = await Promise.all(
+    ids.map((id) =>
+      transaction.get(db.collection(EXTERNAL_EXECUTION_COLLECTIONS.records).doc(id)),
+    ),
   );
   if (
-    execution.exists &&
-    (!["ready", "succeeded", "failed"].includes(execution.get("state")) ||
-      execution.get("previewHash") !== proposal.previewHash)
+    executions.some(
+      (execution) =>
+        execution.exists &&
+        (!["ready", "succeeded", "failed"].includes(execution.get("state")) ||
+          execution.get("previewHash") !== proposal.previewHash),
+    )
   ) {
     throw new EditableLayerError(
       "This Sheet attempt is unresolved. Reconcile it before replacing or discarding the proposal.",
@@ -269,6 +291,31 @@ async function prepareFieldArchive(
     .collection(SHEET_WRITEBACK_PROPOSAL_HISTORY_SUBCOLLECTION)
     .doc(proposal.previewHash);
   const prior = await transaction.get(archiveRef);
+  if (fields.length > 1) {
+    if (prior.exists) {
+      const parsed = StoredFieldSetArchiveSchema.parse(prior.data());
+      if (
+        parsed.proposal.previewHash !== proposal.previewHash ||
+        parsed.execution_ids.join("|") !== ids.join("|")
+      )
+        throw new EditableLayerError("Conflicting Sheet history needs review.", 409);
+      return null;
+    }
+    return {
+      ref: archiveRef,
+      data: StoredFieldSetArchiveSchema.parse({
+        version: "operating-sheet-field-set-archive/v1",
+        proposal,
+        execution_ids: ids,
+        effect_hashes: fields.map((effect) => effect.effectHash),
+        archived_at: new Date().toISOString(),
+        archived_by_uid: actor.uid,
+        archived_reason: reason,
+      }),
+    };
+  }
+  const effect = fields[0];
+  const id = ids[0]!;
   if (prior.exists) {
     const parsed = StoredFieldArchiveSchema.parse(prior.data());
     if (
@@ -294,8 +341,12 @@ async function prepareFieldArchive(
 
 export interface SheetWritebackProposalArchive {
   readonly proposal: SheetWritebackProposal;
+  /** The first cell's attempt identity; `executionIds` lists every cell of a combined review. */
   readonly executionId: string;
   readonly effectHash: string;
+  /** S278: every cell's attempt identity and effect hash, in list order, for a combined review. */
+  readonly executionIds?: readonly string[];
+  readonly effectHashes?: readonly string[];
   readonly archivedAtIso: string;
   readonly archivedReason: "replacement" | "discard";
 }
@@ -645,6 +696,23 @@ export async function listSheetWritebackProposalHistory(
     .limit(20)
     .get();
   return snapshot.docs.map((document) => {
+    if (document.get("version") === "operating-sheet-field-set-archive/v1") {
+      const set = StoredFieldSetArchiveSchema.parse(document.data());
+      if (!scopeMatches(set.proposal.scope, scope))
+        throw new EditableLayerError(
+          "Archived Sheet evidence belongs to a different workspace.",
+          409,
+        );
+      return {
+        proposal: set.proposal as SheetWritebackProposal,
+        executionId: set.execution_ids[0]!,
+        effectHash: set.effect_hashes[0]!,
+        executionIds: set.execution_ids,
+        effectHashes: set.effect_hashes,
+        archivedAtIso: set.archived_at,
+        archivedReason: set.archived_reason,
+      };
+    }
     if (document.get("version") === "operating-sheet-field-archive/v1") {
       const field = StoredFieldArchiveSchema.parse(document.data());
       if (!scopeMatches(field.proposal.scope, scope))

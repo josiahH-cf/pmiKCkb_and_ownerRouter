@@ -40,7 +40,10 @@ export function ConfirmationDialog({
   triggerRef,
   fallbackFocusRef,
   onAfterClose,
+  className,
 }: Readonly<{
+  /** S281 R-S281-2: an extra class for a dialog with its own layout (the exact message review). */
+  className?: string;
   open: boolean;
   title: ReactNode;
   description?: ReactNode;
@@ -169,7 +172,11 @@ export function ConfirmationDialog({
         aria-describedby={description ? descriptionId : undefined}
         aria-labelledby={titleId}
         aria-modal="true"
-        className="panel ui-confirmation-dialog"
+        className={
+          className
+            ? `panel ui-confirmation-dialog ${className}`
+            : "panel ui-confirmation-dialog"
+        }
         onKeyDown={onKeyDown}
         ref={dialogRef}
         role="dialog"

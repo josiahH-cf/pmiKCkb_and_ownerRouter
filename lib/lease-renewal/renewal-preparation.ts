@@ -16,6 +16,11 @@ import {
 } from "@/lib/date-display";
 import { firstUsableComparables } from "@/lib/lease-renewal/comparable-presentation";
 import { computeRentSuggestion } from "@/lib/lease-renewal/rent-suggestion";
+import {
+  OPERATING_SHEET_SOURCE_ID,
+  RENTVINE_SOURCE_ID,
+  classifyRentVineSheetDifference,
+} from "@/lib/lease-renewal/source-difference-rule";
 
 export const RENEWAL_PREPARATION_VERSION = "renewal-preparation/v1" as const;
 
@@ -53,6 +58,9 @@ export const KICKOFF_FIX_TARGETS = {
   rentToRecommend: "renewal-now-rent-to-recommend",
   signature: "renewal-now-signature",
   markedValues: "renewal-message-owner-readiness",
+  /** S285 R-S285-3: the working date fields (`WORKING_START_FIELD_ID`, `WORKING_END_FIELD_ID`). */
+  renewalStart: "renewal-working-terms-start",
+  renewalEnd: "renewal-working-terms-end",
 } as const;
 
 /**
@@ -232,7 +240,9 @@ export type RenewalKickoffItemKey =
   | "recipient"
   | "signature"
   | "template"
-  | "marked_values";
+  | "marked_values"
+  /** S285 R-S285-3: only while the owner copy in use states the renewal term. */
+  | "renewal_dates";
 
 export interface RenewalKickoffItem {
   readonly key: RenewalKickoffItemKey;
@@ -243,6 +253,8 @@ export interface RenewalKickoffItem {
   readonly fix: RenewalPreparationFix | null;
   /** True when the fact was not read, so the item says so instead of claiming a state. */
   readonly unknown?: boolean;
+  /** S285: the item's own line while it is not ready, such as "Renewal dates: enter the start and end". */
+  readonly line?: string;
 }
 
 export interface RenewalPreparation {
@@ -276,15 +288,31 @@ export function renewalNumbersCheck(facts: RenewalNumbersFacts): RenewalNumbersC
   const sheetNotes: string[] = [];
   const rentvine = usable(facts.contractualRent) ? facts.contractualRent : null;
   // A Sheet value shows only when it differs from RentVine; a blank Sheet value is no difference.
+  // S280 ARCH-S280-4: the one source-difference rule decides, the same rule Live renewal review,
+  // the Approval Queue and the Dashboard read.
   if (
     usable(facts.sheetRent) &&
-    rentvine !== null &&
-    !sameMoney(facts.sheetRent, rentvine)
+    classifyRentVineSheetDifference({
+      fieldKey: "current_rent",
+      candidates: [
+        { source: RENTVINE_SOURCE_ID, value: rentvine },
+        { source: OPERATING_SHEET_SOURCE_ID, value: facts.sheetRent },
+      ],
+    }).kind === "information"
   )
     sheetNotes.push(
       `The operating Sheet shows ${money(facts.sheetRent)} for the current rent. This is information; RentVine is the basis.`,
     );
-  if (facts.sheetEndIso && facts.leaseEndIso && facts.sheetEndIso !== facts.leaseEndIso)
+  if (
+    facts.sheetEndIso &&
+    classifyRentVineSheetDifference({
+      fieldKey: "renewal_date",
+      candidates: [
+        { source: RENTVINE_SOURCE_ID, value: facts.leaseEndIso },
+        { source: OPERATING_SHEET_SOURCE_ID, value: facts.sheetEndIso },
+      ],
+    }).kind === "information"
+  )
     sheetNotes.push(
       `The operating Sheet shows ${formatCalendarDate(facts.sheetEndIso)} for the lease end. This is information; RentVine is the basis.`,
     );
@@ -627,13 +655,30 @@ export const SEND_READINESS_KEYS: readonly RenewalKickoffItemKey[] = [
   "recipient",
   "signature",
   "template",
+  "renewal_dates",
   "marked_values",
 ];
+
+/** S285 R-S285-3: the owner message's "Renewal dates" readiness line and its fix. */
+export const RENEWAL_DATES_ITEM = {
+  label: "Renewal dates",
+  missing: "the renewal start and end dates",
+  line: "Renewal dates: enter the start and end",
+  fix: "Enter the renewal dates",
+} as const;
+
+/** The marker names the term sentence uses for a missing date (`missingValueMarker`). */
+const TERM_MARKED_FACTS = ["renewal start date", "renewal end date"] as const;
 
 /**
  * The same projection with what the lease page knows live since it was made: the staff member's
  * own signature once they set it up, a rent they typed, the recipients and template the message
  * read. Pure; the item words and fixes are the projection's own.
+ *
+ * S285 R-S285-3: while the owner copy in use states the renewal term, the list gains "Renewal
+ * dates", read from the saved working start and end. Missing either reads "Renewal dates: enter
+ * the start and end", with the fix that opens the one Working renewal terms editor; the term
+ * sentence's markers are that line's, not separate marked values.
  */
 export function withLiveKickoff(
   preparation: RenewalPreparation,
@@ -645,8 +690,60 @@ export function withLiveKickoff(
     readonly templateApproved?: boolean | null;
     /** The values the live message still marks, by name; empty when it carries none. */
     readonly marked?: readonly string[] | null;
+    /**
+     * S285 R-S285-3: the saved working dates, present only while the owner copy in use states the
+     * term. Absent leaves the list exactly as before.
+     */
+    readonly renewalDates?: {
+      readonly start: string | null;
+      readonly end: string | null;
+    } | null;
   },
 ): RenewalPreparation {
+  if (live.renewalDates) {
+    const { start, end } = live.renewalDates;
+    const datesReady = Boolean(start && end && end > start);
+    const base = withLiveKickoff(preparation, {
+      ...live,
+      renewalDates: null,
+      marked: live.marked
+        ? live.marked.filter(
+            (entry) =>
+              !(TERM_MARKED_FACTS as readonly string[]).includes(
+                entry.trim().toLowerCase(),
+              ),
+          )
+        : live.marked,
+    });
+    const item: RenewalKickoffItem = {
+      key: "renewal_dates",
+      label: RENEWAL_DATES_ITEM.label,
+      ready: datesReady,
+      missing: datesReady ? null : RENEWAL_DATES_ITEM.missing,
+      fix: datesReady
+        ? null
+        : {
+            label: RENEWAL_DATES_ITEM.fix,
+            target: start
+              ? KICKOFF_FIX_TARGETS.renewalEnd
+              : KICKOFF_FIX_TARGETS.renewalStart,
+          },
+      ...(datesReady ? {} : { line: RENEWAL_DATES_ITEM.line }),
+    };
+    const at = base.items.findIndex((entry) => entry.key === "marked_values");
+    const items =
+      at < 0
+        ? [...base.items, item]
+        : [...base.items.slice(0, at), item, ...base.items.slice(at)];
+    return {
+      ...base,
+      items,
+      sendable: items.every((entry) => entry.ready),
+      missing: items.flatMap((entry) =>
+        entry.ready || !entry.missing ? [] : [entry.missing],
+      ),
+    };
+  }
   const rent: RenewalRentView =
     typeof live.typedRent === "number" && live.typedRent > 0
       ? {

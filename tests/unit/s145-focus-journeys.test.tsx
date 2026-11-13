@@ -128,6 +128,9 @@ async function recordTenantResponse(
   await chooseTask(user, "Record tenant response");
   const form = document.getElementById("renewal-manual-tenant_response")!;
   await user.selectOptions(within(form).getByLabelText("Tenant response"), outcome);
+  // S276 R-S276-1 (pin rewritten on purpose): the tenant response is recorded by its one
+  // visible Save, never on selection.
+  await user.click(within(form).getByRole("button", { name: "Save" }));
   await settle();
 }
 

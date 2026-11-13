@@ -175,7 +175,9 @@ export interface CommunicationSequence
       | "provider_refused"
       | "send_unconfirmed"
       | "unexpected_sender"
-      | "resource_changed";
+      | "resource_changed"
+      // S276 R-S276-2: staff recorded the tenant's response on the lease.
+      | "tenant_response_recorded";
     byUid: string;
     atMs: number;
     evidenceIds: string[];
@@ -229,6 +231,13 @@ export interface CommunicationSequence
   replyWatch?: boolean;
   /** S275 R-S275-1: why and when the watch ended; absent while it holds or never applied. */
   replyWatchEnded?: import("./reply-watch").ReplyWatchEnded | null;
+  /**
+   * S273 R-S273-5: this communication's earlier unsent attempts, oldest first (scheduled or held,
+   * then updated or resumed; unconfirmed, then resolved). Kept beside the authorization like the
+   * notice cycle, so its payload and replay binding are unchanged; times, states and causes only.
+   * Absent until an attempt ends.
+   */
+  unsentHistory?: import("@/lib/lease-renewal/unsent-message").UnsentAttemptRecord[];
   observation: {
     checkedAtMs: number;
     state: "current" | "unavailable";
@@ -272,6 +281,12 @@ export interface CommunicationInboundEvidence {
   receivedAtMs: number;
   /** A bounce's attempt by its RFC Message-ID or thread; null when no single attempt is identified. */
   attemptOccurrenceId?: string | null;
+  /**
+   * S285 R-S285-5: true when a person's reply came from an address the message was sent to (its
+   * To), false when it came from another participant. A yes or no only; no address is kept.
+   * Absent on evidence recorded before S285.
+   */
+  fromSentTo?: boolean;
 }
 /** At most this many incoming entries are kept per communication; older ones stay counted as seen. */
 export const INBOUND_EVIDENCE_LIMIT = 200;
@@ -309,6 +324,12 @@ export interface VerifiedCommunicationTarget {
   cc: string[];
   sourceRefs: string[];
   materialSourceHash: string;
+  /**
+   * S285 R-S285-6: the material source this read would give under the owner copy published before
+   * the one in use (v2.0 while v2.1 is in use). Present only for an owner message whose copy
+   * changed. Not part of the reviewed target hash; it names a hold's cause only.
+   */
+  priorOwnerWordingMaterialSourceHash?: string;
   label: string;
   blockers?: string[];
   /**

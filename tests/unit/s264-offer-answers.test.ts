@@ -275,12 +275,22 @@ describe("S264 AC-S264-6 the response editors' view rechecks each answer now", (
       tenantRecord: { ...answer("tenant", answered), eventId: tenantEvent },
       ownerRecord: answer("owner", answered),
     });
+    // S276 R-S276-1 (pin rewritten on purpose): each offer also carries the terms the tenant
+    // response review names: working base rent, renewal dates and the selected charges total.
+    const terms = (chargesCents: number) => ({
+      rent: 920,
+      effectiveDate: "2027-02-01",
+      endDate: "2028-01-31",
+      chargesCents,
+      chargeCount: 1,
+    });
     expect(view).toEqual({
       current: {
         snapshotId: current.snapshotId,
         snapshotHash: current.snapshotHash,
         summary: "Rent $920.00 per month; Pet rent $50.00 per month",
         charged: true,
+        terms: terms(5000),
       },
       candidates: [
         {
@@ -291,6 +301,7 @@ describe("S264 AC-S264-6 the response editors' view rechecks each answer now", (
           snapshotId: answered.snapshotId,
           summary: "Rent $920.00 per month; Pet rent $45.00 per month",
           current: false,
+          terms: terms(4500),
         },
         {
           kind: "external_offer",
@@ -299,6 +310,7 @@ describe("S264 AC-S264-6 the response editors' view rechecks each answer now", (
           snapshotId: current.snapshotId,
           summary: "Rent $920.00 per month; Pet rent $50.00 per month",
           current: true,
+          terms: terms(5000),
         },
       ],
       tenant: {

@@ -4,8 +4,19 @@
 // user's actual scopes: approval-queue items reach every reader they are addressed to (the same
 // recipient rule Notifications uses), and renewal flags and write-backs need the Renewals Space.
 // Read-only and value-free: labels, PII-free detail, severity and an in-app link only.
+//
+// S280: the queue also lists the renewal work that follows from the viewer's own messages
+// (R-S280-1, one source keyed by lease, audience and kind), names the lease on every difference row
+// (R-S280-3), and keeps its last renewal rows with their read time when the renewal read is older
+// than its freshness limit (R-S280-4). A retained row is information until the existing current
+// read; nothing here decides, sends or writes.
 
 import { queueActionAvailability } from "@/lib/approval/queue";
+import type { AttentionFollowThroughRow } from "@/lib/attention/renewal-follow-through";
+import {
+  readOwnRenewalFollowThrough,
+  type OwnFollowThroughRead,
+} from "@/lib/attention/renewal-follow-through-read";
 import {
   buildNeedsDecisionInbox,
   type NeedsDecisionKind,
@@ -55,6 +66,18 @@ export interface AttentionQueueRow {
   readonly authority: AttentionAuthority;
   /** Queue items only: the id the existing inline Approve PATCHes. */
   readonly itemId?: string;
+  /**
+   * S280 ARCH-S280-3: a renewal row kept from a read older than its freshness limit. Information
+   * until the existing current read; its review surface still requires that read to decide.
+   */
+  readonly retained?: true;
+}
+
+/** S280 ARCH-S280-3: whether the renewal rows are current or kept from an older read. */
+export interface AttentionRenewalRead {
+  readonly state: "current" | "retained";
+  /** When the renewal read behind the rows was made; null when unknown. */
+  readonly readAtIso: string | null;
 }
 
 export interface AttentionQueue {
@@ -67,6 +90,12 @@ export interface AttentionQueue {
   readonly checkedAtIso: string;
   /** Fixed reason for a renewal-feed hold; never a raw provider error. */
   readonly renewalReviewIssue?: RenewalReviewReadIssue;
+  /** S280 R-S280-1: the renewal work that follows from the viewer's own messages. */
+  readonly followThrough?: readonly AttentionFollowThroughRow[];
+  /** S280: "unavailable" when the viewer's own renewal messages could not be read. */
+  readonly followThroughState?: "ok" | "unavailable";
+  /** S280 R-S280-4: present when renewal rows were read; says whether they are retained. */
+  readonly renewalRead?: AttentionRenewalRead;
 }
 
 export interface AttentionQueueDependencies {
@@ -77,6 +106,11 @@ export interface AttentionQueueDependencies {
   readonly revalidateLeaseSource?: (nowMs: number) => void;
   /** Waits, bounded, for a lease read already in flight; resolves whether one settled. */
   readonly settleLeaseRefresh?: (maxWaitMs: number) => Promise<boolean>;
+  /** S280 R-S280-1: the viewer's own renewal follow-through; omitted means not gathered. */
+  readonly loadFollowThrough?: (
+    user: AuthenticatedUser,
+    nowMs: number,
+  ) => Promise<OwnFollowThroughRead>;
 }
 
 export interface AttentionQueueOptions {
@@ -101,6 +135,7 @@ const defaultDependencies: AttentionQueueDependencies = {
     if (config.ok) revalidateStaleLiveLeaseSnapshot(config.rentvineClient, nowMs);
   },
   settleLeaseRefresh: settleLiveLeaseRefresh,
+  loadFollowThrough: (user, nowMs) => readOwnRenewalFollowThrough(user, nowMs),
 };
 
 function errorClass(error: unknown): string {
@@ -136,9 +171,14 @@ export async function gatherAttentionQueue(
     }
     return dependencies.loadRunViews(user);
   };
-  const [queueResult, viewsResult] = await Promise.allSettled([
+  const loadFollowThrough = async (): Promise<OwnFollowThroughRead | null> =>
+    canSeeRenewals && dependencies.loadFollowThrough
+      ? dependencies.loadFollowThrough(user, dependencies.now().getTime())
+      : null;
+  const [queueResult, viewsResult, followThroughResult] = await Promise.allSettled([
     dependencies.listQueue(user),
     loadViews(),
+    loadFollowThrough(),
   ]);
 
   const unavailableFeeds: AttentionQueueFeed[] = [];
@@ -155,17 +195,29 @@ export async function gatherAttentionQueue(
   let renewalBoard;
   let writebackQueue;
   let renewalReviewIssue: RenewalReviewReadIssue | undefined;
+  let renewalRead: AttentionRenewalRead | undefined;
   if (canSeeRenewals) {
     try {
       if (viewsResult.status !== "fulfilled" || viewsResult.value === null)
         throw viewsResult.status === "rejected" ? viewsResult.reason : new Error();
       renewalBoard = buildRenewalReviewBoard(viewsResult.value);
       writebackQueue = buildWritebackApprovalQueue(viewsResult.value);
+      renewalRead = { state: "current", readAtIso: null };
     } catch (error) {
-      if (error instanceof RenewalReviewUnavailableError)
-        renewalReviewIssue = error.issue;
-      unavailableFeeds.push("renewal_reviews");
-      console.error(`Attention queue renewal review read failed (${errorClass(error)}).`);
+      if (error instanceof RenewalReviewUnavailableError && error.retained) {
+        // S280 R-S280-4: the read is older than its freshness limit. Keep its rows, marked
+        // retained with their read time; deciding on any of them still needs the current read.
+        renewalBoard = buildRenewalReviewBoard(error.retained.views);
+        writebackQueue = buildWritebackApprovalQueue(error.retained.views);
+        renewalRead = { state: "retained", readAtIso: error.retained.readAtIso };
+      } else {
+        if (error instanceof RenewalReviewUnavailableError)
+          renewalReviewIssue = error.issue;
+        unavailableFeeds.push("renewal_reviews");
+        console.error(
+          `Attention queue renewal review read failed (${errorClass(error)}).`,
+        );
+      }
     }
   }
 
@@ -198,8 +250,25 @@ export async function gatherAttentionQueue(
       href: row.href,
       authority,
       ...(row.kind === "queue_item" && row.itemId ? { itemId: row.itemId } : {}),
+      ...(renewalRead?.state === "retained" && row.kind !== "queue_item"
+        ? { retained: true as const }
+        : {}),
     };
   });
+
+  // S280 R-S280-1: the viewer's own follow-through, gathered beside the feeds. A failed read lists
+  // nothing and says so; it never changes the decision feeds' state.
+  const followThrough =
+    followThroughResult.status === "fulfilled" ? followThroughResult.value : null;
+  const followThroughFields =
+    followThrough && followThrough.state !== "not_eligible"
+      ? {
+          followThrough: followThrough.rows,
+          followThroughState: followThrough.state,
+        }
+      : canSeeRenewals && dependencies.loadFollowThrough && !followThrough
+        ? { followThrough: [], followThroughState: "unavailable" as const }
+        : {};
 
   return {
     state,
@@ -208,6 +277,8 @@ export async function gatherAttentionQueue(
     seeAllHref: canSeeRenewals ? "/approval-queue" : "/notifications",
     checkedAtIso: dependencies.now().toISOString(),
     ...(renewalReviewIssue ? { renewalReviewIssue } : {}),
+    ...(renewalRead ? { renewalRead } : {}),
+    ...followThroughFields,
   };
 }
 

@@ -10,8 +10,11 @@
 //
 // For an eligible fixed term with a verified end and an empty current-cycle start, the proposal
 // is the next calendar day: date-only arithmetic, no clock time and no timezone. An end is
-// proposed only from an authoritative intended duration and inclusive-end convention; no such
-// basis exists today, so the end stays a manual entry. Loading a proposal saves nothing. Pure.
+// proposed only from a stated term and the inclusive-end convention. S285 R-S285-1 (ARCH-S285-1)
+// supplies the term as a deliberate staff choice: a 12 month term, and the current lease's own
+// length when its verified start and end give another whole number of months. `proposeRenewalEnd`
+// stays the one end-date calculation, called only with the months staff chose. Loading a
+// proposal saves nothing. Pure.
 
 import { formatCalendarDate } from "@/lib/date-display";
 import type { LeaseTerm } from "@/lib/lease-renewal/lease-term-types";
@@ -173,7 +176,10 @@ export function proposeRenewalStart(input: {
   };
 }
 
-/** R-S263-2: an authoritative intended term for one lease and cycle. None exists today. */
+/**
+ * R-S263-2: an intended term for one lease and cycle. S285 R-S285-1: it comes only from the term
+ * staff choose (`renewalEndChoices`).
+ */
 export interface RenewalTermBasis {
   readonly months: number;
   /** The end is the last day of the term: the day before the same date `months` later. */
@@ -210,4 +216,166 @@ export function proposeRenewalEnd(
         "The renewal start falls on a day that does not repeat in the end month. Enter the renewal end date.",
     };
   return { state: "suggested", endIso: isoFromUtc(anniversary.getTime() - DAY_MS) };
+}
+
+// ---- S285 R-S285-1: the end-date choices staff make ---------------------------------------------
+
+/** R-S285-1 (assumption, owner-accepted): the standard renewal term offered, in months. */
+export const STANDARD_RENEWAL_TERM_MONTHS = 12;
+
+/** R-S285-1: the basis the existing save stores with a chosen end date. */
+export const RENEWAL_END_BASIS = {
+  standard: "12 month term chosen by staff",
+  currentLength: "current lease length chosen by staff",
+} as const;
+export type RenewalEndBasis = (typeof RENEWAL_END_BASIS)[keyof typeof RENEWAL_END_BASIS];
+
+export function isRenewalEndBasis(value: unknown): value is RenewalEndBasis {
+  return (
+    value === RENEWAL_END_BASIS.standard || value === RENEWAL_END_BASIS.currentLength
+  );
+}
+
+export interface RenewalEndChoice {
+  readonly kind: "standard" | "current_length";
+  readonly months: number;
+  readonly endIso: string;
+  /** "Use a 12 month term (ends 12/31/2027)". */
+  readonly label: string;
+  readonly basis: RenewalEndBasis;
+}
+
+export type RenewalEndChoices =
+  | { readonly state: "choices"; readonly choices: readonly RenewalEndChoice[] }
+  /** The start's day does not repeat in the end month: the existing line asks for the end. */
+  | { readonly state: "enter"; readonly line: string }
+  | {
+      readonly state: "none";
+      readonly reason:
+        | "not_fixed_term"
+        | "non_renewal"
+        | "end_saved"
+        | "no_start"
+        | "no_choice";
+    };
+
+function monthsWord(months: number): string {
+  return months === 1 ? "1 month" : `${months} months`;
+}
+
+/**
+ * R-S285-1: the whole number of months the current lease runs, from its verified start and end
+ * under the inclusive-end convention (01/01/2026 to 12/31/2026 is 12), or null when the dates do
+ * not give a whole number of months.
+ */
+export function wholeLeaseMonths(
+  startIso: string | null | undefined,
+  endIso: string | null | undefined,
+): number | null {
+  const start = parts(startIso);
+  const end = parts(endIso);
+  if (!start || !end || endIso! <= startIso!) return null;
+  const difference = (end[0] - start[0]) * 12 + (end[1] - start[1]);
+  for (const months of [difference, difference + 1]) {
+    if (months <= 0) continue;
+    const proposal = proposeRenewalEnd(startIso, { months, convention: "inclusive_end" });
+    if (proposal.state === "suggested" && proposal.endIso === endIso) return months;
+  }
+  return null;
+}
+
+/**
+ * R-S285-1 (ARCH-S285-1): the end-date choices beside manual entry of the working end. Offered
+ * only for an eligible fixed term (no month-to-month, non-renewal or inspection-only case), while
+ * the current-cycle end is empty and a start is chosen or saved: "Use a 12 month term (ends
+ * 12/31/2027)", and, when the current lease's verified start and end give a whole number of
+ * months other than 12, "Use the current lease's length, 6 months (ends 06/30/2027)". Each end is
+ * `proposeRenewalEnd` with the months that choice states, and nothing else. A start whose day does
+ * not repeat in the end month (February 29) offers no choice; the existing line asks for the end.
+ * Computing the choices saves nothing.
+ */
+export function renewalEndChoices(input: {
+  /** The working start staff chose (not yet saved) or saved, for the current cycle. */
+  readonly startIso: string | null | undefined;
+  readonly term: LeaseTerm | null | undefined;
+  readonly nonRenewal: boolean;
+  /** The current-cycle working end holds no saved value. */
+  readonly endEmpty: boolean;
+  /** The current lease's verified start and end, when both are verified. */
+  readonly currentLease?: {
+    readonly startIso: string | null;
+    readonly endIso: string | null;
+  } | null;
+}): RenewalEndChoices {
+  if (input.term !== "fixed_term") return { state: "none", reason: "not_fixed_term" };
+  if (input.nonRenewal) return { state: "none", reason: "non_renewal" };
+  if (!input.endEmpty) return { state: "none", reason: "end_saved" };
+  if (!isCalendarDate(input.startIso)) return { state: "none", reason: "no_start" };
+  const choices: RenewalEndChoice[] = [];
+  const standard = proposeRenewalEnd(input.startIso, {
+    months: STANDARD_RENEWAL_TERM_MONTHS,
+    convention: "inclusive_end",
+  });
+  if (standard.state === "enter") return { state: "enter", line: standard.reason };
+  choices.push({
+    kind: "standard",
+    months: STANDARD_RENEWAL_TERM_MONTHS,
+    endIso: standard.endIso,
+    label: `Use a ${STANDARD_RENEWAL_TERM_MONTHS} month term (ends ${formatCalendarDate(standard.endIso)})`,
+    basis: RENEWAL_END_BASIS.standard,
+  });
+  const leaseMonths = input.currentLease
+    ? wholeLeaseMonths(input.currentLease.startIso, input.currentLease.endIso)
+    : null;
+  if (leaseMonths !== null && leaseMonths !== STANDARD_RENEWAL_TERM_MONTHS) {
+    const current = proposeRenewalEnd(input.startIso, {
+      months: leaseMonths,
+      convention: "inclusive_end",
+    });
+    if (current.state === "suggested")
+      choices.push({
+        kind: "current_length",
+        months: leaseMonths,
+        endIso: current.endIso,
+        label: `Use the current lease's length, ${monthsWord(leaseMonths)} (ends ${formatCalendarDate(current.endIso)})`,
+        basis: RENEWAL_END_BASIS.currentLength,
+      });
+  }
+  return choices.length
+    ? { state: "choices", choices }
+    : { state: "none", reason: "no_choice" };
+}
+
+/**
+ * R-S285-1 / S263 R-S263-3: a saved end chosen as a term no longer equals that term from the
+ * current start. The saved end stays; the line asks staff to review it. Null when consistent,
+ * typed by staff, or not computable.
+ */
+export function chosenEndInconsistency(input: {
+  readonly startIso: string | null | undefined;
+  readonly endIso: string | null | undefined;
+  /** The basis the end was saved with (its context), if any. */
+  readonly basis: string | null | undefined;
+  readonly currentLease?: {
+    readonly startIso: string | null;
+    readonly endIso: string | null;
+  } | null;
+}): string | null {
+  if (!isRenewalEndBasis(input.basis) || !isCalendarDate(input.endIso)) return null;
+  if (!isCalendarDate(input.startIso)) return null;
+  const months =
+    input.basis === RENEWAL_END_BASIS.standard
+      ? STANDARD_RENEWAL_TERM_MONTHS
+      : input.currentLease
+        ? wholeLeaseMonths(input.currentLease.startIso, input.currentLease.endIso)
+        : null;
+  if (months === null) return null;
+  const expected = proposeRenewalEnd(input.startIso, {
+    months,
+    convention: "inclusive_end",
+  });
+  if (expected.state === "suggested" && expected.endIso === input.endIso) return null;
+  return input.basis === RENEWAL_END_BASIS.standard
+    ? "The saved end date was chosen as a 12 month term and no longer matches the start date. Review the end date."
+    : "The saved end date was chosen as the current lease's length and no longer matches the start date. Review the end date.";
 }

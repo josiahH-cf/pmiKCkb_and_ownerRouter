@@ -9,6 +9,8 @@ import {
   unavailableAttentionQueue,
   type AttentionQueue,
 } from "@/lib/attention/attention-queue";
+import type { RenewalTeamLine } from "@/lib/attention/renewal-team-line";
+import { loadRenewalTeamLine } from "@/lib/attention/renewal-team-line-read";
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { historyModeFor } from "@/lib/assistant-history/route-support";
@@ -49,6 +51,11 @@ export function ConsoleView({ user }: { user: AuthenticatedUser }) {
   const attention: Promise<AttentionQueue> = gatherAttentionQueue(user).catch(() =>
     unavailableAttentionQueue(),
   );
+  // S280 R-S280-2: the team line streams on its own, so neither the question box nor the rest of
+  // "Waiting on you" waits for the desk's batch count. Null for a user without renewals.
+  const teamLine: Promise<RenewalTeamLine | null> = loadRenewalTeamLine(user).catch(
+    () => null,
+  );
   const initialHistory: Promise<HistoryPageOutcome> | null =
     historyMode === "saved"
       ? listAssistantConversations(user).then(
@@ -81,7 +88,11 @@ export function ConsoleView({ user }: { user: AuthenticatedUser }) {
         key={ownerKey}
         ownerKey={ownerKey}
         secondary={
-          <DashboardAttentionQueue canApprove={canApprove} initial={attention} />
+          <DashboardAttentionQueue
+            canApprove={canApprove}
+            initial={attention}
+            teamLine={teamLine}
+          />
         }
       />
     </section>

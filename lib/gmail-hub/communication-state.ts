@@ -11,6 +11,19 @@ import type {
   CommunicationSequence,
   SequenceObservationFailure,
 } from "@/lib/gmail-hub/sequence-model";
+import type {
+  SequenceRefusal,
+  SequenceRefusalReason,
+} from "@/lib/gmail-hub/current-message";
+import {
+  OWNER_WORDING_UPDATED_INPUT,
+  type ChangedInput,
+} from "@/lib/gmail-hub/reviewed-inputs";
+import {
+  OWNER_WORDING_UPDATED_LINE,
+  isOwnerWordingChange,
+} from "@/lib/lease-renewal/owner-copy-version";
+import { BUSINESS_TIME_ZONE } from "@/lib/lease-renewal/business-calendar";
 
 type SequencePauseCause = NonNullable<CommunicationSequence["pause"]>["cause"];
 
@@ -29,7 +42,157 @@ export const SEQUENCE_PAUSE_CAUSE_LABELS: Record<SequencePauseCause, string> = {
   unexpected_sender:
     "A message arrived from an address not on this conversation, or from an automated sender",
   resource_changed: "A tenant link in this message changed or needs a new access check",
+  // S276 R-S276-2 / R-S276-4: any recorded tenant response, a decline included, at save time.
+  tenant_response_recorded: "The tenant's response was recorded by staff",
 };
+
+/**
+ * S272 R-S272-5: an instant as the communication detail prints it, with its zone:
+ * "11/13/2026, 9:00 AM CST". The sequence's own zone when it has one, otherwise Central.
+ */
+export function formatSequenceInstant(
+  atMs: number,
+  timeZone: string | null | undefined = BUSINESS_TIME_ZONE,
+): string {
+  const format = (zone: string) =>
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: zone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZoneName: "short",
+    }).format(atMs);
+  try {
+    return format(timeZone || BUSINESS_TIME_ZONE);
+  } catch {
+    return format(BUSINESS_TIME_ZONE);
+  }
+}
+
+/**
+ * S272 R-S272-5 (S233 R-S233-6): the state line of the communication detail. A scheduled message
+ * prints its time with its zone, "Scheduled for 11/13/2026, 9:00 AM CST"; a paused one the time it
+ * was paused, "Paused on 11/12/2026, 12:21 PM CST". Every other state reads as the shared label.
+ */
+export function describeSequenceDetailState(input: {
+  state: import("./sequence-model").SequenceState;
+  scheduled: boolean;
+  confirmedCount: number;
+  unresolvedOccurrenceId: string | null;
+  nextDueAtMs: number | null;
+  pause: { atMs: number } | null;
+  timeZone: string | null;
+}): string {
+  const { label } = describeSequenceState(input);
+  if (label === "Scheduled" && input.nextDueAtMs !== null)
+    return `Scheduled for ${formatSequenceInstant(input.nextDueAtMs, input.timeZone)}`;
+  if (label === "Paused" && input.pause && Number.isFinite(input.pause.atMs))
+    return `Paused on ${formatSequenceInstant(input.pause.atMs, input.timeZone)}`;
+  return label;
+}
+
+/** S272 R-S272-2: the one line staff read when the wording predates a lease change. */
+export const WORDING_PREDATES_CHANGE_TEXT =
+  "This message was written before the lease changed. Update it from the lease, or cancel it.";
+
+/** S272 R-S272-5: the actions a refusal offers, as staff read them. */
+export const SEQUENCE_REFUSAL_ACTION_LABELS = {
+  update_from_lease: "Update from the lease",
+  cancel: "Cancel future messages",
+  open_lease: "Open the lease",
+  open_related: "Open that communication",
+} as const;
+export type SequenceRefusalAction = keyof typeof SEQUENCE_REFUSAL_ACTION_LABELS;
+
+/**
+ * S272 R-S272-5 (ARCH-S272-3): the only actions that can succeed for each refusal. A message whose
+ * wording predates a change can be updated from the lease or cancelled; one stopped by a newer send
+ * can only be cancelled (the lease opens for the current message); a refused new message opens the
+ * communication that already holds the renewal.
+ */
+export const SEQUENCE_REFUSAL_ACTIONS: Record<
+  SequenceRefusalReason,
+  readonly SequenceRefusalAction[]
+> = {
+  wording_predates_change: ["update_from_lease", "cancel"],
+  newer_message_sent: ["open_lease", "cancel"],
+  unsent_message_exists: ["open_related"],
+};
+
+/**
+ * S272 R-S272-5: true when the refusal leaves this communication no Resume, Send or Schedule. A
+ * refused new message keeps them: it succeeds once the other communication is updated or cancelled.
+ */
+export function refusalWithholdsAuthorization(reason: SequenceRefusalReason): boolean {
+  return reason !== "unsent_message_exists";
+}
+
+/** S272 R-S272-2: one changed content value: "Renewal end date: 12/31/2027 in this message, 06/30/2027 on the lease." */
+export function predatesChangeLine(change: ChangedInput): string {
+  // S285 R-S285-6: the owner wording an approver published is named as one cause.
+  if (change.key === OWNER_WORDING_UPDATED_INPUT.key || isOwnerWordingChange(change))
+    return `${OWNER_WORDING_UPDATED_LINE}.`;
+  const { previous, current } = change;
+  if (previous === undefined || previous === current) return `${change.label} changed.`;
+  return `${change.label}: ${previous ?? "not set"} in this message, ${current ?? "not set"} on the lease.`;
+}
+
+const UNSENT_LEAD = {
+  tenant: "A tenant offer for this renewal",
+  owner: "An owner message for this renewal",
+} as const;
+
+/**
+ * S272 R-S272-6 (ARCH-S272-3): the staff text for one typed refusal, derived in this one place for
+ * the lease and Communications: the reason line, each changed value (wording only) and the actions
+ * that can succeed.
+ */
+export function describeSequenceRefusal(refusal: SequenceRefusal): {
+  readonly text: string;
+  readonly lines: readonly string[];
+  readonly actions: readonly SequenceRefusalAction[];
+} {
+  const at = (atMs: number | null | undefined) =>
+    typeof atMs === "number" && Number.isFinite(atMs)
+      ? formatSequenceInstant(atMs, refusal.timeZone)
+      : null;
+  const actions = SEQUENCE_REFUSAL_ACTIONS[refusal.reason];
+  if (refusal.reason === "wording_predates_change")
+    return {
+      text: WORDING_PREDATES_CHANGE_TEXT,
+      lines: (refusal.changes ?? []).map(predatesChangeLine),
+      actions,
+    };
+  if (refusal.reason === "newer_message_sent") {
+    const sent = at(refusal.relatedAtMs);
+    return {
+      text: sent
+        ? `A newer message for this renewal was sent on ${sent}. Cancel this one.`
+        : "A newer message for this renewal was sent. Cancel this one.",
+      lines: [],
+      actions,
+    };
+  }
+  const time = at(refusal.relatedAtMs);
+  const lead = UNSENT_LEAD[refusal.audience];
+  const text =
+    refusal.relatedState === "unconfirmed"
+      ? `${lead} has a send that is not confirmed yet. Open it to check that send.`
+      : refusal.relatedState === "paused"
+        ? `${lead} ${time ? `was paused on ${time}` : "is paused"} and is not sent. Open it to update or cancel it.`
+        : refusal.relatedState === "awaiting_send"
+          ? `${lead} is already waiting to send. Open it to update or cancel it.`
+          : `${lead} is already scheduled${time ? ` for ${time}` : ""}. Open it to update or cancel it.`;
+  return { text, lines: [], actions };
+}
+
+/** S272 R-S272-6: the refusal as one message, as the sequences route returns it. */
+export function sequenceRefusalMessage(refusal: SequenceRefusal): string {
+  const view = describeSequenceRefusal(refusal);
+  return [view.text, ...view.lines].join(" ");
+}
 
 export const COMMUNICATION_STATUS_LABELS: Record<WorkflowCommunicationStatus, string> = {
   linked: "linked",

@@ -41,6 +41,12 @@ import { loadLiveRenewalDesk } from "@/lib/lease-renewal/live-desk";
 import { packetSnapshotsForAiContext } from "@/lib/ai-boundary/dotloop-origin";
 import { DEFAULT_NOTICE_RULE_SET } from "@/lib/lease-renewal/notice-rules";
 import { measureRead, withReadDeadline } from "@/lib/observability/read-lifetime";
+import {
+  DESK_CURRENT_MESSAGE_READ_LIMIT,
+  DESK_CURRENT_MESSAGE_READ_WAIT_MS,
+  DESK_CURRENT_MESSAGE_TOTAL_WAIT_MS,
+  withCurrentMessageBases,
+} from "@/lib/lease-renewal/unsent-message-read";
 
 /** The desk's own window rule: from the first of the current month, forward this many days. */
 export const RENEWAL_DESK_WINDOW_DAYS = 120;
@@ -217,7 +223,20 @@ export async function runRenewalAssistantSource(
             return leaseId ? [leaseId] : [];
           }),
         );
-      }).catch(() => null),
+      })
+        // S273 R-S273-2: the current values of each lease holding a scheduled or held message, so
+        // the row shows it out of date on this read. Bounded; a late or failed read adds nothing.
+        .then((evidence) =>
+          withReadDeadline(
+            () =>
+              withCurrentMessageBases(user, evidence, {
+                limit: DESK_CURRENT_MESSAGE_READ_LIMIT,
+                waitMs: DESK_CURRENT_MESSAGE_READ_WAIT_MS,
+              }),
+            DESK_CURRENT_MESSAGE_TOTAL_WAIT_MS,
+          ).catch(() => evidence),
+        )
+        .catch(() => null),
       // S249: one read behind every row's preparation projection: the loaded leases' stored
       // comparisons, the signed-in sender's signature, the owner template and the allowance. Each
       // part that fails reads as unknown; this read never throws.
@@ -315,6 +334,11 @@ export async function runRenewalAssistantSource(
     coverage: window,
     /** S246: false when the keep-working choices could not be read for this render. */
     cycleDateDecisionsAvailable: cycleDateDecisions !== null,
+    /**
+     * S283 R-S283-2 (ARCH-S283-2): the monthly comparison allowance as counts only, from the same
+     * support read; null when it could not be read. It reserves nothing.
+     */
+    kickoffAllowance: kickoffSupport?.allowance ?? null,
   };
 }
 

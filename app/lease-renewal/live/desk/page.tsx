@@ -102,11 +102,13 @@ export default async function LiveRenewalDeskPage({
     now.getTime(),
   );
   // The one small preference read runs beside the source load; it never delays or fails it.
-  const [{ outcome, auxiliaryFailures, cycleDateDecisionsAvailable }, storedView] =
-    await Promise.all([
-      loadRenewalAssistantSource(user, now, sourceRefreshAfter),
-      storedDeskView(user),
-    ]);
+  const [
+    { outcome, auxiliaryFailures, cycleDateDecisionsAvailable, kickoffAllowance },
+    storedView,
+  ] = await Promise.all([
+    loadRenewalAssistantSource(user, now, sourceRefreshAfter),
+    storedDeskView(user),
+  ]);
 
   // S82: opaque owner/tenant filter shortcuts. Missing key configuration fails only these
   // shortcuts closed; the unfiltered table stays usable.
@@ -192,6 +194,8 @@ export default async function LiveRenewalDeskPage({
             canPrepare,
             sourceCurrent:
               outcome.view.dataCurrency.state === "fresh" && outcome.view.readComplete,
+            // S283 R-S283-2: the monthly allowance as counts only, read before the click.
+            allowance: kickoffAllowance,
           },
           rows: projectRenewalBatchRows(outcome.view.items, {
             sourceReadAtIso: outcome.view.dataCurrency.readAtIso,

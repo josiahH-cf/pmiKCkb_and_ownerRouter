@@ -214,6 +214,13 @@ export function CommunicationComposer({
   const returnToComposer = useRef(false);
   const compositionFlight = useRef<{ key: string; promise: Promise<Composition> }>(null);
   const loadedSignatureParagraph = useRef<Composition["signatureParagraph"]>(undefined);
+  // S281 R-S281-6 (ARCH-S281-3): opening a new composer writes nothing. Its first save follows a
+  // staff input event (typing, a changed recipient or choice, an attached file); an existing
+  // communication is already a record, so its edits save as before.
+  const staffInput = useRef("id" in entry);
+  const markStaffInput = () => {
+    staffInput.current = true;
+  };
 
   const readComposition = useCallback(
     (query: URLSearchParams) => {
@@ -352,7 +359,12 @@ export function CommunicationComposer({
           setReviewedTargetHash(p.reviewedTargetHash);
           setAttachmentNotice(p.attachmentNotice);
           setMessageRevision(p.messageRevision ?? null);
-          setStatus("Saving draft…");
+          // S281 R-S281-6: nothing is saved until the staff member changes something.
+          setStatus(
+            staffInput.current
+              ? "Saving draft…"
+              : "Not saved yet. Your first change saves a draft.",
+          );
         }
         returnToComposer.current =
           retryLoadRef.current !== null &&
@@ -453,6 +465,8 @@ export function CommunicationComposer({
     if (
       !draft ||
       locked.current ||
+      // S281 R-S281-6: an untouched new composer creates no communication record.
+      !staffInput.current ||
       JSON.stringify(draft) === savedJson.current ||
       saveIntent.current
     )
@@ -692,6 +706,8 @@ export function CommunicationComposer({
     <section
       className="ui-card ui-stack communication-composer"
       aria-label="Workflow communication composer"
+      onChangeCapture={markStaffInput}
+      onInputCapture={markStaffInput}
     >
       <div className="ui-row">
         <h2 ref={headingRef} tabIndex={-1}>

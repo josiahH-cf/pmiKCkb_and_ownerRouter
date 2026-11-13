@@ -424,9 +424,11 @@ describe("S241 reviewed existing process content and conflict safety", () => {
       { ...template, space_id: "owner-renewal-outreach" },
       db,
     );
+    // S283 R-S283-4: the refusal reads in staff words (rewritten on purpose).
     await expect(startWorkflowRun(editor, seeded.id, {}, db)).rejects.toMatchObject({
       status: 409,
-      message: expect.stringMatching(/placeholder/i),
+      message:
+        "This process has no assigned staff member yet. An Admin assigns one before a run can start.",
     });
     expect(
       [...fake.store.keys()].filter((key) => key.startsWith("workflow_runs/")),

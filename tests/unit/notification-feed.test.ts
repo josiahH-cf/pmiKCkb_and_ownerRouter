@@ -9,6 +9,7 @@ import {
   buildNotificationFeed,
   RETIRED_NOTIFICATION_MESSAGE,
 } from "@/lib/notifications/feed";
+import { servedNotificationFamilyKeys } from "@/lib/notifications/families";
 
 function approval(
   overrides: Partial<ApprovalQueueNotificationRecord> = {},
@@ -169,8 +170,11 @@ describe("buildNotificationFeed", () => {
     expect(feed.unreadTotal).toBe(2);
   });
 
-  // AC-GW-12: the catalog exposes the two available, workflow-specific Gmail families.
-  it("returns exactly eight available in-app families", () => {
+  // AC-GW-12: the catalog keeps every family, available. S280 BEH-S280-4 (changed on purpose): the
+  // families SERVED are asserted per role in place of "exactly eight": staff are offered their own
+  // work, an Admin also the setup, coverage, review and feedback families, and the retired
+  // maintenance families nobody.
+  it("S280 BEH-S280-4: serves the family set per role from the unchanged catalog", () => {
     const feed = buildNotificationFeed({ approval: [], maintenance: [] });
 
     expect(feed.families.map((family) => family.key)).toEqual([
@@ -184,6 +188,20 @@ describe("buildNotificationFeed", () => {
       "support_reports",
     ]);
     expect(feed.families.every((family) => family.available)).toBe(true);
+
+    const scope = { canReadRenewals: true, canReadMaintenance: true };
+    expect(servedNotificationFamilyKeys({ ...scope, isAdmin: false })).toEqual([
+      "approval_queue",
+      "renewal_communications",
+    ]);
+    expect(servedNotificationFamilyKeys({ ...scope, isAdmin: true })).toEqual([
+      "approval_queue",
+      "connections_setup",
+      "space_coverage",
+      "team_review",
+      "renewal_communications",
+      "support_reports",
+    ]);
   });
 
   // AC-S17-4: every event carries a lane from the closed ATTENTION_LANES enum.

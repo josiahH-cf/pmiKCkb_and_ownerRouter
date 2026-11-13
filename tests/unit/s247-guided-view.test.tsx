@@ -152,7 +152,7 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
     expect(container.querySelector("#renewal-staff-status-log")).toBe(status);
   });
 
-  it("continues a covered owner step to the tenant offer while keeping the message tools reachable", async () => {
+  it("R-S283-7 leaves a covered owner step off the path with a path line that says why", async () => {
     stubRenewalRoutes(manualState());
     const workspace = getRenewalLeaseWorkspace("lease-318-cedar-7")!;
     const context = renewalStageContextFor(
@@ -174,21 +174,19 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
       manual: manualState(),
       view: "default",
     });
-    const user = userEvent.setup();
-    await user.click(within(guidedPane()).getByRole("button", { name: "Ask the owner" }));
-    expect(
-      within(nowCard()).getByRole("button", { name: "Continue to Offer the tenant" }),
-    ).toBeVisible();
-    expect(
-      within(nowCard()).queryByRole("button", { name: "Send the owner message" }),
-    ).toBeNull();
-    expect(nowCard()).toHaveTextContent(
-      "Covered by Example agreement: no owner message needed",
+    // S283 R-S283-7 (rewritten on purpose): a standing agreement's covered owner step is not on
+    // this lease's path, so the step list has no chip for it and the path line says why. The
+    // lease continues at the tenant offer.
+    const strip = within(guidedPane()).getByRole("navigation", { name: "Renewal path" });
+    expect(within(strip).queryByRole("button", { name: "Ask the owner" })).toBeNull();
+    expect(guidedPane()).toHaveTextContent(
+      "Standing agreement: the owner step is skipped.",
     );
-    await user.click(
-      within(nowCard()).getByRole("button", { name: "Continue to Offer the tenant" }),
-    );
-    expect(nowCard()).toHaveAttribute("data-renewal-now-step", "offer-tenant");
+    expect(guidedPane()).not.toHaveTextContent("Not part of this lease's path");
+    expect(nowCard()).not.toHaveAttribute("data-renewal-now-step", "ask-owner");
+    expect(
+      within(strip).getByRole("button", { name: "Offer the tenant" }),
+    ).toBeInTheDocument();
   });
 
   it("BEH-S247-1: a lease opens in Guided view with the path strip and one Now card", async () => {
@@ -252,10 +250,16 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
     const user = userEvent.setup();
     const strip = within(guidedPane()).getByRole("navigation", { name: "Renewal path" });
     const current = strip.querySelector("[aria-current='step']")!;
+    const currentStep = current.closest<HTMLElement>("[data-renewal-path-step]")!.dataset
+      .renewalPathStep;
+    const historyLength = window.history.length;
     expect(current.textContent).not.toBe("Ask the owner");
     expect(visible("renewal-manual-owner_outreach")).toBe(false);
     await user.click(within(strip).getByRole("button", { name: "Ask the owner" }));
     await settle();
+    // S281 R-S281-13: an explicit visit writes that step in place; no history entry is added.
+    expect(new URL(window.location.href).searchParams.get("step")).toBe("ask-owner");
+    expect(window.history.length).toBe(historyLength);
     expect(
       within(nowCard()).getByRole("heading", {
         level: 2,
@@ -288,8 +292,10 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
       "aria-pressed",
       "true",
     );
-    // Choosing a step leaves the address as it was and saves nothing.
-    expect(window.location.search).toBe("");
+    // S281 R-S281-13 (rewritten on purpose): the address names the step shown, replaced in
+    // place, and choosing a step saves nothing and navigates nowhere.
+    expect(new URL(window.location.href).searchParams.get("step")).toBe(currentStep);
+    expect(window.history.length).toBe(historyLength);
     expect(routes.writes()).toEqual([]);
     expect(router.replace).not.toHaveBeenCalled();
     expect(router.push).not.toHaveBeenCalled();
@@ -317,11 +323,18 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
             name: "Offer the tenant",
           }),
         );
+      const historyLength = window.history.length;
       const form = document.getElementById("renewal-manual-form_returned")!;
       await user.selectOptions(within(form).getByRole("combobox"), "done");
       await waitFor(() =>
         expect(nowCard()).toHaveAttribute("data-renewal-now-step", "documents"),
       );
+      // S281 R-S281-13 (rewritten on purpose): the followed advance names the step shown in the
+      // address, replaced in place with no new history entry.
+      await waitFor(() =>
+        expect(new URL(window.location.href).searchParams.get("step")).toBe("documents"),
+      );
+      expect(window.history.length).toBe(historyLength);
       expect(nowCard().querySelectorAll('[data-renewal-field="next-step"]')).toHaveLength(
         1,
       );
@@ -405,10 +418,12 @@ describe("S247 Guided view", { timeout: 120_000 }, () => {
     const user = userEvent.setup();
     const strip = within(guidedPane()).getByRole("navigation", { name: "Renewal path" });
     await user.click(within(strip).getByRole("button", { name: "Ask the owner" }));
+    // S281 R-S281-13 (rewritten on purpose): the address names the step shown.
+    expect(window.location.search).toBe("?step=ask-owner");
     await user.click(viewButton("Focus view"));
     expect(screen.getByRole("region", { name: "Focus view" })).toBeVisible();
-    // Switching changes neither the address nor any record.
-    expect(window.location.search).toBe("");
+    // Switching views changes neither the address nor any record.
+    expect(window.location.search).toBe("?step=ask-owner");
     await user.click(viewButton("Guided view"));
     await user.click(viewButton("Full view"));
     // The page unloads for a reload: the view and step are kept in this tab only.

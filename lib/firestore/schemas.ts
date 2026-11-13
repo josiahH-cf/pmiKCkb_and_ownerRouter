@@ -723,6 +723,14 @@ export const StartWorkflowRunInputSchema = z.object({
     .optional(),
   due_date: isoDateSchema.optional(),
   note: optionalTextSchema,
+  /**
+   * S283 R-S283-4 (ARCH-S283-3): the client's per-click key. Bound to the actor and the process
+   * and stored with the run, so the same key returns the same run instead of a second one.
+   */
+  start_key: z
+    .string()
+    .regex(/^[A-Za-z0-9-]{8,64}$/)
+    .optional(),
 });
 
 export const UpdateWorkflowRunInputSchema = z

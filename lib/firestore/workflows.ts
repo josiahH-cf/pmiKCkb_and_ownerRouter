@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { FieldValue, type Firestore, type Transaction } from "firebase-admin/firestore";
 import { v7 as uuidv7 } from "uuid";
 import { can } from "@/lib/auth/roles";
@@ -234,8 +235,9 @@ export async function submitProcessDefinitionForApproval(
 
 /** Seeded definitions carry literal placeholder owner/approver values until real staff are recorded. */
 const PLACEHOLDER_STAFF_UID = /placeholder/i;
+/** S283 R-S283-4: the refusal in staff words, which the run panel shows as the server sends it. */
 export const PLACEHOLDER_STAFF_ASSIGNMENT_MESSAGE =
-  "This process still carries placeholder owner or approver assignments. Record the responsible staff on the definition before starting a run.";
+  "This process has no assigned staff member yet. An Admin assigns one before a run can start.";
 export function hasPlaceholderStaffAssignment(content: {
   owner_uid?: string;
   default_approver_uid?: string;
@@ -274,10 +276,33 @@ export async function startWorkflowRun(
       409,
     );
 
-  const runId = options.runId ? validateTrustedWorkflowRunId(options.runId) : uuidv7();
+  // S283 R-S283-4 (ARCH-S283-3): a per-click key names one run for this actor and this process,
+  // so a repeated or double-clicked start returns that run. A trusted server identity still wins.
+  const runId = options.runId
+    ? validateTrustedWorkflowRunId(options.runId)
+    : parsed.start_key
+      ? clickWorkflowRunId(actor.uid, definition.id, parsed.start_key)
+      : uuidv7();
 
   await db.runTransaction(async (transaction) => {
     const existingSnapshot = await transaction.get(runRef(db, runId));
+    if (existingSnapshot.exists && parsed.start_key && !options.runId) {
+      const existing = readRequiredWorkflowRun(
+        existingSnapshot.id,
+        existingSnapshot.data(),
+      );
+      if (
+        existing.start_key !== parsed.start_key ||
+        existing.started_by_uid !== actor.uid ||
+        existing.definition_id !== definition.id
+      )
+        throw new EditableLayerError(
+          "This start was already used for a different run. Reload the page and start again.",
+          409,
+        );
+      // The same click again: the run it started is the answer, and nothing more is written.
+      return;
+    }
     const currentSnapshot = await transaction.get(definitionRef(db, definition.id));
     const current = readRequiredProcessDefinition(
       currentSnapshot.id,
@@ -318,6 +343,7 @@ export async function startWorkflowRun(
       next_action: content.steps[0]?.title ?? "Review workflow run.",
       due_date: parsed.due_date ?? today(),
       started_by_uid: actor.uid,
+      ...(parsed.start_key && !options.runId ? { start_key: parsed.start_key } : {}),
       ...productRecordRetentionFields("workflow_runs"),
       created_at: FieldValue.serverTimestamp(),
       updated_at: FieldValue.serverTimestamp(),
@@ -342,6 +368,22 @@ export async function startWorkflowRun(
   });
 
   return getWorkflowRun(actor, runId, db);
+}
+
+/**
+ * S283 R-S283-4: the run id a per-click key names. It is bound to the actor and the process, so
+ * the same key from another person or for another process names a different run.
+ */
+export function clickWorkflowRunId(
+  actorUid: string,
+  definitionId: string,
+  startKey: string,
+): string {
+  const digest = createHash("sha256")
+    .update(`${actorUid}\0${definitionId}\0${startKey}`)
+    .digest("hex")
+    .slice(0, 40);
+  return `click-${digest}`;
 }
 
 export interface StartWorkflowRunOptions {

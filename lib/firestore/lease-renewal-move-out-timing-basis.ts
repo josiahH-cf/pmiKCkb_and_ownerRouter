@@ -18,7 +18,10 @@ import { can } from "@/lib/auth/roles";
 import { hasSpaceAccess, type AuthenticatedUser } from "@/lib/auth/session";
 import { ROLES } from "@/lib/constants";
 import { isVerificationAccount } from "@/lib/auth/canary-policy";
-import { assertRenewalRoleAuthority } from "@/lib/lease-renewal/role-action-governance";
+import {
+  assertRenewalRoleAuthority,
+  hasRenewalRoleAuthority,
+} from "@/lib/lease-renewal/role-action-governance";
 import {
   DOCUMENTED_NOTICE_TIMING_DECISION,
   SelectNoticeTimingBasisInputSchema,
@@ -338,7 +341,10 @@ export async function readMoveOutTimingBasisSelection(
   ]);
   return {
     timingBasis,
-    canSelect: !isVerificationAccount(actor) && can(actor.role, "edit"),
+    // S283 R-S283-5: only an Admin changes the shared basis; every other role reads it.
+    canSelect:
+      !isVerificationAccount(actor) &&
+      hasRenewalRoleAuthority("select_notice_timing_basis", actor.role),
     intent,
   };
 }

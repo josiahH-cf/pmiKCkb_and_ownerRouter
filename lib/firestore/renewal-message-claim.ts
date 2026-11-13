@@ -18,6 +18,7 @@ import {
   type ActiveCycleEvidence,
 } from "@/lib/lease-renewal/current-cycle-terms";
 import { suppliedRenewalPublication } from "./renewal-message-publication";
+import { ownerCopyV21Publication } from "./renewal-owner-copy-document";
 import { EditableLayerError } from "./errors";
 import { noticeSafetyMarkerRef } from "./renewal-notice-safety";
 import {
@@ -192,7 +193,16 @@ export async function assertCurrentRenewalMessageClaim(
         );
     }
   }
-  const expected = suppliedRenewalPublication(channel);
+  // S285 R-S285-6: an owner draft previewed under owner copy v2.1 binds that version's own exact
+  // approved record; every other draft binds the supplied v2.0 record as before.
+  const previewTemplateHash = (
+    snapshot!.preview as { template?: { contentHash?: unknown } } | undefined
+  )?.template?.contentHash;
+  const ownerV21 = ownerCopyV21Publication();
+  const expected =
+    channel === "owner" && previewTemplateHash === ownerV21.contentHash
+      ? ownerV21
+      : suppliedRenewalPublication(channel);
   const matches = templates.docs
     .map((doc) => doc.data())
     .filter(

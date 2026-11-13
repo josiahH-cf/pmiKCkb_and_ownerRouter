@@ -27,6 +27,7 @@ import {
   outreachRecordForAcceptedSend,
   writeRenewalOutreachRecord,
 } from "@/lib/firestore/renewal-outreach-records";
+import { recordRenewalHold } from "@/lib/firestore/renewal-hold-notices";
 import { CommunicationAttachmentStore } from "./sequence-attachments";
 import { renewalNoticeMaterialIdentity } from "./renewal-material-source";
 import { renewalReviewedInputs } from "./renewal-reviewed-inputs";
@@ -34,6 +35,7 @@ import { LEASE_READ_REREAD_WAITS_MS, LeaseReadNotSettledError } from "./reviewed
 import { RenewalNoticeSourceError } from "@/lib/lease-renewal/notice-source-error";
 import { settleLiveLeaseRefresh } from "@/lib/lease-renewal/live-lease-cache";
 import { offerSnapshotIsMaterial } from "@/lib/lease-renewal/offer-snapshot";
+import { ownerTermContentBasis } from "@/lib/lease-renewal/owner-copy-version";
 import {
   WorkflowCommunicationSequenceService,
   assertCommunicationStaff,
@@ -63,6 +65,11 @@ import {
   type ReplyWatchEndReason,
   type ReplyWatchLeaseFacts,
 } from "./reply-watch";
+import {
+  recordedTenantResponseOf,
+  type RecordedTenantResponse,
+} from "./tenant-response-hold";
+import type { FollowUpFacts } from "@/lib/lease-renewal/follow-up-copy";
 import {
   WorkflowCommunicationContextSchema,
   type WorkflowCommunicationContext,
@@ -104,6 +111,9 @@ export function createCommunicationSequenceService() {
     },
     // S275 R-S275-1: the lease record's end conditions for a watched message.
     replyWatchEndReason: (sequence, nowMs) => readReplyWatchEndReason(sequence, nowMs),
+    // S276 R-S276-3: the tenant response recorded on the lease, checked before any claim.
+    readTenantResponse: (sequence) =>
+      readRecordedTenantResponse(sequence.context.entityId),
     readLinkedThreads: async (actor, context) =>
       (
         await getGmailHubDependencies().store.listCommunicationLinks(
@@ -125,6 +135,10 @@ export function createCommunicationSequenceService() {
         Date.now(),
       );
       if (record) await writeRenewalOutreachRecord(record);
+    },
+    // S273 R-S273-6: one in-app notice for the responsible sender when the worker holds a message.
+    recordHold: async (sequence) => {
+      await recordRenewalHold(sequence);
     },
   });
 }
@@ -162,6 +176,29 @@ export async function readReplyWatchEndReason(
       disposition = null;
     }
     return replyWatchEndReason(sequence, { workspace, disposition, todayIso });
+  } catch {
+    return null;
+  }
+}
+/**
+ * S276 R-S276-3 (ARCH-S276-2): the tenant response recorded on the lease's current work record, or
+ * null when none is. Read-only; a read that fails returns null here, and the claim transaction
+ * reads the same stored record again before anything is admitted.
+ */
+export async function readRecordedTenantResponse(
+  leaseId: string,
+  db: Firestore = getAdminFirestore(),
+): Promise<RecordedTenantResponse | null> {
+  if (!/^[1-9]\d*$/.test(leaseId)) return null;
+  try {
+    const heads = renewalWorkspaceHeadRefs(db, leaseId);
+    const [dated, leaseBound] = await Promise.all([
+      heads.dated.get(),
+      heads.leaseBound.get(),
+    ]);
+    return recordedTenantResponseOf(
+      currentRenewalWorkspaceState(db, leaseId, dated, leaseBound),
+    );
   } catch {
     return null;
   }
@@ -271,34 +308,50 @@ async function renewalTarget(
     offerSnapshot && offerSnapshotIsMaterial(offerSnapshot.snapshot)
       ? { offer: offerSnapshot.snapshotHash }
       : {};
+  // S285 R-S285-3 (ARCH-S285-2): under an owner copy version that states the term, the saved
+  // working dates join the owner message's content basis; under v2.0 nothing is added, so an owner
+  // message authorized before this suite keeps its digest and still dispatches as reviewed.
+  const ownerTermStated = channel === "owner" && f.ownerIntent !== "renew_or_not";
+  const ownerContent = (
+    publicationHash: string | null,
+    version: typeof f.ownerCopyVersion,
+  ) => ({
+    address: f.address,
+    publication: publicationHash,
+    ownerIntent: f.ownerIntent,
+    currentRent: f.currentBaseRent?.value ?? null,
+    rent: f.suggestedRent?.value ?? null,
+    range: f.range ? { low: f.range.low, high: f.range.high } : null,
+    ...ownerTermContentBasis(version, f.ownerTerms),
+  });
   const contentBasis = c.replyTo
     ? null
-    : {
-        address: f.address,
-        publication:
+    : channel === "owner" && ownerTermStated
+      ? ownerContent(
           current.publication.status === "approved"
             ? current.publication.contentHash
             : null,
-        ...(channel === "tenant"
-          ? {
-              leaseEnd: f.leaseEndDate,
-              terms,
-              charges: charges.filter((charge) => charge.applicable === true),
-              insuranceTransition: f.insuranceTransition?.applicable ?? null,
-              informationForm: null,
-              insuranceFlyer: null,
-              rbpFlyer: null,
-              ...offerBasis,
-            }
-          : f.ownerIntent === "renew_or_not"
-            ? { ownerIntent: f.ownerIntent }
-            : {
-                ownerIntent: f.ownerIntent,
-                currentRent: f.currentBaseRent?.value ?? null,
-                rent: f.suggestedRent?.value ?? null,
-                range: f.range ? { low: f.range.low, high: f.range.high } : null,
-              }),
-      };
+          f.ownerCopyVersion,
+        )
+      : {
+          address: f.address,
+          publication:
+            current.publication.status === "approved"
+              ? current.publication.contentHash
+              : null,
+          ...(channel === "tenant"
+            ? {
+                leaseEnd: f.leaseEndDate,
+                terms,
+                charges: charges.filter((charge) => charge.applicable === true),
+                insuranceTransition: f.insuranceTransition?.applicable ?? null,
+                informationForm: null,
+                insuranceFlyer: null,
+                rbpFlyer: null,
+                ...offerBasis,
+              }
+            : { ownerIntent: f.ownerIntent }),
+        };
   const targetBlockers = [
     ...new Set([
       ...blockers,
@@ -323,6 +376,21 @@ async function renewalTarget(
     signatureSetup: current.signatureSetup,
     blockers: targetBlockers,
     materialSourceHash: sequenceHash({ ...leaseBasis, contentBasis, blockers }),
+    // S285 R-S285-6: the material source this read would give under the owner copy published before
+    // the one in use. When an authorization matches it, the only change is the owner wording, and a
+    // hold names it "The owner message wording was updated".
+    ...(channel === "owner" &&
+    ownerTermStated &&
+    !c.replyTo &&
+    current.ownerCopy?.previous
+      ? {
+          priorOwnerWordingMaterialSourceHash: sequenceHash({
+            ...leaseBasis,
+            contentBasis: ownerContent(current.ownerCopy.previous.contentHash, "v2.0"),
+            blockers,
+          }),
+        }
+      : {}),
     // S274 ARCH-S274-1: whether this read settled; S274 ARCH-S274-3: what the review displays.
     readSettlement: current.readSettlement,
     reviewedInputs: renewalReviewedInputs({
@@ -370,11 +438,29 @@ async function renewalTarget(
     signatureParagraph,
     // S249 ARCH-S249-2: the lease message record's revision this composition was made from.
     messageRevision: current.messageRevision,
+    // S273 R-S273-2: when the lease's own message record was last saved (null when never saved).
+    messageSavedAt: current.saved?.updatedAt ?? null,
     // S249 R-S249-5 (J): the prefilled figure this composed message carries, if any.
     carriedRecommendation: current.carriedRecommendation,
     attachmentNotice: current.attachment
       ? "The saved comparable image is available in the lease workspace. Add the exact file here before authorization."
       : null,
+    // S276 R-S276-8: the reviewed facts the standard follow-up message is filled from, the same
+    // facts the offer states. For the composition read only: never part of the target, its hashes
+    // or any authorization, so no message authorized earlier is held by them.
+    ...(channel === "tenant" && !c.replyTo
+      ? {
+          followUpFacts: {
+            address: f.address,
+            leaseEndDate: f.leaseEndDate,
+            rent: terms?.rent ?? null,
+            effectiveDate: terms?.effectiveDate ?? null,
+            endDate: terms?.endDate ?? null,
+            names: [...f.names],
+            ...(f.firstNames ? { firstNames: [...f.firstNames] } : {}),
+          } satisfies FollowUpFacts,
+        }
+      : {}),
   };
 }
 export async function prepareWorkflowComposition(

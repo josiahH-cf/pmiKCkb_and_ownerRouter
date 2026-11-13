@@ -94,6 +94,12 @@ interface FocusViewValue {
   readonly rememberStep: (step: string | null) => void;
   /** The step a reload of this page returns to, once read; null otherwise. */
   readonly restoredStep: string | null;
+  /**
+   * S281 R-S281-14: the one Working renewal terms editor is open in place on Offer the tenant in
+   * the Guided view, so Ask the owner's reveal does not mount a second one. Presentation only.
+   */
+  readonly workingTermsOnOffer: boolean;
+  readonly setWorkingTermsOnOffer: (open: boolean) => void;
 }
 
 const FocusViewContext = createContext<FocusViewValue | null>(null);
@@ -363,6 +369,7 @@ export function RenewalFocusViewProvider({
       return next;
     });
   }, []);
+  const [workingTermsOnOffer, setWorkingTermsOnOffer] = useState(false);
   const scope = useRef(continuityScope);
   useLayoutEffect(() => {
     scope.current = continuityScope;
@@ -592,6 +599,8 @@ export function RenewalFocusViewProvider({
       explicitView,
       rememberStep,
       restoredStep,
+      workingTermsOnOffer,
+      setWorkingTermsOnOffer,
     }),
     [
       allowLegacyFocus,
@@ -613,6 +622,7 @@ export function RenewalFocusViewProvider({
       explicitView,
       rememberStep,
       restoredStep,
+      workingTermsOnOffer,
     ],
   );
   return <FocusViewContext.Provider value={value}>{children}</FocusViewContext.Provider>;

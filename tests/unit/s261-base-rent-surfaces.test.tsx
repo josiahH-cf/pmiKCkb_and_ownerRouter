@@ -215,34 +215,33 @@ describe("S261 Check the numbers", { timeout: 120_000 }, () => {
 });
 
 describe("S261 one Rent to recommend owner", { timeout: 120_000 }, () => {
-  it("UI ownership: Ask the owner reads the current base and Rent to recommend, with Edit rent to recommend opening the one editor in Compare market rent", async () => {
+  it("UI ownership (S281 R-S281-11, rewritten on purpose): Ask the owner reads the current base and Rent to recommend before its primary, and Edit opens the one editor in place there", async () => {
     const routes = await open("ask-owner", fixtureInventory([RENT, PET_RENT]));
     const card = nowCard();
     expect(card).toHaveAttribute("data-renewal-now-step", "ask-owner");
-    const summary = document.querySelector<HTMLElement>(
+    const summaries = document.querySelectorAll<HTMLElement>(
       '[data-renewal-field="owner-pricing-summary"]',
-    )!;
-    expect(summary).not.toBeNull();
+    );
+    // One facts line on the page, in the Now card's Work.
+    expect(summaries).toHaveLength(1);
+    const summary = summaries[0]!;
+    expect(card).toContainElement(summary);
     expect(summary.closest("[hidden], [data-renewal-focus-hidden]")).toBeNull();
     expect(summary).toHaveTextContent(/Current base rent:?\s*\$900/);
     expect(summary).toHaveTextContent(/Rent to recommend:?\s*\$1,000/);
-    // No editable rent in Ask the owner.
-    expect(within(summary).queryByRole("textbox")).toBeNull();
-    const visibleRentInputs = screen
-      .queryAllByLabelText("Rent to recommend")
-      .filter((input) => !input.closest("[hidden], [data-renewal-focus-hidden]"));
-    expect(visibleRentInputs).toEqual([]);
-    const link = within(summary).getByRole("link", { name: "Edit rent to recommend" });
-    expect(link).toHaveAttribute("href", "#renewal-now-rent-to-recommend");
-    await userEvent.setup().click(link);
-    await waitFor(() =>
-      expect(nowCard()).toHaveAttribute("data-renewal-now-step", "compare-market"),
-    );
+    // Closed, no editable rent is shown; "Edit" opens the one editor in place.
+    expect(document.querySelectorAll("#renewal-now-rent-to-recommend")).toHaveLength(0);
+    const edit = within(summary).getByRole("button", { name: "Edit rent to recommend" });
+    expect(edit).toHaveAttribute("aria-expanded", "false");
+    await userEvent.setup().click(edit);
     await waitFor(() =>
       expect(document.activeElement).toBe(
         document.getElementById("renewal-now-rent-to-recommend"),
       ),
     );
+    expect(nowCard()).toHaveAttribute("data-renewal-now-step", "ask-owner");
+    expect(summary).toContainElement(document.activeElement as HTMLElement);
+    expect(document.querySelectorAll("#renewal-now-rent-to-recommend")).toHaveLength(1);
     expect((document.activeElement as HTMLInputElement).value).toBe("1000");
     expect(routes.writes()).toEqual([]);
   });

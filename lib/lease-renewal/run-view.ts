@@ -26,6 +26,8 @@ import { buildRunPropertyKeyIndex } from "@/lib/lease-renewal/property-repositor
 import { writebackAuthorizationTokenForResolution } from "@/lib/lease-renewal/writeback-authorization-token";
 import { WRITEBACK_METHOD_APPEND_ONLY } from "@/lib/lease-renewal/writeback-proposal";
 import { currentResolutionForRenewalRun } from "@/lib/lease-renewal/effective-data-check";
+import { sourceDifferenceInformationLine } from "@/lib/lease-renewal/source-difference-rule";
+import { leaseWorkspaceHrefOrNull } from "@/lib/lease-renewal/desk-view-continuation";
 
 export interface RenewalCandidateView {
   source: string;
@@ -109,6 +111,30 @@ export interface RenewalFlagView {
   writeback: WritebackProposal | null;
   /** Approval state of the QUEUED proposal (Phase-2 control plane); null when nothing is queued. */
   writebackApproval: RenewalWritebackApprovalView | null;
+  /**
+   * S280 R-S280-3: the lease this item names ("101 Sample Pl"), on operating-Sheet runs. A label,
+   * never a value; queue-adjacent surfaces may carry it.
+   */
+  leaseLabel?: string;
+  /** S280: the joined RentVine lease id, when exactly known. */
+  leaseId?: string;
+}
+
+/**
+ * S280 R-S280-6: one RentVine and operating Sheet difference in the current rent or the lease dates,
+ * which the one rule reads as information. It carries no severity and no decision control.
+ */
+export interface RenewalInformationView {
+  /** The item identity (the trigger key a flag would carry); unique per run, lease row and field. */
+  key: string;
+  fieldKey: string;
+  fieldLabel: string;
+  leaseLabel: string;
+  leaseId?: string;
+  /** "101 Sample Pl: the operating Sheet shows $1,750.00 and RentVine shows $1,700.00. ..." */
+  line: string;
+  /** The lease's pending Sheet update (its rent and charges area), when the lease is known. */
+  sheetUpdateHref?: string;
 }
 
 export interface RenewalSeverityGroup {
@@ -133,6 +159,46 @@ export interface RenewalRunView {
   groups: RenewalSeverityGroup[];
   totalFlags: number;
   resolvedCount: number;
+  /** S280 R-S280-6: information rows (present only when the run has any). Never counted as flags. */
+  information?: RenewalInformationView[];
+}
+
+/** S280: the lease id inside an exact join id (`lease:123`), when it is one. */
+export function leaseIdFromJoinIds(
+  joinIds: readonly string[] | undefined,
+): string | undefined {
+  const ids = [
+    ...new Set(
+      (joinIds ?? []).flatMap((id) => {
+        const match = /^lease:([1-9]\d*)$/.exec(id);
+        return match ? [match[1]] : [];
+      }),
+    ),
+  ];
+  return ids.length === 1 ? ids[0] : undefined;
+}
+
+function informationViews(run: RenewalRunResult): RenewalInformationView[] {
+  return run.outcomes.flatMap((outcome) => {
+    if (!outcome.information || !outcome.informationKey) return [];
+    const leaseLabel =
+      outcome.leaseLabel ?? `Sheet row ${outcome.recordRef.sourceRowIndex + 1}`;
+    const leaseId = leaseIdFromJoinIds(outcome.matchedCandidateJoinIds);
+    const workspace = leaseId ? leaseWorkspaceHrefOrNull(leaseId) : null;
+    return [
+      {
+        key: outcome.informationKey,
+        fieldKey: outcome.fieldKey,
+        fieldLabel: outcome.fieldLabel,
+        leaseLabel,
+        ...(leaseId ? { leaseId } : {}),
+        line: sourceDifferenceInformationLine(leaseLabel, outcome.information),
+        ...(workspace
+          ? { sheetUpdateHref: `${workspace}#renewal-rent-and-charges` }
+          : {}),
+      },
+    ];
+  });
 }
 
 function displayValue(value: string | number | boolean | null): string {
@@ -288,6 +354,11 @@ function toFlagView(
       approvalsByKey.get(queueItem.source_trigger_key),
       activityByKey.get(queueItem.source_trigger_key) ?? [],
     ),
+    // S280 R-S280-3: the lease this item names, on operating-Sheet runs.
+    ...(outcome.leaseLabel ? { leaseLabel: outcome.leaseLabel } : {}),
+    ...(outcome.leaseLabel && leaseIdFromJoinIds(outcome.matchedCandidateJoinIds)
+      ? { leaseId: leaseIdFromJoinIds(outcome.matchedCandidateJoinIds)! }
+      : {}),
   };
 }
 
@@ -338,6 +409,8 @@ export function buildRenewalRunView(
     const record = key ? resolutionsByKey.get(key) : undefined;
     return Boolean(record && currentResolutionForRenewalRun(record, run));
   }).length;
+  // S280 R-S280-6: information rows, never counted as flags.
+  const information = informationViews(run);
 
   return {
     runId: run.runId,
@@ -357,5 +430,6 @@ export function buildRenewalRunView(
     groups,
     totalFlags,
     resolvedCount,
+    ...(information.length ? { information } : {}),
   };
 }

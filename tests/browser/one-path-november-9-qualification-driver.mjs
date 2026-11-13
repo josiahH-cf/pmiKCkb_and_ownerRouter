@@ -1691,6 +1691,10 @@ try {
           name: "Send offer now and authorize follow-ups",
           exact: true,
         });
+        // S276 R-S276-7 (pin changed by S276): the form opens with starting values, and the
+        // message is filled once the follow-up copy is published. Without a message the combined
+        // send stays unavailable, as before.
+        await dialog.getByLabel("Follow-up message").fill("");
         assert.equal(await combined.isEnabled(), false);
         await dialog.getByLabel("Follow-up subject").fill("Synthetic follow-up");
         await dialog
@@ -1852,12 +1856,18 @@ try {
         await page.waitForFunction(() =>
           Boolean(document.activeElement?.closest("#renewal-manual-tenant_response")),
         );
-        const [response, selection] = await Promise.all([
+        // S276 R-S276-1 (pin changed by S276): choosing the response saves nothing; its one
+        // visible Save records it.
+        const selection = await responseControl.selectOption("accepted");
+        const [response] = await Promise.all([
           savedWork(
             (action) =>
               action?.kind === "tenant_response" && action.outcome === "accepted",
           ),
-          responseControl.selectOption("accepted"),
+          page
+            .locator("#renewal-manual-tenant_response")
+            .getByRole("button", { name: "Save", exact: true })
+            .click(),
         ]);
         assert.deepEqual(selection, ["accepted"]);
         assert.ok(response.ok());

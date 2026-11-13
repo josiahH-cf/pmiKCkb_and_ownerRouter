@@ -28,6 +28,11 @@ import {
 
 import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
 import { SourceUpdatePreview } from "@/components/lease-renewal/SourceUpdatePreview";
+import {
+  FROM_WORKING_TERMS,
+  focusPrefilledInput,
+  useSourceFormPrefill,
+} from "@/components/lease-renewal/sourceFormPrefill";
 import { Button, Field } from "@/components/ui";
 import {
   rentvinePreviewFacts,
@@ -203,6 +208,10 @@ export function RentvineUpdatesPanel({
 
   // Propose-form state (Editor+). Empty fields mean "not part of this proposal".
   const [endDate, setEndDate] = useState(initialInventory?.leaseDates.endDate ?? "");
+  // S278 R-S278-2: the end date a Finish up preview filled in, marked until staff change it.
+  const [prefilledEndDate, setPrefilledEndDate] = useState<string | null>(null);
+  const [focusEndDate, setFocusEndDate] = useState(0);
+  const endDateInputRef = useRef<HTMLInputElement>(null);
   const [increaseEligibilityDate, setIncreaseEligibilityDate] = useState(
     initialInventory?.leaseDates.increaseEligibilityDate ?? "",
   );
@@ -210,6 +219,20 @@ export function RentvineUpdatesPanel({
   const [updateFields, setUpdateFields] = useState<Record<string, string>>({});
   const [createFields, setCreateFields] = useState<Record<string, string>>({});
   const [evidenceRef, setEvidenceRef] = useState("");
+  useSourceFormPrefill("rentvine_end_date", (request) => {
+    // The dates fieldset is disabled while the form corrects current base-rent billing.
+    if (billingIntent === "current_base") {
+      setBillingIntent("recurring");
+      setUpdateChargeId("");
+      setUpdateFields({});
+    }
+    setEndDate(request.value);
+    setPrefilledEndDate(request.value);
+    setFocusEndDate((count) => count + 1);
+  });
+  useEffect(() => {
+    if (focusEndDate > 0) focusPrefilledInput(endDateInputRef.current);
+  }, [focusEndDate]);
 
   // One stable clock read per mount keeps render pure; the server re-checks expiry exactly on
   // every confirmation, so this flag is advisory copy only.
@@ -912,10 +935,24 @@ export function RentvineUpdatesPanel({
             </p>
             <fieldset className="ui-stack" disabled={billingIntent === "current_base"}>
               <legend>Lease renewal dates</legend>
-              <Field htmlFor="s97-end-date" label="New end date (YYYY-MM-DD)">
+              <Field
+                htmlFor="s97-end-date"
+                label="New end date (YYYY-MM-DD)"
+                hint={
+                  prefilledEndDate !== null && endDate === prefilledEndDate
+                    ? FROM_WORKING_TERMS
+                    : undefined
+                }
+              >
                 <input
                   type="date"
                   id="s97-end-date"
+                  ref={endDateInputRef}
+                  data-renewal-prefilled={
+                    prefilledEndDate !== null && endDate === prefilledEndDate
+                      ? "working-terms"
+                      : undefined
+                  }
                   onChange={(event) => setEndDate(event.target.value)}
                   value={endDate}
                 />

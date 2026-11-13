@@ -10,9 +10,18 @@ import {
 } from "@/lib/firestore/lease-renewal-move-out-timing-basis";
 import { FakeTransactionalFirestore } from "../helpers/fake-transactional-firestore";
 
+// S283 R-S283-5: the shared basis has one writer, an Admin on the Admin entry. The selecting actor
+// here is therefore an Admin (rewritten on purpose); version conflict, audit, receipt and readback
+// are unchanged. `staffEditor` proves an Editor reads it and cannot select it.
 const editor: AuthenticatedUser = {
   uid: "staff-one",
   email: "staff-one@pmikcmetro.com",
+  hd: "pmikcmetro.com",
+  role: "Admin",
+};
+const staffEditor: AuthenticatedUser = {
+  uid: "staff-editor",
+  email: "staff-editor@pmikcmetro.com",
   hd: "pmikcmetro.com",
   role: "Editor",
 };
@@ -194,5 +203,20 @@ describe("S125 documented notice-basis selection (AC-S125-7/8/9/10)", () => {
         db,
       ),
     ).toMatchObject({ canSelect: false, timingBasis: { state: "missing" } });
+  });
+
+  it("AC-S283-5 an Editor and an Approver read the basis and are refused before any write", async () => {
+    const { fake, db } = database();
+    for (const actor of [staffEditor, { ...staffEditor, role: "Approver" as const }]) {
+      await expect(selectMoveOutTimingBasis(actor, choice, db)).rejects.toMatchObject({
+        status: 403,
+      });
+      expect(await readMoveOutTimingBasisSelection(actor, undefined, db)).toMatchObject({
+        canSelect: false,
+        timingBasis: { state: "missing" },
+      });
+    }
+    expect(fake.store.size).toBe(0);
+    expect(activities(fake)).toHaveLength(0);
   });
 });

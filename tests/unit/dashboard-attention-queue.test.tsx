@@ -61,30 +61,37 @@ async function renderQueue(initial: AttentionQueue, canApprove = true) {
 }
 
 describe("S147 compact attention queue", () => {
-  it("explains a stale renewal source with its actual read time without claiming an auth failure", async () => {
+  // S280 R-S280-4 (changed on purpose): a stale renewal read keeps its rows, marked with their read
+  // time, and offers Refresh in place of the earlier stale sentence and "Try again".
+  it("keeps a stale renewal read's rows with their actual read time without claiming an auth failure", async () => {
     const initial = queue({
-      state: "partial",
-      rows: [],
-      unavailableFeeds: ["renewal_reviews"],
-      renewalReviewIssue: {
-        code: "source_stale",
-        message: "The renewal source is stale; current decisions are unknown.",
-        sourceReadAtIso: "2026-11-03T08:29:00.000Z",
-        overlayUnavailable: false,
-      },
+      rows: [
+        row({
+          key: "renewal_flag:live-review:aaaaaaaaaaaaaaaa:current_rent",
+          kind: "renewal_flag",
+          itemId: undefined,
+          authority: "review",
+          label: "101 Sample Pl: Current rent",
+          retained: true,
+        }),
+      ],
+      renewalRead: { state: "retained", readAtIso: "2026-11-03T08:29:00.000Z" },
     });
     const region = await renderQueue(initial);
     // S126 (litmus 2026-11-04): the read time uses the app's month/day/year convention in the
     // business time zone, never the raw ISO instant the API carries.
-    expect(within(region).getByTestId("renewal-review-issue")).toHaveTextContent(
-      "Source last read: 11/03/2026, 2:29 AM CST.",
+    expect(within(region).getByTestId("renewal-read-retained")).toHaveTextContent(
+      "Renewal data last read 11/03/2026, 2:29 AM CST",
     );
-    expect(within(region).getByTestId("renewal-review-issue").textContent).not.toContain(
+    expect(within(region).getByTestId("renewal-read-retained").textContent).not.toContain(
       "2026-11-03T",
     );
-    expect(within(region).getByTestId("renewal-review-issue")).toHaveTextContent(
-      "source is stale",
-    );
+    expect(
+      within(region).getByRole("link", { name: "101 Sample Pl: Current rent" }),
+    ).toBeVisible();
+    expect(within(region).getByRole("button", { name: "Refresh" })).toBeEnabled();
+    expect(within(region).queryByRole("button", { name: "Try again" })).toBeNull();
+    expect(within(region).queryByText(/source is stale/)).toBeNull();
     expect(
       within(region).queryByText(/sign in again|authentication has expired/i),
     ).not.toBeInTheDocument();

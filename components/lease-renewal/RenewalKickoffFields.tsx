@@ -6,7 +6,7 @@
 // visible entry and is never replaced by a later proposal (AC-S249-5); a prefilled figure is a
 // proposal until the staff member sends or types.
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
 import { Button, ConfirmationDialog, Field } from "@/components/ui";
 import { AUTOSAVE_IDLE, AutosaveStatus, withEdited } from "./AutosaveStatus";
@@ -176,6 +176,7 @@ export const USE_FOR_OFFER_LABEL = "Use this amount for the offer";
 export function RentToRecommendField({
   preparation,
   placement = "any",
+  onSaved,
 }: Readonly<{
   preparation: RenewalPreparation | null;
   /**
@@ -184,15 +185,21 @@ export function RentToRecommendField({
    * switching views keeps it (S247).
    */
   placement?: "any" | "full";
+  /**
+   * S281 R-S281-11: in place on Ask the owner, a save the person makes with Enter hands focus back
+   * to the step's primary action. A save made by leaving the field moves nothing.
+   */
+  onSaved?: () => void;
 }>) {
   const view = useRenewalFocusView();
   if (placement === "full" && view && view.view !== "full") return null;
-  return <RentToRecommendEditor preparation={preparation} />;
+  return <RentToRecommendEditor onSaved={onSaved} preparation={preparation} />;
 }
 
 function RentToRecommendEditor({
   preparation,
-}: Readonly<{ preparation: RenewalPreparation | null }>) {
+  onSaved,
+}: Readonly<{ preparation: RenewalPreparation | null; onSaved?: () => void }>) {
   const working = useRenewalWorkingRecord();
   const id = "renewal-now-rent-to-recommend";
   const input = useRef<HTMLInputElement>(null);
@@ -302,7 +309,9 @@ function RentToRecommendEditor({
           onKeyDown={(event) => {
             if (event.key === "Enter") {
               event.preventDefault();
-              void editor.flush();
+              void editor.flush().then((saved) => {
+                if (saved) onSaved?.();
+              });
             }
           }}
           value={text}
@@ -386,12 +395,35 @@ function RentToRecommendEditor({
 export function RentRecommendationSummary({
   preparation,
   base = null,
+  market = false,
+  inPlace = null,
+  placement = "any",
 }: Readonly<{
+  /**
+   * S281 R-S281-1: `full` renders only outside the Guided view; the Guided Now card carries the
+   * same facts line before its primary action.
+   */
+  placement?: "any" | "full";
   preparation: RenewalPreparation | null;
   /** S261: the lease facts the one base decision reads; absent where the page has none. */
   base?: CurrentBaseRentFacts | null;
+  /**
+   * S281 R-S281-1: the market range with its comparable count and date, between the current
+   * base rent and Rent to recommend, so the decision facts read as one line of facts.
+   */
+  market?: boolean;
+  /**
+   * S281 R-S281-11: on Ask the owner in Guided, "Edit" opens the one Rent to recommend editor in
+   * place under this line instead of linking to Compare market rent. The caller mounts it there.
+   */
+  inPlace?: {
+    readonly open: boolean;
+    readonly onToggle: () => void;
+    readonly editor: ReactNode;
+  } | null;
 }>) {
   const working = useRenewalWorkingRecord();
+  const view = useRenewalFocusView();
   // S262 R-S262-2: Rent to recommend's own value once it is its own fact; an unavailable
   // recommendation is never filled from the approved rent.
   const rent =
@@ -399,29 +431,70 @@ export function RentRecommendationSummary({
       ? null
       : (recommendedRentValue(working?.record) ?? preparation?.rent.value ?? null);
   const target = RENT_TO_RECOMMEND_TARGET;
+  const editorId = `${target}-in-place`;
+  if (placement === "full" && view?.outcomeLayout && view.view === "guided") return null;
+  const comparison = preparation?.comparison ?? null;
   return (
     <div className="ui-stack-tight" data-renewal-field="owner-pricing-summary">
       {base ? <OwnerCurrentBaseRent facts={base} /> : null}
+      {market && comparison ? (
+        <p data-renewal-field="owner-market-range">
+          {comparison.state === "stored" ? (
+            <>
+              Market: {comparison.line}
+              {comparison.ageLine ? (
+                <span className="muted"> · {comparison.ageLine}</span>
+              ) : null}
+            </>
+          ) : (
+            <>Market: {comparison.line}</>
+          )}
+        </p>
+      ) : null}
       <p data-renewal-field="owner-recommended-rent">
         {KICKOFF_WORDS.rentToRecommend}:{" "}
         <strong>{rent === null ? "Not set" : formatUsd(rent)}</strong>{" "}
-        <a
-          className="text-link"
-          href={`#${target}`}
-          onClick={(event) => {
-            // The link opens the editor in the step that owns it, in this view.
-            event.preventDefault();
-            focusRenewalDashboardControl(target);
-          }}
-        >
-          {working?.canEdit ? "Edit rent to recommend" : "View rent to recommend"}
-        </a>
+        {inPlace && working?.canEdit ? (
+          <button
+            aria-controls={editorId}
+            aria-expanded={inPlace.open}
+            aria-label="Edit rent to recommend"
+            className="text-link"
+            data-renewal-rent-edit
+            onClick={inPlace.onToggle}
+            type="button"
+          >
+            Edit
+          </button>
+        ) : (
+          <a
+            className="text-link"
+            data-renewal-fix-link
+            href={`#${target}`}
+            onClick={(event) => {
+              // The link opens the editor in the step that owns it, in this view.
+              event.preventDefault();
+              focusRenewalDashboardControl(target);
+            }}
+          >
+            {working?.canEdit ? "Edit rent to recommend" : "View rent to recommend"}
+          </a>
+        )}
       </p>
       {/* S277 R-S277-6: what the owner sentence rests on, and who saved it. */}
       <RecommendationBasisLine
         field="owner-recommended-basis"
         proposal={preparation?.rent ?? null}
       />
+      {inPlace?.open ? (
+        <div
+          className="ui-stack-tight renewal-rent-in-place"
+          data-renewal-rent-in-place
+          id={editorId}
+        >
+          {inPlace.editor}
+        </div>
+      ) : null}
     </div>
   );
 }

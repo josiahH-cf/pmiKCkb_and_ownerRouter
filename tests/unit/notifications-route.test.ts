@@ -134,7 +134,9 @@ function maintenanceRecord(
 }
 
 describe("notifications routes", () => {
-  it("GET serves six available non-admin families for a wildcard editor", async () => {
+  // S280 BEH-S280-4 (changed on purpose): an Editor is served staff work only. Setup, coverage,
+  // review and feedback are Admin families, and the maintenance families are retired.
+  it("GET serves the staff family set to an editor", async () => {
     setAuthResolverForTest(() => editor);
     vi.mocked(listApprovalQueueNotifications).mockResolvedValue([]);
     vi.mocked(listMaintenanceTicketNotifications).mockResolvedValue([]);
@@ -153,9 +155,11 @@ describe("notifications routes", () => {
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.notifications).toEqual([]);
-    // Catalog is 7; a non-admin editor is served 6 (team_review is Admin-only, AC-S17-6).
-    expect(body.families).toHaveLength(6);
-    expect(body.families.map((f: { key: string }) => f.key)).not.toContain("team_review");
+    expect(body.families.map((f: { key: string }) => f.key)).toEqual([
+      "approval_queue",
+      "renewal_communications",
+    ]);
+    expect(listMaintenanceTicketNotifications).not.toHaveBeenCalled();
     // Workflow communication families are available but carry no content without linked attention.
     expect(
       body.families.filter((f: { available: boolean }) => !f.available),
@@ -206,10 +210,8 @@ describe("notifications routes", () => {
       unreadOnly: true,
       limit: Number.MAX_SAFE_INTEGER,
     });
-    expect(listMaintenanceTicketNotifications).toHaveBeenCalledWith(editor, {
-      unreadOnly: true,
-      limit: Number.MAX_SAFE_INTEGER,
-    });
+    // S280 R-S280-5: the retired maintenance family is not read at all.
+    expect(listMaintenanceTicketNotifications).not.toHaveBeenCalled();
     expect(listGmailWorkflowNotifications).toHaveBeenCalledWith(editor, {
       unreadOnly: true,
       limit: Number.MAX_SAFE_INTEGER,
@@ -223,12 +225,14 @@ describe("notifications routes", () => {
     expect(body.unreadTotal).toBe(2);
   });
 
+  // S280 (changed on purpose): the muted family is now a served staff family (renewal
+  // communications), since the maintenance families are retired and no longer served.
   it("GET drops a family the caller's preferences mute and marks it muted in the family views", async () => {
     setAuthResolverForTest(() => editor);
-    // Preferences mute maintenance_tickets; that resolved muted set must reach the feed builder.
+    // Preferences mute renewal_communications; that resolved muted set must reach the feed builder.
     vi.mocked(getNotificationPreferences).mockResolvedValue({
       uid: "editor-uid",
-      muted_families: ["maintenance_tickets"],
+      muted_families: ["renewal_communications"],
       lane_thresholds: {},
       snoozed_lanes: {},
       digest_lanes: [],
@@ -237,30 +241,42 @@ describe("notifications routes", () => {
     vi.mocked(listApprovalQueueNotifications).mockResolvedValue([
       approvalRecord({ id: "a-1", created_at: "2026-07-01T00:00:00.000Z" }),
     ]);
-    // The maintenance notification is the NEWEST, so only muting (not ordering or a limit) can drop it.
-    vi.mocked(listMaintenanceTicketNotifications).mockResolvedValue([
-      maintenanceRecord({ id: "m-1", created_at: "2026-07-09T00:00:00.000Z" }),
+    // The renewal notification is the NEWEST, so only muting (not ordering or a limit) can drop it.
+    vi.mocked(listGmailWorkflowNotifications).mockResolvedValueOnce([
+      {
+        id: "gmail:renewal-1",
+        source: "gmail_workflow",
+        family: "renewal_communications",
+        lane: "decision",
+        severity: "medium",
+        title: "Owner replied",
+        message: "101 Sample Pl",
+        href: "/lease-renewal/live/desk/lease/101?step=ask-owner",
+        created_at: "2026-07-09T00:00:00.000Z",
+      },
     ]);
 
     const response = await GET(new Request("http://localhost/api/notifications"));
     expect(response.status).toBe(200);
     const body = await response.json();
 
-    // The muted maintenance notification is excluded even though it is newest; the approval survives.
+    // The muted renewal notification is excluded even though it is newest; the approval survives.
     expect(body.notifications.map((n: { id: string }) => n.id)).toEqual(["a-1"]);
     expect(
       body.notifications.some(
-        (n: { family: string }) => n.family === "maintenance_tickets",
+        (n: { family: string }) => n.family === "renewal_communications",
       ),
     ).toBe(false);
 
     // The resolved muted set is reflected in the per-family views handed to the menu.
     const families = body.families as Array<{ key: string; muted: boolean }>;
-    expect(families.find((f) => f.key === "maintenance_tickets")?.muted).toBe(true);
+    expect(families.find((f) => f.key === "renewal_communications")?.muted).toBe(true);
     expect(families.find((f) => f.key === "approval_queue")?.muted).toBe(false);
   });
 
-  it("GET returns the OWN approval and maintenance notifications of an account with a leftover maintenance-only claim (F-NOTIF-3)", async () => {
+  // S280 R-S280-5 (changed on purpose): the retired maintenance family is neither read nor served,
+  // whatever claim is left; the account's own approvals still are (F-NOTIF-3).
+  it("GET returns the OWN approval notifications of an account with a leftover maintenance-only claim, and no maintenance item (F-NOTIF-3, S280)", async () => {
     setAuthResolverForTest(() => maintenanceEditor);
     vi.mocked(getNotificationPreferences).mockResolvedValue({
       uid: "editor-uid",
@@ -286,20 +302,20 @@ describe("notifications routes", () => {
       editor,
       expect.not.objectContaining({ adminAll: true }),
     );
-    expect(listMaintenanceTicketNotifications).toHaveBeenCalledOnce();
-    expect(vi.mocked(listMaintenanceTicketNotifications).mock.calls[0][0]).toEqual(
-      editor,
-    );
+    expect(listMaintenanceTicketNotifications).not.toHaveBeenCalled();
     const sources = body.notifications.map((item: { source: string }) => item.source);
-    expect(sources).toContain("approval_queue");
-    expect(sources).toContain("maintenance_ticket");
+    expect(sources).toEqual(["approval_queue"]);
     expect(body.families.map((family: { key: string }) => family.key)).toContain(
       "approval_queue",
     );
+    expect(body.families.map((family: { key: string }) => family.key)).not.toContain(
+      "maintenance_tickets",
+    );
   });
 
-  // S167: a renewals-only claim used to skip the maintenance read and hide its family.
-  it("GET reads and returns maintenance notifications for an account with a leftover renewals-only claim", async () => {
+  // S167: a renewals-only claim used to skip the maintenance read and hide its family. S280 R-S280-5
+  // (changed on purpose): maintenance is retired, so no claim reads or serves it.
+  it("GET reads no maintenance notifications for an account with a leftover renewals-only claim", async () => {
     setAuthResolverForTest(() => renewalsEditor);
     vi.mocked(getNotificationPreferences).mockResolvedValue({
       uid: "editor-uid",
@@ -319,17 +335,17 @@ describe("notifications routes", () => {
     const body = await response.json();
 
     expect(listApprovalQueueNotifications).toHaveBeenCalledOnce();
-    expect(listMaintenanceTicketNotifications).toHaveBeenCalledOnce();
-    expect(vi.mocked(listMaintenanceTicketNotifications).mock.calls[0][0]).toEqual(
-      editor,
-    );
+    expect(listMaintenanceTicketNotifications).not.toHaveBeenCalled();
     expect(
       body.notifications.map((item: { source: string }) => item.source).sort(),
-    ).toEqual(["approval_queue", "maintenance_ticket"]);
+    ).toEqual(["approval_queue"]);
     const families = body.families.map((family: { key: string }) => family.key);
-    expect(families).toContain("maintenance_tickets");
-    // The role still gates the Admin-only family.
+    expect(families).not.toContain("maintenance_tickets");
+    expect(families).not.toContain("maintenance_communications");
+    // The role still gates the Admin-only families.
     expect(families).not.toContain("team_review");
+    expect(families).not.toContain("connections_setup");
+    expect(families).not.toContain("space_coverage");
   });
 
   // AC-S17-6 (family gating): the team_review family is served ONLY to an Admin; an editor never sees it.
@@ -363,7 +379,9 @@ describe("notifications routes", () => {
   });
 
   // AC-S17-7: mark-all-read flips every unread EVENT notification for the caller and reports the count.
-  it("mark-all-read marks every unread approval + maintenance notification for the caller", async () => {
+  // S280 AC-S280-5 (changed on purpose): retired maintenance notifications are not shown, so they are
+  // not swept either; their stored records stay exactly as they are.
+  it("mark-all-read marks every unread served notification for the caller and leaves stored maintenance records untouched", async () => {
     setAuthResolverForTest(() => editor);
     vi.mocked(listApprovalQueueNotifications).mockResolvedValue([
       approvalRecord({ id: "a-1" }),
@@ -379,7 +397,7 @@ describe("notifications routes", () => {
 
     const response = await markAllRead();
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ ok: true, marked: 3 });
+    await expect(response.json()).resolves.toEqual({ ok: true, marked: 2 });
 
     // Each unread notification is flipped via its per-source writer (self-scoped; recipient-only is the
     // reader default, LR-02, so no cross-recipient opt-in is passed).
@@ -388,11 +406,12 @@ describe("notifications routes", () => {
     });
     expect(markApprovalQueueNotificationRead).toHaveBeenCalledWith(editor, "a-1");
     expect(markApprovalQueueNotificationRead).toHaveBeenCalledWith(editor, "a-2");
-    expect(markMaintenanceTicketNotificationRead).toHaveBeenCalledWith(editor, "m-1");
+    expect(listMaintenanceTicketNotifications).not.toHaveBeenCalled();
+    expect(markMaintenanceTicketNotificationRead).not.toHaveBeenCalled();
     expect(markGmailWorkflowNotificationRead).not.toHaveBeenCalled();
   });
 
-  it("mark-all-read sweeps the caller's own approval and maintenance notifications whatever scope claim is left (F-NOTIF-3)", async () => {
+  it("mark-all-read sweeps the caller's own approval notifications whatever scope claim is left, and no retired maintenance record (F-NOTIF-3, S280)", async () => {
     setAuthResolverForTest(() => renewalsEditor);
     vi.mocked(listApprovalQueueNotifications).mockResolvedValue([]);
     vi.mocked(listMaintenanceTicketNotifications).mockResolvedValue([]);
@@ -401,14 +420,11 @@ describe("notifications routes", () => {
     expect(response.status).toBe(200);
     // Approval notifications are personal (recipient-only by default, LR-02), so they are always swept
     // for the caller without opting into any cross-recipient view. S167: the caller is the claim-free
-    // user, and a renewals-only claim no longer skips the maintenance sweep.
+    // user. S280 R-S280-5 (changed on purpose): the retired maintenance family is never swept.
     expect(listApprovalQueueNotifications).toHaveBeenCalledWith(editor, {
       unreadOnly: true,
     });
-    expect(listMaintenanceTicketNotifications).toHaveBeenCalledOnce();
-    expect(vi.mocked(listMaintenanceTicketNotifications).mock.calls[0][0]).toEqual(
-      editor,
-    );
+    expect(listMaintenanceTicketNotifications).not.toHaveBeenCalled();
   });
 
   it("mark-read dispatches to the maintenance writer for a maintenance source", async () => {

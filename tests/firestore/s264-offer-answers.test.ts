@@ -574,11 +574,14 @@ describe("S264 AC-S264-6 the answers keep the exact offer they covered", () => {
       )
     ).json();
     expect(read.offerAnswers).toEqual({
+      // S276 R-S276-1 (pin rewritten on purpose): each offer also carries the terms the tenant
+      // response review names: working base rent, renewal dates and the selected charges total.
       current: {
         snapshotId: changed.snapshotId,
         snapshotHash: changed.snapshotHash,
         summary: "Rent $920.00 per month; Pet rent $50.00 per month",
         charged: true,
+        terms: expect.objectContaining({ rent: 920, chargesCents: 5000, chargeCount: 1 }),
       },
       candidates: [
         {
@@ -589,6 +592,11 @@ describe("S264 AC-S264-6 the answers keep the exact offer they covered", () => {
           snapshotId: frozen.snapshotId,
           summary: "Rent $920.00 per month; Pet rent $45.00 per month",
           current: false,
+          terms: expect.objectContaining({
+            rent: 920,
+            chargesCents: 4500,
+            chargeCount: 1,
+          }),
         },
       ],
       tenant: {

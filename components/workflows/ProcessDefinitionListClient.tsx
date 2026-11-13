@@ -5,6 +5,12 @@ import { formatCalendarDate } from "@/lib/date-display";
 import { useState } from "react";
 import Link from "next/link";
 import type { ProcessDefinitionRecord, WorkflowRunRecord } from "@/lib/firestore/types";
+import {
+  DEFAULT_APPROVER_FIELD_HINT,
+  DEFAULT_APPROVER_FIELD_LABEL,
+  RUN_OWNER_FIELD_HINT,
+  RUN_OWNER_FIELD_LABEL,
+} from "@/lib/processes/staff-fields";
 
 interface ProcessDefinitionListClientProps {
   availableSpaces?: readonly { id: string; name: string }[];
@@ -214,23 +220,38 @@ export function ProcessDefinitionListClient({
               value={form.trigger}
             />
           </label>
+          {/* S283 R-S283-3: staff labels and hints; the stored values are unchanged. */}
           <div className="workflow-two-column-fields">
-            <label>
-              Owner UID
-              <input
-                onChange={(event) => setForm({ ...form, owner_uid: event.target.value })}
-                value={form.owner_uid}
-              />
-            </label>
-            <label>
-              Approver UID
-              <input
-                onChange={(event) =>
-                  setForm({ ...form, default_approver_uid: event.target.value })
-                }
-                value={form.default_approver_uid}
-              />
-            </label>
+            <div className="ui-stack-tight">
+              <label>
+                {RUN_OWNER_FIELD_LABEL}
+                <input
+                  aria-describedby="process-create-owner-hint"
+                  onChange={(event) =>
+                    setForm({ ...form, owner_uid: event.target.value })
+                  }
+                  value={form.owner_uid}
+                />
+              </label>
+              <span className="muted" id="process-create-owner-hint">
+                {RUN_OWNER_FIELD_HINT}
+              </span>
+            </div>
+            <div className="ui-stack-tight">
+              <label>
+                {DEFAULT_APPROVER_FIELD_LABEL}
+                <input
+                  aria-describedby="process-create-approver-hint"
+                  onChange={(event) =>
+                    setForm({ ...form, default_approver_uid: event.target.value })
+                  }
+                  value={form.default_approver_uid}
+                />
+              </label>
+              <span className="muted" id="process-create-approver-hint">
+                {DEFAULT_APPROVER_FIELD_HINT}
+              </span>
+            </div>
           </div>
           <label>
             Initial steps

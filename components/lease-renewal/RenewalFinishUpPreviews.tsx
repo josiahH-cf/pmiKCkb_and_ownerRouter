@@ -25,11 +25,13 @@ import {
 } from "@/lib/lease-renewal/tenant-acceptance-hold";
 import { SourceUpdatePreview } from "./SourceUpdatePreview";
 import { useLiveAcceptanceHold } from "./useLiveSourceUpdateBasis";
+import { requestSourceFormPrefill, type SourceFormPrefill } from "./sourceFormPrefill";
+import type { CompleteRenewalTerms } from "@/lib/lease-renewal/working-record";
 
 export const FINISH_UP_WORDS = {
   heading: "Source updates from the final terms",
   apply: "Review and apply in Rent and charges",
-  each: "Each update is applied on its own: prepare its exact update in Rent and charges, confirm it once, and the provider's receipt is read back.",
+  each: "Review and apply opens each update's form in Rent and charges with the new value filled in from the working terms. Prepare its exact update there, confirm it, and the provider's receipt is read back.",
   changed:
     "The working renewal terms changed after these previews were assembled. Reload the lease to assemble them from the current terms.",
 } as const;
@@ -38,11 +40,40 @@ function money(value: number) {
   return value.toLocaleString("en-US", { style: "currency", currency: "USD" });
 }
 
+/**
+ * S278 R-S278-2 (BEH-S278-3): the form a preview's action opens, with the previewed new value. The
+ * renewal end date fills RentVine's "New end date" and the Sheet's "New value" for Renewal date.
+ * The renewal rent is prepared by choosing its charge, so its action opens Rent and charges only.
+ */
+export function finishUpPrefill(
+  key: string,
+  terms: CompleteRenewalTerms | null,
+): SourceFormPrefill | null {
+  if (!terms) return null;
+  if (key === "rentvine-dates")
+    return { form: "rentvine_end_date", value: terms.endDate };
+  if (key === "sheet-renewal_date")
+    return { form: "sheet_field", field: "renewal_date", value: terms.endDate };
+  return null;
+}
+
+/** Open the owning form in Rent and charges, filled with the previewed value when it has one. */
+export function openFinishUpPreview(
+  applyTarget: string,
+  key: string,
+  terms: CompleteRenewalTerms | null,
+) {
+  focusRenewalDashboardControl(applyTarget);
+  const prefill = finishUpPrefill(key, terms);
+  if (prefill) requestSourceFormPrefill(prefill);
+}
+
 function Section({
   label,
   section,
   applyTarget,
   hold,
+  terms,
 }: Readonly<{
   label: string;
   section: FinishUpSourceSection;
@@ -52,6 +83,8 @@ function Section({
    * above the sections names the exact difference once.
    */
   hold: TenantAcceptanceHold | null;
+  /** S278 R-S278-2: the final working terms the previews were assembled from. */
+  terms: CompleteRenewalTerms | null;
 }>) {
   return (
     <section
@@ -75,6 +108,20 @@ function Section({
               <strong>{preview.title}</strong>
             </p>
             <SourceUpdatePreview facts={preview.facts} />
+            {!hold ? (
+              // S278 R-S278-2: each preview's action opens its owning form with the
+              // previewed value filled in; the form's own preview and confirmation follow.
+              <p>
+                <Button
+                  data-renewal-finish-up-apply={preview.key}
+                  onClick={() => openFinishUpPreview(applyTarget, preview.key, terms)}
+                  size="compact"
+                  variant="secondary"
+                >
+                  {FINISH_UP_WORDS.apply}
+                </Button>
+              </p>
+            ) : null}
           </div>
         ))
       )}
@@ -85,17 +132,6 @@ function Section({
             </p>
           ))
         : null}
-      {section.state === "ready" && !hold ? (
-        <p>
-          <Button
-            onClick={() => focusRenewalDashboardControl(applyTarget)}
-            size="compact"
-            variant="secondary"
-          >
-            {FINISH_UP_WORDS.apply}
-          </Button>
-        </p>
-      ) : null}
     </section>
   );
 }
@@ -178,6 +214,7 @@ export function FinishUpSourcePreviews({
               hold={hold}
               label="RentVine"
               section={preparation.rentvine}
+              terms={terms}
             />
           ) : null}
           {preparation.sheet ? (
@@ -186,6 +223,7 @@ export function FinishUpSourcePreviews({
               hold={hold}
               label="Operating Sheet"
               section={preparation.sheet}
+              terms={terms}
             />
           ) : null}
           <p className="muted">{FINISH_UP_WORDS.each}</p>

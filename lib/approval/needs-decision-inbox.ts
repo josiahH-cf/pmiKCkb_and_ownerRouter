@@ -15,7 +15,11 @@ import {
   queueActionAvailability,
   type ApprovalQueueActor,
 } from "@/lib/approval/queue";
-import type { RenewalReviewBoard } from "@/lib/approval/renewal-review";
+import {
+  renewalDecisionTarget,
+  renewalRowLabel,
+  type RenewalReviewBoard,
+} from "@/lib/approval/renewal-review";
 import type { WritebackApprovalQueue } from "@/lib/approval/writeback-approval-queue";
 import { isCurrentDecisionItem } from "@/lib/approval/current-work-eligibility";
 import { formatBusinessTimestamp } from "@/lib/date-display";
@@ -107,9 +111,10 @@ const KIND_RANK: Record<NeedsDecisionKind, number> = {
 };
 
 // Reconciliation queue items are stamped source_trigger_key = "lease_renewal:reconcile:{runId}:
-// {fieldKey}" (approval-queue-mapping). Deduping them by that key against the flag/write-back rows
-// (whose target is "{runId}:{fieldKey}") keeps the merged number honest: the same field conflict
-// never counts twice just because a queue item was persisted for it (S13 C4).
+// {recordKey}:{fieldKey}" (approval-queue-mapping). Deduping them by that key against the flag/
+// write-back rows (whose target is the same "{runId}:{recordKey}:{fieldKey}", S280 ARCH-S280-2)
+// keeps the merged number honest: the same field conflict on one lease never counts twice just
+// because a queue item was persisted for it (S13 C4), and two leases never collapse into one row.
 const RECONCILE_TRIGGER_PREFIX = "lease_renewal:reconcile:";
 
 function queueItemTargetKey(item: ApprovalQueueItemRecord): string {
@@ -117,6 +122,27 @@ function queueItemTargetKey(item: ApprovalQueueItemRecord): string {
     return item.source_trigger_key.slice(RECONCILE_TRIGGER_PREFIX.length);
   }
   return `queue_item:${item.id}`;
+}
+
+/**
+ * S280 ARCH-S280-2: the Approval Queue's tab counts from the same rows each tab renders: the open
+ * renewal flags (one per run, lease row and field) and the write-backs awaiting approval.
+ */
+export function renewalTabCounts(
+  renewalBoard: RenewalReviewBoard | undefined,
+  writebackQueue: WritebackApprovalQueue | undefined,
+): { renewalReviews: number; writebacksAwaiting: number } {
+  const open = new Set<string>();
+  for (const run of renewalBoard?.runs ?? [])
+    for (const flag of run.flags)
+      if (!flag.resolved)
+        open.add(renewalDecisionTarget(run.runId, flag.fieldKey, flag.sourceTriggerKey));
+  const awaiting = new Set(
+    (writebackQueue?.groups.find((g) => g.state === "Awaiting Approval")?.rows ?? []).map(
+      (row) => renewalDecisionTarget(row.runId, row.fieldKey, row.sourceTriggerKey),
+    ),
+  );
+  return { renewalReviews: open.size, writebacksAwaiting: awaiting.size };
 }
 
 /**
@@ -140,26 +166,34 @@ export function buildNeedsDecisionInbox(
   };
 
   // 1. Write-back proposals awaiting an Admin decision (most specific).
+  // S280 ARCH-S280-2: every renewal row is keyed by run, lease row and field, so a difference on
+  // many leases is one row per lease and field, never one row per field for all leases.
   const awaiting = writebackQueue?.groups.find((g) => g.state === "Awaiting Approval");
   for (const row of awaiting?.rows ?? []) {
-    consider(`${row.runId}:${row.fieldKey}`, {
+    const target = renewalDecisionTarget(row.runId, row.fieldKey, row.sourceTriggerKey);
+    consider(target, {
       kind: "writeback",
-      key: `writeback:${row.runId}:${row.fieldKey}`,
-      label: row.fieldLabel,
+      key: `writeback:${target}`,
+      label: renewalRowLabel(row.leaseLabel, row.fieldLabel),
       detail: `${row.runLabel} · awaiting write-back approval`,
       severity: row.severity,
       href: row.href,
     });
   }
 
-  // 2. Open (unresolved) renewal reconciliation flags.
+  // 2. Open (unresolved) renewal reconciliation flags, each naming its lease (R-S280-3).
   for (const run of renewalBoard?.runs ?? []) {
     for (const flag of run.flags) {
       if (flag.resolved) continue;
-      consider(`${run.runId}:${flag.fieldKey}`, {
+      const target = renewalDecisionTarget(
+        run.runId,
+        flag.fieldKey,
+        flag.sourceTriggerKey,
+      );
+      consider(target, {
         kind: "renewal_flag",
-        key: `renewal_flag:${run.runId}:${flag.fieldKey}`,
-        label: flag.fieldLabel,
+        key: `renewal_flag:${target}`,
+        label: renewalRowLabel(flag.leaseLabel, flag.fieldLabel),
         detail: run.label,
         severity: flag.severity,
         href: flag.href,

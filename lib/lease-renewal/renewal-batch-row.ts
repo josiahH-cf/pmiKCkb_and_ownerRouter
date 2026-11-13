@@ -227,6 +227,16 @@ export interface RenewalBatchRowView extends RenewalBatchItem {
   readonly approvedRent?: number | null;
   readonly nextStep: RenewalBatchNextStep;
   readonly tags: readonly RenewalBatchTag[];
+  /**
+   * S273 R-S273-3: the one actionable exception cue for a held or out-of-date unsent message
+   * ("Scheduled message out of date" or "Message held"), linking to its step (S246 R-S246-7 allows
+   * one). Absent when there is none.
+   */
+  readonly messageCue?: {
+    readonly kind: "out_of_date" | "held";
+    readonly label: string;
+    readonly stepId: string;
+  };
   /** R-S246-12: "RentVine status unavailable" when the lease status could not be read. */
   readonly statusNote: string | null;
   /**
@@ -401,6 +411,9 @@ export function projectRenewalBatchRow(
         : null,
     nextStep: stage.nextStep,
     tags: renewalBatchRowTags(row, stage),
+    ...(row.renewalStage?.messageCue && !cycleDispositionHold(target?.cycleDisposition)
+      ? { messageCue: { ...row.renewalStage.messageCue } }
+      : {}),
     statusNote:
       [
         target?.statusUnavailable

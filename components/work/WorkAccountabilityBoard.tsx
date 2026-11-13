@@ -7,7 +7,15 @@ import {
 
 import { formatBusinessTimestamp } from "@/lib/date-display";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 
 import { LeaseFollowUpOriginView } from "./LeaseFollowUpOriginView";
 import { WorkActivityController } from "@/components/work/WorkActivityController";
@@ -38,6 +46,11 @@ interface WorkAccountabilityBoardProps {
   mode: "mine" | "team";
   mutationAllowed: boolean;
   spaces: readonly WorkSpaceOption[];
+  /**
+   * S280 R-S280-2: shown under the empty state of "mine" (the team's renewal line). My Work keeps
+   * its task meaning; this only points to the Renewal Desk.
+   */
+  emptyAside?: ReactNode;
 }
 
 interface WorkApiSnapshot {
@@ -49,6 +62,7 @@ export function WorkAccountabilityBoard({
   mode,
   mutationAllowed,
   spaces,
+  emptyAside = null,
 }: WorkAccountabilityBoardProps) {
   const [snapshot, setSnapshot] = useState<WorkAccountabilitySnapshot | null>(null);
   const [roster, setRoster] = useState<WorkAssignableUser[]>([]);
@@ -388,6 +402,7 @@ export function WorkAccountabilityBoard({
         {tasks.length === 0 ? (
           <div className="panel empty-state" role="status">
             {mode === "team" ? "No team tasks match these filters" : "No tasks assigned"}
+            {mode === "mine" ? emptyAside : null}
           </div>
         ) : (
           <div className="work-task-grid">

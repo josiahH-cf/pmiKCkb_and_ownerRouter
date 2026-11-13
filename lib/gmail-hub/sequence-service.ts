@@ -67,6 +67,13 @@ import {
 import type { WorkflowCommunicationContext } from "./workflow-context";
 import { replyCheckable, type ReplyWatchEndReason } from "./reply-watch";
 import {
+  TENANT_RESPONSE_PAUSE_CAUSE,
+  tenantReminderScope,
+  tenantResponseHolds,
+  tenantResponsePause,
+  type RecordedTenantResponse,
+} from "./tenant-response-hold";
+import {
   authorizedOccurrenceBasis,
   projectTenantResourceInclusion,
   tenantResourceEffectVerdict,
@@ -75,9 +82,15 @@ import {
 } from "@/lib/lease-renewal/tenant-resource-inclusion";
 import type { TenantResourceId } from "@/lib/lease-renewal/tenant-resource-evidence";
 import {
+  appendUnsentHistory,
+  unsentAttemptOnResume,
+  unsentAttemptOnSave,
+} from "@/lib/lease-renewal/unsent-message";
+import {
   CommunicationTargetChangedError,
   LEASE_READ_REREAD_WAITS_MS,
   LeaseReadNotSettledError,
+  OWNER_WORDING_UPDATED_INPUT,
   changedReviewedInputs,
   type ChangedInput,
   type LeaseReadUnsettledReason,
@@ -222,6 +235,20 @@ export interface CommunicationSequenceDependencies {
     sequence: CommunicationSequence,
     nowMs: number,
   ): Promise<ReplyWatchEndReason | null>;
+  /**
+   * S276 R-S276-3 (ARCH-S276-2): the tenant response recorded on the message's lease (its current
+   * work record), or null when none is recorded. Read-only. Absent, dispatch reads no response and
+   * the claim transaction still applies the hold on the stored record.
+   */
+  readTenantResponse?(
+    sequence: CommunicationSequence,
+  ): Promise<RecordedTenantResponse | null>;
+  /**
+   * S273 R-S273-6: after the communication worker held a message, raise its one in-app notice for
+   * the responsible sender (deduplicated per sequence and pause; no body, no recipient address). It
+   * runs after the hold and never decides it: a failure here is swallowed.
+   */
+  recordHold?(sequence: CommunicationSequence): Promise<void>;
 }
 export function assertCommunicationStaff(
   actor: AuthenticatedUser,
@@ -476,6 +503,9 @@ export class WorkflowCommunicationSequenceService {
             "Keep this history and start a new communication.",
             409,
           );
+        // S273 R-S273-5: a save over unsent authorized work ends that attempt (scheduled or held,
+        // then updated); it stays listed, read only, beside the authorization.
+        const ended = unsentAttemptOnSave(current, nowMs);
         return {
           ...parsed,
           workflowLabel: current?.workflowLabel ?? admission!.label,
@@ -514,6 +544,11 @@ export class WorkflowCommunicationSequenceService {
           threads: current?.threads ?? [],
           observedMessageIds: current?.observedMessageIds ?? [],
           observation: current?.observation ?? null,
+          ...(ended
+            ? { unsentHistory: appendUnsentHistory(current?.unsentHistory, ended) }
+            : current?.unsentHistory
+              ? { unsentHistory: current.unsentHistory }
+              : {}),
           lastOperation: { id: operationId, hash: operationHash },
         };
       },
@@ -754,8 +789,14 @@ export class WorkflowCommunicationSequenceService {
             "This communication changed; review the current version.",
             409,
           );
+        // S273 R-S273-5: a Resume ends the held attempt (held, then resumed), read only.
+        const resumed =
+          input.action === "resume" ? unsentAttemptOnResume(c, nowMs) : null;
         return {
           ...c,
+          ...(resumed
+            ? { unsentHistory: appendUnsentHistory(c.unsentHistory, resumed) }
+            : {}),
           version: input.expectedVersion + 1,
           state: "active",
           workflowLabel: target.label,
@@ -925,6 +966,13 @@ export class WorkflowCommunicationSequenceService {
             ...s.authorization.to,
             ...s.authorization.cc,
           ]);
+          // S285 R-S285-5: whether a person's reply came from an address the message was sent to.
+          // A yes or no only; the address itself is not kept.
+          const from = emailFrom(m.from);
+          const fromSentTo =
+            classification === "human" && from
+              ? s.authorization.to.some((address) => address.toLowerCase() === from)
+              : undefined;
           // S233 R-S233-1/R-S233-2: evidence only; a report names its attempt when one is clear.
           messages.push({
             id: `${mailboxKey}:${m.id}`,
@@ -933,6 +981,7 @@ export class WorkflowCommunicationSequenceService {
             messageId: m.id,
             kind: classification,
             receivedAtMs,
+            ...(fromSentTo === undefined ? {} : { fromSentTo }),
             ...(classification === "bounce"
               ? {
                   attemptOccurrenceId: correlateBounceAttempt(
@@ -1130,6 +1179,49 @@ export class WorkflowCommunicationSequenceService {
       }
       return { status: "paused", sequence: s };
     }
+    // S276 R-S276-3 / R-S276-4 (ARCH-S276-2): the tenant's recorded response is checked before any
+    // claim, ahead of the lease read, so a reminder that became due after any recorded response (a
+    // decline included) is paused under the response's own cause and never sent, even when the
+    // pause at save time was not written. The claim transaction applies the same check.
+    if (this.deps.readTenantResponse && tenantReminderScope(s)) {
+      let response: RecordedTenantResponse | null = null;
+      try {
+        response = await this.deps.readTenantResponse(s);
+      } catch {
+        response = null; // The claim transaction reads the same stored record.
+      }
+      if (response && tenantResponseHolds(s, response)) {
+        const recorded = response;
+        try {
+          s = await this.deps.store.write({
+            id: s.id,
+            actorUid: "communication-worker",
+            expectedVersion: s.version,
+            operationId: randomUUID(),
+            operationHash: sequenceHash([
+              s.id,
+              s.version,
+              TENANT_RESPONSE_PAUSE_CAUSE,
+              recorded.eventId,
+            ]),
+            nowMs: this.now(),
+            action: TENANT_RESPONSE_PAUSE_CAUSE,
+            apply: (current) => ({
+              ...requireSequence(current),
+              version: s.version + 1,
+              state: "paused",
+              nextDueAtMs: null,
+              pause: tenantResponsePause(recorded, recorded.actorUid, this.now()),
+              updatedAtMs: this.now(),
+            }),
+          });
+        } catch (error) {
+          if (!(error instanceof EditableLayerError) || error.status !== 409) throw error;
+          s = requireSequence(await this.deps.store.get(id));
+        }
+        return { status: "paused", sequence: s };
+      }
+    }
     // S274 R-S274-4 (ARCH-S274-2): dispatch tells "not settled" from "changed" before any claim.
     // One read, no wait: a read in flight, a generation not ready or a retirement status that is
     // unavailable only because the read is not fresh is handled like an unreadable source (no
@@ -1202,9 +1294,18 @@ export class WorkflowCommunicationSequenceService {
       // S274 R-S274-6: the hold on a settled difference stores each changed input, with the value
       // kept with this authorization where one was kept; without kept values none is guessed.
       const kept = keptAuthorizedInputs(s);
-      const changedInputs: ChangedInput[] = kept
-        ? changedReviewedInputs(kept, target.reviewedInputs ?? null)
-        : [];
+      // S285 R-S285-6: an authorization that matches this read under the earlier owner copy was
+      // held only because an approver published the new owner wording; the hold names that cause.
+      const ownerWordingOnly =
+        !readinessHeld &&
+        materialSourceHash === target.materialSourceHash &&
+        target.priorOwnerWordingMaterialSourceHash !== undefined &&
+        target.priorOwnerWordingMaterialSourceHash === authorization.materialSourceHash;
+      const changedInputs: ChangedInput[] = ownerWordingOnly
+        ? [OWNER_WORDING_UPDATED_INPUT]
+        : kept
+          ? changedReviewedInputs(kept, target.reviewedInputs ?? null)
+          : [];
       s = await this.deps.store.write({
         id: s.id,
         actorUid: actor.uid,
@@ -1359,11 +1460,17 @@ export class WorkflowCommunicationSequenceService {
       },
       threading,
     );
-    if (!claim)
+    if (!claim) {
+      const after = requireSequence(await this.deps.store.get(id));
+      // S276 R-S276-3: the claim itself held a reminder for the tenant's recorded response.
       return {
-        status: "not_due",
-        sequence: requireSequence(await this.deps.store.get(id)),
+        status:
+          after.state === "paused" && after.pause?.cause === TENANT_RESPONSE_PAUSE_CAUSE
+            ? "paused"
+            : "not_due",
+        sequence: after,
       };
+    }
     const o = claim.occurrence;
     const message: WorkflowMimeMessage = {
       from: a.senderEmail,

@@ -68,9 +68,10 @@ describe("S113 mounted manual and comp controls", () => {
       </RenewalManualProvider>
     );
     const view = render(mount(false));
+    // S278 R-S278-3 (pinned on purpose): the one list's row action is "Prepare and review".
     const prepare = () =>
       screen.getByRole("button", {
-        name: /Prepare the Sheet update for owner pricing confirmed/,
+        name: /Prepare and review: Owner pricing confirmed/,
       });
     expect(prepare()).toBeEnabled();
     // Typing without leaving the control saves nothing; the entry is kept across a reload. The
@@ -233,9 +234,16 @@ describe("S113 mounted manual and comp controls", () => {
       ),
     ).toBeInTheDocument();
     // The Sheet changes only through its own confirmed update; the app record is not a write.
-    expect(screen.getByText(/Owner pricing confirmed: true/)).toHaveTextContent(
-      "Saved in the app. The Sheet changes only when you confirm its update",
+    // S278 R-S278-3 (pinned on purpose): the one list shows the field, the new value, the Sheet's
+    // value now and the basis, with "Prepare and review" leading to the exact preview.
+    const row = document.querySelector(
+      '[data-renewal-source-update="sheet:owner_pricing_confirmed"]',
     );
+    expect(row).toHaveTextContent("Owner pricing confirmed: Yes.");
+    expect(row).toHaveTextContent("Basis: Staff record.");
+    expect(
+      screen.getByRole("button", { name: "Prepare and review: Owner pricing confirmed" }),
+    ).toBeInTheDocument();
     // S156 (BEH-S156-7): completion is available whenever staff say the work is complete.
     expect(screen.getByRole("button", { name: "Record staff completion" })).toBeEnabled();
     expect(

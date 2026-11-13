@@ -522,6 +522,9 @@ function reconcileLeaseFields(
     tables,
     tableJoinIds,
     nonSheetCandidates: mapping.candidates,
+    // S280 R-S280-6: these tables are the operating Sheet read live, so the desk's data check reads
+    // a RentVine and Sheet rent or date difference with the same one rule as Live renewal review.
+    operatingSheet: true,
   }).outcomes;
 }
 

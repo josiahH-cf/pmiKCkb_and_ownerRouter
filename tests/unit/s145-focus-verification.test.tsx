@@ -149,6 +149,10 @@ async function recordResponse(
     ),
     outcome,
   );
+  // S276 R-S276-1 (pin rewritten on purpose): the tenant response is recorded by its one
+  // visible Save, never on selection. The owner response is unchanged.
+  if (audience === "tenant")
+    await user.click(within(form).getByRole("button", { name: "Save" }));
   await settle();
 }
 

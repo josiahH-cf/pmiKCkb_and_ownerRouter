@@ -29,10 +29,7 @@ export function LeaseBusinessContractPanel() {
             <dt>Durable per-lease Live lifecycle</dt>
             <dd>Absent: the shared Live Review is a coordination surface only.</dd>
           </div>
-          <div>
-            <dt>Exact next action</dt>
-            <dd>{LEASE_LIVE_LIFECYCLE_OWNERSHIP.exactNextAction}</dd>
-          </div>
+          {/* S283 R-S283-3: the engineering next-action sentence stays in code and Help only. */}
         </dl>
       </section>
 

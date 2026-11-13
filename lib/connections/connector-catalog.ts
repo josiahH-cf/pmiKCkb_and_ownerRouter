@@ -25,6 +25,11 @@ export interface ConnectorDef {
   availabilityDetail?: string;
   /** Status-only connectors may be read/verified but cannot enter generic connection mutation APIs. */
   managementMode?: "app_managed" | "status_only";
+  /**
+   * S283 R-S283-6 (ARCH-S283-6): "none" when the app has no sign-in for this connector. The card
+   * then carries no Connect action (none is rendered, not hidden by style) and states the fact.
+   */
+  connectAction?: "none";
 }
 
 export const CONNECTORS: readonly ConnectorDef[] = [
@@ -120,6 +125,8 @@ export const CONNECTORS: readonly ConnectorDef[] = [
     method: "oauth",
     healthCheckRef: "health.quickbooks.oauth_app",
     requiredConfig: [],
+    // S283 R-S283-6: the app has no QuickBooks sign-in, so the card has no Connect action.
+    connectAction: "none",
   },
 ];
 
@@ -141,7 +148,10 @@ export function connectorConnectLabel(def: ConnectorDef): string {
   return "Add your API key";
 }
 
-/** True only for connectors already owned by the generic connection mutation lifecycle. */
+/**
+ * True only for connectors already owned by the generic connection mutation lifecycle. S283
+ * R-S283-6: a connector the app has no sign-in for has no Connect action.
+ */
 export function allowsAppManagedConnection(def: ConnectorDef): boolean {
-  return def.managementMode !== "status_only";
+  return def.managementMode !== "status_only" && def.connectAction !== "none";
 }

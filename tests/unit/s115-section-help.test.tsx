@@ -70,10 +70,12 @@ function renderWorkspace(
 }
 
 beforeEach(() => {
+  // A fine pointer that hovers, on a wide screen: S281 gives phone widths (a matching
+  // "max-width" query) their own lease header arrangement, which these checks do not cover.
   vi.stubGlobal(
     "matchMedia",
-    vi.fn(() => ({
-      matches: true,
+    vi.fn((query: string) => ({
+      matches: !String(query).includes("max-width"),
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
     })),

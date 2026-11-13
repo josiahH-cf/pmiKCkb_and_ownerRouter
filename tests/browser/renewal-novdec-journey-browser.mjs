@@ -1289,7 +1289,8 @@ try {
       ).replace(/\s+/g, " ");
       assert.equal(
         note,
-        "First send: Nov 1, 2026, 1:30 AM CDT (America/Chicago). Nov 1, 2026, 1:30 AM happens twice in America/Chicago when clocks fall back; this schedule uses the first one, Nov 1, 2026, 1:30 AM CDT.",
+        // S283 R-S283-1: the settled instant shape (rewritten on purpose).
+        "First send: 11/01/2026, 1:30 AM CDT (America/Chicago). 11/01/2026, 1:30 AM happens twice in America/Chicago when clocks fall back; this schedule uses the first one, 11/01/2026, 1:30 AM CDT.",
       );
       const file = await capture(hub, "s233-schedule-panel");
       return { browserZone, defaultZone: zone, note, screenshot: file };

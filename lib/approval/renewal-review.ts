@@ -10,8 +10,60 @@
 
 import type { RenewalFlagView, RenewalRunView } from "@/lib/lease-renewal/run-view";
 import type { Severity } from "@/lib/lease-renewal/severity";
+import { buildLiveRenewalReviewItemHref } from "@/lib/lease-renewal/live-review-destination";
+
+/** The Live review's shared run id (kept here so this module stays free of server imports). */
+const LIVE_REVIEW_RUN = "live-review";
+const RECONCILE_TRIGGER_PREFIX = "lease_renewal:reconcile:";
+
+/**
+ * S280 ARCH-S280-2: one decision's identity, keyed by run, lease row and field. The trigger key a
+ * flag, a write-back and a persisted reconcile queue item share carries the lease row
+ * (`lease_renewal:reconcile:{runId}:{recordKey}:{fieldKey}`); a key without one (older records,
+ * fixtures) falls back to run and field.
+ */
+export function renewalDecisionTarget(
+  runId: string,
+  fieldKey: string,
+  sourceTriggerKey?: string | null,
+): string {
+  const rest = sourceTriggerKey?.startsWith(RECONCILE_TRIGGER_PREFIX)
+    ? sourceTriggerKey.slice(RECONCILE_TRIGGER_PREFIX.length)
+    : null;
+  if (
+    rest &&
+    rest.startsWith(`${runId}:`) &&
+    (rest === `${runId}:${fieldKey}` || rest.endsWith(`:${fieldKey}`))
+  )
+    return rest;
+  return `${runId}:${fieldKey}`;
+}
+
+/** S280 R-S280-3: "101 Sample Pl: Current rent" when the lease is known, else the field. */
+export function renewalRowLabel(
+  leaseLabel: string | null | undefined,
+  fieldLabel: string,
+) {
+  return leaseLabel ? `${leaseLabel}: ${fieldLabel}` : fieldLabel;
+}
+
+/**
+ * S280 R-S280-3: a Live review item opens on its own item through the existing item link; any other
+ * run keeps its run page.
+ */
+export function renewalItemHref(runId: string, sourceTriggerKey?: string | null): string {
+  const item =
+    runId === LIVE_REVIEW_RUN && sourceTriggerKey
+      ? buildLiveRenewalReviewItemHref(sourceTriggerKey)
+      : null;
+  return item ?? renewalRunHref(runId);
+}
 
 export interface RenewalReviewFlag {
+  /** S280: the item identity, unique per run, lease row and field (always set by the board). */
+  sourceTriggerKey?: string;
+  /** S280: the lease the item names, or null when the run names none (always set by the board). */
+  leaseLabel?: string | null;
   fieldKey: string;
   fieldLabel: string;
   severity: Severity;
@@ -77,6 +129,8 @@ function toReviewFlag(flag: RenewalFlagView, href: string): RenewalReviewFlag {
   // Deliberately omits `candidates`, `suggestedWinner`, and the proposal's value/rationale
   // (value-bearing) — they stay behind `href`. Only the value-FREE readiness boolean crosses over.
   return {
+    sourceTriggerKey: flag.sourceTriggerKey,
+    leaseLabel: flag.leaseLabel ?? null,
     fieldKey: flag.fieldKey,
     fieldLabel: flag.fieldLabel,
     severity: flag.severity,
@@ -99,7 +153,10 @@ function toReviewRun(view: RenewalRunView): RenewalReviewRun {
   const href = renewalRunHref(view.runId);
   // `groups` are already ordered by SEVERITY_ORDER; flatten preserving that order.
   const sourceFlags = view.groups.flatMap((group) => group.flags);
-  const flags = sourceFlags.map((flag) => toReviewFlag(flag, href));
+  // S280 R-S280-3: each flag opens its own item on Live renewal review.
+  const flags = sourceFlags.map((flag) =>
+    toReviewFlag(flag, renewalItemHref(view.runId, flag.sourceTriggerKey)),
+  );
   const openFlags = flags.filter((flag) => !flag.resolved);
 
   return {

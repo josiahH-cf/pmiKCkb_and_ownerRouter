@@ -85,7 +85,7 @@ export function QueueBulkPanel({
             <option value="assign">Assign</option>
             <option value="snooze">Snooze</option>
             <option value="disable">Disable Action</option>
-            <option value="execute">Execute</option>
+            {/* S283 R-S283-6: no bulk Execute; an approved action runs only from its own review. */}
           </select>
         </label>
         {bulkAction === "assign" ? (
@@ -148,9 +148,7 @@ export function QueueBulkPanel({
         {bulkPreview.highRiskApprovals > 0
           ? `${bulkPreview.highRiskApprovals} High-risk approval(s) require confirmation. `
           : ""}
-        {bulkAction === "execute"
-          ? "Execute skips every current item; no external write is attempted."
-          : "The server checks every selected item again before updating it."}
+        The server checks every selected item again before updating it.
       </p>
       {bulkResult ? (
         <div className="queue-bulk-results" aria-live="polite">

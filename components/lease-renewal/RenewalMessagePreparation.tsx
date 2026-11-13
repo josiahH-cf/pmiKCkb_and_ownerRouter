@@ -7,6 +7,7 @@ import type {
 } from "@/lib/lease-renewal/sender-signature-choice";
 import { Icon as MessageCopyIcon } from "@/components/ui";
 import type { CommunicationSequence } from "@/lib/gmail-hub/sequence-model";
+import type { UnsentMessageView } from "@/lib/lease-renewal/unsent-message";
 import {
   describeSequenceState,
   SEQUENCE_PAUSE_CAUSE_LABELS,
@@ -16,7 +17,7 @@ import { describeNextDue } from "@/lib/gmail-hub/schedule-calendar";
 import { workflowComposerHref } from "@/lib/gmail-hub/composer-navigation";
 import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import { boundedLocalWait, LocalWaitError } from "@/lib/ui/local-lifetime";
-import { formatBusinessTimestamp } from "@/lib/date-display";
+import { formatBusinessTimestamp, formatCalendarDate } from "@/lib/date-display";
 
 import { renewalCardTitle } from "@/components/lease-renewal/RenewalSectionHeading";
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
@@ -51,6 +52,7 @@ import {
   MESSAGE_CHARGES,
   MessageChargeSchema,
   RenewalMessageEditsSchema,
+  ownerCopyStatesTerm,
   responseRequestParagraph,
   type RenewalMessageFacts,
 } from "@/lib/lease-renewal/renewal-message-content";
@@ -61,6 +63,7 @@ import {
   type MessageMissingInput,
 } from "@/lib/lease-renewal/message-readiness";
 import { startDateFixFromOffer } from "./RenewalDateProposal";
+import { OwnerWordingPublication, type OwnerCopyView } from "./OwnerWordingPublication";
 import {
   OfferCaseEntrySchema,
   OfferChargeDecisionSchema,
@@ -121,6 +124,7 @@ import {
   previewAgainWhileGenerationReplaced,
   type PreparedMessageData,
   type PreparedSignatureFields,
+  type SentMessageReceipt,
 } from "@/components/lease-renewal/RenewalPreparedMessage";
 import {
   AuthoredSubjectSchema,
@@ -241,6 +245,8 @@ interface Preparation {
    */
   offerAnswers?: OfferAnswersView | null;
   publication: { status: string; ref?: string; reason?: string };
+  /** S285 R-S285-6: the owner copy version in use and the approver's publication control. */
+  ownerCopy?: OwnerCopyView | null;
   /** S139/S161: the saved authored body and whether the facts changed after it was written. */
   bodyOverride?: RefinedBodyState | null;
   /** Hash of the body composed from the current facts; authored wording records it. */
@@ -302,14 +308,34 @@ function OutcomeMessagePreparation({
   const evidence = stage.evidence[props.channel];
   const waiting =
     step?.state === "waiting" || step?.state === "done" || step?.state === "covered";
+  // S273 R-S273-3: a held or out-of-date message holds the step's send actions; its own repair or
+  // recovery takes their place, so no second message is started beside it.
+  const unsent = step?.unsent ?? null;
   const hold = Boolean(
     evidence?.unconfirmedSequenceId ||
     step?.scheduled ||
+    unsent ||
     waiting ||
     (stage.currentStepId === stepId && stage.blocker),
   );
   // S282 ARCH-S282-3: the readiness list reads the same off-cycle blocker the Now card reads.
   const offCycleHold = offCycleReadinessItem(stage.blocker);
+  // S281 R-S281-3: a confirmed send of this message (accepted or replied, nothing unresolved,
+  // scheduled or held) shows the step as sent: the exact sent message and its receipt are read in
+  // Verification, and the message and its other ways to send are not rendered.
+  const derived = evidence?.derived ?? null;
+  const sent =
+    derived &&
+    (evidence?.state === "accepted" || evidence?.state === "replied") &&
+    !evidence.unconfirmedSequenceId &&
+    !step?.scheduled &&
+    !unsent
+      ? {
+          sequenceId: derived.sequenceId,
+          sentAtMs: derived.sentAtMs,
+          senderEmail: derived.senderEmail,
+        }
+      : null;
   const sequenceId =
     props.channel === "tenant"
       ? (evidence?.unconfirmedSequenceId ??
@@ -321,9 +347,30 @@ function OutcomeMessagePreparation({
       {sequenceId ? (
         <TenantOfferProgress sequenceId={sequenceId} leaseId={context.leaseId} />
       ) : null}
-      <MessageOwner {...props} compact deliveryHeld={hold} offCycleHold={offCycleHold} />
+      <MessageOwner
+        {...props}
+        compact
+        deliveryHeld={hold}
+        offCycleHold={offCycleHold}
+        sent={sent}
+        unsent={unsent}
+      />
     </>
   );
+}
+
+/**
+ * S281 R-S281-2: the lease and its renewal cycle in staff terms ("101 Sample Pl, renewal for the
+ * lease ending 12/31/2026"); the internal identifiers stay in the step's Verification.
+ */
+export function renewalLeaseLabel(
+  address: string | null | undefined,
+  leaseEndIso: string | null | undefined,
+): string | null {
+  if (!address) return null;
+  return leaseEndIso
+    ? `${address}, renewal for the lease ending ${formatCalendarDate(leaseEndIso)}`
+    : `${address}, renewal`;
 }
 
 function TenantOfferProgress({
@@ -373,10 +420,7 @@ function TenantOfferProgress({
         <p>Current delivery details require a read.</p>
       )}
       {sequence?.lastSentAtMs ? (
-        <p>
-          Last confirmed send{" "}
-          {formatBusinessTimestamp(new Date(sequence.lastSentAtMs).toISOString())}.
-        </p>
+        <p>Last confirmed send {formatBusinessTimestamp(sequence.lastSentAtMs)}.</p>
       ) : null}
       {sequence?.pause ? (
         <p>{SEQUENCE_PAUSE_CAUSE_LABELS[sequence.pause.cause]}</p>
@@ -410,6 +454,8 @@ function MessageOwner({
   compact = false,
   deliveryHeld = false,
   offCycleHold = null,
+  sent = null,
+  unsent = null,
   secondaryWork,
   workingTerms,
 }: MessageOwnerProps & {
@@ -417,6 +463,10 @@ function MessageOwner({
   deliveryHeld?: boolean;
   /** S282 R-S282-4: the off-cycle end date row the readiness list shows while the hold stands. */
   offCycleHold?: OffCycleReadinessItem | null;
+  /** S281 R-S281-3: this message's confirmed send, when the step reads as sent. */
+  sent?: SentMessageReceipt | null;
+  /** S273 R-S273-3: the step's held or out-of-date unsent message, from the stage projection. */
+  unsent?: UnsentMessageView | null;
 }) {
   const context = useRenewalManualWorkspace();
   const working = useRenewalWorkingRecord();
@@ -431,6 +481,8 @@ function MessageOwner({
       compact={compact}
       deliveryHeld={deliveryHeld}
       offCycleHold={offCycleHold}
+      sent={sent}
+      unsent={unsent}
       secondaryWork={secondaryWork}
       workingTerms={workingTerms}
     />
@@ -799,6 +851,8 @@ function MessagePreparationEditor({
   compact,
   deliveryHeld,
   offCycleHold,
+  sent = null,
+  unsent = null,
   secondaryWork,
   workingTerms,
 }: {
@@ -810,6 +864,10 @@ function MessagePreparationEditor({
   compact: boolean;
   deliveryHeld: boolean;
   offCycleHold: OffCycleReadinessItem | null;
+  /** S281 R-S281-3: this message's confirmed send, when the step reads as sent. */
+  sent?: SentMessageReceipt | null;
+  /** S273 R-S273-3: the step's held or out-of-date unsent message. */
+  unsent?: UnsentMessageView | null;
   secondaryWork?: ReactNode;
   workingTerms?: ReactNode;
 }) {
@@ -818,9 +876,15 @@ function MessagePreparationEditor({
   const nowCard = useRenewalNowCard();
   const [signatureSettingsOpen, setSignatureSettingsOpen] = useState(false);
   const [current, setCurrent] = useState<Preparation | null>(null);
+  // S285 R-S285-3: an owner message whose copy states the term reads the working dates too.
+  const ownerTermStated =
+    channel === "owner" &&
+    current?.facts.ownerIntent !== "renew_or_not" &&
+    ownerCopyStatesTerm(current?.facts.ownerCopyVersion);
   const messageWorkingFields = messageWorkingFieldsFor(
     channel,
     current?.facts.ownerIntent === "renew_or_not",
+    ownerTermStated,
   );
   const [inputs, setInputs] = useState(emptyMessagePreparationInputs);
   // S161: the authored body (typed here or accepted from a refinement) and the authored subject.
@@ -1639,6 +1703,7 @@ function MessagePreparationEditor({
   const paragraph = responseRequestParagraph(
     channel,
     payload?.effective.edits ?? { responseRequest: "" },
+    ownerTermStated ? "v2.1" : "v2.0",
   );
   const signatureEdited =
     canonical(signature ?? null) !== canonical(current?.inputs.signature ?? null);
@@ -1740,6 +1805,13 @@ function MessagePreparationEditor({
               : current.signatureSetup !== null,
           outgoingReasons: current.outgoingReasons,
           renewOrNot: current.facts.ownerIntent === "renew_or_not",
+          // S285 R-S285-3: the owner message states the term, so "Renewal dates" is a readiness line.
+          ownerTermStated,
+          // S281 R-S281-2: the lease and cycle in staff terms for the exact review.
+          leaseLabel: renewalLeaseLabel(
+            current.facts.address,
+            current.facts.leaseEndDate,
+          ),
           reason: inputs.recommendationReason ?? "",
           composerHref: workflowComposerHref({
             leaseId,
@@ -1775,9 +1847,16 @@ function MessagePreparationEditor({
   // tenant offer shows it where it is shown (the Now card in Guided, the section in Full);
   // otherwise it leads this card's own work.
   const focusView = useRenewalFocusView();
+  // S281 R-S281-12: in the Guided outcome layout the prepared message renders in this card as
+  // its named groups, as Full view does, so it hosts the charge review there too.
+  const preparedInlineGuided = Boolean(
+    compact && focusView?.outcomeLayout && focusView.view === "guided",
+  );
   const preparedHostsCharges =
     preparedPreviewInNow ||
-    Boolean(preparedData && compact && focusView?.view === "full");
+    Boolean(
+      preparedData && compact && (focusView?.view === "full" || preparedInlineGuided),
+    );
   const evidenceHost = useOfferChargeEvidenceHost(
     channel === "tenant" && Boolean(offerReview),
   );
@@ -1853,12 +1932,17 @@ function MessagePreparationEditor({
           </details>
         </div>
       ) : null}
+      {/* S281 R-S281-1 / R-S281-12: in the outcome layout the one Working renewal terms editor
+          is Work, above the named message groups. */}
+      {secondaryWork !== undefined ? workingTerms : null}
       {preparedData ? (
         <PreparedMessageSlot
           data={preparedData}
           compactFull={compact}
           deliveryHeld={deliveryHeld}
           offCycleHold={offCycleHold}
+          sent={sent}
+          unsent={unsent}
           chargeReview={preparedHostsCharges ? chargeReview : null}
           onCopy={() => copy("formatted")}
           onDraftCreate={async () => {
@@ -1882,7 +1966,7 @@ function MessagePreparationEditor({
         />
       ) : null}
       {chargeReview && !preparedHostsCharges ? chargeReview : null}
-      {workingTerms}
+      {secondaryWork !== undefined ? null : workingTerms}
       <RenewalSecondaryWork
         // S270: one named group per outcome: the message options, then the outcome's records.
         label={
@@ -2191,6 +2275,14 @@ function MessagePreparationEditor({
                   />
                 </fieldset>
               </>
+            ) : null}
+            {/* S285 R-S285-6: the approver's control for the owner wording that asks about the
+                term, beside the owner template's publication. Nothing shows for an Editor. */}
+            {channel === "owner" ? (
+              <OwnerWordingPublication
+                onPublished={() => void load().catch((error) => setNotice(error.message))}
+                ownerCopy={current.ownerCopy}
+              />
             ) : null}
             <section
               aria-label="Unsent Gmail draft"
@@ -2625,6 +2717,7 @@ function MessagePreparationEditor({
                         {item.target.kind === "control" ? (
                           <a
                             className="text-link"
+                            data-renewal-fix-link
                             href={`#${item.target.id}`}
                             onClick={() => openMissingInput(item)}
                           >
