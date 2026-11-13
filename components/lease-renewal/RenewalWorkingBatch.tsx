@@ -202,10 +202,14 @@ export function RenewalWorkingBatch({
     const search = serializeRenewalBatchQuery(initial);
     return search === "" ? "" : `?${search}`;
   }, [initial]);
-  const search = useSyncExternalStore(subscribeToUrl, currentSearch, () => serverSearch);
+  const urlSearch = useSyncExternalStore(
+    subscribeToUrl,
+    currentSearch,
+    () => serverSearch,
+  );
   const query = useMemo(
-    () => parseRenewalBatchQuery(new URLSearchParams(search)),
-    [search],
+    () => parseRenewalBatchQuery(new URLSearchParams(urlSearch)),
+    [urlSearch],
   );
   const month = query.month ?? defaultMonth;
   const openGroup = query.group;
