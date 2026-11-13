@@ -51,6 +51,11 @@ import {
 // value every existing output was unchanged; the marker then changes every one of the 72
 // guidance outputs; no existing manual summary changed; the assisted groups are new keys.
 
+// S280 re-baseline. The fixture has no shared current-rent decision. Projecting the prior
+// contract marker onto the 12,960 current structured outputs matches all 72 historical
+// guidance hashes. All 87 manual and assisted hashes also match. The new marker
+// "s280-rentvine-basis" accounts for all changes to this fixture.
+
 const FIXTURE_PATH = join(__dirname, "..", "fixtures", "s142-predicate-equivalence.json");
 const CYCLE_ID = "b4bc3b81-c402-4f62-a2e2-c605c67867fb";
 
