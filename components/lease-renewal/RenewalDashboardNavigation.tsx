@@ -617,6 +617,9 @@ export function focusRenewalStepPrimary(stepId: RenewalPathStepId): boolean {
  */
 function noteFullJump(origin: HTMLElement | null, target: HTMLElement) {
   if (target.closest("[data-renewal-guided]")) return;
+  // A repeated request for the control that already holds focus (a link's own handler and the
+  // page's fragment handler both land it) is not a new jump, so it keeps the way back.
+  if (origin === target) return;
   const from = origin?.closest<HTMLElement>("section[id^='renewal-section-']");
   const to = target.closest<HTMLElement>("section[id^='renewal-section-']");
   const stepId = from ? SECTION_STEPS[from.id] : undefined;

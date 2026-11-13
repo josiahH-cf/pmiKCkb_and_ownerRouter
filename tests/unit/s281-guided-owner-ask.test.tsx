@@ -239,7 +239,11 @@ describe(
       const fake = await open({ step: "ask-owner" });
       const card = nowCard();
       expect(card).toHaveAttribute("data-renewal-now-step", "ask-owner");
-      const heading = within(card).getByRole("heading", { level: 2 });
+      // The card's own step heading; the step's mounted controls carry their own headings below.
+      const heading = within(card).getByRole("heading", {
+        level: 2,
+        name: "Ask the owner",
+      });
       const facts = card.querySelector<HTMLElement>("[data-renewal-owner-facts]")!;
       const primary = card.querySelector<HTMLElement>("[data-renewal-now-primary]")!;
       expect(facts).not.toBeNull();
