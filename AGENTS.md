@@ -704,6 +704,17 @@ authorizes a send, a provider write or a paid lookup outside the existing exact 
 contracts. Every permanent safety boundary above still applies. If building any of these needs a
 protected-path change, prepare and surface it for the owner.
 
+Owner launch 2026-11-13 (UTC): the owner explicitly launched handoff
+`staff-workflow-audit-2026-11-12`, S272–S286 (intakes 150–164), as one unattended cumulative
+run through implementation, verified repairs, the S284 qualification, one pull request and one
+guarded production release of the whole batch, under Feature-run authorization continuity. The
+owner accepts every assumption the suites mark as written for this launch. Each suite gets its
+fail-first proof and focused checks; the full gate, core E2E, the S284 matrix and its replays
+run once on the cumulative head before the release. The launch does not authorize publishing
+the new owner wording or the follow-up copy in production, which stays a template approver's
+staff action, or the two S284 R-S284-5 production counts. It changes no billing, budget,
+identity, role, claim, action key, `production_allowed` value or protected path.
+
 ### Owner-authorized activation program — current boundary
 
 The owner directed on 2026-08-31 that the application graduate from categorical read-only posture

@@ -1,8 +1,16 @@
 # Loop state
 
-Last updated: 2026-11-12 (UTC). Read AGENTS.md and docs/facts.md first.
+Last updated: 2026-11-13 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current execution
+
+The owner launched handoff `staff-workflow-audit-2026-11-12`, S272–S286 (intakes 150–164),
+on 2026-11-13 UTC as one unattended cumulative run with one pull request and one guarded
+release at the end ([launch authority](../AGENTS.md#owner-directed-staff-workflow-audit-unblock--2026-11-12)).
+Work is isolated on `claude/staff-workflow-audit-s272-s286-5fb728`, based on exact main
+`7dde3a79371545d1e5e536ab59eb47af7af34f7c` (PR #203). Intake `auth:ensure` read READY with
+verified gcloud and ADC token refreshes. Focused checks run per suite; the full gate, core
+E2E, the S284 matrix and the release run once on the cumulative head.
 
 Production serves `7f4cf234c18c0b80a0ed88bc08d70e174ae9c311` / `pmi-kc-app-rmwcvtvpl-13e72fe3f01f` at 100% canonical traffic.
 Run `943a91a6-c659-4234-95ea-3582d0a4011e` consumed its permit after one successful application build `053961ec-41a0-4553-bc03-f37ecf2d8926`.
@@ -60,7 +68,7 @@ The owner resolved the Gmail profile scope on November 8 for the existing guarde
   to diagnose it. The live SDK exception is not exposed; missing effective permission is
   independently sufficient to prevent that read. Keep the app's honest non-runnable state.
 - **November 12 staff workflow audit:** S272–S286 (intakes 150–164) are AUTHORING READY and
-  unlaunched. Owner direction of November 12 carried every audit proposal, retired the rules
+  launched on 2026-11-13 UTC (above). Owner direction of November 12 carried every audit proposal, retired the rules
   that held ten of them and retired B-PROCESS-OWNER. The suite index's November 12 section and
   the router's Action authority record it. Each suite marks its inferred specifics as assumptions.
 - Canonical U1–U6 in docs/open-blockers.md own real form/legal/map, case/terms, timing exceptions,
