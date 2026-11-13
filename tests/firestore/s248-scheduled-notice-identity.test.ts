@@ -20,8 +20,9 @@ import { saveRenewalWorkingField } from "@/lib/firestore/renewal-working-record"
 // source read anywhere raises every notice marker's admission version, so binding that version
 // paused every scheduled message on its first due tick after any read. The material identity is the
 // notice's scope and semantic hash: an unrelated read changes nothing and the message is sent and
-// recorded as the outreach, while an observed notice, a recorded notice later withdrawn (reviewed or
-// not) and an admitted read in flight at dispatch each still pause it before any send.
+// recorded as the outreach, while an observed notice and a recorded notice later withdrawn (reviewed
+// or not) each still pause it before any send. S274 R-S274-4: an admitted read in flight at
+// dispatch is not settled, so the message waits for the next check instead of pausing.
 
 const state = vi.hoisted(() => ({
   db: null as Firestore | null,
@@ -472,7 +473,10 @@ describe("S248 L39: a scheduled renewal message keeps its notice identity across
     expect(await outreachRecords()).toHaveLength(0);
   });
 
-  it("an admitted read still in flight when the due message is checked pauses it before any send", async () => {
+  // S274 R-S274-4 deliberately replaces the pause this test pinned for a read still in flight: the
+  // read is not settled, so the due message waits (no claim, no send, no pause) and the next
+  // settled check sends it when nothing changed.
+  it("AC-S274-3 / BEH-S274-3: an admitted read still in flight when the due message is checked holds nothing, and the next settled check sends it once", async () => {
     const f = fixture();
     const scheduled = await f.schedule();
     clearSources();
@@ -480,11 +484,22 @@ describe("S248 L39: a scheduled renewal message keeps its notice identity across
     // observation settles: the marker is pending a newer generation than the one the dispatch read.
     state.beforeObservation = () =>
       withRenewalNoticeAdmission(state.actor, {}, db).beforeLeaseSourceRead(Date.now());
-    const result = await f.dueTick(scheduled);
+    const waited = await f.dueTick(scheduled);
     expect(state.beforeObservation).toBeNull();
-    expect(result.status).toBe("paused");
-    expect(result.sequence.pause?.cause).toBe("changed_source");
+    expect(waited.status).toBe("awaiting_source");
+    expect(waited.waitedOnLeaseRead).toBe(true);
+    expect(waited.sequence.state).toBe("active");
+    expect(waited.sequence.pause).toBeNull();
+    expect(waited.sequence.observation).toMatchObject({
+      state: "unavailable",
+      reason: "lease_read_settling",
+    });
     expect(f.send).not.toHaveBeenCalled();
+    // The next check reads the settled generation. Nothing changed, so it is sent exactly once.
+    const next = await f.dueTick(scheduled);
+    expect(next.status).toBe("sent");
+    expect(next.sequence.pause).toBeNull();
+    expect(f.send).toHaveBeenCalledTimes(1);
   });
 
   it("admissions that keep landing during the dispatch's own reads hold the due message without a send", async () => {

@@ -29,11 +29,18 @@ import {
 } from "@/lib/firestore/renewal-outreach-records";
 import { CommunicationAttachmentStore } from "./sequence-attachments";
 import { renewalNoticeMaterialIdentity } from "./renewal-material-source";
+import { renewalReviewedInputs } from "./renewal-reviewed-inputs";
+import { LEASE_READ_REREAD_WAITS_MS, LeaseReadNotSettledError } from "./reviewed-inputs";
+import { RenewalNoticeSourceError } from "@/lib/lease-renewal/notice-source-error";
+import { settleLiveLeaseRefresh } from "@/lib/lease-renewal/live-lease-cache";
 import { offerSnapshotIsMaterial } from "@/lib/lease-renewal/offer-snapshot";
 import {
   WorkflowCommunicationSequenceService,
   assertCommunicationStaff,
+  settleCommunicationTarget,
   type CommunicationSequenceDependencies,
+  type ResolveTargetOptions,
+  type SettledCommunicationTarget,
 } from "./sequence-service";
 import { communicationSendKey, type VerifiedCommunicationTarget } from "./sequence-model";
 import {
@@ -59,6 +66,8 @@ export function createCommunicationSequenceService() {
     store: new FirestoreCommunicationSequenceStore(),
     now: readRehearsalMailTime,
     resolveTarget: resolveCommunicationTarget,
+    // S274 R-S274-1: an unsettled read at confirm joins the lease read in flight before re-reading.
+    waitForLeaseRead,
     resolveAttachment: (id, context) => attachments.resolve(id, context),
     readActor: readCurrentCommunicationActor,
     readBusinessProfile: (actor) => readBusinessProfile(actor),
@@ -107,9 +116,32 @@ export async function readCurrentCommunicationActor(
     hd: record.email.toLowerCase().endsWith("@pmikcmetro.com") ? "pmikcmetro.com" : "",
   });
 }
-async function renewalTarget(actor: AuthenticatedUser, c: WorkflowCommunicationContext) {
+/**
+ * S274 R-S274-1/R-S274-4: a refused admission of the approval read (`settledRead`) is a read still
+ * in progress (floors advanced while it was read, the generation was replaced, it is not yet
+ * admitted) unless it is a real outage of the lease or status source, which stays the existing
+ * unreadable-source refusal and is never treated as unchanged.
+ */
+function settledReadFailure(error: unknown): never {
+  if (
+    error instanceof RenewalNoticeSourceError &&
+    error.reason !== "lease_unavailable" &&
+    error.reason !== "status_unavailable"
+  )
+    throw new LeaseReadNotSettledError("read_in_flight");
+  throw error;
+}
+async function renewalTarget(
+  actor: AuthenticatedUser,
+  c: WorkflowCommunicationContext,
+  options: ResolveTargetOptions = {},
+) {
   const channel = c.purpose === "renewal_owner" ? "owner" : "tenant";
-  const current = await currentRenewalMessage(actor, c.entityId, channel);
+  const current = options.settle
+    ? await currentRenewalMessage(actor, c.entityId, channel, undefined, {
+        settledRead: true,
+      }).catch(settledReadFailure)
+    : await currentRenewalMessage(actor, c.entityId, channel);
   const to = current.recipients.status === "ready" ? [current.recipients.to] : [];
   const cc = current.recipients.status === "ready" ? current.recipients.cc : [];
   const blockers =
@@ -201,6 +233,18 @@ async function renewalTarget(actor: AuthenticatedUser, c: WorkflowCommunicationC
                 range: f.range ? { low: f.range.low, high: f.range.high } : null,
               }),
       };
+  const targetBlockers = [
+    ...new Set([
+      ...blockers,
+      ...required,
+      ...(c.replyTo && current.priorSenderWording
+        ? ["Review prior sender wording and rebuild or edit the current message."]
+        : []),
+      ...(!c.replyTo && current.publication.status !== "approved"
+        ? [current.publication.reason]
+        : []),
+    ]),
+  ];
   const target: VerifiedCommunicationTarget = {
     context: c,
     to,
@@ -211,19 +255,30 @@ async function renewalTarget(actor: AuthenticatedUser, c: WorkflowCommunicationC
     dispositionRevision: current.dispositionRevision,
     outgoingContract: true,
     signatureSetup: current.signatureSetup,
-    blockers: [
-      ...new Set([
-        ...blockers,
-        ...required,
-        ...(c.replyTo && current.priorSenderWording
-          ? ["Review prior sender wording and rebuild or edit the current message."]
-          : []),
-        ...(!c.replyTo && current.publication.status !== "approved"
-          ? [current.publication.reason]
-          : []),
-      ]),
-    ],
+    blockers: targetBlockers,
     materialSourceHash: sequenceHash({ ...leaseBasis, contentBasis, blockers }),
+    // S274 ARCH-S274-1: whether this read settled; S274 ARCH-S274-3: what the review displays.
+    readSettlement: current.readSettlement,
+    reviewedInputs: renewalReviewedInputs({
+      channel,
+      reply: Boolean(c.replyTo),
+      to,
+      cc,
+      signature: current.inputs.signature,
+      signatureSetup: current.signatureSetup,
+      facts: f,
+      publication:
+        current.publication.status === "approved"
+          ? {
+              name: current.publication.name,
+              contentHash: current.publication.contentHash,
+            }
+          : null,
+      offerSnapshotHash: offerBasis.offer ?? null,
+      notice,
+      dispositionRevision: current.dispositionRevision ?? null,
+      blockers: targetBlockers,
+    }),
     legacyMaterialSourceHash,
     // S265: the tenant resources as read now, and those the offer's decisions require. Only the
     // resources an exact authorized message includes are frozen and compared.
@@ -259,6 +314,7 @@ async function renewalTarget(actor: AuthenticatedUser, c: WorkflowCommunicationC
 export async function prepareWorkflowComposition(
   actor: AuthenticatedUser,
   context: WorkflowCommunicationContext,
+  options: ResolveTargetOptions = {},
 ) {
   assertCommunicationStaff(actor, "read");
   const c = WorkflowCommunicationContextSchema.parse(context);
@@ -267,7 +323,7 @@ export async function prepareWorkflowComposition(
   communicationSendKey(c);
   if (!hasSpaceAccess(actor, c.lane))
     throw new EditableLayerError("The linked workflow Space is unavailable.", 403);
-  const result = await renewalTarget(actor, c);
+  const result = await renewalTarget(actor, c, options);
   if (!c.replyTo) return result;
   const service = createCommunicationSequenceService();
   const original = await service.get(actor, c.replyTo.sequenceId);
@@ -303,8 +359,39 @@ export async function prepareWorkflowComposition(
 export async function resolveCommunicationTarget(
   actor: AuthenticatedUser,
   context: WorkflowCommunicationContext,
+  options: ResolveTargetOptions = {},
 ) {
-  return (await prepareWorkflowComposition(actor, context)).target;
+  return (await prepareWorkflowComposition(actor, context, options)).target;
+}
+
+/**
+ * S274 R-S274-1: wait before the next read of an unsettled lease read. A lease read in flight in
+ * this instance is joined (the wait ends when it lands); otherwise the wait runs its length, so a
+ * read another instance started can land first. Starts no read and changes no cache state.
+ */
+export async function waitForLeaseRead(ms: number): Promise<void> {
+  const started = Date.now();
+  if (await settleLiveLeaseRefresh(ms)) return;
+  const left = ms - (Date.now() - started);
+  if (left > 0) await new Promise((resolve) => setTimeout(resolve, left));
+}
+
+/**
+ * S274 ARCH-S274-1, for later suites (S272, S273): the one target resolution confirm uses. It
+ * joins a lease read in flight and re-reads within the stated bound (three re-reads over about ten
+ * seconds; pass `waitsMs: []` for one read and no wait, as the worker does), and reports a settled
+ * target or a typed not-settled result. A real outage still throws.
+ */
+export async function resolveSettledCommunicationTarget(
+  actor: AuthenticatedUser,
+  context: WorkflowCommunicationContext,
+  options: { waitsMs?: readonly number[] } = {},
+): Promise<SettledCommunicationTarget> {
+  return settleCommunicationTarget(
+    () => resolveCommunicationTarget(actor, context, { settle: true }),
+    options.waitsMs ?? LEASE_READ_REREAD_WAITS_MS,
+    waitForLeaseRead,
+  );
 }
 
 export async function prepareWorkflowReplyComposition(

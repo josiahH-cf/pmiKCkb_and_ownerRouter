@@ -184,6 +184,9 @@ const OBSERVATION_FAILURE_TEXT: Record<SequenceObservationFailure, string> = {
     "a linked Gmail thread is over the 50-message or 100,000-character read limit",
   mailbox_sync_failed: "the staff mailbox sync failed, so it was not checked this run",
   source_unavailable: "the lease source or recipient facts could not be read",
+  // S274 R-S274-4: a wait, not a hold: the next run checks the settled read.
+  lease_read_settling:
+    "the lease was being re-read at the due time, so the message waits for the next check",
 };
 
 /**
@@ -200,6 +203,9 @@ export function describeSequenceObservation(
   // A record from before the reason was kept says only what it knows.
   if (!observation.reason)
     return `Incoming could not be fully read (last attempt ${age} ago); scheduled sends are held until it reads cleanly`;
+  // S274 R-S274-4: a wait on a settling lease read is not a hold and not an incoming read failure.
+  if (observation.reason === "lease_read_settling")
+    return `Waiting on a lease read: ${OBSERVATION_FAILURE_TEXT.lease_read_settling} (last check ${age} ago)`;
   const since = describeAge(
     nowMs - (observation.unavailableSinceMs ?? observation.checkedAtMs),
   );
@@ -258,6 +264,8 @@ export function describeWorkerHealth(
       `${c.held ?? 0} held`,
       `${c.failures ?? 0} failures`,
       ...(c.notChecked ? [`${c.notChecked} not checked this run`] : []),
+      // S274 R-S274-7: counts only; no record or address.
+      ...(c.waitedOnLeaseRead ? [`${c.waitedOnLeaseRead} waited on a lease read`] : []),
     ];
     lines.push(
       `Worker: last run finished ${describeAge(nowMs - run.finishedAtMs!)} ago (${parts.join(", ")}).`,

@@ -14,6 +14,7 @@ import {
   describeCommunicationEvidence,
 } from "@/lib/gmail-hub/communication-evidence";
 import { classifyIncomingMessage } from "@/lib/gmail-hub/inbound-classification";
+import { changedInputLine, type ReviewedInput } from "@/lib/gmail-hub/reviewed-inputs";
 import type { GmailThreadView } from "@/lib/gmail-runtime/types";
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
@@ -72,6 +73,8 @@ interface Composition {
     cc: string[];
     blockers?: string[];
     signatureSetup?: object | null;
+    /** S274 R-S274-5: the inputs this review displays; sent back only to name what changed. */
+    reviewedInputs?: ReviewedInput[];
   };
   attachmentNotice: string | null;
   signatureParagraph?: RichCommunicationMessage["paragraphs"][number] | null;
@@ -510,6 +513,8 @@ export function CommunicationComposer({
           reviewedDraftHash: hash.current,
           reviewedTargetHash,
           schedule,
+          // S274 R-S274-5: a refusal names each input that changed since this review.
+          ...(target?.reviewedInputs ? { reviewedInputs: target.reviewedInputs } : {}),
         });
       } else {
         const input = {
@@ -848,7 +853,22 @@ export function CommunicationComposer({
           Review the linked history before resuming.
         </p>
       ) : null}
-      {sequence?.observation?.state === "unavailable" ? (
+      {sequence?.pause?.changedInputs?.length ? (
+        // S274 R-S274-6: what changed, with the value kept with the authorization.
+        <ul aria-label="What changed" data-communication-field="pause-changed-inputs">
+          {sequence.pause.changedInputs.map((change) => (
+            <li key={change.key}>{changedInputLine(change)}</li>
+          ))}
+        </ul>
+      ) : null}
+      {sequence?.observation?.state === "unavailable" &&
+      sequence.observation.reason === "lease_read_settling" ? (
+        // S274 R-S274-4: a wait on a settling lease read, not a hold.
+        <p>
+          The lease was being re-read at the due time. Nothing was sent; the message is
+          checked again on the next run.
+        </p>
+      ) : sequence?.observation?.state === "unavailable" ? (
         <p>Incoming evidence is unavailable. Saved wording and history are retained.</p>
       ) : null}
       {sequence?.unresolvedOccurrenceId ? (

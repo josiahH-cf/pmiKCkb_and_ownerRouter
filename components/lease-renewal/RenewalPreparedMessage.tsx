@@ -29,6 +29,17 @@ import { createPortal } from "react-dom";
 import { Button, ConfirmationDialog, Field } from "@/components/ui";
 import { formatBusinessTimestamp } from "@/lib/date-display";
 import { renderEditableCommunicationBody } from "@/lib/gmail-hub/sequence-model";
+import {
+  LEASE_READ_NOT_SETTLED_CODE,
+  LEASE_READ_NOT_SETTLED_MESSAGE,
+  LEASE_READ_REREAD_WAITS_MS,
+  TARGET_CHANGED_CODE,
+  TARGET_CHANGED_LEAD,
+  changedInputLine,
+  type ChangedInput,
+  type LeaseReadSettlement,
+  type ReviewedInput,
+} from "@/lib/gmail-hub/reviewed-inputs";
 import type {
   CommunicationSequence,
   RichCommunicationMessage,
@@ -208,6 +219,10 @@ interface ReviewState {
   readonly cc: readonly string[];
   readonly subject: string;
   readonly body: string;
+  /** S274 R-S274-5: the inputs this review displayed, sent back only to name what changed. */
+  readonly reviewedInputs: readonly ReviewedInput[] | null;
+  /** S274 R-S274-5: after a refusal, what changed since the earlier review, with both values. */
+  readonly changes: readonly ChangedInput[] | null;
 }
 
 /** One save of the communication draft: the exact request, reused as is when it is retried. */
@@ -245,16 +260,52 @@ async function json<T>(url: string, body?: unknown): Promise<T> {
           body: JSON.stringify(body),
         },
   );
-  const payload = (await response.json().catch(() => ({}))) as T & { error?: string };
+  const payload = (await response.json().catch(() => ({}))) as T & {
+    error?: string;
+    code?: string;
+    changes?: ChangedInput[];
+  };
   if (!response.ok)
     throw Object.assign(new Error(payload.error ?? "This was not completed."), {
       status: response.status,
+      // S274: the typed refusal the sequences route returns, when there is one.
+      ...(typeof payload.code === "string" ? { code: payload.code } : {}),
+      ...(Array.isArray(payload.changes) ? { changes: payload.changes } : {}),
     });
   return payload;
 }
 
-/** How long to wait before each further read of the review while the lease read is replaced. */
-export const COMPOSITION_REREAD_WAITS_MS = [1_500, 3_000, 5_000] as const;
+/** S274: the typed refusal a failed request carried, if any. */
+function refusalOf(error: unknown): {
+  code: string | null;
+  changes: readonly ChangedInput[];
+} {
+  const value = error as { code?: unknown; changes?: unknown } | null;
+  return {
+    code: typeof value?.code === "string" ? value.code : null,
+    changes: Array.isArray(value?.changes) ? (value.changes as ChangedInput[]) : [],
+  };
+}
+
+/**
+ * How long to wait before each further read of the review while the lease read is replaced. The
+ * same bound confirm uses (S274 R-S274-1).
+ */
+export const COMPOSITION_REREAD_WAITS_MS = LEASE_READ_REREAD_WAITS_MS;
+
+/**
+ * S274 R-S274-2: a review read on a lease read that did not settle (a generation being replaced,
+ * or a retirement status unavailable only because the read is not fresh) is read again.
+ */
+export function compositionWaitsOnRead(target: {
+  readonly blockers?: readonly string[];
+  readonly readSettlement?: LeaseReadSettlement;
+}): boolean {
+  return (
+    onlyGenerationBeingReplaced(target.blockers) ||
+    target.readSettlement?.state === "not_settled"
+  );
+}
 
 /** True when the one thing holding the review is the lease generation being replaced. */
 export function onlyGenerationBeingReplaced(
@@ -434,6 +485,9 @@ function PreparedMessageBlock({
   const [followUpEnd, setFollowUpEnd] = useState("");
   const [followUpLimit, setFollowUpLimit] = useState("");
   const [unknownAuthorization, setUnknownAuthorization] = useState<string | null>(null);
+  // S274 R-S274-5: the review is being read again in place after a refusal for a real change.
+  const [reloading, setReloading] = useState(false);
+  const reviewEpoch = useRef(0);
   const confirmLock = useRef(false);
   const followUpSave = useRef<PendingSave | null>(null);
 
@@ -650,13 +704,30 @@ function PreparedMessageBlock({
       ? (reasonCheck.error.issues[0]?.message ?? RECOMMENDATION_REASON_REFUSAL)
       : null;
 
-  /** Save the message, read the lease composition and save the communication draft for review. */
-  const prepareReview = async (mode: "send" | "schedule") => {
+  /**
+   * Save the message, read the lease composition and save the communication draft for review.
+   * S274 R-S274-5: `reloadAfter` reads the review again in place after a refusal for a real
+   * change: the server's current message, recipients and sender, with each changed input named.
+   * It saves nothing on the lease and never sends; a further confirmation is required.
+   */
+  const prepareReview = async (
+    mode: "send" | "schedule",
+    reloadAfter: readonly ChangedInput[] | null = null,
+  ) => {
     setBusy(true);
     setMessage("");
     setChangedReview(null);
+    if (reloadAfter) setReloading(true);
+    const epoch = reviewEpoch.current;
+    const cancelled = () => reloadAfter !== null && epoch !== reviewEpoch.current;
+    // A reload shows the result in the dialog; a reload that cannot show a review closes it, and
+    // the reason reads on the card.
+    const fail = (text: string) => {
+      if (reloadAfter) setReview(null);
+      setMessage(text);
+    };
     try {
-      if (!(await api.flush())) {
+      if (!reloadAfter && !(await api.flush())) {
         setMessage(
           "Your latest message could not be prepared for review. Your entries are kept; correct or retry the save.",
         );
@@ -665,6 +736,7 @@ function PreparedMessageBlock({
       const workingFields = messageWorkingFieldsFor(api.channel, api.renewOrNot);
       const workingVersion = working?.confirmedVersion?.(workingFields);
       const figuresChanged = () =>
+        !reloadAfter &&
         Boolean(
           working?.hasUnsettled?.(workingFields) ||
           working?.confirmedVersion?.(workingFields) !== workingVersion,
@@ -679,6 +751,8 @@ function PreparedMessageBlock({
             cc: string[];
             blockers?: string[];
             noticeCycleId?: string | null;
+            readSettlement?: LeaseReadSettlement;
+            reviewedInputs?: ReviewedInput[];
           };
           signatureParagraph?: RichCommunicationMessage["paragraphs"][number] | null;
           reviewedTargetHash: string;
@@ -689,15 +763,14 @@ function PreparedMessageBlock({
       // A lease read older than a minute starts the next RentVine read, and the review made on the
       // older one answers that the generation is being replaced. As the reason asks, the review is
       // read again once that next read lands: reads only, a bounded few, and the server decides.
+      // S274 R-S274-2: a read the server reports as not settled is read again the same way.
       for (const waitMs of COMPOSITION_REREAD_WAITS_MS) {
-        if (!onlyGenerationBeingReplaced(composition.target.blockers)) break;
+        if (!compositionWaitsOnRead(composition.target)) break;
         await new Promise((resolve) => setTimeout(resolve, waitMs));
         composition = await readComposition();
       }
       if (composition.target.blockers?.length) {
-        setMessage(
-          `This message cannot be sent yet: ${composition.target.blockers.join(" ")}`,
-        );
+        fail(`This message cannot be sent yet: ${composition.target.blockers.join(" ")}`);
         return;
       }
       if (figuresChanged()) {
@@ -775,6 +848,7 @@ function PreparedMessageBlock({
         saved.sequence.initial.layout,
       );
       followUpSave.current = null;
+      if (cancelled()) return;
       setReview({
         mode,
         signatureParagraph: composition.signatureParagraph ?? null,
@@ -787,15 +861,18 @@ function PreparedMessageBlock({
         subject: saved.sequence.initial.subject,
         body: rendered.plainText,
         reviewedAtMs: saved.sequence.updatedAtMs,
+        reviewedInputs: composition.target.reviewedInputs ?? null,
+        changes: reloadAfter,
       });
     } catch (error) {
-      setMessage(
+      fail(
         error instanceof Error
           ? error.message
           : "The review could not be prepared. Nothing was sent.",
       );
     } finally {
       setBusy(false);
+      if (reloadAfter) setReloading(false);
     }
   };
 
@@ -803,6 +880,7 @@ function PreparedMessageBlock({
     if (
       !review ||
       unknownAuthorization ||
+      reloading ||
       confirmLock.current ||
       (review.mode === "schedule" && !scheduleReady) ||
       (includesFollowUps && (!followUpPlan || !followUpMessage))
@@ -812,6 +890,8 @@ function PreparedMessageBlock({
     setBusy(true);
     setMessage("");
     let sendingId: string | null = null;
+    // S274 R-S274-5: a refusal for a real change reloads this review in place after the request.
+    let reloadAfter: readonly ChangedInput[] | null = null;
     try {
       let sequence = review.sequence;
       let reviewedDraftHash = review.reviewedDraftHash;
@@ -843,6 +923,8 @@ function PreparedMessageBlock({
         }>("/api/gmail-hub/sequences", pending.body);
         sequence = saved.sequence;
         reviewedDraftHash = saved.reviewedDraftHash;
+        // A reloaded review saves over this exact version of the draft.
+        sequenceRef.current = { id: sequence.id, version: sequence.version };
       }
       sendingId = sequence.id;
       const result = await json<{ sequence: CommunicationSequence }>(
@@ -854,6 +936,8 @@ function PreparedMessageBlock({
           operationId: crypto.randomUUID(),
           reviewedDraftHash,
           reviewedTargetHash: review.reviewedTargetHash,
+          // S274 R-S274-5: only to name what changed; the server decides on the target hash.
+          ...(review.reviewedInputs ? { reviewedInputs: review.reviewedInputs } : {}),
           schedule:
             review.mode === "schedule"
               ? {
@@ -887,16 +971,28 @@ function PreparedMessageBlock({
 
       router.refresh();
     } catch (error) {
-      if (sendingId && outcomeUnknown(error)) setUnknownAuthorization(sendingId);
-      setMessage(
-        error instanceof Error
-          ? `${error.message} Check the lease before trying again; nothing is sent twice.`
-          : "The response did not arrive. Check the lease before trying again; nothing is sent twice.",
-      );
+      const refusal = refusalOf(error);
+      if (refusal.code === LEASE_READ_NOT_SETTLED_CODE) {
+        // S274 R-S274-3: the lease is still being re-read. The review keeps its content and its
+        // confirm button; nothing was sent, scheduled or held.
+        setMessage(LEASE_READ_NOT_SETTLED_MESSAGE);
+      } else if (refusal.code === TARGET_CHANGED_CODE) {
+        // S274 R-S274-5: a fact the review showed really changed. The review is read again in place
+        // with each changed value marked, and needs one more confirmation.
+        reloadAfter = refusal.changes;
+      } else {
+        if (sendingId && outcomeUnknown(error)) setUnknownAuthorization(sendingId);
+        setMessage(
+          error instanceof Error
+            ? `${error.message} Check the lease before trying again; nothing is sent twice.`
+            : "The response did not arrive. Check the lease before trying again; nothing is sent twice.",
+        );
+      }
     } finally {
       confirmLock.current = false;
       setBusy(false);
     }
+    if (reloadAfter) await prepareReview(review.mode, reloadAfter);
   }
 
   // R-S249-8: "Review and send" is the Now card's primary action while the step asks for its send.
@@ -1330,10 +1426,11 @@ function PreparedMessageBlock({
       ) : null}
       {actionsSlot && !deliveryHeld ? createPortal(actionsBlock, actionsSlot) : null}
       <ConfirmationDialog
-        busy={busy}
+        busy={busy && !reloading}
         busyLabel={review?.mode === "schedule" ? "Scheduling…" : "Sending…"}
         confirmDisabled={
           !review ||
+          reloading ||
           Boolean(unknownAuthorization) ||
           (review.mode === "schedule" && !scheduleReady) ||
           Boolean(includesFollowUps && !followUpPlan)
@@ -1347,7 +1444,11 @@ function PreparedMessageBlock({
         }
         description="Review the exact message, recipients and sender. Confirming is the one step that sends or schedules it."
         error={review && message ? message : undefined}
-        onCancel={() => setReview(null)}
+        onCancel={() => {
+          // A reload still in flight never reopens a review the person cancelled.
+          reviewEpoch.current += 1;
+          setReview(null);
+        }}
         onConfirm={() => void confirm()}
         open={review !== null}
         startWithReview
@@ -1356,6 +1457,29 @@ function PreparedMessageBlock({
       >
         {review ? (
           <div className="ui-stack-tight" data-renewal-field="exact-review">
+            {reloading ? (
+              // S274 R-S274-5: confirm stays disabled while the review is read again.
+              <p data-renewal-field="review-reloading" role="status">
+                Loading the current message from the lease…
+              </p>
+            ) : review.changes ? (
+              // S274 R-S274-5: each changed value with its previous value, from the server's read.
+              <div
+                className="renewal-notice ui-stack-tight"
+                data-renewal-field="review-changed"
+                role="status"
+              >
+                <p>
+                  {TARGET_CHANGED_LEAD} The message below is current. Confirm again to{" "}
+                  {review.mode === "schedule" ? "schedule" : "send"} it.
+                </p>
+                <ul aria-label="What changed">
+                  {review.changes.map((change) => (
+                    <li key={change.key}>{changedInputLine(change)}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
             <p>
               From {review.sequence.senderEmail} · To {review.to.join(", ")}
               {review.cc.length ? ` · Cc ${review.cc.join(", ")}` : ""}

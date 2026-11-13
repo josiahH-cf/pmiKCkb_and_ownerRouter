@@ -14,6 +14,10 @@ import { GmailStateError } from "@/lib/gmail-hub/state-store";
 import { GmailRuntimeError } from "@/lib/gmail-runtime/client";
 import { GmailSubjectError } from "@/lib/gmail-runtime/subject";
 import { ActionRuntimeSuspendedError } from "@/lib/operations/runtime-suspension-gate";
+import {
+  CommunicationTargetChangedError,
+  LeaseReadNotSettledError,
+} from "@/lib/gmail-hub/reviewed-inputs";
 
 export function gmailHubErrorResponse(error: unknown) {
   if (error instanceof z.ZodError) {
@@ -56,6 +60,25 @@ export function gmailHubErrorResponse(error: unknown) {
   }
   if (error instanceof GmailSubjectError) {
     return NextResponse.json({ error: error.message }, { status: 403 });
+  }
+  // S274 R-S274-3: a lease read still settling is a distinct, retryable result; nothing was sent.
+  if (error instanceof LeaseReadNotSettledError) {
+    return NextResponse.json(
+      {
+        code: error.code,
+        reason: error.reason,
+        retryable: true,
+        error: error.message,
+      },
+      { status: error.status, headers: { "Cache-Control": "private, no-store" } },
+    );
+  }
+  // S274 R-S274-5: a settled difference, with each changed input the review displayed.
+  if (error instanceof CommunicationTargetChangedError) {
+    return NextResponse.json(
+      { code: error.code, changes: error.changes, error: error.message },
+      { status: error.status, headers: { "Cache-Control": "private, no-store" } },
+    );
   }
   if (error instanceof GmailRuntimeError) {
     return NextResponse.json(

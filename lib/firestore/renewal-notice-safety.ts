@@ -111,6 +111,13 @@ export interface RenewalNoticeSafety {
   history: z.infer<typeof historySchema> | null;
   ready: boolean;
   reason: string | null;
+  /**
+   * S274 R-S274-1/R-S274-4: true only when this observation is not ready because an admitted read
+   * already in flight superseded the generation it was made on (the marker is pending that newer
+   * read). Read-only projection: it changes no marker, admission or version. A conflict between
+   * settled generations is not superseded; it stays a real difference.
+   */
+  superseded?: boolean;
 }
 export function noticeSafetyMarkerRef(db: Firestore, leaseId: string) {
   return db
@@ -378,25 +385,30 @@ function projectNoticeObservation(
   }
   const history = saved?.exists ? historySchema.parse(saved.data()) : null;
   const disposition = projection(source, history);
-  const result = advanceNoticeSafetyMarker(
-    existing.exists ? NoticeSafetyMarkerSchema.parse(existing.data()) : null,
-    {
-      scopeHash,
-      semanticHash: noticeSemanticHash(
-        disposition,
-        tenancyHash !== null,
-        history?.revision ?? 0,
-      ),
-      sourceReadAt: {
-        lease: source.leaseReadAtMs,
-        status:
-          source.statusTable.status === "available"
-            ? (source.statusTable.readAtMs ?? 0)
-            : source.observedAtMs,
-      },
-      observedAt: new Date(source.observedAtMs).toISOString(),
+  const previousMarker = existing.exists
+    ? NoticeSafetyMarkerSchema.parse(existing.data())
+    : null;
+  // S274: the marker was pending a newer admitted read before this observation (read-only).
+  const pendingBefore =
+    previousMarker !== null &&
+    previousMarker.semanticHash ===
+      pendingNoticeHash(previousMarker.scopeHash, previousMarker.sourceReadAt);
+  const result = advanceNoticeSafetyMarker(previousMarker, {
+    scopeHash,
+    semanticHash: noticeSemanticHash(
+      disposition,
+      tenancyHash !== null,
+      history?.revision ?? 0,
+    ),
+    sourceReadAt: {
+      lease: source.leaseReadAtMs,
+      status:
+        source.statusTable.status === "available"
+          ? (source.statusTable.readAtMs ?? 0)
+          : source.observedAtMs,
     },
-  );
+    observedAt: new Date(source.observedAtMs).toISOString(),
+  });
   if (
     !existing.exists ||
     hashExecutionPreview(existing.data() ?? {}) !== hashExecutionPreview(result.marker)
@@ -431,6 +443,8 @@ function projectNoticeObservation(
     history,
     ready,
     reason,
+    // S274: not ready only because a newer admitted read in flight superseded this generation.
+    superseded: !result.ready && pendingBefore,
   };
 }
 

@@ -18,6 +18,7 @@ import { workflowComposerHref } from "@/lib/gmail-hub/composer-navigation";
 import { LiveGmailWorkspace } from "./LiveGmailWorkspace";
 import { workflowEntityHref } from "@/lib/gmail-hub/workflow-context";
 import type { CommunicationSequence } from "@/lib/gmail-hub/sequence-model";
+import { changedInputLine } from "@/lib/gmail-hub/reviewed-inputs";
 import { describeNextDue } from "@/lib/gmail-hub/schedule-calendar";
 import { useMinuteClock } from "@/components/hooks/useMinuteClock";
 import { BUSINESS_TIME_ZONE } from "@/lib/lease-renewal/business-calendar";
@@ -349,6 +350,17 @@ export function WorkflowCommunicationsHub({
                 <p data-communication-field="pause-cause">
                   Paused: {SEQUENCE_PAUSE_CAUSE_LABELS[s.pause.cause] ?? "Needs review"}
                 </p>
+              ) : null}
+              {s.pause?.changedInputs?.length ? (
+                // S274 R-S274-6: each changed input of a hold on a settled difference.
+                <ul
+                  aria-label="What changed"
+                  data-communication-field="pause-changed-inputs"
+                >
+                  {s.pause.changedInputs.map((change) => (
+                    <li key={change.key}>{changedInputLine(change)}</li>
+                  ))}
+                </ul>
               ) : null}
               {nowMs !== null && (s.state !== "draft" || s.observation) ? (
                 <p data-communication-field="incoming-checked">

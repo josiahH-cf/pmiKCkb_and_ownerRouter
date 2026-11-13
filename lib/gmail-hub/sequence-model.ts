@@ -179,6 +179,11 @@ export interface CommunicationSequence
     byUid: string;
     atMs: number;
     evidenceIds: string[];
+    /**
+     * S274 R-S274-6: for a hold on a settled difference, each changed input with the value kept
+     * with the authorization where one was kept. Absent on other causes and on older records.
+     */
+    changedInputs?: import("./reviewed-inputs").ChangedInput[];
   } | null;
   unresolvedOccurrenceId: string | null;
   linkedThreads: { senderEmail: string; threadId: string }[];
@@ -204,6 +209,17 @@ export interface CommunicationSequence
    * records authorized before it was kept.
    */
   authorizationOperation?: { id: string; revision: number };
+  /**
+   * S274 R-S274-6: the labelled inputs the authorizing review displayed (recipients, signature,
+   * content values, holds), for the authorization revision they belong to. Kept beside the
+   * authorization like the notice cycle, so its payload and replay binding are unchanged; absent on
+   * records authorized before it was kept. A hold on a settled difference names each changed input
+   * with its value from here.
+   */
+  authorizedInputs?: {
+    revision: number;
+    inputs: import("./reviewed-inputs").ReviewedInput[];
+  };
   observation: {
     checkedAtMs: number;
     state: "current" | "unavailable";
@@ -220,13 +236,15 @@ export interface CommunicationSequence
  * S233 R-S233-4: why an incoming check did not read cleanly. A linked thread could not be read; a
  * thread is over the 50-message or 100,000-character read bound (or one message over its body
  * bound); the staff mailbox sync failed, so the sequence was not checked this run; or the lease
- * source or recipient facts could not be read before a send.
+ * source or recipient facts could not be read before a send. S274 R-S274-4: or the lease read was
+ * still settling at the due time, so the message waits for the next check (no claim, no pause).
  */
 export const SEQUENCE_OBSERVATION_FAILURES = [
   "read_failed",
   "thread_too_large",
   "mailbox_sync_failed",
   "source_unavailable",
+  "lease_read_settling",
 ] as const;
 export type SequenceObservationFailure = (typeof SEQUENCE_OBSERVATION_FAILURES)[number];
 
@@ -293,6 +311,16 @@ export interface VerifiedCommunicationTarget {
   tenantResourceRequired?: readonly import("@/lib/lease-renewal/tenant-resource-evidence").TenantResourceId[];
   /** S264: the exact tenant offer snapshot the current message states. */
   offerSnapshot?: import("@/lib/lease-renewal/offer-snapshot").FrozenOfferSnapshot;
+  /**
+   * S274 ARCH-S274-1: whether the lease read this target was resolved on is settled. Absent reads
+   * as settled. Not part of the reviewed target hash.
+   */
+  readSettlement?: import("./reviewed-inputs").LeaseReadSettlement;
+  /**
+   * S274 ARCH-S274-3: the labelled inputs this target displays for review, in display order. Not
+   * part of the reviewed target hash; a refusal or a hold names the inputs that differ.
+   */
+  reviewedInputs?: import("./reviewed-inputs").ReviewedInput[];
 }
 export function communicationSendKey(
   context: WorkflowCommunicationContext,

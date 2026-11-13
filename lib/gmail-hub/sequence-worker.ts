@@ -111,6 +111,8 @@ export async function runCommunicationWorker(input: {
     held: 0,
     failures: 0,
     notChecked: 0,
+    // S274 R-S274-7: due messages that waited on a lease read still settling (not held).
+    waitedOnLeaseRead: 0,
   };
   let cursor = claim.cursor,
     completedPage = true;
@@ -164,6 +166,8 @@ export async function runCommunicationWorker(input: {
       }
       const result = await input.service.dispatch(original.id);
       if (result.status === "sent") counts.sent += 1;
+      // S274 R-S274-7: a wait on a settling lease read is counted on its own; nothing was held.
+      else if (result.waitedOnLeaseRead) counts.waitedOnLeaseRead += 1;
       else if (!["not_due"].includes(result.status)) counts.held += 1;
     } catch {
       counts.failures += 1;

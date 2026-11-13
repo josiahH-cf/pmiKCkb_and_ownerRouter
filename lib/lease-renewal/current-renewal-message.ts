@@ -34,6 +34,10 @@ import {
   readCoherentRenewalDisplaySource,
 } from "./admitted-notice-source";
 import { RenewalNoticeSourceError } from "./notice-source-error";
+import {
+  SETTLED_LEASE_READ,
+  type LeaseReadSettlement,
+} from "@/lib/gmail-hub/reviewed-inputs";
 import { RentVineError } from "@/lib/integrations/rentvine/client";
 import { manualNonRenewalReason } from "./notice-safety";
 import {
@@ -455,7 +459,16 @@ export async function currentRenewalMessage(
   leaseId: string,
   channel: "owner" | "tenant",
   db: Firestore = getAdminFirestore(),
-  options: { requireFreshNotice?: boolean } = {},
+  options: {
+    requireFreshNotice?: boolean;
+    /**
+     * S274 R-S274-1: read the lease as an approval read does (the Gmail draft path's read): join a
+     * lease read in flight instead of observing the generation it supersedes. Unlike
+     * `requireFreshNotice` a read that is not fresh is returned, and `readSettlement` says whether
+     * it settled; a refused admission is thrown as before.
+     */
+    settledRead?: boolean;
+  } = {},
 ) {
   const config = buildLiveRentVineConfig();
   if (!config.ok)
@@ -478,7 +491,7 @@ export async function currentRenewalMessage(
   ] = await Promise.all([
     // Editing/copy use the available lease view. An unavailable admitted notice pair is
     // projected as unknown below, and remains a server-side draft/approval hold.
-    (options.requireFreshNotice
+    (options.requireFreshNotice || options.settledRead
       ? readAdmittedRenewalNoticeLease(actor, leaseId, config.rentvineClient, nowMs, db)
       : readCoherentRenewalDisplaySource(
           actor,
@@ -571,6 +584,19 @@ export async function currentRenewalMessage(
   const dispositionBlock = cycleDispositionHold(disposition);
   const dispositionRevision =
     disposition.state === "unavailable" ? undefined : disposition.revision;
+  // S274 ARCH-S274-1: whether this read settled. Two transients are a read still in progress, not a
+  // changed fact: the notice observation made on a generation an admitted read in flight already
+  // superseded (R-S274-1), and a saved retirement status that reads unavailable only because the
+  // lease read is not fresh (R-S274-2). Anything else, a conflict between settled generations
+  // included, is settled and compared as it reads.
+  const readSettlement: LeaseReadSettlement =
+    savedDisposition &&
+    disposition.state === "unavailable" &&
+    leaseRead.currency.state !== "fresh"
+      ? { state: "not_settled", reason: "retirement_not_fresh" }
+      : noticeSafety.superseded === true
+        ? { state: "not_settled", reason: "generation_not_ready" }
+        : SETTLED_LEASE_READ;
   // The notice marker is scoped to the dated work record. A work record saved without a date
   // (S154) lives beside the dated heads, so its notice scope carries no record id.
   const noticeScopeCycleId =
@@ -1153,6 +1179,11 @@ export async function currentRenewalMessage(
     }),
     noticeBlock,
     dispositionRevision,
+    /**
+     * S274 ARCH-S274-1: whether the lease read this message was read on settled. A read that did
+     * not settle is a read still in progress, never a changed fact.
+     */
+    readSettlement,
     /** S233 R-S233-1: the renewal cycle the notice scope names, so each message can say it. */
     noticeCycleId: noticeSafety.cycleId,
     attachment,

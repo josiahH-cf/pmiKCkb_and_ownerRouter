@@ -7,6 +7,7 @@ import {
 } from "./sequence-model";
 import { CommunicationScheduleSchema } from "./schedule-calendar";
 import { sequenceHash } from "./sequence-store";
+import { ReviewedInputsSchema } from "./reviewed-inputs";
 import { EditableLayerError } from "@/lib/firestore/errors";
 
 const identity = {
@@ -31,6 +32,8 @@ export const SequenceCommandSchema = z.discriminatedUnion("action", [
         reviewedDraftHash: z.string().regex(/^[a-f0-9]{64}$/),
         reviewedTargetHash: z.string().regex(/^[a-f0-9]{64}$/),
         schedule: CommunicationScheduleSchema.nullable(),
+        // S274 R-S274-5: the inputs the review displayed, only to name what changed.
+        reviewedInputs: ReviewedInputsSchema.optional(),
       })
       .strict(),
   ),

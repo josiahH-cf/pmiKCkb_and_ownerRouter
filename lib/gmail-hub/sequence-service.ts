@@ -73,6 +73,66 @@ import {
   type AuthorizedTenantResourceBasis,
 } from "@/lib/lease-renewal/tenant-resource-inclusion";
 import type { TenantResourceId } from "@/lib/lease-renewal/tenant-resource-evidence";
+import {
+  CommunicationTargetChangedError,
+  LEASE_READ_REREAD_WAITS_MS,
+  LeaseReadNotSettledError,
+  changedReviewedInputs,
+  type ChangedInput,
+  type LeaseReadUnsettledReason,
+  type ReviewedInput,
+} from "./reviewed-inputs";
+
+/** S274: how a target is read. `settle` reads the lease as an approval read (it joins a read in flight). */
+export interface ResolveTargetOptions {
+  readonly settle?: boolean;
+}
+
+/** S274 ARCH-S274-1: one target resolution, settled or not, as a typed result. */
+export type SettledCommunicationTarget =
+  | { readonly state: "settled"; readonly target: VerifiedCommunicationTarget }
+  | { readonly state: "not_settled"; readonly reason: LeaseReadUnsettledReason };
+
+/**
+ * S274 ARCH-S274-1: resolve a target on a settled lease read. A target whose read did not settle,
+ * or a resolution refused as a read still in progress, is read again after each wait (the bound:
+ * at most `waitsMs.length` re-reads); past the bound the result is not settled with the last
+ * reason. Any other failure (an unreadable source) is thrown as it was.
+ */
+export async function settleCommunicationTarget(
+  resolve: () => Promise<VerifiedCommunicationTarget>,
+  waitsMs: readonly number[],
+  wait: (ms: number) => Promise<void>,
+): Promise<SettledCommunicationTarget> {
+  let reason: LeaseReadUnsettledReason = "read_in_flight";
+  for (let attempt = 0; attempt <= waitsMs.length; attempt += 1) {
+    if (attempt > 0) await wait(waitsMs[attempt - 1]!);
+    try {
+      const target = await resolve();
+      const settlement = target.readSettlement ?? { state: "settled" as const };
+      if (settlement.state === "settled") return { state: "settled", target };
+      reason = settlement.reason;
+    } catch (error) {
+      if (!(error instanceof LeaseReadNotSettledError)) throw error;
+      reason = error.reason;
+    }
+  }
+  return { state: "not_settled", reason };
+}
+
+const sleep = (ms: number) =>
+  new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
+
+/** S274 R-S274-6: the inputs kept with this exact authorization revision, or none. */
+function keptAuthorizedInputs(s: CommunicationSequence): ReviewedInput[] | null {
+  return s.authorization &&
+    s.authorizedInputs &&
+    s.authorizedInputs.revision === s.authorization.revision
+    ? s.authorizedInputs.inputs
+    : null;
+}
 
 /**
  * S265 (R-S265-4, ARCH-S265-4): the tenant resources each exact authorized message includes, with
@@ -120,7 +180,13 @@ export interface CommunicationSequenceDependencies {
   resolveTarget(
     actor: AuthenticatedUser,
     context: WorkflowCommunicationContext,
+    options?: ResolveTargetOptions,
   ): Promise<VerifiedCommunicationTarget>;
+  /**
+   * S274 R-S274-1: wait before the next read of an unsettled lease read at confirm; production
+   * joins the lease read in flight. Without it the service waits the plain length.
+   */
+  waitForLeaseRead?(ms: number): Promise<void>;
   resolveAttachment(
     id: string,
     context: WorkflowCommunicationContext,
@@ -185,6 +251,22 @@ export class WorkflowCommunicationSequenceService {
   private readonly now: () => number;
   constructor(readonly deps: CommunicationSequenceDependencies) {
     this.now = deps.now ?? Date.now;
+  }
+  /**
+   * S274 ARCH-S274-1: the one target resolution confirm uses: a settled lease read, joined and read
+   * again within the bound (three re-reads over about ten seconds), or a typed not-settled result.
+   * The worker passes no waits: one read, and an unsettled one waits for its next run.
+   */
+  async resolveSettledTarget(
+    actor: AuthenticatedUser,
+    context: WorkflowCommunicationContext,
+    waitsMs: readonly number[] = LEASE_READ_REREAD_WAITS_MS,
+  ): Promise<SettledCommunicationTarget> {
+    return settleCommunicationTarget(
+      () => this.deps.resolveTarget(actor, context, { settle: true }),
+      waitsMs,
+      this.deps.waitForLeaseRead ?? sleep,
+    );
   }
   async list(actor: AuthenticatedUser, after: string | null = null) {
     assertCommunicationStaff(actor, "read");
@@ -437,6 +519,11 @@ export class WorkflowCommunicationSequenceService {
       schedule: CommunicationSchedule | null;
       reviewedDraftHash: string;
       reviewedTargetHash: string;
+      /**
+       * S274 R-S274-5: the labelled inputs the review displayed, as the composition returned them.
+       * Used only to name what changed; the refusal itself is decided by the target hash.
+       */
+      reviewedInputs?: readonly ReviewedInput[] | null;
     },
   ) {
     assertCommunicationStaff(actor, "sendEmail");
@@ -473,11 +560,20 @@ export class WorkflowCommunicationSequenceService {
         "The mailbox does not match the responsible sender.",
         403,
       );
-    const target = await this.deps.resolveTarget(actor, s.context);
+    // S274 R-S274-1/R-S274-2: compare only on a settled read. A read in flight is joined and read
+    // again within the bound; R-S274-3: past the bound the result is the retryable "still
+    // reading" one, with nothing written, dispatched or paused.
+    const resolution = await this.resolveSettledTarget(actor, s.context);
+    if (resolution.state === "not_settled")
+      throw new LeaseReadNotSettledError(resolution.reason);
+    const target = resolution.target;
+    // R-S274-5: a settled difference names each changed input the review displayed.
     if (reviewedCommunicationTargetHash(target) !== input.reviewedTargetHash)
-      throw new EditableLayerError(
-        "The recipients or source facts changed after the preview. Refresh and review them before Send/Schedule.",
-        409,
+      throw new CommunicationTargetChangedError(
+        changedReviewedInputs(
+          input.reviewedInputs ?? null,
+          target.reviewedInputs ?? null,
+        ),
       );
     if (input.action === "resume" && (!s.authorization || s.state !== "paused"))
       throw new EditableLayerError(
@@ -661,6 +757,16 @@ export class WorkflowCommunicationSequenceService {
             id: input.operationId,
             revision: authorization.revision,
           },
+          // S274 R-S274-6: the inputs this review displayed, kept beside the authorization (its
+          // payload and replay binding are unchanged) so a later hold names each changed one.
+          ...(target.reviewedInputs
+            ? {
+                authorizedInputs: {
+                  revision: authorization.revision,
+                  inputs: target.reviewedInputs,
+                },
+              }
+            : {}),
           linkedThreads: [
             ...new Map(
               [...c.linkedThreads, ...linkedThreads].map((t) => [
@@ -878,6 +984,11 @@ export class WorkflowCommunicationSequenceService {
       | "needs_reconciliation"
       | "refused";
     sequence: CommunicationSequence;
+    /**
+     * S274 R-S274-4/R-S274-7: with `awaiting_source`, the wait was on a lease read still settling
+     * (no claim, no send, no pause); the worker counts it apart from held work.
+     */
+    waitedOnLeaseRead?: true;
   }> {
     let s = requireSequence(await this.deps.store.get(id));
     if (s.unresolvedOccurrenceId) return { status: "needs_reconciliation", sequence: s };
@@ -943,9 +1054,13 @@ export class WorkflowCommunicationSequenceService {
       }
       return { status: "paused", sequence: s };
     }
-    let target: VerifiedCommunicationTarget;
+    // S274 R-S274-4 (ARCH-S274-2): dispatch tells "not settled" from "changed" before any claim.
+    // One read, no wait: a read in flight, a generation not ready or a retirement status that is
+    // unavailable only because the read is not fresh is handled like an unreadable source (no
+    // claim, no send, no pause) and re-checked on the next run, with its own reason.
+    let resolution: SettledCommunicationTarget;
     try {
-      target = await this.deps.resolveTarget(actor, s.context);
+      resolution = await this.resolveSettledTarget(actor, s.context, []);
     } catch {
       await this.deps.store.observe(s.id, {
         authorizationRevision: s.authorization.revision,
@@ -961,6 +1076,23 @@ export class WorkflowCommunicationSequenceService {
         sequence: requireSequence(await this.deps.store.get(id)),
       };
     }
+    if (resolution.state === "not_settled") {
+      await this.deps.store.observe(s.id, {
+        authorizationRevision: s.authorization.revision,
+        checkedAtMs: this.now(),
+        messageIds: [],
+        pause: null,
+        historyId: null,
+        complete: false,
+        reason: "lease_read_settling",
+      });
+      return {
+        status: "awaiting_source",
+        sequence: requireSequence(await this.deps.store.get(id)),
+        waitedOnLeaseRead: true,
+      };
+    }
+    const target: VerifiedCommunicationTarget = resolution.target;
     const authorization = s.authorization;
     const materialSourceHash =
       target.outgoingContract && !authorization.signatureSetup
@@ -991,6 +1123,12 @@ export class WorkflowCommunicationSequenceService {
             outgoingPayloadReasons(message.subject, message.plainText).length > 0,
         ));
     if (materialSourceHash !== authorization.materialSourceHash || readinessHeld) {
+      // S274 R-S274-6: the hold on a settled difference stores each changed input, with the value
+      // kept with this authorization where one was kept; without kept values none is guessed.
+      const kept = keptAuthorizedInputs(s);
+      const changedInputs: ChangedInput[] = kept
+        ? changedReviewedInputs(kept, target.reviewedInputs ?? null)
+        : [];
       s = await this.deps.store.write({
         id: s.id,
         actorUid: actor.uid,
@@ -1008,6 +1146,7 @@ export class WorkflowCommunicationSequenceService {
             byUid: "communication-worker",
             atMs: this.now(),
             evidenceIds: target.sourceRefs,
+            ...(changedInputs.length ? { changedInputs } : {}),
           },
           nextDueAtMs: null,
         }),
