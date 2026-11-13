@@ -20,7 +20,10 @@ import {
   type CSSProperties,
 } from "react";
 import { queueActionAvailability } from "@/lib/approval/queue";
-import { buildNeedsDecisionInbox } from "@/lib/approval/needs-decision-inbox";
+import {
+  buildNeedsDecisionInbox,
+  renewalTabCounts,
+} from "@/lib/approval/needs-decision-inbox";
 import type { RenewalReviewBoard } from "@/lib/approval/renewal-review";
 import type { WritebackApprovalQueue } from "@/lib/approval/writeback-approval-queue";
 import type { Role } from "@/lib/auth/roles";
@@ -711,8 +714,11 @@ function OwnedApprovalQueue({
     }
   }
 
-  const renewalOpenFlags = renewalBoard?.totalOpenFlags ?? 0;
-  const writebackAwaiting = writebackQueue?.counts.awaitingApproval ?? 0;
+  // S280 ARCH-S280-2: each tab counts exactly the rows it renders, one per run, lease row and field,
+  // keyed the same way as the merged list, so the total, the tabs and the rows agree.
+  const tabCounts = renewalTabCounts(renewalBoard, writebackQueue);
+  const renewalOpenFlags = tabCounts.renewalReviews;
+  const writebackAwaiting = tabCounts.writebacksAwaiting;
   // The default landing: one value-free, attention-ordered list merging the three feeds this page
   // already gathers, so a real backlog never hides behind a near-empty "All items" tab (B1). Built from
   // the immutable full item set (initialItems), NOT the mutable `items` that "All items" filtering

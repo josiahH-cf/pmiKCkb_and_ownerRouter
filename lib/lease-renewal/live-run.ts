@@ -10,6 +10,8 @@ import type { RawLease, RentVineClient } from "@/lib/integrations/rentvine/clien
 import { enrichLeaseViewsWithDetail } from "@/lib/integrations/rentvine/lease-detail-enrichment";
 import {
   RENTVINE_SOURCE,
+  leaseAddressLabel,
+  leaseIdOfView,
   leaseViewsFromExport,
   mapLeasesToNonSheetCandidates,
   type RentVineLeaseFieldMap,
@@ -73,6 +75,22 @@ export interface LiveRenewalRunOptions {
    * omitted source is truthfully absent, never synthesized.
    */
   otherCandidates?: NonSheetCandidate[];
+  /**
+   * S280 R-S280-6: the tables are the team's operating Sheet read live. The fully-live review sets
+   * it; the pipeline then applies the one source-difference rule and names every lease.
+   */
+  operatingSheet?: boolean;
+}
+
+/** S280 R-S280-3: each read lease's address label by its exact join id (`lease:123`). */
+export function leaseLabelsByJoinId(views: readonly RawLease[]): Record<string, string> {
+  const labels: Record<string, string> = {};
+  for (const view of views) {
+    const id = leaseIdOfView(view);
+    const label = leaseAddressLabel(view)?.trim();
+    if (id && label && !label.includes("@")) labels[`lease:${id}`] = label.slice(0, 200);
+  }
+  return labels;
 }
 
 export interface LiveRenewalRunResult {
@@ -142,6 +160,9 @@ export async function runLiveRenewalReview(
     tables: options.tables,
     nonSheetCandidates: [...mapping.candidates, ...others],
     tableJoinIds: options.tableJoinIds,
+    ...(options.operatingSheet
+      ? { operatingSheet: true, leaseLabels: leaseLabelsByJoinId(viewsToMap) }
+      : {}),
   };
   const run = runRenewalPipeline(pipelineInput);
 
@@ -219,6 +240,8 @@ export async function runFullyLiveRenewalReview(
     cohortConfig: options.cohortConfig,
     tables,
     tableJoinIds,
+    // S280 R-S280-6: this read is the team's operating Sheet.
+    operatingSheet: true,
   });
   return { ...result, sheetTabsRead: tables.length };
 }

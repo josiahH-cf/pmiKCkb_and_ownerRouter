@@ -172,6 +172,8 @@ describe("buildRenewalReviewBoard", () => {
     expect(serialized).not.toContain("proposedValue");
     expect(serialized).not.toContain("rationale");
     // The flag row carries only the safe, PII-free shape (the proposal collapses to a boolean).
+    // S280 ARCH-S280-2 / R-S280-3 (changed on purpose): the row adds its item identity (run, lease
+    // row and field) and the lease label it names; neither is a value.
     expect(Object.keys(board.runs[0].flags[0]).sort()).toEqual([
       "actionNeeded",
       "agreement",
@@ -185,9 +187,11 @@ describe("buildRenewalReviewBoard", () => {
       "fieldKey",
       "fieldLabel",
       "href",
+      "leaseLabel",
       "proposalReady",
       "resolved",
       "severity",
+      "sourceTriggerKey",
     ]);
     // Defense-in-depth: pin the run-level shape too, so a future value-bearing run field is caught
     // structurally (the write-back approval overlay only ever collapses to integer counts here).

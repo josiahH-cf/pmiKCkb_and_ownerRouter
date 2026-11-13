@@ -227,6 +227,8 @@ describe("buildWritebackApprovalQueue", () => {
     const allRows = queue.groups.flatMap((group) => group.rows);
     expect(allRows).toHaveLength(2);
     for (const row of allRows) {
+      // S280 ARCH-S280-2 / R-S280-3 (changed on purpose): each row adds its item identity (run,
+      // lease row and field) and the lease label it names; neither is a value.
       expect(Object.keys(row).sort()).toEqual([
         "authorizationReceiptId",
         "decisionReasonRecorded",
@@ -234,10 +236,12 @@ describe("buildWritebackApprovalQueue", () => {
         "fieldKey",
         "fieldLabel",
         "href",
+        "leaseLabel",
         "productionAllowed",
         "runId",
         "runLabel",
         "severity",
+        "sourceTriggerKey",
         "state",
       ]);
     }

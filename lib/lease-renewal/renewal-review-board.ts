@@ -65,6 +65,8 @@ export async function loadRenewalRunViews(
   user: AuthenticatedUser,
 ): Promise<RenewalRunView[]> {
   const context = await loadRenewalRunViewContext(user);
+  // S280 R-S280-4: a stale or expired read still throws (no caller may decide on it), and carries
+  // its views so the Dashboard can keep them as retained rows with their read time.
   if (context.sourceStatus !== "available" || context.overlayStatus !== "available")
     throw new RenewalReviewUnavailableError(context);
   return context.views;

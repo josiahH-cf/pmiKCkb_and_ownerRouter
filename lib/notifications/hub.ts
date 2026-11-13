@@ -33,6 +33,10 @@ import { listAllLeaseRenewalResolutions } from "@/lib/firestore/lease-renewal-re
 import { listAllWritebackApprovals } from "@/lib/firestore/lease-renewal-writeback-approvals";
 import { buildDecisionMetrics } from "@/lib/lease-renewal/decision-metrics";
 import { buildNotificationFeed, type NotificationFeed } from "@/lib/notifications/feed";
+import {
+  isNotificationFamilyServed,
+  type NotificationFamilyKey,
+} from "@/lib/notifications/families";
 
 export interface LoadNotificationHubOptions {
   /** Hub view: also gather the standing setup signals + the Admin review digest. The bell omits it. */
@@ -61,6 +65,16 @@ export async function loadNotificationHub(
   const canReadRenewals = hasSpaceAccess(user, "renewals");
   const canReadMaintenance = hasSpaceAccess(user, "maintenance");
   const isAdmin = can(user.role, "manageAdmin");
+  // S280 R-S280-5: staff see staff work. Setup and coverage notices are Admin work, and the retired
+  // maintenance families are neither read nor emitted (their stored records are untouched).
+  const scope = { isAdmin, canReadRenewals, canReadMaintenance };
+  const servesMaintenanceTickets = isNotificationFamilyServed(
+    "maintenance_tickets",
+    scope,
+  );
+  const servesStanding =
+    isNotificationFamilyServed("connections_setup", scope) ||
+    isNotificationFamilyServed("space_coverage", scope);
 
   // These reads are independent. Starting review/support only after the event sources finish
   // adds two Firestore round trips to the full hub's critical path.
@@ -76,7 +90,7 @@ export async function loadNotificationHub(
         unreadOnly,
         limit: NOTIFICATION_SOURCE_SCAN_LIMIT,
       }),
-      canReadMaintenance
+      canReadMaintenance && servesMaintenanceTickets
         ? listMaintenanceTicketNotifications(user, {
             unreadOnly,
             limit: NOTIFICATION_SOURCE_SCAN_LIMIT,
@@ -88,7 +102,7 @@ export async function loadNotificationHub(
             limit: NOTIFICATION_SOURCE_SCAN_LIMIT,
           })
         : Promise.resolve([]),
-      full ? resolveCoverageState(user) : Promise.resolve(null),
+      full && servesStanding ? resolveCoverageState(user) : Promise.resolve(null),
       full && canReadRenewals
         ? gatherDecisionAttention(user)
         : Promise.resolve({ attention: EMPTY_DECISION_ATTENTION }),
@@ -102,14 +116,25 @@ export async function loadNotificationHub(
     ]);
 
   const standing: AttentionSignal[] =
-    full && coverage
-      ? buildStandingSignals(resolveConnectionsState(process.env).items, coverage.items)
+    full && coverage && servesStanding
+      ? buildStandingSignals(
+          resolveConnectionsState(process.env).items,
+          coverage.items,
+        ).filter((signal) =>
+          isNotificationFamilyServed(
+            STANDING_FAMILY_BY_LANE[signal.lane] ?? "approval_queue",
+            scope,
+          ),
+        )
       : [];
 
   const feed = buildNotificationFeed({
     approval,
     maintenance,
-    gmail,
+    // S280 R-S280-5: no maintenance communication item is emitted while maintenance is retired.
+    gmail: gmail.filter((notification) =>
+      isNotificationFamilyServed(notification.family, scope),
+    ),
     standing,
     review,
     support,
@@ -122,19 +147,22 @@ export async function loadNotificationHub(
 
   return {
     ...feed,
-    families: feed.families.filter(
-      (family) =>
-        // approval_queue is intentionally NOT scope-gated (F-NOTIF-3): it is the recipient's own
-        // personal action items, so it is always served to whoever those items are addressed to.
-        (family.key !== "maintenance_tickets" || canReadMaintenance) &&
-        (family.key !== "renewal_communications" || canReadRenewals) &&
-        (family.key !== "maintenance_communications" || canReadMaintenance) &&
-        (family.key !== "team_review" || isAdmin) &&
-        // support_reports is Admin-only at serve time, exactly like team_review.
-        (family.key !== "support_reports" || isAdmin),
+    // approval_queue is intentionally NOT scope-gated (F-NOTIF-3): it is the recipient's own
+    // personal action items, so it is always served to whoever those items are addressed to.
+    // S280 R-S280-5: setup, coverage, review and feedback are Admin-only; maintenance is retired.
+    families: feed.families.filter((family) =>
+      isNotificationFamilyServed(family.key, scope),
     ),
   };
 }
+
+/** The standing families a standing signal's lane carries (B2: one family per lane). */
+const STANDING_FAMILY_BY_LANE: Partial<
+  Record<AttentionSignal["lane"], NotificationFamilyKey>
+> = {
+  connection: "connections_setup",
+  coverage: "space_coverage",
+};
 
 async function buildReviewDigest(
   user: AuthenticatedUser,

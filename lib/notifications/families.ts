@@ -146,6 +146,54 @@ export const NOTIFICATION_FAMILIES: readonly NotificationFamily[] = [
   },
 ];
 
+/**
+ * S280 R-S280-5: the maintenance families are neither offered nor emitted while that component is
+ * retired. Their stored records are untouched; only serving stops.
+ */
+export const RETIRED_NOTIFICATION_FAMILY_KEYS: readonly NotificationFamilyKey[] = [
+  "maintenance_tickets",
+  "maintenance_communications",
+];
+
+/**
+ * S280 R-S280-5: setup and coverage notices, the review digest and feedback are Admin work. Staff
+ * see their own work only.
+ */
+export const ADMIN_ONLY_NOTIFICATION_FAMILY_KEYS: readonly NotificationFamilyKey[] = [
+  "connections_setup",
+  "space_coverage",
+  "team_review",
+  "support_reports",
+];
+
+export interface NotificationServeScope {
+  readonly isAdmin: boolean;
+  readonly canReadRenewals: boolean;
+  readonly canReadMaintenance: boolean;
+}
+
+/**
+ * S280 BEH-S280-4 / AC-S280-5: whether a family is offered to this viewer. Approvals are the
+ * viewer's own items and always served (F-NOTIF-3); renewal communications need the Renewals
+ * Space; Admin-only families need an Admin; retired families are never served.
+ */
+export function isNotificationFamilyServed(
+  key: NotificationFamilyKey,
+  scope: NotificationServeScope,
+): boolean {
+  if (RETIRED_NOTIFICATION_FAMILY_KEYS.includes(key)) return false;
+  if (ADMIN_ONLY_NOTIFICATION_FAMILY_KEYS.includes(key)) return scope.isAdmin;
+  if (key === "renewal_communications") return scope.canReadRenewals;
+  return true;
+}
+
+/** S280: the family keys served to one viewer, in catalog order. */
+export function servedNotificationFamilyKeys(
+  scope: NotificationServeScope,
+): NotificationFamilyKey[] {
+  return NOTIFICATION_FAMILY_KEYS.filter((key) => isNotificationFamilyServed(key, scope));
+}
+
 /** family key → its attention lane, derived from the catalog (single source of truth). */
 export const FAMILY_LANE: Record<NotificationFamilyKey, AttentionLane> =
   Object.fromEntries(

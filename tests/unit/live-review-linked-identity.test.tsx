@@ -14,7 +14,6 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { LiveRenewalReview } from "@/components/lease-renewal/LiveRenewalReview";
-import type { LeaseRenewalResolutionRecord } from "@/lib/firestore/types";
 import {
   LIVE_REVIEW_RUN_ID,
   loadLiveRenewalReview,
@@ -183,76 +182,44 @@ describe("Live review linked record identity", () => {
     expect(sheetRead).not.toHaveBeenCalled();
   });
 
-  it("keeps the linked trigger, exact card destination, rebuild, and persisted resolution aligned", async () => {
+  // S280 R-S280-6 (rewritten on purpose): the operating Sheet's $1,300 against RentVine's $1,400 is
+  // information, not a decision. The linked identity still lines up: Live review's information row,
+  // the rebuilt run, the lease's data check and the item link share one key, and the lease's own
+  // current rent stands on RentVine with no resolution.
+  it("S280 R-S280-6: keeps the linked identity aligned for a Sheet rent difference that is information", async () => {
     const timestamp = "2026-09-02T12:00:00.000Z";
     const initial = await loadLiveRenewalReview(noticeReader, timestamp);
     expect(initial.status).toBe("ok");
     if (initial.status !== "ok") return;
 
-    const currentRentFlag = flags(initial.view).find(
-      (flag) => flag.fieldKey === "current_rent",
+    expect(flags(initial.view).find((flag) => flag.fieldKey === "current_rent")).toBe(
+      undefined,
     );
-    expect(currentRentFlag).toBeDefined();
-    const sourceTriggerKey = currentRentFlag!.sourceTriggerKey;
+    const information = (initial.view.information ?? []).find(
+      (row) => row.fieldKey === "current_rent",
+    );
+    expect(information).toBeDefined();
+    const sourceTriggerKey = information!.key;
     const itemId = liveRenewalReviewItemId(sourceTriggerKey)!;
     expect(sourceTriggerKey).toMatch(
       /^lease_renewal:reconcile:live-review:[a-f0-9]{16}:current_rent$/,
+    );
+    expect(information!.line).toBe(
+      `${information!.leaseLabel}: the operating Sheet shows $1,300.00 and RentVine shows $1,400.00. RentVine is the basis.`,
     );
     expect(buildLiveRenewalReviewItemHref(sourceTriggerKey)).toBe(
       `/lease-renewal/live#${itemId}`,
     );
 
     const rebuilt = await rebuildLiveRenewalRun(noticeReader, timestamp);
-    const rebuiltOutcome = rebuilt?.flags.find(
-      (outcome) => outcome.fieldKey === "current_rent",
+    expect(rebuilt?.runId).toBe(LIVE_REVIEW_RUN_ID);
+    expect(rebuilt?.flags.find((outcome) => outcome.fieldKey === "current_rent")).toBe(
+      undefined,
     );
-    expect(rebuiltOutcome?.queueMapping?.queueItem.source_trigger_key).toBe(
-      sourceTriggerKey,
-    );
-    expect(rebuiltOutcome?.candidateFingerprint).toMatch(/^rcf1_[a-f0-9]{64}$/);
-
-    const resolution: LeaseRenewalResolutionRecord = {
-      id: "synthetic-resolution-receipt",
-      source_trigger_key: sourceTriggerKey,
-      run_id: LIVE_REVIEW_RUN_ID,
-      field_key: "current_rent",
-      field_label: currentRentFlag!.fieldLabel,
-      severity: currentRentFlag!.severity,
-      status: "Resolved",
-      property_key: currentRentFlag!.propertyKey,
-      candidate_fingerprint: rebuiltOutcome!.candidateFingerprint,
-      resolution_kind: "pick_source",
-      chosen_source: "rentvine",
-      proposed_writeback: {
-        field_key: "current_rent",
-        value: "1400",
-        source_of_value: "rentvine",
-        status: "Queued",
-        production_allowed: false,
-      },
-      reason: "Synthetic exact-identity regression fixture.",
-      resolved_by_uid: "synthetic-admin",
-      created_at: timestamp,
-      updated_at: timestamp,
-    };
-    const withResolution = await loadLiveRenewalReview(
-      noticeReader,
-      timestamp,
-      Promise.resolve({
-        resolutions: [resolution],
-      }),
-    );
-    expect(withResolution.status).toBe("ok");
-    if (withResolution.status !== "ok") return;
-
-    const resolvedFlag = flags(withResolution.view).find(
-      (flag) => flag.sourceTriggerKey === sourceTriggerKey,
-    );
-    expect(resolvedFlag?.resolution).toMatchObject({
-      receiptId: resolution.id,
-      status: "Resolved",
-    });
-    expect(withResolution.view.resolvedCount).toBe(1);
+    expect(
+      rebuilt?.outcomes.find((outcome) => outcome.fieldKey === "current_rent")
+        ?.informationKey,
+    ).toBe(sourceTriggerKey);
 
     const workspace = await loadLiveRenewalLeaseWorkspace(
       "777",
@@ -260,18 +227,15 @@ describe("Live review linked record identity", () => {
       mocks.buildLiveRenewalConfig(),
       null,
       null,
-      [resolution],
+      [],
     );
     expect(workspace.status).toBe("ok");
     if (workspace.status !== "ok") return;
-    expect(
-      workspace.workspace.dataCheck.find((item) => item.fieldKey === "current_rent")
-        ?.sourceTriggerKey,
-    ).toBe(sourceTriggerKey);
-    expect(
-      workspace.workspace.dataCheck.find((item) => item.fieldKey === "current_rent")
-        ?.candidateFingerprint,
-    ).toBe(rebuiltOutcome?.candidateFingerprint);
+    const rentCheck = workspace.workspace.dataCheck.find(
+      (item) => item.fieldKey === "current_rent",
+    );
+    expect(rentCheck?.agreement).toBe("agree");
+    expect(rentCheck?.sourceTriggerKey).toBe(sourceTriggerKey);
     expect(
       workspace.workspace.ownerDraft.facts.find((fact) => fact.key === "current_rent"),
     ).toMatchObject({ value: "$1,400", confidence: "Verified" });
@@ -280,11 +244,12 @@ describe("Live review linked record identity", () => {
       <LiveRenewalReview
         canResolve={false}
         isAdmin={false}
-        meta={withResolution.meta}
+        meta={initial.meta}
         resolutionsError={false}
-        view={withResolution.view}
+        view={initial.view}
       />,
     );
     expect(document.getElementById(itemId)).toBeInTheDocument();
+    expect(screen.getByText(information!.line)).toBeInTheDocument();
   });
 });

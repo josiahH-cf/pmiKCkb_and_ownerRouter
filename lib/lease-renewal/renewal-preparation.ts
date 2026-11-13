@@ -16,6 +16,11 @@ import {
 } from "@/lib/date-display";
 import { firstUsableComparables } from "@/lib/lease-renewal/comparable-presentation";
 import { computeRentSuggestion } from "@/lib/lease-renewal/rent-suggestion";
+import {
+  OPERATING_SHEET_SOURCE_ID,
+  RENTVINE_SOURCE_ID,
+  classifyRentVineSheetDifference,
+} from "@/lib/lease-renewal/source-difference-rule";
 
 export const RENEWAL_PREPARATION_VERSION = "renewal-preparation/v1" as const;
 
@@ -283,15 +288,31 @@ export function renewalNumbersCheck(facts: RenewalNumbersFacts): RenewalNumbersC
   const sheetNotes: string[] = [];
   const rentvine = usable(facts.contractualRent) ? facts.contractualRent : null;
   // A Sheet value shows only when it differs from RentVine; a blank Sheet value is no difference.
+  // S280 ARCH-S280-4: the one source-difference rule decides, the same rule Live renewal review,
+  // the Approval Queue and the Dashboard read.
   if (
     usable(facts.sheetRent) &&
-    rentvine !== null &&
-    !sameMoney(facts.sheetRent, rentvine)
+    classifyRentVineSheetDifference({
+      fieldKey: "current_rent",
+      candidates: [
+        { source: RENTVINE_SOURCE_ID, value: rentvine },
+        { source: OPERATING_SHEET_SOURCE_ID, value: facts.sheetRent },
+      ],
+    }).kind === "information"
   )
     sheetNotes.push(
       `The operating Sheet shows ${money(facts.sheetRent)} for the current rent. This is information; RentVine is the basis.`,
     );
-  if (facts.sheetEndIso && facts.leaseEndIso && facts.sheetEndIso !== facts.leaseEndIso)
+  if (
+    facts.sheetEndIso &&
+    classifyRentVineSheetDifference({
+      fieldKey: "renewal_date",
+      candidates: [
+        { source: RENTVINE_SOURCE_ID, value: facts.leaseEndIso },
+        { source: OPERATING_SHEET_SOURCE_ID, value: facts.sheetEndIso },
+      ],
+    }).kind === "information"
+  )
     sheetNotes.push(
       `The operating Sheet shows ${formatCalendarDate(facts.sheetEndIso)} for the lease end. This is information; RentVine is the basis.`,
     );

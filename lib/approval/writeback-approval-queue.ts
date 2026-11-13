@@ -8,7 +8,7 @@
 // (no new Firestore reads) and copies ONLY value-free fields off each flag — the proposed value,
 // decision reason, and decider stay behind the run-page deep link (connector design §6.1).
 
-import { renewalRunHref } from "@/lib/approval/renewal-review";
+import { renewalItemHref } from "@/lib/approval/renewal-review";
 import type { RenewalRunView } from "@/lib/lease-renewal/run-view";
 import { SEVERITY_ORDER } from "@/lib/lease-renewal/pipeline";
 import type { Severity } from "@/lib/lease-renewal/severity";
@@ -16,6 +16,10 @@ import type { WritebackApprovalState } from "@/lib/lease-renewal/writeback-appro
 
 /** One queued write-back proposal, value-free. Only these keys ever cross onto this surface. */
 export interface WritebackApprovalQueueRow {
+  /** S280 ARCH-S280-2: the item identity, unique per run, lease row and field. */
+  sourceTriggerKey?: string;
+  /** S280 R-S280-3: the lease the proposal names, or null when the run names none. */
+  leaseLabel?: string | null;
   fieldKey: string;
   fieldLabel: string;
   severity: Severity;
@@ -71,13 +75,14 @@ export function buildWritebackApprovalQueue(
 ): WritebackApprovalQueue {
   const rows: WritebackApprovalQueueRow[] = [];
   for (const view of views) {
-    const href = renewalRunHref(view.runId);
     for (const group of view.groups) {
       for (const flag of group.flags) {
         const approval = flag.writebackApproval;
         if (!approval) continue;
         // Value-free copy only — never the proposed value, decision reason, decider, or activity.
         rows.push({
+          sourceTriggerKey: flag.sourceTriggerKey,
+          leaseLabel: flag.leaseLabel ?? null,
           fieldKey: flag.fieldKey,
           fieldLabel: flag.fieldLabel,
           severity: flag.severity,
@@ -88,7 +93,7 @@ export function buildWritebackApprovalQueue(
           decisionReasonRecorded: approval.reasonRecorded,
           productionAllowed: false,
           executed: false,
-          href,
+          href: renewalItemHref(view.runId, flag.sourceTriggerKey),
         });
       }
     }
