@@ -4,6 +4,7 @@
 # S189 — Configurable schedules and durable end-state authorization
 
 > Status: READY. Configurable scheduling delivered in run `5b3dfb90`, intake 061. November 9 intake 137 is authoring-ready for one exact tenant offer now with reviewed follow-ups.
+> November 12 intake 154 is AUTHORING READY for a follow-up form that opens with editable starting values (S276).
 
 **Goal.**
 
@@ -61,8 +62,11 @@ This is intake 061 of the named program. This contract is consumable by the exis
   incomplete/invalid settings, or settings that allow no follow-up at review,
   with the entered work kept and zero outgoing effects. Offer one-time Send as
   its own reviewed choice. A delayed acceptance that reaches the bound still
-  settles the initial receipt and ends the recurrence. No fixed client cadence,
-  automatic default enrollment or catch-up burst.
+  settles the initial receipt and ends the recurrence. The form may open with editable
+  starting values, the notice rules' interval, a send time, a total limit and the
+  published follow-up message (owner direction of November 12, 2026; S276 R-S276-7 and
+  R-S276-8). They bind nothing until staff review and confirm them. No automatic default
+  enrollment or catch-up burst.
 - **R-S189-10 — Bind one initial attempt and hold recurrence until confirmed.** Use
   the existing exact renewal operation, durable authorization, sequence version,
   occurrence claim, receipt and reconciliation owners. Under one confirmed
@@ -96,7 +100,7 @@ This is intake 061 of the named program. This contract is consumable by the exis
 
 **In scope / out of scope.**
 
-Schedule editing, calendar semantics, initial/follow-up content authorization, optional bounds and durable versioning are in scope. No mandatory preset cadence, fixed 15th/three-day/ten-day interval, enrollment inferred from policy membership, model authorization or generic campaign management is added. S190 dispatches and S192 operates/revises schedules.
+Schedule editing, calendar semantics, initial/follow-up content authorization, optional bounds and durable versioning are in scope. No mandatory cadence, fixed 15th or three-day rule, enrollment inferred from policy membership, model authorization or generic campaign management is added; the editable starting values of S276 R-S276-7 are not a cadence staff must keep. S190 dispatches and S192 operates/revises schedules.
 
 **Open questions & assumptions.**
 

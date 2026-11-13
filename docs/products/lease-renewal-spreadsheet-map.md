@@ -63,4 +63,6 @@ or replaced. The proof receipts remain historical evidence, not a reusable mutat
 append still requires exact preview, confirmation, lease-scoped one-attempt claim, header/source
 readback, and the active exact key. It is manually correctable from its receipt and Sheet destination;
 the app does not automate a fixed-row delete. No copy-only Sheet, fake identity/value, arbitrary
-range, bulk update, formula overwrite, or blind retry is authorized.
+range, update across rows or leases, formula overwrite, or blind retry is authorized. By owner
+direction of November 12, 2026, one reviewed preview and one confirmation may apply up to ten listed
+recognized cells of one existing lease row, each with its own claim, readback and receipt (S278).

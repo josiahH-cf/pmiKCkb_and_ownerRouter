@@ -51,8 +51,8 @@ staff review and the real approval or dispatch action.
   lease Work status/history and existing internal collection/My Work or process links
   where already authorized. Teach and preserve the current review handoff and verified
   current progress. A status note does not assign a case, establish approval or make a
-  message delivered. Preserve membership and scope rules. New routing waits on the
-  existing B-PROCESS-OWNER decision.
+  message delivered. Preserve membership and scope rules. Renewal processes
+  are guidance and start no runs (S286), so no run routing decision is pending.
 - **R-S267-3 — Keep decisions and authority distinct.** The training and review view
   distinguish a staff recommendation, an existing team review or handoff, verified owner
   amount and scope, exact tenant offer confirmation, tenant response and human signing.
@@ -68,9 +68,9 @@ assignment and approval remain human work.
 
 **Open questions & assumptions.**
 
-- B-PROCESS-OWNER remains source pending for the exact managed process owner and any
-  default approver under the existing model. Preserve published routing placeholders and
-  do not start a real run to discover who gets assigned.
+- The former B-PROCESS-OWNER input is retired by owner direction of November 12, 2026:
+  renewal processes start no runs (S286), so no process owner or default approver is
+  requested. Preserve the published placeholders as stored values.
 - The team has not approved mandatory review for a staff rent proposal, an external Cc
   default, a delegation policy or a new role. Current internal visibility and existing
   scoped actions suffice for this tranche.
@@ -82,11 +82,11 @@ Work, existing owner-renewal-outreach process, exact message and approval surfac
 
 **Authority and evidence map.**
 
-| Input                                                                               | Classification                 | Use and limitation                                                                                                                                                |
-| ----------------------------------------------------------------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| November 10 Fathom walkthrough 21:32–26:28 and 54:09–55:24, plus accepted Q7        | Team intent and owner decision | Train the nominated staff in preparation and keep the lead involved internally. Discussion of editing and approval did not settle new grants or a recipient rule. |
-| S156, S182, S201, S224, S234, S241, S242, S243, S248 and S252, plus B-PROCESS-OWNER | Active contracts and hold      | Existing access, truthful status, one review and exact scoped staff routing.                                                                                      |
-| Current plan and loop state, published owner-renewal-outreach process readback      | Verified baseline              | Process content is published. Staff owner/default routing remains unresolved.                                                                                     |
+| Input                                                                          | Classification                 | Use and limitation                                                                                                                                                |
+| ------------------------------------------------------------------------------ | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| November 10 Fathom walkthrough 21:32–26:28 and 54:09–55:24, plus accepted Q7   | Team intent and owner decision | Train the nominated staff in preparation and keep the lead involved internally. Discussion of editing and approval did not settle new grants or a recipient rule. |
+| S156, S182, S201, S224, S234, S241, S242, S243, S248 and S252, plus S286       | Active contracts               | Existing access, truthful status, one review and renewal processes as guidance.                                                                                   |
+| Current plan and loop state, published owner-renewal-outreach process readback | Verified baseline              | Process content is published. Staff owner/default routing remains unresolved.                                                                                     |
 
 **Architecture outcome (deterministic, fail-first).**
 
@@ -167,8 +167,8 @@ actual routing change belongs to the existing authority.
   rehearsal, with exact pending routing clearly stated.
 - **Consumes, but does not assume.** Existing published process and already scoped
   identities. An unresolved owner remains an explicit external decision.
-- **Externally blocked effect.** AC-S267-2 leaves actual process assignment blocked by
-  B-PROCESS-OWNER. No new authority is required to verify Help and read-only internal
+- **Externally blocked effect.** None for routing: renewal processes start no runs
+  (S286). No new authority is required to verify Help and read-only internal
   visibility.
 - **Produces for downstream suites.** An operator-readable role/action guide and an exact
   review handoff for S271.
@@ -192,8 +192,8 @@ actual routing change belongs to the existing authority.
 **Ordered prompt sequence.**
 
 1. Verify the starting behavior and register fail-first or preservation checks.
-2. Check current permitted surfaces and reconcile the process placeholder with
-   B-PROCESS-OWNER.
+2. Check current permitted surfaces and confirm the renewal process reads as guidance
+   (S286).
 3. Write and drive the existing role-scoped walkthrough and prove no changes in grants,
    recipients or admissions.
 4. Run the focused and applicable cumulative checks and record the actual outcomes.

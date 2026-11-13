@@ -4,6 +4,7 @@
 # S249 — Renewal kickoff prepared ahead, with one message and one route to send it
 
 > Status: Preparation and shared message readiness delivered at `2e5e47a8`, intake 125. November 9 intakes 131 and 136 are AUTHORING READY for click-only month preparation and a saved, fill-only recommendation.
+> November 12 intakes 158, 161 and 163 are AUTHORING READY for one rule for a source difference (S280), preparation of the leases shown (S283) and the term in the owner message (S285).
 
 **Goal.**
 
@@ -66,6 +67,8 @@ choose to work. RentVine readable; RentCast allowance available for a new lookup
   states either "Numbers agree" or the one difference to settle with its existing fix control.
   RentVine is the basis for rent and dates (D-OP-7). An operating Sheet value shows only when the
   Sheet holds a different value, as information. A blank Sheet row adds no discrepancy.
+  By owner direction of November 12, 2026 the same rule governs the Dashboard, the Approval
+  Queue and Live renewal review (S280 R-S280-6).
   The compact facts, source links and actionable attention cues follow S247 R-S247-12.
 - **R-S249-2 — Comparison at a glance.** Compare market rent shows contractual base rent,
   the RentCast estimate or a clear not-run/unavailable state, and the single editable Rent
@@ -81,8 +84,10 @@ choose to work. RentVine readable; RentCast allowance available for a new lookup
 - **R-S249-3 — Prepare the selected month once.** Above the S246 table, label the action
   “Prepare [month] leases” with the selected month. One authorized staff click runs the existing
   paid read under the signed-in Renewals scope without a second approval. Scope the run to the
-  selected month's eligible current-cycle targets, regardless of the displayed status or count
-  filter. A carried-over, later, completed, retired, moved-out, pending, closed or unreadable
+  selected month's eligible current-cycle targets that the table shows under the active filters
+  and search; with nothing filtered that is the whole month. A filter narrows the run and never
+  widens it (amended on November 12, 2026 by owner direction, S283 R-S283-2; the earlier text
+  prepared the whole month whatever the filter showed). A carried-over, later, completed, retired, moved-out, pending, closed or unreadable
   target is outside this action. The server resolves membership and the exact current cycle
   from fresh authoritative inputs before admission and refuses stale, tampered or unavailable
   targets individually. Changing the month does not retarget a run. Make its month and per-lease
@@ -206,6 +211,8 @@ choose to work. RentVine readable; RentCast allowance available for a new lookup
   rent recommendation it uses the approved suggestion wording. A message that recommends
   rent requires the amount before Send. An assisted renew-or-not message follows S251; the sentence "The working offer remains a staff decision" never
   reaches an owner. Template wording changes go through the existing template publication.
+  By owner direction of November 12, 2026 a message that recommends rent also states the proposed
+  renewal term and requires both saved working dates before Send (S285 R-S285-2 and R-S285-3).
 - **R-S249-11 — Readiness before the step.** The Now card and desk read the exact message's
   required inputs and their state from S224, including the verified recipient and applicable
   publication. Provide the actual fix beside each missing input. Use the sender-owned setup

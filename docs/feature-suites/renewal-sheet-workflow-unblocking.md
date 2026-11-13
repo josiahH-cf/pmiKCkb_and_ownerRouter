@@ -4,6 +4,7 @@
 # S159 — Remove Sheet workflow friction and restore supported updates
 
 > Status: IMPLEMENTED AND DEPLOYED. Owner-confirmed F08 change; implemented on 2026-10-02 under the owner's execution prompt (program commit `ba3f9719`, merged to main in PR #126) and released on 2026-10-03 by run `47fabb7c` at `e106a88a`. No provider effect was used; human verdict NOT RUN.
+> November 12 intake 156 is AUTHORING READY for the combined confirmation in S278.
 
 **Goal.**
 
@@ -37,7 +38,7 @@ An authorized ordinary staff user works a lease or deliberately requests a suppo
 - **R-S159-7** — Keep saved application values and visible unfinished source results after a Sheet failure. Source: U-F08.
 - **R-S159-8** — RentVine and Sheet results remain independent; one failure cannot erase the other success or saved app work. Source: U-F08.
 - **R-S159-9** — Use the existing owner-approved normal-field contract without requiring a hypothetical provider-owned tombstone/idempotency/isolation seam. Source: P-F08.
-- **R-S159-10** — Preserve claims, receipts, readback and separately confirmed correction; old proposals require fresh target/value preview and confirmation, never automatic backlog flushing. Source: P-F08; U-F08.
+- **R-S159-10** — Preserve claims, receipts, readback and separately confirmed correction; old proposals require fresh target/value preview and confirmation, never automatic backlog flushing. One reviewed preview and one confirmation may apply the listed cells of one lease row, each with its own claim, readback and receipt (owner direction of November 12, 2026; S278 R-S278-4). Source: P-F08; U-F08.
 - **R-S159-11** — Update candidate/current configuration expectations for the approved enablement while preserving the captured predecessor’s actual rollback configuration and evidence. Source: U-F08; P-F08.
 
 **In scope / out of scope.**

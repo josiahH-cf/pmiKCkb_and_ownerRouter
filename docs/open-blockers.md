@@ -11,6 +11,8 @@ exact-main CI at 952b33e7 and 5b5c65c6.
 Client answers received 2026-11-05 (Dan, relayed by the owner) narrow U1, U2 and U4; each section
 records what is settled and what is still asked. No hold was removed and no key, approval or
 publication changed.
+Owner direction of 2026-11-12 retired B-PROCESS-OWNER and narrowed U3; those sections and suites
+S272–S286 in the suite index record it. No key, approval or publication changed.
 This is the canonical external/human hold register. The
 [assessment](evidence/current-application-gap-analysis-2026-11-03.md) and
 [implementation plan](plan.md) link to this same set. A hold blocks only its named output/effect;
@@ -86,11 +88,12 @@ No old READY row or consumed permit starts new work.
   customer dispatch, schedule, reply, label, new draft, receipt or signature was assessment proof.
   Family use v0 and no published charge policy/Rhino material were observed; timing basis is now v1.
   This is application state, not evidence that PMI has made no relevant business decisions.
-- **Process guidance is published; real staffing is a separate input.** The same existing
+- **Process guidance is published; no staffing input is needed.** The same existing
   definition is Active v1, six steps/three links/4,637 verified immutable bytes, zero runs. Original
-  owner/default-approver placeholders were preserved. New run ownership currently reads the
-  default-approver field; Dan/team must identify the actual responsible managed staff before that
-  routing outcome is claimed. This is not a new general approval gate. See U4/B-PROCESS-OWNER.
+  owner/default-approver placeholders were preserved, and a Start is refused while they are
+  present. Owner direction of November 12, 2026 makes the renewal processes guidance that starts
+  no runs (S286, AUTHORING READY), so B-PROCESS-OWNER is retired and nobody is asked to name a
+  run owner.
 - **Runtime source access needs a narrow new scope decision, not files or login.** Existing owner
   reads verify one Approved/Low source and a source-bound importer-compatible command. Effective
   bucket/project/org/role inspection finds no runtime storage.objects.list grant. S240 explicitly
@@ -116,7 +119,6 @@ No old READY row or consumed permit starts new work.
 | B-TIMING / C05            | Only genuinely unresolved rule values or campaign dates                                         | Dan/team policy/source authority, if evidence recovery does not resolve them                               | U3; settled thirty-day basis recording has moved to S125 engineering           |
 | B-HUMAN / C03–C04,C11–C13 | Genuine delegation/owner consent, human acceptance or provider-completion claims                | Actual landlord/representative, staff/signers/observer; Dan routes unresolved authority questions          | U4; ordinary staff confirmation contracts remain sufficient for supported work |
 | B-DL-AUTH                 | Actual app-mediated Dotloop creation/upload                                                     | Owner of exact action authority after content and technical gates; existing protected activation procedure | U5; technical readiness proceeds, keys remain closed pending exact authority   |
-| B-PROCESS-OWNER           | Actual staff routing of a newly started internal owner-renewal checklist                        | Dan/team identifies responsible managed staff; engineering maps verified existing UIDs, no role grant      | U4; published guidance is usable, no run or assignment is invented             |
 | B-GCP-REINDEX             | App-runtime inventory and runnable re-index handoff for the existing approved source            | Project owner authorizes one narrow extension to S240's explicit IAM exclusion; team applies/reads back    | U6; exact private proposal and owner-side handoff ready, no ingestion          |
 
 Missing resource destinations hold only output using them. The insurance/RBP flyer and renewal
@@ -236,17 +238,22 @@ No bulk customer export, generic all-ten-form request or invented legal rule.
 ### U3 — Confirm only unresolved notice rules or campaign dates (B-TIMING, C05)
 
 The old request for a human Admin to re-record the already-settled basis is superseded by the
-owner's November 3 Q2. It is not a client unblocker. S125 delivers authorized renewal-staff
-selection of the settled tuple with automatic persistence, version conflict handling, audit and
-readback; no second confirmation, retyped attestation or Admin-only gate.
+owner's November 3 Q2. It is not a client unblocker. S125 delivered staff selection of the settled
+tuple with automatic persistence, version conflict handling, audit and readback, and version 1 is
+saved. Owner direction of November 12, 2026 makes a later change an Admin action on the Admin
+entry, with the lease showing the basis read only (S283 R-S283-5, AUTHORING READY). It adds no
+second confirmation or retyped attestation and asks the client nothing.
 
 **Who acts if a question remains:** Dan/team policy or source authority, after engineering reads
 existing decisions and current configuration.
 
 1. Confirm/correct only an actually unresolved notice-rule value or current outreach/catch-up date,
    including source-backed already-contacted cases.
-2. Do not adopt engineering seeds (deadline day 15, month offset -1, warning 3 days, follow-up 10)
-   as current business policy without evidence. Historical practice does not schedule new messages.
+2. Do not adopt engineering seeds (deadline day 15, month offset -1, warning 3 days) as current
+   business policy without evidence. Historical practice does not schedule new messages. By owner
+   direction of November 12, 2026 the follow-up interval (10 days unless an Admin saves another
+   value) is used only as an editable starting value in the follow-up form, which staff review
+   before anything is authorized (S276 R-S276-7, AUTHORING READY).
 
 **Done:** exact remaining rule/date decisions have supporting evidence and a current version.
 **Team verifies:** readback, below/at/above thirty-day and Central/DST cases separately.
@@ -259,30 +266,14 @@ date constitutes a send authorization, fee/legal determination or background sch
 Dan is the contact for unclear business authority. Bailey/Chasity participation is settled.
 Engineering reads roles, Spaces, sender profiles and exact targets without ceremonial new logins.
 
-**Specific process-staffing input — B-PROCESS-OWNER.** The actual Active process still has the
-preserved owner/default-approver placeholders (live GET 2026-11-04T00:12Z: Active v1, six steps,
-three links, zero runs, both placeholder values unchanged). Source `lib/firestore/workflows.ts`
-assigns a new run's owner from `content.default_approver_uid`; no real run was created or routing
-accepted. Nothing refuses a Start while the placeholder is present (Q-ENG-ADV-S241).
-Current operator/plan/feature evidence does not identify those actual responsible people.
-Bounded managed-mailbox recovery verified the profile, four August–November searches, three
-relevant threads and the full earlier training attachment. Bailey/Chasity participation is clear;
-the August daily-check assignment was a two-to-four-week pilot, not November standing ownership.
-No checked correspondence supplies the current default. Uninspected recordings/sources remain a
-coverage limit, not a claim that no assignment exists anywhere.
+**Process staffing — B-PROCESS-OWNER, retired.** Owner direction of November 12, 2026 makes the
+renewal processes guidance that starts no runs (S286, AUTHORING READY). No run owner or default
+approver is requested from Dan or the team. The published definition keeps its stored placeholder
+values (live GET 2026-11-04T00:12Z: Active v1, six steps, three links, zero runs), and until S286
+is delivered the existing refusal of a Start while a placeholder is present stays in force.
 
-1. Dan/team identifies who owns this internal process and who should receive newly started
-   owner-outreach checklists. One person may fill both roles if that is the actual team decision.
-   This asks for the responsible people, not UIDs, passwords or a general Dan approval.
-2. Engineering binds the confirmed people to existing managed user records through the authorized Admin directory and exact
-   UIDs, reviews the current definition/version, and uses the existing authorized Save/publication
-   controls. No account, role/claim, signature authority or mandatory approval is invented.
-3. Done means the current published definition contains the confirmed assignments and isolated
-   routing verification uses the intended existing staff UID. Actual first staff use/acceptance
-   is recorded separately; no production checklist is created for proof.
-
-This unlocks accountable routing of genuine new internal checklists. It does not hold the already
-published guidance or authorize customer/provider work. The remaining U4 case/human steps are:
+The owner message that asks for rent and term is not held here either: S285 supplies its wording
+through the existing template publication. The U4 case/human steps are:
 
 1. Recover actual delegation and existing current-term approval evidence. Ask only where scope or
    evidence is missing; a title/name, pricing policy or general reply approves no particular terms.

@@ -4,12 +4,14 @@
 # S98 — Operating renewal Sheet append, field updates, and execution integrity
 
 > Status: DEPLOYED in `f5faf1665121db9cacff913a57e7fdcc80513116` / `pmi-kc-app-rmtwdl4di-4439f17911f4`. Exact CI 34556917662 and S51/S54 candidate, promotion, observation and readback passed. Normal append and owner-approved existing-row field updates are supported with fresh target/value checks, exact confirmation, one-attempt claim and receipt/readback. Row deletion and historical restore remain unavailable. Historical proofs were not rerun.
+> November 12 intake 156 is AUTHORING READY for one confirmation of a lease row's listed cells (S278).
 
 **Goal.**
 
 An authorized operator previews and confirms one server-resolved append or supported field update,
-receives an honest result with readback, and can review/correct it without duplicate effects or
-guessed targets. S113 owns the new field editor and normal update path under the existing open keys,
+or the listed supported field updates of one lease row together (owner direction of November 12,
+2026; S278 R-S278-4), receives an honest result with readback for each cell, and can review/correct
+it without duplicate effects or guessed targets. S113 owns the new field editor and normal update path under the existing open keys,
 using the current S98 execution services.
 
 **Current state / intended end state.**
@@ -77,8 +79,9 @@ In scope: shared S98 proposal/claim/attempt/history/readback contracts, retained
 S113 normal-field updates and confirmed corrections, honest recovery and release assurance. The
 specific editor and recognized writable business fields are defined in S113 F2.
 
-Out of scope: generic spreadsheet APIs, new keys, bulk/autonomous/model-triggered writes, row
-deletion, proof replay, copy-only rehearsal, formulas/formatting changes, invented column mappings,
+Out of scope: generic spreadsheet APIs, new keys, autonomous/model-triggered writes, any write
+beyond the listed recognized cells of one existing lease row in one confirmed preview (at most
+ten; S278), row deletion, proof replay, copy-only rehearsal, formulas/formatting changes, invented column mappings,
 provider success from observed equality, and a Sheet write proving renewal completion.
 
 **Open questions & assumptions.**
@@ -182,8 +185,8 @@ switch, 48-key/16-open Registry, historical receipts and unrelated providers.
 
 **Forbidden actions / hard gates.**
 
-No arbitrary target, generic key, bulk/autonomous/model-triggered write, row deletion, completed proof
-mutation, blind retry, fabricated success receipt or new identity. Preserve live human preview/
+No arbitrary target, generic key, autonomous/model-triggered write, write across rows or leases or
+beyond the confirmed listed cells of one row, row deletion, completed proof mutation, blind retry, fabricated success receipt or new identity. Preserve live human preview/
 confirmation and correction. S113 changes the normal-field requirement, not those boundaries.
 
 **Dependencies / sequencing.**

@@ -918,6 +918,17 @@ answer-position checks to the S151 smoke.
 
 ## Supersede Log
 
+- 2026-11-12: D-STAFF-AUDIT-UNBLOCK (owner direction) replaces, for the AUTHORING READY suites
+  S272–S286: S263 R-S263-2's rule that no term length is offered (S285); S234 R-S234-1's rule
+  against preselecting the approver (S285); S249 R-S249-3's whole-month preparation under a filter
+  (S283); the one-field Sheet confirmation of S98 and S159 (S278); the November 3 staff selection
+  of the notice basis under S125 (S283); S189 R-S189-9's rule against a starting cadence (S276);
+  the kept QuickBooks Connect button and bulk Execute option, and the two labels required by S247
+  R-S247-2 and S235 R-S235-2 (S283); renewal process runs under S241 and S256, with the
+  B-PROCESS-OWNER hold (S286); the Guided layout pins of S247 R-S247-14, S269 and S270 (S281);
+  and D-OP-7's limit to the lease numbers check (S280). Serving behavior is unchanged until those
+  suites are delivered.
+
 - 2026-10-02: S152–S167 implemented (effective since their release on 2026-10-03, run `47fabb7c`): S164
   replaces F-S119's explicit Save status with autosaved status and same-status notes; S159
   replaces the F-S98/S128 blanket pause with the reviewed switch value true for candidate and
@@ -966,6 +977,7 @@ answer-position checks to the S151 smoke.
 | D-SHEET-NORMAL-RESUMPTION      | S159 resumes existing normal checklist append/recognized-field updates and removes global Sheet workflow gating. Supersedes S128; released on 2026-10-03 (run 47fabb7c), and production reads the reviewed value true. No backlog, delete, historical restore, broad key, or proof rerun.                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | D-RENEWAL-MESSAGES-STATUS      | S161–S164: editable marked messages, current-content copy/explicit unsent draft, first-name greetings, and autosaved Status log with same-status notes/no duplicate keystroke entries. Actual recipients/resources and evidence meanings remain. Released 2026-10-03 (run 47fabb7c).                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | D-MOBILE-PERSONAL-STAFF-ACCESS | S165–S167: entire app mobile/login; actual lease links; account-durable filters/sort with link precedence; existing internal Spaces open. Preserve Admin management, Vendor scope, verification restrictions, and private records. Released 2026-10-03 (run 47fabb7c).                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| D-STAFF-AUDIT-UNBLOCK          | Owner direction 2026-11-12: carry every staff workflow audit proposal and retire the rules that held ten of them. S272–S286 are AUTHORING READY and unlaunched: 12 month end choice, replying owner selected, one owner ask for rent and term, preparation of the leases shown, one confirmation for a lease row's listed Sheet cells, Admin-only notice basis, filled-in follow-up form, QuickBooks Connect and bulk Execute removed, renewal Spaces as guidance without runs, four Guided layout changes, and D-OP-7 on every screen. Specifics are assumptions the owner can change. No key, protected path, send or provider write changes.                                                                         |
 
 ## Readiness review boundary — 2026-09-07
 
@@ -1045,9 +1057,6 @@ and their serving truth stays in the ledger above (F-S114 through F-S120). Ownin
   record state, which the live lease page never passes; the retired S115 About-control check in
   `tests/unit/s115-section-help.test.tsx` pins them and help V1.1 lists them. Proposed: retire the
   three ids, amend that check and drop their help V1.2 rows. Default kept.
-- **Confirm-with-default: the QuickBooks Connect button.** The app has no QuickBooks sign-in, and
-  the button's result now says so. Proposed: show QuickBooks without a Connect button, under the
-  voice rule that removes dead controls. Default kept: the button stays.
 - **Authorized sign-in domains.** The accepted S113 release replaced only its exact superseded
   candidate entry and read back the required origins under existing standing authority. Canonical
   authentication and the other configured domains were preserved; no broad pruning is authorized.

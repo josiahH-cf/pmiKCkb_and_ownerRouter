@@ -5,6 +5,8 @@
 
 > Status: AUTHORING READY, intake 147. Companion Guided journey. Implementation and
 > verification pending.
+> November 12 intake 159 is AUTHORING READY for in-place editing of Rent to recommend and of
+> the renewal dates (S281), which replaces the two links named in items 3 and 4 below.
 
 **Goal.**
 
@@ -139,9 +141,9 @@ event.
    conditional Amount approved, evidence source and the explicit review/save in that
    order. If entered through a date fix, elevate the exact Working renewal terms inputs
    and keep the originating task. Otherwise before outreach show the unresolved pricing
-   choice first when the existing rules require a choice. Use the current base and
-   read-only Rent to recommend with **Edit rent to recommend** linking to Compare market
-   rent. Then show the required recipient, sender, or wording fix, or **Review owner
+   choice first when the existing rules require a choice. Show the current base and
+   Rent to recommend with **Edit**, which opens the one Rent to recommend editor in place
+   on this step (amended on November 12, 2026 by owner direction; S281 R-S281-11). Then show the required recipient, sender, or wording fix, or **Review owner
    message**, which opens the existing exact review on the current draft. A verified
    standing agreement that covers the exact case shows its coverage and **Continue to
    Offer the tenant**. A confirmed outreach without a known answer leads with the actual
@@ -153,9 +155,10 @@ event.
    explicit review. First fix the verified current lease-end source if needed for the
    offer. If working base is missing, **Set renewal base rent** leads to Compare market
    rent's existing proposal or manual work, or to the existing assisted or verified
-   standing choice when that case governs. Then route a missing working start or end to
-   its exact Working renewal terms field, where the supported next-day choice or manual
-   input is visible. Put **Review offer charges** next, with the first material unresolved
+   standing choice when that case governs. Then open a missing working start or end in place on
+   this step through the one Working renewal terms editor, where the next-day choice, the
+   end choices and manual input are visible (amended on November 12, 2026; S281 R-S281-14
+   and S285 R-S285-1). Put **Review offer charges** next, with the first material unresolved
    row or transition choice before the monthly and one-time breakdown. A shared mapping
    need links to the exact Admin handoff. Only after the applicable transition decisions
    are ready does a missing required flyer lead to its resource fix. Otherwise use the
@@ -296,8 +299,8 @@ action.
 - **AC-S269-2** — Cover all seven outcomes, the Full mapping, month-to-month, non-renewal,
   assisted choices, standing coverage, failed read and complete on compiled pages. Assert
   visible first input or exact link, state-specific labels and field order, keyboard order
-  and one owner. Verify the working-date return, the recommendation's exact edit link, and
-  separate owner approval and tenant charge/decision controls.
+  and one owner. Verify the working-date return, the recommendation's in-place edit
+  (S281 R-S281-11), and separate owner approval and tenant charge/decision controls.
 - **AC-S269-3** — Drive mouse and keyboard deep links, edits, stale saves, timeout, two
   tabs, view toggle and return. Assert precise focus after explicit navigation, retained
   local input and unchanged revision until the authorized action.

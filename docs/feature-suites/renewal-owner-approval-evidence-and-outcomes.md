@@ -4,6 +4,7 @@
 # S234 — Evidenced owner approval of exact terms and one owner outcome per cycle
 
 > Status: IMPLEMENTED AND DEPLOYED — run `d4c109a0-6dce-4c4d-8928-ec77e9a58c73`, `bc97535379dd08deab578455b00a80fc93b8d209` / `pmi-kc-app-rmvzwt7ms-00754475effd`, November 3, 2026. S234 code is deployed; captured owner evidence, approval-bound Working revisions, truthful coverage and earlier-term tenant answers retain their implemented contracts. No real approval was invented for verification. See `docs/evidence/application-delivery-2026-11-03.md`.
+> November 12 intake 163 is AUTHORING READY for selecting the owner who replied (S285).
 
 **Goal.**
 
@@ -69,8 +70,11 @@ unreadable the approval control states that and records nothing.
   name and capacity; (b) the channel: a reply message selected from this lease's linked renewal
   thread (bound by mailbox, thread and message id from S233 evidence), another written channel with a
   reference, or a conversation with its participants; and (c) when it happened. The record stores
-  these with the existing actor, time, terms revision and `ApprovedWorkingTerms`. Nothing is
-  pre-selected from an incoming message.
+  these with the existing actor, time, terms revision and `ApprovedWorkingTerms`. Amended on
+  November 12, 2026 by owner direction (S285 R-S285-5): when the selected reply came from the
+  address the owner message was sent to for exactly one roster owner, that owner opens selected
+  and staff can change it before the review. The amount, the outcome and the time are never
+  taken from an incoming message, and the record stores no address.
 - **R-S234-2 — One owner outcome per cycle.** The staff-record owner outcome is the owner outcome
   that desk and Focus guidance, the packet gate, `ownerOutcomeBlocksDownstream`, the assurance
   projection and the handoff screen read. The legacy "Owner decision" control stays on its existing

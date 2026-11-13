@@ -4,6 +4,7 @@
 # S235 — Per-family packet readiness, party/animal field binding and duplicate-safe Dotloop handoff
 
 > Status: IMPLEMENTED AND DEPLOYED. The stabilization baseline run `d4c109a0-6dce-4c4d-8928-ec77e9a58c73` at `bc975353` retains [its delivery evidence](../evidence/application-delivery-2026-11-03.md); current A-03 source/application delivery and normal configuration are verified in [delivery and configuration evidence](../evidence/application-gap-delivery-2026-11-03.md). R-S235-7 still requires an approved original/reviewed map. Both Dotloop write keys remain closed; real legal output, first effects and human acceptance retain their exact gates.
+> November 12 intake 161 is AUTHORING READY for the staff wording of a default (S283 R-S283-7).
 
 **Goal.**
 
@@ -88,9 +89,10 @@ owner's exact authorization for the first real loop.
   `active_lease.executed`, form family policy). Viewing writes nothing; "Evaluate packet" stays the
   explicit snapshot step.
 - **R-S235-2 — Defaults are labeled, not policy.** Families at `family-use-default-v1` and default
-  predicates (for example the 1978 lead-disclosure boundary) read "Engineering default — not yet
-  approved by the client" in the packet and process readiness views until an Admin records the
-  client's decision; unused families never hold unrelated output. Amended 2026-11-04 by owner
+  predicates (for example the 1978 lead-disclosure boundary) read "Needs Verification: PMI KC has
+  not confirmed this form use." in the packet and process readiness views until an Admin records
+  the client's decision (amended on November 12, 2026 by owner direction, S283 R-S283-7; the
+  earlier label called it an engineering default); unused families never hold unrelated output. Amended 2026-11-04 by owner
   decision: the Admin form-family field hint is in-app help copy under the S244 rules and reads
   "Engineering default. Choosing a use here records it as a new configuration version."
 - **R-S235-3 — Party and animal slots.** `per_party` fields bind to packet people in their reviewed

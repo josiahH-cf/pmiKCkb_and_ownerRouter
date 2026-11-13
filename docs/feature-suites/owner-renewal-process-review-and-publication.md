@@ -3,7 +3,7 @@
 
 # S241 — Review and publish the existing owner-renewal process
 
-> Status: Authoring FINAL / READY; source and application DELIVERED; existing-process configuration/publication VERIFIED. The normal Save preserved the existing identity/history/action references, with six steps and three source links. Exact reviewed process/hash policy and real application-runtime scanning/publication produced Active version 1, with typed immutable readback of 4,637 bytes and content hash `d461320677aa92e3fa528a39488c10e650e517bd1c4dfa7ce0eed3bf49ef79a7`. Owner/approver placeholders remain preserved. Zero runs were started; real staff routing/Start run acceptance remains unverified, with the exact U4/B-PROCESS-OWNER responsibility input holding later staff-accountable checklist use, not this publication. See [delivery and configuration evidence](../evidence/application-gap-delivery-2026-11-03.md); [implementation evidence](../evidence/application-gap-implementation-2026-11-03.md) preserves full07/core and earlier v8 scopes. Legal/map approval and human/provider completion are separate.
+> Status: Authoring FINAL / READY; source and application DELIVERED; existing-process configuration/publication VERIFIED. The normal Save preserved the existing identity/history/action references, with six steps and three source links. Exact reviewed process/hash policy and real application-runtime scanning/publication produced Active version 1, with typed immutable readback of 4,637 bytes and content hash `d461320677aa92e3fa528a39488c10e650e517bd1c4dfa7ce0eed3bf49ef79a7`. Owner/approver placeholders remain preserved. Zero runs were started; real staff routing/Start run acceptance remains unverified, and the owner's November 12, 2026 direction makes the renewal definitions guidance that starts no runs (S286, intake 164 AUTHORING READY), which retires the B-PROCESS-OWNER input. See [delivery and configuration evidence](../evidence/application-gap-delivery-2026-11-03.md); [implementation evidence](../evidence/application-gap-implementation-2026-11-03.md) preserves full07/core and earlier v8 scopes. Legal/map approval and human/provider completion are separate.
 
 **Goal.**
 
@@ -108,7 +108,9 @@ enable one or replace the operation's current source/actor/confirmation/recovery
   contents, audit records and each run's original `definition_version_id` or Not pinned (draft)
   meaning. A pinned run reads its original immutable snapshot for display, validation and step
   completion, rather than the mutable definition. Missing, corrupt or identity/Space-mismatched
-  snapshots report a precise unavailable state with no current-definition fallback. New Active
+  snapshots report a precise unavailable state with no current-definition fallback. No run
+  starts for the three renewal definitions, which are guidance only (owner direction of November
+  12, 2026; S286 R-S286-2). For every other definition, new Active
   starts use the current immutable published version; a concurrent definition change refuses the
   stale start. Existing supported Draft starts remain Not pinned even when the draft retains a
   previous publication pointer. No run is started or re-pointed by edit/publication. Show definition present, draft/unpublished and active published
@@ -270,9 +272,10 @@ work proceeds. No new consent ceremony is a technical phase prerequisite.
   with corrected full07/core and focused preservation evidence. Managed scanning, exact process/hash
   policy and actual normal existing-process correction/publication/readback are verified. Active
   version 1 contains six steps/three source links; identity/history and empty action references are
-  preserved, including the original owner/approver placeholders, with zero workflow runs. Actual
-  staff assignment is the exact U4/B-PROCESS-OWNER responsibility input before later accountable checklist use; it does
-  not reopen publication or create a blanket Dan-approval gate.
+  preserved, including the original owner/approver placeholders, with zero workflow runs. By owner direction of November 12, 2026 the renewal
+  definitions start no runs (S286), so no staff assignment is requested and the former
+  B-PROCESS-OWNER input is retired. This does not reopen publication or create a blanket
+  Dan-approval gate.
 - **Consumes, but does not assume:** Current definition, source links, enabled publication policy,
   scanner and recovered decisions. Unknown/unavailable inputs remain explicit rather than fabricated.
 - **Externally blocked effect:** Only a truly unavailable business/legal fact or content decision
