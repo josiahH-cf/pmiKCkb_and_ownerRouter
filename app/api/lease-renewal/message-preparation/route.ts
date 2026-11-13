@@ -47,7 +47,10 @@ import { resolveRenewalWorkBasis } from "@/lib/lease-renewal/workspace-cycle-con
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { readOfferAnswersView } from "@/lib/firestore/renewal-offer-answers";
 import { keepOfferSource } from "@/lib/firestore/renewal-offer-sources";
-import { publishFollowUpCopy } from "@/lib/firestore/renewal-follow-up-publication";
+import {
+  getFollowUpCopyPublication,
+  publishFollowUpCopy,
+} from "@/lib/firestore/renewal-follow-up-publication";
 
 const identity = z
   .object({
@@ -241,20 +244,23 @@ function saveMessage(actor: AuthenticatedUser, value: unknown, leaseId: string) 
     resolveBasis: () => resolveRenewalWorkBasis(actor, leaseId),
   });
 }
-/** S285 R-S285-6: only an existing template approver sees the new owner wording control. */
-function withOwnerCopyAuthority<T extends { ownerCopy?: { canPublish: boolean } }>(
-  actor: AuthenticatedUser,
-  preparation: T,
-): T {
-  if (!preparation.ownerCopy) return preparation;
+/** Only existing template approvers see the owner and follow-up publication controls. */
+async function preparationFor(actor: AuthenticatedUser, current: Current) {
+  const canPublish =
+    hasRenewalRoleAuthority("approve_message_template", actor.role) &&
+    !isVerificationAccount(actor);
+  const [preparation, followUpCopy] = await Promise.all([
+    withOfferAnswers(current),
+    canPublish && current.facts.channel === "tenant"
+      ? getFollowUpCopyPublication(actor).catch(() => null)
+      : null,
+  ]);
   return {
     ...preparation,
-    ownerCopy: {
-      ...preparation.ownerCopy,
-      canPublish:
-        hasRenewalRoleAuthority("approve_message_template", actor.role) &&
-        !isVerificationAccount(actor),
-    },
+    ...(preparation.ownerCopy
+      ? { ownerCopy: { ...preparation.ownerCopy, canPublish } }
+      : {}),
+    ...(followUpCopy ? { followUpCopyStatus: followUpCopy.status } : {}),
   };
 }
 export async function GET(request: Request) {
@@ -265,11 +271,9 @@ export async function GET(request: Request) {
     );
     const input = identity.parse(Object.fromEntries(new URL(request.url).searchParams));
     return NextResponse.json(
-      withOwnerCopyAuthority(
+      await preparationFor(
         actor,
-        await withOfferAnswers(
-          await currentRenewalMessage(actor, input.leaseId, input.channel),
-        ),
+        await currentRenewalMessage(actor, input.leaseId, input.channel),
       ),
       { headers: { "Cache-Control": "private, no-store" } },
     );
@@ -334,7 +338,7 @@ export async function POST(request: Request) {
       await keepTenantOfferSource(input.leaseId, current);
       return NextResponse.json({
         duplicate: result.duplicate,
-        ...withOwnerCopyAuthority(actor, await withOfferAnswers(current)),
+        ...(await preparationFor(actor, current)),
       });
     }
     if (input.kind === "publish_follow_up") {

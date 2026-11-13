@@ -260,11 +260,11 @@ describe("S243 R-S243-7 / BEH-S243-4 / AC-S243-7: consolidation", () => {
     // the stage line's check fix. The two controls whose names always carry a dollar amount (the
     // standing agreement amount and Same as recommended) are described by the lease page's
     // Pricing basis control and the Amount approved row, since Help text carries no dollar figure.
-    // Chunk 2 adds rows 141 to 152: the tenant response review and Stop them, the updated or
+    // Chunk 2 adds rows 141 to 153: the tenant response review and Stop them, the updated or
     // cancelled scheduled message, the owner wording publication, Facts for the owner ask with Edit,
     // the Message and Other ways to send groups, Review all Sheet updates, the sent owner message
-    // and the end date term choice.
-    expect(renewalControlMap.length).toBe(146);
+    // the end date term choice and the standard follow-up publication.
+    expect(renewalControlMap.length).toBe(147);
     expect(
       renewalControlMap.filter((row) => row.availability === "required").length,
     ).toBeGreaterThanOrEqual(41);

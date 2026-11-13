@@ -1723,5 +1723,17 @@
     "source": ["lib/lease-renewal/renewal-date-proposal.ts"],
     "sourceText": "Use a ${STANDARD_RENEWAL_TERM_MONTHS} month term (ends ${formatCalendarDate(standard.endIso)})",
     "actions": ["click-button:Full view", "open-summary:Working renewal terms"]
+  },
+  {
+    "step": "153",
+    "page": "workspace:tenant-offer",
+    "control": "Publish the standard follow-up message",
+    "role": "button",
+    "scope": "",
+    "availability": "conditional",
+    "expectation": "Template approvers can publish the standard follow-up from the tenant message editor. Future reviews start with that wording. The tenant offer and messages already authorized keep their reviewed wording.",
+    "source": ["components/lease-renewal/FollowUpCopyPublication.tsx"],
+    "who": "Approver",
+    "actions": ["click-button:Full view"]
   }
 ]
