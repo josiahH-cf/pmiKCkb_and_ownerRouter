@@ -70,6 +70,10 @@ import {
   sendTenantOffer,
 } from "./one-path-november-12-journeys.mjs";
 import { DESK, WORKING_ROUTE, WORKSPACE_ROUTE } from "./one-path-november-12-kit.mjs";
+import {
+  serverProviderCalls,
+  sheetWriteAttempts,
+} from "./one-path-november-12-provider-log.mjs";
 import { runRehearsalVitest } from "./one-path-november-12-unit-run.mjs";
 
 export const W1209_CHECKS = Object.freeze([
@@ -768,6 +772,7 @@ export async function checkW1209(ctx, page, start) {
   };
   const readableRent = (leaseId) =>
     `$${(fact(leaseId).rent - 50).toLocaleString("en-US")}`;
+  const sourceVariantStart = serverProviderCalls(rehearsal).length;
   const p3 = await part("P3 Sheet rent and lease end differ", async () => {
     serveDifferences(readableRent);
     const refreshed = await refreshFromDesk(ctx, page);
@@ -855,6 +860,12 @@ export async function checkW1209(ctx, page, start) {
       };
     },
   );
+  const sourceVariantCalls = serverProviderCalls(rehearsal).slice(sourceVariantStart);
+  const sourceWrites = {
+    sheets: sheetWriteAttempts(sourceVariantCalls).length,
+    rentvine: sourceVariantCalls.filter((entry) => entry.refused === "rentvine_write")
+      .length,
+  };
 
   // ==== P5: the Sheet rent cannot be read, so the rent difference is a decision ===================
   const p5 = await part("P5 decisions on three leases", async () => {
@@ -1398,6 +1409,7 @@ export async function checkW1209(ctx, page, start) {
       liveOk,
       unreadableOk,
       workingRentOk,
+      sourceWrites,
       pipelineOnly: {
         cases: pipelineCases,
         totals: pipeline.totals,
@@ -1414,6 +1426,8 @@ export async function checkW1209(ctx, page, start) {
       liveOk &&
       unreadableOk &&
       workingRentOk &&
+      sourceWrites.sheets === 0 &&
+      sourceWrites.rentvine === 0 &&
       pipelineOk;
   }
 
