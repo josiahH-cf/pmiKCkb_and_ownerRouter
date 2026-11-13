@@ -745,38 +745,10 @@ export async function journeyW1203(ctx, page) {
       log.add("harness reset before the next try");
     }
     const { dialog, refreshes } = await openOwnerReview(ctx, page, leaseId);
-    const workingBefore = await kit.read(page, `${WORKING_ROUTE}?leaseId=${leaseId}`);
-    const posts = [];
-    const reads = [];
-    const listen = (request) => {
-      const url = new URL(request.url());
-      if (url.origin !== ctx.origin) return;
-      if (request.method() === "GET") reads.push(url.pathname);
-      else posts.push(url.pathname);
-    };
-    page.on("request", listen);
-    const opened = Date.now();
-    await page.waitForTimeout(waitSeconds * 1000);
-    const confirmed = await confirmReview(ctx, page, dialog, "Send this message", "send");
-    page.off("request", listen);
-    const workingAfter = await kit.read(page, `${WORKING_ROUTE}?leaseId=${leaseId}`);
-    const sent = await kit.sentTo(kit.ownerAddresses(leaseId));
     const result = {
       attempt,
       refreshesBeforeReview: refreshes,
-      waitedSeconds: Math.round((Date.now() - opened) / 1000),
-      status: confirmed.status,
-      alert: confirmed.alert,
-      refusedAsChanged: /recipients or source facts changed/i.test(
-        `${confirmed.alert ?? ""} ${confirmed.error ?? ""}`,
-      ),
-      // Nothing edited: the only writes were the send itself, and the working record is unchanged.
-      postsDuringTry: [...new Set(posts)],
-      readsDuringWait: [...new Set(reads)].slice(0, 20),
-      workingRecordUnchanged:
-        JSON.stringify(workingBefore?.record?.fields ?? null) ===
-        JSON.stringify(workingAfter?.record?.fields ?? null),
-      ownerMessagesSent: sent.length,
+      ...(await observeTimedOwnerConfirmation(ctx, page, leaseId, dialog, waitSeconds)),
     };
     tries.push(result);
     log.add("confirm after waiting", {
@@ -784,7 +756,7 @@ export async function journeyW1203(ctx, page) {
       status: result.status,
       refused: result.refusedAsChanged,
     });
-    if (result.refusedAsChanged || confirmed.status !== 200) break;
+    if (result.refusedAsChanged || result.status !== 200) break;
   }
   return {
     observed: {
@@ -793,6 +765,96 @@ export async function journeyW1203(ctx, page) {
       waitSeconds,
     },
     steps: log.steps,
+  };
+}
+
+/** Observe the open review through one wait and one staff confirmation, including its receipt. */
+export async function observeTimedOwnerConfirmation(ctx, page, leaseId, dialog, seconds) {
+  const { kit } = ctx;
+  const workingUrl = `${WORKING_ROUTE}?leaseId=${leaseId}`;
+  const workingBefore = (await kit.read(page, workingUrl))?.record;
+  const owners = kit.ownerAddresses(leaseId);
+  const mailBefore = new Set((await kit.sentTo(owners)).map(({ id }) => id));
+  const reviewBefore = await reviewText(ctx, dialog);
+  const reads = new Set();
+  const posts = [];
+  let sendRequests = 0;
+  const listen = (request) => {
+    const url = new URL(request.url());
+    if (url.origin !== ctx.origin) return;
+    if (request.method() === "GET") reads.add(url.pathname);
+    else {
+      posts.push(url.pathname);
+      if (request.method() === "POST" && url.pathname === SEQUENCES_ROUTE) {
+        try {
+          if (kit.sequenceAction(request.postDataJSON()) === "send") sendRequests += 1;
+        } catch {
+          // An unreadable command does not count as a send confirmation.
+        }
+      }
+    }
+  };
+  page.on("request", listen);
+  let waitedMs;
+  let reviewUnchanged;
+  let postsBeforeConfirm;
+  let readsDuringWait;
+  let confirmed;
+  try {
+    const opened = performance.now();
+    await page.waitForTimeout(seconds * 1000);
+    reviewUnchanged =
+      reviewBefore.length > 0 && (await reviewText(ctx, dialog)) === reviewBefore;
+    waitedMs = Math.floor(performance.now() - opened);
+    postsBeforeConfirm = posts.length;
+    readsDuringWait = [...reads].slice(0, 20);
+    confirmed = await confirmReview(ctx, page, dialog, "Send this message", "send");
+  } finally {
+    page.off("request", listen);
+  }
+  const workingAfter = (await kit.read(page, workingUrl))?.record;
+  const sent = (await kit.sentTo(owners)).filter(({ id }) => !mailBefore.has(id));
+  const receiptRead =
+    confirmed.status === 200 && confirmed.sequenceId
+      ? await kit
+          .read(page, `${SEQUENCES_ROUTE}?id=${confirmed.sequenceId}`)
+          .catch(() => null)
+      : null;
+  const sequence = receiptRead?.sequence;
+  const [receipt] = receiptRead?.attempts ?? [];
+  const [mail] = sent;
+  return {
+    waitedMs,
+    waitedSeconds: Math.floor(waitedMs / 1000),
+    status: confirmed.status,
+    alert: confirmed.alert,
+    refusedAsChanged: /recipients or source facts changed/i.test(
+      `${confirmed.alert ?? ""} ${confirmed.error ?? ""}`,
+    ),
+    reviewUnchanged,
+    postsBeforeConfirm,
+    postsDuringTry: posts,
+    sendRequests,
+    readsDuringWait,
+    workingRecordUnchanged:
+      Boolean(workingBefore?.fields && workingAfter?.fields) &&
+      JSON.stringify(workingBefore.fields) === JSON.stringify(workingAfter.fields),
+    ownerMessagesSent: sent.length,
+    receiptMatches:
+      Boolean(sequence) &&
+      sequence.id === confirmed.sequenceId &&
+      sequence.confirmedCount === 1 &&
+      sequence.unresolvedOccurrenceId === null &&
+      receiptRead?.attemptsTruncated === false &&
+      receiptRead.attempts.length === 1 &&
+      receipt?.sequenceId === sequence.id &&
+      receipt.authorizationRevision === sequence.authorization?.revision &&
+      receipt.index === 0 &&
+      receipt.state === "sent" &&
+      Boolean(mail) &&
+      receipt.gmailMessageId === mail.id &&
+      receipt.gmailThreadId === mail.threadId &&
+      receipt.rfcMessageId === mail.rfcMessageId,
   };
 }
 
