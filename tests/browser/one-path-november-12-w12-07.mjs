@@ -39,9 +39,12 @@
 //      false.
 // Nothing here sends, schedules or refreshes a message, applies a provider update or posts an app
 // route. Raw observations go to ctx.record.
-import { existsSync, readFileSync } from "node:fs";
 import { FIRST_TERM_END, enterRenewalDates } from "./one-path-november-12-journeys.mjs";
 import { WORKING_ROUTE, WORKSPACE_ROUTE } from "./one-path-november-12-kit.mjs";
+import {
+  serverProviderCalls,
+  sheetWriteAttempts,
+} from "./one-path-november-12-provider-log.mjs";
 import { runRehearsalVitest } from "./one-path-november-12-unit-run.mjs";
 
 export const W1207_CHECKS = Object.freeze([
@@ -300,48 +303,13 @@ async function settled(page, timeout = 60_000) {
   await page.waitForTimeout(1_500);
 }
 
-/** The server's outbound requests so far (served stand-ins and refusals), from its network log. */
-function serverCalls(ctx) {
-  const file = ctx.rehearsal.files?.networkLog;
-  if (!file || !existsSync(file)) return [];
-  return readFileSync(file, "utf8")
-    .split("\n")
-    .filter(Boolean)
-    .flatMap((line) => {
-      try {
-        const entry = JSON.parse(line);
-        return entry.served || entry.refused ? [entry] : [];
-      } catch {
-        return [];
-      }
-    });
-}
-/**
- * A request on a Sheet write path, as the server's Sheet stand-in logs it (the log has no method):
- * a batch update (cell writes and row appends), a single-range values call (the compare-and-swap
- * write is a PUT there) or a new spreadsheet. The stand-in answers reads only through
- * values:batchGet and the spreadsheet's metadata, which are not counted.
- */
-const sheetWriteAttempts = (calls) =>
-  calls.filter((entry) => {
-    const path = String(entry.path ?? "");
-    const sheets =
-      (entry.served === "google" && entry.host === "sheets.googleapis.com") ||
-      (entry.refused && /sheets/i.test(String(entry.host ?? "")));
-    return (
-      sheets &&
-      (path.endsWith(":batchUpdate") ||
-        /\/values\/[^:]/.test(path) ||
-        /:append$/.test(path) ||
-        path === "/v4/spreadsheets")
-    );
-  });
+const serverCalls = ({ rehearsal }) => serverProviderCalls(rehearsal);
 /** The Sheet stand-in's paths in a window, by count, for the record. */
 const sheetPaths = (calls) =>
   calls
     .filter((entry) => entry.host === "sheets.googleapis.com")
     .reduce((counts, entry) => {
-      const key = `${String(entry.path ?? "").replace(/spreadsheets\/[^/:]+/, "spreadsheets/<id>")} found=${entry.found}`;
+      const key = `${entry.method} ${String(entry.path ?? "").replace(/spreadsheets\/[^/:]+/, "spreadsheets/<id>")} found=${entry.found}`;
       counts[key] = (counts[key] ?? 0) + 1;
       return counts;
     }, {});

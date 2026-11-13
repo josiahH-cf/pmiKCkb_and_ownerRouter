@@ -321,7 +321,13 @@ const stand = http.createServer((request, response) => {
   request.resume();
   request.on("end", () => {
     const body = google(host, request.method, url);
-    record({ served: "google", host, path: url.pathname, found: body !== undefined });
+    record({
+      served: "google",
+      host,
+      method: request.method,
+      path: url.pathname,
+      found: body !== undefined,
+    });
     response.writeHead(body === undefined ? 404 : 200, {
       "content-type": "application/json",
     });
@@ -392,10 +398,12 @@ globalThis.fetch = async function guardedFetch(input, init) {
         });
   }
   if (GOOGLE_HOSTS.has(url.hostname)) {
-    const body = google(url.hostname, (init?.method ?? "GET").toUpperCase(), url);
+    const method = (init?.method ?? "GET").toUpperCase();
+    const body = google(url.hostname, method, url);
     record({
       served: "google",
       host: url.hostname,
+      method,
       path: url.pathname,
       found: body !== undefined,
     });
