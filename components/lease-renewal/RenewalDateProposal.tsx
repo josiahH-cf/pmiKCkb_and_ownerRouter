@@ -54,7 +54,12 @@ export function useRenewalLeaseEnd() {
 
 // ---- Return to tenant offer -------------------------------------------------------------------
 
-type DateFixReturn = { readonly field: string; readonly returnTo: string } | null;
+type DateFixReturn = {
+  readonly field: string;
+  readonly returnTo: string;
+  /** S277 R-S277-4: the return's own words when it is not the tenant offer. */
+  readonly label?: string;
+} | null;
 let pendingReturn: DateFixReturn = null;
 const returnListeners = new Set<() => void>();
 function notifyReturn() {
@@ -67,9 +72,12 @@ function subscribeReturn(listener: () => void) {
   };
 }
 
-/** A date fix opened from Offer the tenant remembers that offer so staff can return to it. */
-export function startDateFixFromOffer(field: string, returnTo: string) {
-  pendingReturn = { field, returnTo };
+/**
+ * A date fix opened from Offer the tenant remembers that offer so staff can return to it. S277
+ * R-S277-4: the owner's answer opens the same editor for its dates and names its own return.
+ */
+export function startDateFixFromOffer(field: string, returnTo: string, label?: string) {
+  pendingReturn = { field, returnTo, ...(label ? { label } : {}) };
   notifyReturn();
 }
 
@@ -105,7 +113,7 @@ export function ReturnToTenantOffer() {
         type="button"
         variant="secondary"
       >
-        {RETURN_TO_TENANT_OFFER_LABEL}
+        {pending.label ?? RETURN_TO_TENANT_OFFER_LABEL}
       </Button>
     </p>
   );

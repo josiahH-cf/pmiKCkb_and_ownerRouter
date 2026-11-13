@@ -16,6 +16,7 @@ import type {
 import { focusRenewalDashboardControl } from "./RenewalDashboardNavigation";
 import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
 import { useRenewalPricingPolicy } from "./RenewalPricingPolicy";
+import { WorkingBaseBasisLine } from "./RenewalRentBasis";
 import { standingRuleBasis } from "@/lib/lease-renewal/standing-agreement";
 import {
   TENANT_ACCEPTANCE_HOLD_WORDS,
@@ -139,6 +140,8 @@ export function FinishUpSourcePreviews({
             {formatCalendarDate(terms.effectiveDate)} to{" "}
             {formatCalendarDate(terms.endDate)}.
           </p>
+          {/* S277 R-S277-2: the final rent's basis, from the one projection. */}
+          <WorkingBaseBasisLine amount={terms.rent} field="finish-up-rent-basis" />
           {ruleBasis ? (
             <p className="muted" data-renewal-field="finish-up-rule-basis">
               Basis for the rent: {ruleBasis}

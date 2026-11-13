@@ -8,10 +8,7 @@ import { workingRenewalTerms } from "@/lib/lease-renewal/working-record";
 import { useRenewalWorkingRecord } from "@/components/lease-renewal/RenewalWorkingRecord";
 import { useRenewalManualWorkspace } from "@/components/lease-renewal/RenewalManualWorkspace";
 import { useRenewalPricingPolicy } from "@/components/lease-renewal/RenewalPricingPolicy";
-import {
-  standingRuleContext,
-  standingRuleSourceLabel,
-} from "@/lib/lease-renewal/standing-agreement";
+import { standingAdoptionSave } from "@/lib/lease-renewal/standing-agreement";
 export function RenewalRecommendation({
   currentRent,
   fresh = true,
@@ -57,6 +54,17 @@ export function RenewalRecommendation({
     proposal?.amount !== null &&
     proposal?.amount !== undefined &&
     proposal.policyId === rule.id;
+  // S277 ARCH-S277-1: an agreement amount saves through the one adoption writer.
+  const standingAdoption =
+    fromStanding && standing && rule && proposal
+      ? standingAdoptionSave({
+          agreementId: standing.id,
+          agreementName: standing.name,
+          policyId: rule.id,
+          policyVersion: rule.version,
+          basis: proposal.reason,
+        })
+      : null;
   return (
     <section aria-label="Renewal recommendation" className="panel">
       <h3>Recommendation and working offer</h3>
@@ -88,16 +96,11 @@ export function RenewalRecommendation({
               onClick={() =>
                 void adoptProposal(
                   proposal.amount!,
-                  fromStanding
-                    ? standingRuleSourceLabel(standing.name, rule.version)
+                  standingAdoption
+                    ? standingAdoption.sourceLabel
                     : `Pricing policy v${proposal.policyVersion}`,
-                  fromStanding
-                    ? standingRuleContext({
-                        agreementId: standing.id,
-                        policyId: rule.id,
-                        policyVersion: rule.version,
-                        basis: proposal.reason,
-                      })
+                  standingAdoption
+                    ? standingAdoption.context
                     : `${proposal.policyId}: ${proposal.reason}`,
                 )
               }

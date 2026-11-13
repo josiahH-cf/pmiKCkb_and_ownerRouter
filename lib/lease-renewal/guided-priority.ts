@@ -39,6 +39,7 @@ import {
   type RenewalPathStepId,
 } from "./renewal-path";
 import { KICKOFF_FIX_TARGETS } from "./renewal-preparation";
+import { STANDING_ADOPTION_CONTROL_ID } from "./standing-agreement";
 import {
   RENEWAL_STAGE_NEXT_STEP,
   renewalStageWaitingLine,
@@ -304,6 +305,12 @@ const RENT_TO_RECOMMEND_TARGET = "renewal-now-rent-to-recommend";
 // S263: the verified current lease end is corrected through the existing lease fact correction.
 const LEASE_END_TARGET = KICKOFF_FIX_TARGETS.correctFact;
 const PRICING_BASIS_TARGET = "renewal-pricing-basis";
+/**
+ * S277 R-S277-1: on a covered lease with an empty base, "Set renewal base rent" lands on the one
+ * adoption action in the Pricing basis owner ("Use $1,751.00 from the agreement"), never on the
+ * basis choice's first radio.
+ */
+const STANDING_ADOPTION_TARGET = STANDING_ADOPTION_CONTROL_ID;
 const HOUSING_TARGET = "renewal-now-housing-assistance";
 /** S262: "Record the owner's answer" for an observed reply, on the Now card. */
 export const OWNER_ANSWER_FROM_REPLY_TARGET = "renewal-owner-decision-from-reply";
@@ -434,7 +441,7 @@ function missingInputs(facts: GuidedPriorityFacts): GuidedPriorityInput[] {
             target: facts.assisted
               ? ASSISTED_CONTROL_IDS.rentChoice
               : facts.standingCovered
-                ? PRICING_BASIS_TARGET
+                ? STANDING_ADOPTION_TARGET
                 : RENT_TO_RECOMMEND_TARGET,
             owner: facts.assisted
               ? "assisted-rent"

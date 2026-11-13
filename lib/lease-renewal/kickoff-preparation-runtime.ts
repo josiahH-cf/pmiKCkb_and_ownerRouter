@@ -7,10 +7,7 @@ import {
   outreachScopeFor,
   projectOutreachEvidence,
 } from "@/lib/lease-renewal/outreach-evidence";
-import {
-  standingRuleContext,
-  standingRuleSourceLabel,
-} from "@/lib/lease-renewal/standing-agreement";
+import { standingAdoptionSave } from "@/lib/lease-renewal/standing-agreement";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { cycleDispositionHold } from "./cycle-disposition";
 import { getRenewalCycleDisposition } from "@/lib/firestore/renewal-cycle-disposition-read";
@@ -281,6 +278,17 @@ async function prepareWorkingResult(
     (rent.origin === "agreement" || rent.origin === "comparison")
   ) {
     const basis = rent.origin === "agreement" ? current.ruleBasis : null;
+    // S277 ARCH-S277-1: an agreement amount saves through the one adoption writer, so its stored
+    // basis is the same as the staff action's in the Pricing basis owner.
+    const adoption = basis
+      ? standingAdoptionSave({
+          agreementId: basis.agreementId,
+          agreementName: lease.coveredBy ?? "verified rule",
+          policyId: basis.policyId,
+          policyVersion: basis.policyVersion,
+          basis: `${rent.basis} Cycle ${cycleDateIso} (${workspace.cycleId}).`,
+        })
+      : null;
     const saved = await saveRenewalWorkingField(
       actor,
       {
@@ -290,17 +298,9 @@ async function prepareWorkingResult(
         expectedRevision: lease.rentField.revision,
         operationId: randomUUID(),
         origin: "adopted_source",
-        sourceLabel: basis
-          ? standingRuleSourceLabel(
-              lease.coveredBy ?? "verified rule",
-              basis.policyVersion,
-            )
-          : "stored market comparison",
-        context: basis
-          ? standingRuleContext({
-              ...basis,
-              basis: `${rent.basis} Cycle ${cycleDateIso} (${workspace.cycleId}).`,
-            })
+        sourceLabel: adoption ? adoption.sourceLabel : "stored market comparison",
+        context: adoption
+          ? adoption.context
           : JSON.stringify({
               cycleId: workspace.cycleId,
               cycleDateIso,

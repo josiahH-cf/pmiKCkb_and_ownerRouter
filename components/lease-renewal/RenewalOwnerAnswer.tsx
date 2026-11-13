@@ -7,6 +7,13 @@
 // names the old recommended base, the approved base and the coverage before Save. Saving records
 // the answer and the approved working base together; it creates no mail operation, provider
 // write or send. Continue to Offer the tenant only opens the existing tenant preparation.
+//
+// S277 R-S277-3 / R-S277-4 (ARCH-S277-3): Amount approved still starts empty. It is set only by
+// typing or by the explicit "Same as recommended ($1,400.00)" click, offered while a current-cycle
+// recommendation exists; nothing is filled for staff. The review states what the chosen coverage
+// means at Documents before Save, and while the working dates are not saved the form links to the
+// one Working renewal terms editor with a return that keeps what staff typed. Coverage stays what
+// staff chose and saved (S262 R-S262-3).
 
 import { useId, useState, type ReactNode } from "react";
 
@@ -31,7 +38,14 @@ import {
   type RenewalWorkingRecord,
 } from "@/lib/lease-renewal/working-record";
 import type { OwnerApprovalInput } from "@/lib/lease-renewal/workspace-state";
+import {
+  formatRentAmount,
+  rentBasisPhrase,
+  rentBasisSentence,
+} from "@/lib/lease-renewal/rent-basis";
+import { WORKING_START_FIELD_ID } from "@/lib/lease-renewal/message-readiness";
 import { focusRenewalDashboardControl } from "./RenewalDashboardNavigation";
+import { startDateFixFromOffer } from "./RenewalDateProposal";
 
 export const RECORD_OWNER_ANSWER_TITLE = "Record the owner's answer";
 export const AMOUNT_APPROVED_LABEL = "Amount approved";
@@ -83,7 +97,35 @@ export function approvedBaseFromDraft(
   };
 }
 
-/** Amount approved and what the answer covers; nothing is prefilled. */
+/** S277 R-S277-3: the explicit affirmation beside Amount approved. */
+export function sameAsRecommendedLabel(amount: number): string {
+  return `Same as recommended (${formatRentAmount(amount)})`;
+}
+
+/** S277 R-S277-4: the coverage consequences, stated before the answer is saved. */
+export const OWNER_ANSWER_COVERAGE_WORDS = {
+  amountOnly:
+    "This answer covers the base rent only. Documents will ask for the owner's approval of the renewal dates and charges.",
+  exactTerms:
+    "This answer covers the base rent and the renewal dates, so Documents asks for no second approval of the dates.",
+  datesFirst:
+    "To record that the owner also approved the dates, enter the renewal dates first.",
+  datesLink: "Enter the renewal dates in Working renewal terms",
+  returnToAnswer: "Return to the owner's answer",
+} as const;
+
+/** The return target of the dates link: this form's Amount approved. */
+function amountReturnId(reactId: string): string {
+  return `renewal-owner-answer-amount-${reactId.replace(/[^A-Za-z0-9_-]/g, "")}`;
+}
+
+/**
+ * Amount approved and what the answer covers; nothing is prefilled. S277 R-S277-3: with a
+ * current-cycle recommendation, "Same as recommended ($1,400.00)" fills the field on one
+ * deliberate click; the field still starts empty (S262 R-S262-1). S277 R-S277-4: until both
+ * working dates are saved, the form says how to record the dates too and links to the one Working
+ * renewal terms editor, with a return to this form; what staff typed here stays.
+ */
 export function ApprovedAmountFields({
   draft,
   onChange,
@@ -97,8 +139,15 @@ export function ApprovedAmountFields({
 }>) {
   const id = useId();
   const dates = coverableRenewalDates(working);
+  const recommended = recommendedRentValue(working);
+  const returnId = amountReturnId(id);
   return (
-    <div className="ui-stack-tight" data-renewal-field="owner-answer-amount">
+    <div
+      className="ui-stack-tight"
+      data-renewal-field="owner-answer-amount"
+      id={returnId}
+      tabIndex={-1}
+    >
       <Field
         htmlFor={`${id}-amount`}
         hint="The monthly base rent the owner approved, exactly as the owner gave it."
@@ -114,6 +163,19 @@ export function ApprovedAmountFields({
           value={draft.amount}
         />
       </Field>
+      {recommended !== null ? (
+        <p className="ui-row" data-renewal-field="owner-answer-same-as-recommended">
+          <Button
+            disabled={disabled}
+            onClick={() => onChange({ ...draft, amount: recommended.toFixed(2) })}
+            size="compact"
+            type="button"
+            variant="secondary"
+          >
+            {sameAsRecommendedLabel(recommended)}
+          </Button>
+        </p>
+      ) : null}
       <fieldset className="ui-stack-tight">
         <legend>{APPROVAL_COVERS_LABEL}</legend>
         <label className="ui-row">
@@ -140,6 +202,27 @@ export function ApprovedAmountFields({
             Base rent and the renewal dates, {formatCalendarDate(dates.start)} to{" "}
             {formatCalendarDate(dates.end)}
           </label>
+        ) : null}
+        {!dates ? (
+          <p data-renewal-field="owner-answer-dates-first">
+            {OWNER_ANSWER_COVERAGE_WORDS.datesFirst}{" "}
+            <a
+              className="text-link"
+              href={`#${WORKING_START_FIELD_ID}`}
+              onClick={(event) => {
+                // The one Working renewal terms editor, with the way back to this form.
+                event.preventDefault();
+                startDateFixFromOffer(
+                  "renewalStartDate",
+                  returnId,
+                  OWNER_ANSWER_COVERAGE_WORDS.returnToAnswer,
+                );
+                focusRenewalDashboardControl(WORKING_START_FIELD_ID);
+              }}
+            >
+              {OWNER_ANSWER_COVERAGE_WORDS.datesLink}
+            </a>
+          </p>
         ) : null}
         <p className="muted">
           Other charges are not covered by this answer. They are reviewed with the tenant
@@ -203,6 +286,10 @@ export function OwnerAnswerReview({
   const recommended = recommendedRentValue(working);
   const dates = coverableRenewalDates(working);
   const same = recommended !== null && Math.abs(recommended - base.amount) < 0.005;
+  // S277 R-S277-2: the recommendation's basis, from the one projection.
+  const recommendedBasis =
+    recommendation.kind === "unavailable" ? null : rentBasisPhrase(recommendation.entry);
+  const exactTerms = base.scope === "exact_terms" && dates !== null;
   return (
     <section
       aria-label={REVIEW_OWNER_ANSWER_LABEL}
@@ -217,6 +304,11 @@ export function OwnerAnswerReview({
             {recommendation.kind === "unavailable" || recommended === null
               ? "Not available"
               : `${formatUsd(recommended)} per month`}
+            {recommended !== null && recommendedBasis ? (
+              <span className="muted" data-renewal-field="owner-answer-recommended-basis">
+                , {recommendedBasis}
+              </span>
+            ) : null}
           </dd>
         </div>
         <div>
@@ -229,7 +321,7 @@ export function OwnerAnswerReview({
         <div>
           <dt>Covers</dt>
           <dd data-renewal-field="owner-answer-coverage">
-            {base.scope === "exact_terms" && dates
+            {exactTerms && dates
               ? `The base rent and the renewal dates, ${formatCalendarDate(dates.start)} to ${formatCalendarDate(dates.end)}. Other charges are not covered.`
               : "The base rent only. The renewal dates and other charges are not covered."}
           </dd>
@@ -239,6 +331,12 @@ export function OwnerAnswerReview({
           <dd>{evidence}</dd>
         </div>
       </dl>
+      {/* S277 R-S277-4: what this coverage means at Documents, before the answer is saved. */}
+      <p data-renewal-field="owner-answer-coverage-statement" role="note">
+        {exactTerms
+          ? OWNER_ANSWER_COVERAGE_WORDS.exactTerms
+          : OWNER_ANSWER_COVERAGE_WORDS.amountOnly}
+      </p>
       <p className="muted">
         Saving records this answer and makes {formatUsd(base.amount)} the offer amount for
         this renewal. Nothing is sent.
@@ -348,10 +446,17 @@ export function ContinueToTenantOffer({
   working,
 }: Readonly<{ working: RenewalWorkingRecord | null | undefined }>) {
   const base = workingRenewalTerms(working ?? null).rent;
+  // S277 R-S277-2: the offer amount's basis, such as "Approved by the owner on 11/12/2026."
+  const basis = rentBasisPhrase(working?.fields.terms_rent ?? null);
   return (
     <p className="ui-row" data-renewal-field="owner-answer-continue">
       {base !== null ? (
         <span>Offer amount for this renewal: {formatUsd(base)} per month. </span>
+      ) : null}
+      {base !== null && basis ? (
+        <span className="muted" data-renewal-field="offer-amount-basis">
+          {rentBasisSentence(basis)}{" "}
+        </span>
       ) : null}
       <Button
         onClick={() =>

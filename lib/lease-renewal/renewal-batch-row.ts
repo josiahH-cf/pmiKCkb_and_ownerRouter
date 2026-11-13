@@ -9,6 +9,7 @@
 import { formatCalendarDate, formatCalendarDateOrTimestamp } from "@/lib/date-display";
 import type { DeskLeaseRow } from "@/lib/lease-renewal/desk-model";
 import { operationalCurrentRent } from "@/lib/lease-renewal/current-rent";
+import { rentViewBasisPhrase } from "@/lib/lease-renewal/rent-basis";
 import { isStableLeaseId } from "@/lib/lease-renewal/desk-view-continuation";
 import {
   deskLeaseWorkStatusInput,
@@ -217,7 +218,13 @@ export interface RenewalBatchRowView extends RenewalBatchItem {
   readonly dateNote: string | null;
   readonly stageLine: string;
   readonly currentBaseRent?: number | null;
+  /** S277 R-S277-5: the base shown is the staff working correction ("Working $1,350.00"). */
+  readonly currentBaseRentWorking?: boolean;
   readonly recommendedRent?: { value: number; basis: string } | null;
+  /** S277 R-S277-2: the short basis phrase of Rent to recommend, from the one projection. */
+  readonly recommendedBasis?: string | null;
+  /** S277 R-S277-5: the base rent the owner approved for this term ("Approved $1,425.00"). */
+  readonly approvedRent?: number | null;
   readonly nextStep: RenewalBatchNextStep;
   readonly tags: readonly RenewalBatchTag[];
   /** R-S246-12: "RentVine status unavailable" when the lease status could not be read. */
@@ -343,6 +350,16 @@ export function projectRenewalBatchRow(
   const unitLabel = row.identity.unit?.label?.label?.trim() || null;
   const key = row.id || row.identity.address?.sourceRef || row.addressLabel;
   const kickoff = kickoffFor(row);
+  // S261 ARCH-S261-1: "Current base rent" is the one base decision as the desk can make it
+  // without a charge read: the working correction, else the RentVine contractual base.
+  const base = operationalCurrentRent({
+    workingRent: row.workingCurrentRent ?? null,
+    contractualRent: row.currentRent,
+  });
+  const recommended =
+    row.kickoff?.rent.value != null && !cycleDispositionHold(target?.cycleDisposition)
+      ? { value: row.kickoff.rent.value, basis: row.kickoff.rent.basis }
+      : null;
   const triage = row.renewalStage?.triage;
   const attention = triage
     ? {
@@ -368,15 +385,19 @@ export function projectRenewalBatchRow(
     dateIso,
     dateNote,
     stageLine: stage.stageLine,
-    // S261 ARCH-S261-1: "Current base rent" is the one base decision as the desk can make it
-    // without a charge read: the working correction, else the RentVine contractual base.
-    currentBaseRent: operationalCurrentRent({
-      workingRent: row.workingCurrentRent ?? null,
-      contractualRent: row.currentRent,
-    }).amount,
-    recommendedRent:
-      row.kickoff?.rent.value != null && !cycleDispositionHold(target?.cycleDisposition)
-        ? { value: row.kickoff.rent.value, basis: row.kickoff.rent.basis }
+    currentBaseRent: base.amount,
+    currentBaseRentWorking: base.basis === "working",
+    recommendedRent: recommended,
+    recommendedBasis: recommended
+      ? rentViewBasisPhrase(
+          row.kickoff?.rent,
+          row.renewalPricing?.authority.label ?? null,
+        )
+      : null,
+    approvedRent:
+      typeof row.ownerApprovedRent === "number" &&
+      !cycleDispositionHold(target?.cycleDisposition)
+        ? row.ownerApprovedRent
         : null,
     nextStep: stage.nextStep,
     tags: renewalBatchRowTags(row, stage),

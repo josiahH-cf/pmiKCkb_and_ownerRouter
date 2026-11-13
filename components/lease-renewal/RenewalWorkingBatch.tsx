@@ -25,7 +25,7 @@ import {
   type ReactNode,
 } from "react";
 
-import { formatMoneyReference } from "@/lib/lease-renewal/current-rent-display";
+import { formatRentAmount } from "@/lib/lease-renewal/rent-basis";
 import { RenewalDeskSurfaceSwitch } from "./RenewalDeskSurfaceSwitch";
 import { Button, ConfirmationDialog, Notice } from "@/components/ui";
 import {
@@ -862,15 +862,27 @@ function BatchRow({
           </ul>
         ) : null}
       </td>
-      <td>
+      {/* S277 R-S277-5: amounts print as currency; a working correction is labelled, and a
+        current-cycle owner approval adds its line. The column set is unchanged (S246 R-S246-7). */}
+      <td data-batch-cell="base">
         {row.currentBaseRent == null
           ? "Needs a check"
-          : formatMoneyReference(row.currentBaseRent)}
+          : row.currentBaseRentWorking
+            ? `Working ${formatRentAmount(row.currentBaseRent)}`
+            : formatRentAmount(row.currentBaseRent)}
       </td>
-      <td>
-        {row.recommendedRent
-          ? formatMoneyReference(row.recommendedRent.value)
-          : "Not set"}
+      <td data-batch-cell="recommended">
+        {row.recommendedRent ? formatRentAmount(row.recommendedRent.value) : "Not set"}
+        {row.recommendedRent && row.recommendedBasis ? (
+          <span className="muted renewal-batch-rent-basis" data-batch-rent-basis>
+            {row.recommendedBasis}
+          </span>
+        ) : null}
+        {typeof row.approvedRent === "number" ? (
+          <span className="renewal-batch-approved-rent" data-batch-approved-rent>
+            Approved {formatRentAmount(row.approvedRent)}
+          </span>
+        ) : null}
       </td>
     </tr>
   );

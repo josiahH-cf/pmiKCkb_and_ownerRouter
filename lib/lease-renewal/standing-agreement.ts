@@ -304,6 +304,148 @@ export function standingRuleContext(input: {
     1000,
   );
 }
+
+/**
+ * S277 ARCH-S277-1: the ONE adoption writer's stored basis. Preparation (S249), the Pricing basis
+ * owner's adoption action, Rebuild with the current rule and an accepted prefill all save an
+ * agreement amount with exactly these options through the existing working-field save, so the
+ * stored origin, source label (agreement name and rule version) and context (agreement, policy id
+ * and version) are identical whichever path saved it (S250 R-S250-7).
+ */
+export function standingAdoptionSave(input: {
+  readonly agreementId: string;
+  readonly agreementName: string;
+  readonly policyId: string;
+  readonly policyVersion: number;
+  readonly basis: string;
+}): {
+  readonly origin: "adopted_source";
+  readonly sourceLabel: string;
+  readonly context: string;
+} {
+  return {
+    origin: "adopted_source",
+    sourceLabel: standingRuleSourceLabel(input.agreementName, input.policyVersion),
+    context: standingRuleContext({
+      agreementId: input.agreementId,
+      policyId: input.policyId,
+      policyVersion: input.policyVersion,
+      basis: input.basis,
+    }),
+  };
+}
+
+/** S277 R-S277-1: the adoption action's anchor; "Set renewal base rent" lands on it. */
+export const STANDING_ADOPTION_CONTROL_ID = "renewal-standing-adoption";
+
+/** "Use $1,751.00 from the agreement" */
+export function standingAdoptionLabel(amount: number): string {
+  return `Use ${usd(amount)} from the agreement`;
+}
+
+/** The rule's arithmetic in a few words: "3 percent on $1,700.00". */
+function standingRuleArithmetic(
+  policy: Pick<RenewalPricingPolicy, "kind" | "value">,
+  currentRent: number,
+): string {
+  switch (policy.kind) {
+    case "percentage":
+      return `${policy.value} percent on ${usd(currentRent)}`;
+    case "fixed_dollar":
+      return `${usd(policy.value ?? 0)} added to ${usd(currentRent)}`;
+    default:
+      return `no increase on ${usd(currentRent)}`;
+  }
+}
+
+/** "Example Standing Agreement gives $1,751.00 (3 percent on $1,700.00)." */
+export function standingAdoptionLine(input: {
+  readonly name: string;
+  readonly amount: number;
+  readonly policy: Pick<RenewalPricingPolicy, "kind" | "value"> | null;
+  readonly currentRent: number | null;
+}): string {
+  const arithmetic =
+    input.policy && input.currentRent !== null && input.currentRent > 0
+      ? ` (${standingRuleArithmetic(input.policy, input.currentRent)})`
+      : "";
+  return `${input.name} gives ${usd(input.amount)}${arithmetic}.`;
+}
+
+export interface StandingAdoptionOffer {
+  readonly amount: number;
+  readonly name: string;
+  /** "Example Standing Agreement gives $1,751.00 (3 percent on $1,700.00)." */
+  readonly line: string;
+  /** "Use $1,751.00 from the agreement" */
+  readonly label: string;
+  /** The exact options the one adoption writer saves. */
+  readonly save: ReturnType<typeof standingAdoptionSave>;
+}
+
+/**
+ * S277 R-S277-1: the one reviewed adoption a covered lease offers. Only while a verified standing
+ * agreement covers the lease (the one coverage function said so on the current read) and the
+ * current cycle's working renewal base is empty. A typed amount still wins (S250 R-S250-4): once
+ * the base holds an amount, nothing is offered. Pure: it saves nothing.
+ */
+export function standingAdoptionOffer(input: {
+  readonly authority:
+    | {
+        readonly covered: boolean;
+        readonly kind?: string;
+        readonly label?: string;
+        readonly amount?: number;
+        readonly basis?: string;
+        readonly agreementId?: string;
+        readonly policyId?: string;
+        readonly policyVersion?: number;
+      }
+    | null
+    | undefined;
+  /** The agreement's rule as the pricing read returned it. */
+  readonly policy: Pick<RenewalPricingPolicy, "id" | "kind" | "value"> | null | undefined;
+  /** The current rent the rule was applied to. */
+  readonly currentRent: number | null | undefined;
+  /** The current cycle's working renewal base is empty. */
+  readonly baseEmpty: boolean;
+}): StandingAdoptionOffer | null {
+  const a = input.authority;
+  if (
+    !input.baseEmpty ||
+    !a?.covered ||
+    a.kind !== "standing" ||
+    !a.label ||
+    !a.agreementId ||
+    !a.policyId ||
+    typeof a.policyVersion !== "number" ||
+    typeof a.amount !== "number" ||
+    !Number.isFinite(a.amount) ||
+    a.amount <= 0
+  )
+    return null;
+  const policy = input.policy && input.policy.id === a.policyId ? input.policy : null;
+  const line = standingAdoptionLine({
+    name: a.label,
+    amount: a.amount,
+    policy,
+    currentRent: input.currentRent ?? null,
+  });
+  return {
+    amount: a.amount,
+    name: a.label,
+    line,
+    label: standingAdoptionLabel(a.amount),
+    save: standingAdoptionSave({
+      agreementId: a.agreementId,
+      agreementName: a.label,
+      policyId: a.policyId,
+      policyVersion: a.policyVersion,
+      basis: a.basis ?? line,
+    }),
+  };
+}
+
 /**
  * R-S250-8: the standing agreement's rule as the basis of the renewal rent, in words: the rule
  * the agreement covers the lease by now, else the rule a saved working rent was adopted from.

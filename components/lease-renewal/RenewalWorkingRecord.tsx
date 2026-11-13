@@ -35,10 +35,7 @@ import {
 import { useRenewalPricingPolicy } from "./RenewalPricingPolicy";
 import { Button, Field } from "@/components/ui";
 import { parseCurrencyInput } from "@/lib/currency-input";
-import {
-  standingRuleContext,
-  standingRuleSourceLabel,
-} from "@/lib/lease-renewal/standing-agreement";
+import { standingAdoptionSave } from "@/lib/lease-renewal/standing-agreement";
 import { formatBusinessTimestamp, formatCalendarDate } from "@/lib/date-display";
 import {
   isCycleScopedWorkingField,
@@ -638,11 +635,14 @@ export function WorkingMoneyField({ field, label, hint, source }: WorkingFieldPr
       explicit?.options ??
       (prefill && !editor.dirty() && amount === prefill.value
         ? standing
-          ? {
-              origin: "adopted_source" as const,
-              sourceLabel: standingRuleSourceLabel(standing.name, standing.policyVersion),
-              context: standingRuleContext(standing),
-            }
+          ? // S277 ARCH-S277-1: an agreement amount saves through the one adoption writer.
+            standingAdoptionSave({
+              agreementId: standing.agreementId,
+              agreementName: standing.name,
+              policyId: standing.policyId,
+              policyVersion: standing.policyVersion,
+              basis: standing.basis,
+            })
           : {
               origin: "adopted_source" as const,
               sourceLabel: `Pricing policy v${prefill.policyVersion}`,

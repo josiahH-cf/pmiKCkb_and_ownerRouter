@@ -70,6 +70,7 @@ import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
 import { workingRecommendationBasis } from "@/lib/lease-renewal/kickoff-facts";
 import { MESSAGE_CONTROL_IDS } from "@/lib/lease-renewal/message-readiness";
 import { useRenewalPricingPolicy } from "./RenewalPricingPolicy";
+import { RecommendationBasisLine, WorkingBaseBasisLine } from "./RenewalRentBasis";
 import {
   STANDING_AGREEMENT_WORDS,
   standingRuleBasis,
@@ -1367,6 +1368,15 @@ function PreparedMessageBlock({
               Lease {api.leaseId}
               {review.noticeCycleId ? ` · Cycle ${review.noticeCycleId}` : ""}
             </p>
+            {/* S277 R-S277-6 / R-S277-2: what the rent in this message rests on. */}
+            {api.channel === "owner" && !api.renewOrNot ? (
+              <RecommendationBasisLine
+                field="review-rent-basis"
+                proposal={preparation?.rent ?? null}
+              />
+            ) : api.channel === "tenant" ? (
+              <WorkingBaseBasisLine field="review-rent-basis" />
+            ) : null}
             {unknownAuthorization ? (
               <a
                 href={`/gmail-hub?communication=${encodeURIComponent(unknownAuthorization)}`}

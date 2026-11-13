@@ -18,16 +18,20 @@ import type {
 } from "@/lib/lease-renewal/renewal-pricing-policy";
 import type { PricingAssignment } from "@/lib/firestore/renewal-pricing-policies";
 import {
+  STANDING_ADOPTION_CONTROL_ID,
   STANDING_AGREEMENT_WORDS,
   adoptedStandingRule,
   coveredByLine,
+  standingAdoptionOffer,
+  standingAdoptionSave,
   standingAgreementChoiceLabel,
-  standingRuleContext,
-  standingRuleSourceLabel,
   type PricingBasisChoice,
   type StandingAgreement,
 } from "@/lib/lease-renewal/standing-agreement";
+import { currentCycleFieldEmpty } from "@/lib/lease-renewal/current-cycle-terms";
+import { formatRentAmount } from "@/lib/lease-renewal/rent-basis";
 import { formatCalendarDate } from "@/lib/date-display";
+import { AUTOSAVE_IDLE, AutosaveStatus } from "./AutosaveStatus";
 import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
 import { useRenewalFocusView } from "./RenewalFocusViewContext";
 class PricingResponseError extends Error {}
@@ -460,6 +464,100 @@ export function StandingAgreementSummary() {
 }
 
 /**
+ * S277 R-S277-1 (ARCH-S277-1, BEH-S277-1): on a lease covered by a verified standing agreement whose
+ * current-cycle working renewal base is empty, the Pricing basis owner shows the agreement's result
+ * ("Example Standing Agreement gives $1,751.00 (3 percent on $1,700.00).") and one action, "Use
+ * $1,751.00 from the agreement". The action saves through the one adoption writer with the
+ * agreement name, policy id and version as the basis (S250 R-S250-7), after the existing
+ * current-read check: it is offered only from the pricing read taken at this working revision,
+ * and the save names the working revision and cycle it read, so a stale read is refused with the
+ * existing recovery. A typed amount still wins (S250 R-S250-4): once the base holds an amount the
+ * action is gone. It is not a second amount editor (S247 R-S247-14), sends nothing and changes no
+ * RentVine rent. "Set renewal base rent" lands focus on the action.
+ */
+export function StandingAgreementAdoption() {
+  const c = useRenewalPricingPolicy();
+  const working = useRenewalWorkingRecord();
+  const lock = useRef(false);
+  const container = useRef<HTMLDivElement>(null);
+  const [pending, setPending] = useState(false);
+  const [saved, setSaved] = useState<{ amount: number; text: string } | null>(null);
+  const view = c?.view ?? null;
+  const record = working?.record ?? null;
+  const offer =
+    view && working && !working.readUnavailable
+      ? standingAdoptionOffer({
+          authority: view.authority,
+          policy: view.policy,
+          currentRent: view.proposal?.currentRent ?? view.source?.currentRent ?? null,
+          baseEmpty: currentCycleFieldEmpty(record, "terms_rent"),
+        })
+      : null;
+  const base = record?.fields.terms_rent?.value;
+  const adopted =
+    saved !== null &&
+    typeof base === "number" &&
+    Math.abs(base - saved.amount) < 0.005 &&
+    record?.fields.terms_rent?.origin === "adopted_source";
+  if (!working || (!offer && !adopted)) return null;
+  const state = working.states.terms_rent ?? AUTOSAVE_IDLE;
+  async function adopt() {
+    if (!working || !offer || lock.current) return;
+    lock.current = true;
+    setPending(true);
+    try {
+      const ok = await working.save("terms_rent", offer.amount, offer.save);
+      if (ok) {
+        setSaved({
+          amount: offer.amount,
+          text: `${formatRentAmount(offer.amount)} from ${offer.name} is the renewal base rent. Nothing was sent and no RentVine rent changed.`,
+        });
+        container.current?.focus();
+      }
+    } finally {
+      lock.current = false;
+      setPending(false);
+    }
+  }
+  return (
+    <div
+      className="ui-stack-tight renewal-standing-adoption"
+      data-renewal-field="standing-adoption"
+      id={STANDING_ADOPTION_CONTROL_ID}
+      ref={container}
+      tabIndex={-1}
+    >
+      {offer ? (
+        <>
+          <p data-renewal-field="standing-adoption-line">{offer.line}</p>
+          <p>
+            <Button
+              busy={pending}
+              data-renewal-next-control
+              disabled={!working.canEdit || pending}
+              onClick={() => void adopt()}
+              size="compact"
+            >
+              {offer.label}
+            </Button>
+          </p>
+          <AutosaveStatus
+            hideWhenIdle
+            onRetry={() => void adopt()}
+            state={state}
+            subject="Renewal base rent"
+          />
+        </>
+      ) : saved ? (
+        <p data-renewal-field="standing-adoption-saved" role="status">
+          {saved.text}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+/**
  * S250 R-S250-7: a rule change applies forward only. A rent adopted from the agreement's earlier
  * rule keeps its value; the message built on it reads "Built on the earlier rule" and offers to
  * rebuild with the current rule (a proposal staff confirm by choosing it).
@@ -488,16 +586,17 @@ export function StandingRuleNotice() {
           <Button
             onClick={() =>
               void working
-                .save("terms_rent", amount, {
-                  origin: "adopted_source",
-                  sourceLabel: standingRuleSourceLabel(agreement.name, rule.version),
-                  context: standingRuleContext({
+                .save(
+                  "terms_rent",
+                  amount,
+                  standingAdoptionSave({
                     agreementId: agreement.id,
+                    agreementName: agreement.name,
                     policyId: rule.id,
                     policyVersion: rule.version,
                     basis: view.proposal?.reason ?? agreement.name,
                   }),
-                })
+                )
                 .then((ok) =>
                   setMessage(
                     ok
@@ -618,6 +717,8 @@ export function RenewalPricingPolicyPanel() {
           {legacy && !agreementOnNow ? (
             <p role="status">{view.authority.reason}</p>
           ) : null}
+          {/* S277 R-S277-1: the agreement amount is one reviewed action where the fix lands. */}
+          <StandingAgreementAdoption />
           {!basisOnNow ? <StandingAgreementSummary /> : null}
           {!legacy ? <StandingRuleNotice /> : null}
           {legacy ? (

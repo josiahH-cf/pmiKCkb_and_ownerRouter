@@ -1001,14 +1001,28 @@ function toLiveSummary(
         staffOwnerOutcome(manual, classification.endDateIso) !== "approved_terms"
       )
         return {};
-      const text = describeOwnerApprovalCoverageShort(
-        ownerApprovalCoverage({ workspace: manual, working, economicsHash: null }),
-        {
-          money: (value) => DESK_USD.format(value),
-          date: (iso) => formatCalendarDate(iso),
-        },
-      );
-      return text ? { ownerApprovalCoverage: text } : {};
+      const coverage = ownerApprovalCoverage({
+        workspace: manual,
+        working,
+        economicsHash: null,
+      });
+      const text = describeOwnerApprovalCoverageShort(coverage, {
+        money: (value) => DESK_USD.format(value),
+        date: (iso) => formatCalendarDate(iso),
+      });
+      // S277 R-S277-5: the approved base rent of this term's recorded answer, for the monthly
+      // table's "Approved" line. Only a recorded approval of this term names one.
+      const approvedRent =
+        coverage.state === "amount_only" ||
+        coverage.state === "current" ||
+        coverage.state === "terms_changed" ||
+        coverage.state === "charges_changed"
+          ? coverage.binding.rent
+          : null;
+      return {
+        ...(text ? { ownerApprovalCoverage: text } : {}),
+        ...(typeof approvedRent === "number" ? { ownerApprovedRent: approvedRent } : {}),
+      };
     })(),
     addressLabel: identity.address?.label ?? `Lease ${leaseId || "Needs Verification"}`,
     propertyNameLabel: identity.property?.label ?? null,

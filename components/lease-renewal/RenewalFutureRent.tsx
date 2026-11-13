@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { Button, Field } from "@/components/ui";
 import { useRenewalManualWorkspace } from "./RenewalManualWorkspace";
 import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
+import { WorkingBaseBasisLine } from "./RenewalRentBasis";
 import { effectiveRenewalTerms } from "@/lib/lease-renewal/effective-terms";
 import { planRentChargeRequests } from "@/lib/lease-renewal/rent-charge-intent";
 import {
@@ -135,6 +136,8 @@ export function RenewalFutureRent({
               {formatCalendarDate(terms.endDate)}. Current billing and the current Sheet
               rent are unchanged before the effective date.
             </p>
+            {/* S277 R-S277-2: the working renewal rent's basis, from the one projection. */}
+            <WorkingBaseBasisLine amount={terms.rent} field="future-rent-working-basis" />
             <Button
               variant="secondary"
               disabled={pending}

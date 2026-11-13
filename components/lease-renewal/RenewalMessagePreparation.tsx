@@ -103,8 +103,7 @@ import {
 } from "@/lib/lease-renewal/message-revision";
 import {
   adoptedStandingRule,
-  standingRuleContext,
-  standingRuleSourceLabel,
+  standingAdoptionSave,
 } from "@/lib/lease-renewal/standing-agreement";
 import {
   nowSlotKey,
@@ -1137,11 +1136,18 @@ function MessagePreparationEditor({
     const entry = working?.record?.fields.terms_rent;
     const adopted = entry ? adoptedStandingRule(entry) : null;
     if (adopted?.agreementId === target.agreementId && working && earlier) {
-      const saved = await working.save("terms_rent", earlier.currentRent, {
-        origin: "adopted_source",
-        sourceLabel: standingRuleSourceLabel(earlier.agreement, target.policyVersion),
-        context: standingRuleContext({ ...target, basis: earlier.current }),
-      });
+      // S277 ARCH-S277-1: an agreement amount saves through the one adoption writer.
+      const saved = await working.save(
+        "terms_rent",
+        earlier.currentRent,
+        standingAdoptionSave({
+          agreementId: target.agreementId,
+          agreementName: earlier.agreement,
+          policyId: target.policyId,
+          policyVersion: target.policyVersion,
+          basis: earlier.current,
+        }),
+      );
       if (!saved) {
         setNotice(
           "The rent could not be rebuilt. Your saved rent is kept; choose Rebuild with the current rule to retry.",

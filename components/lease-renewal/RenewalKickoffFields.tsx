@@ -36,6 +36,7 @@ import {
   OwnerCurrentBaseRent,
   type CurrentBaseRentFacts,
 } from "./RenewalCurrentBaseRent";
+import { RecommendationBasisLine } from "./RenewalRentBasis";
 
 /** The one Rent to recommend editor, in Compare market rent. */
 const RENT_TO_RECOMMEND_TARGET = KICKOFF_FIX_TARGETS.rentToRecommend;
@@ -416,6 +417,11 @@ export function RentRecommendationSummary({
           {working?.canEdit ? "Edit rent to recommend" : "View rent to recommend"}
         </a>
       </p>
+      {/* S277 R-S277-6: what the owner sentence rests on, and who saved it. */}
+      <RecommendationBasisLine
+        field="owner-recommended-basis"
+        proposal={preparation?.rent ?? null}
+      />
     </div>
   );
 }

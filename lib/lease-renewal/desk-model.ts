@@ -239,6 +239,11 @@ export interface DeskLeaseSummaryBase {
    * lease's Working terms, naming what changed; absent without an approval or a Working read.
    */
   ownerApprovalCoverage?: string;
+  /**
+   * S277 R-S277-5: the base rent the owner approved in the staff record of this term, for the
+   * monthly table's "Approved $1,425.00" line; absent without an approval or a Working read.
+   */
+  ownerApprovedRent?: number;
   id: string;
   addressLabel: string;
   propertyNameLabel: string | null;

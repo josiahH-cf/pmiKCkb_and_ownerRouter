@@ -33,6 +33,7 @@ import {
   type OfferChargeRow,
   type OfferChargeSelection,
 } from "@/lib/lease-renewal/offer-charges";
+import { useWorkingBaseWords } from "./RenewalRentBasis";
 
 /** The id of the host the tenant offer's evidence area provides for inspectable rows. */
 export const OFFER_CHARGE_EVIDENCE_HOST_ID = "renewal-offer-charge-evidence";
@@ -219,6 +220,10 @@ export function RenewalOfferCharges({
   const fees = review.rows.filter((row) => !INSPECT_ONLY.has(row.status) && oneTime(row));
   const inspect = review.rows.filter((row) => INSPECT_ONLY.has(row.status));
   const totals = review.totals;
+  // S277 R-S277-2: the stored base's basis, only while it is the amount these totals show.
+  const baseWords = useWorkingBaseWords(
+    totals.baseCents === null ? null : totals.baseCents / 100,
+  );
 
   const rowItem = (row: OfferChargeRow): ReactNode => {
     const decision = decisionFor(row.rowKey);
@@ -651,6 +656,12 @@ export function RenewalOfferCharges({
           {totals.baseCents === null
             ? "Not entered yet"
             : `${formatCents(totals.baseCents)} per month`}
+          {/* S277 R-S277-2: the basis of the renewal base rent, from the one projection. */}
+          {baseWords ? (
+            <span className="muted" data-renewal-field="renewal-base-rent-basis">
+              , {baseWords.basis}.
+            </span>
+          ) : null}
         </dd>
         {totals.monthlyLines.map((line) => (
           <div key={line.rowKey}>
