@@ -57,6 +57,13 @@ export const W1207_CHECKS = Object.freeze([
 const LIST = "#renewal-manual-source-updates";
 const FINISH_UP = 'section[aria-label="Source updates from the final terms"]';
 const RENTVINE_ROUTE = "/api/lease-renewal/rentvine-writeback";
+const SHEET_ROUTE = "/api/lease-renewal/operating-sheet";
+const SHEET_PREPARATION_OPERATIONS = new Set([
+  "prepare_source",
+  "prepare_derived_source",
+  "prepare_market_value",
+  "prepare_source_set",
+]);
 /** The staff words of S278 (lib/lease-renewal/source-updates-list.ts and set-words.ts). */
 const WORDS = Object.freeze({
   mark: "From the working terms",
@@ -82,21 +89,25 @@ const ACTIVITIES = Object.freeze([
     activity: "tenant_offer",
     label: "Tenant offer delivered",
     field: "renewal_letter_sent",
+    preview: "Done — recorded by staff",
   },
   {
     activity: "information_form",
     label: "Information form sent",
     field: "info_form_sent",
+    preview: "Yes",
   },
   {
     activity: "document_delivery",
     label: "Required documents delivered",
     field: "lease_docs_sent",
+    preview: "Done — recorded by staff",
   },
   {
     activity: "signatures",
     label: "Required signatures complete",
     field: "esign_complete",
+    preview: "Yes",
   },
 ]);
 
@@ -696,11 +707,16 @@ async function recordActivities(ctx, page, leaseId) {
 /** The emulator documents this row reads for AC-S278-5. */
 async function writeEvidence(ctx) {
   const { kit } = ctx;
-  const registry = await kit.listDocuments("action_registry").catch(() => []);
-  const executions = await kit
-    .listDocuments("external_action_executions")
-    .catch(() => []);
-  const setRuns = await kit.listDocuments("operating_sheet_set_runs").catch(() => []);
+  const [registry, executions, setRuns, proposals] = await Promise.all([
+    kit.listDocuments("action_registry"),
+    kit.listDocuments("external_action_executions"),
+    kit.listDocuments("operating_sheet_set_runs"),
+    kit.listDocuments("operating_sheet_proposals"),
+  ]);
+  const versions = (documents) =>
+    Object.fromEntries(
+      documents.map(({ name, updateTime }) => [name.split("/").pop(), updateTime]),
+    );
   return {
     productionAllowed: Object.fromEntries(
       registry.map((document) => [
@@ -708,11 +724,13 @@ async function writeEvidence(ctx) {
         JSON.stringify(document.fields?.production_allowed ?? null),
       ]),
     ),
-    sheetExecutions: executions.filter((document) =>
-      /google_sheets|sheet/i.test(JSON.stringify(document.fields ?? {}).slice(0, 4000)),
-    ).length,
-    executions: executions.length,
-    setRuns: setRuns.length,
+    sheetExecutions: versions(
+      executions.filter((document) =>
+        document.fields?.actionKey?.stringValue?.startsWith("google_sheets."),
+      ),
+    ),
+    setRuns: versions(setRuns),
+    proposals: versions(proposals),
   };
 }
 
@@ -745,6 +763,7 @@ export async function checkW1207(ctx, page, start) {
   if (start.error)
     throw new Error(`The W12-07 starting sequence stopped: ${start.error}`);
   const callsAtStart = serverCalls(ctx).length;
+  const appWritesAtStart = ctx.writes.length;
   const evidenceAtStart = await writeEvidence(ctx);
 
   // ---- M: the pending Market value against the reviewed recommendation (AC-S278-1) ----
@@ -903,10 +922,16 @@ export async function checkW1207(ctx, page, start) {
       .locator("xpath=ancestor::form[1]")
       .locator('button[type="submit"]')
       .first();
+    const applyButtons = await panel
+      .getByRole("button", { name: /^Apply (?:Sheet update|\d+ Sheet updates)$/ })
+      .all();
     sheetChanged = {
       attempted: true,
       afterEdit,
       switchOffNotice: panelText.includes(WORDS.sheetOff),
+      applyAvailable: (
+        await Promise.all(applyButtons.map((button) => button.isEnabled()))
+      ).some(Boolean),
       previewButton: (await submit.count())
         ? {
             text: squash(await submit.innerText().catch(() => "")),
@@ -959,6 +984,13 @@ export async function checkW1207(ctx, page, start) {
   });
 
   const callsInRow = serverCalls(ctx).slice(callsAtStart);
+  const sheetAppWrites = ctx.writes
+    .slice(appWritesAtStart)
+    .filter(
+      ({ path, kind }) =>
+        path === SHEET_ROUTE ||
+        (path === WORKSPACE_ROUTE && SHEET_PREPARATION_OPERATIONS.has(kind)),
+    );
   const evidenceAfter = await writeEvidence(ctx);
 
   // ---- M, last: the untouched prepared suggestion after the harness reset ----
@@ -1071,10 +1103,50 @@ export async function checkW1207(ctx, page, start) {
   const productionAllowedSame =
     JSON.stringify(evidenceAtStart.productionAllowed) ===
     JSON.stringify(evidenceAfter.productionAllowed);
-  // The recorded Sheet cells and the Market value ("sheet:..."); the Sheet renewal date from the
-  // working terms ("sheet-terms:...") opens its form instead (R-S278-2), so it is not one of them.
+  // The paused list is a read-only preview of the fixture's existing row. It shows the exact
+  // candidate values without preparing an executable proposal. Confirmations and receipts
+  // are proved independently against the deterministic adapter above.
+  const shownPreviews = Object.fromEntries(
+    list.rows.flatMap((row) => {
+      const parts =
+        /^(.*?): (.*?)\. In the Sheet now: (.*?)\. Basis: (.*?)\. Sheet updates are paused\./.exec(
+          row.text,
+        );
+      return parts
+        ? [
+            [
+              row.key,
+              { field: parts[1], next: parts[2], current: parts[3], basis: parts[4] },
+            ],
+          ]
+        : [];
+    }),
+  );
+  const expectedPreviews = [
+    ...ACTIVITIES.map(({ field, preview }) => [
+      `sheet:${field}`,
+      preview,
+      "Staff record",
+    ]),
+    ["sheet-terms:renewal_date", usDate(FIRST_TERM_END), "Working renewal terms"],
+  ];
+  const previewsMatch =
+    expectedPreviews.every(
+      ([key, next, basis]) =>
+        shownPreviews[key]?.next === next &&
+        shownPreviews[key]?.current === "Blank" &&
+        shownPreviews[key]?.basis === basis,
+    ) &&
+    listedMarketValue(list) === second &&
+    shownPreviews["sheet:market_value"]?.current === "Blank" &&
+    shownPreviews["sheet:market_value"]?.basis.startsWith(WORDS.marketBasis) &&
+    Object.keys(shownPreviews).length === sheetRows.length + 1;
+  const noSheetRecordsChanged = ["sheetExecutions", "setRuns", "proposals"].every(
+    (key) => JSON.stringify(evidenceAtStart[key]) === JSON.stringify(evidenceAfter[key]),
+  );
   const ac5 =
     sheetRows.length >= 5 &&
+    previewsMatch &&
     sheetRows.every(
       (row) =>
         row.text.includes(WORDS.sheetNow) &&
@@ -1084,12 +1156,13 @@ export async function checkW1207(ctx, page, start) {
         row.button.disabled === true,
     ) &&
     list.combined?.disabled === true &&
+    sheetAppWrites.length === 0 &&
     sheetWriteAttempts(callsInRow).length === 0 &&
-    evidenceAfter.setRuns === 0 &&
-    evidenceAfter.sheetExecutions === evidenceAtStart.sheetExecutions &&
+    noSheetRecordsChanged &&
     productionAllowedSame &&
     sheetChanged.switchOffNotice === true &&
     sheetChanged.previewButton?.disabled === true &&
+    sheetChanged.applyAvailable === false &&
     runsClean &&
     verdicts["AC-S278-5"].ok;
 
@@ -1117,8 +1190,12 @@ export async function checkW1207(ctx, page, start) {
     expectedKeys,
     pending,
     sheetWriteAttempts: sheetWriteAttempts(callsInRow).length,
+    sheetAppWrites,
     sheetPaths: sheetPaths(callsInRow),
     productionAllowedSame,
+    previewsMatch,
+    shownPreviews,
+    noSheetRecordsChanged,
     evidenceAtStart: { ...evidenceAtStart, productionAllowed: undefined },
     evidenceAfter: { ...evidenceAfter, productionAllowed: undefined },
   });

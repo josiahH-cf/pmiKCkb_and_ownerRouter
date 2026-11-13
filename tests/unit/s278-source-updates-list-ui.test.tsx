@@ -13,6 +13,7 @@ import {
   RenewalManualProvider,
   RenewalManualSection,
 } from "@/components/lease-renewal/RenewalManualWorkspace";
+import { SHEET_FIELD_LABELS } from "@/lib/lease-renewal/sheet-writeback/field-intent";
 import type { SourceUpdatesPageInput } from "@/lib/lease-renewal/source-updates-list";
 import {
   emptyRenewalWorkspace,
@@ -146,14 +147,25 @@ describe("S278 R-S278-3: the one list of source updates", () => {
         <RenewalManualSection section="documents" documentOutcome="finish-up" />
       </RenewalManualProvider>,
     );
-    for (const button of screen.getAllByRole("button", { name: /^Prepare and review: / }))
+    const rows = document.querySelectorAll("[data-renewal-source-update]");
+    expect(rows).toHaveLength(FIELDS.length);
+    for (const [field, proposed] of FIELDS) {
+      const row = document.querySelector(`[data-renewal-source-update="sheet:${field}"]`);
+      const current = PAGE.sheetValues?.[field] || "Blank";
+      const next = proposed === true ? "Yes" : proposed;
+      expect(row).toHaveTextContent(
+        `${SHEET_FIELD_LABELS[field]}: ${next}. In the Sheet now: ${current}. Basis: Staff record.`,
+      );
+      expect(row).toHaveTextContent("Sheet updates are paused. Saved in the app.");
+      const button = screen.getByRole("button", {
+        name: `Prepare and review: ${SHEET_FIELD_LABELS[field]}`,
+      });
       expect(button).toBeDisabled();
-    expect(
-      screen.getByRole("button", { name: "Review all 5 Sheet updates" }),
-    ).toBeDisabled();
-    expect(
-      document.querySelector('[data-renewal-source-update="sheet:esign_complete"]'),
-    ).toHaveTextContent("Sheet updates are paused. Saved in the app.");
+      fireEvent.click(button);
+    }
+    const combined = screen.getByRole("button", { name: "Review all 5 Sheet updates" });
+    expect(combined).toBeDisabled();
+    fireEvent.click(combined);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
