@@ -585,37 +585,43 @@ export function OperatingSheetPanel({
             >
               <h3>{SHEET_SET_WORDS.heading(proposal.effects.length)}</h3>
               <p className="muted">{SHEET_SET_WORDS.intro}</p>
-              <table className="renewal-sheet-set-table">
-                <thead>
-                  <tr>
-                    <th scope="col">Field</th>
-                    <th scope="col">Column</th>
-                    <th scope="col">In the Sheet now</th>
-                    <th scope="col">New value</th>
-                    <th scope="col">Basis</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {proposal.effects.map((effect) => {
-                    const fieldKey = String(effect.effect.field ?? "");
-                    const cell = previewLocation(effect).cell;
-                    const column = cell ? (/^[A-Z]+/.exec(cell)?.[0] ?? null) : null;
-                    return (
-                      <tr data-renewal-sheet-set-cell={fieldKey} key={effect.effect_hash}>
-                        <th scope="row">{sheetFieldLabel(fieldKey)}</th>
-                        <td>
-                          {column
-                            ? `Column ${column} (cell ${cell})`
-                            : `Row ${String(effect.effect.rowNumber)}`}
-                        </td>
-                        <td>{String(effect.effect.expectedValue ?? "") || "Blank"}</td>
-                        <td>{String(effect.effect.afterValue ?? "")}</td>
-                        <td>{String(effect.effect.source ?? "")}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              {/* S165: the table scrolls inside itself on a phone, never the page. */}
+              <div className="table-scroll">
+                <table className="renewal-sheet-set-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Field</th>
+                      <th scope="col">Column</th>
+                      <th scope="col">In the Sheet now</th>
+                      <th scope="col">New value</th>
+                      <th scope="col">Basis</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {proposal.effects.map((effect) => {
+                      const fieldKey = String(effect.effect.field ?? "");
+                      const cell = previewLocation(effect).cell;
+                      const column = cell ? (/^[A-Z]+/.exec(cell)?.[0] ?? null) : null;
+                      return (
+                        <tr
+                          data-renewal-sheet-set-cell={fieldKey}
+                          key={effect.effect_hash}
+                        >
+                          <th scope="row">{sheetFieldLabel(fieldKey)}</th>
+                          <td>
+                            {column
+                              ? `Column ${column} (cell ${cell})`
+                              : `Row ${String(effect.effect.rowNumber)}`}
+                          </td>
+                          <td>{String(effect.effect.expectedValue ?? "") || "Blank"}</td>
+                          <td>{String(effect.effect.afterValue ?? "")}</td>
+                          <td>{String(effect.effect.source ?? "")}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </section>
           ) : null}
           <ol className="ui-stack">
