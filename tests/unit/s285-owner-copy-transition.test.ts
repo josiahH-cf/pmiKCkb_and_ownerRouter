@@ -34,7 +34,6 @@ import {
 import { CommunicationSequenceRefusedError } from "@/lib/gmail-hub/current-message";
 import { addCalendarDays, localDateAt } from "@/lib/gmail-hub/schedule-calendar";
 import type { WorkflowCommunicationContext } from "@/lib/gmail-hub/workflow-context";
-import type { WorkflowMimeMessage } from "@/lib/gmail-runtime/workflow-mime";
 import {
   OWNER_COPY_PUBLICATION_NAMES,
   ownerTermContentBasis,
@@ -191,7 +190,7 @@ function setup() {
     notice: "none",
   };
   let sends = 0;
-  const send = vi.fn(async (_message: WorkflowMimeMessage) => {
+  const send = vi.fn<SequenceMailClient["sendWorkflowMessage"]>(async () => {
     sends += 1;
     return { messageId: `message-${sends}`, threadId: "thread-1", labelIds: ["SENT"] };
   });
