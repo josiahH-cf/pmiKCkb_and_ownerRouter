@@ -12,15 +12,711 @@
 //
 // Starting sequence (journeyW1207 in one-path-november-12-journeys.mjs, the fail-first table):
 //   Save a recommendation that differs from the provider point estimate and read the pending
-//   Market value. On the baseline: The pending value is the point estimate.
+//   Market value. On the baseline: The pending value is the point estimate. It runs on the
+//   candidate unchanged.
 //
-// Note: S284 open questions: Sheet writes stay off in the rehearsal, so this row's writes are
-// proven with the deterministic Sheets adapter in backend tests. Record here only what the
-// rehearsal shows; an id it cannot prove stays out (not recorded, never Yes).
-//
-// STATUS: stub. It records no acceptance check yet, so W12-07 scores UNVERIFIED (never Yes) until
-// this file returns its checks. The contract is the qualification driver's "W12 CHECK CONTRACT"
-// (one-path-november-12-qualification-driver.mjs); the function below states it in brief.
+// HOW THIS ROW REACHES EACH STATE (R-S284-2). Staff controls only, on the prepared lease (9101):
+//   M  Market value: the journey's state (Rent to recommend saved at rent + 75 and the comparison's
+//      low figure moved); then the low figure moved again, Rent to recommend changed again, and,
+//      after the harness reset, the untouched suggestion read before and after a staff save.
+//   F  Forms from their previews: the renewal dates entered in Working renewal terms, Finish up's
+//      "Review and apply in Rent and charges" for the RentVine end date and for the Sheet renewal
+//      date, each read for its value, mark, focus, writes and provider calls; then each value
+//      changed before its preview (the RentVine proposal is saved from fresh RentVine state, which
+//      writes nothing to RentVine; its effect is never applied).
+//   L  The list: four staff activities recorded "Done: recorded by staff" (their Sheet cells join
+//      the reviewed Market value), then "Source updates (N pending)" read row by row.
+//   D  The deterministic Sheets adapter. The rehearsal keeps Sheet writes off (the runtime switch
+//      is unset, so every Sheet update previews only and no proposal is created), as S278 and
+//      S284 state: "Write behavior is verified with the existing deterministic Sheets adapter in
+//      backend tests". This row runs those tests on the served tree, in the same rehearsal, under
+//      the same network refusal preload with its own network log: the five-cell confirmation, a
+//      value changed after the preview, a conflict, a refusal and a failed read-back at the first,
+//      a middle and the last cell, a second confirmation, eleven cells, the single path, and the
+//      list and form behavior behind them. The Firestore emulator case runs on the rehearsal's own
+//      emulator under its own test project, so the rehearsal's documents are not touched. Each
+//      acceptance check names the cases it needs; a case that is missing, skipped or failed reads
+//      false.
+// Nothing here sends, schedules or refreshes a message, applies a provider update or posts an app
+// route. Raw observations go to ctx.record.
+import { spawn } from "node:child_process";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { FIRST_TERM_END, enterRenewalDates } from "./one-path-november-12-journeys.mjs";
+import { WORKING_ROUTE, WORKSPACE_ROUTE } from "./one-path-november-12-kit.mjs";
+
+export const W1207_CHECKS = Object.freeze([
+  "AC-S278-1",
+  "AC-S278-2",
+  "AC-S278-3",
+  "AC-S278-4",
+  "AC-S278-5",
+  "AC-S278-6",
+]);
+
+const LIST = "#renewal-manual-source-updates";
+const FINISH_UP = 'section[aria-label="Source updates from the final terms"]';
+const RENTVINE_ROUTE = "/api/lease-renewal/rentvine-writeback";
+/** The staff words of S278 (lib/lease-renewal/source-updates-list.ts and set-words.ts). */
+const WORDS = Object.freeze({
+  mark: "From the working terms",
+  paused: "Sheet updates are paused. Saved in the app.",
+  sheetNow: "In the Sheet now:",
+  rentvineNow: "In RentVine now:",
+  basis: "Basis:",
+  marketBasis: "Rent to recommend, entered by staff",
+  prepare: "Prepare and review",
+  reviewAll: (count) => `Review all ${count} Sheet updates`,
+  heading: (count) => `Source updates (${count} pending)`,
+  applyFromPreview: "Review and apply in Rent and charges",
+  sheetOff: "Sheet updates are off by policy right now.",
+});
+/** The end date each form is changed to before its preview (AC-S278-2). */
+const CHANGED_END = "2027-11-30";
+/**
+ * Staff activities whose "Done" records one operating Sheet cell each (SHEET_ACTIVITY in
+ * lib/lease-renewal/workspace-state.ts), with their labels (MANUAL_ACTIVITIES).
+ */
+const ACTIVITIES = Object.freeze([
+  {
+    activity: "tenant_offer",
+    label: "Tenant offer delivered",
+    field: "renewal_letter_sent",
+  },
+  {
+    activity: "information_form",
+    label: "Information form sent",
+    field: "info_form_sent",
+  },
+  {
+    activity: "document_delivery",
+    label: "Required documents delivered",
+    field: "lease_docs_sent",
+  },
+  {
+    activity: "signatures",
+    label: "Required signatures complete",
+    field: "esign_complete",
+  },
+]);
+
+// ---- The deterministic Sheets adapter runs (part D) ---------------------------------------------
+
+const PRELOAD = "tests/browser/renewal-novdec-journey-network.mjs";
+const VITEST = "node_modules/vitest/vitest.mjs";
+const UNIT_FILES = Object.freeze([
+  "tests/unit/s278-sheet-set-execution.test.ts",
+  "tests/unit/s278-sheet-set-contract.test.ts",
+  "tests/unit/s278-source-updates-list.test.ts",
+  "tests/unit/s278-source-updates-list-ui.test.tsx",
+  "tests/unit/s278-form-prefill.test.tsx",
+  "tests/unit/s278-market-value-source.test.ts",
+  // AC-S278-6 preservation: the single Sheet update, the Sheet route, the RentVine form and route.
+  "tests/unit/s160-operating-sheet-panel.test.tsx",
+  "tests/unit/s98-operating-sheet-route.test.ts",
+  "tests/unit/s97-rentvine-updates-panel.test.tsx",
+  "tests/unit/s97-rentvine-writeback-route.test.ts",
+]);
+const FIRESTORE_FILES = Object.freeze(["tests/firestore/s278-sheet-set.test.ts"]);
+const RUN_TIMEOUT_MS = 12 * 60 * 1000;
+
+/**
+ * The cases each acceptance check needs from the adapter runs, by file and a title that must be
+ * the case's whole name (ancestors and title joined by a space) or its start.
+ */
+const ADAPTER_CASES = Object.freeze({
+  "AC-S278-1": [
+    [
+      "tests/unit/s278-market-value-source.test.ts",
+      "S278 R-S278-1: Market value from the reviewed recommendation ARCH-S278-1 / BEH-S278-1",
+    ],
+    [
+      "tests/unit/s278-market-value-source.test.ts",
+      "S278 R-S278-1: Market value from the reviewed recommendation BEH-S278-2",
+    ],
+    [
+      "tests/unit/s278-market-value-source.test.ts",
+      "S278 R-S278-1: Market value from the reviewed recommendation AC-S278-1: varied independently",
+    ],
+  ],
+  "AC-S278-2": [
+    [
+      "tests/unit/s278-form-prefill.test.tsx",
+      "S278 R-S278-2: the form opens with the previewed value BEH-S278-3",
+    ],
+    [
+      "tests/unit/s278-form-prefill.test.tsx",
+      "S278 R-S278-2: the form opens with the previewed value AC-S278-2: the Sheet form opens with the renewal date filled; a changed value previews the changed value",
+    ],
+  ],
+  "AC-S278-3": [
+    [
+      "tests/unit/s278-source-updates-list.test.ts",
+      "S278 ARCH-S278-2: one list of the pending source updates AC-S278-3: shows every pending fact once",
+    ],
+    [
+      "tests/unit/s278-source-updates-list.test.ts",
+      "S278 ARCH-S278-2: one list of the pending source updates AC-S278-3: a confirmed read-back shows done with its receipt time and focus moves to the next waiting row",
+    ],
+    [
+      "tests/unit/s278-source-updates-list.test.ts",
+      "S278 ARCH-S278-2: one list of the pending source updates AC-S278-3: a conflict or refusal stays on its row with its recovery; the others keep their state",
+    ],
+    [
+      "tests/unit/s278-source-updates-list-ui.test.tsx",
+      "S278 R-S278-3: the one list of source updates BEH-S278-4: after a confirmed read-back the row shows done with its receipt time and focus moves to the next row",
+    ],
+    [
+      "tests/firestore/s278-sheet-set.test.ts",
+      "S278 R-S278-4: one confirmation for a lease row's listed Sheet cells R-S278-5: a conflict on the second cell",
+    ],
+  ],
+  "AC-S278-4": [
+    [
+      "tests/unit/s278-sheet-set-execution.test.ts",
+      "S278 ARCH-S278-3: one confirmation, one claim, write, read-back and receipt per cell BEH-S278-4 / AC-S278-4: five cells take one confirmation and leave five claims, five one-cell writes and five receipts",
+    ],
+    [
+      "tests/unit/s278-sheet-set-execution.test.ts",
+      "S278 ARCH-S278-3: one confirmation, one claim, write, read-back and receipt per cell BEH-S278-5 / AC-S278-4: a value changed between the preview and the confirmation refuses the whole confirmation",
+    ],
+    ...["conflict", "refusal", "readback"].flatMap((kind) =>
+      [0, 2, 4].map((at) => [
+        "tests/unit/s278-sheet-set-execution.test.ts",
+        `S278 ARCH-S278-3: one confirmation, one claim, write, read-back and receipt per cell R-S278-5: a ${kind} stops the run at position ${at}: cells before it hold receipts, cells after it are unattempted, and the list names each group`,
+      ]),
+    ),
+    [
+      "tests/unit/s278-sheet-set-execution.test.ts",
+      "S278 ARCH-S278-3: one confirmation, one claim, write, read-back and receipt per cell R-S278-5: nothing retries on its own",
+    ],
+    [
+      "tests/unit/s278-sheet-set-contract.test.ts",
+      "S278 ARCH-S278-3: one confirmation binds the ordered effect hashes of one row AC-S278-4: cells from two rows, current rent or a repeated field are never one set",
+    ],
+    [
+      "tests/unit/s278-sheet-set-contract.test.ts",
+      "S278 ARCH-S278-3: one confirmation binds the ordered effect hashes of one row AC-S278-4: at most ten cells, the first ten in list order",
+    ],
+    [
+      "tests/unit/s278-source-updates-list.test.ts",
+      "S278 ARCH-S278-2: one list of the pending source updates AC-S278-4: eleven pending cells give a review of ten and say one remains",
+    ],
+    [
+      "tests/firestore/s278-sheet-set.test.ts",
+      "S278 R-S278-4: one confirmation for a lease row's listed Sheet cells AC-S278-4: three cells, one confirmation",
+    ],
+    [
+      "tests/firestore/s278-sheet-set.test.ts",
+      "S278 R-S278-4: one confirmation for a lease row's listed Sheet cells BEH-S278-5: a value changed in the Sheet after the preview",
+    ],
+  ],
+  "AC-S278-5": [
+    [
+      "tests/unit/s278-source-updates-list-ui.test.tsx",
+      "S278 R-S278-3: the one list of source updates AC-S278-5: with the Sheet switch off every row still shows its preview values and no row can prepare a write",
+    ],
+    [
+      "tests/unit/s278-source-updates-list.test.ts",
+      "S278 ARCH-S278-2: one list of the pending source updates AC-S278-5: projecting the list makes no request and holds no write",
+    ],
+    [
+      "tests/unit/s278-market-value-source.test.ts",
+      "S278 R-S278-1: Market value from the reviewed recommendation AC-S278-5",
+    ],
+  ],
+  "AC-S278-6": [
+    [
+      "tests/unit/s278-sheet-set-contract.test.ts",
+      "S278 ARCH-S278-3: one confirmation binds the ordered effect hashes of one row AC-S278-6: a single update keeps its own one-effect preview and check",
+    ],
+    [
+      "tests/firestore/s278-sheet-set.test.ts",
+      "S278 R-S278-4: one confirmation for a lease row's listed Sheet cells AC-S278-6: a combined preview is never applied one cell at a time, and a single update keeps its own confirmation",
+    ],
+  ],
+});
+/** Files every one of whose cases must pass for a check (the preservation set of AC-S278-6). */
+const WHOLE_FILES = Object.freeze({
+  "AC-S278-6": [
+    "tests/unit/s160-operating-sheet-panel.test.tsx",
+    "tests/unit/s98-operating-sheet-route.test.ts",
+    "tests/unit/s97-rentvine-updates-panel.test.tsx",
+    "tests/unit/s97-rentvine-writeback-route.test.ts",
+  ],
+});
+
+/** Run one vitest pass on the served tree under the network refusal preload; resolves its report. */
+async function adapterRun(ctx, name, files, extraArgs, extraEnv) {
+  const { rehearsal } = ctx;
+  const dir = join(rehearsal.runDir, "w1207-adapter");
+  mkdirSync(dir, { recursive: true });
+  const report = join(dir, `${name}.json`);
+  const network = join(dir, `${name}-network.jsonl`);
+  const started = Date.now();
+  const outcome = await new Promise((done) => {
+    const child = spawn(
+      process.execPath,
+      [
+        VITEST,
+        "run",
+        ...extraArgs,
+        // The rehearsal's node_modules is a hard-linked copy of the shared one; the results cache
+        // would rewrite a shared file in place, so it stays off.
+        "--no-cache",
+        "--pool=forks",
+        "--maxWorkers=2",
+        "--reporter=json",
+        `--outputFile=${report}`,
+        ...files,
+      ],
+      {
+        stdio: ["ignore", "pipe", "pipe"],
+        env: {
+          PATH: process.env.PATH,
+          HOME: dir,
+          TMPDIR: process.env.TMPDIR ?? "/tmp",
+          LANG: "en_US.UTF-8",
+          TZ: "America/Chicago",
+          CI: "true",
+          NODE_ENV: "test",
+          // The rehearsal's refusal preload, in every fork: loopback only, its own log.
+          NODE_OPTIONS: `--max-old-space-size=4096 --import ${join(process.cwd(), PRELOAD)}`,
+          NOVDEC_JOURNEY_NETWORK_LOG: network,
+          ...extraEnv,
+        },
+      },
+    );
+    let tail = "";
+    const keep = (chunk) => {
+      tail = (tail + chunk).slice(-4000);
+    };
+    child.stdout.on("data", keep);
+    child.stderr.on("data", keep);
+    const timer = setTimeout(() => child.kill("SIGTERM"), RUN_TIMEOUT_MS);
+    child.on("error", (error) => {
+      clearTimeout(timer);
+      done({ code: null, error: String(error), tail });
+    });
+    child.on("exit", (code, signal) => {
+      clearTimeout(timer);
+      done({ code, signal, tail });
+    });
+  });
+  let parsed = null;
+  try {
+    parsed = existsSync(report) ? JSON.parse(readFileSync(report, "utf8")) : null;
+  } catch {
+    parsed = null;
+  }
+  const cases = [];
+  for (const file of parsed?.testResults ?? []) {
+    const relative = String(file.name ?? "").replace(`${process.cwd()}/`, "");
+    for (const entry of file.assertionResults ?? [])
+      cases.push({
+        file: relative,
+        name: [...(entry.ancestorTitles ?? []), entry.title].join(" "),
+        status: entry.status,
+      });
+  }
+  const refused = existsSync(network)
+    ? readFileSync(network, "utf8")
+        .split("\n")
+        .filter(Boolean)
+        .filter((line) => {
+          try {
+            return Boolean(JSON.parse(line).refused);
+          } catch {
+            return false;
+          }
+        }).length
+    : null;
+  return {
+    name,
+    code: outcome.code ?? null,
+    signal: outcome.signal ?? null,
+    error: outcome.error ?? null,
+    seconds: Math.round((Date.now() - started) / 1000),
+    totals: parsed
+      ? {
+          passed: parsed.numPassedTests,
+          failed: parsed.numFailedTests,
+          pending: parsed.numPendingTests,
+          todo: parsed.numTodoTests,
+          files: parsed.numTotalTestSuites,
+        }
+      : null,
+    cases,
+    refused,
+    tail: parsed && outcome.code === 0 ? null : outcome.tail.slice(-1500),
+  };
+}
+
+/** Whether every named case of a check passed, and every case of its whole files passed. */
+function adapterVerdict(runs, check) {
+  const cases = runs.flatMap((run) => run.cases);
+  const needed = ADAPTER_CASES[check] ?? [];
+  const missing = needed.filter(
+    ([file, name]) =>
+      !cases.some(
+        (entry) =>
+          entry.file === file && entry.name.startsWith(name) && entry.status === "passed",
+      ),
+  );
+  const whole = (WHOLE_FILES[check] ?? []).filter((file) => {
+    const inFile = cases.filter((entry) => entry.file === file);
+    return inFile.length === 0 || inFile.some((entry) => entry.status !== "passed");
+  });
+  return {
+    ok: missing.length === 0 && whole.length === 0,
+    needed: needed.length,
+    missing: missing.map(([file, name]) => `${file}: ${name.slice(0, 160)}`),
+    wholeFilesNotPassing: whole,
+  };
+}
+
+// ---- Reading what staff read --------------------------------------------------------------------
+
+const squash = (text) =>
+  String(text ?? "")
+    .replace(/\s+/g, " ")
+    .trim();
+const amount = (text) => Number(String(text ?? "").replace(/[$,]/g, ""));
+const usDate = (iso) => `${iso.slice(5, 7)}/${iso.slice(8, 10)}/${iso.slice(0, 4)}`;
+
+/** Wait until no part of the page still says it is reading, then a moment for the last render. */
+async function settled(page, timeout = 60_000) {
+  await page
+    .waitForFunction(
+      () =>
+        !/Reading the current|Opening lease|Updating renewals/i.test(
+          document.body.innerText,
+        ),
+      null,
+      { timeout },
+    )
+    .catch(() => undefined);
+  await page.waitForTimeout(1_500);
+}
+
+/** The server's outbound requests so far (served stand-ins and refusals), from its network log. */
+function serverCalls(ctx) {
+  const file = ctx.rehearsal.files?.networkLog;
+  if (!file || !existsSync(file)) return [];
+  return readFileSync(file, "utf8")
+    .split("\n")
+    .filter(Boolean)
+    .flatMap((line) => {
+      try {
+        const entry = JSON.parse(line);
+        return entry.served || entry.refused ? [entry] : [];
+      } catch {
+        return [];
+      }
+    });
+}
+/**
+ * A request on a Sheet write path, as the server's Sheet stand-in logs it (the log has no method):
+ * a batch update (cell writes and row appends), a single-range values call (the compare-and-swap
+ * write is a PUT there) or a new spreadsheet. The stand-in answers reads only through
+ * values:batchGet and the spreadsheet's metadata, which are not counted.
+ */
+const sheetWriteAttempts = (calls) =>
+  calls.filter((entry) => {
+    const path = String(entry.path ?? "");
+    const sheets =
+      (entry.served === "google" && entry.host === "sheets.googleapis.com") ||
+      (entry.refused && /sheets/i.test(String(entry.host ?? "")));
+    return (
+      sheets &&
+      (path.endsWith(":batchUpdate") ||
+        /\/values\/[^:]/.test(path) ||
+        /:append$/.test(path) ||
+        path === "/v4/spreadsheets")
+    );
+  });
+/** The Sheet stand-in's paths in a window, by count, for the record. */
+const sheetPaths = (calls) =>
+  calls
+    .filter((entry) => entry.host === "sheets.googleapis.com")
+    .reduce((counts, entry) => {
+      const key = `${String(entry.path ?? "").replace(/spreadsheets\/[^/:]+/, "spreadsheets/<id>")} found=${entry.found}`;
+      counts[key] = (counts[key] ?? 0) + 1;
+      return counts;
+    }, {});
+
+/** Finish up's "Source updates" list as staff read it, row by row. */
+async function readList(ctx, page, leaseId) {
+  const { kit } = ctx;
+  await kit.openLease(page, leaseId, "?step=finish-up");
+  let shown = await kit.shownWithin(page.locator(LIST).first(), 30_000);
+  let place = "finish-up";
+  if (!shown) {
+    await kit.openLease(page, leaseId, "?view=full#renewal-manual-source-updates");
+    shown = await kit.reveal(page, LIST, 30_000);
+    place = "full";
+  }
+  if (!shown) return { shown: false, place, rows: [] };
+  await settled(page);
+  // The Sheet row's values arrive with the page's Sheet read; give them a moment.
+  await page
+    .waitForFunction(
+      (selector) =>
+        !/In the Sheet now: Not read/.test(
+          document.querySelector(selector)?.textContent ?? "",
+        ),
+      LIST,
+      { timeout: 20_000 },
+    )
+    .catch(() => undefined);
+  const list = await page
+    .locator(LIST)
+    .first()
+    .evaluate((root) => {
+      const squashed = (text) => (text ?? "").replace(/\s+/g, " ").trim();
+      const combined = root.querySelector("[data-renewal-source-updates-combined]");
+      const combinedButton = combined?.querySelector("button") ?? null;
+      return {
+        heading: squashed(root.querySelector("h3, h2, h4")?.textContent),
+        pendingAttribute: root.getAttribute("data-renewal-source-updates"),
+        combined: combined
+          ? {
+              count: combined.getAttribute("data-renewal-source-updates-combined"),
+              label: squashed(combinedButton?.textContent),
+              disabled: combinedButton ? combinedButton.disabled : null,
+              text: squashed(combined.textContent),
+            }
+          : null,
+        rows: [...root.querySelectorAll("li[data-renewal-source-update]")].map((row) => {
+          const button = row.querySelector("button");
+          return {
+            key: row.getAttribute("data-renewal-source-update"),
+            state: row.getAttribute("data-renewal-source-update-state"),
+            text: squashed(row.textContent),
+            button: button
+              ? {
+                  name: button.getAttribute("aria-label") ?? squashed(button.textContent),
+                  disabled: button.disabled,
+                }
+              : null,
+            waits: Boolean(row.querySelector("[data-renewal-source-update-waits]")),
+          };
+        }),
+        empty: squashed(root.querySelector(":scope > p:last-child")?.textContent),
+      };
+    });
+  return { shown: true, place, ...list };
+}
+
+/** The pending Market value the list shows, or null. */
+function listedMarketValue(list) {
+  const row = list.rows?.find((entry) => entry.key === "sheet:market_value");
+  if (!row) return null;
+  const match = /^Market value:\s*\$?([\d,]+(?:\.\d+)?)/i.exec(row.text);
+  return match ? amount(match[1]) : null;
+}
+
+/** Rent to recommend, saved as staff save it (Enter); resolves with the save's answer. */
+async function saveRentToRecommend(ctx, page, leaseId, value) {
+  const { kit } = ctx;
+  await kit.openLease(page, leaseId, "?step=compare-market");
+  const field = page.locator("#renewal-now-rent-to-recommend");
+  await field.waitFor({ timeout: 60_000 });
+  const before = await field.inputValue().catch(() => "");
+  const saved = kit.appResponse(page, WORKING_ROUTE, {
+    match: (body) => ["terms_rent", "recommended_rent"].includes(body?.field),
+  });
+  await field.fill(String(value));
+  await field.press("Enter");
+  const response = await saved;
+  return {
+    before: before || null,
+    status: response.status(),
+    field: response.request().postDataJSON()?.field ?? null,
+  };
+}
+
+/** The comparison's low figure moved as staff move it, and the point estimate the panel shows. */
+async function moveLowEstimate(ctx, page, leaseId, delta) {
+  const { kit } = ctx;
+  await kit.openLease(page, leaseId, "?view=full#renewal-market-comparison-controls");
+  const controls = page.locator("#renewal-market-comparison-controls");
+  await controls.waitFor({ state: "attached", timeout: 60_000 });
+  const holder = controls.locator("details").first();
+  if ((await holder.count()) > 0) await kit.openDisclosure(holder);
+  const text = await kit.visibleText(controls);
+  const point = amount(/point estimate \$([\d,]+(?:\.\d+)?)/i.exec(text)?.[1] ?? "");
+  const low = controls.getByLabel(/^Market rent: low estimate/).first();
+  if (!(await kit.shownWithin(low, 30_000)))
+    return { shown: false, pointEstimate: point || null };
+  const current = Number((await low.inputValue()) || 0);
+  const next = current > 0 ? current + delta : 1000;
+  const prepared = kit.appResponse(page, WORKSPACE_ROUTE, {
+    match: (body) => body?.action?.kind === "preparation",
+    timeout: 60_000,
+  });
+  await low.fill(String(next));
+  await low.press("Tab");
+  const response = await prepared.catch(() => null);
+  return {
+    shown: true,
+    pointEstimate: point || null,
+    low: { from: current, to: next },
+    status: response?.status() ?? null,
+    pmiNumber: response?.request().postDataJSON()?.action?.pmiNumber ?? null,
+  };
+}
+
+/** The input a preview filled: its value, mark, focus and the disclosure that holds it. */
+async function readFilledInput(page, id) {
+  return page.evaluate((inputId) => {
+    const input = document.getElementById(inputId);
+    if (!input) return { present: false };
+    const hint = document.getElementById(`${inputId}-hint`);
+    const describedBy = (input.getAttribute("aria-describedby") ?? "")
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((ref) => document.getElementById(ref)?.textContent ?? "")
+      .join(" ");
+    const closed = [];
+    for (let node = input.parentElement; node; node = node.parentElement)
+      if (node instanceof HTMLDetailsElement && !node.open)
+        closed.push(node.id || "details");
+    return {
+      present: true,
+      value: input.value,
+      prefilled: input.getAttribute("data-renewal-prefilled"),
+      hint: (hint?.textContent ?? "").replace(/\s+/g, " ").trim() || null,
+      describedBy: describedBy.replace(/\s+/g, " ").trim() || null,
+      focused: document.activeElement === input,
+      visible: input.checkVisibility(),
+      closedHolders: closed,
+    };
+  }, id);
+}
+
+/**
+ * Finish up's "Review and apply in Rent and charges" for one preview: the form it opens, read as
+ * staff read it, and the writes and provider calls the opening made.
+ */
+async function openFromPreview(
+  ctx,
+  page,
+  key,
+  inputId,
+  expected,
+  extra = async () => ({}),
+) {
+  const writesBefore = ctx.writes.length;
+  const callsBefore = serverCalls(ctx).length;
+  const button = page.locator(`[data-renewal-finish-up-apply="${key}"]`).first();
+  const buttonShown = await ctx.kit.shownWithin(button, 30_000);
+  if (!buttonShown) return { key, buttonShown: false };
+  const buttonText = squash(await button.innerText().catch(() => ""));
+  await button.scrollIntoViewIfNeeded().catch(() => undefined);
+  await button.click();
+  await page
+    .waitForFunction(
+      ([id, value]) => {
+        const input = document.getElementById(id);
+        return Boolean(
+          input && input.value === value && document.activeElement === input,
+        );
+      },
+      [inputId, expected],
+      { timeout: 20_000 },
+    )
+    .catch(() => undefined);
+  // Anything the opening would start has time to happen before it is counted.
+  await page.waitForTimeout(3_000);
+  const input = await readFilledInput(page, inputId);
+  const more = await extra();
+  const calls = serverCalls(ctx).slice(callsBefore);
+  const writes = ctx.writes.slice(writesBefore);
+  return {
+    key,
+    buttonShown,
+    buttonText,
+    input,
+    ...more,
+    writes,
+    providerCalls: calls.map((entry) => ({
+      served: entry.served ?? null,
+      refused: entry.refused ?? null,
+      host: entry.host ?? null,
+      path: String(entry.path ?? "").slice(0, 120),
+    })),
+    url: new URL(page.url()).search + new URL(page.url()).hash,
+  };
+}
+
+const openedRight = (opened, expected) =>
+  opened.buttonShown === true &&
+  opened.buttonText === WORDS.applyFromPreview &&
+  opened.input?.present === true &&
+  opened.input.value === expected &&
+  opened.input.prefilled === "working-terms" &&
+  [opened.input.hint, opened.input.describedBy].some((text) =>
+    String(text ?? "").includes(WORDS.mark),
+  ) &&
+  opened.input.focused === true &&
+  opened.input.visible === true &&
+  opened.writes.length === 0 &&
+  opened.providerCalls.length === 0;
+
+/** Record each activity "Done: recorded by staff" in its own form, as staff do. */
+async function recordActivities(ctx, page, leaseId) {
+  const { kit } = ctx;
+  const results = [];
+  await kit.openLease(page, leaseId, "?view=full");
+  for (const { activity, label } of ACTIVITIES) {
+    const selector = `#renewal-manual-${activity}`;
+    const shown = await kit.reveal(page, selector, 30_000);
+    if (!shown) {
+      results.push({ activity, shown: false });
+      continue;
+    }
+    const details = page.locator(selector).first();
+    if ((await details.getAttribute("open")) === null) await kit.openDisclosure(details);
+    const select = details.getByLabel(`${label} outcome`, { exact: true });
+    await select.waitFor({ timeout: 30_000 });
+    const saved = kit.appResponse(page, WORKSPACE_ROUTE, {
+      match: (body) =>
+        body?.action?.kind === "activity" && body?.action?.activity === activity,
+      timeout: 60_000,
+    });
+    await select.selectOption("done");
+    const response = await saved.catch(() => null);
+    results.push({ activity, shown: true, status: response?.status() ?? null });
+    await page.waitForTimeout(1_000);
+  }
+  return results;
+}
+
+/** The emulator documents this row reads for AC-S278-5. */
+async function writeEvidence(ctx) {
+  const { kit } = ctx;
+  const registry = await kit.listDocuments("action_registry").catch(() => []);
+  const executions = await kit
+    .listDocuments("external_action_executions")
+    .catch(() => []);
+  const setRuns = await kit.listDocuments("operating_sheet_set_runs").catch(() => []);
+  return {
+    productionAllowed: Object.fromEntries(
+      registry.map((document) => [
+        document.name.split("/").pop(),
+        JSON.stringify(document.fields?.production_allowed ?? null),
+      ]),
+    ),
+    sheetExecutions: executions.filter((document) =>
+      /google_sheets|sheet/i.test(JSON.stringify(document.fields ?? {}).slice(0, 4000)),
+    ).length,
+    executions: executions.length,
+    setRuns: setRuns.length,
+  };
+}
+
+// ---- The checks ---------------------------------------------------------------------------------
 
 /**
  * W12-07 candidate checks. The qualification driver calls this once per run, right after
@@ -37,9 +733,394 @@
  *   as a mislabeled check (the row No); a throw stops the row (No).
  */
 export async function checkW1207(ctx, page, start) {
+  const { kit } = ctx;
+  const leaseId = ctx.leases.prepared.leaseId;
+  const rent = Number(ctx.leases.byId(leaseId)?.rent ?? 0);
+  const observed = start.observed ?? {};
   ctx.record({
-    candidateChecks: "not written yet",
     startingSequence: start.error ? "stopped" : "completed",
+    error: start.error,
+    observed,
   });
-  return {};
+  if (start.error)
+    throw new Error(`The W12-07 starting sequence stopped: ${start.error}`);
+  const callsAtStart = serverCalls(ctx).length;
+  const evidenceAtStart = await writeEvidence(ctx);
+
+  // ---- M: the pending Market value against the reviewed recommendation (AC-S278-1) ----
+  const recommendation = observed.recommendationSaved;
+  const journeyRead = {
+    recommendation,
+    pointEstimate: observed.pointEstimate,
+    pending: observed.pendingMarketValue,
+    differs:
+      recommendation !== null &&
+      observed.pointEstimate !== null &&
+      Math.abs(recommendation - observed.pointEstimate) >= 0.005,
+    equalsRecommendation:
+      recommendation !== null && observed.pendingMarketValue === recommendation,
+  };
+  // The provider's figures moved again, the recommendation unchanged.
+  const moved = await moveLowEstimate(ctx, page, leaseId, -40);
+  const afterMove = await readList(ctx, page, leaseId);
+  // The recommendation changed, the provider's figures unchanged.
+  const second = rent + 125;
+  const resaved = await saveRentToRecommend(ctx, page, leaseId, second);
+  const afterResave = await readList(ctx, page, leaseId);
+  const marketRow = afterResave.rows.find((row) => row.key === "sheet:market_value");
+  const varied = {
+    moved,
+    afterMove: listedMarketValue(afterMove),
+    resaved,
+    afterResave: listedMarketValue(afterResave),
+    marketRow: marketRow?.text ?? null,
+  };
+  ctx.record({ part: "M", journeyRead, varied });
+
+  // ---- F: each form opened from its Finish up preview (AC-S278-2) ----
+  const dates = await enterRenewalDates(ctx, page, leaseId, {
+    start: "day-after",
+    end: FIRST_TERM_END,
+  });
+  await kit.openLease(page, leaseId, "?step=finish-up");
+  const finish = page.locator(FINISH_UP).first();
+  let finishShown = await kit.shownWithin(finish, 30_000);
+  if (!finishShown) {
+    await kit.openLease(page, leaseId, "?view=full");
+    finishShown = await kit.reveal(page, FINISH_UP, 30_000);
+  }
+  await settled(page);
+  const previews = finishShown
+    ? await finish.evaluate((root) => ({
+        state: root.getAttribute("data-renewal-finish-up-previews"),
+        keys: [...root.querySelectorAll("[data-renewal-finish-up-preview]")].map((node) =>
+          node.getAttribute("data-renewal-finish-up-preview"),
+        ),
+        applyButtons: [...root.querySelectorAll("[data-renewal-finish-up-apply]")].map(
+          (node) => node.getAttribute("data-renewal-finish-up-apply"),
+        ),
+        text: (root.textContent ?? "").replace(/\s+/g, " ").trim().slice(0, 1200),
+      }))
+    : null;
+  const finishUrl = page.url();
+  const rentvineOpened = await openFromPreview(
+    ctx,
+    page,
+    "rentvine-dates",
+    "s97-end-date",
+    FIRST_TERM_END,
+  );
+  // Changed before its preview: the mark clears, and the saved proposal previews the new date.
+  let rentvineChanged = { attempted: false };
+  if (rentvineOpened.input?.present) {
+    const input = page.locator("#s97-end-date");
+    await input.fill(CHANGED_END);
+    await page.waitForTimeout(500);
+    const afterEdit = await readFilledInput(page, "s97-end-date");
+    const form = input.locator("xpath=ancestor::form[1]");
+    const save = form.getByRole("button", {
+      name: "Save proposal from fresh RentVine state",
+      exact: true,
+    });
+    const writesBefore = ctx.writes.length;
+    const callsBefore = serverCalls(ctx).length;
+    const proposed = kit.appResponse(page, RENTVINE_ROUTE, {
+      match: (body) => body?.operation === "propose",
+      timeout: 120_000,
+    });
+    await save.click();
+    const response = await proposed.catch(() => null);
+    const body = response ? await response.json().catch(() => null) : null;
+    await kit.shownWithin(
+      page.getByRole("heading", { name: "Review RentVine updates", exact: true }).first(),
+      30_000,
+    );
+    await page.waitForTimeout(1_500);
+    // The saved proposal's own review: one item per exact effect, each with its own action.
+    const effects = await page.evaluate(() => {
+      const heading = [...document.querySelectorAll("h1, h2, h3, h4")].find(
+        (node) => (node.textContent ?? "").trim() === "Review RentVine updates",
+      );
+      const holder = heading?.closest("div.ui-stack");
+      const list = holder?.querySelector(":scope > ol");
+      return list
+        ? [...list.children].map((item) => ({
+            text: (item.textContent ?? "").replace(/\s+/g, " ").trim().slice(0, 600),
+            apply: [...item.querySelectorAll("button")].filter(
+              (button) => (button.textContent ?? "").trim() === "Apply RentVine update",
+            ).length,
+          }))
+        : [];
+    });
+    const proposalEffects = body?.proposal?.effects ?? [];
+    const datesEffect = proposalEffects.find(
+      (effect) => effect?.kind === "renewal_dates_update",
+    );
+    rentvineChanged = {
+      attempted: true,
+      afterEdit,
+      status: response?.status() ?? null,
+      error: body?.error ?? null,
+      effectKinds: proposalEffects.map((effect) => effect?.kind),
+      datesAfter: datesEffect?.after ?? datesEffect?.effect?.after ?? null,
+      effects,
+      writes: ctx.writes.slice(writesBefore),
+      rentvineWrites: serverCalls(ctx)
+        .slice(callsBefore)
+        .filter((entry) => entry.refused === "rentvine_write").length,
+    };
+  }
+  // The Sheet renewal date's preview, from the same Finish up.
+  await page.goto(finishUrl, { waitUntil: "domcontentloaded", timeout: 120_000 });
+  await page
+    .getByRole("region", { name: "Current renewal stage" })
+    .waitFor({ timeout: 120_000 });
+  await settled(page);
+  const sheetOpened = await openFromPreview(
+    ctx,
+    page,
+    "sheet-renewal_date",
+    "sheet-field-value",
+    FIRST_TERM_END,
+    async () => ({
+      field: await page
+        .locator("#sheet-field")
+        .inputValue()
+        .catch(() => null),
+    }),
+  );
+  let sheetChanged = { attempted: false };
+  if (sheetOpened.input?.present) {
+    await page.locator("#sheet-field-value").fill(CHANGED_END);
+    await page.waitForTimeout(500);
+    const afterEdit = await readFilledInput(page, "sheet-field-value");
+    const panel = page
+      .locator("#sheet-field-value")
+      .locator("xpath=ancestor::article[1]");
+    const panelText = squash(await panel.innerText().catch(() => ""));
+    const submit = page
+      .locator("#sheet-field-value")
+      .locator("xpath=ancestor::form[1]")
+      .locator('button[type="submit"]')
+      .first();
+    sheetChanged = {
+      attempted: true,
+      afterEdit,
+      switchOffNotice: panelText.includes(WORDS.sheetOff),
+      previewButton: (await submit.count())
+        ? {
+            text: squash(await submit.innerText().catch(() => "")),
+            disabled: await submit.isDisabled().catch(() => null),
+          }
+        : null,
+    };
+  }
+  ctx.record({
+    part: "F",
+    dates,
+    previews,
+    rentvineOpened,
+    rentvineChanged,
+    sheetOpened,
+    sheetChanged,
+  });
+
+  // ---- L: the one list, with four recorded Sheet cells beside the Market value ----
+  const recorded = await recordActivities(ctx, page, leaseId);
+  const list = await readList(ctx, page, leaseId);
+  ctx.record({ part: "L", recorded, list });
+
+  // ---- D: the deterministic Sheets adapter, on the served tree ----
+  const unitRun = await adapterRun(ctx, "unit", UNIT_FILES, [], {});
+  const firestoreRun = await adapterRun(
+    ctx,
+    "firestore",
+    FIRESTORE_FILES,
+    ["--config", "vitest.firestore.config.ts"],
+    { FIRESTORE_EMULATOR_HOST: ctx.rehearsal.firestoreEmulatorHost },
+  );
+  const runs = [unitRun, firestoreRun];
+  const runsClean = runs.every(
+    (run) =>
+      run.code === 0 &&
+      run.totals !== null &&
+      run.totals.failed === 0 &&
+      run.totals.passed > 0 &&
+      run.refused === 0,
+  );
+  const verdicts = Object.fromEntries(
+    W1207_CHECKS.map((check) => [check, adapterVerdict(runs, check)]),
+  );
+  ctx.record({
+    part: "D",
+    runs: runs.map(({ cases, ...run }) => ({ ...run, cases: cases.length })),
+    runsClean,
+    verdicts,
+  });
+
+  const callsInRow = serverCalls(ctx).slice(callsAtStart);
+  const evidenceAfter = await writeEvidence(ctx);
+
+  // ---- M, last: the untouched prepared suggestion after the harness reset ----
+  await ctx.resetState();
+  // The prepared suggestion as the step shows it: the field, where its value came from, its basis.
+  const untouchedField = await (async () => {
+    await kit.openLease(page, leaseId, "?step=compare-market");
+    const field = page.locator("#renewal-now-rent-to-recommend");
+    await field.waitFor({ timeout: 60_000 }).catch(() => undefined);
+    await settled(page);
+    const holder = page.locator(".renewal-now-rent").first();
+    return {
+      value: (await field.inputValue().catch(() => "")) || null,
+      origin: await holder.getAttribute("data-renewal-rent-origin").catch(() => null),
+      basis: squash(
+        await holder
+          .locator('[data-renewal-field="rent-basis"]')
+          .innerText()
+          .catch(() => ""),
+      ),
+    };
+  })();
+  const untouched = await readList(ctx, page, leaseId);
+  const reviewedValue = rent + 50;
+  const reviewed = await saveRentToRecommend(ctx, page, leaseId, reviewedValue);
+  const afterReview = await readList(ctx, page, leaseId);
+  ctx.record({
+    part: "M after reset",
+    untouchedField,
+    untouched: untouched.rows,
+    reviewed,
+    afterReview: afterReview.rows,
+  });
+
+  // ---- The checks ----
+  const sheetRows = list.rows.filter((row) => row.key?.startsWith("sheet:"));
+  const keys = list.rows.map((row) => row.key);
+  const expectedKeys = [
+    "sheet:market_value",
+    ...ACTIVITIES.map(({ field }) => `sheet:${field}`),
+    "sheet-terms:renewal_date",
+    "rentvine:rentvine-dates",
+  ];
+  const pending = list.rows.filter((row) => row.state !== "done").length;
+
+  const ac1 =
+    journeyRead.differs &&
+    journeyRead.equalsRecommendation &&
+    observed.pendingIsPointEstimate === false &&
+    moved.shown === true &&
+    moved.status === 200 &&
+    varied.afterMove === recommendation &&
+    resaved.status === 200 &&
+    varied.afterResave === second &&
+    String(varied.marketRow ?? "").includes(`${WORDS.basis} ${WORDS.marketBasis}`) &&
+    untouched.shown === true &&
+    !untouched.rows.some((row) => row.key === "sheet:market_value") &&
+    // An untouched prepared suggestion: the preparation's value, saved or suggested, not staff's.
+    ![null, "none"].includes(untouchedField.origin) &&
+    (untouchedField.value !== null || /Suggested \$/.test(untouchedField.basis)) &&
+    reviewed.status === 200 &&
+    listedMarketValue(afterReview) === reviewedValue &&
+    verdicts["AC-S278-1"].ok;
+
+  const ac2 =
+    dates.start === 200 &&
+    dates.end === 200 &&
+    previews?.state === "assembled" &&
+    openedRight(rentvineOpened, FIRST_TERM_END) &&
+    openedRight(sheetOpened, FIRST_TERM_END) &&
+    sheetOpened.field === "renewal_date" &&
+    rentvineChanged.attempted === true &&
+    rentvineChanged.afterEdit?.value === CHANGED_END &&
+    !rentvineChanged.afterEdit?.prefilled &&
+    !String(rentvineChanged.afterEdit?.hint ?? "").includes(WORDS.mark) &&
+    rentvineChanged.status === 200 &&
+    rentvineChanged.effects.some(
+      (effect) =>
+        effect.text.includes(usDate(CHANGED_END)) || effect.text.includes(CHANGED_END),
+    ) &&
+    rentvineChanged.rentvineWrites === 0 &&
+    sheetChanged.attempted === true &&
+    sheetChanged.afterEdit?.value === CHANGED_END &&
+    !sheetChanged.afterEdit?.prefilled &&
+    verdicts["AC-S278-2"].ok;
+
+  const ac3 =
+    list.shown === true &&
+    recorded.every((entry) => entry.status === 200) &&
+    expectedKeys.every((key) => keys.filter((entry) => entry === key).length === 1) &&
+    new Set(keys).size === keys.length &&
+    list.heading === WORDS.heading(pending) &&
+    list.pendingAttribute === String(pending) &&
+    list.rows.every(
+      (row) =>
+        row.text.includes(WORDS.basis) &&
+        (row.key.startsWith("rentvine:")
+          ? row.text.includes(WORDS.rentvineNow)
+          : row.text.includes(WORDS.sheetNow)),
+    ) &&
+    runsClean &&
+    verdicts["AC-S278-3"].ok;
+
+  const ac4 =
+    list.combined?.count === "5" &&
+    list.combined.label === WORDS.reviewAll(5) &&
+    runsClean &&
+    verdicts["AC-S278-4"].ok;
+
+  const productionAllowedSame =
+    JSON.stringify(evidenceAtStart.productionAllowed) ===
+    JSON.stringify(evidenceAfter.productionAllowed);
+  // The recorded Sheet cells and the Market value ("sheet:..."); the Sheet renewal date from the
+  // working terms ("sheet-terms:...") opens its form instead (R-S278-2), so it is not one of them.
+  const ac5 =
+    sheetRows.length >= 5 &&
+    sheetRows.every(
+      (row) =>
+        row.text.includes(WORDS.sheetNow) &&
+        row.text.includes(WORDS.basis) &&
+        row.text.includes(WORDS.paused) &&
+        row.button?.name === `${WORDS.prepare}: ${row.text.split(":")[0]}` &&
+        row.button.disabled === true,
+    ) &&
+    list.combined?.disabled === true &&
+    sheetWriteAttempts(callsInRow).length === 0 &&
+    evidenceAfter.setRuns === 0 &&
+    evidenceAfter.sheetExecutions === evidenceAtStart.sheetExecutions &&
+    productionAllowedSame &&
+    sheetChanged.switchOffNotice === true &&
+    sheetChanged.previewButton?.disabled === true &&
+    runsClean &&
+    verdicts["AC-S278-5"].ok;
+
+  const ac6 =
+    rentvineChanged.status === 200 &&
+    rentvineChanged.effects.length > 0 &&
+    rentvineChanged.effects.every((effect) => effect.apply === 1) &&
+    list.rows
+      .filter((row) => row.key.startsWith("sheet:"))
+      .every((row) => row.button?.name?.startsWith(`${WORDS.prepare}: `)) &&
+    runsClean &&
+    verdicts["AC-S278-6"].ok;
+
+  const checks = {
+    "AC-S278-1": Boolean(ac1),
+    "AC-S278-2": Boolean(ac2),
+    "AC-S278-3": Boolean(ac3),
+    "AC-S278-4": Boolean(ac4),
+    "AC-S278-5": Boolean(ac5),
+    "AC-S278-6": Boolean(ac6),
+  };
+  ctx.record({
+    checks,
+    keys,
+    expectedKeys,
+    pending,
+    sheetWriteAttempts: sheetWriteAttempts(callsInRow).length,
+    sheetPaths: sheetPaths(callsInRow),
+    productionAllowedSame,
+    evidenceAtStart: { ...evidenceAtStart, productionAllowed: undefined },
+    evidenceAfter: { ...evidenceAfter, productionAllowed: undefined },
+  });
+  return checks;
 }

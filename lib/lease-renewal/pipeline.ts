@@ -38,10 +38,17 @@ import type { FieldContext, Severity } from "@/lib/lease-renewal/severity";
 import type { RawGrid } from "@/lib/lease-renewal/sheet-types";
 import { renewalResolutionCandidateFingerprint } from "@/lib/lease-renewal/resolution-fingerprint";
 import {
+  RENTVINE_SOURCE_ID,
   classifyRentVineSheetDifference,
   type SourceDifferenceInformation,
 } from "@/lib/lease-renewal/source-difference-rule";
 import { createHash } from "node:crypto";
+
+/**
+ * The field a RentVine lease read carries its lease end in (lib/integrations/rentvine/lease-mapper.ts).
+ * It has no reconciliation spec of its own (F-RENEWAL-DATE-SEMANTICS), so it never raises a flag.
+ */
+const RENTVINE_LEASE_END_FIELD = "lease_end_date";
 
 /** One field value carried by a non-sheet source (Rentvine / building level / Google Form). */
 export interface NonSheetFieldValue {
@@ -468,6 +475,7 @@ export function runRenewalPipeline(input: RenewalRunInput): RenewalRunResult {
       // a decision stays raised when RentVine is unreadable, other sources hold a value, or the field
       // is any other. Nothing is applied to either source.
       let information: SourceDifferenceInformation | undefined;
+      let informationJoinId: string | undefined;
       if (input.operatingSheet && reconciliation.agreement === "conflict") {
         const rule = classifyRentVineSheetDifference({
           fieldKey: spec.fieldKey,
@@ -476,6 +484,38 @@ export function runRenewalPipeline(input: RenewalRunInput): RenewalRunResult {
         if (rule.kind === "information") {
           information = rule;
           reconciliation = { ...reconciliation, raise_flag: false };
+        }
+      }
+      // S280 R-S280-6 for the lease dates on Live renewal review: a RentVine lease read carries its
+      // lease end as `lease_end_date`, which is kept out of the Sheet's renewal date reconciliation
+      // (F-RENEWAL-DATE-SEMANTICS), so a Sheet lease end that differs from it never reached the rule
+      // above. Read it here through the same rule, for information only: the reconciliation, and so
+      // every flag and count, stays exactly as it was. A Sheet date the rule would not call
+      // information (unreadable, or equal) adds nothing.
+      if (
+        input.operatingSheet &&
+        !information &&
+        spec.fieldKey === "renewal_date" &&
+        reconciliation.agreement === "single_source" &&
+        matched.length === 0
+      ) {
+        // The association already requires a unique match for each source.
+        const lease = (entityAssociations?.get(recordIndex) ?? [])
+          .map((index) => nonSheetCandidates[index])
+          .find((candidate) => candidate.source === RENTVINE_SOURCE_ID);
+        const leaseEnd = lease?.fields[RENTVINE_LEASE_END_FIELD]?.value;
+        if (lease && leaseEnd !== undefined) {
+          const rule = classifyRentVineSheetDifference({
+            fieldKey: spec.fieldKey,
+            candidates: [
+              { source: sheetCandidate.source, value: sheetCandidate.value },
+              { source: RENTVINE_SOURCE_ID, value: leaseEnd },
+            ],
+          });
+          if (rule.kind === "information") {
+            information = rule;
+            informationJoinId = lease.joinId;
+          }
         }
       }
 
@@ -519,11 +559,13 @@ export function runRenewalPipeline(input: RenewalRunInput): RenewalRunResult {
       });
       // S280 R-S280-3: name the lease. The joined RentVine lease's address when one is known,
       // otherwise the operating Sheet row (never a tenant name or a value).
+      const matchedJoinIds = matchedSources.flatMap((candidate) =>
+        candidate.joinId ? [candidate.joinId] : [],
+      );
+      if (informationJoinId) matchedJoinIds.push(informationJoinId);
       const leaseLabel = input.operatingSheet
-        ? (matchedSources
-            .map((candidate) =>
-              candidate.joinId ? input.leaseLabels?.[candidate.joinId] : undefined,
-            )
+        ? (matchedJoinIds
+            .map((joinId) => input.leaseLabels?.[joinId])
             .find((label): label is string => Boolean(label?.trim())) ??
           (recordId ? input.leaseLabels?.[recordId] : undefined) ??
           `Sheet row ${record.sourceRowIndex + 1}`)
@@ -551,13 +593,7 @@ export function runRenewalPipeline(input: RenewalRunInput): RenewalRunResult {
         ),
         queueMapping,
         propertyKey,
-        ...(matchedSources.some((candidate) => candidate.joinId)
-          ? {
-              matchedCandidateJoinIds: matchedSources.flatMap((candidate) =>
-                candidate.joinId ? [candidate.joinId] : [],
-              ),
-            }
-          : {}),
+        ...(matchedJoinIds.length ? { matchedCandidateJoinIds: matchedJoinIds } : {}),
         ...(leaseLabel ? { leaseLabel } : {}),
         ...(information
           ? {

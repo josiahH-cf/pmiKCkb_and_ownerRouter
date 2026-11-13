@@ -827,6 +827,9 @@ function BatchRow({
       className="renewal-batch-row"
       data-batch-group={group}
       data-batch-lease={row.leaseId}
+      data-batch-preparation={
+        row.preparationEligible === false ? "held" : row.comparisonNeeded
+      }
       data-batch-row-kind={workRow ? "work" : "context"}
     >
       <th scope="row">
