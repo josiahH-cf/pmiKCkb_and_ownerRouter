@@ -24,7 +24,11 @@ import {
   tenantResourceEffectVerdict,
 } from "@/lib/lease-renewal/tenant-resource-inclusion";
 import { businessDateIso } from "@/lib/lease-renewal/business-calendar";
-import { replyWatchApplies, type ReplyWatchEnded } from "./reply-watch";
+import {
+  needsReplyWatchCatchUp,
+  replyWatchApplies,
+  type ReplyWatchEnded,
+} from "./reply-watch";
 import {
   TENANT_RESPONSE_PAUSE_CAUSE,
   recordedTenantResponseOf,
@@ -195,8 +199,11 @@ export interface SequenceStore {
     after: string | null,
     limit: number,
   ): Promise<{ sequences: CommunicationSequence[]; cursor: string | null }>;
-  /** S275 R-S275-2: the open and watched messages a reply check reads, capped. */
-  listReplyCheckable?(limit: number): Promise<CommunicationSequence[]>;
+  /** S275 R-S275-2: find this mailbox's open and watched messages across pages. */
+  listReplyCheckable?(
+    mailbox: string,
+    pageSize: number,
+  ): Promise<CommunicationSequence[]>;
   /** S275 R-S275-1: end one message's watch with its reason; no other field changes. */
   endReplyWatch?(id: string, ended: ReplyWatchEnded): Promise<CommunicationSequence>;
 }
@@ -334,34 +341,56 @@ export class FirestoreCommunicationSequenceStore implements SequenceStore {
   async listCatchUp(after: string | null, limit: number) {
     return this.pageWhere("state", "completed", after, limit);
   }
-  /** S275 R-S275-2: open and watched records a reply check reads, each read capped at `limit`. */
-  async listReplyCheckable(limit: number) {
+  /** Filter every page, including threads in their original mailbox after a transfer. */
+  async listReplyCheckable(mailbox: string, pageSize: number) {
     const collection = this.db.collection(COMMUNICATION_SEQUENCE_COLLECTIONS.sequences);
-    const bound = Math.min(200, Math.max(1, limit));
-    const [open, watched] = await Promise.all([
-      collection
-        .where("state", "in", [...OPEN_SEQUENCE_STATES])
-        .orderBy(FieldPath.documentId())
-        .limit(bound)
-        .get(),
-      collection
-        .where("replyWatch", "==", true)
-        .orderBy(FieldPath.documentId())
-        .limit(bound)
-        .get(),
+    const bound = Math.min(100, Math.max(1, pageSize));
+    const read = async (
+      query: FirebaseFirestore.Query,
+      include: (sequence: CommunicationSequence) => boolean = () => true,
+    ) => {
+      const base = query.orderBy(FieldPath.documentId()).limit(bound);
+      const results: CommunicationSequence[] = [];
+      let after: string | undefined;
+      for (;;) {
+        const page = await (after ? base.startAfter(after) : base).get();
+        for (const doc of page.docs) {
+          if (doc.get("purged")) continue;
+          const sender = doc.get("senderEmail");
+          const threads = doc.get("threads");
+          if (
+            (typeof sender !== "string" || sender.toLowerCase() !== mailbox) &&
+            (!Array.isArray(threads) ||
+              !threads.some(
+                (thread) =>
+                  typeof thread?.senderEmail === "string" &&
+                  thread.senderEmail.toLowerCase() === mailbox,
+              ))
+          )
+            continue;
+          try {
+            const sequence = assertRecord(doc.data());
+            if (include(sequence)) results.push(sequence);
+          } catch {
+            // A record that needs reconciliation is left to its own controls.
+          }
+        }
+        if (page.size < bound) return results;
+        after = page.docs.at(-1)!.id;
+      }
+    };
+    const [open, watched, legacy] = await Promise.all([
+      read(collection.where("state", "in", [...OPEN_SEQUENCE_STATES])),
+      read(collection.where("replyWatch", "==", true)),
+      // Before the worker's one-time backfill, a completed message may lack the marker.
+      read(collection.where("state", "==", "completed"), needsReplyWatchCatchUp),
     ]);
     const seen = new Set<string>();
-    const sequences: CommunicationSequence[] = [];
-    for (const doc of [...open.docs, ...watched.docs]) {
-      if (seen.has(doc.id) || doc.get("purged")) continue;
-      seen.add(doc.id);
-      try {
-        sequences.push(assertRecord(doc.data()));
-      } catch {
-        // A record that needs reconciliation is left to its own controls.
-      }
-    }
-    return sequences;
+    return [...open, ...watched, ...legacy].filter((sequence) => {
+      if (seen.has(sequence.id)) return false;
+      seen.add(sequence.id);
+      return true;
+    });
   }
   private async pageWhere(
     field: string,

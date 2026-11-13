@@ -793,7 +793,12 @@ describe("S275 R-S275-3 / R-S275-4: the waiting step's check and the reply leadi
     "keeps the reply check available without calling a %s dispatch observation a Gmail failure",
     (reason) => {
       const sequence = record({
-        observation: { checkedAtMs: CHECKED_AT, state: "unavailable", historyId: null, reason },
+        observation: {
+          checkedAtMs: CHECKED_AT,
+          state: "unavailable",
+          historyId: null,
+          reason,
+        },
       });
       const evidence = projectOutreachEvidence(
         evidenceInput([linkedRenewalMessageEvidence(sequence)!]),

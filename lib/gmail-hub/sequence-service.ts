@@ -1187,14 +1187,14 @@ export class WorkflowCommunicationSequenceService {
    */
   async observeMailbox(
     actor: AuthenticatedUser,
-    options: { readonly skip?: ReadonlySet<string>; readonly limit?: number } = {},
+    options: { readonly skip?: ReadonlySet<string>; readonly pageSize?: number } = {},
   ): Promise<{ observed: number; notChecked: number; ended: number }> {
     assertCommunicationStaff(actor, "read");
     const counts = { observed: 0, notChecked: 0, ended: 0 };
     if (!this.deps.store.listReplyCheckable) return counts;
     const mailbox = actor.email.toLowerCase();
     const candidates = (
-      await this.deps.store.listReplyCheckable(options.limit ?? 100)
+      await this.deps.store.listReplyCheckable(mailbox, options.pageSize ?? 100)
     ).filter(
       (s) =>
         replyCheckable(s) &&
@@ -1202,15 +1202,15 @@ export class WorkflowCommunicationSequenceService {
         (s.senderEmail.toLowerCase() === mailbox ||
           s.threads.some((t) => t.senderEmail.toLowerCase() === mailbox)),
     );
-    for (const original of candidates) {
-      if (options.skip?.has(original.id)) continue;
+    const check = async (original: CommunicationSequence) => {
+      if (options.skip?.has(original.id)) return;
       try {
         let s = original;
         if (s.state === "completed") {
           const settled = await this.settleReplyWatch(s);
           if (settled.ended) {
             counts.ended += 1;
-            continue;
+            return;
           }
           s = settled.sequence;
         }
@@ -1222,7 +1222,10 @@ export class WorkflowCommunicationSequenceService {
         // Not checked this run: the record says so, and the other messages carry on.
         await this.markNotChecked(original).catch(() => undefined);
       }
-    }
+    };
+    const concurrency = 4;
+    for (let offset = 0; offset < candidates.length; offset += concurrency)
+      await Promise.all(candidates.slice(offset, offset + concurrency).map(check));
     return counts;
   }
   async dispatch(id: string): Promise<{
