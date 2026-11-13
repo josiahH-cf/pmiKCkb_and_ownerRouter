@@ -378,12 +378,12 @@ async function reviewAndConfirm(page, phase, kind, dialogName, confirmName) {
 async function journey(browser) {
   const { context, page } = await newPage(browser);
   const view = lease(page);
-  const route = (path, body) => routeFromPage(page, path, body);
+  const route = (path) => routeFromPage(page, path);
   const mix = rehearsalMix(rehearsal);
   const ownerEmailOf = (leaseId) =>
     mix.leases.find((row) => row.lease.leaseID === Number(leaseId))?.portfolio.owners[0]
       ?.email ?? null;
-  // The sequence id of each send the page makes, for the owner reply's thread read.
+  // The exact thread and sequence of each send made through the page.
   const sends = [];
   page.on("response", (response) => {
     const request = response.request();
@@ -407,6 +407,7 @@ async function journey(browser) {
           id: sent.id,
           status: response.status(),
           state: body?.sequence?.state,
+          threadId: body?.sequence?.threads?.at(-1)?.threadId ?? null,
         }),
       );
   });
@@ -811,14 +812,45 @@ async function journey(browser) {
     },
   );
 
-  // J07 owner reply (L36, first half).
+  // J07 owner reply (L36, first half). Record the staff check separately from the
+  // preceding zero-action waiting evidence and the following decision budget.
   const sendRecord = sends.findLast((entry) => entry.status === 200) ?? null;
   const reply = await deliverOwnerReply(rehearsal, {
+    threadId: sendRecord?.threadId ?? undefined,
     to: ownerEmailOf(prepared) ?? undefined,
     text: "Synthetic owner reply: the renewal terms are approved.",
   }).catch((error) => ({ error: String(error?.message ?? error) }));
-  if (sendRecord?.id)
-    await route("/api/gmail-hub/sequences", { action: "refresh", id: sendRecord.id });
+  await view.open(prepared, "?step=ask-owner");
+  const checkReply = view.now().getByRole("button", {
+    name: "Check for a reply now",
+    exact: true,
+  });
+  let checked = null;
+  if (sendRecord?.id && reply.messageId && (await shownWithin(checkReply, 20_000))) {
+    const [response] = await Promise.all([
+      page.waitForResponse(
+        (response) => {
+          const request = response.request();
+          if (
+            new URL(response.url()).pathname !== "/api/gmail-hub/sequences" ||
+            request.method() !== "POST"
+          )
+            return false;
+          const input = request.postDataJSON();
+          return input?.action === "refresh" && input.id === sendRecord.id;
+        },
+        { timeout: 30_000 },
+      ),
+      checkReply.click(),
+    ]);
+    log.act("owner-reply", "choice", "Check for a reply now");
+    const sequence = (await response.json().catch(() => null))?.sequence;
+    checked = {
+      status: response.status(),
+      replyKind: sequence?.inbound?.find((entry) => entry.messageId === reply.messageId)
+        ?.kind,
+    };
+  }
   await view.open(prepared);
   const replyNow = await view.nowText();
   const replyNext = await view.nextStep();
@@ -827,12 +859,14 @@ async function journey(browser) {
   check(
     "journey.owner-reply",
     'the observed reply reads "Owner replied" with "Record the owner\'s answer" as the one next action (L36, S262)',
-    /Owner replied/.test(replyNow) &&
+    checked?.status === 200 &&
+      checked.replyKind === "human" &&
+      /Owner replied/.test(replyNow) &&
       replyNext.primaries === 1 &&
       replyNext.primary === "Record the owner's answer" &&
       replyNext.lines === 1 &&
       /Record the owner's (answer|decision)/.test(replyNext.text),
-    { reply, sendRecord, now: replyNow.slice(0, 400), next: replyNext },
+    { reply, sendRecord, checked, now: replyNow.slice(0, 400), next: replyNext },
   );
 
   // J07b the working terms the decision approves. The prepared kickoff fills the rent from the
