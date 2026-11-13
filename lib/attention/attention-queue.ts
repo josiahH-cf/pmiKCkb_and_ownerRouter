@@ -129,7 +129,7 @@ export const ATTENTION_REREAD_LEASE_WAIT_MS = 30_000;
 
 const defaultDependencies: AttentionQueueDependencies = {
   listQueue: (user) => listApprovalQueue(user),
-  loadRunViews: loadRenewalRunViews,
+  loadRunViews: (user) => loadRenewalRunViews(user, { displayOnly: true }),
   now: () => new Date(),
   revalidateLeaseSource: (nowMs) => {
     const config = buildLiveRenewalConfig();
@@ -149,10 +149,8 @@ export async function gatherAttentionQueue(
   options: AttentionQueueOptions = {},
 ): Promise<AttentionQueue> {
   const canSeeRenewals = hasSpaceAccess(user, "renewals");
-  // Before the admitted review read below: when the shared lease generation is stale, start its
-  // revalidation without notice admission, as the Dashboard did before S147. Otherwise the review
-  // read's own admitted refresh raises the notice floor and a renewal desk opened alongside the
-  // Dashboard waits out the whole provider read.
+  // Start the display-only revalidation before an explicit refresh joins it. Neither Dashboard
+  // read raises the approval-safety floor for a desk or message review opened alongside it.
   if (canSeeRenewals) {
     try {
       dependencies.revalidateLeaseSource?.(dependencies.now().getTime());

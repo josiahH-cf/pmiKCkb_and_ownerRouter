@@ -32,6 +32,7 @@ import { observeRenewalNotice } from "@/lib/firestore/renewal-notice-safety";
 import {
   readAdmittedRenewalNoticeLease,
   readCoherentRenewalDisplaySource,
+  readOnlyRenewalDisplaySource,
 } from "./admitted-notice-source";
 import { RenewalNoticeSourceError } from "./notice-source-error";
 import {
@@ -472,6 +473,8 @@ export async function currentRenewalMessage(
      * it settled; a refused admission is thrown as before.
      */
     settledRead?: boolean;
+    /** Comparison only: use the display generation without admitting or persisting it. */
+    compareOnly?: boolean;
   } = {},
 ) {
   const config = buildLiveRentVineConfig();
@@ -497,13 +500,15 @@ export async function currentRenewalMessage(
     // projected as unknown below, and remains a server-side draft/approval hold.
     (options.requireFreshNotice || options.settledRead
       ? readAdmittedRenewalNoticeLease(actor, leaseId, config.rentvineClient, nowMs, db)
-      : readCoherentRenewalDisplaySource(
-          actor,
-          config.rentvineClient,
-          nowMs,
-          { leaseId },
-          db,
-        )
+      : options.compareOnly
+        ? readOnlyRenewalDisplaySource(config.rentvineClient, nowMs)
+        : readCoherentRenewalDisplaySource(
+            actor,
+            config.rentvineClient,
+            nowMs,
+            { leaseId },
+            db,
+          )
     ).catch(messageSourceFailure),
     getRenewalWorkspace(actor, leaseId, db),
     getRenewalWorkingRecord(actor, leaseId, db).catch(() => "unavailable" as const),
@@ -550,6 +555,7 @@ export async function currentRenewalMessage(
       admittedLeaseKeys: leaseRead.snapshot.noticeAdmission?.leaseKeys,
     },
     db,
+    options.compareOnly ? { displayOnly: true } : undefined,
   );
   const moveOut = noticeSafety.disposition;
   // A disposition is local. Reading it for an existing draft never creates a new
@@ -598,13 +604,16 @@ export async function currentRenewalMessage(
   // lease read is not fresh (R-S274-2). Anything else, a conflict between settled generations
   // included, is settled and compared as it reads.
   const readSettlement: LeaseReadSettlement =
-    savedDisposition &&
-    disposition.state === "unavailable" &&
-    leaseRead.currency.state !== "fresh"
-      ? { state: "not_settled", reason: "retirement_not_fresh" }
-      : noticeSafety.superseded === true
-        ? { state: "not_settled", reason: "generation_not_ready" }
-        : SETTLED_LEASE_READ;
+    options.compareOnly &&
+    (leaseRead.currency.state !== "fresh" || !leaseRead.snapshot.complete)
+      ? { state: "not_settled", reason: "generation_not_ready" }
+      : savedDisposition &&
+          disposition.state === "unavailable" &&
+          leaseRead.currency.state !== "fresh"
+        ? { state: "not_settled", reason: "retirement_not_fresh" }
+        : noticeSafety.superseded === true
+          ? { state: "not_settled", reason: "generation_not_ready" }
+          : SETTLED_LEASE_READ;
   // The notice marker is scoped to the dated work record. A work record saved without a date
   // (S154) lives beside the dated heads, so its notice scope carries no record id.
   const noticeScopeCycleId =

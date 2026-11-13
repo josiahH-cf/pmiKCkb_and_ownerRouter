@@ -28,6 +28,7 @@ export interface RenewalRunViewContext {
  */
 export async function loadRenewalRunViewContext(
   user: AuthenticatedUser,
+  options?: { readonly displayOnly?: boolean },
 ): Promise<RenewalRunViewContext> {
   let overlayStatus: RenewalRunViewContext["overlayStatus"] = "available";
   const overlay = Promise.all([
@@ -41,7 +42,10 @@ export async function loadRenewalRunViewContext(
     },
   );
 
-  const outcome = await loadLiveRenewalReview(user, new Date().toISOString(), overlay);
+  const at = new Date().toISOString();
+  const outcome = options?.displayOnly
+    ? await loadLiveRenewalReview(user, at, overlay, options)
+    : await loadLiveRenewalReview(user, at, overlay);
   return outcome.status === "ok"
     ? {
         views: [outcome.view],
@@ -63,8 +67,9 @@ export async function loadRenewalRunViewContext(
 
 export async function loadRenewalRunViews(
   user: AuthenticatedUser,
+  options?: { readonly displayOnly?: boolean },
 ): Promise<RenewalRunView[]> {
-  const context = await loadRenewalRunViewContext(user);
+  const context = await loadRenewalRunViewContext(user, options);
   // S280 R-S280-4: a stale or expired read still throws (no caller may decide on it), and carries
   // its views so the Dashboard can keep them as retained rows with their read time.
   if (context.sourceStatus !== "available" || context.overlayStatus !== "available")

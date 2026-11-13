@@ -110,6 +110,7 @@ import {
 /** S274: how a target is read. `settle` reads the lease as an approval read (it joins a read in flight). */
 export interface ResolveTargetOptions {
   readonly settle?: boolean;
+  readonly compareOnly?: boolean;
 }
 
 /** S274 ARCH-S274-1: one target resolution, settled or not, as a typed result. */
