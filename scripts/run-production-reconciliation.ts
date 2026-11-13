@@ -2828,10 +2828,8 @@ export function countIndependentRowGuidanceMismatches(input: {
   const allowEndedWithoutOutcome =
     (input.expectedGuidanceContract === INDEPENDENT_ONE_STATUS_CONTRACT_MARKER ||
       input.expectedGuidanceContract === INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER ||
-      independentContractReadsVariants(
-        observedRow.guidanceContract,
-        input.expectedGuidanceContract,
-      )) &&
+      input.expectedGuidanceContract === INDEPENDENT_VARIANTS_CONTRACT_MARKER ||
+      input.expectedGuidanceContract === INDEPENDENT_RENTVINE_BASIS_CONTRACT_MARKER) &&
     expectedRow.endedWithoutOutcomeEligible === true;
   if (input.contract === "staff_lane") {
     const expectedGuidance = projectIndependentExpectedGuidanceState({
