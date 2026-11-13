@@ -37,7 +37,28 @@ type StageRow = Pick<
 > & {
   readonly followUp?: DeskLeaseRow["followUp"];
   readonly kickoff?: DeskLeaseRow["kickoff"];
+  /** S282: the cohort's disposition and reason, which name the off-cycle hold. */
+  readonly disposition?: DeskLeaseRow["disposition"];
+  readonly reason?: DeskLeaseRow["reason"];
+  readonly offCycleEndDate?: DeskLeaseRow["offCycleEndDate"];
 };
+
+/**
+ * S282 ARCH-S282-1/3: the guidance verification that is the off-cycle hold itself. The stage
+ * projection reads that hold from the staff record's review instead, so the Now card, the
+ * readiness lists and a save on this page agree; every other verification cause is unchanged.
+ */
+function offCycleVerification(row: StageRow): boolean {
+  const action = row.guidance.action;
+  return (
+    row.offCycleEndDate !== undefined &&
+    row.disposition === "review" &&
+    row.reason === "off_cycle_date" &&
+    row.guidance.overallStatus === "needs_verification" &&
+    "destination" in action &&
+    action.destination.kind === "workspace_phase"
+  );
+}
 
 /** AC-S248-4: the lease's current cycle date, which places a message that named no cycle. */
 export function renewalStageCycleDateIso(
@@ -131,12 +152,18 @@ export function renewalStageContextFor(
           }
         : null,
     verification:
-      row.guidance.overallStatus === "needs_verification" && "label" in action
+      row.guidance.overallStatus === "needs_verification" &&
+      "label" in action &&
+      !offCycleVerification(row)
         ? {
             label: action.label,
             refresh: !("destination" in action) || action.destination.kind === "none",
           }
         : null,
+    // S282 R-S282-2: the off-cycle end date the staff record's review is read against.
+    ...(row.offCycleEndDate
+      ? { offCycleEndDate: { endDateIso: row.offCycleEndDate.endDateIso } }
+      : {}),
     handStatus:
       workStatus?.state === "recorded" && workStatus.cycleRelation === "current"
         ? { key: workStatus.status, label: workStatus.label }

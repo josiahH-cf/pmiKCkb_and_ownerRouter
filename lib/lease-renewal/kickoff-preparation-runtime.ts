@@ -56,6 +56,7 @@ import { readCoherentRenewalDisplaySource } from "@/lib/lease-renewal/admitted-n
 import { RENEWAL_DESK_WINDOW_DAYS } from "@/lib/lease-renewal/assistant-source";
 import { businessDateIso } from "@/lib/lease-renewal/business-calendar";
 import { classifyRenewalCohort } from "@/lib/lease-renewal/cohort";
+import { offCyclePreparationHold } from "@/lib/lease-renewal/off-cycle-review";
 import { buildRenewalDeskWindow } from "@/lib/lease-renewal/desk-query";
 import type {
   KickoffLeaseRead,
@@ -116,6 +117,10 @@ export function kickoffPreparationDeps(
         windows: [buildRenewalDeskWindow(today, RENEWAL_DESK_WINDOW_DAYS)],
         referenceDateIso: today,
         termReviews: termReview ? new Map([[leaseId, termReview]]) : undefined,
+        // S282 R-S282-2: the lease's off-cycle end date reviews, from its current work record.
+        endDateReviews: manual?.endDateReviews?.length
+          ? new Map([[leaseId, manual.endDateReviews]])
+          : undefined,
       }).classifications[0];
       if (!classification) return null;
       const target = renewalTargetFor({
@@ -184,6 +189,9 @@ export function kickoffPreparationDeps(
           disposition !== undefined &&
           termReview !== undefined &&
           isRenewalTargetForMonth(target, month ?? defaultRenewalBatchMonth(today)),
+        // S282 R-S282-2: an off-cycle end date not included for its exact value stays out of the
+        // month's preparation run; "Include" makes the lease one of its targets.
+        offCycleHold: offCyclePreparationHold(classification.offCycle),
         // S262 R-S262-5: empty for the active cycle. An earlier cycle's rent leaves it empty; an
         // unbound value is neither current nor empty, so preparation keeps it for staff to confirm.
         rentField: {

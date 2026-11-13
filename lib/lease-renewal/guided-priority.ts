@@ -26,6 +26,7 @@ import {
   type MessageMissingInput,
 } from "./message-readiness";
 import type { TenantResourceInclusion } from "./tenant-resource-inclusion";
+import { isOffCycleBlocker } from "./off-cycle-review";
 import {
   ENTER_RENEWAL_END_LABEL,
   ENTER_RENEWAL_START_LABEL,
@@ -151,6 +152,8 @@ export const GUIDED_SECONDARY_WORK_LABELS: Readonly<
 /** Every input, fix or action an outcome can lead with, by its own key. */
 export type GuidedInputKey =
   | "current-lease-end"
+  /** S282: the review of an off-cycle lease end date, where the lease end fix sits. */
+  | "off-cycle-end-date"
   | "current-base-rent"
   | "charge-difference"
   | "numbers-difference"
@@ -742,6 +745,24 @@ export function projectGuidedPriority(facts: GuidedPriorityFacts): GuidedPriorit
         kind: "field",
       }),
     );
+  // S282: the off-cycle end date review is a missing fact of Check the numbers, in the place the
+  // lease end fix holds there (first), reached from the current step by its exact fix.
+  if (isCurrent && isOffCycleBlocker(stage.blocker)) {
+    const review = input({
+      key: "off-cycle-end-date",
+      label: stage.blocker.label,
+      target: stage.blocker.target,
+      owner: "check-numbers",
+      reason: stage.blocker.line,
+    });
+    const rest =
+      shown.id === "check-numbers" &&
+      shown.state !== "waiting" &&
+      shown.state !== "covered"
+        ? missingInputs(facts)
+        : [];
+    return finish("missing", review, [review, ...rest]);
+  }
   if (isCurrent && stage.blocker)
     return finish(
       "recover",

@@ -48,6 +48,7 @@ import type { WorkflowCommunicationContext } from "@/lib/gmail-hub/workflow-cont
 import { BUSINESS_TIME_ZONE } from "@/lib/lease-renewal/business-calendar";
 import { GUIDED_PRIORITY_WORDS } from "@/lib/lease-renewal/guided-priority";
 import { messageRevisionLabel } from "@/lib/lease-renewal/message-revision";
+import type { OffCycleReadinessItem } from "@/lib/lease-renewal/off-cycle-review";
 import { STALE_REFINED_BODY_MESSAGE } from "@/lib/lease-renewal/refined-message";
 import { NOTICE_GENERATION_NOT_READY } from "@/lib/lease-renewal/notice-source-error";
 import {
@@ -359,6 +360,7 @@ export function PreparedMessageSlot({
   data,
   compactFull = false,
   deliveryHeld = false,
+  offCycleHold = null,
   chargeReview = null,
   onSaveSignature,
   onSignatureSetupSaved,
@@ -378,6 +380,11 @@ export function PreparedMessageSlot({
     data: PreparedMessageData;
     compactFull?: boolean;
     deliveryHeld?: boolean;
+    /**
+     * S282 R-S282-4 (ARCH-S282-3): the off-cycle end date row, read from the same stage blocker
+     * the Now card reads; null when no off-cycle hold stands.
+     */
+    offCycleHold?: OffCycleReadinessItem | null;
     /** S264: Review offer charges for the tenant offer, shown after its working terms. */
     chargeReview?: ReactNode;
   } & PreparedMessageHandlers
@@ -419,6 +426,7 @@ export function PreparedMessageSlot({
       chargeReview={chargeReview}
       full={full}
       deliveryHeld={deliveryHeld}
+      offCycleHold={offCycleHold}
       preparation={nowCard?.preparation ?? null}
       previewSlot={preview}
       setPrimary={nowCard?.setPrimary ?? null}
@@ -435,6 +443,7 @@ function PreparedMessageBlock({
   actionsSlot,
   full,
   deliveryHeld,
+  offCycleHold,
   setPrimary,
   step,
 }: Readonly<{
@@ -445,6 +454,7 @@ function PreparedMessageBlock({
   actionsSlot: HTMLElement | null;
   full: boolean;
   deliveryHeld: boolean;
+  offCycleHold: OffCycleReadinessItem | null;
   setPrimary: NonNullable<ReturnType<typeof useRenewalNowCard>>["setPrimary"] | null;
   step: RenewalPathStepId;
 }>) {
@@ -683,16 +693,21 @@ function PreparedMessageBlock({
             : null,
         },
       ];
+  // S282 R-S282-4 (ARCH-S282-3): while the off-cycle hold stands, its row leads the list as not
+  // ready and its fix leads the step's action, so the list and the Now card never disagree.
   const ready =
     (live ? sendReady(live) : needs.every((item) => item.ready)) &&
-    !api.outgoingReasons?.length;
+    !api.outgoingReasons?.length &&
+    !offCycleHold;
   const missingWords = needs.filter((item) => !item.ready && item.missing);
-  const firstMissing = needs.find((item) => !item.ready);
+  const firstMissing = offCycleHold ? null : needs.find((item) => !item.ready);
   const reviewLabel = ready
     ? KICKOFF_WORDS.reviewAndSend
-    : firstMissing?.key === "signature"
-      ? "Set up your signature"
-      : (firstMissing?.fix?.label ?? "Review required message inputs");
+    : offCycleHold
+      ? offCycleHold.fix.label
+      : firstMissing?.key === "signature"
+        ? "Set up your signature"
+        : (firstMissing?.fix?.label ?? "Review required message inputs");
   const staleDraft =
     api.draft.createdRevision !== null && api.draft.createdRevision !== api.revision;
   // H: the reason carries the same guard as edited wording, and says what to take out.
@@ -998,7 +1013,10 @@ function PreparedMessageBlock({
   // R-S249-8: "Review and send" is the Now card's primary action while the step asks for its send.
   const runReview = (button: HTMLButtonElement) => {
     if (!ready) {
-      if (firstMissing?.key === "signature") {
+      if (offCycleHold) {
+        // S282 R-S282-4: the fix opens the lease end date review on Check the numbers.
+        focusRenewalDashboardControl(offCycleHold.fix.target);
+      } else if (firstMissing?.key === "signature") {
         setSignatureOpen(true);
         requestAnimationFrame(() => {
           focusRenewalDashboardControl(MESSAGE_CONTROL_IDS.signature(api.channel), {
@@ -1021,7 +1039,9 @@ function PreparedMessageBlock({
     (ready
       ? null
       : api.outgoingReasons?.join(" ") ||
-        `Before sending, add ${missingWords.map((item) => item.missing).join(", ")}.`);
+        (offCycleHold && missingWords.length === 0
+          ? `${offCycleHold.text}.`
+          : `Before sending, add ${missingWords.map((item) => item.missing).join(", ")}.`));
   // The Now card holds one stable action; it always runs the latest review step.
   const latestRun = useRef(runReview);
   useEffect(() => {
@@ -1122,6 +1142,25 @@ function PreparedMessageBlock({
         own work, before the readiness list and the preview. */}
       {api.channel === "tenant" ? chargeReview : null}
       <ul aria-label="What sending needs" className="renewal-now-readiness">
+        {offCycleHold ? (
+          <li data-renewal-ready="missing" data-renewal-readiness-key={offCycleHold.key}>
+            {offCycleHold.text}
+            {/* Like every first missing item, its fix is inline only while the step's own
+                action is held; otherwise that action already names it. */}
+            {deliveryHeld ? (
+              <>
+                {" "}
+                <button
+                  className="text-link"
+                  onClick={() => focusRenewalDashboardControl(offCycleHold.fix.target)}
+                  type="button"
+                >
+                  {offCycleHold.fix.label}
+                </button>
+              </>
+            ) : null}
+          </li>
+        ) : null}
         {needs.map((item) => (
           <li data-renewal-ready={item.ready ? "ready" : "missing"} key={item.key}>
             {item.label}: {item.ready ? "Ready" : `Missing ${item.missing ?? ""}`}

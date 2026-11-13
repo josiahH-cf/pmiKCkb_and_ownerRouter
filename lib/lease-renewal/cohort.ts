@@ -22,6 +22,11 @@ import {
   type LeaseTermProjection,
   type LeaseTermReviewFact,
 } from "@/lib/lease-renewal/lease-term";
+import {
+  projectOffCycleEndDate,
+  type OffCycleEndDateFact,
+  type OffCycleEndDateReview,
+} from "@/lib/lease-renewal/off-cycle-review";
 
 /** An inclusive end-date window (ISO YYYY-MM-DD), e.g. the "end of August" batch. */
 export interface DateWindow {
@@ -143,6 +148,11 @@ export interface CohortLease {
   termProjection: LeaseTermProjection;
   /** S251 R-S251-10: RentVine text mentions housing assistance. A suggestion only. */
   housingAssistanceMention?: true;
+  /**
+   * S282 R-S282-2: an end date inside a window that is not a month end, with the current review
+   * for that exact value. Present whatever the decision, so an included lease still shows it.
+   */
+  offCycle?: OffCycleEndDateFact;
 }
 
 export interface RenewalCohort {
@@ -272,6 +282,12 @@ export interface ClassifyCohortOptions {
   referenceDateIso?: string;
   /** S103: current app-owned term reviews by lease id; a drifted record is ignored as stale. */
   termReviews?: ReadonlyMap<string, LeaseTermReviewFact>;
+  /**
+   * S282 ARCH-S282-1: the off-cycle end date reviews on each lease's current work record, by lease
+   * id. Only a review for the exact end date the lease reports now applies; "Include" clears the
+   * off-cycle hold for that value and the lease then follows the rest of the order below.
+   */
+  endDateReviews?: ReadonlyMap<string, readonly OffCycleEndDateReview[]>;
 }
 
 /**
@@ -280,7 +296,8 @@ export interface ClassifyCohortOptions {
  *   2. a definitive skip signal (owner-authorized / program) -> skip
  *   3. no resolvable end date -> review ("no_end_date")
  *   4. end date outside every window -> out_of_window
- *   5. end date in a window but not a month-end -> review ("off_cycle_date")
+ *   5. end date in a window but not a month-end -> review ("off_cycle_date"), unless staff
+ *      recorded "Include" for that exact end date (S282); the lease then continues to step 6
  *   6. an unresolved TERM on an otherwise workable lease -> review ("term_needs_review")
  *   7. otherwise -> actionable
  *
@@ -335,8 +352,17 @@ export function classifyRenewalCohort(
     if (!inAnyWindow(endDateIso, options.windows)) {
       return { ...base, disposition: "out_of_window", reason: "out_of_window" };
     }
-    if (!isMonthEnd(endDateIso)) {
-      return { ...base, disposition: "review", reason: "off_cycle_date" };
+    // S282 R-S282-2: the review recorded for this exact end date governs the off-cycle hold.
+    const offCycle = isMonthEnd(endDateIso)
+      ? null
+      : projectOffCycleEndDate({
+          endDateIso,
+          inWindow: true,
+          reviews: leaseId === null ? undefined : options.endDateReviews?.get(leaseId),
+        });
+    const reviewed = offCycle ? { ...base, offCycle } : base;
+    if (offCycle && offCycle.state !== "included") {
+      return { ...reviewed, disposition: "review", reason: "off_cycle_date" };
     }
     // The provider itself reported something unclear (an expired or missing end date, a pending
     // month-to-month conversion, or a signal that contradicts the dates). An unreadable detail is a
@@ -345,9 +371,9 @@ export function classifyRenewalCohort(
       termProjection.term === "needs_review" &&
       termProjection.evidence === "provider_detail"
     ) {
-      return { ...base, disposition: "review", reason: "term_needs_review" };
+      return { ...reviewed, disposition: "review", reason: "term_needs_review" };
     }
-    return { ...base, disposition: "actionable", reason: "actionable" };
+    return { ...reviewed, disposition: "actionable", reason: "actionable" };
   });
 
   const actionable = classifications.filter((c) => c.disposition === "actionable");

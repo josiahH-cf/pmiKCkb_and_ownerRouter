@@ -82,7 +82,10 @@ function renewalDetail(row: DeskLeaseRow, leaseResolved: boolean): string {
   const date = when ? `ends ${when}` : "no end date recorded";
   return [
     tenantIdentity(row),
-    row.reasonLabel,
+    // S282 R-S282-5: a recorded off-cycle decision reads as the desk row reads it.
+    row.offCycleEndDate && row.offCycleEndDate.state !== "needs_review"
+      ? row.offCycleEndDate.line
+      : row.reasonLabel,
     date,
     // S247 R-S247-3: the same stage line and next step as the desk row and the lease page.
     row.renewalStage ? row.renewalStage.stageLine : null,

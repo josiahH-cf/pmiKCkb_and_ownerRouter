@@ -272,6 +272,16 @@ export interface DeskLeaseSummaryBase {
   /** S232: the visible reason this row appears in, or is retained outside, the worklist. */
   inclusionReason?: string;
   /**
+   * S282 R-S282-2/5: the lease end date inside a renewal window that is not a month end, with the
+   * review state for that exact value and the reason line the row reads. Absent for any other
+   * lease. Serializable; the lease page's review form and stage blocker read it.
+   */
+  offCycleEndDate?: {
+    readonly endDateIso: string;
+    readonly state: "needs_review" | "included" | "held";
+    readonly line: string;
+  };
+  /**
    * S246 R-S246-1: the one renewal target projection, read from the RentVine lease status table by
    * the shared orchestration. The working batch, the lease page and the assistant read this; the
    * table's own columns are unchanged by it. Absent only when a caller did not project it.

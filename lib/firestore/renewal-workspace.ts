@@ -33,6 +33,10 @@ import {
   type PreparedOfferAnswer,
 } from "@/lib/firestore/renewal-offer-answers";
 import { OfferAnswerInputSchema } from "@/lib/lease-renewal/offer-answers";
+import {
+  OFF_CYCLE_DECISIONS,
+  OFF_CYCLE_REASON_MAX,
+} from "@/lib/lease-renewal/off-cycle-review";
 import type { FrozenOfferSnapshot } from "@/lib/lease-renewal/offer-snapshot";
 import type { CommunicationInboundEvidence } from "@/lib/gmail-hub/sequence-model";
 import {
@@ -188,6 +192,24 @@ const stateSchema = z
         })
         .strict(),
     ),
+    // S282 R-S282-1/3: the off-cycle end date reviews on this cycle, oldest first; absent on
+    // records made before S282. Each names the exact end date value it reviewed.
+    endDateReviews: z
+      .array(
+        z
+          .object({
+            eventId: z.string().min(1),
+            cycleId: z.string().uuid(),
+            endDateIso: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+            decision: z.enum(OFF_CYCLE_DECISIONS),
+            reason: z.string().trim().min(1).max(OFF_CYCLE_REASON_MAX),
+            actorUid: z.string().min(1),
+            actorLabel: z.string().min(1),
+            recordedAt: z.string().datetime(),
+          })
+          .strict(),
+      )
+      .optional(),
   })
   .strict();
 const leaseBoundStateSchema = stateSchema.extend({ basis: LeaseBoundBasisSchema });
@@ -721,6 +743,8 @@ export async function saveRenewalWorkspace(
       approvalEvidence,
       workingTermRevisions,
       approvedBase,
+      // S282 R-S282-1: a recorded review names the signed-in staff identity, read here.
+      actorLabel: actor.email,
     });
     if (
       input.action.kind === "preparation" &&

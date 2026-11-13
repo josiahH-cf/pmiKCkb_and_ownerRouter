@@ -1643,10 +1643,13 @@ function NowCard({
     shown.state === "waiting" && isCurrent && stage.waiting
       ? renewalStageWaitingLine(stage.waiting)
       : null;
+  // S282: the off-cycle hold names itself (needs review, or on hold with its reason, who and when)
+  // above its fix, "Review the lease end date".
   const blockerLine = blocker
-    ? stage.stage.key === "retired" || context.staffRecordUnavailable || !blocker.target
-      ? blocker.label
-      : `Needs verification: ${blocker.label}`
+    ? (blocker.line ??
+      (stage.stage.key === "retired" || context.staffRecordUnavailable || !blocker.target
+        ? blocker.label
+        : `Needs verification: ${blocker.label}`))
     : null;
   // R-S269-2: one short cue leads under the heading. The waiting line, the blocker or the not
   // part line is that cue when it applies; otherwise the priority's own cue, when it has one.

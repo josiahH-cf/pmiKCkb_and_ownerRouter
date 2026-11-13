@@ -51,6 +51,11 @@ export interface KickoffLeaseRead {
   /** True when the lease is a renewal target in the default working month. */
   readonly inWorkingBatch: boolean;
   readonly dispositionHold?: string | null;
+  /**
+   * S282 R-S282-2: why the month's run leaves this lease out: its off-cycle end date is not
+   * included for its exact value (needs review or on hold). Null or absent otherwise.
+   */
+  readonly offCycleHold?: string | null;
   readonly rentField?: { readonly revision: number; readonly empty: boolean };
   readonly draftEligible?: boolean;
   readonly dispositionRevision?: number;
@@ -187,6 +192,10 @@ export async function runKickoffPreparation(
     );
   if (lease.dispositionHold)
     return refuse("outside_working_batch", lease.dispositionHold, lease.cycleDateIso);
+  // S282 R-S282-2: the month's deliberate run prepares an off-cycle lease only once staff
+  // included its exact end date. Nothing is claimed or looked up for it.
+  if (input.month && lease.offCycleHold)
+    return refuse("outside_working_batch", lease.offCycleHold, lease.cycleDateIso);
   if (input.month && (!lease.inWorkingBatch || lease.cycleDateIso !== input.cycleDateIso))
     return refuse(
       "outside_working_batch",

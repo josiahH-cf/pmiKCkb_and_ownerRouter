@@ -16,9 +16,10 @@ export const LEASE_CADENCE_CONTRACT = Object.freeze([
     requirement:
       "Review off-cycle end dates and record why each atypical lease is included, excluded, or held for review.",
     sourceOwner: "RentVine plus human worklog decision",
+    // S282 R-S282-1: the review is recorded once per exact end date on the lease's work record.
     currentSupport:
-      "The full-set read avoids silently prefiltering off-cycle leases, but the explicit disposition reason and reviewer worklog are not yet persisted.",
-    status: "partial" as const,
+      "Staff record one review per off-cycle end date on Check the numbers: Include in this renewal month or Keep on hold, with a required reason, the reviewer and the time, kept with the lease's work record. Retire from renewals excludes a lease.",
+    status: "supported" as const,
   },
   {
     id: "owner_direction",

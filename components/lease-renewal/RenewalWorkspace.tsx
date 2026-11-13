@@ -76,6 +76,7 @@ import {
   type RenewalCycleBasis,
 } from "@/lib/lease-renewal/workspace-state";
 import { RenewalLeaseEndProvider } from "@/components/lease-renewal/RenewalDateProposal";
+import { RenewalOffCycleReview } from "@/components/lease-renewal/RenewalOffCycleReview";
 // S113 mounts the full lease dashboard. Historical process evidence remains distinct from
 // staff-recorded work; navigating or expanding a section never advances either lane.
 // Server component; the tenant-channel switch uses the client Tabs primitive.
@@ -1354,7 +1355,7 @@ function PhaseContent({
     case "verify-renewal":
       return (
         <>
-          {showFacts || termReviewPanel ? (
+          {showFacts || termReviewPanel || (showWork && summary.offCycleEndDate) ? (
             <Card
               id={showWork ? "renewal-card-lease-term" : undefined}
               title={
@@ -1400,6 +1401,13 @@ function PhaseContent({
                   facts, so it is not applied. Record the term again against the current
                   facts.
                 </p>
+              ) : null}
+              {/* S282 R-S282-1: the off-cycle lease end date review, on Check the numbers. */}
+              {showWork ? (
+                <RenewalOffCycleReview
+                  canEdit={can(role, "edit")}
+                  fact={summary.offCycleEndDate}
+                />
               ) : null}
               {showWork ? termReviewPanel : null}
             </Card>

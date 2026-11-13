@@ -123,6 +123,11 @@ import {
 } from "@/lib/lease-renewal/move-out-timing";
 import type { LeaseTermReviewFact } from "@/lib/lease-renewal/lease-term";
 import {
+  endDateReviewsByLease,
+  offCycleDecisionLine,
+  offCycleReasonLine,
+} from "@/lib/lease-renewal/off-cycle-review";
+import {
   buildLiveRenewalConfig,
   type LiveRenewalConfig,
 } from "@/lib/lease-renewal/live-config";
@@ -732,6 +737,17 @@ function inclusionReasonFor(
     classification.endDateIso
       ? `Ended ${formatCalendarDate(classification.endDateIso)} without a recorded renewal outcome`
       : retention.label;
+  // S282 R-S282-5: a recorded off-cycle decision is the row's reason, included or on hold, with
+  // who recorded it and when. A held lease keeps its existing cohort reason for every count.
+  const offCycleReview = classification.offCycle?.review ?? null;
+  if (offCycleReview)
+    return [
+      primary,
+      offCycleDecisionLine(offCycleReview),
+      ...(classification.reason === "term_needs_review"
+        ? [humanizeCohortReason(classification.reason)]
+        : []),
+    ].join(" · ");
   const explains =
     classification.disposition !== "actionable" &&
     classification.disposition !== "out_of_window";
@@ -1043,6 +1059,16 @@ function toLiveSummary(
     // S232 R-S232-4: the staff-record read failed, so the row never claims nothing is recorded.
     ...(context.manualStateAvailable === false ? { staffRecordUnavailable: true } : {}),
     inclusionReason: inclusionReasonFor(classification, retention, endedWithoutOutcome),
+    // S282 R-S282-2/5: the off-cycle end date and its review state, for the form and the stage.
+    ...(classification.offCycle
+      ? {
+          offCycleEndDate: {
+            endDateIso: classification.offCycle.endDateIso,
+            state: classification.offCycle.state,
+            line: offCycleReasonLine(classification.offCycle),
+          },
+        }
+      : {}),
     processVersion: processVisible
       ? (progress?.processVersion ?? RENEWAL_PROCESS_VERSION)
       : null,
@@ -1954,6 +1980,8 @@ export async function loadLiveRenewalDesk(
       windows,
       referenceDateIso: businessDateIso(readTimestamp),
       termReviews,
+      // S282 ARCH-S282-1: each lease's off-cycle end date reviews, from its current work record.
+      endDateReviews: endDateReviewsByLease(manualByLease),
     });
     // S82: one shared guidance attachment so every row carries rent/status/blocker/action truth.
     const toRow = (
@@ -2421,6 +2449,10 @@ export async function loadLiveRenewalLeaseWorkspace(
       windows,
       referenceDateIso: businessDateIso(readTimestamp),
       ...(termReview ? { termReviews: new Map([[leaseId, termReview]]) } : {}),
+      // S282 ARCH-S282-1: the same work record reviews the desk reads for this lease.
+      ...(manual?.endDateReviews?.length
+        ? { endDateReviews: new Map([[leaseId, manual.endDateReviews]]) }
+        : {}),
     }).classifications[0];
     const { tables, tableJoinIds } = await readRenewalSheetGridsWithLinks({
       reader: config.sheetsReader,

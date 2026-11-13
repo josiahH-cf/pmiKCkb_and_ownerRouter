@@ -218,6 +218,8 @@ function recordEvent(state: RenewalWorkspaceState | null, key: string): string |
   if (key === "owner_response") return state.ownerResponse?.eventId ?? null;
   if (key === "tenant_response") return state.tenantResponse?.eventId ?? null;
   if (key === "completion") return state.completion?.eventId ?? null;
+  // S282: another operator's review of the end date is a change to this same item.
+  if (key === "end_date_review") return state.endDateReviews?.at(-1)?.eventId ?? null;
   return state.preparation ? String(state.preparation.revision) : null;
 }
 function newerState(

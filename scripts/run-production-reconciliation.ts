@@ -1265,6 +1265,8 @@ export function buildExpectedProjectionRows(
       row,
       worklistEligible,
       referenceDateIso,
+      // S282: the stored off-cycle end date reviews on this lease's work record.
+      variantInputs?.states.get(row.leaseId)?.endDateReviews ?? [],
     );
     // A definitive source skip outranks obsolete app-owned progress. It never creates a process,
     // action, or retained-incomplete workflow in the independent expectation. S103: a month-to-month
@@ -1788,6 +1790,11 @@ function independentDispositionExpected(
   row: IndependentRenewalSourceRow,
   workspaceExpected: boolean,
   referenceDateIso: string,
+  /**
+   * S282: the off-cycle end date reviews stored on the lease's work record. Only the latest one
+   * naming exactly this end date counts, and only "include" clears the off-cycle review.
+   */
+  endDateReviews: readonly { endDateIso: string; decision: string }[] = [],
 ): ExpectedProjectionRow["dispositionExpected"] {
   if (!workspaceExpected) return "skip";
   if (row.monthToMonth?.signal === true) return "periodic_review";
@@ -1796,7 +1803,9 @@ function independentDispositionExpected(
   if (row.endDate < startIso || row.endDate > endIso) return "out_of_window";
   const next = new Date(`${row.endDate}T00:00:00.000Z`);
   next.setUTCDate(next.getUTCDate() + 1);
-  return next.getUTCDate() === 1 ? "actionable" : "review";
+  if (next.getUTCDate() === 1) return "actionable";
+  const recorded = endDateReviews.filter((review) => review.endDateIso === row.endDate);
+  return recorded[recorded.length - 1]?.decision === "include" ? "actionable" : "review";
 }
 
 async function readRenderedProjection(

@@ -262,6 +262,10 @@ import {
   GUIDED_SECONDARY_WORK_LABELS,
   includedResourceFix,
 } from "@/lib/lease-renewal/guided-priority";
+import {
+  offCycleReadinessItem,
+  type OffCycleReadinessItem,
+} from "@/lib/lease-renewal/off-cycle-review";
 
 type MessageOwnerProps = Readonly<{
   channel: "owner" | "tenant";
@@ -304,6 +308,8 @@ function OutcomeMessagePreparation({
     waiting ||
     (stage.currentStepId === stepId && stage.blocker),
   );
+  // S282 ARCH-S282-3: the readiness list reads the same off-cycle blocker the Now card reads.
+  const offCycleHold = offCycleReadinessItem(stage.blocker);
   const sequenceId =
     props.channel === "tenant"
       ? (evidence?.unconfirmedSequenceId ??
@@ -315,7 +321,7 @@ function OutcomeMessagePreparation({
       {sequenceId ? (
         <TenantOfferProgress sequenceId={sequenceId} leaseId={context.leaseId} />
       ) : null}
-      <MessageOwner {...props} compact deliveryHeld={hold} />
+      <MessageOwner {...props} compact deliveryHeld={hold} offCycleHold={offCycleHold} />
     </>
   );
 }
@@ -403,9 +409,15 @@ function MessageOwner({
   canManageResources,
   compact = false,
   deliveryHeld = false,
+  offCycleHold = null,
   secondaryWork,
   workingTerms,
-}: MessageOwnerProps & { compact?: boolean; deliveryHeld?: boolean }) {
+}: MessageOwnerProps & {
+  compact?: boolean;
+  deliveryHeld?: boolean;
+  /** S282 R-S282-4: the off-cycle end date row the readiness list shows while the hold stands. */
+  offCycleHold?: OffCycleReadinessItem | null;
+}) {
   const context = useRenewalManualWorkspace();
   const working = useRenewalWorkingRecord();
   return context ? (
@@ -418,6 +430,7 @@ function MessageOwner({
       canManageResources={canManageResources}
       compact={compact}
       deliveryHeld={deliveryHeld}
+      offCycleHold={offCycleHold}
       secondaryWork={secondaryWork}
       workingTerms={workingTerms}
     />
@@ -785,6 +798,7 @@ function MessagePreparationEditor({
   canManageResources,
   compact,
   deliveryHeld,
+  offCycleHold,
   secondaryWork,
   workingTerms,
 }: {
@@ -795,6 +809,7 @@ function MessagePreparationEditor({
   canManageResources?: boolean;
   compact: boolean;
   deliveryHeld: boolean;
+  offCycleHold: OffCycleReadinessItem | null;
   secondaryWork?: ReactNode;
   workingTerms?: ReactNode;
 }) {
@@ -1843,6 +1858,7 @@ function MessagePreparationEditor({
           data={preparedData}
           compactFull={compact}
           deliveryHeld={deliveryHeld}
+          offCycleHold={offCycleHold}
           chargeReview={preparedHostsCharges ? chargeReview : null}
           onCopy={() => copy("formatted")}
           onDraftCreate={async () => {

@@ -791,6 +791,14 @@ export const RENEWAL_CONTROL_INVENTORY = [
     enforcementSources: ["app/api/lease-renewal/workspace/route.ts"],
   },
   {
+    // S282 R-S282-1: "Include in this renewal month" or "Keep on hold", with a required reason,
+    // saved on the lease's staff record for the exact end date reviewed.
+    control: "Record the review of an off-cycle lease end date",
+    source: "components/lease-renewal/RenewalOffCycleReview.tsx",
+    capability: "save_renewal_progress",
+    enforcementSources: ["app/api/lease-renewal/workspace/route.ts"],
+  },
+  {
     // S251 R-S251-6: "Rent for this renewal" (Keep the current rent, Propose a change).
     control: "Record the rent choice for an assisted lease",
     source: "components/lease-renewal/RenewalHousingAssistance.tsx",

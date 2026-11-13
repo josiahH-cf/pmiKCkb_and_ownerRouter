@@ -11,6 +11,12 @@ import {
   ApprovedBaseInputSchema,
   type ApprovedBase,
 } from "@/lib/lease-renewal/owner-approval-scope";
+import {
+  OFF_CYCLE_DECISIONS,
+  OFF_CYCLE_REASON_MAX,
+  OFF_CYCLE_REVIEW_WORDS,
+  type OffCycleEndDateReview,
+} from "@/lib/lease-renewal/off-cycle-review";
 
 const text = z.string().trim().min(1).max(500);
 export const renewalDate = z
@@ -317,6 +323,24 @@ export const RenewalWorkspaceActionSchema = z.discriminatedUnion("kind", [
     .strict(),
   z.object({ kind: z.literal("complete"), ...common }).strict(),
   z.object({ kind: z.literal("reopen"), ...common }).strict(),
+  // S282 R-S282-1: the review of an off-cycle lease end date, for the exact value staff reviewed.
+  // The reason is required: the operating rule says to record why an atypical lease is included
+  // or held. One short line, not an attestation.
+  z
+    .object({
+      kind: z.literal("end_date_review"),
+      decision: z.enum(OFF_CYCLE_DECISIONS, {
+        error: OFF_CYCLE_REVIEW_WORDS.decisionRequired,
+      }),
+      endDateIso: renewalDate,
+      ...common,
+      reason: z
+        .string({ error: OFF_CYCLE_REVIEW_WORDS.reasonRequired })
+        .trim()
+        .min(1, OFF_CYCLE_REVIEW_WORDS.reasonRequired)
+        .max(OFF_CYCLE_REASON_MAX),
+    })
+    .strict(),
   z
     .object({
       kind: z.literal("preparation"),
@@ -455,6 +479,12 @@ export interface RenewalWorkspaceState {
       derivedFrom?: { sequenceId: string; occurrenceId: string };
     }
   >;
+  /**
+   * S282 R-S282-1/3: the off-cycle end date reviews recorded on this cycle, oldest first. Each is
+   * bound to the exact end date value reviewed; only one matching the lease end the source
+   * reports now is current, and the rest are history. Absent on records made before S282.
+   */
+  endDateReviews?: OffCycleEndDateReview[];
 }
 export function emptyRenewalWorkspace(
   leaseId: string,
@@ -873,6 +903,8 @@ export function planRenewalWorkspaceAction(
     approvalEvidence?: OwnerApprovalEvidence | null;
     /** S262 R-S262-2: the approved base the store wrote in the same transaction. */
     approvedBase?: ApprovedBase | null;
+    /** S282: the server-derived staff identity a recorded review shows (never the browser's). */
+    actorLabel?: string;
   },
 ): RenewalWorkspaceState {
   const action = RenewalWorkspaceActionSchema.parse(raw);
@@ -890,6 +922,7 @@ export function planRenewalWorkspaceAction(
     approvalEvidence,
     workingTermRevisions,
     approvedBase: writtenBase,
+    actorLabel,
     ...recordMeta
   } = meta;
   let record: StaffRecord = {
@@ -1037,6 +1070,23 @@ export function planRenewalWorkspaceAction(
     // S251 R-S251-6 / R-S251-12: the choice changes the order of steps and what is prepared; it
     // changes no rent, charge, recipient or approved wording by itself.
     next.rentChoice = { ...record, choice: action.choice };
+  } else if (action.kind === "end_date_review") {
+    // S282 R-S282-1/3: one review per save, appended so an earlier decision stays as history. It
+    // is bound to this cycle and the exact end date value reviewed, with the server's actor and
+    // time. It changes no terms, prepares no Sheet value and reaches no provider.
+    next.endDateReviews = [
+      ...(current.endDateReviews ?? []),
+      {
+        eventId: meta.eventId,
+        cycleId: current.cycleId,
+        endDateIso: action.endDateIso,
+        decision: action.decision,
+        reason: action.reason,
+        actorUid: meta.actorUid,
+        actorLabel: actorLabel ?? meta.actorUid,
+        recordedAt: meta.recordedAt,
+      },
+    ];
   } else {
     if (
       action.rangeLow !== undefined &&

@@ -47,6 +47,10 @@ import {
   type RenewalPathStepId,
   type RenewalPathVariants,
 } from "@/lib/lease-renewal/renewal-path";
+import {
+  OFF_CYCLE_REVIEW_WORDS,
+  offCycleStageBlocker,
+} from "@/lib/lease-renewal/off-cycle-review";
 import type { RenewalPreparation } from "@/lib/lease-renewal/renewal-preparation";
 import type { RenewalProcessStepId } from "@/lib/lease-renewal/renewal-process";
 import { SHEET_FIELD_LABELS } from "@/lib/lease-renewal/sheet-writeback/field-intent";
@@ -133,6 +137,13 @@ export interface RenewalStageContext {
   } | null;
   /** The shared guidance says the lease needs verification; the Now card leads with this. */
   readonly verification: { readonly label: string; readonly refresh: boolean } | null;
+  /**
+   * S282 R-S282-2: the lease end the source reports now, when it sits inside a renewal window
+   * and is not a month end. The projection reads the staff record's review for this exact value:
+   * "Include" clears the hold; no review or "Keep on hold" places the off-cycle blocker. Absent or
+   * null for every other lease.
+   */
+  readonly offCycleEndDate?: { readonly endDateIso: string } | null;
   /** S119: the hand-set staff work status for the current cycle, when one is saved. */
   readonly handStatus: { readonly key: RenewalWorkStatus; readonly label: string } | null;
   /** S75: the last contact the follow-up projection observed. */
@@ -270,7 +281,14 @@ export interface RenewalStage {
   /** R-S247-8: the hand-set status and the derived stage in one line when they differ. */
   readonly handStatusLine: string | null;
   /** Something to resolve before relying on the stage: a refresh or a record reload. */
-  readonly blocker: { readonly label: string; readonly target: string | null } | null;
+  readonly blocker: {
+    readonly label: string;
+    readonly target: string | null;
+    /** S282: the off-cycle end date hold, which the readiness lists read as well. */
+    readonly kind?: "off_cycle_end_date";
+    /** S282: the cue the Now card shows above the button, when it differs from the label. */
+    readonly line?: string;
+  } | null;
   readonly evidence: OutreachEvidence;
   /** R-S248-7: Finish up's items: follow-ups, operating Sheet updates and RentVine updates. */
   readonly finishUp: readonly RenewalFinishUpItem[];
@@ -1159,6 +1177,13 @@ export function projectRenewalStage(
   const retired = scopedContext.cycleDisposition?.state === "retired";
   const dispositionUnavailable = scopedContext.cycleDisposition?.state === "unavailable";
   const label = retired ? "Retired" : stageLabel(stageKey);
+  // S282 R-S282-2 (ARCH-S282-1): the staff record's review for the exact off-cycle end date. With
+  // "Include" there is no hold; otherwise the hold reads as needing review, or with the recorded
+  // reason, who set it and when.
+  const offCycle = offCycleStageBlocker(
+    scopedContext.offCycleEndDate,
+    recordedState?.endDateReviews,
+  );
   const stageLine = (() => {
     if (retired) return "Retired from renewals";
     if (dispositionUnavailable) return "Retirement status unavailable";
@@ -1167,6 +1192,10 @@ export function projectRenewalStage(
       return "Needs verification: the staff record could not be read";
     if (scopedContext.verification)
       return `Needs verification: ${scopedContext.verification.label.trim().replace(/\.$/, "")}`;
+    if (offCycle)
+      return offCycle.line === OFF_CYCLE_REVIEW_WORDS.needsReview
+        ? "Needs verification: Off-cycle end date"
+        : offCycle.line;
     if (check) return `Needs a check: ${check.sentence}`;
     if (lane.complete) return label;
     // S264 R-S264-6: the fact to settle is the acceptance's coverage of the current offer.
@@ -1201,7 +1230,7 @@ export function projectRenewalStage(
           label: scopedContext.verification.label,
           target: scopedContext.verification.refresh ? null : "renewal-rent-and-charges",
         }
-      : null;
+      : offCycle;
   return {
     version: RENEWAL_STAGE_VERSION,
     stage: { key: retired ? "retired" : stageKey, label },
