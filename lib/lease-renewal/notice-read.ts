@@ -17,6 +17,7 @@ export type RenewalNoticeObserver = (
 export function renewalNoticeObserver(
   actor: AuthenticatedUser,
   db?: Firestore,
+  options: { readonly displayOnly?: boolean } = {},
 ): RenewalNoticeObserver {
   return async (read, statusTable, observedAtMs) => {
     const entries: [string, MoveOutDisposition][] = [];
@@ -44,6 +45,7 @@ export function renewalNoticeObserver(
           admittedLeaseKeys: read.snapshot.noticeAdmission?.leaseKeys,
         })),
         db,
+        options,
       );
       results.forEach((result, index) =>
         entries.push([leases[index].id, result.disposition]),

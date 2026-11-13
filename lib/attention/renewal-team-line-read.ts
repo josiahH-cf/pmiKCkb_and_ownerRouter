@@ -1,10 +1,6 @@
 // S280 R-S280-2: the server read behind the team line on the Dashboard and in My Work's empty state.
 //
-// The count is the Renewals desk's own working-batch membership (S246 R-S246-10), from the one desk
-// orchestration the desk page and the assistant already call. It is a read: it sends, saves and
-// looks up nothing, and it is bounded. The Dashboard starts it beside the attention gather and
-// streams it into its own line, so the question box and the rest of "Waiting on you" never wait for
-// it; a failed or late read shows the line without a count.
+// Reuse the desk's working-batch projection through its read-only counts mode.
 
 import {
   RENEWAL_TEAM_LINE_HREF,
@@ -19,9 +15,6 @@ import {
 } from "@/lib/lease-renewal/renewal-batch";
 import { withReadDeadline } from "@/lib/observability/read-lifetime";
 
-/** The team line's bound; past it the line shows without a count. */
-export const RENEWAL_TEAM_LINE_WAIT_MS = 30_000;
-
 export interface RenewalTeamLineDependencies {
   /** The desk's rows for this user, or null when the desk could not be read. */
   readonly loadDeskRows?: (
@@ -34,16 +27,21 @@ async function defaultLoadDeskRows(
   user: AuthenticatedUser,
   now: Date,
 ): Promise<readonly RenewalBatchSourceRow[] | null> {
-  // Loaded on use, so a page that never shows the line never loads the desk orchestration.
   const { loadRenewalAssistantSource } =
     await import("@/lib/lease-renewal/assistant-source");
-  const source = await loadRenewalAssistantSource(user, now);
-  return source.outcome.status === "ok" ? source.outcome.view.items : null;
+  const { outcome } = await loadRenewalAssistantSource(user, now, null, {
+    countsOnly: true,
+  });
+  return outcome.status === "ok" &&
+    outcome.view.readComplete &&
+    outcome.view.dataCurrency.state === "fresh"
+    ? outcome.view.items
+    : null;
 }
 
 /**
- * R-S280-2: the team line for this user, or null when the user has no Renewals Space. Never
- * throws: an unreadable desk gives the line without a count.
+ * R-S280-2: the team line for this user, or null when the user has no Renewals Space.
+ * A failed or stale source read gives the link without a count.
  */
 export async function loadRenewalTeamLine(
   user: AuthenticatedUser,
@@ -55,7 +53,7 @@ export async function loadRenewalTeamLine(
   try {
     const rows = await withReadDeadline(
       () => (dependencies.loadDeskRows ?? defaultLoadDeskRows)(user, now),
-      RENEWAL_TEAM_LINE_WAIT_MS,
+      30_000,
     );
     return {
       count: rows ? renewalTeamNextActionCount(rows, month) : null,

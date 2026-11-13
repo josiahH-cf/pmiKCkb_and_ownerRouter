@@ -472,7 +472,9 @@ function projectAudience(
   // has the current step. A newer unconfirmed attempt still needs reconciliation.
   const unsentMessage =
     pending
-      .filter((message) => message.unsent && message.unsent.cause !== "newer_message_sent")
+      .filter(
+        (message) => message.unsent && message.unsent.cause !== "newer_message_sent",
+      )
       .at(-1) ?? null;
   const unsent =
     unsentMessage && unsentMessage.unsent

@@ -1199,7 +1199,7 @@ describe("loadLiveRenewalLeaseWorkspace", () => {
     expect(periodic.workspace.live).toMatchObject({ leaseId: "7003", complete: false });
     expect(periodic.workspace.process.version).toBe(RENEWAL_PROCESS_VERSION);
     expect(periodic.workspace.guidance).toMatchObject({
-      contract: "s251-variants",
+      contract: "s280-rentvine-basis",
       isBlocked: false,
       blockers: [],
       action: { kind: "act", label: "Owner outreach" },
@@ -1237,7 +1237,7 @@ describe("loadLiveRenewalLeaseWorkspace", () => {
     });
     expect(skipped.workspace.live).toMatchObject({ leaseId: "9007", complete: false });
     expect(skipped.workspace.guidance).toMatchObject({
-      contract: "s251-variants",
+      contract: "s280-rentvine-basis",
       blockers: [],
       action: { kind: "act", label: "Owner outreach" },
     });
@@ -1402,7 +1402,7 @@ describe("loadLiveRenewalLeaseWorkspace", () => {
     expect(workspace.workspace.summary.stageIndex).toBeGreaterThanOrEqual(0);
     expect(workspace.workspace.live).toMatchObject({ leaseId: "8004", complete: false });
     expect(workspace.workspace.guidance).toMatchObject({
-      contract: "s251-variants",
+      contract: "s280-rentvine-basis",
       overallStatus: "ready",
       action: { kind: "act", label: "Owner outreach" },
     });
@@ -1687,7 +1687,7 @@ describe("live renewal workspace + versioned evidence progress", () => {
     // surface; the desk row and the workspace carry the same staff-lane guidance.
     expect(row?.guidance.blockers).toEqual([]);
     expect(workspace.workspace.guidance.blockers).toEqual([]);
-    expect(row?.guidance.contract).toBe("s251-variants");
+    expect(row?.guidance.contract).toBe("s280-rentvine-basis");
     expect(row?.guidance.overallStatus).toBe(workspace.workspace.guidance.overallStatus);
     expect(row?.guidance.action).toEqual(workspace.workspace.guidance.action);
   });
@@ -1937,7 +1937,7 @@ describe("S82 desk guidance rows", () => {
         controlId: "renewal-manual-owner_outreach",
       },
     });
-    expect(conflicting?.guidance.contract).toBe("s251-variants");
+    expect(conflicting?.guidance.contract).toBe("s280-rentvine-basis");
 
     const noMatch = byId.get("6002");
     expect(noMatch?.guidance.rentVerification.state).toBe("needs_verification");

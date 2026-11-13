@@ -44,13 +44,9 @@ const readOwnRenewalFollowThrough = vi.fn(async () => ({
   state: "ok" as const,
   rows: [],
 }));
-const loadRenewalTeamLine = vi.fn(async () => null);
 vi.mock("@/lib/attention/renewal-follow-through-read", () => ({
   readOwnRenewalFollowThrough: (...args: unknown[]) =>
     readOwnRenewalFollowThrough(...(args as [])),
-}));
-vi.mock("@/lib/attention/renewal-team-line-read", () => ({
-  loadRenewalTeamLine: (...args: unknown[]) => loadRenewalTeamLine(...(args as [])),
 }));
 
 import { ConsoleView } from "@/components/console/ConsoleView";
@@ -67,6 +63,10 @@ const readyItem = {
 };
 
 beforeEach(() => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => Response.json(null)),
+  );
   listApprovalQueue.mockResolvedValue([readyItem]);
   loadRenewalRunViews.mockResolvedValue([]);
   listProcessDefinitions.mockResolvedValue([
@@ -76,6 +76,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  vi.unstubAllGlobals();
   vi.clearAllMocks();
 });
 
@@ -204,17 +205,24 @@ describe("ConsoleView (S146/S147 AI-first Dashboard)", () => {
   });
 
   it("S280 BEH-S280-5: starts the viewer's own follow-through and the team line beside the queue, and shows the line", async () => {
-    loadRenewalTeamLine.mockResolvedValueOnce({
-      count: 12,
-      month: "2026-12",
-      href: "/lease-renewal/live/desk",
-    } as never);
+    vi.mocked(fetch).mockResolvedValueOnce(
+      Response.json({
+        count: 12,
+        month: "2026-12",
+        href: "/lease-renewal/live/desk",
+      }),
+    );
     await renderView(editorUser);
     expect(await screen.findByTestId("renewal-team-line")).toHaveTextContent(
       "12 renewals have a next action for the team. Open the Renewal Desk.",
     );
     expect(readOwnRenewalFollowThrough).toHaveBeenCalledTimes(1);
-    expect(loadRenewalTeamLine).toHaveBeenCalledTimes(1);
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/dashboard/renewal-team",
+      expect.objectContaining({
+        cache: "no-store",
+      }),
+    );
     expect(screen.getByLabelText(/Question/)).toBeEnabled();
   });
 });

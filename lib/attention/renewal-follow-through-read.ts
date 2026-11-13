@@ -9,9 +9,11 @@
 // Any part that fails adds nothing: the Dashboard never shows an item it could not establish.
 
 import type { Firestore } from "firebase-admin/firestore";
+import { FieldPath } from "firebase-admin/firestore";
 
 import {
   isFollowThroughSequence,
+  mayNeedFollowThrough,
   projectOwnFollowThrough,
   scheduledOwnMessages,
   type AttentionFollowThroughRow,
@@ -48,6 +50,7 @@ export const OWN_FOLLOW_THROUGH_WAIT_MS = 20_000;
 export interface OwnFollowThroughRead {
   readonly state: "ok" | "unavailable" | "not_eligible";
   readonly rows: readonly AttentionFollowThroughRow[];
+  readonly incomplete?: true;
 }
 
 export interface OwnFollowThroughDependencies {
@@ -121,21 +124,28 @@ export async function readOwnRenewalFollowThrough(
   try {
     return await withReadDeadline(async (): Promise<OwnFollowThroughRead> => {
       const db = (dependencies.db ?? getAdminFirestore)();
-      const own = await db
+      const ownQuery = db
         .collection(SEQUENCE_COLLECTION)
         .where("responsibleUid", "==", user.uid)
-        .limit(OWN_SEQUENCE_SCAN_LIMIT)
-        .get();
-      const leaseIds = [
-        ...new Set(
-          own.docs.flatMap((doc) => {
-            const sequence = storedSequence(doc);
-            return sequence ? [sequence.context.entityId] : [];
-          }),
-        ),
-      ]
-        .sort()
-        .slice(0, OWN_FOLLOW_THROUGH_LEASE_LIMIT);
+        .orderBy(FieldPath.documentId())
+        .limit(OWN_SEQUENCE_SCAN_LIMIT);
+      const latest = new Map<string, number>();
+      let after: string | undefined;
+      for (;;) {
+        const page = await (after ? ownQuery.startAfter(after) : ownQuery).get();
+        for (const doc of page.docs) {
+          const sequence = storedSequence(doc);
+          if (!sequence || !mayNeedFollowThrough(sequence)) continue;
+          const id = sequence.context.entityId;
+          latest.set(id, Math.max(latest.get(id) ?? 0, sequence.updatedAtMs));
+        }
+        if (page.size < OWN_SEQUENCE_SCAN_LIMIT) break;
+        after = page.docs.at(-1)!.id;
+      }
+      const leaseIds = [...latest]
+        .sort(([idA, atA], [idB, atB]) => atB - atA || idA.localeCompare(idB))
+        .slice(0, OWN_FOLLOW_THROUGH_LEASE_LIMIT)
+        .map(([id]) => id);
       if (leaseIds.length === 0) return { state: "ok" as const, rows: [] };
 
       // Every renewal communication of those leases, so "current" sees a teammate's newer one.
@@ -160,24 +170,23 @@ export async function readOwnRenewalFollowThrough(
 
       const readBasis = dependencies.readMessageBasis ?? defaultReadMessageBasis;
       const bases = new Map<string, LeaseMessageBasis | null>();
-      const scheduled = scheduledOwnMessages(user.uid, sequences).slice(
-        0,
-        OWN_FOLLOW_THROUGH_BASIS_READ_LIMIT,
-      );
+      const scheduled = scheduledOwnMessages(user.uid, sequences);
       await Promise.all(
-        scheduled.map(async ({ leaseId, audience }) => {
-          try {
-            bases.set(
-              `${leaseId}:${audience}`,
-              await withReadDeadline(
-                () => readBasis(user, leaseId, audience),
-                OWN_FOLLOW_THROUGH_BASIS_WAIT_MS,
-              ),
-            );
-          } catch {
-            // Not compared: the scheduled message adds nothing.
-          }
-        }),
+        scheduled
+          .slice(0, OWN_FOLLOW_THROUGH_BASIS_READ_LIMIT)
+          .map(async ({ leaseId, audience }) => {
+            try {
+              bases.set(
+                `${leaseId}:${audience}`,
+                await withReadDeadline(
+                  () => readBasis(user, leaseId, audience),
+                  OWN_FOLLOW_THROUGH_BASIS_WAIT_MS,
+                ),
+              );
+            } catch {
+              // Not compared: the scheduled message adds nothing.
+            }
+          }),
       );
 
       return {
@@ -188,6 +197,10 @@ export async function readOwnRenewalFollowThrough(
           leaseFacts: facts,
           messageBases: bases,
         }),
+        ...(latest.size > leaseIds.length ||
+        scheduled.length > OWN_FOLLOW_THROUGH_BASIS_READ_LIMIT
+          ? { incomplete: true as const }
+          : {}),
       };
     }, OWN_FOLLOW_THROUGH_WAIT_MS);
   } catch (error) {

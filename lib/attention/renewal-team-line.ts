@@ -28,6 +28,7 @@ export interface RenewalTeamLine {
 
 /** The working batch's address: the bare desk route opens it. */
 export const RENEWAL_TEAM_LINE_HREF = RENEWAL_DESK_ROUTE;
+export const RENEWAL_TEAM_LINE_ROUTE = "/api/dashboard/renewal-team";
 
 export const RENEWAL_TEAM_LINE_WORDS = {
   link: "Open the Renewal Desk.",

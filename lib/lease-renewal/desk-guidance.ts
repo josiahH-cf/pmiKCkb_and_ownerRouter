@@ -48,9 +48,10 @@ export type {
  * this rendered "s232-one-status". S250/S251: the same rules with the variant facts (a standing
  * agreement chosen as the pricing basis covers the owner step; Housing assistance Yes reorders the
  * staff lane; housing assistance wording is no longer a program skip); a revision before this
- * rendered "s248-evidence-stage".
+ * rendered "s248-evidence-stage". S280 gives readable RentVine rent precedence over an
+ * uncorrected difference with the operating Sheet.
  */
-export const DESK_GUIDANCE_CONTRACT = "s251-variants";
+export const DESK_GUIDANCE_CONTRACT = "s280-rentvine-basis";
 
 /** Grounded control gates only; every other blocker link is plain phase navigation. */
 export const DESK_EVIDENCE_CAPABILITY: Readonly<Partial<Record<string, Capability>>> = {

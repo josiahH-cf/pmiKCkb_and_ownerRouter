@@ -345,7 +345,7 @@ describe("S122 inspection independent of workflow eligibility (AC-S122-4)", () =
       complete: false,
     });
     expect(workspace.workspace.guidance).toMatchObject({
-      contract: "s251-variants",
+      contract: "s280-rentvine-basis",
       overallStatus: "ready",
       action: { kind: "act", label: "Owner outreach" },
     });

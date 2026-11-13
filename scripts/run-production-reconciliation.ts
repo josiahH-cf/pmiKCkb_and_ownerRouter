@@ -101,6 +101,7 @@ import {
   independentContractReadsVariants,
   independentPortfolioId,
   INDEPENDENT_ONE_STATUS_CONTRACT_MARKER,
+  INDEPENDENT_RENTVINE_BASIS_CONTRACT_MARKER,
   INDEPENDENT_STAFF_LANE_CONTRACT_MARKER,
   countIndependentActionDestinationMismatches,
   countIndependentContractMarkerMismatches,
@@ -266,6 +267,9 @@ export interface DirectProjection extends ContractDirectProjection {
    * the app could not read its renewal message evidence. Absent on an older projection.
    */
   readonly variantsWithoutEvidence?: ContractDirectProjection;
+  /** S280: the same evidence, with the readable RentVine basis for rent differences. */
+  readonly rentvineBasis?: ContractDirectProjection;
+  readonly rentvineBasisWithoutEvidence?: ContractDirectProjection;
   readonly sourceRecords: number;
   readonly projectedRecords: number;
   readonly rentvine: SourceReadState;
@@ -306,11 +310,12 @@ const EXPECTED_GUIDANCE_CONTRACTS: ReadonlySet<string> = new Set([
   INDEPENDENT_ONE_STATUS_CONTRACT_MARKER,
   INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER,
   INDEPENDENT_VARIANTS_CONTRACT_MARKER,
+  INDEPENDENT_RENTVINE_BASIS_CONTRACT_MARKER,
   "none",
 ]);
 
 /**
- * `--expected-guidance-contract=s251-variants|s248-evidence-stage|s232-one-status|s156-staff-lane|none`; absent
+ * `--expected-guidance-contract=s280-rentvine-basis|s251-variants|s248-evidence-stage|s232-one-status|s156-staff-lane|none`; absent
  * means select by the
  * rendered marker.
  */
@@ -434,6 +439,11 @@ export interface IndependentDecisionFacts {
    * the predecessor's.
    */
   readonly staffLaneManualByLease?: ReadonlyMap<string, IndependentManualRenewal> | null;
+  /** S282: dated reviews with any lease-bound heads, independent of other evidence reads. */
+  readonly endDateReviewsByLease?: ReadonlyMap<
+    string,
+    NonNullable<RenewalWorkspaceState["endDateReviews"]>
+  >;
   /**
    * S248: the staff-lane work records with the oracle's own reading of the app's renewal message
    * evidence, for a revision that renders the evidence-stage marker. Null when the evidence could
@@ -508,6 +518,7 @@ export async function readIndependentDecisionFacts(
   }
   const manualByLease = new Map<string, IndependentManualRenewal>();
   const datedByLease = new Map<string, IndependentManualRenewal>();
+  const datedStates = new Map<string, RenewalWorkspaceState>();
   for (const document of manual.docs) {
     const state = RenewalWorkspaceStateSchema.parse(document.data());
     const expectedId = createHash("sha256").update(state.leaseId).digest("hex");
@@ -515,6 +526,7 @@ export async function readIndependentDecisionFacts(
       throw new Error("independent_manual_read_invalid");
     manualByLease.set(state.leaseId, projectIndependentManualRenewal(state));
     datedByLease.set(state.leaseId, projectIndependentStaffLaneManualRenewal(state));
+    datedStates.set(state.leaseId, state);
   }
   let staffLaneManualByLease: Map<string, IndependentManualRenewal> | null = null;
   // S248: the same work records with the oracle's own reading of the app's renewal message
@@ -524,6 +536,7 @@ export async function readIndependentDecisionFacts(
   const evidence = await readIndependentOutreachDocuments(firestore);
   const fills = new Map<string, IndependentOutreachFill>();
   let workStates: Map<string, RenewalWorkspaceState> | null = null;
+  let endDateReviewStates = datedStates;
   if (leaseBound) {
     try {
       staffLaneManualByLease = new Map<string, IndependentManualRenewal>();
@@ -543,30 +556,32 @@ export async function readIndependentDecisionFacts(
       for (const [leaseId, record] of datedByLease) {
         staffLaneManualByLease.set(leaseId, record);
       }
-      for (const document of manual.docs) {
-        const state = RenewalWorkspaceStateSchema.parse(document.data());
-        states.set(state.leaseId, state);
-      }
-      if (evidence) {
-        evidenceStageManualByLease = new Map();
-        for (const [leaseId, state] of states) {
-          const fill = projectIndependentOutreachFill(
-            state,
-            evidence.sequences.get(leaseId) ?? [],
-            evidence.records.get(leaseId) ?? [],
-          );
-          fills.set(leaseId, fill);
-          evidenceStageManualByLease.set(
-            leaseId,
-            projectIndependentStaffLaneManualRenewal(state, fill),
-          );
-        }
-        workStates = states;
-      }
+      for (const [leaseId, state] of datedStates) states.set(leaseId, state);
+      workStates = states;
+      endDateReviewStates = states;
     } catch {
       staffLaneManualByLease = null;
       evidenceStageManualByLease = null;
       workStates = null;
+    }
+  }
+  if (workStates && evidence) {
+    try {
+      evidenceStageManualByLease = new Map();
+      for (const [leaseId, state] of workStates) {
+        const fill = projectIndependentOutreachFill(
+          state,
+          evidence.sequences.get(leaseId) ?? [],
+          evidence.records.get(leaseId) ?? [],
+        );
+        fills.set(leaseId, fill);
+        evidenceStageManualByLease.set(
+          leaseId,
+          projectIndependentStaffLaneManualRenewal(state, fill),
+        );
+      }
+    } catch {
+      evidenceStageManualByLease = null;
     }
   }
   // S250/S251: the variant documents, read directly and read-only.
@@ -605,9 +620,14 @@ export async function readIndependentDecisionFacts(
     progressLeaseIds: seenLeaseIds,
     manualByLease,
     staffLaneManualByLease,
+    endDateReviewsByLease: new Map(
+      [...endDateReviewStates].flatMap(([leaseId, state]) =>
+        state.endDateReviews?.length ? [[leaseId, state.endDateReviews] as const] : [],
+      ),
+    ),
     evidenceStageManualByLease,
     variantInputs:
-      workStates && variantDocuments
+      workStates && variantDocuments && evidenceStageManualByLease
         ? { documents: variantDocuments, states: workStates, fills }
         : null,
   };
@@ -940,13 +960,19 @@ async function reconcileWithIndependentClients(
 }
 
 /** The rule set one row is read under; S248 reads the staff lane with the app's evidence. */
-type AppliedRuleSet = IndependentGuidanceContract | "evidence_stage" | "variants";
+type AppliedRuleSet =
+  | IndependentGuidanceContract
+  | "evidence_stage"
+  | "variants"
+  | "rentvine_basis";
 
 function appliedRuleSet(
   marker: string | null,
   expected: IndependentExpectedContractMarker | undefined,
 ): AppliedRuleSet {
   const contract = resolveIndependentGuidanceContract(marker, expected);
+  if ((expected ?? marker) === INDEPENDENT_RENTVINE_BASIS_CONTRACT_MARKER)
+    return "rentvine_basis";
   if (contract === "staff_lane" && independentContractReadsVariants(marker, expected))
     return "variants";
   return contract === "staff_lane" && independentContractReadsEvidence(marker, expected)
@@ -975,8 +1001,8 @@ function appliedDirectProjection(
   applied: ReadonlySet<AppliedRuleSet>,
 ): Pick<ContractDirectProjection, "decision" | "sourceDigest"> {
   const parts = [...applied].sort().map((contract) =>
-    contract === "variants"
-      ? (projection.variants ?? {
+    contract === "variants" || contract === "rentvine_basis"
+      ? ((contract === "variants" ? projection.variants : projection.rentvineBasis) ?? {
           rows: [],
           decision: "unavailable" as const,
           sourceDigest: null,
@@ -1137,6 +1163,8 @@ async function readDirectProjection(
     readsVariants = false,
     /** S248 under the variants marker: false leaves the oracle's evidence fill out. */
     variantEvidence = true,
+    /** S280: readable RentVine rent is the basis for unresolved operating-Sheet differences. */
+    rentvineBasis = false,
   ): ContractDirectProjection => {
     const emptyDecisions: IndependentDecisionFacts = {
       resolutions: [],
@@ -1172,6 +1200,7 @@ async function readDirectProjection(
           contract,
           readsVariants,
           variantEvidence,
+          rentvineBasis,
         );
       } catch {
         decision = "unavailable";
@@ -1185,6 +1214,7 @@ async function readDirectProjection(
           contract,
           readsVariants,
           variantEvidence,
+          rentvineBasis,
         );
       }
     }
@@ -1203,12 +1233,22 @@ async function readDirectProjection(
   const variants = projectContract("staff_lane", true, true);
   // S248 under the variants marker: the expectation for a row the app rendered without evidence.
   const variantsWithoutEvidence = projectContract("staff_lane", true, true, false);
+  const rentvineBasis = projectContract("staff_lane", true, true, true, true);
+  const rentvineBasisWithoutEvidence = projectContract(
+    "staff_lane",
+    true,
+    true,
+    false,
+    true,
+  );
   return {
     ...predecessor,
     staffLane,
     evidenceStage,
     variants,
     variantsWithoutEvidence,
+    rentvineBasis,
+    rentvineBasisWithoutEvidence,
     sourceRecords: rentvineRead.ok ? rentvineRead.value.rows.length : 0,
     projectedRecords: predecessor.rows.length,
     rentvine: rentvineRead.ok
@@ -1238,6 +1278,7 @@ export function buildExpectedProjectionRows(
   variants = false,
   /** S248 under the variants marker: false projects the variant lane with no evidence fill. */
   variantEvidence = true,
+  rentvineBasis = false,
 ): ExpectedProjectionRow[] {
   const manualRecords =
     contract === "staff_lane"
@@ -1266,7 +1307,9 @@ export function buildExpectedProjectionRows(
       worklistEligible,
       referenceDateIso,
       // S282: the stored off-cycle end date reviews on this lease's work record.
-      variantInputs?.states.get(row.leaseId)?.endDateReviews ?? [],
+      variants && contract === "staff_lane"
+        ? decisions.endDateReviewsByLease?.get(row.leaseId)
+        : undefined,
     );
     // A definitive source skip outranks obsolete app-owned progress. It never creates a process,
     // action, or retained-incomplete workflow in the independent expectation. S103: a month-to-month
@@ -1337,6 +1380,7 @@ export function buildExpectedProjectionRows(
           rentvineCurrentRent: independentRentVineCurrentRent(sourceRow, leaseDetails),
           sheetFact: sheet?.byLeaseId.get(row.leaseId) ?? null,
           resolutions: decisions.resolutions,
+          rentvineBasis,
         })
       : {
           evidence: "missing_sheet",
@@ -2658,6 +2702,12 @@ export function compareProjectionRowsWithEvidence(
   const variantsWithoutEvidenceExpected = direct.variantsWithoutEvidence
     ? indexRows(direct.variantsWithoutEvidence.rows)
     : null;
+  const rentvineBasisExpected = direct.rentvineBasis
+    ? indexRows(direct.rentvineBasis.rows)
+    : null;
+  const rentvineBasisWithoutEvidenceExpected = direct.rentvineBasisWithoutEvidence
+    ? indexRows(direct.rentvineBasisWithoutEvidence.rows)
+    : null;
   const observed = indexRows(rendered.rows);
   counts.duplicateApplicationKeys = observed.duplicates;
   for (const [key, expectedRows] of expected.byKey) {
@@ -2688,23 +2738,28 @@ export function compareProjectionRowsWithEvidence(
           observedRow.outreachEvidence ?? null,
         );
       if (evidenceUnavailable) evidenceUnavailableRows += 1;
+      const applied = appliedRuleSet(
+        observedRow.guidanceContract,
+        expectedGuidanceContract,
+      );
       const expectedRow =
-        contract === "staff_lane" &&
-        independentContractReadsVariants(
-          observedRow.guidanceContract,
-          expectedGuidanceContract,
-        )
-          ? evidenceUnavailable
-            ? variantsWithoutEvidenceExpected?.byKey.get(key)?.[index]
-            : variantsExpected?.byKey.get(key)?.[index]
-          : contract === "staff_lane"
-            ? independentContractReadsEvidence(
-                observedRow.guidanceContract,
-                expectedGuidanceContract,
-              ) && !evidenceUnavailable
-              ? evidenceStageExpected?.byKey.get(key)?.[index]
-              : staffLaneExpected.byKey.get(key)?.[index]
-            : expectedRows[index];
+        applied === "rentvine_basis"
+          ? (evidenceUnavailable
+              ? rentvineBasisWithoutEvidenceExpected
+              : rentvineBasisExpected
+            )?.byKey.get(key)?.[index]
+          : applied === "variants"
+            ? evidenceUnavailable
+              ? variantsWithoutEvidenceExpected?.byKey.get(key)?.[index]
+              : variantsExpected?.byKey.get(key)?.[index]
+            : contract === "staff_lane"
+              ? independentContractReadsEvidence(
+                  observedRow.guidanceContract,
+                  expectedGuidanceContract,
+                ) && !evidenceUnavailable
+                ? evidenceStageExpected?.byKey.get(key)?.[index]
+                : staffLaneExpected.byKey.get(key)?.[index]
+              : expectedRows[index];
       if (!expectedRow) {
         counts.fieldMismatches += 1;
         continue;
@@ -2773,7 +2828,10 @@ export function countIndependentRowGuidanceMismatches(input: {
   const allowEndedWithoutOutcome =
     (input.expectedGuidanceContract === INDEPENDENT_ONE_STATUS_CONTRACT_MARKER ||
       input.expectedGuidanceContract === INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER ||
-      input.expectedGuidanceContract === INDEPENDENT_VARIANTS_CONTRACT_MARKER) &&
+      independentContractReadsVariants(
+        observedRow.guidanceContract,
+        input.expectedGuidanceContract,
+      )) &&
     expectedRow.endedWithoutOutcomeEligible === true;
   if (input.contract === "staff_lane") {
     const expectedGuidance = projectIndependentExpectedGuidanceState({

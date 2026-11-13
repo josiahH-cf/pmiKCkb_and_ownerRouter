@@ -335,7 +335,9 @@ describe("S275 the reply watch on the real Firestore emulator", () => {
     f.failing.add(second.threads[0]!.threadId);
     f.advance(5 * 60_000);
     // No mailbox history is consulted: the check reads the linked threads directly.
-    expect(await f.service.observeMailbox(actor)).toEqual({
+    // Two different pages, including a completed message stored before the watch marker existed.
+    await sequences().doc(first.id).update({ replyWatch: FieldValue.delete() });
+    expect(await f.service.observeMailbox(actor, { pageSize: 1 })).toEqual({
       observed: 1,
       notChecked: 1,
       ended: 0,
@@ -348,5 +350,21 @@ describe("S275 the reply watch on the real Firestore emulator", () => {
       state: "unavailable",
       reason: "read_failed",
     });
+  });
+
+  it("finds a later watched message after unrelated mailboxes fill an earlier page", async () => {
+    const f = fixture();
+    const sent = await f.sendOne();
+    const raw = (await sequences().doc(sent.id).get()).data()!;
+    await sequences()
+      .doc("000-earlier-mailbox")
+      .set({
+        ...raw,
+        id: "000-earlier-mailbox",
+        senderEmail: "other-fixture@pmikcmetro.com",
+        threads: [{ ...raw.threads[0], senderEmail: "other-fixture@pmikcmetro.com" }],
+      });
+    const page = await f.store.listReplyCheckable(actor.email, 1);
+    expect(page.map(({ id }) => id)).toEqual([sent.id]);
   });
 });
