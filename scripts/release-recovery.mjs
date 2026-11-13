@@ -216,6 +216,105 @@ function serviceControlHash(service) {
   );
 }
 
+function storageSourceMatches(build, sourceLocation) {
+  const source = build.source?.storageSource;
+  const resolvedSource = build.sourceProvenance?.resolvedStorageSource;
+  return (
+    source &&
+    [source.bucket, source.object, source.generation].every(
+      (value) => typeof value === "string" && value.length > 0 && !/[\s#?]/.test(value),
+    ) &&
+    /^\d+$/.test(source.generation) &&
+    sourceLocation === `gs://${source.bucket}/${source.object}#${source.generation}` &&
+    resolvedSource &&
+    ["bucket", "object", "generation"].every((key) => resolvedSource[key] === source[key])
+  );
+}
+
+async function buildpackShimSourceMatches({
+  build,
+  sourceLocation,
+  annotations,
+  container,
+  receipt,
+  claimedAt,
+  client,
+}) {
+  // Managed Cloud Run builds can fetch their source inside the buildpack shim.
+  // Only use this proof when Cloud Build reports no native source or provenance.
+  if (
+    build.source !== undefined ||
+    (build.sourceProvenance !== undefined && !equal(build.sourceProvenance, {}))
+  )
+    return false;
+  const archive =
+    /^gs:\/\/([a-z0-9-]+)\/(services\/[a-z0-9-]+\/\d+\.\d+-[a-f0-9]{32}\.zip)#([1-9]\d*)$/.exec(
+      sourceLocation,
+    );
+  if (!archive || archive[0] !== sourceLocation) return false;
+  const [, bucket, name, generation] = archive;
+  const sourceAnnotation = JSON.parse(
+    annotations["run.googleapis.com/build-source-location"] ?? "null",
+  );
+  if (
+    bucket !== `run-sources-${receipt.project}-${receipt.region}` ||
+    !name.startsWith(`services/${receipt.service}/`) ||
+    !equal(sourceAnnotation, { [container]: sourceLocation }) ||
+    build.substitutions?._GOOGLE_LABEL_SOURCE !== sourceLocation ||
+    !Array.isArray(build.tags) ||
+    !["p-run", "r-buildpacks", `service_${receipt.service}`].every((tag) =>
+      build.tags.includes(tag),
+    ) ||
+    !Array.isArray(build.steps) ||
+    build.steps.length !== 1
+  )
+    return false;
+  const [step] = build.steps;
+  if (
+    step?.id !== "build" ||
+    step.status !== "SUCCESS" ||
+    step.entrypoint !== "/bin/bash" ||
+    typeof step.name !== "string" ||
+    !step.name.startsWith(
+      `${receipt.region}-docker.pkg.dev/serverless-runtimes/google-24-full/builder/universal:`,
+    ) ||
+    !equal(step.args, [
+      "-c",
+      '/bin/shim $SHIM_FETCH_ARGS && /bin/shim $SHIM_PRE_ARGS && /cnb/lifecycle/creator --tag="$TAG" "$IMAGE_URL" && /bin/shim $SHIM_POST_ARGS',
+    ]) ||
+    !Array.isArray(step.env) ||
+    !Object.entries({
+      SHIM_FETCH_ARGS: `--phase=fetch --type=ZipArchive --location=gs://${bucket}/${name} --dest_dir=/workspace --timeout_gcs=false`,
+      GOOGLE_LABEL_SOURCE: sourceLocation,
+      GOOGLE_LABEL_BUILD_ID: build.id,
+    }).every(([key, value]) =>
+      equal(
+        step.env.filter((entry) => entry.startsWith(`${key}=`)),
+        [`${key}=${value}`],
+      ),
+    )
+  )
+    return false;
+
+  // The shim fetches the live object by name. The current live generation
+  // must match the revision's generation and must have existed before the build.
+  const metadata = (
+    await client.request({
+      method: "GET",
+      url: `https://storage.googleapis.com/storage/v1/b/${bucket}/o/${encodeURIComponent(name)}?fields=bucket,name,generation,timeCreated`,
+    })
+  ).data;
+  const createdAt = Date.parse(metadata?.timeCreated);
+  return (
+    metadata?.bucket === bucket &&
+    metadata.name === name &&
+    metadata.generation === generation &&
+    Number.isFinite(createdAt) &&
+    createdAt >= claimedAt &&
+    createdAt <= Date.parse(build.createTime)
+  );
+}
+
 /** A source deploy changes these two build provenance values, not service controls.
  * The original full hash remains authoritative: authenticate its preimage from the
  * claimed recovery operation, then prove this exact candidate's one successful build.
@@ -363,22 +462,6 @@ async function verifyServiceControls(
       Date.parse(build.finishTime) < Date.parse(build.startTime)
     )
       refuse();
-    const source = build.source?.storageSource;
-    const resolvedSource = build.sourceProvenance?.resolvedStorageSource;
-    if (
-      !source ||
-      ![source.bucket, source.object, source.generation].every(
-        (value) => typeof value === "string" && value.length > 0 && !/[\s#?]/.test(value),
-      ) ||
-      !/^\d+$/.test(source.generation) ||
-      currentBuild.sourceLocation !==
-        `gs://${source.bucket}/${source.object}#${source.generation}` ||
-      !resolvedSource ||
-      !["bucket", "object", "generation"].every(
-        (key) => resolvedSource[key] === source[key],
-      )
-    )
-      refuse();
     const revision = await getRevision(client, receipt, candidateRevision);
     assertReady(revision, receipt, candidateRevision);
     // This revision is the candidate: it must carry the reviewed candidate value.
@@ -403,9 +486,8 @@ async function verifyServiceControls(
       })
     ).data;
     if (candidate.metadata?.name !== candidateRevision) refuse();
-    const buildIds = JSON.parse(
-      candidate.metadata?.annotations?.["run.googleapis.com/build-id"] ?? "null",
-    );
+    const annotations = candidate.metadata.annotations ?? {};
+    const buildIds = JSON.parse(annotations["run.googleapis.com/build-id"] ?? "null");
     if (
       !buildIds ||
       typeof buildIds !== "object" ||
@@ -413,6 +495,20 @@ async function verifyServiceControls(
       Object.keys(buildIds).length !== 1 ||
       !Object.keys(buildIds)[0] ||
       Object.values(buildIds)[0] !== build.id
+    )
+      refuse();
+    const nativeSource = storageSourceMatches(build, currentBuild.sourceLocation);
+    if (
+      !nativeSource &&
+      !(await buildpackShimSourceMatches({
+        build,
+        sourceLocation: currentBuild.sourceLocation,
+        annotations,
+        container: Object.keys(buildIds)[0],
+        receipt,
+        claimedAt,
+        client,
+      }))
     )
       refuse();
     const images = build.results?.images;
@@ -430,9 +526,17 @@ async function verifyServiceControls(
       )
     )
       refuse();
-    // A build can publish other outputs; only the one exact configured image can
-    // prove this candidate. Duplicate matches remain ambiguous, even with equal digests.
-    const matchingImages = images.filter((image) => image.name === currentBuild.imageUri);
+    // The managed shim reports an explicit :latest output for Cloud Run's untagged
+    // source-deploy image. All other references still require an exact match.
+    const imageUri = currentBuild.imageUri;
+    const shimImageUri = `${receipt.region}-docker.pkg.dev/${receipt.project}/cloud-run-source-deploy/${receipt.service}`;
+    const matchingImages = images.filter(
+      (image) =>
+        image.name === imageUri ||
+        (!nativeSource &&
+          imageUri === shimImageUri &&
+          image.name === `${imageUri}:latest`),
+    );
     if (matchingImages.length !== 1) refuse();
     const selectedImage = matchingImages[0];
     const imageName = selectedImage.name.replace(/:[^/]+$/, "");
