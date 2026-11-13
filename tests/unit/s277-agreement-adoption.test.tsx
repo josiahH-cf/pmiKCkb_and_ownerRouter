@@ -18,6 +18,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { focusRenewalDashboardControl } from "@/components/lease-renewal/RenewalDashboardNavigation";
+import { RenewalPricingForLease } from "@/components/lease-renewal/RenewalPricingForLease";
 import {
   RenewalPricingPolicyPanel,
   RenewalPricingPolicyProvider,
@@ -309,6 +310,103 @@ describe("AC-S277-1 adopt the agreement amount where the fix lands", () => {
       ).toBe(true),
     );
     expect(screen.getByRole("button", { name: ADOPT })).toBeInTheDocument();
+  });
+});
+
+// W12-06 on the rehearsal: the lease page's pricing read follows the working record's revision
+// (RenewalPricingForLease), so every save starts a new read and the panel shows "Reading the
+// current policy and agreement." until it answers. What the click did must survive that read.
+describe("AC-S277-1 the adoption's outcome survives the pricing read a save starts", () => {
+  let stored: RenewalWorkingRecord | null;
+  let conflictWith: RenewalWorkingRecord | null;
+  const CONFLICT =
+    "Another operator changed this value. Your entry is kept; review the current value before saving again.";
+
+  beforeEach(() => {
+    stored = null;
+    conflictWith = null;
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (String(url).startsWith("/api/lease-renewal/pricing-policy"))
+        return jsonResponse(
+          200,
+          pricing(
+            typeof stored?.fields.terms_rent?.value === "number" &&
+              stored.fields.terms_rent.value !== 1751
+              ? { ...COVERED, covered: false }
+              : COVERED,
+            stored?.revision ?? 0,
+          ),
+        );
+      if (String(url).startsWith("/api/lease-renewal/working-record")) {
+        if (init?.method !== "POST") return jsonResponse(200, { record: stored });
+        if (conflictWith) {
+          // Another operator saved the base after this page read it.
+          stored = conflictWith;
+          return jsonResponse(409, { error: CONFLICT });
+        }
+        const body = JSON.parse(String(init.body)) as Record<string, unknown>;
+        stored = record({
+          terms_rent: storedEntry(body.value as number, {
+            origin: body.origin as WorkingFieldEntry["origin"],
+            sourceLabel: body.sourceLabel as string,
+            context: body.context as string,
+          }),
+        });
+        return jsonResponse(200, { record: stored });
+      }
+      throw new Error(`Unexpected request ${String(url)}`);
+    });
+  });
+
+  function renderLivePage() {
+    return render(
+      <RenewalWorkingRecordProvider canEdit initialRecord={null} leaseId={LEASE}>
+        <RenewalPricingForLease canEdit leaseId={LEASE} live>
+          <RenewalPricingPolicyPanel />
+        </RenewalPricingForLease>
+      </RenewalWorkingRecordProvider>,
+    );
+  }
+  const pricingReads = () =>
+    fetchMock.mock.calls.filter((call) =>
+      String(call[0]).startsWith("/api/lease-renewal/pricing-policy"),
+    ).length;
+
+  it("BEH-S277-1: the saved line stays after the pricing read follows the new revision", async () => {
+    renderLivePage();
+    fireEvent.click(await screen.findByRole("button", { name: ADOPT }));
+    await waitFor(() => expect(pricingReads()).toBeGreaterThanOrEqual(2));
+    expect(
+      await screen.findByText(
+        "$1,751.00 from Example Standing Agreement is the renewal base rent. Nothing was sent and no RentVine rent changed.",
+      ),
+    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByText("Reading the current policy and agreement.")).toBeNull(),
+    );
+    expect(
+      screen.getByText(
+        "$1,751.00 from Example Standing Agreement is the renewal base rent. Nothing was sent and no RentVine rent changed.",
+      ),
+    ).toBeInTheDocument();
+    expect(posts()).toHaveLength(1);
+  });
+
+  it("AC-S277-1: a stale read keeps the existing recovery shown once the record is read again", async () => {
+    conflictWith = record({ terms_rent: storedEntry(1760) });
+    renderLivePage();
+    fireEvent.click(await screen.findByRole("button", { name: ADOPT }));
+    // The recovery reads the current record again: another operator's amount holds the base.
+    await waitFor(() => expect(pricingReads()).toBeGreaterThanOrEqual(2));
+    await waitFor(() => expect(screen.queryByRole("button", { name: ADOPT })).toBeNull());
+    const recovery = await screen.findByText(/Changed elsewhere\./);
+    expect(recovery).toHaveTextContent(CONFLICT);
+    expect(document.getElementById(STANDING_ADOPTION_CONTROL_ID)).toContainElement(
+      recovery,
+    );
+    // No retry is offered: nothing can be adopted while another amount holds the base.
+    expect(screen.queryByRole("button", { name: "Save my entry" })).toBeNull();
+    expect(posts()).toHaveLength(1);
   });
 });
 
