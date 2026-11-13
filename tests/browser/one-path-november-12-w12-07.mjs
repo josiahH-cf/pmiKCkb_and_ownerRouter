@@ -39,11 +39,10 @@
 //      false.
 // Nothing here sends, schedules or refreshes a message, applies a provider update or posts an app
 // route. Raw observations go to ctx.record.
-import { spawn } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
 import { FIRST_TERM_END, enterRenewalDates } from "./one-path-november-12-journeys.mjs";
 import { WORKING_ROUTE, WORKSPACE_ROUTE } from "./one-path-november-12-kit.mjs";
+import { runRehearsalVitest } from "./one-path-november-12-unit-run.mjs";
 
 export const W1207_CHECKS = Object.freeze([
   "AC-S278-1",
@@ -113,8 +112,6 @@ const ACTIVITIES = Object.freeze([
 
 // ---- The deterministic Sheets adapter runs (part D) ---------------------------------------------
 
-const PRELOAD = "tests/browser/renewal-novdec-journey-network.mjs";
-const VITEST = "node_modules/vitest/vitest.mjs";
 const UNIT_FILES = Object.freeze([
   "tests/unit/s278-sheet-set-execution.test.ts",
   "tests/unit/s278-sheet-set-contract.test.ts",
@@ -129,7 +126,6 @@ const UNIT_FILES = Object.freeze([
   "tests/unit/s97-rentvine-writeback-route.test.ts",
 ]);
 const FIRESTORE_FILES = Object.freeze(["tests/firestore/s278-sheet-set.test.ts"]);
-const RUN_TIMEOUT_MS = 12 * 60 * 1000;
 
 /**
  * The cases each acceptance check needs from the adapter runs, by file and a title that must be
@@ -256,112 +252,6 @@ const WHOLE_FILES = Object.freeze({
     "tests/unit/s97-rentvine-writeback-route.test.ts",
   ],
 });
-
-/** Run one vitest pass on the served tree under the network refusal preload; resolves its report. */
-async function adapterRun(ctx, name, files, extraArgs, extraEnv) {
-  const { rehearsal } = ctx;
-  const dir = join(rehearsal.runDir, "w1207-adapter");
-  mkdirSync(dir, { recursive: true });
-  const report = join(dir, `${name}.json`);
-  const network = join(dir, `${name}-network.jsonl`);
-  const started = Date.now();
-  const outcome = await new Promise((done) => {
-    const child = spawn(
-      process.execPath,
-      [
-        VITEST,
-        "run",
-        ...extraArgs,
-        // The rehearsal's node_modules is a hard-linked copy of the shared one; the results cache
-        // would rewrite a shared file in place, so it stays off.
-        "--no-cache",
-        "--pool=forks",
-        "--maxWorkers=2",
-        "--reporter=json",
-        `--outputFile=${report}`,
-        ...files,
-      ],
-      {
-        stdio: ["ignore", "pipe", "pipe"],
-        env: {
-          PATH: process.env.PATH,
-          HOME: dir,
-          TMPDIR: process.env.TMPDIR ?? "/tmp",
-          LANG: "en_US.UTF-8",
-          TZ: "America/Chicago",
-          CI: "true",
-          NODE_ENV: "test",
-          // The rehearsal's refusal preload, in every fork: loopback only, its own log.
-          NODE_OPTIONS: `--max-old-space-size=4096 --import ${join(process.cwd(), PRELOAD)}`,
-          NOVDEC_JOURNEY_NETWORK_LOG: network,
-          ...extraEnv,
-        },
-      },
-    );
-    let tail = "";
-    const keep = (chunk) => {
-      tail = (tail + chunk).slice(-4000);
-    };
-    child.stdout.on("data", keep);
-    child.stderr.on("data", keep);
-    const timer = setTimeout(() => child.kill("SIGTERM"), RUN_TIMEOUT_MS);
-    child.on("error", (error) => {
-      clearTimeout(timer);
-      done({ code: null, error: String(error), tail });
-    });
-    child.on("exit", (code, signal) => {
-      clearTimeout(timer);
-      done({ code, signal, tail });
-    });
-  });
-  let parsed = null;
-  try {
-    parsed = existsSync(report) ? JSON.parse(readFileSync(report, "utf8")) : null;
-  } catch {
-    parsed = null;
-  }
-  const cases = [];
-  for (const file of parsed?.testResults ?? []) {
-    const relative = String(file.name ?? "").replace(`${process.cwd()}/`, "");
-    for (const entry of file.assertionResults ?? [])
-      cases.push({
-        file: relative,
-        name: [...(entry.ancestorTitles ?? []), entry.title].join(" "),
-        status: entry.status,
-      });
-  }
-  const refused = existsSync(network)
-    ? readFileSync(network, "utf8")
-        .split("\n")
-        .filter(Boolean)
-        .filter((line) => {
-          try {
-            return Boolean(JSON.parse(line).refused);
-          } catch {
-            return false;
-          }
-        }).length
-    : null;
-  return {
-    name,
-    code: outcome.code ?? null,
-    signal: outcome.signal ?? null,
-    error: outcome.error ?? null,
-    seconds: Math.round((Date.now() - started) / 1000),
-    totals: parsed
-      ? {
-          passed: parsed.numPassedTests,
-          failed: parsed.numFailedTests,
-          pending: parsed.numPendingTests,
-          todo: parsed.numTodoTests,
-          files: parsed.numTotalTestSuites,
-        }
-      : null,
-    cases,
-    refused,
-    tail: parsed && outcome.code === 0 ? null : outcome.tail.slice(-1500),
-  };
-}
 
 /** Whether every named case of a check passed, and every case of its whole files passed. */
 function adapterVerdict(runs, check) {
@@ -956,13 +846,17 @@ export async function checkW1207(ctx, page, start) {
   ctx.record({ part: "L", recorded, list });
 
   // ---- D: the deterministic Sheets adapter, on the served tree ----
-  const unitRun = await adapterRun(ctx, "unit", UNIT_FILES, [], {});
-  const firestoreRun = await adapterRun(
-    ctx,
+  const directory = "w1207-adapter";
+  const unitRun = await runRehearsalVitest(ctx.rehearsal, directory, "unit", UNIT_FILES);
+  const firestoreRun = await runRehearsalVitest(
+    ctx.rehearsal,
+    directory,
     "firestore",
     FIRESTORE_FILES,
-    ["--config", "vitest.firestore.config.ts"],
-    { FIRESTORE_EMULATOR_HOST: ctx.rehearsal.firestoreEmulatorHost },
+    {
+      args: ["--config", "vitest.firestore.config.ts"],
+      env: { FIRESTORE_EMULATOR_HOST: ctx.rehearsal.firestoreEmulatorHost },
+    },
   );
   const runs = [unitRun, firestoreRun];
   const runsClean = runs.every(
