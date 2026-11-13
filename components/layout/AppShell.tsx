@@ -68,12 +68,17 @@ export async function AppShell({
             <PrimaryNav groups={navigationGroups} />
           </nav>
           <NotificationMenu />
-          <Appearance />
-          {mutationControlsVisible ? <ReportIssueButton /> : null}
-          <Link href="/profile" className="user-role" aria-label="My business profile">
-            {user.role}
-          </Link>
-          <SignOutButton />
+          {/* S281 R-S281-7: at phone width the header is one row (Menu, the product name, the
+            search trigger and Notifications); these utilities share the row's end and scroll
+            sideways inside it. No control is removed. */}
+          <div className="topbar-utilities">
+            <Appearance />
+            {mutationControlsVisible ? <ReportIssueButton /> : null}
+            <Link href="/profile" className="user-role" aria-label="My business profile">
+              {user.role}
+            </Link>
+            <SignOutButton />
+          </div>
         </header>
         <Suspense fallback={null}>
           <NavigationFeedback />

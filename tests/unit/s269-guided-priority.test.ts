@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  GUIDED_MESSAGE_GROUP_LABELS,
   GUIDED_PRIORITY_TIER,
   GUIDED_RETURN_LABELS,
   GUIDED_SECONDARY_WORK_LABELS,
@@ -279,6 +280,21 @@ describe("AC-S269-1: the precedence of the one live priority", () => {
     ]);
   });
 
+  it("R-S281-14 (rewritten on purpose): the offer's missing renewal dates are its own work, opened in place, not a route to Ask the owner", () => {
+    const priority = projectGuidedPriority(
+      facts(step("offer-tenant"), {
+        lease: { endMissing: false, baseRentFix: false },
+        working: { rent: 1400, effectiveDate: null, endDate: null },
+      }),
+    );
+    const dates = priority.inputs.filter(
+      (entry) => entry.key === "renewal-start" || entry.key === "renewal-end",
+    );
+    expect(dates.map((entry) => entry.owner)).toEqual(["offer-tenant", "offer-tenant"]);
+    expect(priority.lead?.key).toBe("renewal-start");
+    expect(priority.crossOutcome).toBe(false);
+  });
+
   it("S265 slot: a missing required flyer leads with its Connections entry only once its own transition decisions are ready; otherwise the next message fix", () => {
     const flyer = {
       label: "Shared resource link: Insurance flyer",
@@ -551,13 +567,19 @@ describe("S269/S270 exact names for every outcome", () => {
   });
 
   it("names the S270 groups and Verification for every standard outcome", () => {
+    // S281 R-S281-12 (rewritten on purpose): Ask the owner and Offer the tenant name the message
+    // and the other ways to send as their own groups, ahead of their record group.
+    expect(GUIDED_MESSAGE_GROUP_LABELS).toEqual({
+      message: "Message",
+      otherWays: "Other ways to send",
+    });
     expect(
       RENEWAL_PATH_STANDARD_STEPS.map((id) => GUIDED_SECONDARY_WORK_LABELS[id]),
     ).toEqual([
       "Correct other lease facts",
       "Comparison inputs and deliberate rerun",
-      "Owner message options and outreach record",
-      "Tenant offer options and record of contact",
+      "Outreach record",
+      "Record of contact",
       "Other packet and handoff work",
       "Other follow-ups",
       null,

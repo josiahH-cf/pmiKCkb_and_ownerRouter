@@ -1,7 +1,11 @@
 "use client";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { registerTransientLayer, activateTransientLayer } from "@/lib/ui/transient-layer";
 import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
+import {
+  PHONE_HEADER_QUERY,
+  useNarrowViewport,
+} from "@/components/hooks/useNarrowViewport";
 import {
   SEARCHABLE_ENTITY_TYPES,
   ENTITY_LABELS,
@@ -22,6 +26,31 @@ export function GlobalEntitySearch() {
     generation = useRef(0),
     input = useRef<HTMLInputElement>(null);
   const layerId = `entity-search:${id}`;
+  // S281 R-S281-7: at 760 px and narrower the header is one row, so search is a trigger that
+  // opens the search field in place over that row. Nothing is hidden: the field is the same one,
+  // shown when the trigger is chosen, and a query keeps it open.
+  const narrow = useNarrowViewport(PHONE_HEADER_QUERY);
+  const [expanded, setExpanded] = useState(false);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const focusField = useRef(false);
+  const focusTrigger = useRef(false);
+  const collapsed = narrow && !expanded && !query;
+  useLayoutEffect(() => {
+    if (collapsed) {
+      if (!focusTrigger.current) return;
+      focusTrigger.current = false;
+      trigger.current?.focus();
+      return;
+    }
+    if (!focusField.current) return;
+    focusField.current = false;
+    input.current?.focus();
+  }, [collapsed]);
+  function collapseSearch() {
+    if (!narrow || query) return;
+    focusTrigger.current = true;
+    setExpanded(false);
+  }
   useEffect(
     () =>
       registerTransientLayer({
@@ -89,13 +118,34 @@ export function GlobalEntitySearch() {
     setActive(-1);
   }
   const resultsHref = `/search?${new URLSearchParams({ q: query.trim(), type })}`;
+  if (collapsed)
+    return (
+      <div className="global-entity-search" data-search-collapsed>
+        <button
+          aria-expanded={false}
+          aria-label="Search records"
+          className="global-entity-search-trigger"
+          onClick={() => {
+            focusField.current = true;
+            setExpanded(true);
+          }}
+          ref={trigger}
+          type="button"
+        >
+          Search
+        </button>
+      </div>
+    );
   return (
     <div
       className="global-entity-search"
+      data-search-expanded={narrow ? true : undefined}
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget as Node)) {
           setOpen(false);
           setActive(-1);
+          // S281 R-S281-7: an empty phone search folds back into its trigger.
+          if (narrow && !query && event.relatedTarget) setExpanded(false);
         }
       }}
     >
@@ -130,6 +180,7 @@ export function GlobalEntitySearch() {
               e.preventDefault();
               setOpen(false);
               setActive(-1);
+              collapseSearch();
             } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
               e.preventDefault();
               openSearch();

@@ -26,6 +26,10 @@ import {
 } from "react";
 
 import { formatRentAmount } from "@/lib/lease-renewal/rent-basis";
+import {
+  PHONE_TABLE_QUERY,
+  useNarrowViewport,
+} from "@/components/hooks/useNarrowViewport";
 import { RenewalDeskSurfaceSwitch } from "./RenewalDeskSurfaceSwitch";
 import { Button, ConfirmationDialog, Notice } from "@/components/ui";
 import {
@@ -476,73 +480,78 @@ export function RenewalWorkingBatch({
       ) : null}
 
       {kickoff ? (
-        <RenewalKickoffPreparation
-          {...kickoff}
-          key={month}
-          month={month}
-          monthTotal={monthTargets.length}
-          targets={shownTargets}
-        />
+        // S281 R-S281-9: at phone width the Prepare block is one expandable row.
+        <PhoneRow label={`Prepare ${renewalBatchMonthInWords(month)} leases`}>
+          <RenewalKickoffPreparation
+            {...kickoff}
+            key={month}
+            month={month}
+            monthTotal={monthTargets.length}
+            targets={shownTargets}
+          />
+        </PhoneRow>
       ) : null}
 
-      <section aria-label="Other leases" className="ui-stack renewal-batch-others">
-        <h2 className="renewal-batch-heading">Filter renewals</h2>
-        <p className="muted renewal-batch-note">{partition.total} loaded leases</p>
-        <label className="renewal-batch-search" htmlFor={searchId}>
-          Search this month&rsquo;s leases
-          <input
-            autoComplete="off"
-            className="ui-input"
-            id={searchId}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Address, unit or tenant"
-            type="search"
-            value={search}
-          />
-        </label>
-        <ul className="renewal-batch-counts">
-          <li>
-            <button
-              aria-controls={panelId}
-              aria-pressed={openGroup === null}
-              className="renewal-batch-count"
-              onClick={() =>
-                showBatch(renewalBatchHref(batchQueryFor({ group: null })), "replace")
-              }
-              type="button"
-            >
-              Monthly renewals{" "}
-              {partition.counts.this_batch + partition.counts.carried_over}
-            </button>
-          </li>
-          {RENEWAL_BATCH_COUNT_GROUPS.map((group) => {
-            const open = openGroup === group;
-            return (
-              <li key={group}>
-                <button
-                  aria-controls={panelId}
-                  aria-pressed={open}
-                  className="renewal-batch-count"
-                  data-batch-count={partition.counts[group]}
-                  data-batch-group={group}
-                  onClick={() =>
-                    showBatch(
-                      renewalBatchHref(batchQueryFor({ group: open ? null : group })),
-                      "replace",
-                    )
-                  }
-                  type="button"
-                >
-                  <span>{RENEWAL_BATCH_GROUP_LABELS[group]}</span>{" "}
-                  <span className="renewal-batch-count-number">
-                    {partition.counts[group]}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
+      <PhoneRow label="Filter renewals">
+        <section aria-label="Other leases" className="ui-stack renewal-batch-others">
+          <h2 className="renewal-batch-heading">Filter renewals</h2>
+          <p className="muted renewal-batch-note">{partition.total} loaded leases</p>
+          <label className="renewal-batch-search" htmlFor={searchId}>
+            Search this month&rsquo;s leases
+            <input
+              autoComplete="off"
+              className="ui-input"
+              id={searchId}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Address, unit or tenant"
+              type="search"
+              value={search}
+            />
+          </label>
+          <ul className="renewal-batch-counts">
+            <li>
+              <button
+                aria-controls={panelId}
+                aria-pressed={openGroup === null}
+                className="renewal-batch-count"
+                onClick={() =>
+                  showBatch(renewalBatchHref(batchQueryFor({ group: null })), "replace")
+                }
+                type="button"
+              >
+                Monthly renewals{" "}
+                {partition.counts.this_batch + partition.counts.carried_over}
+              </button>
+            </li>
+            {RENEWAL_BATCH_COUNT_GROUPS.map((group) => {
+              const open = openGroup === group;
+              return (
+                <li key={group}>
+                  <button
+                    aria-controls={panelId}
+                    aria-pressed={open}
+                    className="renewal-batch-count"
+                    data-batch-count={partition.counts[group]}
+                    data-batch-group={group}
+                    onClick={() =>
+                      showBatch(
+                        renewalBatchHref(batchQueryFor({ group: open ? null : group })),
+                        "replace",
+                      )
+                    }
+                    type="button"
+                  >
+                    <span>{RENEWAL_BATCH_GROUP_LABELS[group]}</span>{" "}
+                    <span className="renewal-batch-count-number">
+                      {partition.counts[group]}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      </PhoneRow>
 
       <div
         aria-label={scopeLabel}
@@ -693,6 +702,22 @@ export function RenewalWorkingBatch({
         </p>
       </ConfirmationDialog>
     </section>
+  );
+}
+
+/**
+ * S281 R-S281-9: at 430 px and narrower the Prepare block and the filters each take one
+ * expandable row, so the first lease row is on the first screen. Wider screens show them as
+ * before. Opening a row saves and reads nothing.
+ */
+function PhoneRow({ label, children }: Readonly<{ label: string; children: ReactNode }>) {
+  const phone = useNarrowViewport(PHONE_TABLE_QUERY);
+  if (!phone) return <>{children}</>;
+  return (
+    <details className="renewal-batch-phone-row" data-batch-phone-row={label}>
+      <summary>{label}</summary>
+      {children}
+    </details>
   );
 }
 

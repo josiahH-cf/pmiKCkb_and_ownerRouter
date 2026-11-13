@@ -119,6 +119,7 @@ import { RenewalDeskRefresh } from "@/components/lease-renewal/RenewalDeskRefres
 import { LEASE_EXPORT_TTL_MS } from "@/lib/lease-renewal/live-lease-cache";
 import {
   RenewalDashboardNavigation,
+  RenewalJumpReturn,
   RenewalProcessGuide,
   RenewalSectionNavigation,
 } from "@/components/lease-renewal/RenewalDashboardNavigation";
@@ -649,6 +650,21 @@ export function RenewalWorkspace({
 
                 <RenewalWorkspaceSidebars
                   identity={compactIdentity}
+                  identitySummary={
+                    // S281 R-S281-8: the pinned header's first line on a phone.
+                    <>
+                      <span className="renewal-workspace-identity-address">
+                        {summary.addressLabel}
+                      </span>
+                      {summary.tenantNameLabels.length > 0 ? (
+                        <span className="muted">
+                          {" "}
+                          · {summary.tenantNameLabels.length}{" "}
+                          {summary.tenantNameLabels.length === 1 ? "tenant" : "tenants"}
+                        </span>
+                      ) : null}
+                    </>
+                  }
                   leaseInformation={leaseInformation}
                   rentvineHref={
                     separated
@@ -682,6 +698,8 @@ export function RenewalWorkspace({
                     ) : null
                   }
                 >
+                  {/* S281 R-S281-5: the way back from a jump, in view below the lease toolbar. */}
+                  {separated ? <RenewalJumpReturn /> : null}
                   <RenewalFocusViewSlot enabled={focusAvailable}>
                     <RenewalAuxiliaryNotice failures={auxiliaryFailures} />
                     <RenewalFocusHashTarget openSectionsInFull={!legacyFocus} />
@@ -859,7 +877,9 @@ export function RenewalWorkspace({
                                   {/* S120 (R120.1): prepare the message first; record outreach and the later
                       response after actual contact. The order is chronology, not a gate. */}
                                   {/* S270: the current base and read-only recommendation with its
-                                    edit link lead Ask the owner's Work, before its named group. */}
+                                    edit link lead Ask the owner's Work, before its named group.
+                                    S281 R-S281-1: in Guided the Now card carries the same facts
+                                    line before its primary action, so only Full shows it here. */}
                                   {separated && section.id === "owner" ? (
                                     <div
                                       className="ui-stack-tight"
@@ -867,6 +887,8 @@ export function RenewalWorkspace({
                                     >
                                       <RentRecommendationSummary
                                         base={baseRentFacts}
+                                        market
+                                        placement="full"
                                         preparation={stageContext.preparation ?? null}
                                       />
                                       <RenewalPricingPolicyPanel />

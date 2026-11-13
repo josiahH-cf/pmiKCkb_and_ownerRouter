@@ -33,7 +33,11 @@ import {
   WORKING_START_FIELD_ID,
 } from "@/lib/lease-renewal/message-readiness";
 import type { RenewalWorkingRecord } from "@/lib/lease-renewal/working-record";
-import { startDateFixFromOffer, useRenewalLeaseEnd } from "./RenewalDateProposal";
+import {
+  finishDateFix,
+  startDateFixFromOffer,
+  useRenewalLeaseEnd,
+} from "./RenewalDateProposal";
 import {
   RENEWAL_STAGE_NEXT_STEP,
   projectRenewalStage,
@@ -53,11 +57,18 @@ import { fetchWithDeadline } from "@/lib/ui/fetch-lifetime";
 import {
   focusProgrammatically,
   focusRenewalDashboardControl,
+  focusRenewalElementInPlace,
+  offerRenewalJumpReturn,
   RENEWAL_FOCUS_REQUEST_EVENT,
+  RENEWAL_STEP_PRIMARY_REQUEST_EVENT,
+  type RenewalFocusRequestDetail,
 } from "./RenewalDashboardNavigation";
 import { useRenewalFocusView } from "./RenewalFocusViewContext";
 import type { RenewalFocusFacts } from "./RenewalFocusViewPane";
-import { useRenewalManualWorkspace } from "./RenewalManualWorkspace";
+import {
+  useRenewalManualWorkspace,
+  WorkingRenewalTermsFields,
+} from "./RenewalManualWorkspace";
 import {
   standingAuthorityCurrent,
   useRenewalPricingPolicy,
@@ -78,6 +89,7 @@ import { nowSlotKey, useRenewalNowCard } from "./RenewalNowCardContext";
 import { RenewalReplyCheck } from "./RenewalReplyCheck";
 import {
   PreparedNumbersCheck,
+  RentRecommendationSummary,
   RentToRecommendField,
   StoredComparisonSummary,
 } from "./RenewalKickoffFields";
@@ -156,6 +168,8 @@ function stepOwning(
 const RENT_TO_RECOMMEND_ID = "renewal-now-rent-to-recommend";
 /** S269: the Now card's one primary action, which an exact return focuses again. */
 const NOW_PRIMARY_ID = "renewal-now-primary";
+/** S281 R-S281-4: the Documents step's Document preparation card (packet inputs and evaluation). */
+const DOCUMENT_PREPARATION_ID = "renewal-step-document-packet";
 
 /**
  * S266: controls this view's Now card renders only on their own step, such as the Housing
@@ -174,7 +188,40 @@ const NOW_CARD_CONTROLS: Partial<Record<RenewalPathStepId, readonly string[]>> =
 interface GuidedReturn {
   readonly stepId: RenewalPathStepId;
   readonly targetId: string;
+  /**
+   * S281 R-S281-5: the exact control the jump started from, when it is still on the page; the
+   * return focuses it, else the control named by `targetId`.
+   */
+  readonly element?: HTMLElement | null;
 }
+
+/** S281 R-S281-5: a focus target is an existing control's id or the exact element to return to. */
+type PendingFocus =
+  | string
+  | { readonly element: HTMLElement; readonly fallbackId: string };
+
+/**
+ * S281 R-S281-13 (ARCH-S281-6): the one function that writes the address for the step shown. The
+ * `step` value is replaced in place, so neither a followed advance nor a selection adds a history
+ * entry; Back still returns to where staff came from. Presentation only: nothing is saved.
+ */
+export function writeRenewalStepAddress(stepId: string) {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  if (url.searchParams.get("step") === stepId) return;
+  url.searchParams.set("step", stepId);
+  window.history.replaceState(
+    window.history.state,
+    "",
+    `${url.pathname}${url.search}${url.hash}`,
+  );
+}
+
+/** S281 R-S281-14: the renewal date fields the offer opens in place. */
+const OFFER_DATE_FIELDS: readonly string[] = [
+  WORKING_START_FIELD_ID,
+  WORKING_END_FIELD_ID,
+];
 
 /** The existing editors whose save state an outcome's priority reads (S155 autosave states). */
 const OUTCOME_EDITORS: Partial<
@@ -454,6 +501,7 @@ export function RenewalFullOutcome({
 }>) {
   const view = useRenewalFocusView();
   const { stage } = useRenewalOutcomeStage(context);
+  const cycleId = useRenewalManualWorkspace()?.state?.cycleId ?? null;
   const router = useRouter();
   const [feedback, setFeedback] = useState("");
   const [busy, setBusy] = useState(false);
@@ -641,6 +689,20 @@ export function RenewalFullOutcome({
               data-renewal-offer-charge-evidence-host
               id="renewal-offer-charge-evidence"
             />
+          ) : null}
+          {audience ? (
+            <>
+              {/* S281 R-S281-3: the exact sent message and its receipt, read only, after a send. */}
+              <div
+                data-renewal-sent-message-host={audience}
+                id={`renewal-sent-message-${audience}`}
+              />
+              {/* S281 R-S281-2: the internal identifiers the review dialog no longer shows. */}
+              <p className="muted" data-renewal-field="internal-ids">
+                Lease {context.leaseId}
+                {cycleId ? ` · Cycle ${cycleId}` : ""}
+              </p>
+            </>
           ) : null}
         </details>
       </div>
@@ -900,17 +962,39 @@ export function RenewalGuidedView({
     return () => setNowPresentation(null);
   }, [guided, setNowPresentation, shown.id, shown.state]);
   const heading = useRef<HTMLHeadingElement | null>(null);
-  const pendingFocus = useRef<string | null>(null);
+  const pendingFocus = useRef<PendingFocus | null>(null);
   const focusHeading = useRef(false);
   const [announcement, setAnnouncement] = useState("");
   // R-S269-3: a cross-outcome fix keeps the outcome it started in, for its exact return.
   const [returnTo, setReturnTo] = useState<GuidedReturn | null>(null);
   const pendingReturn = useRef<GuidedReturn | null>(null);
+  // S281 R-S281-11: the step that holds the one Rent to recommend editor in place (Ask the owner).
+  const [rentInPlaceFor, setRentInPlaceFor] = useState<RenewalPathStepId | null>(null);
+  const rentInPlace = rentInPlaceFor !== null && rentInPlaceFor === shown.id;
+  // S281 R-S281-14: the one Working renewal terms editor opens in place on Offer the tenant.
+  const setWorkingTermsOnOffer = view?.setWorkingTermsOnOffer;
+  const datesOnOffer = guided && shown.id === "offer-tenant";
+  useLayoutEffect(() => {
+    if (!datesOnOffer) setWorkingTermsOnOffer?.(false);
+  }, [datesOnOffer, setWorkingTermsOnOffer]);
+  useEffect(() => () => setWorkingTermsOnOffer?.(false), [setWorkingTermsOnOffer]);
+
+  // S281 R-S281-13 (ARCH-S281-6): the address names the step shown. The first step shown keeps
+  // the address it was opened with; every later step shown (a followed advance, a selection, a
+  // return) replaces the `step` value in place.
+  const addressStep = useRef<string | null>(null);
+  useEffect(() => {
+    if (!guided) return;
+    const previous = addressStep.current;
+    addressStep.current = shown.id;
+    if (previous !== null && previous !== shown.id) writeRenewalStepAddress(shown.id);
+  }, [guided, shown.id]);
 
   const choose = useCallback(
     (id: RenewalPathStepId) => {
       focusHeading.current = true;
       setReturnTo(null);
+      offerRenewalJumpReturn(null);
       setChosen(id === stage.currentStepId ? "follow-current" : id);
     },
     [stage.currentStepId],
@@ -922,19 +1006,39 @@ export function RenewalGuidedView({
   const followFix = useCallback((lead: GuidedPriorityInput, from: RenewalPathStepId) => {
     // The focus request below is answered synchronously by the listener in this view, which
     // takes the return when it opens another outcome.
+    const primary = document.getElementById(NOW_PRIMARY_ID);
     pendingReturn.current =
-      lead.owner !== from ? { stepId: from, targetId: NOW_PRIMARY_ID } : null;
+      lead.owner !== from
+        ? { stepId: from, targetId: NOW_PRIMARY_ID, element: primary }
+        : null;
     focusRenewalDashboardControl(lead.target);
     pendingReturn.current = null;
   }, []);
   const returnToOrigin = useCallback(() => {
     if (!returnTo) return;
-    pendingFocus.current = returnTo.targetId;
+    // S281 R-S281-5: the return restores the step and focuses the control the jump started from.
+    pendingFocus.current = returnTo.element
+      ? { element: returnTo.element, fallbackId: returnTo.targetId }
+      : returnTo.targetId;
     setReturnTo(null);
     setChosen(
       returnTo.stepId === stage.currentStepId ? "follow-current" : returnTo.stepId,
     );
   }, [returnTo, stage.currentStepId]);
+  // S281 R-S281-11: the in-place editor closes when another step is shown.
+  useEffect(() => {
+    if (rentInPlaceFor !== null && rentInPlaceFor !== shown.id) setRentInPlaceFor(null);
+  }, [rentInPlaceFor, shown.id]);
+  const toggleRentInPlace = useCallback(() => {
+    // Opening focuses the editor; closing leaves focus on "Edit".
+    if (!rentInPlace) pendingFocus.current = RENT_TO_RECOMMEND_ID;
+    setRentInPlaceFor(rentInPlace ? null : shown.id);
+  }, [rentInPlace, shown.id]);
+  /** S281 R-S281-11: a save with Enter in place hands focus to the step's primary action. */
+  const rentSavedInPlace = useCallback(() => {
+    pendingFocus.current = NOW_PRIMARY_ID;
+    setRentInPlaceFor(null);
+  }, []);
   const previouslyRevealed = useRef<RenewalPathStepId | null>(null);
 
   // Reveal the shown step's existing controls in place; everything else stays mounted, hidden.
@@ -989,9 +1093,12 @@ export function RenewalGuidedView({
       { outcome: shown.id },
     );
     if (pendingFocus.current) {
-      const id = pendingFocus.current;
+      const pending = pendingFocus.current;
       pendingFocus.current = null;
-      focusRenewalDashboardControl(id, { viewRequest: false });
+      if (typeof pending === "string")
+        focusRenewalDashboardControl(pending, { viewRequest: false });
+      else if (!focusRenewalElementInPlace(pending.element))
+        focusRenewalDashboardControl(pending.fallbackId, { viewRequest: false });
     } else if (focusHeading.current) {
       focusHeading.current = false;
       if (heading.current) focusProgrammatically(heading.current);
@@ -1016,37 +1123,119 @@ export function RenewalGuidedView({
   // view at that control; a control already shown passes through.
   useEffect(() => {
     if (!view) return;
-    // R-S269-3: an exact fix that opens another outcome keeps the one it started in.
-    const keepReturn = (owner: RenewalPathStepId) => {
-      const origin = pendingReturn.current;
-      if (origin && origin.stepId !== owner) setReturnTo(origin);
+    const nowRegion = () =>
+      view.nowSlot?.closest<HTMLElement>("[data-renewal-now-step]") ?? null;
+    // R-S269-3: an exact fix that opens another outcome keeps the one it started in. S281
+    // R-S281-5: every jump from the Now card records the exact control it started from.
+    const keepReturn = (owner: RenewalPathStepId, origin: HTMLElement | null) => {
+      const fromFix = pendingReturn.current;
+      if (fromFix && fromFix.stepId !== owner) {
+        setReturnTo(fromFix);
+        return;
+      }
+      if (origin && owner !== shown.id && nowRegion()?.contains(origin))
+        setReturnTo({
+          stepId: shown.id,
+          targetId: origin.id || NOW_PRIMARY_ID,
+          element: origin,
+        });
     };
     const onRequest = (event: Event) => {
       if (view.view !== "guided") return;
-      const id = (event as CustomEvent<{ id: string }>).detail?.id;
+      const detail = (event as CustomEvent<RenewalFocusRequestDetail>).detail;
+      const id = detail?.id;
+      const origin = detail?.origin ?? null;
       const element = id ? document.getElementById(id) : null;
+      // S281 R-S281-11: on Ask the owner the one Rent to recommend editor opens in place.
+      if (
+        id === RENT_TO_RECOMMEND_ID &&
+        !element &&
+        view.outcomeLayout &&
+        shown.id === "ask-owner" &&
+        shown.state !== "not_part" &&
+        shown.state !== "covered"
+      ) {
+        event.preventDefault();
+        pendingFocus.current = id;
+        setRentInPlaceFor("ask-owner");
+        return;
+      }
+      // S281 R-S281-14: on Offer the tenant the one Working renewal terms editor opens in place,
+      // with focus on the named date; Ask the owner's reveal mounts no second editor meanwhile.
+      if (
+        id &&
+        OFFER_DATE_FIELDS.includes(id) &&
+        view.outcomeLayout &&
+        shown.id === "offer-tenant" &&
+        shown.state !== "not_part" &&
+        !element?.closest("[data-renewal-working-terms-in-place]")
+      ) {
+        event.preventDefault();
+        // The editor is on the offer itself, so no return to the offer is needed.
+        finishDateFix();
+        pendingFocus.current = id;
+        view.setWorkingTermsOnOffer(true);
+        return;
+      }
       // S266: a Now card control of another step chooses that step; it takes focus once shown.
       const nowOwner =
         id && !element ? stepRenderingNowControl(stage.steps, id) : undefined;
       if (id && nowOwner) {
         event.preventDefault();
         pendingFocus.current = id;
-        keepReturn(nowOwner.id);
+        keepReturn(nowOwner.id, origin);
         setChosen(nowOwner.id === stage.currentStepId ? "follow-current" : nowOwner.id);
         return;
       }
-      if (!id || !element || !element.closest("[data-renewal-focus-hidden]")) return;
+      if (!id || !element) return;
+      if (!element.closest("[data-renewal-focus-hidden]")) {
+        // S281 R-S281-5: a fix link followed further down the same step offers the way back to
+        // the exact link it started from.
+        const active = nowRegion()?.querySelector("[data-renewal-active-group]");
+        if (
+          origin &&
+          origin.closest("[data-renewal-fix-link]") &&
+          nowRegion()?.contains(origin) &&
+          !active?.contains(element)
+        )
+          offerRenewalJumpReturn({
+            origin,
+            stepId: shown.id,
+            fallbackId: NOW_PRIMARY_ID,
+          });
+        return;
+      }
       event.preventDefault();
       const owner = stepOwning(stage.steps, element);
       if (owner) {
         pendingFocus.current = id;
-        keepReturn(owner.id);
+        keepReturn(owner.id, origin);
         setChosen(owner.id === stage.currentStepId ? "follow-current" : owner.id);
       } else view.showInFull(id);
     };
+    // S281 R-S281-5: show a step and focus its primary action (a return whose landing is gone).
+    const onStepPrimary = (event: Event) => {
+      if (view.view !== "guided") return;
+      const stepId = (event as CustomEvent<{ stepId?: RenewalPathStepId }>).detail
+        ?.stepId;
+      if (!stepId || !stage.steps.some((step) => step.id === stepId)) return;
+      event.preventDefault();
+      pendingFocus.current = NOW_PRIMARY_ID;
+      setReturnTo(null);
+      setChosen(stepId === stage.currentStepId ? "follow-current" : stepId);
+      if (stepId === shown.id) {
+        // Already shown: no render follows, so land now.
+        pendingFocus.current = null;
+        focusRenewalDashboardControl(NOW_PRIMARY_ID, { viewRequest: false });
+      }
+    };
     document.addEventListener(RENEWAL_FOCUS_REQUEST_EVENT, onRequest);
-    return () => document.removeEventListener(RENEWAL_FOCUS_REQUEST_EVENT, onRequest);
-  }, [view, stage]);
+    document.addEventListener(RENEWAL_STEP_PRIMARY_REQUEST_EVENT, onStepPrimary);
+    return () => {
+      document.removeEventListener(RENEWAL_FOCUS_REQUEST_EVENT, onRequest);
+      document.removeEventListener(RENEWAL_STEP_PRIMARY_REQUEST_EVENT, onStepPrimary);
+    };
+  }, [view, stage, shown.id, shown.state]);
 
   if (!view) return null;
   const header = view.stageSlot
@@ -1072,7 +1261,10 @@ export function RenewalGuidedView({
       followFix={followFix}
       heading={heading}
       leaseId={context.leaseId}
+      onRentSaved={rentSavedInPlace}
+      onRentToggle={toggleRentInPlace}
       onReturn={returnToOrigin}
+      rentInPlace={rentInPlace}
       returnTo={returnTo && returnTo.stepId !== shown.id ? returnTo : null}
       shown={shown}
       showInFull={(id) => view.showInFull(id)}
@@ -1101,6 +1293,10 @@ type GuidedLinks = Readonly<{
   returnTo: GuidedReturn | null;
   onReturn: () => void;
   extensions?: GuidedPriorityExtensions;
+  /** S281 R-S281-11: the one Rent to recommend editor is open in place on this step. */
+  rentInPlace: boolean;
+  onRentToggle: () => void;
+  onRentSaved: () => void;
 }>;
 
 function GuidedPane({
@@ -1113,7 +1309,10 @@ function GuidedPane({
   followFix,
   heading,
   leaseId,
+  onRentSaved,
+  onRentToggle,
   onReturn,
+  rentInPlace,
   returnTo,
   shown,
   showInFull,
@@ -1215,7 +1414,10 @@ function GuidedPane({
               followFix={followFix}
               heading={heading}
               leaseId={leaseId}
+              onRentSaved={onRentSaved}
+              onRentToggle={onRentToggle}
               onReturn={onReturn}
+              rentInPlace={rentInPlace}
               returnTo={returnTo}
               shown={shown}
               stage={stage}
@@ -1301,7 +1503,10 @@ function NowCard({
   followFix,
   heading,
   leaseId,
+  onRentSaved,
+  onRentToggle,
   onReturn,
+  rentInPlace,
   returnTo,
   shown,
   stage,
@@ -1342,6 +1547,20 @@ function NowCard({
   const correctionTrigger = useRef<HTMLButtonElement | null>(null);
   const reasonField = useRef<HTMLTextAreaElement | null>(null);
   const correctionExit = useRef<"trigger" | "heading" | null>(null);
+  // S281 R-S281-4: the manual record the primary landed on; once it saves (the staff record's
+  // revision moves on) and the person is still there, focus moves to the Now card's next action.
+  const awaitingManual = useRef<{ target: string; revision: number } | null>(null);
+  const recordRevision = state?.revision ?? 0;
+  useEffect(() => {
+    const waiting = awaitingManual.current;
+    if (!waiting || recordRevision <= waiting.revision) return;
+    awaitingManual.current = null;
+    const control = document.getElementById(waiting.target);
+    const active = document.activeElement;
+    if (active && active !== document.body && !control?.contains(active)) return;
+    const next = document.getElementById(NOW_PRIMARY_ID) ?? heading.current;
+    if (next) focusProgrammatically(next);
+  }, [recordRevision, heading]);
   useLayoutEffect(() => {
     if (correcting) {
       if (reasonField.current) focusProgrammatically(reasonField.current);
@@ -1554,8 +1773,22 @@ function NowCard({
   const setGuidedLead = focusView?.setGuidedLead;
   // A message whose first fix is a renewal date names that date field, so the Working renewal
   // terms reveal (not the whole options group) opens for it.
+  // S281 R-S281-4: a manual record that is the step's current need opens the named group that
+  // holds it, as S270's promotion does for a current required field, so the primary lands in
+  // view. Finish up already places its next follow-up in Work.
+  const manualTarget = primary && "target" in primary ? primary.target : null;
+  const manualNeed =
+    !blocker &&
+    !fillerActive &&
+    shown.state !== "not_part" &&
+    shown.id !== "finish-up" &&
+    typeof manualTarget === "string" &&
+    manualTarget.startsWith("renewal-manual-") &&
+    !manualTarget.endsWith("_response")
+      ? manualTarget
+      : null;
   const groupLead =
-    lead && (priority.state === "missing" || priority.state === "recover")
+    (lead && (priority.state === "missing" || priority.state === "recover")
       ? lead.key === "message-fix" &&
         lead.label === GUIDED_PRIORITY_WORDS.enterRenewalStart
         ? WORKING_START_FIELD_ID
@@ -1563,7 +1796,7 @@ function NowCard({
             lead.label === GUIDED_PRIORITY_WORDS.enterRenewalEnd
           ? WORKING_END_FIELD_ID
           : lead.target
-      : null;
+      : null) ?? manualNeed;
   useLayoutEffect(() => {
     setGuidedLead?.(groupLead ? { stepId: shown.id, target: groupLead } : null);
   }, [setGuidedLead, shown.id, groupLead]);
@@ -1588,10 +1821,13 @@ function NowCard({
       shown.id === "offer-tenant" &&
       (input.key === "renewal-start" || input.key === "renewal-end")
     ) {
-      startDateFixFromOffer(
-        input.key === "renewal-start" ? "renewalStartDate" : "renewalEndDate",
-        MESSAGE_CONTROL_IDS.readiness("tenant"),
-      );
+      // S281 R-S281-14: in the outcome layout the dates open in place on the offer itself, so
+      // no return to the offer is recorded; otherwise S263's return stays.
+      if (!outcomeLayout)
+        startDateFixFromOffer(
+          input.key === "renewal-start" ? "renewalStartDate" : "renewalEndDate",
+          MESSAGE_CONTROL_IDS.readiness("tenant"),
+        );
       focusRenewalDashboardControl(input.target);
       return;
     }
@@ -1714,6 +1950,19 @@ function NowCard({
       return;
     }
     const step = shown.primary ?? recordWhatHappened ?? definition.primary;
+    // S281 R-S281-4: on Documents, while packet inputs or the packet's evaluation are the current
+    // need, the primary lands on the Document preparation card's first control.
+    if (
+      shown.id === "documents" &&
+      document.querySelector(
+        `#${DOCUMENT_PREPARATION_ID} :is([data-packet-lead="packet_input"], [data-packet-lead="ready"])`,
+      ) &&
+      focusControl(DOCUMENT_PREPARATION_ID)
+    )
+      return;
+    // S281 R-S281-4: after the manual record this lands on is saved, focus moves to the next action.
+    if (step.target?.startsWith("renewal-manual-"))
+      awaitingManual.current = { target: step.target, revision: state?.revision ?? 0 };
     if (!focusControl(step.target) && definition.controls[0])
       focusControl(definition.controls[0]);
   };
@@ -1827,6 +2076,69 @@ function NowCard({
     ) : null;
   const rentFirst = lead?.key === "rent-to-recommend" || lead?.key === "editor";
   const rentField = showRent ? <RentToRecommendField preparation={preparation} /> : null;
+  // S281 R-S281-1 / R-S281-11: Ask the owner leads with its decision facts on one line: Current
+  // base rent with its basis, the market range, and Rent to recommend with its basis and "Edit",
+  // which opens the one editor in place under the line.
+  const ownerFacts =
+    outcomeLayout &&
+    shown.id === "ask-owner" &&
+    shown.state !== "not_part" &&
+    shown.state !== "covered" ? (
+      <section
+        aria-label="Facts for the owner ask"
+        className="ui-stack-tight renewal-now-owner-facts"
+        data-renewal-owner-facts
+      >
+        <RentRecommendationSummary
+          base={baseFacts}
+          inPlace={{
+            open: rentInPlace,
+            onToggle: onRentToggle,
+            editor: (
+              <RentToRecommendField onSaved={onRentSaved} preparation={preparation} />
+            ),
+          }}
+          market
+          preparation={preparation}
+        />
+      </section>
+    ) : null;
+  // S281 R-S281-1: the message's recipients line, between the facts and the primary action.
+  const recipientsLine =
+    outcomeLayout && fillerActive && filler?.recipients ? (
+      <p data-renewal-field="now-recipients">{filler.recipients}</p>
+    ) : null;
+  // S281 R-S281-14: the one Working renewal terms editor, open in place on Offer the tenant.
+  const datesInPlace =
+    outcomeLayout &&
+    focusView?.view === "guided" &&
+    focusView.workingTermsOnOffer &&
+    shown.id === "offer-tenant" &&
+    shown.state !== "not_part";
+  const datesNode = datesInPlace ? (
+    <section
+      aria-label="Working renewal terms"
+      className="ui-stack-tight renewal-working-terms-in-place"
+      data-renewal-working-terms-in-place
+    >
+      <h3 className="renewal-focus-group">Working renewal terms</h3>
+      <WorkingRenewalTermsFields rent={false} />
+    </section>
+  ) : null;
+  // S281 R-S281-14: a date saved in place keeps staff on the offer and returns focus to its
+  // primary action, unless the person has already moved on to another control.
+  const savedDates = `${terms.effectiveDate ?? ""}|${terms.endDate ?? ""}`;
+  const seenDates = useRef(savedDates);
+  useEffect(() => {
+    const before = seenDates.current;
+    seenDates.current = savedDates;
+    if (!datesInPlace || before === savedDates) return;
+    const editor = document.querySelector("[data-renewal-working-terms-in-place]");
+    const active = document.activeElement;
+    if (active && active !== document.body && !editor?.contains(active)) return;
+    const next = document.getElementById(NOW_PRIMARY_ID) ?? heading.current;
+    if (next) focusProgrammatically(next);
+  }, [savedDates, datesInPlace, heading]);
   const primaryNode =
     sourceCompletion && canEdit ? (
       <RenewalSourceCompletionControl dates={sourceCompletion} leaseId={leaseId} guided />
@@ -1920,12 +2232,15 @@ function NowCard({
           {showRent ? <OwnerCurrentBaseRent facts={baseFacts} /> : null}
           {housingPlacement === "work" ? housingField : null}
           {rentFirst ? rentField : null}
+          {ownerFacts}
+          {recipientsLine}
           {primaryNode}
           {priority.crossOutcome && lead?.reason && priority.state !== "missing" ? (
             <p className="muted" data-renewal-priority-reason>
               {lead.reason}
             </p>
           ) : null}
+          {datesNode}
           {replyNode}
           {rentFirst ? null : rentField}
           {returnTo ? (
@@ -1976,8 +2291,10 @@ function NowCard({
           <FinishUpSourcePreviews preparation={nowCard.finishUp} />
         ) : null}
         {/* S249 fills the message slots from the lease's one message record (the message preview
-          and its delivery actions, filled by the message editor). */}
-        {shown.state !== "not_part"
+          and its delivery actions, filled by the message editor). S281 R-S281-12: in the outcome
+          layout the message and its other ways to send are named groups in the message card
+          instead, after the step's facts and Work. */}
+        {shown.state !== "not_part" && !outcomeLayout
           ? definition.slots.filter((slot) => !activeSlots.includes(slot)).map(slotNode)
           : null}
         {housingPlacement === "optional" && housingField

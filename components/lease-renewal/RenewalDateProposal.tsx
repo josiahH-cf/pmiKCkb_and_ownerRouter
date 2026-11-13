@@ -39,7 +39,10 @@ import {
   WORKING_START_FIELD_ID,
 } from "@/lib/lease-renewal/message-readiness";
 import { workingEntry, workingRenewalTerms } from "@/lib/lease-renewal/working-record";
-import { focusRenewalDashboardControl } from "./RenewalDashboardNavigation";
+import {
+  focusRenewalDashboardControl,
+  focusRenewalStepPrimary,
+} from "./RenewalDashboardNavigation";
 import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
 
 /** The anchors of the two working date fields in Ask the owner. */
@@ -129,6 +132,12 @@ export function ReturnToTenantOffer() {
         onClick={() => {
           const target = pending.returnTo;
           finishDateFix();
+          // S281 R-S281-5: when the earlier landing element is absent (no value is still marked),
+          // the return to the tenant offer lands on the Offer step's primary action instead.
+          if (!pending.label && !document.getElementById(target)) {
+            focusRenewalStepPrimary("offer-tenant");
+            return;
+          }
           focusRenewalDashboardControl(target);
         }}
         size="compact"

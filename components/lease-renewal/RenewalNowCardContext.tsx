@@ -29,6 +29,11 @@ export interface NowCardPrimary {
   readonly busy?: boolean;
   /** Why the action is not available yet, shown beside it. */
   readonly reason?: string | null;
+  /**
+   * S281 R-S281-1: the message's recipients line ("To: ..."), shown between the decision facts
+   * and the primary action. Absent when the message has no recipients to name yet.
+   */
+  readonly recipients?: string | null;
 }
 
 /**
@@ -159,6 +164,7 @@ export function RenewalNowCardProvider({
           prior.disabled === primary.disabled &&
           prior.busy === primary.busy &&
           prior.reason === primary.reason &&
+          prior.recipients === primary.recipients &&
           prior.run === primary.run
         )
           return previous;
