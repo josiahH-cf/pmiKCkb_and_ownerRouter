@@ -1422,7 +1422,7 @@ async function ownerPart(ctx, page) {
   );
   const mailAfterFailure = (await kit.sentTo(owners)).length;
   const wordingAfterFailure = (afterFailure[0]?.initial?.paragraphs ?? [])
-    .map((paragraph) => paragraph.map((run) => run.text).join(""))
+    .map(({ runs }) => runs.map((run) => run.text).join(""))
     .join("\n");
   const failure = {
     savedThenRefused:
