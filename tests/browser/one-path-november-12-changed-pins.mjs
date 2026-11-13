@@ -22,6 +22,7 @@ export const CHANGED_PINS = Object.freeze([
   Object.freeze({ pin: "N10-03.returnToTenantOffer", suite: "S281" }),
   Object.freeze({ pin: "N10-03.noStoredDurationManualEnd", suite: "S285" }),
   Object.freeze({ pin: "N10-03.scheduleDisclosure", suite: "S281" }),
+  Object.freeze({ pin: "N10-04.caseChargeDisclosure", suite: "S281" }),
   Object.freeze({ pin: "N10-05.resourceFixAfterConfirmedSend", suite: "S281" }),
   Object.freeze({ pin: "N10-07.namedWorkGroups", suite: "S281" }),
   Object.freeze({ pin: "N10-08.namedWorkGroups", suite: "S281" }),
