@@ -81,6 +81,7 @@ import {
   PREPARATION_ROUTE,
   SEQUENCES_ROUTE,
   WORKING_ROUTE,
+  ownerRecommendationAmounts,
 } from "./one-path-november-12-kit.mjs";
 
 const CHECKS = [
@@ -187,9 +188,6 @@ export function money(value) {
   const [whole, cents] = Math.abs(Number(value)).toFixed(2).split(".");
   return `${Number(value) < 0 ? "-" : ""}$${whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}.${cents}`;
 }
-/** The amount as a message may state it: $1,425 or $1,425.00. */
-const moneyPattern = (value) =>
-  new RegExp(`${money(value).replace("$", "\\$").replace(/\.00$/, "")}(?:\\.00)?(?!\\d)`);
 const squash = (text) =>
   String(text ?? "")
     .replace(/\s+/g, " ")
@@ -572,6 +570,7 @@ async function updateDialogState(ctx, dialog) {
   const { kit } = ctx;
   const timing = dialog.locator('[data-renewal-field="update-timing"]');
   const error = dialog.locator(DIALOG_ERROR);
+  const text = await reviewText(ctx, dialog);
   return {
     open: await dialog.isVisible().catch(() => false),
     timing: (await timing.count()) ? await kit.visibleText(timing.first()) : null,
@@ -593,7 +592,8 @@ async function updateDialogState(ctx, dialog) {
     confirmSchedule: await dialog
       .getByRole("button", { name: SCHEDULE, exact: true })
       .count(),
-    text: (await reviewText(ctx, dialog)).slice(0, 2000),
+    text: text.slice(0, 2000),
+    recommendations: ownerRecommendationAmounts(text),
     error: (await kit.shownWithin(error, 3_000)) ? await kit.visibleText(error) : null,
   };
 }
@@ -1391,7 +1391,7 @@ async function ownerPart(ctx, page) {
           ) ?? false,
         empty: !first.read.date && !first.read.time,
         sendNowOffered: first.read.sendNow === 1,
-        newWording: moneyPattern(rentAfter).test(first.read.text),
+        newWording: first.read.recommendations.includes(money(rentAfter)),
       };
       await first.dialog.getByRole("button", { name: "Send now", exact: true }).click();
       const sendMode = await updateDialogState(ctx, first.dialog);
@@ -1421,6 +1421,9 @@ async function ownerPart(ctx, page) {
     NO_STEP,
   );
   const mailAfterFailure = (await kit.sentTo(owners)).length;
+  const wordingAfterFailure = (afterFailure[0]?.initial?.paragraphs ?? [])
+    .map((paragraph) => paragraph.map((run) => run.text).join(""))
+    .join("\n");
   const failure = {
     savedThenRefused:
       failed.saveStatus === 200 &&
@@ -1431,7 +1434,7 @@ async function ownerPart(ctx, page) {
     oneSequence: afterFailure.length === 1 && afterFailure[0]?.id === scheduledRecord.id,
     heldWithNewWording:
       afterFailure[0]?.state === "paused" &&
-      moneyPattern(rentAfter).test(JSON.stringify(afterFailure[0]?.initial ?? {})),
+      ownerRecommendationAmounts(wordingAfterFailure).includes(money(rentAfter)),
     retryOffered: stepRetry.primary === who.review && stepRetry.heldAt !== null,
     nothingSent: mailAfterFailure === 0,
   };
@@ -1480,6 +1483,10 @@ async function ownerPart(ctx, page) {
     NO_VERIFICATION,
   );
   const attempts = verificationSent.attempts;
+  const recommendations = {
+    plain: ownerRecommendationAmounts(sent[0]?.text),
+    html: ownerRecommendationAmounts(sent[0]?.html),
+  };
 
   const result = {
     scheduled:
@@ -1536,8 +1543,9 @@ async function ownerPart(ctx, page) {
       finalRecords[0]?.id === scheduledRecord.id &&
       Number(finalRecords[0]?.confirmedCount ?? 0) === 1 &&
       sent.length === 1 &&
-      moneyPattern(rentAfter).test(sentText(sent[0])) &&
-      !moneyPattern(rentBefore).test(sentText(sent[0])),
+      Object.values(recommendations).every(
+        (amounts) => amounts.length === 1 && amounts[0] === money(rentAfter),
+      ),
     listed:
       attempts.some((line) =>
         new RegExp(
@@ -1581,6 +1589,7 @@ async function ownerPart(ctx, page) {
     deskUnconfirmed,
     checkedWentOut: settleTick,
     attempts,
+    recommendations,
     result,
   });
   return {

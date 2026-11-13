@@ -34,6 +34,16 @@ const squash = (text) =>
     .replace(/\s+/g, " ")
     .trim();
 
+/** Read the approved owner message's recommendation separately from its comparable prices. */
+export function ownerRecommendationAmounts(body) {
+  const text = squash(String(body ?? "").replace(/<[^>]+>/g, ""));
+  return [
+    ...text.matchAll(
+      /Our reviewed rental analysis suggests (\$[\d,]+(?:\.\d{2})?) per month\./g,
+    ),
+  ].map(([, amount]) => amount);
+}
+
 /** The fixture as the running rehearsal loaded it, with its file's digest for the record. */
 export function rehearsalFixture(rehearsal) {
   const path = join(process.cwd(), NOVEMBER_5_MIX_PATH);

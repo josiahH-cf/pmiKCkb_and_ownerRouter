@@ -55,7 +55,11 @@ import {
   reachPrimary,
   stepScheduleButton,
 } from "./one-path-november-12-journeys.mjs";
-import { SEQUENCES_ROUTE, WORKING_ROUTE } from "./one-path-november-12-kit.mjs";
+import {
+  SEQUENCES_ROUTE,
+  WORKING_ROUTE,
+  ownerRecommendationAmounts,
+} from "./one-path-november-12-kit.mjs";
 
 const CHECKS = [
   "AC-S272-1",
@@ -99,9 +103,6 @@ function money(value) {
   const [whole, cents] = Math.abs(Number(value)).toFixed(2).split(".");
   return `${Number(value) < 0 ? "-" : ""}$${whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}.${cents}`;
 }
-/** The amount as a message may state it: $1,425 or $1,425.00. */
-const moneyPattern = (value) =>
-  new RegExp(`${money(value).replace("$", "\\$").replace(/\.00$/, "")}(?:\\.00)?(?!\\d)`);
 const textOf = (message) =>
   `${message?.subject ?? ""} ${message?.text ?? ""} ${message?.html ?? ""}`;
 const all = (values) => values.length > 0 && values.every(Boolean);
@@ -874,7 +875,9 @@ async function ownerPart(ctx, page) {
   out.update = {
     save: update.status,
     view: summarize(updatedView),
-    bodyReadsNewRent: moneyPattern(newRent).test(updatedView.body),
+    bodyReadsNewRent: ownerRecommendationAmounts(updatedView.body).includes(
+      money(newRent),
+    ),
     sentAfterUpdate: (await kit.sentTo(owners)).length - sentBefore,
     record: brief(await sequenceById(ctx, leaseId, "renewal_owner", id)),
   };
@@ -891,8 +894,10 @@ async function ownerPart(ctx, page) {
     error: send.error,
     afterSend: afterSend.length - sentBefore,
     afterTick: messages.length,
-    readsNewRent: messages.map((message) => moneyPattern(newRent).test(textOf(message))),
-    readsOldRent: messages.map((message) => moneyPattern(oldRent).test(textOf(message))),
+    recommendations: messages.map(({ text, html }) => ({
+      plain: ownerRecommendationAmounts(text),
+      html: ownerRecommendationAmounts(html),
+    })),
   };
   return out;
 }
@@ -986,8 +991,13 @@ function ownerVerdicts(out) {
       send.status === 200 &&
       send.afterSend === 1 &&
       send.afterTick === 1 &&
-      all(send.readsNewRent) &&
-      send.readsOldRent.every((value) => !value),
+      all(
+        send.recommendations.map(({ plain, html }) =>
+          [plain, html].every(
+            (amounts) => amounts.length === 1 && amounts[0] === money(rent.new),
+          ),
+        ),
+      ),
   };
 }
 
