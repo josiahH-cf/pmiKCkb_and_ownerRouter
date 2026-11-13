@@ -114,6 +114,12 @@ export function linkedRenewalMessageEvidence(
     })
     .sort((left, right) => left.sentAtMs - right.sentAtMs);
   const inbound = sequence.inbound ?? [];
+  const observation = sequence.observation;
+  const replyObservation =
+    observation?.reason === "source_unavailable" ||
+    observation?.reason === "lease_read_settling"
+      ? null
+      : observation;
   // S273 R-S273-1 / R-S273-5: the unsent authorized work and the earlier attempts, from the stored
   // communication alone; no message body and no recipient address.
   // An older record missing a member reads as holding none; it never fails the whole read.
@@ -163,10 +169,10 @@ export function linkedRenewalMessageEvidence(
     check: {
       checkable: replyCheckable(sequence),
       checkedAtMs:
-        typeof sequence.observation?.checkedAtMs === "number"
-          ? sequence.observation.checkedAtMs
+        typeof replyObservation?.checkedAtMs === "number"
+          ? replyObservation.checkedAtMs
           : null,
-      state: sequence.observation?.state ?? null,
+      state: replyObservation?.state ?? null,
     },
   };
 }

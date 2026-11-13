@@ -61,7 +61,11 @@ export async function readLeaseMessageBasis(
 function audiencesWithUnsentWork(input: LeaseOutreachEvidenceInput): Audience[] {
   const audiences = new Set<Audience>();
   for (const message of input.messages)
-    if (message.unsent && message.unsent.state !== "unconfirmed")
+    if (
+      message.unsent &&
+      message.unsent.state !== "unconfirmed" &&
+      message.unsent.cause !== "newer_message_sent"
+    )
       audiences.add(message.audience);
   return [...audiences].sort();
 }

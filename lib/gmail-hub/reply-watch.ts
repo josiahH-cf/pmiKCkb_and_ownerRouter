@@ -15,6 +15,7 @@
 
 import { hasCurrentRenewalAuthorization } from "./delivery-policy";
 import type { CommunicationSequence } from "./sequence-model";
+import { isRecordedTenantResponse } from "./tenant-response-hold";
 
 /** Why a watch ended; recorded on the message with when. */
 export const REPLY_WATCH_END_REASONS = [
@@ -93,8 +94,6 @@ export interface ReplyWatchLeaseFacts {
 
 /** Owner outcomes that are not an answer yet ("No answer yet" keeps waiting). */
 const OWNER_WAITING = new Set(["no_response"]);
-/** Tenant outcomes that are not an answer yet. */
-const TENANT_WAITING = new Set(["awaiting_response"]);
 
 /**
  * R-S275-1: why this message's watch ends now, or null while it holds. The audience is the
@@ -131,7 +130,7 @@ export function replyWatchEndReason(
     const tenant = workspace.tenantResponse;
     if (audience === "owner" && owner && !OWNER_WAITING.has(owner.outcome))
       return "answer_recorded";
-    if (audience === "tenant" && tenant && !TENANT_WAITING.has(tenant.outcome))
+    if (audience === "tenant" && isRecordedTenantResponse(tenant?.outcome))
       return "answer_recorded";
     if (workspace.completion) return "cycle_closed";
     if (

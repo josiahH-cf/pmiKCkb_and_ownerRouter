@@ -116,5 +116,8 @@ describe("S276 R-S276-1: the tenant response review", () => {
     expect(describeWhatFollows("awaiting_response", "Record tenant response")).toBe(
       "Reminders that were stopped stay stopped until you resume them in Communications.",
     );
+    expect(describeWhatFollows("needs_verification", "Record tenant response")).toBe(
+      "Reminders that were stopped stay stopped until you resume them in Communications.",
+    );
   });
 });
