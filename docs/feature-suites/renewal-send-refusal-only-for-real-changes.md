@@ -3,8 +3,7 @@
 
 # S274 — Refuse or hold a message only for a real change, and name it
 
-> Status: AUTHORING READY, intake 152. Outreach integrity. Implementation and verification
-> pending.
+> Status: DELIVERED at ba9a64f6, intake 152. Chunk 1 run `a6f14bac-7edd-4db2-ab94-93f0875dc1ee`. The W12-03 lease-page hold proof follows S273 in chunk 2.
 
 **Goal.**
 

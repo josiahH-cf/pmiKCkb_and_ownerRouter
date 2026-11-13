@@ -3,8 +3,7 @@
 
 # S282 — Record the review of an off-cycle lease end date
 
-> Status: AUTHORING READY, intake 160. Working screen. Implementation and verification
-> pending.
+> Status: DELIVERED at ba9a64f6, intake 160. Chunk 1 run `a6f14bac-7edd-4db2-ab94-93f0875dc1ee`.
 
 **Goal.**
 

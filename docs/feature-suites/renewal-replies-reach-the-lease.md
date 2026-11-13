@@ -3,8 +3,7 @@
 
 # S275 — Bring an owner or tenant reply to the lease through visible controls
 
-> Status: AUTHORING READY, intake 153. Replies and responses. Implementation and
-> verification pending.
+> Status: DELIVERED at ba9a64f6, intake 153. Chunk 1 run `a6f14bac-7edd-4db2-ab94-93f0875dc1ee`. The W12-04 stale-page duplicate proof follows S272 in chunk 2.
 
 **Goal.**
 

@@ -69,7 +69,7 @@ assignment and approval remain human work.
 **Open questions & assumptions.**
 
 - The former B-PROCESS-OWNER input is retired by owner direction of November 12, 2026:
-  renewal processes start no runs (S286), so no process owner or default approver is
+  renewal processes start no runs (S286, delivered at ba9a64f6), so no process owner or default approver is
   requested. Preserve the published placeholders as stored values.
 - The team has not approved mandatory review for a staff rent proposal, an external Cc
   default, a delegation policy or a new role. Current internal visibility and existing
