@@ -289,9 +289,11 @@ export async function journeyN1004(ctx, page) {
   await transitions("does_not_apply", "unchanged");
   const start = (await reads.working()).record.fields.terms_effective_date.value;
   await kit.open(page, kit.href(leaseId, "?step=offer-tenant"));
-  const options = page.locator(
-    'details[data-renewal-group="Tenant offer options and record of contact"]',
-  );
+  const options = kit
+    .now(page)
+    .locator(
+      'details[data-renewal-group="Record of contact"], details[data-renewal-group="Tenant offer options and record of contact"]',
+    );
   await kit.toggleDisclosure(page, options, true);
   await options
     .getByLabel("Add a charge for this lease only", { exact: true })
@@ -1074,6 +1076,7 @@ export async function journeyN1005(ctx, page) {
       .now(page)
       .getByRole("button", { name: /^Shared resource link: / });
     let fix;
+    let pendingResource;
     if (priority.state === "wait") {
       // N10-04's offer went out and awaits the tenant, so recording the answer leads (S269 rule
       // 4) and nothing about the next offer competes with it. The next offer's exact pending
@@ -1087,11 +1090,19 @@ export async function journeyN1005(ctx, page) {
         // S281 R-S281-3 removes the editable preview after a confirmed offer. The exact
         // resource remains on Connections for the next offer; keep the no-competing-fix pin.
         const required = composition.target.tenantResourceRequired;
-        const pendingResource = required.find(
-          (id) => composition.target.tenantResources[id]?.state === "source_pending",
+        pendingResource = required.find(
+          (id) => composition.target.tenantResources?.[id]?.state === "source_pending",
         );
         assert.ok(pendingResource);
-        await kit.open(page, "/connections#renewal-resource-entry-" + pendingResource);
+        const nav = page.getByRole("navigation", { name: "Primary", exact: true });
+        const connections = nav.getByRole("link", { name: "Connections", exact: true });
+        await nav.getByRole("button", { name: "Admin", exact: true }).click();
+        await connections.click();
+        record({
+          id: "N10-05",
+          check: "pending-resource-in-connections",
+          pendingResource,
+        });
       } else {
         const options = page.locator(
           'details[data-renewal-group="Tenant offer options and record of contact"]',
@@ -1115,9 +1126,14 @@ export async function journeyN1005(ctx, page) {
       await fix.click();
     }
     await page.waitForURL((url) => url.pathname === "/connections");
-    const target = new URL(page.url());
-    assert.match(target.hash, /^#renewal-resource-entry-(?:insurance_flyer|rbp_flyer)$/);
-    const entry = page.locator(target.hash);
+    const resourceTarget = pendingResource
+      ? "#renewal-resource-entry-" + pendingResource
+      : new URL(page.url()).hash;
+    assert.match(
+      resourceTarget,
+      /^#renewal-resource-entry-(?:insurance_flyer|rbp_flyer)$/,
+    );
+    const entry = page.locator(resourceTarget);
     await entry.waitFor();
     await entry
       .getByText(/^Source pending\. /)
