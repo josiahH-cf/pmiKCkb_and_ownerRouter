@@ -25,6 +25,14 @@ import {
 } from "@/lib/lease-renewal/tenant-resource-inclusion";
 import { businessDateIso } from "@/lib/lease-renewal/business-calendar";
 import { replyWatchApplies, type ReplyWatchEnded } from "./reply-watch";
+import {
+  TENANT_RESPONSE_PAUSE_CAUSE,
+  recordedTenantResponseOf,
+  tenantReminderScope,
+  tenantResponseHolds,
+  tenantResponsePause,
+  type RecordedTenantResponse,
+} from "./tenant-response-hold";
 import type {
   CommunicationInboundEvidence,
   CommunicationOccurrence,
@@ -165,6 +173,22 @@ export interface SequenceStore {
   listReplyCheckable?(limit: number): Promise<CommunicationSequence[]>;
   /** S275 R-S275-1: end one message's watch with its reason; no other field changes. */
   endReplyWatch?(id: string, ended: ReplyWatchEnded): Promise<CommunicationSequence>;
+}
+
+/**
+ * S276 R-S276-3: the lease's two work-record heads by the store's own collection names (the dated
+ * head first, otherwise the lease-bound record), so the claim transaction reads the recorded tenant
+ * response without importing the work-record store (which imports this one).
+ */
+const RENEWAL_WORK_RECORD_HEADS = [
+  "lease_renewal_workspaces",
+  "lease_renewal_lease_bound_workspaces",
+] as const;
+function renewalWorkRecordHeadRefs(db: Firestore, leaseId: string) {
+  const docId = createHash("sha256").update(leaseId).digest("hex");
+  return RENEWAL_WORK_RECORD_HEADS.map((collection) =>
+    db.collection(collection).doc(docId),
+  );
 }
 function missing(): never {
   throw new EditableLayerError("This communication no longer exists.", 404);
@@ -340,6 +364,78 @@ export class FirestoreCommunicationSequenceStore implements SequenceStore {
       tx.set(this.ref(id), storedSequence(next));
       return next;
     });
+  }
+  /**
+   * S276 R-S276-2 / R-S276-4: pause the unsent reminders the recorded tenant response holds, each
+   * in its own transaction that reads the message again. A message with an admitted attempt in
+   * flight is marked for reconciliation, as a staff pause after claim is, so that attempt is still
+   * reported truthfully when it settles. Nothing is sent, cancelled or read from Gmail.
+   */
+  async pauseForTenantResponse(input: {
+    leaseId: string;
+    response: RecordedTenantResponse;
+    actorUid: string;
+    nowMs: number;
+  }): Promise<{ paused: string[] }> {
+    const snapshot = await this.db
+      .collection(COMMUNICATION_SEQUENCE_COLLECTIONS.sequences)
+      .where("context.entityId", "==", input.leaseId)
+      .limit(100)
+      .get();
+    const candidates = snapshot.docs.flatMap((doc) => {
+      if (doc.get("purged")) return [];
+      try {
+        const s = assertRecord(doc.data());
+        return s.state === "active" && tenantResponseHolds(s, input.response)
+          ? [s.id]
+          : [];
+      } catch {
+        return [];
+      }
+    });
+    const paused: string[] = [];
+    for (const id of candidates) {
+      const written = await this.db.runTransaction(async (tx) => {
+        const current = await tx.get(this.ref(id));
+        if (!current.exists || current.get("purged")) return false;
+        const s = assertRecord(current.data());
+        if (s.state !== "active" || !tenantResponseHolds(s, input.response)) return false;
+        const next: CommunicationSequence = {
+          ...s,
+          version: s.version + 1,
+          state: s.unresolvedOccurrenceId ? "needs_reconciliation" : "paused",
+          nextDueAtMs: null,
+          pause: tenantResponsePause(input.response, input.actorUid, input.nowMs),
+          updatedAtMs: input.nowMs,
+        };
+        tx.set(this.ref(id), storedSequence(next));
+        tx.set(
+          this.db
+            .collection(COMMUNICATION_SEQUENCE_COLLECTIONS.audit)
+            .doc(
+              sequenceHash([
+                id,
+                s.version,
+                TENANT_RESPONSE_PAUSE_CAUSE,
+                input.response.eventId,
+                "audit",
+              ]),
+            ),
+          {
+            action: TENANT_RESPONSE_PAUSE_CAUSE,
+            sequenceId: id,
+            actorUid: input.actorUid,
+            version: next.version,
+            atMs: input.nowMs,
+            state: next.state,
+            ...communicationsRetentionFields("bodyless_audit", input.nowMs),
+          },
+        );
+        return true;
+      });
+      if (written) paused.push(id);
+    }
+    return { paused };
   }
   async listOccurrences(sequenceId: string, limit = 200) {
     const snapshot = await this.db
@@ -579,6 +675,45 @@ export class FirestoreCommunicationSequenceStore implements SequenceStore {
         .doc(occurrenceId);
       const previous = await tx.get(ref);
       if (previous.exists) return null; // any admitted attempt excludes a second call, including after a crash
+      // S276 R-S276-3 (ARCH-S276-2): a reminder of an offer authorized before the tenant's response
+      // was recorded never dispatches, even when the pause at save time was not written. This claim
+      // reads the lease's work record in the same transaction, admits nothing and pauses the
+      // message under the response's cause.
+      if (tenantReminderScope(s)) {
+        const heads = await Promise.all(
+          renewalWorkRecordHeadRefs(this.db, s.context.entityId).map((ref) =>
+            tx.get(ref),
+          ),
+        );
+        const head = heads.find((snapshot) => snapshot.exists);
+        const response = recordedTenantResponseOf(head?.data());
+        if (response && tenantResponseHolds(s, response)) {
+          const paused: CommunicationSequence = {
+            ...s,
+            version: s.version + 1,
+            state: "paused",
+            nextDueAtMs: null,
+            pause: tenantResponsePause(response, response.actorUid, nowMs),
+            updatedAtMs: nowMs,
+          };
+          tx.set(this.ref(id), storedSequence(paused));
+          tx.set(
+            this.db
+              .collection(COMMUNICATION_SEQUENCE_COLLECTIONS.audit)
+              .doc(sequenceHash([id, s.version, TENANT_RESPONSE_PAUSE_CAUSE, "audit"])),
+            {
+              action: TENANT_RESPONSE_PAUSE_CAUSE,
+              sequenceId: id,
+              actorUid: "communication-worker",
+              version: paused.version,
+              atMs: nowMs,
+              state: paused.state,
+              ...communicationsRetentionFields("bodyless_audit", nowMs),
+            },
+          );
+          return null;
+        }
+      }
       if (s.context.entityType === "renewal_lease")
         await assertRenewalDispositionVersion(
           tx,
@@ -871,6 +1006,17 @@ export class FirestoreCommunicationSequenceStore implements SequenceStore {
       return next;
     });
   }
+}
+
+/**
+ * S276 R-S276-2: pause the unsent reminders a recorded tenant response holds, for the work-record
+ * save and for "Stop them". Application records only: no send, no cancel, no Gmail call.
+ */
+export async function pauseTenantRemindersForResponse(
+  input: Parameters<FirestoreCommunicationSequenceStore["pauseForTenantResponse"]>[0],
+  db: Firestore = getAdminFirestore(),
+): Promise<{ paused: string[] }> {
+  return new FirestoreCommunicationSequenceStore(db).pauseForTenantResponse(input);
 }
 
 /**

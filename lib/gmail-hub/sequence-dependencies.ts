@@ -64,6 +64,11 @@ import {
   type ReplyWatchLeaseFacts,
 } from "./reply-watch";
 import {
+  recordedTenantResponseOf,
+  type RecordedTenantResponse,
+} from "./tenant-response-hold";
+import type { FollowUpFacts } from "@/lib/lease-renewal/follow-up-copy";
+import {
   WorkflowCommunicationContextSchema,
   type WorkflowCommunicationContext,
 } from "./workflow-context";
@@ -104,6 +109,9 @@ export function createCommunicationSequenceService() {
     },
     // S275 R-S275-1: the lease record's end conditions for a watched message.
     replyWatchEndReason: (sequence, nowMs) => readReplyWatchEndReason(sequence, nowMs),
+    // S276 R-S276-3: the tenant response recorded on the lease, checked before any claim.
+    readTenantResponse: (sequence) =>
+      readRecordedTenantResponse(sequence.context.entityId),
     readLinkedThreads: async (actor, context) =>
       (
         await getGmailHubDependencies().store.listCommunicationLinks(
@@ -162,6 +170,29 @@ export async function readReplyWatchEndReason(
       disposition = null;
     }
     return replyWatchEndReason(sequence, { workspace, disposition, todayIso });
+  } catch {
+    return null;
+  }
+}
+/**
+ * S276 R-S276-3 (ARCH-S276-2): the tenant response recorded on the lease's current work record, or
+ * null when none is. Read-only; a read that fails returns null here, and the claim transaction
+ * reads the same stored record again before anything is admitted.
+ */
+export async function readRecordedTenantResponse(
+  leaseId: string,
+  db: Firestore = getAdminFirestore(),
+): Promise<RecordedTenantResponse | null> {
+  if (!/^[1-9]\d*$/.test(leaseId)) return null;
+  try {
+    const heads = renewalWorkspaceHeadRefs(db, leaseId);
+    const [dated, leaseBound] = await Promise.all([
+      heads.dated.get(),
+      heads.leaseBound.get(),
+    ]);
+    return recordedTenantResponseOf(
+      currentRenewalWorkspaceState(db, leaseId, dated, leaseBound),
+    );
   } catch {
     return null;
   }
@@ -375,6 +406,22 @@ async function renewalTarget(
     attachmentNotice: current.attachment
       ? "The saved comparable image is available in the lease workspace. Add the exact file here before authorization."
       : null,
+    // S276 R-S276-8: the reviewed facts the standard follow-up message is filled from, the same
+    // facts the offer states. For the composition read only: never part of the target, its hashes
+    // or any authorization, so no message authorized earlier is held by them.
+    ...(channel === "tenant" && !c.replyTo
+      ? {
+          followUpFacts: {
+            address: f.address,
+            leaseEndDate: f.leaseEndDate,
+            rent: terms?.rent ?? null,
+            effectiveDate: terms?.effectiveDate ?? null,
+            endDate: terms?.endDate ?? null,
+            names: [...f.names],
+            ...(f.firstNames ? { firstNames: [...f.firstNames] } : {}),
+          } satisfies FollowUpFacts,
+        }
+      : {}),
   };
 }
 export async function prepareWorkflowComposition(

@@ -67,6 +67,13 @@ import {
 import type { WorkflowCommunicationContext } from "./workflow-context";
 import { replyCheckable, type ReplyWatchEndReason } from "./reply-watch";
 import {
+  TENANT_RESPONSE_PAUSE_CAUSE,
+  tenantReminderScope,
+  tenantResponseHolds,
+  tenantResponsePause,
+  type RecordedTenantResponse,
+} from "./tenant-response-hold";
+import {
   authorizedOccurrenceBasis,
   projectTenantResourceInclusion,
   tenantResourceEffectVerdict,
@@ -222,6 +229,14 @@ export interface CommunicationSequenceDependencies {
     sequence: CommunicationSequence,
     nowMs: number,
   ): Promise<ReplyWatchEndReason | null>;
+  /**
+   * S276 R-S276-3 (ARCH-S276-2): the tenant response recorded on the message's lease (its current
+   * work record), or null when none is recorded. Read-only. Absent, dispatch reads no response and
+   * the claim transaction still applies the hold on the stored record.
+   */
+  readTenantResponse?(
+    sequence: CommunicationSequence,
+  ): Promise<RecordedTenantResponse | null>;
 }
 export function assertCommunicationStaff(
   actor: AuthenticatedUser,
@@ -1130,6 +1145,49 @@ export class WorkflowCommunicationSequenceService {
       }
       return { status: "paused", sequence: s };
     }
+    // S276 R-S276-3 / R-S276-4 (ARCH-S276-2): the tenant's recorded response is checked before any
+    // claim, ahead of the lease read, so a reminder that became due after any recorded response (a
+    // decline included) is paused under the response's own cause and never sent, even when the
+    // pause at save time was not written. The claim transaction applies the same check.
+    if (this.deps.readTenantResponse && tenantReminderScope(s)) {
+      let response: RecordedTenantResponse | null = null;
+      try {
+        response = await this.deps.readTenantResponse(s);
+      } catch {
+        response = null; // The claim transaction reads the same stored record.
+      }
+      if (response && tenantResponseHolds(s, response)) {
+        const recorded = response;
+        try {
+          s = await this.deps.store.write({
+            id: s.id,
+            actorUid: "communication-worker",
+            expectedVersion: s.version,
+            operationId: randomUUID(),
+            operationHash: sequenceHash([
+              s.id,
+              s.version,
+              TENANT_RESPONSE_PAUSE_CAUSE,
+              recorded.eventId,
+            ]),
+            nowMs: this.now(),
+            action: TENANT_RESPONSE_PAUSE_CAUSE,
+            apply: (current) => ({
+              ...requireSequence(current),
+              version: s.version + 1,
+              state: "paused",
+              nextDueAtMs: null,
+              pause: tenantResponsePause(recorded, recorded.actorUid, this.now()),
+              updatedAtMs: this.now(),
+            }),
+          });
+        } catch (error) {
+          if (!(error instanceof EditableLayerError) || error.status !== 409) throw error;
+          s = requireSequence(await this.deps.store.get(id));
+        }
+        return { status: "paused", sequence: s };
+      }
+    }
     // S274 R-S274-4 (ARCH-S274-2): dispatch tells "not settled" from "changed" before any claim.
     // One read, no wait: a read in flight, a generation not ready or a retirement status that is
     // unavailable only because the read is not fresh is handled like an unreadable source (no
@@ -1359,11 +1417,17 @@ export class WorkflowCommunicationSequenceService {
       },
       threading,
     );
-    if (!claim)
+    if (!claim) {
+      const after = requireSequence(await this.deps.store.get(id));
+      // S276 R-S276-3: the claim itself held a reminder for the tenant's recorded response.
       return {
-        status: "not_due",
-        sequence: requireSequence(await this.deps.store.get(id)),
+        status:
+          after.state === "paused" && after.pause?.cause === TENANT_RESPONSE_PAUSE_CAUSE
+            ? "paused"
+            : "not_due",
+        sequence: after,
       };
+    }
     const o = claim.occurrence;
     const message: WorkflowMimeMessage = {
       from: a.senderEmail,

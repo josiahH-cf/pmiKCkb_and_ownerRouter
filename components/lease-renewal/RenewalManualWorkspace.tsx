@@ -48,7 +48,7 @@ import { tenantAnswerCoversCurrentTerms } from "@/lib/lease-renewal/tenant-answe
 import { OwnerApprovalCoverageLine } from "./OwnerApprovalCoverageLine";
 import { Button, Card, Field } from "@/components/ui";
 import { projectCycleSourceDateChange } from "@/lib/lease-renewal/cycle-source-date";
-import { STEP_FOR_ACTIVITY } from "@/lib/lease-renewal/renewal-stage";
+import { STEP_FOR_ACTIVITY, nextStepWords } from "@/lib/lease-renewal/renewal-stage";
 import {
   currentManualOwnerTerms,
   MANUAL_ACTIVITIES,
@@ -91,6 +91,11 @@ import {
   useOfferAnswers,
 } from "./RenewalOfferAnswers";
 import { SHEET_FIELD_LABELS } from "@/lib/lease-renewal/sheet-writeback/field-intent";
+import type { TenantReminderStop } from "@/lib/gmail-hub/tenant-response-hold";
+import {
+  TENANT_RESPONSE_REVIEW_WORDS,
+  tenantResponseReview,
+} from "@/lib/lease-renewal/tenant-response-review";
 
 interface ManualContext {
   writebackPaused: boolean;
@@ -125,6 +130,13 @@ interface ManualContext {
    * into its Work when the one before it is recorded). Presentation state only; saves nothing.
    */
   activityDrafts?: Map<ManualActivity, ActivityDraft>;
+  /**
+   * S276 R-S276-2 / R-S276-3: what the latest tenant response save (or "Stop them") did to the
+   * offer's reminders, or null before one this page made.
+   */
+  tenantReminders?: TenantReminderStop | null;
+  /** S276 R-S276-3: pause the reminders the recorded response holds, after a failed pause. */
+  stopTenantReminders?: () => Promise<void>;
 }
 /** An activity form's entry that differs from its saved record, with the fields typed in. */
 interface ActivityDraft {
@@ -261,6 +273,8 @@ function ActiveManualProvider({
     [message, setMessage] = useState("");
   const [states, setStates] = useState<Record<string, AutosaveState>>({});
   const [history, setHistory] = useState<Array<Record<string, unknown>> | null>(null);
+  // S276 R-S276-2 / R-S276-3: the reminders outcome of this page's latest tenant response save.
+  const [tenantReminders, setTenantReminders] = useState<TenantReminderStop | null>(null);
   const router = useRouter();
   const state = useMemo(
     () =>
@@ -373,6 +387,7 @@ function ActiveManualProvider({
           state?: RenewalWorkspaceState | null;
           error?: string;
           writeback_paused?: boolean;
+          tenantReminders?: TenantReminderStop;
         };
         try {
           response = await fetch("/api/lease-renewal/workspace", {
@@ -394,6 +409,9 @@ function ActiveManualProvider({
         if (response.ok) {
           outstanding.current.delete(key);
           applyState(result.state);
+          // S276 R-S276-2 / R-S276-3: the reminders outcome travels with the response's save.
+          if (action.kind === "tenant_response")
+            setTenantReminders(result.tenantReminders ?? null);
           setRecordState(key, { phase: "saved" });
           setMessage("Saved. Any listed Sheet update still needs its own confirmation.");
           if (action.kind === "owner_response" && action.approvedBase)
@@ -453,6 +471,40 @@ function ActiveManualProvider({
     [run],
   );
 
+  // S276 R-S276-3: "Stop them" pauses the reminders the recorded tenant response holds, when the
+  // pause at save time could not be written. It records nothing and sends nothing.
+  async function stopTenantReminders() {
+    const current = stateRef.current;
+    if (!current) return;
+    setDeliberate(true);
+    try {
+      const response = await fetch("/api/lease-renewal/workspace", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          operation: "stop_tenant_reminders",
+          leaseId,
+          cycleId: current.cycleId,
+        }),
+      });
+      const result = (await response.json().catch(() => ({}))) as {
+        tenantReminders?: TenantReminderStop;
+        error?: string;
+      };
+      if (!response.ok || !result.tenantReminders)
+        throw new Error(result.error ?? "The reminders could not be stopped. Try again.");
+      setTenantReminders(result.tenantReminders);
+    } catch (error) {
+      setTenantReminders({ state: "failed", paused: 0 });
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "The reminders could not be stopped. Try again.",
+      );
+    } finally {
+      setDeliberate(false);
+    }
+  }
   async function prepareSource(field: keyof typeof SHEET_FIELD_LABELS, eventId: string) {
     if (paused) {
       setMessage("Saved in the app. Sheet updates are paused.");
@@ -577,6 +629,8 @@ function ActiveManualProvider({
         ownerApproval,
         outreachEvidence: outreachEvidence ?? null,
         activityDrafts,
+        tenantReminders,
+        stopTenantReminders,
       }}
     >
       <div className="renewal-primary-progress" data-renewal-focus-context>
@@ -1153,10 +1207,15 @@ function ResponseForm({
       ? !tenantAnswerCoversCurrentTerms(state, workingContext.record)
       : current.termsRevision !== state.termsRevision);
   const initialOutcome = audience === "owner" ? "no_response" : "awaiting_response";
+  // S276 R-S276-1 (ARCH-S276-1): the tenant response is committed only by its one visible Save;
+  // choosing a response or typing its source saves nothing. The owner response keeps its own
+  // review (S262) and is unchanged.
+  const explicitSave = audience === "tenant";
   const id = useId(),
     [outcome, setOutcome] = useState<string>(current?.outcome ?? initialOutcome),
     [source, setSource] = useState(savedSource(current?.source));
   const [dirty, setDirty] = useState(false);
+  const covered = useStandingOwnerAuthority(state?.revision ?? 0);
   // S234 R-S234-4: the owner's requested change, saved with "Revision requested".
   const savedNote =
     audience === "owner" && current?.outcome === "revision_requested"
@@ -1242,6 +1301,50 @@ function ResponseForm({
   // again after every save of this record).
   const offerAnswers = useOfferAnswers();
   const [ownerOffer, setOwnerOffer] = useState(false);
+  // S276 R-S276-1: a tenant response chosen (or a source typed) and not saved yet. The review
+  // names the response, the offer it answers and what follows; Save records it, Cancel keeps the
+  // earlier response.
+  const savedOutcome = current?.outcome ?? initialOutcome;
+  const pendingTenant =
+    explicitSave &&
+    (outcome !== savedOutcome || source.trim() !== savedSource(current?.source));
+  const review = pendingTenant
+    ? tenantResponseReview({
+        outcome,
+        view: offerAnswers.view,
+        viewFailed: offerAnswers.failed,
+        nextStep: state
+          ? nextStepWords(
+              manualRenewalSummary(
+                {
+                  ...state,
+                  tenantResponse: {
+                    eventId: "pending-tenant-response",
+                    actorUid: "pending",
+                    recordedAt: new Date(0).toISOString(),
+                    source: STAFF_RECORD_SOURCE,
+                    termsRevision: state.termsRevision,
+                    outcome: outcome as NonNullable<
+                      RenewalWorkspaceState["tenantResponse"]
+                    >["outcome"],
+                  },
+                },
+                {
+                  standingOwnerAuthority: covered,
+                  evidence: outreachFillFor(state, context.outreachEvidence),
+                  housingAssistance: housingAssistanceVariant(workingContext?.record),
+                },
+              ).nextActivity,
+            )
+          : null,
+      })
+    : null;
+  function cancelTenantChoice() {
+    setOutcome(savedOutcome);
+    setSource(savedSource(current?.source));
+    setDirty(false);
+  }
+  const reminders = explicitSave ? (context.tenantReminders ?? null) : null;
   // S262 R-S262-1/2: the reviewed answer with its Amount approved, saved in one transaction.
   function recordApproval(
     approval: OwnerApprovalInput,
@@ -1295,7 +1398,9 @@ function ResponseForm({
           onChange={(event) => {
             const selected = event.currentTarget.value;
             setOutcome(selected);
-            save(selected);
+            // S276 R-S276-1: the tenant's choice waits for its Save; the owner's saves as before.
+            if (explicitSave) setDirty(true);
+            else save(selected);
           }}
         >
           {options.map(([value, label]) => (
@@ -1314,6 +1419,8 @@ function ResponseForm({
             value={source}
             onBlur={(event) => {
               if (isRenewalPresentationMove(event.relatedTarget)) return;
+              // S276 R-S276-1: the tenant's source note is saved with the response's Save.
+              if (explicitSave) return;
               if (source.trim() === savedSource(current?.source)) setDirty(false);
               else save();
             }}
@@ -1324,7 +1431,53 @@ function ResponseForm({
           />
         </Field>
       )}
-      {audience === "tenant" ? (
+      {review ? (
+        // S276 R-S276-1: the one visible Save, with what it answers and what follows. No note,
+        // checkbox or attestation is required.
+        <section
+          aria-labelledby={`${id}-review`}
+          className="ui-stack-tight"
+          data-renewal-field="tenant-response-review"
+        >
+          <h4 id={`${id}-review`}>{TENANT_RESPONSE_REVIEW_WORDS.heading}</h4>
+          <p data-tenant-response-review="response">{review.response}</p>
+          <p data-tenant-response-review="answers">{review.answers}</p>
+          <p data-tenant-response-review="follows">{review.follows}</p>
+          <div className="ui-row">
+            <Button disabled={context.pending} onClick={() => save()} size="compact">
+              {TENANT_RESPONSE_REVIEW_WORDS.save}
+            </Button>
+            <Button
+              disabled={context.pending}
+              onClick={cancelTenantChoice}
+              size="compact"
+              variant="secondary"
+            >
+              {TENANT_RESPONSE_REVIEW_WORDS.cancel}
+            </Button>
+          </div>
+        </section>
+      ) : null}
+      {reminders?.state === "failed" && !pendingTenant ? (
+        // S276 R-S276-3: the response is saved; the pause was not written, so the step offers
+        // the retry. Dispatch holds these reminders regardless.
+        <p data-renewal-field="tenant-reminders-scheduled" role="alert">
+          {TENANT_RESPONSE_REVIEW_WORDS.stillScheduled}{" "}
+          <Button
+            disabled={context.pending}
+            onClick={() => void context.stopTenantReminders?.()}
+            size="compact"
+            variant="secondary"
+          >
+            {TENANT_RESPONSE_REVIEW_WORDS.stopThem}
+          </Button>
+        </p>
+      ) : reminders?.state === "stopped" && !pendingTenant ? (
+        <p data-renewal-field="tenant-reminders-stopped" role="status">
+          {TENANT_RESPONSE_REVIEW_WORDS.stopped}
+        </p>
+      ) : null}
+      {audience === "tenant" && !pendingTenant ? (
         <TenantOfferAnswer
           answers={offerAnswers}
           eventId={current?.eventId ?? null}

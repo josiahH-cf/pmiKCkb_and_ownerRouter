@@ -18,8 +18,10 @@ import {
   listRenewalWorkspaceActivity,
   saveRenewalWorkspace,
   startRenewalCycle,
+  stopTenantReminders,
   SaveRenewalWorkspaceSchema,
   StartRenewalCycleSchema,
+  StopTenantRemindersSchema,
 } from "@/lib/firestore/renewal-workspace";
 import {
   resolveLeaseOwnerRoster,
@@ -81,6 +83,9 @@ const Body = z.discriminatedUnion("operation", [
   // S248 R-S248-10: "This was not the renewal outreach" removes a derived outreach record with a
   // reason; the record and its history stay.
   CorrectRenewalOutreachSchema.extend({ operation: z.literal("correct_outreach") }),
+  // S276 R-S276-3: "Stop them" pauses the reminders the recorded tenant response holds, when the
+  // pause at save time could not be written. It records nothing on the work record and sends nothing.
+  StopTenantRemindersSchema.extend({ operation: z.literal("stop_tenant_reminders") }),
 ]);
 export async function GET(request: Request) {
   try {
@@ -144,6 +149,12 @@ export async function POST(request: Request) {
     if (input.operation === "correct_outreach") {
       const { operation: _, ...value } = input;
       return NextResponse.json({ record: await correctRenewalOutreach(actor, value) });
+    }
+    if (input.operation === "stop_tenant_reminders") {
+      const { operation: _, ...value } = input;
+      return NextResponse.json({
+        tenantReminders: await stopTenantReminders(actor, value),
+      });
     }
     if (
       input.operation === "keep_working" ||

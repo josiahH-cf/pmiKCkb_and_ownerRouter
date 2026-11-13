@@ -90,6 +90,13 @@ import {
   STANDING_AGREEMENT_WORDS,
   standingRuleBasis,
 } from "@/lib/lease-renewal/standing-agreement";
+import {
+  FOLLOW_UP_START_WORDS,
+  followUpStartLine,
+  followUpStartingValues,
+  type FollowUpStartRead,
+  type FollowUpStartingValues,
+} from "@/lib/lease-renewal/follow-up-copy";
 
 export interface PreparedSignatureFields {
   readonly name: string;
@@ -227,6 +234,12 @@ interface ReviewState {
   readonly reviewedInputs: readonly ReviewedInput[] | null;
   /** S274 R-S274-5: after a refusal, what changed since the earlier review, with both values. */
   readonly changes: readonly ChangedInput[] | null;
+  /**
+   * S276 R-S276-7 / R-S276-8: what the follow-up form opens with, read with this composition (the
+   * notice rules' interval, the follow-up copy's publication and its composed body); null on a
+   * read without it.
+   */
+  readonly followUpStart: FollowUpStartRead | null;
 }
 
 /** One save of the communication draft: the exact request, reused as is when it is retried. */
@@ -496,6 +509,10 @@ function PreparedMessageBlock({
   const [followUpZone, setFollowUpZone] = useState<string>(BUSINESS_TIME_ZONE);
   const [followUpEnd, setFollowUpEnd] = useState("");
   const [followUpLimit, setFollowUpLimit] = useState("");
+  // S276 R-S276-7 (ARCH-S276-3): the starting values this review's follow-up form opened with, set
+  // the first time staff tick the option in a review. Form state only: unticking and ticking
+  // again keeps what staff last typed, and nothing is authorized until they confirm the review.
+  const [followUpSeed, setFollowUpSeed] = useState<FollowUpStartingValues | null>(null);
   const [unknownAuthorization, setUnknownAuthorization] = useState<string | null>(null);
   // S274 R-S274-5: the review is being read again in place after a refusal for a real change.
   const [reloading, setReloading] = useState(false);
@@ -777,6 +794,8 @@ function PreparedMessageBlock({
           };
           signatureParagraph?: RichCommunicationMessage["paragraphs"][number] | null;
           reviewedTargetHash: string;
+          /** S276 R-S276-7 / R-S276-8: the follow-up form's starting read (tenant only). */
+          followUp?: FollowUpStartRead | null;
         }>(
           `/api/gmail-hub/composition?purpose=${api.channel === "owner" ? "renewal_owner" : "renewal_tenant"}&lease=${encodeURIComponent(api.leaseId)}`,
         );
@@ -870,6 +889,36 @@ function PreparedMessageBlock({
       );
       followUpSave.current = null;
       if (cancelled()) return;
+      const followUpStart = composition.followUp ?? null;
+      if (!reloadAfter) {
+        // S276 R-S276-7: every new review opens with the follow-up option unticked; its starting
+        // values are filled in the first time staff tick it in this review.
+        setFollowUps(false);
+        setFollowUpSeed(null);
+        setFollowUpSubject("");
+        setFollowUpBody("");
+        setEveryDays("");
+        setFollowUpTime("");
+        setFollowUpZone(BUSINESS_TIME_ZONE);
+        setFollowUpEnd("");
+        setFollowUpLimit("");
+      } else if (followUpSeed) {
+        // R-S276-8: the review read again after a real change. A follow-up subject or message
+        // staff have not changed follows the current reviewed facts; one they changed is kept.
+        const next = followUpStartingValues({
+          subject: saved.sequence.initial.subject,
+          start: followUpStart,
+        });
+        if (followUpSubject === followUpSeed.subject) setFollowUpSubject(next.subject);
+        if (followUpBody === followUpSeed.body) setFollowUpBody(next.body);
+        setFollowUpSeed({
+          ...followUpSeed,
+          subject: next.subject,
+          body: next.body,
+          published: next.published,
+          line: followUpStartLine(Number(followUpSeed.everyDays), next.published),
+        });
+      }
       setReview({
         mode,
         signatureParagraph: composition.signatureParagraph ?? null,
@@ -884,6 +933,7 @@ function PreparedMessageBlock({
         reviewedAtMs: saved.sequence.updatedAtMs,
         reviewedInputs: composition.target.reviewedInputs ?? null,
         changes: reloadAfter,
+        followUpStart,
       });
     } catch (error) {
       fail(
@@ -1564,7 +1614,26 @@ function PreparedMessageBlock({
                   type="checkbox"
                   checked={followUps}
                   disabled={busy}
-                  onChange={(event) => setFollowUps(event.target.checked)}
+                  onChange={(event) => {
+                    const checked = event.target.checked;
+                    // S276 R-S276-7 (ARCH-S276-3): the first tick in this review fills the form
+                    // from the one starting projection; a later tick keeps what staff typed.
+                    if (checked && !followUpSeed) {
+                      const start = followUpStartingValues({
+                        subject: review?.subject ?? "",
+                        start: review?.followUpStart ?? null,
+                      });
+                      setFollowUpSubject(start.subject);
+                      setFollowUpBody(start.body);
+                      setEveryDays(start.everyDays);
+                      setFollowUpTime(start.time);
+                      setFollowUpZone(start.timeZone);
+                      setFollowUpEnd(start.endDate);
+                      setFollowUpLimit(start.sendLimit);
+                      setFollowUpSeed(start);
+                    }
+                    setFollowUps(checked);
+                  }}
                 />
                 Authorize follow-ups after the tenant offer
               </label>
@@ -1572,6 +1641,14 @@ function PreparedMessageBlock({
             {includesFollowUps ? (
               <fieldset className="ui-stack-tight" disabled={busy}>
                 <legend>Follow-up message and timing</legend>
+                {followUpSeed ? (
+                  <p data-renewal-field="follow-up-start">{followUpSeed.line}</p>
+                ) : null}
+                {followUpSeed && !followUpSeed.published ? (
+                  <p data-renewal-field="follow-up-unpublished" role="note">
+                    {FOLLOW_UP_START_WORDS.unpublished}
+                  </p>
+                ) : null}
                 <label>
                   Follow-up subject{" "}
                   <input

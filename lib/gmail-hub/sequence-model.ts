@@ -175,7 +175,9 @@ export interface CommunicationSequence
       | "provider_refused"
       | "send_unconfirmed"
       | "unexpected_sender"
-      | "resource_changed";
+      | "resource_changed"
+      // S276 R-S276-2: staff recorded the tenant's response on the lease.
+      | "tenant_response_recorded";
     byUid: string;
     atMs: number;
     evidenceIds: string[];

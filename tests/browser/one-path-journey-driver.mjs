@@ -1173,6 +1173,12 @@ async function journey(browser) {
       ) {
         await response.selectOption("accepted");
         log.act("path", "choice", "Tenant response: Accepted");
+        // S276 R-S276-1 (pin changed by S276): the response is recorded by its one visible Save.
+        await page
+          .locator("#renewal-manual-tenant_response")
+          .getByRole("button", { name: "Save", exact: true })
+          .click();
+        log.act("path", "confirmation", "Save tenant response");
         await page.waitForTimeout(3000);
         continue;
       }

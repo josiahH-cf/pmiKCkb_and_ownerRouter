@@ -115,9 +115,12 @@ export async function recordTenantAcceptance(kit, page, leaseId, sent) {
     response.request().method() === "POST";
   const response = form.getByLabel("Tenant response", { exact: true });
   if ((await response.inputValue()) !== "accepted") {
+    // S276 R-S276-1 (pin changed by S276): choosing the response saves nothing; its one
+    // visible Save records it.
+    await response.selectOption("accepted");
     const [decided] = await Promise.all([
       page.waitForResponse(workspaceSave),
-      response.selectOption("accepted"),
+      form.getByRole("button", { name: "Save", exact: true }).click(),
     ]);
     assert.equal(decided.status(), 200, await decided.text());
   }

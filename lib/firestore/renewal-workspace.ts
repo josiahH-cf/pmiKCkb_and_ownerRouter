@@ -26,7 +26,16 @@ import {
   parseRenewalWorkingRecord,
   renewalWorkingRecordRef,
 } from "@/lib/firestore/renewal-working-record";
-import { COMMUNICATION_SEQUENCE_COLLECTIONS } from "@/lib/gmail-hub/sequence-store";
+import {
+  COMMUNICATION_SEQUENCE_COLLECTIONS,
+  pauseTenantRemindersForResponse,
+} from "@/lib/gmail-hub/sequence-store";
+import {
+  isRecordedTenantResponse,
+  recordedTenantResponseOf,
+  type RecordedTenantResponse,
+  type TenantReminderStop,
+} from "@/lib/gmail-hub/tenant-response-hold";
 import {
   prepareOfferAnswerIn,
   readOfferAnswer,
@@ -474,6 +483,8 @@ export async function saveRenewalWorkspace(
   verifyOffer?: {
     readonly currentOfferSnapshot: () => Promise<FrozenOfferSnapshot | null>;
   },
+  /** S276 R-S276-2: how the offer's reminders are paused after a recorded tenant response. */
+  reminders: TenantReminderControl = defaultTenantReminderControl(db),
 ) {
   assertActor(actor, true);
   const input = SaveRenewalWorkspaceSchema.parse(raw),
@@ -868,12 +879,88 @@ export async function saveRenewalWorkspace(
     });
     return false;
   });
+  const state = await getRenewalWorkspace(actor, input.leaseId, db);
+  // S276 R-S276-2 / R-S276-4: any recorded tenant response, a decline included, pauses the unsent
+  // reminders of the offer it answers immediately after the response is saved, under its own cause
+  // and the saving actor. The response stays saved whatever happens here: a pause that could not
+  // be written reads "failed" (the step offers "Stop them"), and dispatch holds those reminders
+  // regardless (R-S276-3). Changing the response back to its unset state resumes nothing (R-S276-5).
+  const tenantReminders =
+    input.action.kind === "tenant_response" &&
+    isRecordedTenantResponse(input.action.outcome)
+      ? await stopRecordedTenantReminders(reminders, state, actor.uid)
+      : null;
   return {
-    state: await getRenewalWorkspace(actor, input.leaseId, db),
+    state,
     duplicate,
     // S264 R-S264-6: the recorded offer coverage, read back from its own record.
     ...(input.offer ? { offerAnswer: await readOfferAnswer(db, input.operationId) } : {}),
+    ...(tenantReminders ? { tenantReminders } : {}),
   };
+}
+
+/** S276 R-S276-2: the reminder pause the work record's save calls; injectable for tests. */
+export interface TenantReminderControl {
+  pause(input: {
+    leaseId: string;
+    response: RecordedTenantResponse;
+    actorUid: string;
+    nowMs: number;
+  }): Promise<{ paused: readonly string[] }>;
+}
+function defaultTenantReminderControl(db: Firestore): TenantReminderControl {
+  return { pause: (input) => pauseTenantRemindersForResponse(input, db) };
+}
+/** Pause the reminders the work record's recorded tenant response holds, reporting the outcome. */
+async function stopRecordedTenantReminders(
+  reminders: TenantReminderControl,
+  state: RenewalWorkspaceState | null,
+  actorUid: string,
+): Promise<TenantReminderStop> {
+  const response = recordedTenantResponseOf(state);
+  if (!state || !response) return { state: "none", paused: 0 };
+  try {
+    const { paused } = await reminders.pause({
+      leaseId: state.leaseId,
+      response,
+      actorUid,
+      nowMs: Date.now(),
+    });
+    return paused.length
+      ? { state: "stopped", paused: paused.length }
+      : { state: "none", paused: 0 };
+  } catch {
+    return { state: "failed", paused: 0 };
+  }
+}
+
+export const StopTenantRemindersSchema = z
+  .object({
+    leaseId,
+    cycleId: z.string().uuid(),
+  })
+  .strict();
+
+/**
+ * S276 R-S276-3: "Stop them" after a pause that could not be written at save time. It pauses the
+ * reminders the lease's recorded tenant response holds, under the same cause, with the staff member
+ * who chose it. It records nothing on the work record, sends nothing and cancels nothing.
+ */
+export async function stopTenantReminders(
+  actor: AuthenticatedUser,
+  raw: unknown,
+  db: Firestore = getAdminFirestore(),
+  reminders: TenantReminderControl = defaultTenantReminderControl(db),
+): Promise<TenantReminderStop> {
+  assertActor(actor, true);
+  const input = StopTenantRemindersSchema.parse(raw);
+  const state = await getRenewalWorkspace(actor, input.leaseId, db);
+  if (!state || state.cycleId !== input.cycleId)
+    throw new EditableLayerError(
+      "This lease's work record changed. Reload it and review the tenant's response.",
+      409,
+    );
+  return stopRecordedTenantReminders(reminders, state, actor.uid);
 }
 
 /**

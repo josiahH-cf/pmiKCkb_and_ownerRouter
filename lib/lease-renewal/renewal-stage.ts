@@ -360,6 +360,19 @@ const ACTIVITY_NEXT_STEP: Partial<Record<ManualActivity, string>> = {
   non_renewal_handoff: "Record the non-renewal handoff",
 };
 
+/**
+ * S276 R-S276-1: the path's next step in imperative words, for the tenant response review's
+ * "Next:" sentence (the step the path projects, not fixed text).
+ */
+export function nextStepWords(
+  key: ManualActivity | "owner_response" | "tenant_response" | "complete",
+): string {
+  return (
+    (key in ACTIVITY_NEXT_STEP ? ACTIVITY_NEXT_STEP[key as ManualActivity] : undefined) ??
+    manualActionLabel(key)
+  );
+}
+
 function stageLabel(key: RenewalWorkStatus): string {
   return RENEWAL_WORK_STATUS_LABELS[key];
 }

@@ -39,6 +39,7 @@ import { resolveRenewalWorkBasis } from "@/lib/lease-renewal/workspace-cycle-con
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { readOfferAnswersView } from "@/lib/firestore/renewal-offer-answers";
 import { keepOfferSource } from "@/lib/firestore/renewal-offer-sources";
+import { publishFollowUpCopy } from "@/lib/firestore/renewal-follow-up-publication";
 
 const identity = z
   .object({
@@ -71,6 +72,9 @@ const command = z.discriminatedUnion("kind", [
       (value) => !(value.confirm && value.reconcile),
       "Confirm and reconcile are separate operations.",
     ),
+  // S276 R-S276-8: a template approver publishes the standard follow-up message, its own copy
+  // record beside the tenant offer copy.
+  z.object({ kind: z.literal("publish_follow_up") }).strict(),
 ]);
 type Current = Awaited<ReturnType<typeof currentRenewalMessage>>;
 /**
@@ -251,6 +255,21 @@ export async function POST(request: Request) {
       return NextResponse.json({
         duplicate: result.duplicate,
         ...(await withOfferAnswers(current)),
+      });
+    }
+    if (input.kind === "publish_follow_up") {
+      // S276 R-S276-8: the same approver capability as the supplied copy's publication.
+      await requireCapabilityInSpace(
+        renewalRoleCapability("approve_message_template"),
+        "renewals",
+      );
+      const publication = await publishFollowUpCopy(actor);
+      return NextResponse.json({
+        status: publication.status,
+        duplicate: publication.duplicate,
+        templateId: publication.templateId,
+        contentHash: publication.contentHash,
+        ref: publication.ref,
       });
     }
     const draftDeps = {
