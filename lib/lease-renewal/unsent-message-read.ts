@@ -32,6 +32,7 @@ export async function readLeaseMessageBasis(
   actor: AuthenticatedUser,
   leaseId: string,
   audience: Audience,
+  options: { readonly compareOnly?: boolean } = {},
 ): Promise<LeaseMessageBasis> {
   const context = WorkflowCommunicationContextSchema.parse({
     lane: "renewals",
@@ -41,7 +42,7 @@ export async function readLeaseMessageBasis(
     actionKey: "gmail.renewal_notice.send",
     sourceRefs: [`rentvine:lease:${leaseId}`],
   });
-  const composition = await prepareWorkflowComposition(actor, context);
+  const composition = await prepareWorkflowComposition(actor, context, options);
   const basis = composition.target.contentBasis ?? null;
   const savedAtMs =
     typeof composition.messageSavedAt === "string"

@@ -18,6 +18,7 @@ import {
 } from "./live-lease-cache";
 import {
   leaseStatusTableHasAdmission,
+  readLeaseStatusTable,
   readLeaseStatusTableForAdmission,
   type LeaseStatusTableReader,
 } from "./lease-status-table";
@@ -29,6 +30,15 @@ type AdmittedRead = Awaited<ReturnType<typeof readLiveLeaseSnapshotForAdmission>
   statusTable: Awaited<ReturnType<typeof readLeaseStatusTableForAdmission>>;
 };
 type Minimum = { leaseKeys: readonly string[]; lease: number; status: number };
+
+/** Display-only provider/cache reads with no notice admission hooks. */
+export async function readOnlyRenewalDisplaySource(reader: Reader, nowMs: number) {
+  const [lease, statusTable] = await Promise.all([
+    getLiveLeaseSnapshot(reader, nowMs),
+    readLeaseStatusTable(reader, nowMs),
+  ]);
+  return { ...lease, statusTable };
+}
 interface AdmissionScope {
   context: object;
   pending: Map<string, Promise<{ read: AdmittedRead; leaseKeys: readonly string[] }>>;

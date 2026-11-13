@@ -245,7 +245,9 @@ async function renewalTarget(
     ? await currentRenewalMessage(actor, c.entityId, channel, undefined, {
         settledRead: true,
       }).catch(settledReadFailure)
-    : await currentRenewalMessage(actor, c.entityId, channel);
+    : await currentRenewalMessage(actor, c.entityId, channel, undefined, {
+        compareOnly: options.compareOnly,
+      });
   const to = current.recipients.status === "ready" ? [current.recipients.to] : [];
   const cc = current.recipients.status === "ready" ? current.recipients.cc : [];
   const blockers =

@@ -348,23 +348,6 @@ function projectNoticeObservation(
   db: Firestore,
   tx?: Transaction,
 ): RenewalNoticeSafety {
-  if (!tx && source.noticeAdmitted !== true) {
-    // An independently read display generation can show a positive move-out, but cannot
-    // clear an earlier observed notice or provide a safety basis for a message.
-    const disposition = projection(
-      source,
-      saved?.exists ? historySchema.parse(saved.data()) : null,
-    );
-    return {
-      disposition,
-      basis: null,
-      cycleId: null,
-      tenancyVerified: false,
-      history: null,
-      ready: false,
-      reason: "Message preparation requires an admitted source read.",
-    };
-  }
   const markerRef = noticeSafetyMarkerRef(db, leaseId);
   const cycleId =
     head.exists && typeof head.get("cycleId") === "string"
@@ -376,6 +359,30 @@ function projectNoticeObservation(
     source.statusTable.status === "available" &&
     source.statusTable.admittedLeaseKeys?.includes(renewalWorkspaceDocId(leaseId)) ===
       true;
+  if (!tx) {
+    const history = saved?.exists ? historySchema.parse(saved.data()) : null;
+    const disposition = projection(source, history);
+    const marker = existing.exists
+      ? NoticeSafetyMarkerSchema.parse(existing.data())
+      : null;
+    const checkedStatusAt =
+      source.statusTable.status === "available" ? (source.statusTable.readAtMs ?? 0) : 0;
+    const behindAdmission =
+      marker &&
+      (marker.sourceReadAt.lease > source.leaseReadAtMs ||
+        marker.sourceReadAt.status > checkedStatusAt);
+    return {
+      disposition: behindAdmission
+        ? unavailableDisposition(leaseId, NOTICE_GENERATION_NOT_READY)
+        : disposition,
+      basis: null,
+      cycleId,
+      tenancyVerified: false,
+      history: null,
+      ready: false,
+      reason: "Message preparation requires an admitted source read.",
+    };
+  }
   if (!existing.exists || !admitted) {
     const sourceReadAt = { lease: 0, status: 0 };
     const marker = existing.exists
@@ -387,7 +394,7 @@ function projectNoticeObservation(
           version: 1,
           observedAt: new Date(source.observedAtMs).toISOString(),
         };
-    if (!existing.exists) tx?.create(markerRef, marker);
+    if (!existing.exists) tx.create(markerRef, marker);
     const reason =
       "Notice evidence needs a fresh admitted source read. Use Refresh data, then review again; no notice evidence from this unadmitted generation is shown.";
     return {
@@ -430,7 +437,7 @@ function projectNoticeObservation(
     !existing.exists ||
     hashExecutionPreview(existing.data() ?? {}) !== hashExecutionPreview(result.marker)
   )
-    tx?.set(markerRef, result.marker);
+    tx.set(markerRef, result.marker);
   const ready =
     result.ready &&
     source.noticeAdmitted === true &&
@@ -571,8 +578,9 @@ export async function observeRenewalNotice(
   actor: AuthenticatedUser,
   source: NoticeSourceRead,
   db: Firestore = getAdminFirestore(),
+  options: { readonly displayOnly?: boolean } = {},
 ): Promise<RenewalNoticeSafety> {
-  return (await observeRenewalNotices(actor, [source], db))[0];
+  return (await observeRenewalNotices(actor, [source], db, options))[0];
 }
 
 /** An explicit, audited staff action records evidence without starting a cycle or changing progress. */

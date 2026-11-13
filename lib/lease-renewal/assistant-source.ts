@@ -36,9 +36,10 @@ import {
 } from "@/lib/lease-renewal/auxiliary-read";
 import { buildRenewalDeskWindow } from "@/lib/lease-renewal/desk-query";
 import { buildLiveRenewalConfig } from "@/lib/lease-renewal/live-config";
-import { readCoherentRenewalDisplaySource } from "@/lib/lease-renewal/admitted-notice-source";
-import { getLiveLeaseSnapshot } from "@/lib/lease-renewal/live-lease-cache";
-import { readLeaseStatusTable } from "@/lib/lease-renewal/lease-status-table";
+import {
+  readCoherentRenewalDisplaySource,
+  readOnlyRenewalDisplaySource,
+} from "@/lib/lease-renewal/admitted-notice-source";
 import { loadLiveRenewalDesk } from "@/lib/lease-renewal/live-desk";
 import { packetSnapshotsForAiContext } from "@/lib/ai-boundary/dotloop-origin";
 import { DEFAULT_NOTICE_RULE_SET } from "@/lib/lease-renewal/notice-rules";
@@ -111,13 +112,8 @@ export async function runRenewalAssistantSource(
     try {
       return await measureRead("renewal.inventory", () =>
         withReadDeadline(async () => {
-          if (options.countsOnly) {
-            const [lease, statusTable] = await Promise.all([
-              getLiveLeaseSnapshot(liveConfig.rentvineClient, now.getTime()),
-              readLeaseStatusTable(liveConfig.rentvineClient, now.getTime()),
-            ]);
-            return { ...lease, statusTable };
-          }
+          if (options.countsOnly)
+            return readOnlyRenewalDisplaySource(liveConfig.rentvineClient, now.getTime());
           const read = await readCoherentRenewalDisplaySource(
             user,
             liveConfig.rentvineClient,
@@ -170,11 +166,9 @@ export async function runRenewalAssistantSource(
       readRenewalAuxiliary("progress", () => listAllRenewalProgress(user)),
       readRenewalAuxiliary("manual_workspace", () => listRenewalWorkspaces(user)),
       readRenewalAuxiliary("notice_policy", () => readNoticeRuleSnapshot()),
-      options.countsOnly
-        ? ({ status: "unavailable", key: "communications" } as const)
-        : readRenewalAuxiliary("communications", () =>
-            createGmailHubService(user).listCommunications(),
-          ),
+      readRenewalAuxiliary("communications", () =>
+        createGmailHubService(user).listCommunications(),
+      ),
       readRenewalAuxiliary("dismissed_attention", () =>
         listDismissedRenewalFollowUpKeys(user),
       ),

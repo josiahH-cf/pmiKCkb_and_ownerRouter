@@ -195,7 +195,7 @@ describe("ConsoleView (S146/S147 AI-first Dashboard)", () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/Waiting on an approver/)).toBeInTheDocument();
     expect(loadRenewalRunViews).toHaveBeenCalledTimes(1);
-    expect(loadRenewalRunViews).toHaveBeenCalledWith(editorUser);
+    expect(loadRenewalRunViews).toHaveBeenCalledWith(editorUser, { displayOnly: true });
     // The role still decides: an Editor never gets the inline Approve control.
     expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
     expect(screen.getByRole("link", { name: "Open the full list" })).toHaveAttribute(

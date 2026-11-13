@@ -72,7 +72,7 @@ async function defaultReadMessageBasis(
   // Dashboard needs only when the viewer holds a scheduled message.
   const { readLeaseMessageBasis } =
     await import("@/lib/lease-renewal/unsent-message-read");
-  return readLeaseMessageBasis(user, leaseId, audience);
+  return readLeaseMessageBasis(user, leaseId, audience, { compareOnly: true });
 }
 
 function storedSequence(
