@@ -23,7 +23,7 @@ export const HELP_CHANGELOG: readonly HelpChangelogEntry[] = [
       "publish-a-process",
       "outreach-checklist",
     ],
-    contentDigest: "6df146428670493b9c10bc929925954d3ade1d30e1287b34828716bdb450a549",
+    contentDigest: "8ba9b674c343fac400adacb21acb3c75fdf5f6e3a502da8735d35a97c1c85de9",
   },
   {
     version: "V4.0",
