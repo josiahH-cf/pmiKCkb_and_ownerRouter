@@ -15,11 +15,12 @@ import {
 } from "@/lib/firestore/lease-renewal-move-out-timing-basis";
 
 const projectId = "pmi-kc-kb-s125-notice-selection-test";
+// Rewritten on purpose for S283 R-S283-5: only an Admin selects the shared notice timing basis.
 const actor: AuthenticatedUser = {
   uid: "staff-one",
   email: "staff-one@pmikcmetro.com",
   hd: "pmikcmetro.com",
-  role: "Editor",
+  role: "Admin",
 };
 const input = {
   decisionId: "notice-basis/2026-10-02/q2",
@@ -83,5 +84,16 @@ describe("S125 actual emulator transactions, no provider effects", () => {
       (await db.collection(MOVE_OUT_TIMING_BASIS_COLLECTION).doc("active").get()).data()
         ?.version,
     ).toBe(1);
+  });
+  it("S283 R-S283-5: an Editor or Approver is refused before any write", async () => {
+    for (const role of ["Editor", "Approver"] as const) {
+      await expect(
+        selectMoveOutTimingBasis({ ...actor, role }, input, db),
+      ).rejects.toThrow("Only an Admin changes the shared notice timing basis.");
+    }
+    expect((await db.collection(MOVE_OUT_TIMING_BASIS_COLLECTION).get()).size).toBe(0);
+    expect(
+      (await db.collection(MOVE_OUT_TIMING_BASIS_ACTIVITY_COLLECTION).get()).size,
+    ).toBe(0);
   });
 });

@@ -60,9 +60,10 @@ function stored(input: {
       actionKey: "gmail.renewal_notice.send",
       sourceRefs: [`rentvine:lease:${input.lease}`],
     },
+    // Stored as the sequence store writes it: Firestore holds no array directly inside an array.
     initial: {
       subject: "Lease renewal",
-      paragraphs: [[{ text: "Synthetic renewal message." }]],
+      paragraphs: [{ runs: [{ text: "Synthetic renewal message." }] }],
       attachmentIds: [],
     },
     followUp: null,
