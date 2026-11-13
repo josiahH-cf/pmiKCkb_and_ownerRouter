@@ -247,6 +247,8 @@ describe("ARCH-S283-4 a filter narrows the run and never widens it", () => {
   });
 
   it("ARCH-S283-4 an open count group shows none of this batch, so nothing is prepared", () => {
+    // The batch reads its open group from the address, as a staff member's link sets it.
+    window.history.replaceState(null, "", "/lease-renewal/live/desk?group=completed");
     render(
       <RenewalWorkingBatch
         initial={{ month: null, group: "completed", tag: null, sort: null }}

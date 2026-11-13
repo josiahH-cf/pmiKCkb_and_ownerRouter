@@ -217,9 +217,13 @@ describe("S280 BEH-S280-3: the rendered panel", () => {
 
     await user.click(within(region).getByRole("button", { name: "Refresh" }));
 
-    expect(fetchMock).toHaveBeenCalledWith("/api/dashboard/attention", {
-      cache: "no-store",
-    });
+    // The existing re-read: one uncached read of the attention route (it carries its own
+    // abort signal).
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/dashboard/attention",
+      expect.objectContaining({ cache: "no-store" }),
+    );
     expect(
       await within(region).findByRole("link", { name: "101 Sample Pl: Current rent" }),
     ).toBeVisible();
