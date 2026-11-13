@@ -221,6 +221,7 @@ describe("ConsoleView (S146/S147 AI-first Dashboard)", () => {
       "/api/dashboard/renewal-team",
       expect.objectContaining({
         cache: "no-store",
+        keepalive: true,
       }),
     );
     expect(screen.getByLabelText(/Question/)).toBeEnabled();

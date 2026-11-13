@@ -36,23 +36,25 @@ export function RenewalTeamLineText({ line }: Readonly<{ line: RenewalTeamLine }
 export function RenewalTeamLineSlot() {
   const [line, setLine] = useState<RenewalTeamLine | null>(null);
   useEffect(() => {
-    const controller = new AbortController();
+    let mounted = true;
     async function load() {
       try {
         const response = await fetchWithDeadline(RENEWAL_TEAM_LINE_ROUTE, {
           cache: "no-store",
-          signal: controller.signal,
+          // This bounded, count-only GET may finish when the page is closed.
+          keepalive: true,
         });
         if (!response.ok) throw new Error("renewal_team_line_unavailable");
         const result = (await response.json()) as RenewalTeamLine | null;
-        if (!controller.signal.aborted) setLine(result);
+        if (mounted) setLine(result);
       } catch {
-        if (!controller.signal.aborted)
-          setLine({ count: null, month: null, href: RENEWAL_TEAM_LINE_HREF });
+        if (mounted) setLine({ count: null, month: null, href: RENEWAL_TEAM_LINE_HREF });
       }
     }
     void load();
-    return () => controller.abort();
+    return () => {
+      mounted = false;
+    };
   }, []);
   return line ? <RenewalTeamLineText line={line} /> : null;
 }
