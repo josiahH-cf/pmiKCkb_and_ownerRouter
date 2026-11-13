@@ -107,6 +107,30 @@ export function countActions(slice) {
 /** Pages open in a browser context now (tabs), never inferred. */
 export const openPages = (context) => context.pages().filter((page) => !page.isClosed());
 
+/** S281 opens the same rent editor in place. The prior lease page linked to Compare market rent. */
+export async function openOwnerRecommendationEditor(page, now) {
+  const name = "Edit rent to recommend";
+  const edit = now.getByRole("button", { name, exact: true });
+  const legacy = now.getByRole("link", { name, exact: true });
+  await edit.or(legacy).waitFor();
+  const inPlace = await edit.isVisible();
+  await (inPlace ? edit : legacy).click();
+  const input = page.locator("input#renewal-now-rent-to-recommend");
+  await input.waitFor({ state: "visible" });
+  await page.waitForFunction(() => {
+    const fields = document.querySelectorAll("input#renewal-now-rent-to-recommend");
+    return fields.length === 1 && document.activeElement === fields[0];
+  });
+  if (inPlace) {
+    const step = now.locator('[data-renewal-work][data-renewal-outcome="ask-owner"]');
+    await step
+      .locator("[data-renewal-rent-in-place]")
+      .getByLabel("Rent to recommend")
+      .waitFor();
+  }
+  return input;
+}
+
 /**
  * One budget result. `maxActions` and `maxPages` are the R-S252-1 bounds; a null bound is not
  * checked. A budget passes only when every bound holds and every extra condition is true.

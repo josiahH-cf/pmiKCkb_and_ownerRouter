@@ -39,6 +39,7 @@ import {
   setUnavailableSourceLease,
   standInState,
 } from "../../scripts/lib/one-path-rehearsal/control.mjs";
+import { openOwnerRecommendationEditor } from "../../scripts/lib/one-path-rehearsal/journey-kit.mjs";
 import { forceSourceRefresh } from "../../scripts/lib/one-path-rehearsal/seeds.mjs";
 import { inspectOutcome, outcomeFaults } from "./one-path-november-9-outcome-check.mjs";
 import {
@@ -800,14 +801,9 @@ try {
             .replace(/[,\s]/g, "")
             .includes(String(saved.value)),
         );
-        // S261: Ask the owner links to the one Rent to recommend editor.
-        await page
-          .getByRole("link", { name: "Edit rent to recommend", exact: true })
-          .click();
-        assert.equal(
-          await editor.evaluate((node) => node === document.activeElement),
-          true,
-        );
+        const ownerEditor = await openOwnerRecommendationEditor(page, now(page));
+        assert.equal(Number(await ownerEditor.inputValue()), saved.value);
+        assert.deepEqual(mutations, [], "Opening the editor saves nothing");
 
         assert.ok(monthPreparation, "Use the fresh alternate-month result on this build");
         const alternate = monthPreparation.leaseId;

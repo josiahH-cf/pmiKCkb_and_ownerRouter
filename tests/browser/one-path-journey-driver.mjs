@@ -575,18 +575,23 @@ async function journey(browser) {
           );
       }
       if (step.id === "read-the-prepared-message") {
-        // November 10 (S261): Ask the owner reads Rent to recommend, the amount the owner message
-        // proposes, beside Current base rent, with "Edit rent to recommend" linking to its one
-        // editor on Compare market rent. That editor shows the basis; it is read there after the
-        // kickoff count, with no action.
+        // Ask the owner shows the recommendation and its edit control. S281 places the
+        // editor here and closes the Message group on entry. The three-action kickoff
+        // inspects the exact message in the required review, without opening that group.
         const recommended = view
           .now()
           .locator('[data-renewal-field="owner-recommended-rent"]');
+        const message = view.now().locator('details[data-renewal-group="Message"]');
+        const preview = view
+          .now()
+          .locator('[role="document"][aria-label="Message preview"]');
         await shownWithin(recommended, 60_000);
-        await shownWithin(
-          view.now().getByRole("document", { name: "Message preview" }),
-          60_000,
-        );
+        await message.or(preview).first().waitFor({ state: "attached", timeout: 60_000 });
+        const namedMessage = (await message.count()) === 1;
+        const edit = recommended.getByRole(namedMessage ? "button" : "link", {
+          name: "Edit rent to recommend",
+          exact: true,
+        });
         kickoffObserved.prepared = {
           comparison: await shownCount(
             view.now().locator('[data-renewal-comparison="stored"]'),
@@ -604,13 +609,15 @@ async function journey(browser) {
                   .catch(() => ""),
               ).replace(/[^0-9.]/g, ""),
             ) || null,
-          editRent: await recommended
-            .getByRole("link", { name: "Edit rent to recommend", exact: true })
-            .count(),
-          preview: await view
-            .now()
-            .getByRole("document", { name: "Message preview" })
-            .count(),
+          editRent: await edit.count(),
+          preview: namedMessage
+            ? await message
+                .locator('[role="document"][aria-label="Message preview"]')
+                .count()
+            : await shownCount(preview),
+          messageClosed: namedMessage
+            ? (await message.getAttribute("open")) === null
+            : null,
           now: (await view.nowText()).slice(0, 900),
         };
       }
@@ -732,7 +739,7 @@ async function journey(browser) {
     (await standInState(rehearsal)).comparison.comparisonsByLease ?? {};
   check(
     "journey.comparison",
-    "the stored comparison, Rent to recommend with its basis and the owner message preview show with no action, and no second comparison is requested (L22, L32)",
+    "the stored comparison and the recommendation with its basis are ready, the owner message is available in the exact review, and no second comparison is requested (L22, L32, S281)",
     kickoffObserved.market?.comparison === 1 &&
       kickoffObserved.market?.comparisonAge === 1 &&
       kickoffObserved.market?.evidenceClosedOnArrival === true &&
@@ -744,6 +751,8 @@ async function journey(browser) {
         kickoffObserved.market?.basis ?? "",
       ) &&
       kickoffObserved.prepared?.preview === 1 &&
+      kickoffObserved.prepared?.messageClosed !== false &&
+      kickoffObserved.review?.reviewShown === true &&
       (comparisonsAfter[prepared] ?? 0) === (comparisonsBefore[prepared] ?? 0),
     {
       prepared: kickoffObserved.prepared,
@@ -1144,14 +1153,13 @@ async function journey(browser) {
         await page.waitForTimeout(3000);
         continue;
       }
-      // November 10 (S270): the hand record sits in the outcome's named group, "Tenant offer
-      // options and record of contact", closed on arrival; staff open it to reach the record.
+      // S281 names the offer's group of hand records "Record of contact".
       if (
         !tenantOffer &&
         !offerDone &&
         !(await offerRecord.isVisible().catch(() => false))
       )
-        await openNamedGroup(page, "Tenant offer options and record of contact", "path");
+        await openNamedGroup(page, STEP_GROUPS["offer-tenant"], "path");
       if (
         !tenantOffer &&
         !offerDone &&
@@ -1194,12 +1202,7 @@ async function journey(browser) {
         if (label === "Record what happened") {
           await review.click();
           log.act("path", "choice", "Record what happened");
-        } else
-          await openNamedGroup(
-            page,
-            "Tenant offer options and record of contact",
-            "path",
-          );
+        } else await openNamedGroup(page, STEP_GROUPS["offer-tenant"], "path");
       }
       if (
         (await shownWithin(response, 10_000)) &&
@@ -1765,6 +1768,10 @@ async function journey(browser) {
  * false when the shown outcome has no such group.
  */
 async function openNamedGroup(page, label, phase) {
+  if (Array.isArray(label)) {
+    for (const name of label) if (await openNamedGroup(page, name, phase)) return true;
+    return false;
+  }
   const group = page.locator(`details[data-renewal-group="${label}"]:visible`).first();
   if (!(await group.count())) return false;
   if ((await group.getAttribute("open")) === null) {
@@ -1775,9 +1782,9 @@ async function openNamedGroup(page, label, phase) {
   return true;
 }
 
-/** Each step's named group of supporting work (S270), where its hand records sit. */
+/** Each step's named group of supporting work, where its hand records sit. */
 const STEP_GROUPS = {
-  "offer-tenant": "Tenant offer options and record of contact",
+  "offer-tenant": ["Record of contact", "Tenant offer options and record of contact"],
   documents: "Other packet and handoff work",
   "finish-up": "Other follow-ups",
 };

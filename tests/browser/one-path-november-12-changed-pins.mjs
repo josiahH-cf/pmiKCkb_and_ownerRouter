@@ -1,13 +1,10 @@
-// S284 R-S284-4 and AC-S284-4: the S252 pins the November 12 qualification reads as changed, each
-// with the suite that changed it. The qualification driver (one-path-november-12-qualification-
-// driver.mjs) passes this list to scoreQualification: an S252 check or budget outside its bound
-// passes only when it is listed here, and the report lists every entry under "Changed pins".
+// S284 R-S284-4 and AC-S284-4: the replay pins the November 12 qualification reads as changed,
+// each with its owning suite. The report lists each entry under "Changed pins".
 //
-// Each entry is { pin, suite }: pin is the S252 check or budget id exactly as
-// tests/browser/one-path-journey-driver.mjs names it (journey.json), suite the suite whose
-// requirement replaced that bound. A suite of this batch that changes an S252 bound adds its entry
-// here, with the bound it replaced named in its spec; nothing else is ever listed to make a replay
-// pass.
+// Each entry is { pin, suite }. An exact S252 check or budget id can scope a replaced bound.
+// The other entries name the observed part of an S260, S271 or S252 check that the replay
+// now proves directly against its replacement requirement. Those entries cannot excuse a
+// failed check or replay.
 //
 // Carried from the S271 qualification (docs/evidence/renewal-walkthrough-qualification-2026-11-10.md,
 // "S252 owner-decision budget" and "S252 first screen on Check the numbers"):
@@ -20,4 +17,14 @@
 export const CHANGED_PINS = Object.freeze([
   Object.freeze({ pin: "journey.owner-decision", suite: "S262" }),
   Object.freeze({ pin: "journey.layout-steps", suite: "S269" }),
+  Object.freeze({ pin: "N09-03.exactEditorReturn", suite: "S281" }),
+  Object.freeze({ pin: "N10-01.ownerDraftResumed.editInPlace", suite: "S281" }),
+  Object.freeze({ pin: "N10-03.returnToTenantOffer", suite: "S281" }),
+  Object.freeze({ pin: "N10-03.noStoredDurationManualEnd", suite: "S285" }),
+  Object.freeze({ pin: "N10-03.scheduleDisclosure", suite: "S281" }),
+  Object.freeze({ pin: "N10-05.resourceFixAfterConfirmedSend", suite: "S281" }),
+  Object.freeze({ pin: "N10-07.namedWorkGroups", suite: "S281" }),
+  Object.freeze({ pin: "N10-08.namedWorkGroups", suite: "S281" }),
+  Object.freeze({ pin: "journey.comparison.ownerMessagePlacement", suite: "S281" }),
+  Object.freeze({ pin: "journey.complete.tenantContactGroup", suite: "S281" }),
 ]);
