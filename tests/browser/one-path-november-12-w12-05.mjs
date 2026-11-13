@@ -28,12 +28,8 @@
 //     next reminder-pause write (setTenantResponsePauseFault, S284 W12-05: the "pause write
 //     failure" AC-S276-3 injects; scripts/lib/one-path-rehearsal/firestore-fault.mjs).
 //   - An Admin saves the follow-up interval on Admin > Renewal notice rules.
-//   - The follow-up copy is published by an Approver with the template publication command
-//     ({kind: "publish_follow_up"} on the message-preparation route): R-S276-8 publishes it
-//     "through the existing template publication", which has no visible control, exactly as the
-//     supplied offer copy the rehearsal seed publishes. It is the only request this row makes
-//     itself; the qualification records it with the row's writes.
-// Nothing here posts the sequences route; the kit only waits for the requests staff clicks make.
+//   - An Approver uses "Publish the standard follow-up message" in the tenant message editor.
+// Nothing here posts an app route; the kit waits for the requests staff clicks make.
 // Reads are pages, GET routes, the rehearsal's emulator, the stand-ins' state and logs.
 //
 // Development iteration only: --w1205-parts start,guided,change,decline,fault,race,form,published
@@ -607,19 +603,39 @@ async function pressConfirm(ctx, page, dialog, name, kind) {
 }
 
 /** R-S276-8: an Approver publishes the follow-up copy through the template publication. */
-async function publishFollowUpCopy(ctx) {
+async function publishFollowUpCopy(ctx, leaseId) {
+  const { kit } = ctx;
   const approver = await ctx.newPage("Approver");
-  const answer = await approver.evaluate(async (path) => {
-    const response = await fetch(path, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ kind: "publish_follow_up" }),
+  try {
+    await kit.openLease(approver, leaseId, "?view=full");
+    const selector = '[data-renewal-field="follow-up-copy-publication"]';
+    if (!(await kit.reveal(approver, selector, 45_000)))
+      throw new Error("The Approver's follow-up publication control is unavailable.");
+    const answer = kit.appResponse(approver, PREPARATION_ROUTE, {
+      match: (body) => body?.kind === "publish_follow_up",
     });
+    await approver
+      .locator(selector)
+      .getByRole("button", {
+        name: "Publish the standard follow-up message",
+        exact: true,
+      })
+      .click();
+    const response = await answer;
     const body = await response.json().catch(() => null);
-    return { status: response.status, body };
-  }, PREPARATION_ROUTE);
-  await approver.close().catch(() => undefined);
-  return { status: answer.status, publication: answer.body?.status ?? null };
+    const readback = approver.locator('[data-renewal-field="follow-up-copy-published"]');
+    return {
+      status: response.status(),
+      publication:
+        response.ok() &&
+        body?.status === "approved" &&
+        (await kit.shownWithin(readback, 10_000))
+          ? "approved"
+          : null,
+    };
+  } finally {
+    await approver.close().catch(() => undefined);
+  }
 }
 
 /** Admin > Renewal notice rules: save the global follow-up interval as an Admin does. */
@@ -1337,7 +1353,7 @@ async function formPart(ctx, page, leaseId) {
     String(schedule?.sendLimit ?? "") === confirmed.limit;
 
   // Publish the follow-up copy; the offer's publication and the authorized follow-up stand.
-  const published = await publishFollowUpCopy(ctx);
+  const published = await publishFollowUpCopy(ctx, leaseId);
   const templatesAfter = await templates(ctx);
   const offerPublicationKept =
     templatesBefore.tenantOffer.count === 1 &&
@@ -1450,7 +1466,7 @@ async function publishedPart(ctx, page, leaseId) {
   await dialog.waitFor({ state: "hidden", timeout: 30_000 }).catch(() => undefined);
 
   // Publish, then the composed follow-up.
-  const published = await publishFollowUpCopy(ctx);
+  const published = await publishFollowUpCopy(ctx, leaseId);
   dialog = await openOfferReview(ctx, page, leaseId);
   parts = followUpParts(dialog);
   const offer = await offerReview(ctx, dialog);

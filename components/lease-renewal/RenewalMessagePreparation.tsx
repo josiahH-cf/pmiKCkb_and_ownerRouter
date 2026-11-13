@@ -64,6 +64,7 @@ import {
 } from "@/lib/lease-renewal/message-readiness";
 import { startDateFixFromOffer } from "./RenewalDateProposal";
 import { OwnerWordingPublication, type OwnerCopyView } from "./OwnerWordingPublication";
+import { FollowUpCopyPublication } from "./FollowUpCopyPublication";
 import {
   OfferCaseEntrySchema,
   OfferChargeDecisionSchema,
@@ -247,6 +248,8 @@ interface Preparation {
   publication: { status: string; ref?: string; reason?: string };
   /** S285 R-S285-6: the owner copy version in use and the approver's publication control. */
   ownerCopy?: OwnerCopyView | null;
+  /** S276 R-S276-8: present only for a template approver on the tenant message. */
+  followUpCopyStatus?: "unpublished" | "approved";
   /** S139/S161: the saved authored body and whether the facts changed after it was written. */
   bodyOverride?: RefinedBodyState | null;
   /** Hash of the body composed from the current facts; authored wording records it. */
@@ -2283,7 +2286,12 @@ function MessagePreparationEditor({
                 onPublished={() => void load().catch((error) => setNotice(error.message))}
                 ownerCopy={current.ownerCopy}
               />
-            ) : null}
+            ) : (
+              <FollowUpCopyPublication
+                onPublished={() => void load().catch((error) => setNotice(error.message))}
+                status={current.followUpCopyStatus}
+              />
+            )}
             <section
               aria-label="Unsent Gmail draft"
               className="ui-stack-tight renewal-message-group"
