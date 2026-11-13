@@ -586,10 +586,21 @@ try {
         assert.equal(settings.version, 8);
         assert.equal(settings.enabled, false);
         assert.equal(settings.retired, true);
-        await page.getByRole("link", { name: "Previous month", exact: true }).click();
-        const month = await batch(page).getAttribute("data-batch-month");
+        // The earlier fixture month is all carryover or closed. Use the next month's
+        // current, unprepared leases for both the allowance and interruption checks.
+        const nextMonth = page.getByRole("link", { name: "Next month", exact: true });
+        const month = await nextMonth.getAttribute("data-batch-month-target");
+        assert.match(month ?? "", /^\d{4}-\d{2}$/);
+        assert.notEqual(month, rehearsal.workingMonth);
+        await nextMonth.click();
+        await batch(page)
+          .and(page.locator(`[data-batch-month="${month}"]`))
+          .waitFor();
         await page.reload({ waitUntil: "domcontentloaded" });
-        await batch(page).getByRole("table").waitFor();
+        await batch(page)
+          .and(page.locator(`[data-batch-month="${month}"]`))
+          .getByRole("table")
+          .waitFor();
         assert.deepEqual(await comparisons(), {});
         assert.deepEqual(mutations, []);
         const refused = await post(page, "/api/lease-renewal/kickoff-preparation", {
