@@ -34,12 +34,14 @@ const edit = (path, update) => {
   save(path, value);
 };
 
-async function fixture() {
+async function fixture({ managedImage = false } = {}) {
   const root = mkdtempSync(join(tmpdir(), "recovery-build-proof-"));
   roots.push(root);
   const h = recoveryFixture(root);
   const buildId = "12345678-1234-4234-8234-123456789012";
-  const imageUri = "us-central1-docker.pkg.dev/pmi-kc-kb-prod/source/app:latest";
+  const imageUri = managedImage
+    ? `${h.input.region}-docker.pkg.dev/${h.input.project}/cloud-run-source-deploy/${h.input.service}`
+    : "us-central1-docker.pkg.dev/pmi-kc-kb-prod/source/app:latest";
   const digest = `sha256:${"b".repeat(64)}`;
   const imageDigest = imageUri.replace(/:latest$/, "") + "@" + digest;
   h.state.service.buildConfig = {
@@ -83,7 +85,9 @@ async function fixture() {
     finishTime: new Date(start + 3000).toISOString(),
     source: { storageSource: source },
     sourceProvenance: { resolvedStorageSource: copy(source) },
-    results: { images: [{ name: imageUri, digest }] },
+    results: {
+      images: [{ name: managedImage ? `${imageUri}:latest` : imageUri, digest }],
+    },
   };
   h.operation = {
     name: JSON.parse(readFileSync(h.operationPath, "utf8")).name,
@@ -140,7 +144,117 @@ async function fixture() {
   return h;
 }
 
+function useBuildpackShim(h) {
+  const bucket = `run-sources-${h.input.project}-${h.input.region}`;
+  const name = `services/${h.input.service}/1234567890.000000-${"a".repeat(32)}.zip`;
+  const archive = `gs://${bucket}/${name}`;
+  const generation = "1234567890123456";
+  const sourceLocation = `${archive}#${generation}`;
+  h.state.service.buildConfig.sourceLocation = sourceLocation;
+  delete h.build.source;
+  h.build.sourceProvenance = {};
+  h.build.tags = ["p-run", "r-buildpacks", `service_${h.input.service}`];
+  h.build.substitutions = { _GOOGLE_LABEL_SOURCE: sourceLocation };
+  h.build.steps = [
+    {
+      id: "build",
+      name: `${h.input.region}-docker.pkg.dev/serverless-runtimes/google-24-full/builder/universal:universal_builder_20261021a_RC00`,
+      status: "SUCCESS",
+      entrypoint: "/bin/bash",
+      args: [
+        "-c",
+        '/bin/shim $SHIM_FETCH_ARGS && /bin/shim $SHIM_PRE_ARGS && /cnb/lifecycle/creator --tag="$TAG" "$IMAGE_URL" && /bin/shim $SHIM_POST_ARGS',
+      ],
+      env: [
+        `SHIM_FETCH_ARGS=--phase=fetch --type=ZipArchive --location=${archive} --dest_dir=/workspace --timeout_gcs=false`,
+        `GOOGLE_LABEL_SOURCE=${sourceLocation}`,
+        `GOOGLE_LABEL_BUILD_ID=${h.build.id}`,
+      ],
+    },
+  ];
+  h.v1.metadata.annotations["run.googleapis.com/build-source-location"] = JSON.stringify({
+    app: sourceLocation,
+  });
+  h.archiveMetadata = {
+    bucket,
+    name,
+    generation,
+    timeCreated: new Date(Date.parse(h.build.createTime) - 100).toISOString(),
+  };
+  h.archiveRequests = [];
+  const request = h.client.request;
+  h.client.request = async (options) => {
+    if (options.url.startsWith("https://storage.googleapis.com/")) {
+      h.archiveRequests.push(options);
+      return { data: copy(h.archiveMetadata) };
+    }
+    return request(options);
+  };
+}
+
 describe("exact source-build provenance across predecessor recovery", () => {
+  it("binds the managed buildpack shim's fetched archive to its live generation for assurance and rollback", async () => {
+    const h = await fixture();
+    useBuildpackShim(h);
+    await expect(h.available()).resolves.toBe(true);
+    expect(h.archiveRequests).toEqual([
+      {
+        method: "GET",
+        url: `https://storage.googleapis.com/storage/v1/b/${h.archiveMetadata.bucket}/o/${encodeURIComponent(h.archiveMetadata.name)}?fields=bucket,name,generation,timeCreated`,
+      },
+    ]);
+    h.state.service.trafficStatuses[0].revision = h.candidate;
+    await expect(h.recover()).resolves.toMatchObject({ state: "ROLLED_BACK_VERIFIED" });
+  });
+  it("matches the untagged managed image to its explicit latest output and refuses ambiguous outputs", async () => {
+    const h = await fixture({ managedImage: true });
+    useBuildpackShim(h);
+    const imageUri = h.state.service.buildConfig.imageUri;
+    const output = h.build.results.images[0];
+    await expect(h.available()).resolves.toBe(true);
+    h.build.results.images.push({ name: imageUri, digest: output.digest });
+    await expect(h.available()).rejects.toThrow("recovery_build_provenance_unverified");
+  });
+  it.each([
+    ["partial native provenance", (h) => (h.build.source = { storageSource: {} })],
+    [
+      "different source label",
+      (h) => (h.build.substitutions._GOOGLE_LABEL_SOURCE += "0"),
+    ],
+    ["different build script", (h) => (h.build.steps[0].args[1] = "true")],
+    [
+      "different archive fetched",
+      (h) => (h.build.steps[0].env[0] = h.build.steps[0].env[0].replace(".zip", "x.zip")),
+    ],
+    [
+      "ambiguous fetch argument",
+      (h) => h.build.steps[0].env.push("SHIM_FETCH_ARGS=--phase=fetch"),
+    ],
+    [
+      "wrong revision annotation key",
+      (h) => {
+        h.v1.metadata.annotations["run.googleapis.com/build-source-location"] =
+          JSON.stringify({ other: h.state.service.buildConfig.sourceLocation });
+      },
+    ],
+    ["replaced archive", (h) => (h.archiveMetadata.generation = "102")],
+    ["different archive object", (h) => (h.archiveMetadata.name = "other.zip")],
+    [
+      "archive predates the claim",
+      (h) => (h.archiveMetadata.timeCreated = h.receipt.issuedAt),
+    ],
+    [
+      "archive created after build start",
+      (h) => (h.archiveMetadata.timeCreated = h.build.finishTime),
+    ],
+  ])("refuses the managed shim path on %s", async (_label, mutate) => {
+    const h = await fixture();
+    useBuildpackShim(h);
+    mutate(h);
+    await expect(h.available()).rejects.toThrow("recovery_build_provenance_unverified");
+    expect(h.state.patches).toHaveLength(1);
+  });
+
   it("keeps the old strict path and requires new proof for the actual two-leaf deployment transition", async () => {
     const h = await fixture();
     await expect(
