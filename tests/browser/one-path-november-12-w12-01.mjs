@@ -630,7 +630,7 @@ async function tenantPart(ctx, page, start) {
   const occurrencesBefore = (await kit.listDocuments(OCCURRENCES)).length;
   const writesBefore = ctx.writes.length;
   const raceDue = await kit.tick(olderDueId);
-  const racePaused = await kit.tick(olderPausedId);
+  const racePaused = await kit.tick();
   out.race = {
     ticks: [tickRead(raceDue), tickRead(racePaused)],
     due: brief(await sequenceById(ctx, leaseId, "renewal_tenant", olderDueId)),
@@ -844,7 +844,7 @@ function tenantVerdicts(out) {
     race.ticks.every(
       (tick) =>
         tick.status === "processed" &&
-        tick.inspected > 0 &&
+        tick.inspected >= 2 &&
         tick.failures === 0 &&
         tick.sent === 0,
     ) &&
