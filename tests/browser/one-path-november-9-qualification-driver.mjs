@@ -1209,6 +1209,20 @@ try {
         const owner = page.locator("#renewal-owner-pricing-basis");
         const basis = owner.getByRole("group", { name: "Pricing basis", exact: true });
         await basis.waitFor();
+        const expectCurrentPricingReason = async (authority) => {
+          // An identical URL with a fragment can keep the existing document and pricing read.
+          const [pricing] = await Promise.all([
+            page.waitForResponse(
+              (response) =>
+                response.url() === origin + leaseRead &&
+                response.request().method() === "GET",
+            ),
+            page.reload({ waitUntil: "domcontentloaded" }),
+          ]);
+          assert.equal(pricing.status(), 200);
+          assert.deepEqual((await pricing.json()).authority, authority);
+          await owner.getByText(authority.reason, { exact: true }).waitFor();
+        };
         assert.match(await owner.innerText(), /standing agreement/i);
         const original = await read(page, leaseRead);
         const uncovered = await read(page, route + "?leaseId=" + prepared);
@@ -1344,11 +1358,7 @@ try {
           const unverified = await read(page, leaseRead);
           assert.equal(unverified.authority.covered, false);
           assert.match(unverified.authority.reason, /ended on/i);
-          await open(page, ownerPath);
-          await owner
-            .getByText(/ended on/i)
-            .first()
-            .waitFor();
+          await expectCurrentPricingReason(unverified.authority);
         } finally {
           await setAgreement(exactAgreement, expired.version);
         }
@@ -1378,12 +1388,12 @@ try {
         try {
           const conflicting = await read(page, leaseRead);
           assert.equal(conflicting.authority.covered, false);
-          assert.match(conflicting.authority.reason, /rent|amount/i);
-          await open(page, ownerPath);
-          await owner
-            .getByText(/rent.*rule|rule.*rent/i)
-            .first()
-            .waitFor();
+          assert.equal(conflicting.authority.amount, original.authority.amount);
+          assert.match(
+            conflicting.authority.reason,
+            /working rent .* differs from .* under/i,
+          );
+          await expectCurrentPricingReason(conflicting.authority);
           assert.deepEqual(
             (await read(page, workspacePath)).state?.ownerResponse ?? null,
             priorApproval,
