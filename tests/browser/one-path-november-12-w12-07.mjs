@@ -39,6 +39,8 @@
 //      false.
 // Nothing here sends, schedules or refreshes a message, applies a provider update or posts an app
 // route. Raw observations go to ctx.record.
+import assert from "node:assert/strict";
+import { join } from "node:path";
 import { FIRST_TERM_END, enterRenewalDates } from "./one-path-november-12-journeys.mjs";
 import { WORKING_ROUTE, WORKSPACE_ROUTE } from "./one-path-november-12-kit.mjs";
 import {
@@ -878,6 +880,8 @@ export async function checkW1207(ctx, page, start) {
   // ---- D: the deterministic Sheets adapter, on the served tree ----
   const directory = "w1207-adapter";
   const unitRun = await runRehearsalVitest(ctx.rehearsal, directory, "unit", UNIT_FILES);
+  const { firestoreEmulatorHost, runDir } = ctx.rehearsal;
+  assert.match(firestoreEmulatorHost, /^127\.0\.0\.1:\d{1,5}$/);
   const firestoreRun = await runRehearsalVitest(
     ctx.rehearsal,
     directory,
@@ -885,7 +889,11 @@ export async function checkW1207(ctx, page, start) {
     FIRESTORE_FILES,
     {
       args: ["--config", "vitest.firestore.config.ts"],
-      env: { FIRESTORE_EMULATOR_HOST: ctx.rehearsal.firestoreEmulatorHost },
+      env: {
+        FIRESTORE_EMULATOR_HOST: firestoreEmulatorHost,
+        // The Admin SDK also checks for ADC before it uses the loopback emulator.
+        GOOGLE_APPLICATION_CREDENTIALS: join(runDir, "server-home", "synthetic-adc.json"),
+      },
     },
   );
   const runs = [unitRun, firestoreRun];
