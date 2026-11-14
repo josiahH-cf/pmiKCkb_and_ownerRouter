@@ -634,7 +634,7 @@ async function confirmUpdate(ctx, page, dialog, kind, { before } = {}) {
   if (auth?.status() === 200)
     await dialog.waitFor({ state: "hidden", timeout: 60_000 }).catch(() => undefined);
   await page.waitForTimeout(1_500);
-  const status = page.locator("p[role='status']").filter({ hasText: /\S/ });
+  const status = page.locator("p[role='status']:visible").filter({ hasText: /\S/ });
   const statusLines = (await status.allInnerTexts().catch(() => [])).map(squash);
   return {
     saveStatus: save?.status() ?? null,
