@@ -23,6 +23,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const router = vi.hoisted(() => ({ refresh: vi.fn(), push: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 
+import { RenewalFocusViewProvider } from "@/components/lease-renewal/RenewalFocusViewContext";
 import {
   nowSlotKey,
   RenewalNowCardProvider,
@@ -177,12 +178,20 @@ function AskOwnerCard() {
   );
 }
 
-function mount(view: UnsentMessageView) {
+function mount(view: UnsentMessageView, outcomeLayout = false) {
   return render(
-    <RenewalNowCardProvider preparation={projectRenewalPreparation(FACTS)}>
-      <AskOwnerCard />
-      <PreparedMessageSlot data={data()} deliveryHeld unsent={view} {...handlers()} />
-    </RenewalNowCardProvider>,
+    <RenewalFocusViewProvider allowLegacyFocus={!outcomeLayout}>
+      <RenewalNowCardProvider preparation={projectRenewalPreparation(FACTS)}>
+        <AskOwnerCard />
+        <PreparedMessageSlot
+          compactFull={outcomeLayout}
+          data={data()}
+          deliveryHeld
+          unsent={view}
+          {...handlers()}
+        />
+      </RenewalNowCardProvider>
+    </RenewalFocusViewProvider>,
   );
 }
 
@@ -308,8 +317,8 @@ const posted = (action: string) =>
     (entry) => entry.url === "/api/gmail-hub/sequences" && entry.body?.action === action,
   );
 
-async function openUpdate(view: UnsentMessageView) {
-  mount(view);
+async function openUpdate(view: UnsentMessageView, outcomeLayout = false) {
+  mount(view, outcomeLayout);
   await act(async () =>
     fireEvent.click(
       await screen.findByRole("button", { name: "Review the updated owner message" }),
@@ -321,7 +330,7 @@ async function openUpdate(view: UnsentMessageView) {
 describe("S273 R-S273-4: one review updates the same communication", () => {
   it("BEH-S273-4 / BEH-S273-5: the review shows the lease's current message and saves nothing until the one confirmation, which saves to the same communication and schedules it at the carried time", async () => {
     const future = Date.now() + 3 * 86_400_000;
-    const dialog = await openUpdate(outOfDate(future));
+    const dialog = await openUpdate(outOfDate(future), true);
     expect(
       within(dialog).getByText("Review the updated owner message"),
     ).toBeInTheDocument();
@@ -354,11 +363,15 @@ describe("S273 R-S273-4: one review updates the same communication", () => {
       },
     });
     // R-S273-7: the stored time, in the settled format.
+    const status = await screen.findByText(
+      "Scheduled for 11/13/2026, 9:00 AM CST. It counts as sent once Gmail accepts it.",
+    );
+    expect(status).toBeVisible();
+    expect(status).toHaveAttribute("role", "status");
+    expect(status.closest("details")).toBeNull();
     expect(
-      await screen.findByText(
-        "Scheduled for 11/13/2026, 9:00 AM CST. It counts as sent once Gmail accepts it.",
-      ),
-    ).toBeInTheDocument();
+      screen.getByText("Message", { exact: true }).closest("details"),
+    ).not.toHaveAttribute("open");
     expect(router.refresh).toHaveBeenCalled();
   });
 

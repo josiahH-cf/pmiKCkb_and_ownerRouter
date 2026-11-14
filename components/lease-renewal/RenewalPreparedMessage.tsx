@@ -727,7 +727,9 @@ function PreparedMessageBlock({
   const base = useId();
   const [review, setReview] = useState<ReviewState | null>(null);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
+  const [feedback, setFeedback] = useState<string | { scheduled: string }>("");
+  const message = typeof feedback === "string" ? feedback : feedback.scheduled;
+  const scheduleInWork = inline && typeof feedback === "object";
   // S272 R-S272-3: the communication that already holds this renewal, for the refusal's link.
   const [refusedCommunication, setRefusedCommunication] = useState<string | null>(null);
   const [changedReview, setChangedReview] = useState<string | null>(null);
@@ -1051,7 +1053,7 @@ function PreparedMessageBlock({
     reloadAfter: readonly ChangedInput[] | null = null,
   ) => {
     setBusy(true);
-    setMessage("");
+    setFeedback("");
     setRefusedCommunication(null);
     setChangedReview(null);
     if (reloadAfter) setReloading(true);
@@ -1061,11 +1063,11 @@ function PreparedMessageBlock({
     // the reason reads on the card.
     const fail = (text: string) => {
       if (reloadAfter) setReview(null);
-      setMessage(text);
+      setFeedback(text);
     };
     try {
       if (!reloadAfter && !(await api.flush())) {
-        setMessage(
+        setFeedback(
           "Your latest message could not be prepared for review. Your entries are kept; correct or retry the save.",
         );
         return;
@@ -1245,14 +1247,14 @@ function PreparedMessageBlock({
   ) => {
     if (!repair) return;
     setBusy(true);
-    setMessage("");
+    setFeedback("");
     setRefusedCommunication(null);
     setChangedReview(null);
     if (reloadAfter) setReloading(true);
     const epoch = reviewEpoch.current;
     const fail = (text: string) => {
       if (reloadAfter) setReview(null);
-      setMessage(text);
+      setFeedback(text);
     };
     try {
       if (!reloadAfter && !(await api.flush())) {
@@ -1339,7 +1341,7 @@ function PreparedMessageBlock({
   async function cancelUnsent() {
     if (!repair || busy) return;
     setBusy(true);
-    setMessage("");
+    setFeedback("");
     try {
       const read = await json<{ sequence: CommunicationSequence }>(
         `/api/gmail-hub/sequences?id=${encodeURIComponent(repair.sequenceId)}`,
@@ -1352,7 +1354,7 @@ function PreparedMessageBlock({
         sequence.state === "completed" ||
         sequence.state === "cancelled"
       ) {
-        setMessage(UNSENT_MESSAGE_WORDS.changedElsewhere);
+        setFeedback(UNSENT_MESSAGE_WORDS.changedElsewhere);
         return;
       }
       await json("/api/gmail-hub/sequences", {
@@ -1362,10 +1364,10 @@ function PreparedMessageBlock({
         operationId: crypto.randomUUID(),
       });
       setCancelOpen(false);
-      setMessage(UNSENT_MESSAGE_WORDS.cancelled);
+      setFeedback(UNSENT_MESSAGE_WORDS.cancelled);
       router.refresh();
     } catch (error) {
-      setMessage(
+      setFeedback(
         error instanceof Error
           ? error.message
           : "The message was not cancelled. Reload the lease and try again.",
@@ -1387,7 +1389,7 @@ function PreparedMessageBlock({
       return;
     confirmLock.current = true;
     setBusy(true);
-    setMessage("");
+    setFeedback("");
     setRefusedCommunication(null);
     let sendingId: string | null = null;
     // S274 R-S274-5: a refusal for a real change reloads this review in place after the request.
@@ -1464,7 +1466,7 @@ function PreparedMessageBlock({
           },
         };
         if (JSON.stringify(pending.body.draft) !== JSON.stringify(draft)) {
-          setMessage(
+          setFeedback(
             "The prior save is unresolved. Reopen the current communication and review its saved wording.",
           );
           return;
@@ -1515,11 +1517,11 @@ function PreparedMessageBlock({
           ? ` Next follow-up: ${formatZonedInstant(next, followUpPlan.schedule.timeZone)}.`
           : "";
       // S283 R-S283-1 (BEH-S283-1): the scheduled instant in the settled shape, its zone named.
-      setMessage(
+      setFeedback(
         // S273 R-S273-7: the stored time from the communication, in the settled date and time
         // format; the lease step reads the same stored time after a reload.
         review.mode === "schedule"
-          ? scheduledStoredLine(result.sequence.nextDueAtMs)
+          ? { scheduled: scheduledStoredLine(result.sequence.nextDueAtMs) }
           : accepted
             ? `Sent. Gmail accepted the message; the lease now waits on the reply.${nextFollowUp}`
             : "The send is recorded, and Gmail has not confirmed it yet. The lease says what happens next.",
@@ -1534,7 +1536,7 @@ function PreparedMessageBlock({
       if (refusal.code === LEASE_READ_NOT_SETTLED_CODE) {
         // S274 R-S274-3: the lease is still being re-read. The review keeps its content and its
         // confirm button; nothing was sent, scheduled or held.
-        setMessage(LEASE_READ_NOT_SETTLED_MESSAGE);
+        setFeedback(LEASE_READ_NOT_SETTLED_MESSAGE);
       } else if (refusal.code === TARGET_CHANGED_CODE) {
         // S274 R-S274-5: a fact the review showed really changed. The review is read again in place
         // with each changed value marked, and needs one more confirmation.
@@ -1542,7 +1544,7 @@ function PreparedMessageBlock({
       } else if (refusal.code === SEQUENCE_REFUSED_CODE && refusal.sequenceRefusal) {
         // S272 R-S272-6: one typed reason; its text derives in one place. Nothing was sent,
         // scheduled or written. A message already holding this renewal is named with its link.
-        setMessage(sequenceRefusalMessage(refusal.sequenceRefusal));
+        setFeedback(sequenceRefusalMessage(refusal.sequenceRefusal));
         setRefusedCommunication(
           refusal.sequenceRefusal.reason === "unsent_message_exists"
             ? (refusal.sequenceRefusal.relatedSequenceId ?? null)
@@ -1550,7 +1552,7 @@ function PreparedMessageBlock({
         );
       } else {
         if (sendingId && outcomeUnknown(error)) setUnknownAuthorization(sendingId);
-        setMessage(
+        setFeedback(
           error instanceof Error
             ? `${error.message} Check the lease before trying again; nothing is sent twice.`
             : "The response did not arrive. Check the lease before trying again; nothing is sent twice.",
@@ -1690,7 +1692,7 @@ function PreparedMessageBlock({
             disabled={busy}
             onClick={(event) => {
               cancelTrigger.current = event.currentTarget;
-              setMessage("");
+              setFeedback("");
               setCancelOpen(true);
             }}
             size="compact"
@@ -2036,7 +2038,7 @@ function PreparedMessageBlock({
           ) : null}
         </div>
       ) : null}
-      {message ? <p role="status">{message}</p> : null}
+      {message && !scheduleInWork ? <p role="status">{message}</p> : null}
       {changedReview ? <p role="status">{changedReview}</p> : null}
       {api.notice && api.notice !== message ? <p role="status">{api.notice}</p> : null}
     </section>
@@ -2129,6 +2131,8 @@ function PreparedMessageBlock({
               {reviewLabel}
             </Button>
           ) : null}
+          {/* S273 R-S273-7: show the accepted schedule even when the Message group is closed. */}
+          {scheduleInWork ? <p role="status">{message}</p> : null}
           {pricingBasis}
           {groups}
         </div>
