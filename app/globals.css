@@ -5849,6 +5849,14 @@ body {
     min-width: 0;
   }
 
+  .renewal-workspace-shell:has([data-renewal-toolbar-compact]) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .renewal-workspace-shell:has([data-renewal-toolbar-compact]) .renewal-path-strip {
+    min-width: 0;
+  }
+
   .renewal-toolbar-stage-row .renewal-header-work-status {
     flex: 0 0 clamp(7rem, 41%, 11rem);
     min-width: 0;
