@@ -484,10 +484,11 @@ async function openFromPreview(
   inputId,
   expected,
   extra = async () => ({}),
+  entry = null,
 ) {
   const writesBefore = ctx.writes.length;
   const callsBefore = serverCalls(ctx).length;
-  const button = page.locator(`[data-renewal-finish-up-apply="${key}"]`).first();
+  const button = entry ?? page.locator(`[data-renewal-finish-up-apply="${key}"]`).first();
   const buttonShown = await ctx.kit.shownWithin(button, 30_000);
   if (!buttonShown) return { key, buttonShown: false };
   const buttonText = squash(await button.innerText().catch(() => ""));
@@ -528,9 +529,9 @@ async function openFromPreview(
   };
 }
 
-const openedRight = (opened, expected) =>
+const openedRight = (opened, expected, label = WORDS.applyFromPreview) =>
   opened.buttonShown === true &&
-  opened.buttonText === WORDS.applyFromPreview &&
+  opened.buttonText === label &&
   opened.input?.present === true &&
   opened.input.value === expected &&
   opened.input.prefilled === "working-terms" &&
@@ -878,7 +879,30 @@ export async function checkW1207(ctx, page, start) {
   // ---- L: the one list, with four recorded Sheet cells beside the Market value ----
   const recorded = await recordActivities(ctx, page, leaseId);
   const list = await readList(ctx, page, leaseId);
-  ctx.record({ part: "L", recorded, list });
+  const sheetDateRow = page
+    .locator(`${LIST} [data-renewal-source-update="sheet-terms:renewal_date"]`)
+    .getByRole("button", { name: `${WORDS.prepare}: Renewal date`, exact: true })
+    .first();
+  const dateFromList = await openFromPreview(
+    ctx,
+    page,
+    "sheet-renewal_date",
+    "sheet-field-value",
+    FIRST_TERM_END,
+    async () => {
+      const form = page.locator("#sheet-field-value").locator("xpath=ancestor::form[1]");
+      const submit = form.locator('button[type="submit"]').first();
+      return {
+        field: await form
+          .locator("#sheet-field")
+          .inputValue()
+          .catch(() => null),
+        submitDisabled: await submit.isDisabled().catch(() => null),
+      };
+    },
+    sheetDateRow,
+  );
+  ctx.record({ part: "L", recorded, list, dateFromList });
 
   // ---- D: the deterministic Sheets adapter, on the served tree ----
   const directory = "w1207-adapter";
@@ -1103,8 +1127,11 @@ export async function checkW1207(ctx, page, start) {
         row.text.includes(WORDS.basis) &&
         row.text.includes(WORDS.paused) &&
         row.button?.name === `${WORDS.prepare}: ${row.text.split(":")[0]}` &&
-        row.button.disabled === true,
+        row.button.disabled === (row.key !== "sheet-terms:renewal_date"),
     ) &&
+    openedRight(dateFromList, FIRST_TERM_END, WORDS.prepare) &&
+    dateFromList.field === "renewal_date" &&
+    dateFromList.submitDisabled === true &&
     list.combined?.disabled === true &&
     sheetAppWrites.length === 0 &&
     sheetWriteAttempts(callsInRow).length === 0 &&
@@ -1142,6 +1169,11 @@ export async function checkW1207(ctx, page, start) {
     sheetPaths: sheetPaths(callsInRow),
     productionAllowedSame,
     previewsMatch,
+    dateFromList: {
+      opened: openedRight(dateFromList, FIRST_TERM_END, WORDS.prepare),
+      field: dateFromList.field,
+      submitDisabled: dateFromList.submitDisabled,
+    },
     shownPreviews,
     noSheetRecordsChanged,
     evidenceAtStart: { ...evidenceAtStart, productionAllowed: undefined },
