@@ -156,17 +156,48 @@ export function RenewalKickoffPreparation({
   const scope = preparationScope({ shownTargets: targets, monthTotal, allowance });
   const lifetime = useRef<AbortController | null>(null);
   useEffect(() => {
-    const controller = new AbortController();
+    let controller = new AbortController();
     lifetime.current = controller;
-    queueMicrotask(() => {
-      if (controller.signal.aborted) return;
+    const readContinuation = () => {
       try {
         setContinued(window.sessionStorage.getItem(progressKey) === "started");
       } catch {
         // The per-cycle claim still handles a repeat if storage is unavailable.
       }
+    };
+    queueMicrotask(() => {
+      if (!controller.signal.aborted) readContinuation();
     });
-    return () => controller.abort();
+    // A hard navigation can reject fetch before React unmount cleanup. Stop this foreground
+    // loop at the page-exit event so that rejection cannot dispatch the next lease. This stops
+    // local waiting only; an admitted server operation still owns its original claim.
+    const restoreIdle = () => {
+      controller = new AbortController();
+      lifetime.current = controller;
+      setRun({ phase: "idle" });
+      readContinuation();
+    };
+    const leavePage = () => {
+      controller.abort();
+      // The old loop retains its aborted signal. A canceled navigation can still offer an
+      // explicit Continue with the saved operation, rather than leaving the current page busy.
+      restoreIdle();
+    };
+    const returnToPage = (event: PageTransitionEvent) => {
+      if (!event.persisted) return;
+      controller.abort();
+      restoreIdle();
+      // A BFCache return is passive. Only a new Continue click may recover the saved operation.
+    };
+    window.addEventListener("beforeunload", leavePage);
+    window.addEventListener("pagehide", leavePage);
+    window.addEventListener("pageshow", returnToPage);
+    return () => {
+      window.removeEventListener("beforeunload", leavePage);
+      window.removeEventListener("pagehide", leavePage);
+      window.removeEventListener("pageshow", returnToPage);
+      controller.abort();
+    };
   }, [progressKey]);
 
   async function prepare() {
