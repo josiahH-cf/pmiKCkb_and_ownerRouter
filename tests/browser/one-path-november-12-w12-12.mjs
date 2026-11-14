@@ -82,7 +82,9 @@ const sameSet = (left, right) =>
 const SETTLED_INSTANT =
   /^(\d{2})\/(\d{2})\/(\d{4}), (\d{1,2}):(\d{2}) (AM|PM) (CST|CDT)$/;
 const SCHEDULED_LINE =
-  /Scheduled for (\d{2}\/\d{2}\/\d{4}, \d{1,2}:\d{2} (?:AM|PM) (?:CST|CDT))\. It counts as sent once Gmail accepts it\./;
+  /^Scheduled for (\d{2}\/\d{2}\/\d{4}, \d{1,2}:\d{2} (?:AM|PM) (?:CST|CDT))\. It counts as sent once Gmail accepts it\.$/;
+const SCHEDULED_OWNER_STEP =
+  /^Owner message scheduled for (\d{2}\/\d{2}\/\d{4}, \d{1,2}:\d{2} (?:AM|PM) (?:CST|CDT))$/;
 const SCHEDULED_ROW =
   /^Scheduled for (\d{2}\/\d{2}\/\d{4}, \d{1,2}:\d{2} (?:AM|PM) (?:CST|CDT))$/;
 const PREPARE_BUTTON = /^Prepare (\d+)(?: of (\d+))? ([A-Z][a-z]+ \d{4}) leases?$/;
@@ -108,7 +110,7 @@ const BASIS_NOT_SET =
 const BASIS_SAVED =
   /^Notice timing: counted from (?:the lease end date|the expected move-out date), in calendar days, (\d+) days?\. Applies to every renewal\. Set on (\d{2}\/\d{2}\/\d{4})\.(?: Change in Admin)?$/;
 const CHANGE_IN_ADMIN = "Change in Admin";
-const BASIS_ADMIN_PATH = "/admin";
+const BASIS_ADMIN_HREF = "/admin?task=renewal#admin-move-out-timing-basis";
 const BASIS_ROUTE = "/api/lease-renewal/notice-timing-basis";
 const QUICKBOOKS_STATE = "This app has no QuickBooks sign-in.";
 const BULK_OPTIONS = [
@@ -480,18 +482,10 @@ function requestBasisSelection(page, input) {
 /** The basis line on one lease, with any control near it. */
 async function readBasisLine(kit, page, leaseId) {
   await kit.openLease(page, leaseId);
-  const line = page.locator('section[aria-label="Notice timing basis"]').first();
-  await line.waitFor({ state: "attached", timeout: 60_000 });
-  await page
-    .waitForFunction(
-      () =>
-        document
-          .querySelector('section[aria-label="Notice timing basis"]')
-          ?.getAttribute("data-notice-basis-line") !== "loading",
-      null,
-      { timeout: 60_000 },
-    )
-    .catch(() => undefined);
+  const line = page.locator(
+    'section[aria-label="Notice timing basis"][data-notice-basis-line]:not([data-notice-basis-line="loading"])',
+  );
+  await line.waitFor({ state: "visible", timeout: 60_000 });
   const text = squash(await line.innerText().catch(() => ""));
   return {
     leaseId,
@@ -517,14 +511,16 @@ async function slowLoadRenders(kit, page, leaseId) {
     window.__basisRenders = renders;
     const sample = () => {
       const line = document.querySelector('section[aria-label="Notice timing basis"]');
-      const words = (line?.textContent ?? "").trim();
-      if (!line || !words) {
+      if (
+        !line?.checkVisibility({ visibilityProperty: true }) ||
+        !line.innerText.trim()
+      ) {
         renders.push({ words: false });
         return;
       }
       const step = document.querySelector("#renewal-now-heading");
       const above =
-        !step ||
+        !step?.checkVisibility({ visibilityProperty: true }) ||
         Boolean(line.compareDocumentPosition(step) & Node.DOCUMENT_POSITION_FOLLOWING) ||
         line.getBoundingClientRect().top < step.getBoundingClientRect().top;
       renders.push({ words: true, step: Boolean(step), above });
@@ -545,7 +541,7 @@ async function slowLoadRenders(kit, page, leaseId) {
     await route.fallback();
   });
   try {
-    await kit.openLease(page, leaseId);
+    await kit.openLease(page, leaseId, "?view=guided");
     await page.waitForTimeout(4000);
   } finally {
     await page.unroute("**/api/**").catch(() => undefined);
@@ -1015,23 +1011,26 @@ export async function checkW1212(ctx, page, start) {
       "schedule",
     );
     // The confirmation line the step shows once the schedule is stored.
-    await page
-      .getByText(SCHEDULED_LINE)
-      .first()
-      .waitFor({ timeout: 30_000 })
-      .catch(() => undefined);
-    const statusAfter =
-      (await shownText(page.locator("div.page").first())).match(SCHEDULED_LINE)?.[1] ??
-      null;
+    const status = kit
+      .now(page)
+      .getByRole("status")
+      .filter({ hasText: SCHEDULED_LINE })
+      .first();
+    await status.waitFor({ timeout: 30_000 }).catch(() => undefined);
+    const statusAfter = (await status.isVisible())
+      ? (SCHEDULED_LINE.exec(await shownText(status))?.[1] ?? null)
+      : null;
     // The lease again, as staff come back to it.
-    await kit.openLease(page, leaseId, "?step=ask-owner");
-    await page.waitForTimeout(2000);
+    await kit.openLease(page, leaseId, "?view=guided&step=ask-owner");
+    const scheduledDetail = kit
+      .now(page)
+      .locator('[data-renewal-field="now-detail"]')
+      .filter({ hasText: SCHEDULED_OWNER_STEP });
+    await scheduledDetail.waitFor({ timeout: 30_000 }).catch(() => undefined);
+    const leaseScheduled = (await scheduledDetail.isVisible())
+      ? (SCHEDULED_OWNER_STEP.exec(await shownText(scheduledDetail))?.[1] ?? null)
+      : null;
     const leaseText = await shownText(page.locator("div.page").first());
-    const leaseScheduled = [
-      ...leaseText.matchAll(
-        /Scheduled for (\d{2}\/\d{2}\/\d{4}, \d{1,2}:\d{2} (?:AM|PM) (?:CST|CDT))/g,
-      ),
-    ].map((match) => match[1]);
     const leaseShapes = otherDateShapes(leaseText);
     // Documents: the current facts' time, an instant in standard time today.
     await kit.openLease(page, leaseId, "?step=documents");
@@ -1044,8 +1043,14 @@ export async function checkW1212(ctx, page, start) {
       /Current facts checked (\d{2}\/\d{2}\/\d{4}, \d{1,2}:\d{2} (?:AM|PM) (?:CST|CDT))\./.exec(
         formsText,
       )?.[1] ?? null;
+    // The document handoff includes an opaque unavailable-catalog version, separate from dates.
+    const catalog = page.locator("p").filter({
+      hasText: /^Dotloop: [^.]+\. Catalog: unavailable-\d{4}-\d{2}-\d{2}\.$/,
+    });
+    const catalogLine = (await catalog.isVisible()) ? await shownText(catalog) : null;
+    const documentsText = await shownText(page.locator("div.page").first());
     const documentsShapes = otherDateShapes(
-      await shownText(page.locator("div.page").first()),
+      catalogLine ? documentsText.replace(catalogLine, "") : documentsText,
     );
     // Communications: every tab's lines.
     await kit.openPath(page, "/gmail-hub");
@@ -1122,6 +1127,7 @@ export async function checkW1212(ctx, page, start) {
       leaseScheduled,
       leaseShapes,
       checkedAt,
+      catalogLine,
       documentsShapes,
       communications: {
         tabs: communications.tabs,
@@ -1231,11 +1237,13 @@ export async function checkW1212(ctx, page, start) {
     // Where the hint sends an Admin: People and access names each staff record's account ID.
     const admin = await open("Admin");
     await kit.openPath(admin, "/admin?task=people");
-    await admin.locator("div.page").first().waitFor({ timeout: 90_000 });
-    await admin.waitForTimeout(1500);
-    const accountIds = (
-      (await pageWords(admin)).match(/Account ID [A-Za-z0-9_-]+/g) ?? []
-    ).length;
+    await admin
+      .getByRole("link", { name: "Manage users and roles", exact: true })
+      .click();
+    await admin.waitForURL((url) => url.pathname === "/admin/users", { timeout: 90_000 });
+    const accountLines = admin.locator("[data-admin-user-account-id]");
+    await accountLines.first().waitFor({ timeout: 60_000 });
+    const accountIds = (await accountLines.allInnerTexts()).map(squash);
     return { live, documents, create, edit, accountIds, writes: writesSince(ctx, mark) };
   });
 
@@ -1280,19 +1288,12 @@ export async function checkW1212(ctx, page, start) {
       .locator('section[aria-label="Notice timing basis"]')
       .getByRole("link", { name: CHANGE_IN_ADMIN, exact: true })
       .first();
-    let followed = null;
-    if (await kit.shownWithin(changeLink, 10_000)) {
-      await changeLink.click();
-      await admin.waitForURL((url) => url.pathname === BASIS_ADMIN_PATH, {
-        timeout: 120_000,
-      });
-      followed =
-        new URL(admin.url()).pathname +
-        new URL(admin.url()).search +
-        new URL(admin.url()).hash;
-    } else {
-      await kit.openPath(admin, "/admin?task=renewal#admin-move-out-timing-basis");
-    }
+    await changeLink.click();
+    const pathOf = (url) => url.pathname + url.search + url.hash;
+    await admin.waitForURL((url) => pathOf(url) === BASIS_ADMIN_HREF, {
+      timeout: 120_000,
+    });
+    const followed = pathOf(new URL(admin.url()));
     const panel = admin.locator("#admin-move-out-timing-basis").first();
     await panel.waitFor({ timeout: 90_000 });
     const select = panel.getByLabel("Documented notice basis");
@@ -1752,7 +1753,6 @@ export async function checkW1212(ctx, page, start) {
   // AC-S283-1: settled dates and instants, both zones, native inputs, no other shape, source check.
   const ac1 = (() => {
     if (!dates) return false;
-    const scheduledLease = dates.statusAfter;
     const daylight = (value) => SETTLED_INSTANT.exec(value ?? "")?.[7] === "CDT";
     const standard = (value) => SETTLED_INSTANT.exec(value ?? "")?.[7] === "CST";
     const expected = `${DAYLIGHT_DATE.slice(5, 7)}/${DAYLIGHT_DATE.slice(8, 10)}/${DAYLIGHT_DATE.slice(0, 4)}, 9:00 AM CDT`;
@@ -1762,13 +1762,16 @@ export async function checkW1212(ctx, page, start) {
       dates.entered.date === DAYLIGHT_DATE &&
       dates.entered.time === DAYLIGHT_TIME &&
       dates.confirmed.status === 200 &&
-      scheduledLease === expected &&
-      daylight(scheduledLease) &&
+      dates.confirmed.state === "active" &&
+      dates.statusAfter === expected &&
+      dates.leaseScheduled === expected &&
+      daylight(dates.leaseScheduled) &&
       dates.communications.scheduled.some(
         (line) => SCHEDULED_ROW.exec(line)?.[1] === expected,
       ) &&
       standard(dates.checkedAt) &&
       dates.communications.instants.every((value) => SETTLED_INSTANT.test(value)) &&
+      dates.dialogShapes.length === 0 &&
       dates.leaseShapes.length === 0 &&
       dates.documentsShapes.length === 0 &&
       dates.communications.shapes.length === 0 &&
@@ -1948,7 +1951,11 @@ export async function checkW1212(ctx, page, start) {
       wording.edit.approverLabel &&
       wording.edit.hints >= 2 &&
       !wording.edit.uid &&
-      wording.accountIds > 0
+      sameSet(wording.accountIds, [
+        "Account ID local-demo-admin",
+        "Account ID local-demo-approver",
+        "Account ID local-demo-editor",
+      ])
     );
   })();
 
@@ -1990,8 +1997,7 @@ export async function checkW1212(ctx, page, start) {
       readOnly(basis.lines.Editor) &&
       readOnly(basis.lines.Approver) &&
       basis.lines.Admin.changeLinks.length === 1 &&
-      basis.lines.Admin.changeLinks[0] ===
-        "/admin?task=renewal#admin-move-out-timing-basis" &&
+      basis.lines.Admin.changeLinks[0] === BASIS_ADMIN_HREF &&
       basis.lines.Admin.pageSelectors === 0 &&
       !basis.reads.Editor.canSelect &&
       !basis.reads.Approver.canSelect &&
@@ -2003,7 +2009,7 @@ export async function checkW1212(ctx, page, start) {
       basis.slow.slowedReads > 0 &&
       basis.slow.rendersWithLine > 0 &&
       basis.slow.lineAboveStep === 0 &&
-      basis.followed?.startsWith("/admin?task=renewal") &&
+      basis.followed === BASIS_ADMIN_HREF &&
       basis.selection?.http === 200 &&
       basis.selection.state === "saved" &&
       basis.afterSelection.state === "saved" &&

@@ -59,6 +59,7 @@ export function NoticeTimingBasisLine() {
       aria-label="Notice timing basis"
       className="renewal-notice-timing-basis"
       data-notice-basis-line={state ? state.read.state : "loading"}
+      data-renewal-focus-context
       id={NOTICE_TIMING_BASIS_TARGET_ID}
       tabIndex={-1}
     >

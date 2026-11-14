@@ -80,6 +80,7 @@ describe("R-S283-5 the notice basis line", () => {
     render(<NoticeTimingBasisLine />);
     const region = screen.getByRole("region", { name: "Notice timing basis" });
     await waitFor(() => expect(region).toHaveTextContent("Set on 11/03/2026."));
+    expect(region).toHaveAttribute("data-renewal-focus-context");
     expect(region).toHaveAttribute("id", NOTICE_TIMING_BASIS_TARGET_ID);
     expect(screen.queryByRole("combobox")).toBeNull();
     expect(screen.queryByRole("button")).toBeNull();
