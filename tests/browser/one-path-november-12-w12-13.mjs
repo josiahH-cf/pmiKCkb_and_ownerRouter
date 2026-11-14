@@ -78,6 +78,7 @@ import {
 import { serverProviderCalls } from "./one-path-november-12-provider-log.mjs";
 
 const PACKET_INPUTS_ROUTE = "/api/lease-renewal/packet-inputs";
+const REHEARSAL_EDITOR_MAILBOX = "local-demo-editor@pmikcmetro.com";
 const PARTS = ["A", "B", "C", "E", "F"];
 /** The spec's words (R-S285-1 to R-S285-6) and the earlier suites' words they sit beside. */
 const WORDS = {
@@ -251,10 +252,16 @@ async function ownerResponse(kit, page, leaseId) {
   const workspace = await kit.read(page, `${WORKSPACE_ROUTE}?leaseId=${leaseId}`);
   return workspace?.state?.ownerResponse ?? null;
 }
-/** The stored answer holds no address: no key that names one and no address as a value. */
+/** The existing linked-reply evidence keeps its staff mailbox. No owner's address is retained. */
 function holdsNoAddress(value) {
-  const text = JSON.stringify(value ?? null);
-  return !/@/.test(text) && !/"[^"]*(?:email|address|sender)[^"]*"\s*:/i.test(text);
+  if (value?.approval?.channel?.kind !== "linked_reply") return false;
+  const { senderEmail, ...channel } = value.approval.channel;
+  if (senderEmail !== REHEARSAL_EDITOR_MAILBOX) return false;
+  const text = JSON.stringify({ ...value, approval: { ...value.approval, channel } });
+  return (
+    !/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(text) &&
+    !/"[^"]*(?:email|address|sender)[^"]*"\s*:/i.test(text)
+  );
 }
 async function ownerSequences(kit, leaseId) {
   return kit.sequences(leaseId, "renewal_owner");
@@ -1839,10 +1846,20 @@ export async function checkW1213(ctx, page, start) {
     await phase("datesMissingHold", async () => {
       const read = await askOwner(ctx, page, leaseId);
       const item = datesItem(read.needs);
-      const scheduleEnabled = await kit
-        .now(page)
-        .getByRole("button", { name: "Schedule", exact: true })
-        .evaluateAll((nodes) => nodes.filter((node) => !node.disabled).length);
+      const ways = page.locator(
+        'details[data-renewal-group="Other ways to send"][data-renewal-group-step="ask-owner"]:visible',
+      );
+      const waysShown = await kit.shownWithin(ways, 5_000);
+      if (waysShown) await kit.openDisclosure(ways);
+      const schedule = ways.getByRole("button", { name: "Schedule", exact: true });
+      const shortcut = ways.getByRole("button", {
+        name: "Create Gmail draft instead",
+        exact: true,
+      });
+      const scheduleShown = await schedule.isVisible();
+      const shortcutShown = await shortcut.isVisible();
+      const scheduleHeld = scheduleShown ? await schedule.isDisabled() : !waysShown;
+      const shortcutHeld = shortcutShown ? await shortcut.isDisabled() : !waysShown;
       await revealOwnerMessage(kit, page, leaseId);
       const draft = page.getByRole("button", {
         name: "Preview unsent Gmail draft",
@@ -1872,7 +1889,11 @@ export async function checkW1213(ctx, page, start) {
       return {
         primary: read.primary,
         item,
-        scheduleEnabled,
+        waysShown,
+        scheduleShown,
+        scheduleHeld,
+        shortcutShown,
+        shortcutHeld,
         draftShown,
         draftDisabled,
         fixShown,
@@ -1881,7 +1902,8 @@ export async function checkW1213(ctx, page, start) {
           item?.ready === "missing" &&
           item.text.startsWith(WORDS.datesLine) &&
           read.primary !== "Review owner message" &&
-          scheduleEnabled === 0 &&
+          scheduleHeld &&
+          shortcutHeld &&
           draftShown &&
           draftDisabled === true &&
           fixShown &&

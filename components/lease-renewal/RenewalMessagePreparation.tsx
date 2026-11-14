@@ -53,6 +53,7 @@ import {
   MessageChargeSchema,
   RenewalMessageEditsSchema,
   ownerCopyStatesTerm,
+  ownerTermDateIssue,
   responseRequestParagraph,
   type RenewalMessageFacts,
 } from "@/lib/lease-renewal/renewal-message-content";
@@ -1691,12 +1692,13 @@ function MessagePreparationEditor({
   const unresolved =
     outcome?.status === "needs_reconciliation" ||
     (outcome?.status === "reconciliation" && outcome.resolution !== "created");
-  // S162 (R-S162-5, R-S162-9): only what the exact Gmail action needs is asked of it. Missing
-  // business values, an unrecorded response and an unsaved message never withhold the step.
+  // S162 and S285: the exact Gmail action needs the saved dates when the owner copy states a term.
   const canDraft = Boolean(
     canEdit &&
     current &&
     shownContent &&
+    content &&
+    !ownerTermDateIssue(content) &&
     current.publication.status === "approved" &&
     !current.priorSenderWording &&
     !unresolved,

@@ -9,6 +9,7 @@ import {
   type RenewalMessageFacts,
 } from "@/lib/lease-renewal/renewal-message-content";
 import { outgoingRenewalReasons } from "@/lib/lease-renewal/outgoing-message-readiness";
+import { applyRefinedBody } from "@/lib/lease-renewal/refined-message";
 import {
   ENTER_RENEWAL_DATES_LABEL,
   WORKING_END_FIELD_ID,
@@ -209,6 +210,25 @@ describe("BEH-S285-2 v2.1 states the term and asks about the rent and the term",
 });
 
 describe("BEH-S285-2 / R-S285-3 the renewal dates before the owner review", () => {
+  it("requires saved dates for a v2.1 release even after staff edit out the placeholders", () => {
+    const composedContent = composeRenewalMessage(
+      ownerFacts({ ownerCopyVersion: "v2.1", ownerTerms: null }),
+    );
+    const content = applyRefinedBody(
+      composedContent,
+      "May we renew the lease on these terms?",
+    );
+    expect(content.missing).toEqual([]);
+    expect(
+      outgoingRenewalReasons({
+        content,
+        composedContent,
+        signatureConfigured: true,
+        reply: false,
+      }),
+    ).toEqual(["Renewal dates: enter the start and end"]);
+  });
+
   it("BEH-S285-2: with no dates saved, the readiness list shows 'Renewal dates: enter the start and end' and the review is held", () => {
     const content = composeRenewalMessage(
       ownerFacts({ ownerCopyVersion: "v2.1", ownerTerms: null }),

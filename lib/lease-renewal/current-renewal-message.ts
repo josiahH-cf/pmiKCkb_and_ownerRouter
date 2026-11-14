@@ -1189,6 +1189,7 @@ export async function currentRenewalMessage(
   const outgoingReasons = [
     ...outgoingRenewalReasons({
       content,
+      composedContent: composed,
       signatureConfigured: signatureSetup !== null,
       reply: false,
     }),

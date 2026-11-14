@@ -360,6 +360,13 @@ export interface RenewalMessageContent {
   htmlBody: string;
 }
 
+/** The dates that must be saved before releasing owner wording that states the term. */
+export function ownerTermDateIssue(content: Pick<RenewalMessageContent, "missing">) {
+  return content.missing.find(
+    ({ field }) => field === "renewalDates" || field === "renewalDates.end",
+  );
+}
+
 /**
  * S161 (R-S161-4): the named fill-in marker for one value the message does not have yet, in the
  * existing "Needs Verification: <fact>" convention. It stays in copied text and in the unsent draft
