@@ -368,6 +368,13 @@ it("S233 R-S233-9: a repeated mount shares the exact load and a superseded entry
   await new Promise((resolve) => setTimeout(resolve, 900));
   expect(saves).toEqual([]);
   loads[1]!();
+  // S281 R-S281-6 (rewritten on purpose): the current entry, opened and untouched, saves no
+  // draft either; the staff member's first change saves exactly one.
+  const editor = await screen.findByRole("textbox", { name: "Initial message body" });
+  await new Promise((resolve) => setTimeout(resolve, 900));
+  expect(saves).toEqual([]);
+  editor.innerHTML = "<p>Saved exact wording, with one more word</p>";
+  fireEvent.input(editor);
   await waitFor(() => expect(saves).toHaveLength(1));
   await new Promise((resolve) => setTimeout(resolve, 900));
   expect(saves).toHaveLength(1);
@@ -424,6 +431,13 @@ it("recovers a new composer from an unreadable response by keyboard, with one dr
   await waitFor(() =>
     expect(screen.getByRole("heading", { name: "Synthetic lease" })).toHaveFocus(),
   );
+  // S281 R-S281-6 (rewritten on purpose): the recovered composer saves nothing until the staff
+  // member changes something; then exactly one draft save.
+  await new Promise((resolve) => setTimeout(resolve, 900));
+  expect(actions).toEqual([]);
+  const editor = screen.getByRole("textbox", { name: "Initial message body" });
+  editor.innerHTML = "<p>Saved exact wording, edited</p>";
+  fireEvent.input(editor);
   await waitFor(() => expect(actions).toEqual(["save"]));
 });
 

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { apiErrorResponse } from "@/lib/api/editable";
+import { can } from "@/lib/auth/roles";
 import { hasSpaceAccess, requireCapability } from "@/lib/auth/session";
+import { isNotificationFamilyServed } from "@/lib/notifications/families";
 import {
   listApprovalQueueNotifications,
   markApprovalQueueNotificationRead,
@@ -42,7 +44,14 @@ export async function POST() {
       marked += unread.length;
     }
 
-    if (canReadMaintenance) {
+    // S280 R-S280-5: retired maintenance families are neither shown nor swept; their stored records
+    // stay exactly as they are.
+    const scope = {
+      isAdmin: can(user.role, "manageAdmin"),
+      canReadRenewals,
+      canReadMaintenance,
+    };
+    if (canReadMaintenance && isNotificationFamilyServed("maintenance_tickets", scope)) {
       const unread = await listMaintenanceTicketNotifications(user, { unreadOnly: true });
       await Promise.all(
         unread.map((notification) =>
@@ -53,7 +62,9 @@ export async function POST() {
     }
 
     if (canReadRenewals || canReadMaintenance) {
-      const unread = await listGmailWorkflowNotifications(user, { unreadOnly: true });
+      const unread = (
+        await listGmailWorkflowNotifications(user, { unreadOnly: true })
+      ).filter((notification) => isNotificationFamilyServed(notification.family, scope));
       await Promise.all(
         unread.map((notification) =>
           markGmailWorkflowNotificationRead(user, notification.id),

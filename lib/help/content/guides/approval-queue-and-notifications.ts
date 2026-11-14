@@ -247,7 +247,7 @@ export const APPROVAL_QUEUE_AND_NOTIFICATIONS_GUIDES: readonly HelpGuide[] = [
         result:
           "The notification is marked read, and its linked page opens, such as an Approval Queue item.",
         effect: "saves-in-app",
-        note: "A reply to a renewal message you sent reads Owner replied or Tenant replied with the lease, for example read the reply and record the owner's decision, and opens that lease on Ask the owner or Offer the tenant. It names no address or message; record the answer on the lease.",
+        note: "A reply to a renewal message you sent reads Owner replied or Tenant replied with the lease, for example read the reply and record the owner's decision, and opens that lease on Ask the owner or Offer the tenant. It names no address or message; record the answer on the lease. When the app holds a renewal message you scheduled, Renewal message held, marked Held, says The tenant offer or The owner message for the lease was held because the lease changed, or names the other reason, and opens the lease at that step. Setup, coverage, team review and feedback notices go to Admins only, and maintenance notices are no longer sent.",
       },
       {
         id: "mark-all-read",
@@ -361,6 +361,7 @@ export const APPROVAL_QUEUE_AND_NOTIFICATIONS_GUIDES: readonly HelpGuide[] = [
         result:
           "Connections to set up and Space coverage list each gap with a link to fix it, or say Every connection is set up and Every space has its process and connections.",
         effect: "reads",
+        note: "Only an Admin is sent setup and coverage gaps; for an Editor or Approver both lanes read their all-clear line.",
       },
     ],
     result:

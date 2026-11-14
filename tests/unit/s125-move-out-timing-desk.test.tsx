@@ -329,7 +329,9 @@ describe("S125 workspace timing panel (AC-S125-1, AC-S125-3, AC-S125-5)", () => 
     );
   }
 
-  it("keeps the staff selector visible on a live lease with no notice, and opening performs only reads", async () => {
+  // S283 R-S283-5: rewritten on purpose. The lease shows the shared basis as one read-only line
+  // (no selector); an Admin changes it in Admin. Opening still performs only reads.
+  it("shows the shared basis as a read-only line on a live lease with no notice, and opening performs only reads", async () => {
     const fetcher = vi.fn(async (url: string, options?: RequestInit) => {
       expect(options?.method ?? "GET").toBe("GET");
       return Response.json(
@@ -354,16 +356,21 @@ describe("S125 workspace timing panel (AC-S125-1, AC-S125-3, AC-S125-5)", () => 
     });
     vi.stubGlobal("fetch", fetcher);
     renderWorkspace(timing("not_initiated", null, null), true, true);
-    const panel = screen.getByRole("region", { name: "Notice timing" });
-    expect(
-      await within(panel).findByRole("combobox", { name: "Documented notice basis" }),
-    ).toBeInTheDocument();
+    const line = screen.getByRole("region", { name: "Notice timing basis" });
     await waitFor(() =>
-      expect(
-        within(panel).getByRole("combobox", { name: "Documented notice basis" }),
-      ).toBeEnabled(),
+      expect(line).toHaveTextContent(
+        "Notice timing basis: not set. An Admin sets it in Renewal notice rules.",
+      ),
     );
-    expect(panel).toHaveTextContent("Shared basis for all renewal notice comparisons");
+    expect(
+      screen.queryByRole("combobox", { name: "Documented notice basis" }),
+    ).toBeNull();
+    expect(screen.queryByRole("region", { name: "Notice timing" })).toBeNull();
+    // canSelect is true in this read (an Admin): the line offers the Admin entry, not a control.
+    expect(within(line).getByRole("link", { name: "Change in Admin" })).toHaveAttribute(
+      "href",
+      "/admin?task=renewal#admin-move-out-timing-basis",
+    );
     expect(
       fetcher.mock.calls.every(
         (call) => (call[1] as RequestInit | undefined)?.method !== "PATCH",

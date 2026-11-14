@@ -10,9 +10,14 @@
 // it), while a date fix that started in Offer the tenant waits for "Return to tenant offer", and
 // while a date save is pending or failed. Opening it saves, sends and looks up nothing.
 
+//
+// S281 R-S281-14 (ARCH-S281-5): the editor is mounted once on a page. While the Guided view has it
+// open in place on Offer the tenant, this reveal mounts no second one; Full view keeps it here.
+
 import { useRef } from "react";
 
 import { useDateFixReturn } from "./RenewalDateProposal";
+import { useRenewalFocusView } from "./RenewalFocusViewContext";
 import { useNamedDisclosure } from "./RenewalGuidedView";
 import { WorkingRenewalTermsFields } from "./RenewalManualWorkspace";
 import { RenewalSectionHelp } from "./RenewalSectionHelp";
@@ -20,6 +25,12 @@ import { RenewalSectionHelp } from "./RenewalSectionHelp";
 export const WORKING_TERMS_REVEAL_LABEL = "Working renewal terms";
 
 export function RenewalWorkingTermsReveal() {
+  const view = useRenewalFocusView();
+  const onOffer = view?.view === "guided" && view.workingTermsOnOffer;
+  return onOffer ? null : <WorkingTermsReveal />;
+}
+
+function WorkingTermsReveal() {
   const ref = useRef<HTMLDetailsElement | null>(null);
   const pendingReturn = useDateFixReturn();
   const promoted = useNamedDisclosure(ref, {

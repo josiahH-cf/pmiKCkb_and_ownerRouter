@@ -214,6 +214,14 @@ export async function runCommunicationWorker(input: {
       // S274 R-S274-7: a wait on a settling lease read is counted on its own; nothing was held.
       else if (result.waitedOnLeaseRead) counts.waitedOnLeaseRead += 1;
       else if (!["not_due"].includes(result.status)) counts.held += 1;
+      // S273 R-S273-6: the worker's own hold tells the responsible sender, once per sequence and
+      // pause. It runs after the hold and never changes it; a failure is swallowed.
+      if (
+        result.status === "paused" &&
+        result.sequence.pause?.byUid === "communication-worker" &&
+        deps.recordHold
+      )
+        await deps.recordHold(result.sequence).catch(() => undefined);
     } catch {
       counts.failures += 1;
     } // Value-free operational evidence; no raw provider response.

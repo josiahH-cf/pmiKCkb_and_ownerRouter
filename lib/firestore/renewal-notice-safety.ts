@@ -345,8 +345,8 @@ function projectNoticeObservation(
   head: DocumentSnapshot,
   existing: DocumentSnapshot,
   saved: DocumentSnapshot | undefined,
-  tx: Transaction,
   db: Firestore,
+  tx?: Transaction,
 ): RenewalNoticeSafety {
   const markerRef = noticeSafetyMarkerRef(db, leaseId);
   const cycleId =
@@ -359,6 +359,30 @@ function projectNoticeObservation(
     source.statusTable.status === "available" &&
     source.statusTable.admittedLeaseKeys?.includes(renewalWorkspaceDocId(leaseId)) ===
       true;
+  if (!tx) {
+    const history = saved?.exists ? historySchema.parse(saved.data()) : null;
+    const disposition = projection(source, history);
+    const marker = existing.exists
+      ? NoticeSafetyMarkerSchema.parse(existing.data())
+      : null;
+    const checkedStatusAt =
+      source.statusTable.status === "available" ? (source.statusTable.readAtMs ?? 0) : 0;
+    const behindAdmission =
+      marker &&
+      (marker.sourceReadAt.lease > source.leaseReadAtMs ||
+        marker.sourceReadAt.status > checkedStatusAt);
+    return {
+      disposition: behindAdmission
+        ? unavailableDisposition(leaseId, NOTICE_GENERATION_NOT_READY)
+        : disposition,
+      basis: null,
+      cycleId,
+      tenancyVerified: false,
+      history: null,
+      ready: false,
+      reason: "Message preparation requires an admitted source read.",
+    };
+  }
   if (!existing.exists || !admitted) {
     const sourceReadAt = { lease: 0, status: 0 };
     const marker = existing.exists
@@ -454,6 +478,7 @@ export async function observeRenewalNotices(
   actor: AuthenticatedUser,
   sources: readonly NoticeSourceRead[],
   db: Firestore = getAdminFirestore(),
+  options: { readonly displayOnly?: boolean } = {},
 ): Promise<RenewalNoticeSafety[]> {
   requireReader(actor);
   if (sources.length > NOTICE_OBSERVATION_BATCH_SIZE)
@@ -467,63 +492,71 @@ export async function observeRenewalNotices(
     throw new EditableLayerError("The notice observation identities are ambiguous.", 409);
   if (!entries.length) return [];
   try {
-    return await db.runTransaction(async (tx) => {
-      const targets = entries.map((entry) => ({
-        ...entry,
-        headRef: db
-          .collection("lease_renewal_workspaces")
-          .doc(renewalWorkspaceDocId(entry.leaseId)),
-        markerRef: noticeSafetyMarkerRef(db, entry.leaseId),
-      }));
-      const snapshots = await tx.getAll(
-        ...targets.flatMap((entry) => [entry.headRef, entry.markerRef]),
-      );
-      const byPath = new Map(snapshots.map((snapshot) => [snapshot.ref.path, snapshot]));
-      const prepared = targets.map((entry) => {
-        const head = byPath.get(entry.headRef.path),
-          existing = byPath.get(entry.markerRef.path);
-        if (!head || !existing) throw new Error("notice_snapshot_missing");
-        const cycleId =
-          head.exists && typeof head.get("cycleId") === "string"
-            ? (head.get("cycleId") as string)
-            : null;
-        const admitted =
-          entry.source.admittedLeaseKeys?.includes(entry.headRef.id) === true &&
-          entry.source.statusTable.status === "available" &&
-          entry.source.statusTable.admittedLeaseKeys?.includes(entry.headRef.id) === true;
-        const history =
-          existing.exists && admitted
-            ? historyRef(
-                db,
-                entry.leaseId,
-                noticeScopeHash(entry.leaseId, entry.tenancyHash, cycleId),
-              )
-            : null;
-        return { ...entry, head, existing, history };
-      });
-      const historyRefs = prepared.flatMap((entry) =>
-        entry.history ? [entry.history] : [],
-      );
-      const historySnapshots = historyRefs.length ? await tx.getAll(...historyRefs) : [];
-      const histories = new Map(
-        historySnapshots.map((snapshot) => [snapshot.ref.path, snapshot]),
-      );
-      if (historyRefs.some((ref) => !histories.has(ref.path)))
-        throw new Error("notice_history_snapshot_missing");
-      // No source fetch, transaction read or external action occurs after this point.
-      return prepared.map((entry) =>
-        projectNoticeObservation(
-          entry.source,
-          entry.leaseId,
-          entry.tenancyHash,
-          entry.head,
-          entry.existing,
-          entry.history ? histories.get(entry.history.path) : undefined,
-          tx,
-          db,
-        ),
-      );
-    });
+    return await db.runTransaction(
+      async (tx) => {
+        const targets = entries.map((entry) => ({
+          ...entry,
+          headRef: db
+            .collection("lease_renewal_workspaces")
+            .doc(renewalWorkspaceDocId(entry.leaseId)),
+          markerRef: noticeSafetyMarkerRef(db, entry.leaseId),
+        }));
+        const snapshots = await tx.getAll(
+          ...targets.flatMap((entry) => [entry.headRef, entry.markerRef]),
+        );
+        const byPath = new Map(
+          snapshots.map((snapshot) => [snapshot.ref.path, snapshot]),
+        );
+        const prepared = targets.map((entry) => {
+          const head = byPath.get(entry.headRef.path),
+            existing = byPath.get(entry.markerRef.path);
+          if (!head || !existing) throw new Error("notice_snapshot_missing");
+          const cycleId =
+            head.exists && typeof head.get("cycleId") === "string"
+              ? (head.get("cycleId") as string)
+              : null;
+          const admitted =
+            entry.source.admittedLeaseKeys?.includes(entry.headRef.id) === true &&
+            entry.source.statusTable.status === "available" &&
+            entry.source.statusTable.admittedLeaseKeys?.includes(entry.headRef.id) ===
+              true;
+          const history =
+            existing.exists && (admitted || options.displayOnly)
+              ? historyRef(
+                  db,
+                  entry.leaseId,
+                  noticeScopeHash(entry.leaseId, entry.tenancyHash, cycleId),
+                )
+              : null;
+          return { ...entry, head, existing, history };
+        });
+        const historyRefs = prepared.flatMap((entry) =>
+          entry.history ? [entry.history] : [],
+        );
+        const historySnapshots = historyRefs.length
+          ? await tx.getAll(...historyRefs)
+          : [];
+        const histories = new Map(
+          historySnapshots.map((snapshot) => [snapshot.ref.path, snapshot]),
+        );
+        if (historyRefs.some((ref) => !histories.has(ref.path)))
+          throw new Error("notice_history_snapshot_missing");
+        // No source fetch, transaction read or external action occurs after this point.
+        return prepared.map((entry) =>
+          projectNoticeObservation(
+            entry.source,
+            entry.leaseId,
+            entry.tenancyHash,
+            entry.head,
+            entry.existing,
+            entry.history ? histories.get(entry.history.path) : undefined,
+            db,
+            options.displayOnly ? undefined : tx,
+          ),
+        );
+      },
+      options.displayOnly ? { readOnly: true } : undefined,
+    );
   } catch {
     // A failed chunk exposes no ready result and commits no partial invalidation markers.
     return entries.map(({ leaseId, tenancyHash }) => ({
@@ -545,8 +578,9 @@ export async function observeRenewalNotice(
   actor: AuthenticatedUser,
   source: NoticeSourceRead,
   db: Firestore = getAdminFirestore(),
+  options: { readonly displayOnly?: boolean } = {},
 ): Promise<RenewalNoticeSafety> {
-  return (await observeRenewalNotices(actor, [source], db))[0];
+  return (await observeRenewalNotices(actor, [source], db, options))[0];
 }
 
 /** An explicit, audited staff action records evidence without starting a cycle or changing progress. */

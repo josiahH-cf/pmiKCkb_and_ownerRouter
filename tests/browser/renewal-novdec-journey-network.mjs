@@ -2,12 +2,14 @@
 // `node --import` into the local Next dev server and every child it starts. RentVine reads for the
 // pmikcmetro account are answered from synthetic rows below; every other non-loopback connection is
 // refused and logged, so no live provider, Google API or metadata server can be reached. Nothing
-// here writes anywhere except the refusal log.
+// here writes anywhere except the refusal log (and, once a driver arms the S284 W12-05 write
+// fault, that fault's own marker file in the run directory).
 import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import http from "node:http";
 import https from "node:https";
 import net from "node:net";
 
+import { installFirestoreFault } from "../../scripts/lib/one-path-rehearsal/firestore-fault.mjs";
 import {
   centralBusinessDate,
   loadNovember5Mix,
@@ -17,6 +19,7 @@ import {
 } from "../../scripts/lib/one-path-rehearsal/november-5-mix.mjs";
 
 const LOG = process.env.NOVDEC_JOURNEY_NETWORK_LOG;
+const FIRESTORE_FAULT = process.env.ONE_PATH_REHEARSAL_FIRESTORE_FAULT;
 // S232 R-S232-5: while this file exists, the RentVine read of the path it names (for example
 // `leases/statuses`) fails as an outage would. The browser script writes and removes it; this
 // module only reads it.
@@ -318,7 +321,13 @@ const stand = http.createServer((request, response) => {
   request.resume();
   request.on("end", () => {
     const body = google(host, request.method, url);
-    record({ served: "google", host, path: url.pathname, found: body !== undefined });
+    record({
+      served: "google",
+      host,
+      method: request.method,
+      path: url.pathname,
+      found: body !== undefined,
+    });
     response.writeHead(body === undefined ? 404 : 200, {
       "content-type": "application/json",
     });
@@ -389,10 +398,12 @@ globalThis.fetch = async function guardedFetch(input, init) {
         });
   }
   if (GOOGLE_HOSTS.has(url.hostname)) {
-    const body = google(url.hostname, (init?.method ?? "GET").toUpperCase(), url);
+    const method = (init?.method ?? "GET").toUpperCase();
+    const body = google(url.hostname, method, url);
     record({
       served: "google",
       host: url.hostname,
+      method,
       path: url.pathname,
       found: body !== undefined,
     });
@@ -451,3 +462,8 @@ Object.defineProperty(globalThis, Symbol.for("pmi-kc.rehearsal-network-guard"), 
   value: net.Socket.prototype.connect,
 });
 record({ event: "network_guard_ready" });
+
+// S284 W12-05 (S276 AC-S276-3), harness only: the rehearsal server alone names a one-shot
+// Firestore write fault file (scripts/lib/one-path-rehearsal/firestore-fault.mjs). It writes
+// nothing and refuses nothing unless a driver arms it through the control hook.
+if (FIRESTORE_FAULT) installFirestoreFault(FIRESTORE_FAULT, record);

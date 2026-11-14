@@ -1,5 +1,14 @@
 export class FakeFirestore {
   readonly store = new Map<string, Record<string, unknown>>();
+  /**
+   * Opt-in (S272): `where` reads a dotted field path such as "context.entityId" as nested fields,
+   * as Firestore does. Off by default, so existing fakes keep matching top-level fields only.
+   */
+  readonly fieldPaths: boolean;
+
+  constructor(options: { fieldPaths?: boolean } = {}) {
+    this.fieldPaths = options.fieldPaths === true;
+  }
 
   collection(name: string) {
     return new FakeCollection(this, name);
@@ -76,7 +85,11 @@ class FakeQuery {
     return {
       docs: snapshot.docs.filter((doc) => {
         const data = doc.data();
-        return data ? data[this.field] === this.value : false;
+        if (!data) return false;
+        return (
+          (this.db.fieldPaths ? readFieldPath(data, this.field) : data[this.field]) ===
+          this.value
+        );
       }),
     };
   }
@@ -121,6 +134,18 @@ class FakeTransaction {
   delete(ref: FakeDocument) {
     this.db.store.delete(ref.path);
   }
+}
+
+function readFieldPath(data: Record<string, unknown>, path: string): unknown {
+  return path
+    .split(".")
+    .reduce<unknown>(
+      (value, key) =>
+        value && typeof value === "object"
+          ? (value as Record<string, unknown>)[key]
+          : undefined,
+      data,
+    );
 }
 
 function collectionSnapshot(db: FakeFirestore, collectionPath: string) {

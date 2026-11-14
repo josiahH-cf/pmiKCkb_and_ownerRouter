@@ -10,14 +10,22 @@ import {
 import { renewalWorkspaceDocId } from "@/lib/firestore/renewal-workspace";
 import {
   classifyLeaseDataAge,
+  fetchLiveLeaseSnapshot,
   getLiveLeaseSnapshot,
   getLiveLeaseSnapshotAtOrAfter,
+  LEASE_EXPORT_TTL_MS,
+  LEASE_REFRESH_BACKOFF_BASE_MS,
   liveLeaseSnapshotHasAdmission,
+  peekAdmittedLiveLeaseSnapshot,
   readLiveLeaseSnapshotForAdmission,
   type LeaseExportReader,
+  type LiveLeaseSnapshot,
 } from "./live-lease-cache";
 import {
+  LEASE_STATUS_TABLE_TTL_MS,
   leaseStatusTableHasAdmission,
+  peekAdmittedLeaseStatusTable,
+  readLeaseStatusTable,
   readLeaseStatusTableForAdmission,
   type LeaseStatusTableReader,
 } from "./lease-status-table";
@@ -29,6 +37,119 @@ type AdmittedRead = Awaited<ReturnType<typeof readLiveLeaseSnapshotForAdmission>
   statusTable: Awaited<ReturnType<typeof readLeaseStatusTableForAdmission>>;
 };
 type Minimum = { leaseKeys: readonly string[]; lease: number; status: number };
+
+/** Display-only provider/cache reads with no notice admission hooks. */
+export async function readOnlyRenewalDisplaySource(reader: Reader, nowMs: number) {
+  const [lease, statusTable] = await Promise.all([
+    getLiveLeaseSnapshot(reader, nowMs),
+    readLeaseStatusTable(reader, nowMs),
+  ]);
+  return { ...lease, statusTable };
+}
+
+type DisplayStatusRead = NonNullable<ReturnType<typeof peekAdmittedLeaseStatusTable>>;
+type PortfolioDisplayRead = Omit<AdmittedRead, "statusTable"> & {
+  statusTable: DisplayStatusRead;
+};
+interface DisplayReadCache<T> {
+  value?: T;
+  pending?: Promise<T | undefined>;
+  retryAt?: number;
+}
+interface PortfolioDisplayCache {
+  lease: DisplayReadCache<LiveLeaseSnapshot>;
+  status: DisplayReadCache<DisplayStatusRead>;
+}
+const portfolioDisplayCaches = new WeakMap<object, PortfolioDisplayCache>();
+
+function readDisplayHalf<T extends { readAtMs: number }>(
+  cache: DisplayReadCache<T>,
+  admitted: T | null,
+  minimum: number,
+  now: number,
+  ttlMs: number,
+  read: () => Promise<T>,
+): T | Promise<T | undefined> | undefined {
+  const usable = (value: T | null | undefined): value is T =>
+    !!value && value.readAtMs >= minimum && now - value.readAtMs < ttlMs;
+  if (usable(admitted)) return admitted;
+  if (usable(cache.value)) return cache.value;
+  if (cache.pending) return cache.pending;
+  if (now < Math.max(minimum, cache.retryAt ?? 0)) return undefined;
+  cache.pending = Promise.resolve()
+    .then(read)
+    .then((value) => (cache.value = value))
+    .catch(() => {
+      cache.retryAt = Date.now() + LEASE_REFRESH_BACKOFF_BASE_MS;
+      return undefined;
+    })
+    .finally(() => {
+      cache.pending = undefined;
+    });
+  return cache.pending;
+}
+
+/**
+ * Counts-only views need both source generations to meet the current durable notice floors.
+ * Reuse verified facts when they are in this runtime. Otherwise, share one display-only read
+ * per missing half without installing it as admitted evidence or disturbing an approval read.
+ */
+export async function readRenewalPortfolioForDisplay(
+  actor: AuthenticatedUser,
+  reader: Reader,
+  db: Firestore = getAdminFirestore(),
+): Promise<PortfolioDisplayRead | undefined> {
+  const minimum = await readRenewalNoticePortfolioMinimum(actor, db);
+  const now = Date.now();
+  const listLeaseStatuses = reader.listLeaseStatuses?.bind(reader);
+  if (!listLeaseStatuses) return undefined;
+  const context = noticeAdmissionContextFor(db, reader);
+  const cache = portfolioDisplayCaches.get(context) ?? { lease: {}, status: {} };
+  portfolioDisplayCaches.set(context, cache);
+  const lease = peekAdmittedLiveLeaseSnapshot(now, context, minimum.leaseKeys);
+  const status = peekAdmittedLeaseStatusTable(now, context, minimum.leaseKeys);
+  const [snapshot, statusTable] = await Promise.all([
+    readDisplayHalf(cache.lease, lease, minimum.lease, now, LEASE_EXPORT_TTL_MS, () =>
+      fetchLiveLeaseSnapshot(reader, now),
+    ),
+    readDisplayHalf(
+      cache.status,
+      status,
+      minimum.status,
+      now,
+      LEASE_STATUS_TABLE_TTL_MS,
+      async (): Promise<DisplayStatusRead> => ({
+        status: "available",
+        statuses: Object.freeze([...(await listLeaseStatuses())]),
+        readAtMs: now,
+        noticeAdmitted: false,
+        admittedLeaseKeys: [],
+      }),
+    ),
+  ]);
+  if (!snapshot?.complete || !statusTable) return undefined;
+  const latest = await readRenewalNoticePortfolioMinimum(actor, db);
+  const completedAt = Date.now();
+  if (
+    snapshot.readAtMs < latest.lease ||
+    statusTable.readAtMs < latest.status ||
+    classifyLeaseDataAge(snapshot.readAtMs, completedAt) !== "fresh" ||
+    completedAt - statusTable.readAtMs >= LEASE_STATUS_TABLE_TTL_MS
+  )
+    return undefined;
+  return {
+    snapshot,
+    statusTable,
+    currency: {
+      state: "fresh",
+      ageMs: Math.max(0, completedAt - snapshot.readAtMs),
+      readAtMs: snapshot.readAtMs,
+      refreshing: false,
+      lastError: false,
+    },
+  };
+}
+
 interface AdmissionScope {
   context: object;
   pending: Map<string, Promise<{ read: AdmittedRead; leaseKeys: readonly string[] }>>;

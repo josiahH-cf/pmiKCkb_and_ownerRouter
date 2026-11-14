@@ -9,19 +9,25 @@ import { LEASE_ARTIFACT_FAMILIES } from "@/lib/lease-documents/artifact-catalog"
 import { evaluateRenewalPacket } from "@/lib/lease-documents/evaluate-packet";
 import { nextFamilyUseRecord, resolveFamilyUse } from "@/lib/lease-documents/family-use";
 import {
-  ENGINEERING_DEFAULT_LABEL,
+  FORM_USE_NEEDS_VERIFICATION_LABEL,
   projectLeasePacketReadiness,
 } from "@/lib/lease-documents/lease-packet-readiness";
 import { readyS66Input } from "@/tests/fixtures/s66-packet";
 
 // S235 R-S235-1/2: the read-only per-family readiness for one lease. Synthetic configuration only:
 // no approved original, map, policy or lease fact is used or invented.
+// S283 R-S283-7: a default's label moves on purpose to "Needs Verification: PMI KC has not
+// confirmed this form use." in place of "Engineering default, not yet approved by the client".
 
 afterEach(cleanup);
 const AT = "2026-10-28T15:00:00.000Z";
+const ENGINEERING_DEFAULT_LABEL = FORM_USE_NEEDS_VERIFICATION_LABEL;
 
 describe("S235 lease packet readiness", () => {
-  it("lists every family with an engineering default labeled as not client-approved", () => {
+  it("lists every family with a default labeled Needs Verification, never as client policy", () => {
+    expect(ENGINEERING_DEFAULT_LABEL).toBe(
+      "Needs Verification: PMI KC has not confirmed this form use.",
+    );
     const rows = projectLeasePacketReadiness({
       manifest: emptyArtifactIntakeManifest(),
       evaluation: null,

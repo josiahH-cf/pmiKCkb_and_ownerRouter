@@ -1,5 +1,5 @@
 {
-  "version": "V5.0",
+  "version": "V6.0",
   "routeParameters": {
     "leaseId": "4821",
     "propertyKey": "4821",
@@ -12,7 +12,7 @@
   "controlFixtures": {
     "guide work-a-renewal#read-the-prepared-message": {
       "route": "/lease-renewal/live/desk/lease/5001",
-      "actions": []
+      "actions": ["open-summary:Message"]
     },
     "guide work-a-renewal#review-and-send": {
       "route": "/lease-renewal/live/desk/lease/5001",
@@ -166,10 +166,10 @@
       },
       "region": "region:Owner message",
       "frame": "viewport",
-      "actions": ["click-button:Ask the owner"],
+      "actions": ["click-button:Ask the owner", "open-summary:Message"],
       "source": "rehearsal",
-      "alt": "The owner message at Ask the owner with its readiness, recipients and preview.",
-      "caption": "Ask the owner on the Now card shows the prepared owner message and what sending needs."
+      "alt": "The open Message group at Ask the owner, with its readiness and preview.",
+      "caption": "Open Message on Ask the owner to read the prepared owner message and what sending needs."
     },
     {
       "id": "lease-review-and-send",
@@ -332,7 +332,7 @@
       "align": "center",
       "actions": [
         "click-button:Full view",
-        "open-summary:Owner message options and outreach record",
+        "open-summary:Outreach record",
         "wait-text:Copy the message"
       ],
       "source": "rehearsal",

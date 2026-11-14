@@ -25,6 +25,7 @@ import {
   type RenewalDeskViewMemoryInput,
 } from "@/components/lease-renewal/RenewalDeskTable";
 import {
+  PhoneRow,
   RenewalWorkingBatch,
   type RenewalWorkingBatchProps,
 } from "@/components/lease-renewal/RenewalWorkingBatch";
@@ -203,7 +204,13 @@ export function RenewalDesk({
 
       <DataCurrencyBanner currency={view.dataCurrency} />
 
-      <RenewalAuxiliaryNotice failures={auxiliaryFailures} />
+      {batch && auxiliaryFailures.length > 0 ? (
+        <PhoneRow label="Supporting information unavailable">
+          <RenewalAuxiliaryNotice failures={auxiliaryFailures} />
+        </PhoneRow>
+      ) : (
+        <RenewalAuxiliaryNotice failures={auxiliaryFailures} />
+      )}
 
       {view.readComplete ? null : (
         <Card>

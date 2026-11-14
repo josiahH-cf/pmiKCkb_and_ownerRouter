@@ -583,6 +583,8 @@ export interface WorkflowRunRecord extends Partial<ProductRecordRetentionFields>
   blocker?: string;
   due_date: string;
   started_by_uid: string;
+  /** S283 R-S283-4: the per-click key the start carried; the same key returns this run. */
+  start_key?: string;
   outcome_notes?: string;
   completed_at?: string;
   failed_at?: string;

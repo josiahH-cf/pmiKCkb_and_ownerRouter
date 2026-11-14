@@ -591,7 +591,10 @@ export function rentvineStandInResponse(mix, url, flags = {}) {
   if (path === "leases/export") {
     const page = Number(url.searchParams.get("page") ?? 1);
     return {
-      body: page === 1 ? leases.map((row) => servedRow(mix, row, flags)) : [],
+      body:
+        page === 1
+          ? leases.map((row) => withOwnerRoster(servedRow(mix, row, flags), flags))
+          : [],
     };
   }
   // The Connections health check reads one record from the same synthetic inventory.
@@ -624,6 +627,24 @@ export function rentvineStandInResponse(mix, url, flags = {}) {
       url.searchParams.get("includes") === "tenants"
         ? { lease: { ...detail, tenants: [] } }
         : { lease: detail },
+  };
+}
+
+/**
+ * S284 W12-13 (test-only): the `ownerRosters` flag serves, by lease id, these synthetic owners of
+ * record in place of the fixture's, as RentVine would after the owners changed (two owners who
+ * share one address, or an owner at another address). Every other row's owners are served as the
+ * fixture has them. Reads only.
+ */
+function withOwnerRoster(row, flags) {
+  const owners = flags?.ownerRosters?.[String(row.lease.leaseID)];
+  if (!Array.isArray(owners) || !owners.length || !row.portfolio) return row;
+  return {
+    ...row,
+    portfolio: {
+      ...row.portfolio,
+      owners: owners.map(({ name, email }) => ({ name, email })),
+    },
   };
 }
 

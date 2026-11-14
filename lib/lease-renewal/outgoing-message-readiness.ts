@@ -1,4 +1,8 @@
-import { markedValuesIn, type RenewalMessageContent } from "./renewal-message-content";
+import {
+  markedValuesIn,
+  ownerTermDateIssue,
+  type RenewalMessageContent,
+} from "./renewal-message-content";
 
 export const SIGNATURE_SETUP_REQUIRED =
   "Save your sender signature choice before releasing this message. You can save it blank.";
@@ -18,6 +22,7 @@ export function outgoingPayloadReasons(subject: string, body: string): string[] 
 /** Required facts come from the selected message, never from the full lease checklist. */
 export function outgoingRenewalReasons(input: {
   content: Pick<RenewalMessageContent, "missing" | "subject" | "plainText">;
+  composedContent?: Pick<RenewalMessageContent, "missing">;
   signatureConfigured: boolean;
   reply: boolean;
 }): string[] {
@@ -26,6 +31,10 @@ export function outgoingRenewalReasons(input: {
   for (const item of input.content.missing)
     if (!ADVISORIES.has(item.field) && item.field !== "signature")
       reasons.push(item.message);
+  // S285: editing the body can replace the marker. The owner term still needs saved dates.
+  const termDateIssue =
+    input.composedContent && ownerTermDateIssue(input.composedContent);
+  if (termDateIssue) reasons.push(termDateIssue.message);
   // Unknown or authored placeholders must not escape even when the base text has no gap.
   if (reasons.length === 0)
     reasons.push(

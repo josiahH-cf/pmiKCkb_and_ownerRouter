@@ -11,6 +11,7 @@
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
 import {
   MESSAGE_CHARGES,
+  ownerCopyStatesTerm,
   type RenewalMessageFacts,
 } from "@/lib/lease-renewal/renewal-message-content";
 import type { SenderSignatureEvidence } from "@/lib/lease-renewal/sender-signature-choice";
@@ -153,6 +154,21 @@ export function renewalReviewedInputs(input: {
             f.range
               ? `${formatReviewedMoney(f.range.low)} to ${formatReviewedMoney(f.range.high)}`
               : null,
+          ),
+        );
+      // S285 R-S285-3: under owner copy that states the term, the renewal dates the message states
+      // are reviewed values too, so a later date change is named. Under v2.0 nothing is added.
+      if (f.ownerIntent !== "renew_or_not" && ownerCopyStatesTerm(f.ownerCopyVersion))
+        inputs.push(
+          reviewedInput(
+            "renewalStart",
+            L.renewalStart,
+            formatReviewedDate(f.ownerTerms?.effectiveDate),
+          ),
+          reviewedInput(
+            "renewalEnd",
+            L.renewalEnd,
+            formatReviewedDate(f.ownerTerms?.endDate),
           ),
         );
     } else {

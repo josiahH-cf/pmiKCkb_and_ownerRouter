@@ -110,10 +110,33 @@ export function inspectNovemberTenOutcome(node) {
   const openStacks = groups.filter(
     (group) => group.open && !group.held && !PROMOTED.includes(group.promoted ?? ""),
   ).length;
-  const steps = groups.map((group) => group.step ?? "");
-  const stacked = guided
-    ? groups.length > 1
-    : steps.some((step, index) => steps.indexOf(step) !== index);
+  const groupsByStep = new Map();
+  for (const { step, label } of groups) {
+    const key = step ?? "";
+    const labels = groupsByStep.get(key) ?? [];
+    labels.push(label);
+    groupsByStep.set(key, labels);
+  }
+  // S281 R-S281-12 allows precisely these message disclosures in the two outcomes.
+  // A held or sent message may show only a subset. Unexpected and repeated groups still fail.
+  const stacked =
+    (guided && groupsByStep.size > 1) ||
+    [...groupsByStep].some(([step, labels]) => {
+      if (labels.length < 2) return false;
+      const records =
+        step === "ask-owner"
+          ? "Outreach record"
+          : step === "offer-tenant"
+            ? "Record of contact"
+            : null;
+      return (
+        records === null ||
+        new Set(labels).size !== labels.length ||
+        labels.some(
+          (label) => !["Message", "Other ways to send", records].includes(label),
+        )
+      );
+    });
   const unnamedGroups = groups.filter((group) => group.named !== group.label).length;
   // S269: the live priority leads. The cue opens the Now card's work, the primary sits in the
   // active group, and every supporting group follows that group.

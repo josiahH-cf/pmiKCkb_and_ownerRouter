@@ -19,8 +19,11 @@ import {
   REVIEW_OWNER_ANSWER_LABEL,
   approvedBaseFromDraft,
   describeOwnerApprovalInput,
+  effectiveApprovedDraft,
+  ownerAnswerCoverage,
   type ApprovedAmountDraft,
 } from "./RenewalOwnerAnswer";
+import { OWNER_APPROVER_SELECTED_LINE } from "@/lib/lease-renewal/owner-copy-version";
 import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
 
 export const OWNER_DECISION_FROM_REPLY_ID = "renewal-owner-decision-from-reply";
@@ -171,6 +174,11 @@ export function RenewalReplyPreview({
  * Amount approved and what the answer covers before who approved, then "Review the owner's
  * answer" names the old recommended base, the approved base and the coverage before Save. The
  * other outcomes record as before and never change the renewal rent.
+ *
+ * S285 R-S285-4 / R-S285-5: the coverage opens on what the cycle's latest confirmed owner message
+ * asked about, and "Who approved in this reply" opens with the owner the server matched to the
+ * address the owner message was sent to, with the line saying so. Staff can change both before
+ * the review; nothing is stored until the answer is saved, and no address is stored.
  */
 export function RenewalOwnerDecisionFromReply({
   choices,
@@ -185,11 +193,15 @@ export function RenewalOwnerDecisionFromReply({
   const working = useRenewalWorkingRecord();
   const record = working?.record ?? null;
   const [decision, setDecision] = useState("");
-  const [party, setParty] = useState("");
+  const [enteredParty, setParty] = useState("");
+  const [partyChosen, setPartyChosen] = useState(false);
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
   // S262 R-S262-1: the approving branch's Amount approved, then its review before Save.
-  const [amount, setAmount] = useState<ApprovedAmountDraft>(EMPTY_APPROVED_AMOUNT);
+  const [enteredAmount, setAmount] = useState<ApprovedAmountDraft>(EMPTY_APPROVED_AMOUNT);
+  // S285 R-S285-4: the coverage opens on what the owner message asked for, until staff choose.
+  const coverage = ownerAnswerCoverage(choices, record);
+  const amount = effectiveApprovedDraft(enteredAmount, coverage);
   const [review, setReview] = useState<
     (RenewalWorkspaceAction & { kind: "owner_response" }) | null
   >(null);
@@ -202,6 +214,14 @@ export function RenewalOwnerDecisionFromReply({
           `${REPLY_PREFIX}${entry.sequenceId}\u0000${entry.evidenceId}` === decision,
       ) ?? null)
     : null;
+  // S285 R-S285-5 (ARCH-S285-3): the owner this reply came from, when the server matched exactly
+  // one owner of record to the address the owner message was sent to. Staff can change it.
+  const suggestedParty =
+    reply?.approver &&
+    roster?.some((owner) => owner.sourceRef === reply.approver!.sourceRef)
+      ? reply.approver.sourceRef
+      : null;
+  const party = partyChosen ? enteredParty : (suggestedParty ?? enteredParty);
 
   function action(): (RenewalWorkspaceAction & { kind: "owner_response" }) | string {
     if (!decision) return "Before recording, choose the owner's decision.";
@@ -334,8 +354,9 @@ export function RenewalOwnerDecisionFromReply({
       {option(DECLINE, "Declined / non-renewal")}
       {reply ? (
         <ApprovedAmountFields
+          coverage={coverage}
           disabled={disabled}
-          draft={amount}
+          draft={enteredAmount}
           onChange={(next) => {
             setAmount(next);
             setError("");
@@ -350,6 +371,7 @@ export function RenewalOwnerDecisionFromReply({
             id={`${id}-party`}
             onChange={(event) => {
               setParty(event.target.value);
+              setPartyChosen(true);
               setError("");
             }}
             value={party}
@@ -362,6 +384,11 @@ export function RenewalOwnerDecisionFromReply({
             ))}
           </select>
         </Field>
+      ) : null}
+      {reply && roster && !partyChosen && suggestedParty ? (
+        <p className="muted" data-renewal-field="owner-approver-selected">
+          {OWNER_APPROVER_SELECTED_LINE}
+        </p>
       ) : null}
       {reply && !roster ? (
         <p data-renewal-field="owner-approval-unavailable" role="status">

@@ -595,6 +595,14 @@ describe("S265 AC-S265-4: the real tenant target through authorization and sched
     expect(held.status).toBe("paused");
     expect(held.sequence.pause?.cause).toBe("resource_changed");
     expect(changed.send).not.toHaveBeenCalled();
+    // S272 R-S272-3 (rewritten on purpose): one lease, cycle and audience holds at most one
+    // message with unsent authorized work, so the held offer is cancelled before a second one.
+    await changed.instance.control(state.actor, {
+      id: held.sequence.id,
+      expectedVersion: held.sequence.version,
+      operationId: randomUUID(),
+      action: "cancel",
+    });
 
     const unaffected = service();
     const second = await unaffected.authorize("schedule");

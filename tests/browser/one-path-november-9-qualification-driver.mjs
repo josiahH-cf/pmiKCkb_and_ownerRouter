@@ -1,5 +1,5 @@
 // S260. Runs on one guarded, compiled rehearsal build and records exact scoped results.
-// S271 R-S271-6 replays all ten journeys (N09-01 to N09-10) on the cumulative candidate.
+// S271 R-S271-6 and S284 R-S284-4 replay all ten journeys on the cumulative candidate.
 //
 //   exact qualification, from a clean committed head (the only run that can record Yes):
 //     bash scripts/run-renewal-one-path-rehearsal.sh --compiled --compiled-synthetic-mail \
@@ -39,6 +39,7 @@ import {
   setUnavailableSourceLease,
   standInState,
 } from "../../scripts/lib/one-path-rehearsal/control.mjs";
+import { openOwnerRecommendationEditor } from "../../scripts/lib/one-path-rehearsal/journey-kit.mjs";
 import { forceSourceRefresh } from "../../scripts/lib/one-path-rehearsal/seeds.mjs";
 import { inspectOutcome, outcomeFaults } from "./one-path-november-9-outcome-check.mjs";
 import {
@@ -46,7 +47,11 @@ import {
   servedHelpInventory,
 } from "./one-path-november-9-help-proof.mjs";
 import { qualifyCompiledTenantOffer } from "./one-path-november-9-mail-checks.mjs";
-import { novemberNineMatrixVerdict } from "./one-path-november-9-qualification-verdict.mjs";
+import {
+  hasS283PreparationReadback,
+  novemberNineMatrixVerdict,
+  S283_PREPARATION_LEASE_IDS,
+} from "./one-path-november-9-qualification-verdict.mjs";
 
 assert.equal(globalThis.fetch.name, "guardedFetch");
 assert.equal(Socket.prototype.connect.name, "guardedConnect");
@@ -56,6 +61,9 @@ const rehearsal = readRehearsal(runDir);
 const run = JSON.parse(readFileSync(join(runDir, "run.json"), "utf8"));
 const tenantSendProof = process.argv.includes("--tenant-send-proof");
 const fenceProof = process.argv.includes("--compiled-mail-fence-proof");
+// The S284 caller requires the new behavior. Standalone historical runs can use the S249 proof
+// when the served app does not expose S283's preparation scope.
+const requireS283Preparation = process.argv.includes("--require-s283-preparation");
 const onlyTenant = tenantSendProof || fenceProof;
 assert.ok(!(tenantSendProof && fenceProof));
 assert.equal(rehearsal.servedVersion, rehearsal.servedCommit);
@@ -585,10 +593,21 @@ try {
         assert.equal(settings.version, 8);
         assert.equal(settings.enabled, false);
         assert.equal(settings.retired, true);
-        await page.getByRole("link", { name: "Previous month", exact: true }).click();
-        const month = await batch(page).getAttribute("data-batch-month");
+        // The earlier fixture month is all carryover or closed. Use the next month's
+        // current, unprepared leases for both the allowance and interruption checks.
+        const nextMonth = page.getByRole("link", { name: "Next month", exact: true });
+        const month = await nextMonth.getAttribute("data-batch-month-target");
+        assert.match(month ?? "", /^\d{4}-\d{2}$/);
+        assert.notEqual(month, rehearsal.workingMonth);
+        await nextMonth.click();
+        await batch(page)
+          .and(page.locator(`[data-batch-month="${month}"]`))
+          .waitFor();
         await page.reload({ waitUntil: "domcontentloaded" });
-        await batch(page).getByRole("table").waitFor();
+        await batch(page)
+          .and(page.locator(`[data-batch-month="${month}"]`))
+          .getByRole("table")
+          .waitFor();
         assert.deepEqual(await comparisons(), {});
         assert.deepEqual(mutations, []);
         const refused = await post(page, "/api/lease-renewal/kickoff-preparation", {
@@ -599,31 +618,130 @@ try {
         assert.equal(refused.status, 409);
         assert.equal(refused.body.code, "automatic_start_off");
         assert.deepEqual(await comparisons(), {});
-        const eligible = await batch(page)
+        const targets = await batch(page)
           .locator('tbody[data-batch-list="this_batch"] tr[data-batch-lease]')
-          .evaluateAll((nodes) => nodes.map((node) => node.dataset.batchLease));
+          .evaluateAll((nodes) =>
+            nodes.map((node) => ({
+              leaseId: node.dataset.batchLease,
+              address: node.querySelector(".renewal-batch-lease")?.textContent?.trim(),
+            })),
+          );
+        const eligible = targets.map(({ leaseId }) => leaseId);
         const prepare = page.locator("[data-kickoff-prepare]");
         assert.ok(
           eligible.length && (await prepare.isEnabled()),
           "The alternate month needs an eligible, current fixture.",
         );
+        const scope = page.locator("[data-kickoff-scope]");
+        if (requireS283Preparation) await scope.waitFor();
+        const s283Preparation = requireS283Preparation || (await scope.isVisible());
+        if (s283Preparation) {
+          assert.deepEqual([...eligible].sort(), S283_PREPARATION_LEASE_IDS);
+          assert.equal(
+            await page
+              .getByRole("region", { name: "Batch preparation", exact: true })
+              .getAttribute("data-kickoff-targets"),
+            String(eligible.length),
+          );
+          assert.equal(
+            new Set(targets.map(({ address }) => address)).size,
+            eligible.length,
+          );
+          assert.ok(targets.every(({ address }) => address));
+        }
+        const isPreparationPost = (request) =>
+          request.method() === "POST" &&
+          request.url() === origin + "/api/lease-renewal/kickoff-preparation";
+        const readOwnerDraft = (leaseId) =>
+          read(
+            page,
+            "/api/lease-renewal/message-preparation?channel=owner&leaseId=" + leaseId,
+          );
         const requests = [];
         page.on("request", (request) => {
-          if (
-            request.method() === "POST" &&
-            new URL(request.url()).pathname.endsWith("/kickoff-preparation")
-          )
-            requests.push(request.postDataJSON());
+          if (isPreparationPost(request)) requests.push(request.postDataJSON());
         });
         await setComparisonAllowance(rehearsal, true);
         let capStops;
+        let capProof = null;
         try {
-          await prepare.click();
-          await page.getByText(/Preparation finished for/).waitFor({ timeout: 60_000 });
+          const [capAnswer] = await Promise.all([
+            s283Preparation &&
+              page.waitForResponse((response) => isPreparationPost(response.request()), {
+                timeout: 60_000,
+              }),
+            prepare.click(),
+          ]);
+          const progress = page.getByText(/Preparation finished for/);
+          await progress.waitFor({ timeout: 60_000 });
           capStops = await page
             .locator('[data-kickoff-outcome="allowance_reached"]')
             .count();
-          assert.ok(capStops > 0, "A fresh eligible lease stops at the real stored cap");
+          if (s283Preparation) {
+            const request = capAnswer.request().postDataJSON();
+            const answer = await capAnswer.json();
+            assert.deepEqual(requests, [request]);
+            assert.equal(request.trigger, "staff");
+            assert.equal(request.month, month);
+            assert.equal(request.leaseId, eligible[0]);
+            assert.ok(request.cycleDateIso?.startsWith(month + "-"));
+            assert.equal(capAnswer.status(), 200);
+            assert.equal(answer.leaseId, request.leaseId);
+            assert.equal(answer.cycleDateIso, request.cycleDateIso);
+            assert.equal(answer.status, "allowance_reached");
+            assert.equal(answer.billed, false);
+            assert.equal(capStops, 1);
+            const outcomes = await page
+              .getByRole("list", { name: "Preparation results", exact: true })
+              .locator("li[data-kickoff-outcome]")
+              .all();
+            assert.equal(outcomes.length, targets.length);
+            const notRunLeaseIds = [];
+            for (const [index, { leaseId, address }] of targets.entries()) {
+              const outcome = outcomes[index];
+              await outcome.waitFor();
+              const status = index === 0 ? "allowance_reached" : "not_run";
+              assert.equal(await outcome.getAttribute("data-kickoff-outcome"), status);
+              assert.equal(
+                (await outcome.innerText()).trim(),
+                address +
+                  ": " +
+                  (index === 0
+                    ? answer.message
+                    : "Not run: the monthly allowance is reached."),
+              );
+              if (index > 0) notRunLeaseIds.push(leaseId);
+            }
+            assert.match(
+              await progress.innerText(),
+              new RegExp(
+                `The monthly allowance is reached, so ${notRunLeaseIds.length} leases were not run[.]`,
+              ),
+            );
+            capProof = {
+              targetLeaseIds: eligible,
+              request: {
+                leaseId: request.leaseId,
+                trigger: request.trigger,
+                month: request.month,
+                cycleDateIso: request.cycleDateIso,
+              },
+              response: {
+                http: capAnswer.status(),
+                leaseId: answer.leaseId,
+                cycleDateIso: answer.cycleDateIso,
+                status: answer.status,
+                billed: answer.billed,
+              },
+              notRunLeaseIds,
+            };
+          } else {
+            assert.equal(
+              capStops,
+              eligible.length,
+              "Every eligible lease meets the stored cap",
+            );
+          }
           assert.deepEqual(await comparisons(), {});
         } finally {
           await setComparisonAllowance(rehearsal, false);
@@ -637,6 +755,7 @@ try {
           name: /^Continue .* preparation$/,
         });
         await continuation.waitFor();
+        await page.waitForLoadState("networkidle", { timeout: 15_000 });
         const interruption = Promise.withResolvers();
         const depart = Promise.withResolvers();
         await page.route(
@@ -659,6 +778,18 @@ try {
         );
         let interrupted;
         try {
+          if (capProof) {
+            const draftsAtCap = await Promise.all(eligible.map(readOwnerDraft));
+            assert.ok(draftsAtCap.every((draft) => draft.saved === null));
+            const passiveLookups = await comparisons();
+            assert.deepEqual(passiveLookups, {});
+            capProof.lookupsBeforeContinue = Object.keys(passiveLookups).length;
+            capProof.draftsBeforeContinue = draftsAtCap.filter(
+              (draft) => draft.saved,
+            ).length;
+            capProof.postedBeforeContinue = requests.map(({ leaseId }) => leaseId);
+            assert.deepEqual(capProof.postedBeforeContinue, [eligible[0]]);
+          }
           await continuation.click();
           interrupted = await Promise.race([
             interruption.promise,
@@ -671,16 +802,18 @@ try {
         } finally {
           depart.resolve();
         }
+        if (capProof) {
+          assert.equal(interrupted.request.leaseId, capProof.request.leaseId);
+          assert.equal(interrupted.request.cycleDateIso, capProof.request.cycleDateIso);
+          assert.equal(interrupted.request.month, month);
+        }
         const hitsBeforeReturn = await comparisons();
-        const interruptedDraft = await read(
-          page,
-          "/api/lease-renewal/message-preparation?channel=owner&leaseId=" +
-            interrupted.request.leaseId,
-        );
+        const interruptedDraft = await readOwnerDraft(interrupted.request.leaseId);
         assert.ok(interruptedDraft.saved?.revision > 0);
         await open(page, monthUrl.replace(origin, ""));
         await continuation.waitFor();
         assert.deepEqual(await comparisons(), hitsBeforeReturn);
+        if (capProof) assert.deepEqual(requests.slice(1), [interrupted.request]);
         requests.length = 0;
         await continuation.click();
         await page.getByText(/Preparation finished for/).waitFor({ timeout: 60_000 });
@@ -688,36 +821,69 @@ try {
           requests.length > 0 &&
             requests.every((r) => r.month === month && eligible.includes(r.leaseId)),
         );
+        if (capProof) {
+          capProof.interruptedLeaseId = interrupted.request.leaseId;
+          capProof.continuedLeaseIds = requests.map(({ leaseId }) => leaseId);
+          assert.deepEqual([...capProof.continuedLeaseIds].sort(), [...eligible].sort());
+          assert.deepEqual(
+            requests.find(({ leaseId }) => leaseId === interrupted.request.leaseId),
+            interrupted.request,
+          );
+        }
         const hits = await comparisons();
         assert.ok(Object.keys(hits).every((id) => eligible.includes(id)));
         const draftReadbacks = [];
-        for (const { leaseId } of requests) {
-          const draft = await read(
-            page,
-            "/api/lease-renewal/message-preparation?channel=owner&leaseId=" + leaseId,
+        for (const leaseId of eligible) {
+          const draft = await readOwnerDraft(leaseId);
+          assert.equal(draft.saved?.leaseId, leaseId);
+          assert.equal(draft.saved?.channel, "owner");
+          assert.equal(draft.saved?.cycleId, draft.cycleId);
+          assert.ok(
+            draft.cycleId &&
+              Number.isSafeInteger(draft.saved?.revision) &&
+              draft.saved.revision > 0,
           );
-          if (draft.saved)
-            draftReadbacks.push({ leaseId, revision: draft.saved.revision });
+          draftReadbacks.push({
+            leaseId,
+            channel: draft.saved.channel,
+            revision: draft.saved.revision,
+            cycleId: draft.cycleId,
+          });
         }
-        assert.ok(
-          draftReadbacks.length > 0,
-          "Read back at least one app-owned owner draft",
+        assert.equal(
+          new Set(draftReadbacks.map(({ leaseId }) => leaseId)).size,
+          eligible.length,
         );
         await setComparisonAllowance(rehearsal, true);
-        await prepare.click();
-        await page.getByText(/Preparation finished for/).waitFor({ timeout: 60_000 });
-        assert.deepEqual(
-          await comparisons(),
-          hits,
-          "Continuing reuses evidence at the allowance",
-        );
-        await setComparisonAllowance(rehearsal, false);
+        try {
+          await prepare.click();
+          const reused = page.locator('[data-kickoff-outcome="reused"]');
+          await reused.nth(eligible.length - 1).waitFor({ timeout: 60_000 });
+          await page.getByText(/Preparation finished for/).waitFor({ timeout: 60_000 });
+          assert.equal(await reused.count(), eligible.length);
+          assert.deepEqual(
+            await comparisons(),
+            hits,
+            "Continuing reuses evidence at the allowance",
+          );
+        } finally {
+          await setComparisonAllowance(rehearsal, false);
+        }
         const exact = interrupted.request;
         const sameLease = draftReadbacks.find(({ leaseId }) => leaseId === exact.leaseId);
         assert.equal(sameLease.revision, interruptedDraft.saved.revision);
+        assert.equal(sameLease.cycleId, interruptedDraft.saved.cycleId);
         assert.equal(hits[exact.leaseId], hitsBeforeReturn[exact.leaseId]);
+        // Keep the changed end date at month end to exercise the older cycle fence.
+        // W12-11 separately verifies the S282 off-cycle hold and review.
+        const previousCycle = new Date(`${exact.cycleDateIso}T12:00:00Z`);
         const nextDate = new Date(
-          Date.parse(exact.cycleDateIso + "T12:00:00Z") + 86_400_000,
+          Date.UTC(
+            previousCycle.getUTCFullYear(),
+            previousCycle.getUTCMonth() + 2,
+            0,
+            12,
+          ),
         )
           .toISOString()
           .slice(0, 10);
@@ -733,6 +899,8 @@ try {
           });
           assert.equal(stale.status, 409);
           assert.equal(stale.body.code, "outside_working_batch");
+          assert.equal(stale.body.cycleDateIso, nextDate);
+          assert.equal(stale.body.billed, false);
           assert.match(stale.body.message, /cycle changed/i);
           assert.deepEqual(await comparisons(), hits);
         } finally {
@@ -742,19 +910,22 @@ try {
             "Restore the fixture's current source",
           );
         }
-        monthPreparation = exact;
-        return {
+        const observed = {
           month,
           requested: requests.length,
           eligible: eligible.length,
           legacyRefused: true,
           capStops,
+          ...(capProof ? { capHalt: capProof } : {}),
           interruptedResponseRecovered: true,
           deliberateContinuation: true,
           changedCycleRefused: true,
           draftReadbacks,
           reuseAtAllowance: true,
         };
+        if (s283Preparation) assert.ok(hasS283PreparationReadback(observed));
+        monthPreparation = exact;
+        return observed;
       },
     );
 
@@ -800,14 +971,9 @@ try {
             .replace(/[,\s]/g, "")
             .includes(String(saved.value)),
         );
-        // S261: Ask the owner links to the one Rent to recommend editor.
-        await page
-          .getByRole("link", { name: "Edit rent to recommend", exact: true })
-          .click();
-        assert.equal(
-          await editor.evaluate((node) => node === document.activeElement),
-          true,
-        );
+        const ownerEditor = await openOwnerRecommendationEditor(page, now(page));
+        assert.equal(Number(await ownerEditor.inputValue()), saved.value);
+        assert.deepEqual(mutations, [], "Opening the editor saves nothing");
 
         assert.ok(monthPreparation, "Use the fresh alternate-month result on this build");
         const alternate = monthPreparation.leaseId;
@@ -1021,10 +1187,19 @@ try {
       narrow,
       ["/api/lease-renewal/work-status"],
       async (page) => {
+        const revealFullView = async () => {
+          const details = page.locator("details[data-renewal-lease-details]");
+          if ((await details.getAttribute("open")) === null)
+            await toggleDisclosure(page, details, true);
+          const toggle = full(page);
+          await toggle.waitFor();
+          return toggle;
+        };
         await open(page, href());
         await status(page).waitFor();
         assert.equal(await status(page).count(), 1);
-        assert.equal(await full(page).getAttribute("aria-pressed"), "false");
+        const guidedFullToggle = await revealFullView();
+        assert.equal(await guidedFullToggle.getAttribute("aria-pressed"), "false");
         const stage = page.locator('[data-renewal-field="stage-line"]');
         const beforeNoteStage = await stage.innerText();
         const historicalId = randomUUID();
@@ -1078,8 +1253,9 @@ try {
           await status(page).evaluate((summary) => summary === document.activeElement),
           true,
         );
-        await full(page).click();
-        assert.equal(await full(page).getAttribute("aria-pressed"), "true");
+        const fullToggle = await revealFullView();
+        await fullToggle.click();
+        assert.equal(await fullToggle.getAttribute("aria-pressed"), "true");
         assert.equal(await status(page).count(), 1);
         const provider = page
           .getByRole("link", { name: "Open in RentVine", exact: true })
@@ -1112,13 +1288,12 @@ try {
         assert.equal(page.url(), leaseBeforeReturn);
         assert.equal(await status(page).count(), 1);
         await open(page, href(prepared, "?view=focus#renewal-section-documents"));
-        await page
-          .getByRole("button", { name: "Full view", pressed: true, exact: true })
-          .waitFor();
-        await page.waitForFunction(
-          () => document.activeElement?.closest("#renewal-section-documents") !== null,
+        await page.waitForFunction(() =>
+          Boolean(document.activeElement?.closest("#renewal-section-documents")),
         );
-        await full(page).click();
+        const legacyFullToggle = await revealFullView();
+        assert.equal(await legacyFullToggle.getAttribute("aria-pressed"), "true");
+        await legacyFullToggle.click();
         for (const step of [
           "check-numbers",
           "compare-market",
@@ -1177,10 +1352,26 @@ try {
       async (page) => {
         const route = "/api/lease-renewal/pricing-policy";
         const leaseRead = route + "?leaseId=" + covered;
-        await open(page, href(covered, "?step=ask-owner"));
+        // A covered owner step is omitted from Guided. Its pricing controls remain in Full.
+        const ownerPath = href(covered, "?view=full#renewal-section-owner");
+        await open(page, ownerPath);
         const owner = page.locator("#renewal-owner-pricing-basis");
         const basis = owner.getByRole("group", { name: "Pricing basis", exact: true });
         await basis.waitFor();
+        const expectCurrentPricingReason = async (authority) => {
+          // An identical URL with a fragment can keep the existing document and pricing read.
+          const [pricing] = await Promise.all([
+            page.waitForResponse(
+              (response) =>
+                response.url() === origin + leaseRead &&
+                response.request().method() === "GET",
+            ),
+            page.reload({ waitUntil: "domcontentloaded" }),
+          ]);
+          assert.equal(pricing.status(), 200);
+          assert.deepEqual((await pricing.json()).authority, authority);
+          await owner.getByText(authority.reason, { exact: true }).waitFor();
+        };
         assert.match(await owner.innerText(), /standing agreement/i);
         const original = await read(page, leaseRead);
         const uncovered = await read(page, route + "?leaseId=" + prepared);
@@ -1316,11 +1507,7 @@ try {
           const unverified = await read(page, leaseRead);
           assert.equal(unverified.authority.covered, false);
           assert.match(unverified.authority.reason, /ended on/i);
-          await open(page, href(covered, "?step=ask-owner"));
-          await owner
-            .getByText(/ended on/i)
-            .first()
-            .waitFor();
+          await expectCurrentPricingReason(unverified.authority);
         } finally {
           await setAgreement(exactAgreement, expired.version);
         }
@@ -1350,12 +1537,12 @@ try {
         try {
           const conflicting = await read(page, leaseRead);
           assert.equal(conflicting.authority.covered, false);
-          assert.match(conflicting.authority.reason, /rent|amount/i);
-          await open(page, href(covered, "?step=ask-owner"));
-          await owner
-            .getByText(/rent.*rule|rule.*rent/i)
-            .first()
-            .waitFor();
+          assert.equal(conflicting.authority.amount, original.authority.amount);
+          assert.match(
+            conflicting.authority.reason,
+            /working rent .* differs from .* under/i,
+          );
+          await expectCurrentPricingReason(conflicting.authority);
           assert.deepEqual(
             (await read(page, workspacePath)).state?.ownerResponse ?? null,
             priorApproval,
@@ -1370,7 +1557,7 @@ try {
         await now(page).locator("[data-renewal-work]").waitFor();
         assert.equal(await owner.isVisible(), false);
         await full(page).click();
-        await owner.waitFor();
+        await basis.waitFor();
         assert.equal(await owner.count(), 1);
         return {
           covered: true,
@@ -1419,8 +1606,17 @@ try {
         );
         assert.equal(blank.signatureSetup.choice, "blank");
         assert.equal(blank.facts.signature, null);
-        await page.getByRole("button", { name: "Edit signature", exact: true }).click();
-        const choice = page.getByRole("form", { name: "Your signature" });
+        // S281 R-S281-12: a saved choice clears the signature hold, so Message can close on entry.
+        const message = now(page).locator(
+          'details[data-renewal-group="Message"][data-renewal-group-step="ask-owner"]',
+        );
+        await message.waitFor();
+        if ((await message.getAttribute("open")) === null)
+          await toggleDisclosure(page, message, true);
+        await message
+          .getByRole("button", { name: "Edit signature", exact: true })
+          .click();
+        const choice = message.getByRole("form", { name: "Your signature" });
         await choice
           .getByLabel("Sender name", { exact: true })
           .fill("November Fixture Approver");
@@ -1691,6 +1887,10 @@ try {
           name: "Send offer now and authorize follow-ups",
           exact: true,
         });
+        // S276 R-S276-7 (pin changed by S276): the form opens with starting values, and the
+        // message is filled once the follow-up copy is published. Without a message the combined
+        // send stays unavailable, as before.
+        await dialog.getByLabel("Follow-up message").fill("");
         assert.equal(await combined.isEnabled(), false);
         await dialog.getByLabel("Follow-up subject").fill("Synthetic follow-up");
         await dialog
@@ -1852,12 +2052,18 @@ try {
         await page.waitForFunction(() =>
           Boolean(document.activeElement?.closest("#renewal-manual-tenant_response")),
         );
-        const [response, selection] = await Promise.all([
+        // S276 R-S276-1 (pin changed by S276): choosing the response saves nothing; its one
+        // visible Save records it.
+        const selection = await responseControl.selectOption("accepted");
+        const [response] = await Promise.all([
           savedWork(
             (action) =>
               action?.kind === "tenant_response" && action.outcome === "accepted",
           ),
-          responseControl.selectOption("accepted"),
+          page
+            .locator("#renewal-manual-tenant_response")
+            .getByRole("button", { name: "Save", exact: true })
+            .click(),
         ]);
         assert.deepEqual(selection, ["accepted"]);
         assert.ok(response.ok());
@@ -2273,6 +2479,33 @@ try {
           });
         }
         await open(page, href(prepared, "?view=full"));
+        const toolbar = page.locator(
+          ".renewal-workspace-toolbar[data-renewal-toolbar-compact]",
+        );
+        await toolbar.locator('summary[aria-label="Work status"]').waitFor();
+        await toolbar.locator("#renewal-record-work").waitFor();
+        const compactFull = await toolbar.evaluate((node) => {
+          const status = node.querySelector('summary[aria-label="Work status"]');
+          const record = node.querySelector("#renewal-record-work");
+          return {
+            toolbar: node.getBoundingClientRect().height,
+            status: status?.getBoundingClientRect().toJSON(),
+            record: record?.getBoundingClientRect().toJSON(),
+            viewport: window.innerWidth,
+          };
+        });
+        record({ id: "N09-10", compactFull });
+        assert.ok(compactFull.toolbar <= 112, "Full view keeps its compact toolbar");
+        for (const control of [compactFull.status, compactFull.record]) {
+          assert.ok(
+            control &&
+              control.width >= 44 &&
+              control.height >= 44 &&
+              control.left >= 0 &&
+              control.right <= compactFull.viewport + 1,
+            "Both compact Full view controls fit without scrolling sideways",
+          );
+        }
         for (const step of steps) {
           const outcome = page.locator(`section[data-renewal-outcome="${step}"]`);
           await outcome.waitFor();
@@ -2577,6 +2810,7 @@ try {
     networkRefusals: refusedConnections(rehearsal),
     tenantSendProof: onlyTenant,
     servedHelp,
+    requireS283Preparation,
   });
   writeFileSync(
     join(

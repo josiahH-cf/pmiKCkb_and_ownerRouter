@@ -288,6 +288,32 @@ export function acceptanceHoldRefusal(line: string): string {
   return `${line} This update was not sent. Record the tenant's answer for the current offer, then confirm this update again.`;
 }
 
+/**
+ * S276 R-S276-1: an offer's working base rent, renewal dates and selected charges total, as the
+ * tenant response review names the offer a response answers. Absent on reads from an earlier
+ * server.
+ */
+export interface OfferTerms {
+  readonly rent: number | null;
+  readonly effectiveDate: string | null;
+  readonly endDate: string | null;
+  /** The sum of the selected charge rows whose amount is entered, in cents. */
+  readonly chargesCents: number;
+  /** How many charge rows the offer selected. */
+  readonly chargeCount: number;
+}
+
+/** S276 R-S276-1: the terms one offer snapshot states. */
+export function offerTerms(snapshot: FrozenOfferSnapshot["snapshot"]): OfferTerms {
+  return {
+    rent: snapshot.base.rent,
+    effectiveDate: snapshot.dates.effectiveDate,
+    endDate: snapshot.dates.endDate,
+    chargesCents: snapshot.rows.reduce((sum, row) => sum + (row.amountCents ?? 0), 0),
+    chargeCount: snapshot.rows.length,
+  };
+}
+
 /** What the response editors show and offer, carried with the tenant message's own read. */
 export interface OfferAnswersView {
   readonly current: {
@@ -295,6 +321,8 @@ export interface OfferAnswersView {
     readonly snapshotHash: string;
     readonly summary: string;
     readonly charged: boolean;
+    /** S276 R-S276-1: the offer's terms for the tenant response review. */
+    readonly terms?: OfferTerms;
   } | null;
   readonly candidates: readonly {
     readonly kind: "linked_communication" | "external_offer";
@@ -305,6 +333,8 @@ export interface OfferAnswersView {
     readonly snapshotId: string;
     readonly summary: string;
     readonly current: boolean;
+    /** S276 R-S276-1: the offer's terms for the tenant response review. */
+    readonly terms?: OfferTerms;
   }[];
   readonly tenant: {
     readonly outcome: string;
@@ -383,6 +413,7 @@ export function buildOfferAnswersView(input: {
           snapshotHash: current.snapshotHash,
           summary: offerSummary(current.snapshot),
           charged: current.snapshot.rows.length > 0,
+          terms: offerTerms(current.snapshot),
         }
       : null,
     candidates: input.candidates.map((candidate) => ({
@@ -397,6 +428,7 @@ export function buildOfferAnswersView(input: {
         current !== null &&
         candidate.offer.snapshotId === current.snapshotId &&
         candidate.offer.snapshotHash === current.snapshotHash,
+      terms: offerTerms(candidate.offer.snapshot),
     })),
     tenant: tenant
       ? {

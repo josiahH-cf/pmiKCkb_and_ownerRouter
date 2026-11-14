@@ -147,6 +147,7 @@ describe("S243 R-S243-2 / R-S243-3: references, glossary and What changed", () =
     for (let index = 1; index < versions.length; index += 1)
       expect(rank(versions[index - 1])).toBeGreaterThan(rank(versions[index]));
     expect(versions).toEqual([
+      "V6.0",
       "V5.0",
       "V4.0",
       "V3.0",
@@ -259,7 +260,11 @@ describe("S243 R-S243-7 / BEH-S243-4 / AC-S243-7: consolidation", () => {
     // the stage line's check fix. The two controls whose names always carry a dollar amount (the
     // standing agreement amount and Same as recommended) are described by the lease page's
     // Pricing basis control and the Amount approved row, since Help text carries no dollar figure.
-    expect(renewalControlMap.length).toBe(134);
+    // Chunk 2 adds rows 141 to 153: the tenant response review and Stop them, the updated or
+    // cancelled scheduled message, the owner wording publication, Facts for the owner ask with Edit,
+    // the Message and Other ways to send groups, Review all Sheet updates, the sent owner message
+    // the end date term choice and the standard follow-up publication.
+    expect(renewalControlMap.length).toBe(147);
     expect(
       renewalControlMap.filter((row) => row.availability === "required").length,
     ).toBeGreaterThanOrEqual(41);

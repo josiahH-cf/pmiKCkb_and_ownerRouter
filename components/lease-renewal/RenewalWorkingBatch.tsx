@@ -26,6 +26,10 @@ import {
 } from "react";
 
 import { formatRentAmount } from "@/lib/lease-renewal/rent-basis";
+import {
+  PHONE_TABLE_QUERY,
+  useNarrowViewport,
+} from "@/components/hooks/useNarrowViewport";
 import { RenewalDeskSurfaceSwitch } from "./RenewalDeskSurfaceSwitch";
 import { Button, ConfirmationDialog, Notice } from "@/components/ui";
 import {
@@ -57,6 +61,10 @@ import {
   type RenewalBatchRowView,
 } from "@/lib/lease-renewal/renewal-batch-row";
 import { KICKOFF_WORDS } from "@/lib/lease-renewal/renewal-preparation";
+import {
+  matchesBatchSearch,
+  preparationTargets,
+} from "@/lib/lease-renewal/preparation-scope";
 import { fetchWithDeadline } from "@/lib/ui/fetch-lifetime";
 import {
   RenewalKickoffPreparation,
@@ -95,8 +103,11 @@ export interface RenewalWorkingBatchProps {
   readonly recordingPaused?: boolean;
   /** False when staff's keep-working choices could not be read for this render. */
   readonly decisionsAvailable?: boolean;
-  /** S249: deliberate preparation for the selected month. */
-  readonly kickoff?: Omit<KickoffPreparationProps, "targets" | "month"> | null;
+  /** S249: deliberate preparation for the selected month (S283: of the leases shown). */
+  readonly kickoff?: Omit<
+    KickoffPreparationProps,
+    "targets" | "month" | "monthTotal"
+  > | null;
 }
 
 function subscribeToUrl(onChange: () => void): () => void {
@@ -191,22 +202,32 @@ export function RenewalWorkingBatch({
     const search = serializeRenewalBatchQuery(initial);
     return search === "" ? "" : `?${search}`;
   }, [initial]);
-  const search = useSyncExternalStore(subscribeToUrl, currentSearch, () => serverSearch);
+  const urlSearch = useSyncExternalStore(
+    subscribeToUrl,
+    currentSearch,
+    () => serverSearch,
+  );
   const query = useMemo(
-    () => parseRenewalBatchQuery(new URLSearchParams(search)),
-    [search],
+    () => parseRenewalBatchQuery(new URLSearchParams(urlSearch)),
+    [urlSearch],
   );
   const month = query.month ?? defaultMonth;
   const openGroup = query.group;
   const sort = query.sort ?? null;
   // S251 R-S251-11: the additive `tag` key narrows every group to rows carrying that tag.
   const tagFilter: RenewalBatchTagFilter | null = query.tag ?? null;
+  // S283 R-S283-2: the search box narrows the table to rows whose address, unit or tenant names
+  // contain every word typed. It reads nothing and starts nothing.
+  const [search, setSearch] = useState("");
+  const searchId = useId();
   const shownRows = useMemo(
     () =>
-      tagFilter
-        ? rows.filter((row) => row.tags.some((tag) => tag.key === tagFilter))
-        : rows,
-    [rows, tagFilter],
+      rows.filter(
+        (row) =>
+          (!tagFilter || row.tags.some((tag) => tag.key === tagFilter)) &&
+          matchesBatchSearch(row, search),
+      ),
+    [rows, tagFilter, search],
   );
   const partition = useMemo(
     () => partitionRenewalBatch(shownRows, month),
@@ -379,17 +400,14 @@ export function RenewalWorkingBatch({
     ? RENEWAL_BATCH_GROUP_LABELS[openGroup]
     : "Monthly renewals";
   const scopeCount = cohorts.reduce((total, group) => total + partition.counts[group], 0);
-  const targets = partitionRenewalBatch(rows, month).groups.this_batch.flatMap((row) =>
-    row.canOpen && row.placement.kind === "dated"
-      ? [
-          {
-            leaseId: row.leaseId,
-            address: row.unit ? `${row.address}, ${row.unit}` : row.address,
-            cycleDateIso: row.placement.dateIso,
-          },
-        ]
-      : [],
+  // S283 R-S283-2 (ARCH-S283-4): Prepare covers the selected month's eligible leases the table
+  // shows under the active group, tag and search. This batch is shown only in the monthly view,
+  // so an open count group shows none of them. The month total is the same list unfiltered.
+  const monthTargets = preparationTargets(
+    partitionRenewalBatch(rows, month).groups.this_batch,
   );
+  const shownTargets =
+    openGroup === null ? preparationTargets(partition.groups.this_batch) : [];
   const setSort = (next: RenewalBatchSort | null) =>
     showBatch(renewalBatchHref(batchQueryFor({ sort: next })), "replace");
 
@@ -466,60 +484,78 @@ export function RenewalWorkingBatch({
       ) : null}
 
       {kickoff ? (
-        <RenewalKickoffPreparation
-          {...kickoff}
-          key={month}
-          month={month}
-          targets={targets}
-        />
+        // S281 R-S281-9: at phone width the Prepare block is one expandable row.
+        <PhoneRow label={`Prepare ${renewalBatchMonthInWords(month)} leases`}>
+          <RenewalKickoffPreparation
+            {...kickoff}
+            key={month}
+            month={month}
+            monthTotal={monthTargets.length}
+            targets={shownTargets}
+          />
+        </PhoneRow>
       ) : null}
 
-      <section aria-label="Other leases" className="ui-stack renewal-batch-others">
-        <h2 className="renewal-batch-heading">Filter renewals</h2>
-        <p className="muted renewal-batch-note">{partition.total} loaded leases</p>
-        <ul className="renewal-batch-counts">
-          <li>
-            <button
-              aria-controls={panelId}
-              aria-pressed={openGroup === null}
-              className="renewal-batch-count"
-              onClick={() =>
-                showBatch(renewalBatchHref(batchQueryFor({ group: null })), "replace")
-              }
-              type="button"
-            >
-              Monthly renewals{" "}
-              {partition.counts.this_batch + partition.counts.carried_over}
-            </button>
-          </li>
-          {RENEWAL_BATCH_COUNT_GROUPS.map((group) => {
-            const open = openGroup === group;
-            return (
-              <li key={group}>
-                <button
-                  aria-controls={panelId}
-                  aria-pressed={open}
-                  className="renewal-batch-count"
-                  data-batch-count={partition.counts[group]}
-                  data-batch-group={group}
-                  onClick={() =>
-                    showBatch(
-                      renewalBatchHref(batchQueryFor({ group: open ? null : group })),
-                      "replace",
-                    )
-                  }
-                  type="button"
-                >
-                  <span>{RENEWAL_BATCH_GROUP_LABELS[group]}</span>{" "}
-                  <span className="renewal-batch-count-number">
-                    {partition.counts[group]}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
+      <PhoneRow label="Filter renewals">
+        <section aria-label="Other leases" className="ui-stack renewal-batch-others">
+          <h2 className="renewal-batch-heading">Filter renewals</h2>
+          <p className="muted renewal-batch-note">{partition.total} loaded leases</p>
+          <label className="renewal-batch-search" htmlFor={searchId}>
+            Search this month&rsquo;s leases
+            <input
+              autoComplete="off"
+              className="ui-input"
+              id={searchId}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Address, unit or tenant"
+              type="search"
+              value={search}
+            />
+          </label>
+          <ul className="renewal-batch-counts">
+            <li>
+              <button
+                aria-controls={panelId}
+                aria-pressed={openGroup === null}
+                className="renewal-batch-count"
+                onClick={() =>
+                  showBatch(renewalBatchHref(batchQueryFor({ group: null })), "replace")
+                }
+                type="button"
+              >
+                Monthly renewals{" "}
+                {partition.counts.this_batch + partition.counts.carried_over}
+              </button>
+            </li>
+            {RENEWAL_BATCH_COUNT_GROUPS.map((group) => {
+              const open = openGroup === group;
+              return (
+                <li key={group}>
+                  <button
+                    aria-controls={panelId}
+                    aria-pressed={open}
+                    className="renewal-batch-count"
+                    data-batch-count={partition.counts[group]}
+                    data-batch-group={group}
+                    onClick={() =>
+                      showBatch(
+                        renewalBatchHref(batchQueryFor({ group: open ? null : group })),
+                        "replace",
+                      )
+                    }
+                    type="button"
+                  >
+                    <span>{RENEWAL_BATCH_GROUP_LABELS[group]}</span>{" "}
+                    <span className="renewal-batch-count-number">
+                      {partition.counts[group]}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      </PhoneRow>
 
       <div
         aria-label={scopeLabel}
@@ -673,6 +709,25 @@ export function RenewalWorkingBatch({
   );
 }
 
+/**
+ * S281 R-S281-9: at 430 px and narrower the Prepare block and the filters each take one
+ * expandable row, so the first lease row is on the first screen. Wider screens show them as
+ * before. Opening a row saves and reads nothing.
+ */
+export function PhoneRow({
+  label,
+  children,
+}: Readonly<{ label: string; children: ReactNode }>) {
+  const phone = useNarrowViewport(PHONE_TABLE_QUERY);
+  if (!phone) return <>{children}</>;
+  return (
+    <details className="renewal-batch-phone-row" data-batch-phone-row={label}>
+      <summary>{label}</summary>
+      {children}
+    </details>
+  );
+}
+
 const SORT_COLUMNS: ReadonlyArray<{ column: RenewalBatchSortColumn; label: string }> = [
   { column: "date", label: "Cycle or review date" },
   { column: "stage", label: "Stage and context" },
@@ -775,6 +830,9 @@ function BatchRow({
       className="renewal-batch-row"
       data-batch-group={group}
       data-batch-lease={row.leaseId}
+      data-batch-preparation={
+        row.preparationEligible === false ? "held" : row.comparisonNeeded
+      }
       data-batch-row-kind={workRow ? "work" : "context"}
     >
       <th scope="row">
@@ -826,6 +884,21 @@ function BatchRow({
           <span className="renewal-batch-stage">{row.stageLine}</span>
         ) : row.reason ? (
           <span className="renewal-batch-reason">{row.reason}</span>
+        ) : null}
+        {workRow && row.messageCue && row.canOpen ? (
+          // S273 R-S273-3: the one cue for a held or out-of-date unsent message, opening its step.
+          <Link
+            className="text-link renewal-batch-message-cue"
+            data-batch-message-cue={row.messageCue.kind}
+            href={buildWorkspaceHref({
+              leaseId: row.leaseId,
+              step: row.messageCue.stepId,
+              deskView: continuation,
+            })}
+            prefetch={false}
+          >
+            {row.messageCue.label}
+          </Link>
         ) : null}
         {row.statusNote ? (
           <span className="renewal-batch-status-note">{row.statusNote}</span>

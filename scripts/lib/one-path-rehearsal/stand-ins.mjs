@@ -184,6 +184,7 @@ export async function startStandIns({
       counter: 0,
       refused: 0,
       unreadableThread: null,
+      sendHold: null,
     },
   };
 
@@ -205,6 +206,11 @@ export async function startStandIns({
 
   async function comparison(url) {
     if (url.pathname === "/rentcast/v1/avm/rent/long-term") {
+      // The S59 connection check is deliberately parameterless and receives an unbilled 4xx.
+      if (url.search === "") {
+        record({ standIn: "comparison", kind: "health_probe", status: 400 });
+        refuse(400, "An address or coordinates are required.");
+      }
       const address = url.searchParams.get("address") ?? "";
       const row = leaseForAddress(address);
       const leaseId = row ? row.lease.leaseID : null;
@@ -515,7 +521,7 @@ export async function startStandIns({
     });
   }
 
-  function mail(method, url, mailboxEmail, body) {
+  async function mail(method, url, mailboxEmail, body) {
     const mailbox = mailboxOf(mailboxEmail);
     const path = url.pathname.replace(/^\/gmail\/v1\/users\/me/, "");
     const query = url.searchParams;
@@ -550,6 +556,24 @@ export async function startStandIns({
       const threadId = body?.threadId ? String(body.threadId) : undefined;
       if (threadId && !threadMessages(mailbox, threadId).length)
         refuse(404, "The thread does not exist.");
+      const hold = state.mail.sendHold;
+      if (hold && !hold.entered) {
+        hold.entered = true;
+        let timer;
+        try {
+          await Promise.race([
+            hold.promise,
+            new Promise((resolve) => {
+              timer = setTimeout(resolve, 8_000);
+            }),
+          ]);
+          if (!hold.released)
+            refuse(503, "The synthetic send hold expired before it was released.");
+        } finally {
+          clearTimeout(timer);
+          if (state.mail.sendHold === hold) state.mail.sendHold = null;
+        }
+      }
       const message = keep(mailbox, { raw, threadId, labelIds: ["SENT"] });
       record({ standIn: "mail", send: mode, messageId: message.id });
       if (mode === "unconfirmed")
@@ -768,6 +792,7 @@ export async function startStandIns({
       mail: {
         nextSend: state.mail.nextSend,
         refusedRecipients: state.mail.refused,
+        sendHeld: state.mail.sendHold?.entered ?? false,
         mailboxes: describeMail(),
       },
     };
@@ -780,6 +805,23 @@ export async function startStandIns({
         refuse(400, `Choose one of: ${NEXT_SEND_MODES.join(", ")}.`);
       state.mail.nextSend = body.mode;
       return { nextSend: state.mail.nextSend };
+    }
+    if (name === "hold-mail-send") {
+      if (state.mail.sendHold) refuse(409, "A synthetic send hold is already armed.");
+      state.mail.sendHold = {
+        entered: false,
+        released: false,
+        ...Promise.withResolvers(),
+      };
+      return { armed: true };
+    }
+    if (name === "release-mail-send") {
+      const hold = state.mail.sendHold;
+      if (!hold) return { released: false };
+      state.mail.sendHold = null;
+      hold.released = true;
+      hold.resolve();
+      return { released: hold.entered };
     }
     if (name === "mail-thread-unreadable") {
       const id = body?.threadId;
@@ -894,6 +936,8 @@ export async function startStandIns({
       state.mail.nextSend = "normal";
       state.mail.refused = 0;
       state.mail.unreadableThread = null;
+      state.mail.sendHold?.resolve();
+      state.mail.sendHold = null;
       record({ standIn: "control", control: "reset" });
       return describe();
     }
@@ -953,7 +997,7 @@ export async function startStandIns({
       if (url.pathname === "/v1/chat/completions" && method === "POST")
         return send(200, completion(body));
       if (url.pathname.startsWith("/gmail/v1/users/me/"))
-        return send(200, mail(method, url, request.headers[MAILBOX_HEADER], body));
+        return send(200, await mail(method, url, request.headers[MAILBOX_HEADER], body));
       if (url.pathname === "/control/state" && method === "GET")
         return send(200, describe());
       const named = /^\/control\/([a-z-]+)$/.exec(url.pathname)?.[1];
@@ -984,6 +1028,8 @@ export async function startStandIns({
     describe,
     close: () =>
       new Promise((resolve) => {
+        state.mail.sendHold?.resolve();
+        state.mail.sendHold = null;
         server.closeAllConnections?.();
         server.close(() => resolve());
       }),

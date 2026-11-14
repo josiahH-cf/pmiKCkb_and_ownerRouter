@@ -125,6 +125,9 @@ const files = {
   // S284 R-S284-4: a driver asks for the server to be started again (answerServerRestarts).
   serverRestartRequest: join(output, "server-restart-request.json"),
   serverRestartAnswer: join(output, "server-restart.json"),
+  // S284 W12-05 (test-only): the server's one-shot Firestore write fault (control.mjs
+  // setTenantResponsePauseFault; scripts/lib/one-path-rehearsal/firestore-fault.mjs).
+  firestoreFault: join(output, "firestore-fault.json"),
 };
 
 const compiledMail = flag("--compiled-synthetic-mail")
@@ -389,6 +392,7 @@ async function startServer(port) {
       ONE_PATH_REHEARSAL_MIX: join(process.cwd(), NOVEMBER_5_MIX_PATH),
       ONE_PATH_REHEARSAL_RENTVINE_CONTROL: files.rentvineControl,
       ONE_PATH_REHEARSAL_STAND_IN_ORIGIN: standIns.origin,
+      ONE_PATH_REHEARSAL_FIRESTORE_FAULT: files.firestoreFault,
       NEXT_E2E_ISOLATED_BUILD: "true",
       NEXT_TELEMETRY_DISABLED: "1",
       ENVIRONMENT_KIND: "demo",

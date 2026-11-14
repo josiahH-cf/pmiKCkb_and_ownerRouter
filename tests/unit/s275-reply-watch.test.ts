@@ -403,6 +403,12 @@ describe("S275 ARCH-S275-1: the watched marker and its end conditions", () => {
     expect(
       replyWatchEndReason(
         tenant,
+        facts({ workspace: { tenantResponse: { outcome: "needs_verification" } } }),
+      ),
+    ).toBeNull();
+    expect(
+      replyWatchEndReason(
+        tenant,
         facts({ workspace: { tenantResponse: { outcome: "accepted" } } }),
       ),
     ).toBe("answer_recorded");
@@ -782,6 +788,29 @@ describe("S275 R-S275-3 / R-S275-4: the waiting step's check and the reply leadi
     });
     expect(JSON.stringify(evidence)).not.toMatch(/owner@example|Synthetic message/);
   });
+
+  it.each(["source_unavailable", "lease_read_settling"] as const)(
+    "keeps the reply check available without calling a %s dispatch observation a Gmail failure",
+    (reason) => {
+      const sequence = record({
+        observation: {
+          checkedAtMs: CHECKED_AT,
+          state: "unavailable",
+          historyId: null,
+          reason,
+        },
+      });
+      const evidence = projectOutreachEvidence(
+        evidenceInput([linkedRenewalMessageEvidence(sequence)!]),
+        EVIDENCE_CYCLE,
+      );
+      expect(evidence.owner.replyCheck).toEqual({
+        sequenceIds: [sequence.id],
+        lastCheckedAtMs: null,
+        failedAtMs: null,
+      });
+    },
+  );
 
   it("R-S275-3 the waiting step says when it last checked, that it has not, or that the check failed", () => {
     expect(replyCheckLine(null)).toBe(REPLY_CHECK_WORDS.notChecked);

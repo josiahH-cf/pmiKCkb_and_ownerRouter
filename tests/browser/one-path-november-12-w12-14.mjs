@@ -73,6 +73,8 @@ const START_REFUSAL =
   "Renewal work is done on the Renewal Desk. This process is guidance.";
 const RECORD_NOTICE =
   "This run is kept as a record. Renewal work continues on the Renewal Desk.";
+const RUN_OWNER_FIELD = "Run owner (staff account ID)";
+const DEFAULT_APPROVER_FIELD = "Default approver (staff account ID)";
 const FIELD_NOTE = "Not used: this process starts no runs";
 const NO_PUBLISHED = "Renewals are worked on the Renewal Desk.";
 const GUIDANCE_HEADING = "How this work is done";
@@ -424,10 +426,18 @@ async function saveDefinition(ctx, page, definitionId, edit) {
   const save = page.getByRole("button", { name: "Save", exact: true }).first();
   await save.waitFor({ timeout: 90_000 });
   const read = {
-    ownerInputs: await page.getByLabel("Owner UID", { exact: true }).count(),
-    approverInputs: await page.getByLabel("Approver UID", { exact: true }).count(),
-    ownerNote: (await page.getByText(`Owner UID ${FIELD_NOTE}`).count()) > 0,
-    approverNote: (await page.getByText(`Approver UID ${FIELD_NOTE}`).count()) > 0,
+    ownerInputs: await page.getByLabel(RUN_OWNER_FIELD, { exact: true }).count(),
+    approverInputs: await page
+      .getByLabel(DEFAULT_APPROVER_FIELD, { exact: true })
+      .count(),
+    ownerNote:
+      (await page
+        .getByText(`${RUN_OWNER_FIELD} ${FIELD_NOTE}`, { exact: true })
+        .count()) === 1,
+    approverNote:
+      (await page
+        .getByText(`${DEFAULT_APPROVER_FIELD} ${FIELD_NOTE}`, { exact: true })
+        .count()) === 1,
     renewalWork:
       (await page.getByRole("heading", { name: "Renewal work", exact: true }).count()) >
       0,
@@ -684,7 +694,7 @@ export async function checkW1214(ctx, page, start) {
       page,
       OTHER_SPACE.definition,
       async (form) => {
-        await form.getByLabel("Owner UID", { exact: true }).fill("");
+        await form.getByLabel(RUN_OWNER_FIELD, { exact: true }).fill("");
       },
     );
     result.other = {

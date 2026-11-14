@@ -14,6 +14,11 @@
 // means at Documents before Save, and while the working dates are not saved the form links to the
 // one Working renewal terms editor with a return that keeps what staff typed. Coverage stays what
 // staff chose and saved (S262 R-S262-3).
+//
+// S285 R-S285-4 (ARCH-S285-3): the coverage opens on "Base rent and the renewal dates" when the
+// cycle's latest confirmed owner message stated the term and the saved working dates still equal
+// it, with "The message asked about the rent and these dates."; when the dates changed after that
+// message it opens on "Base rent only" and says why. Staff choose either; only their save stores it.
 
 import { useId, useState, type ReactNode } from "react";
 
@@ -44,6 +49,12 @@ import {
   rentBasisSentence,
 } from "@/lib/lease-renewal/rent-basis";
 import { WORKING_START_FIELD_ID } from "@/lib/lease-renewal/message-readiness";
+import {
+  OWNER_ANSWER_DATES_CHANGED_LINE,
+  OWNER_ANSWER_MESSAGE_ASKED_LINE,
+  ownerAnswerCoverageDefault,
+  type OwnerAnswerCoverageDefault,
+} from "@/lib/lease-renewal/owner-copy-version";
 import { focusRenewalDashboardControl } from "./RenewalDashboardNavigation";
 import { startDateFixFromOffer } from "./RenewalDateProposal";
 
@@ -57,12 +68,43 @@ export const APPROVAL_COVERS_LABEL = "What the owner's answer covers";
 export interface ApprovedAmountDraft {
   readonly amount: string;
   readonly scope: RecordedApprovalScopeKind;
+  /**
+   * S285 R-S285-4: true once staff chose the coverage. Until then the form shows the coverage the
+   * owner message asked for (`ownerAnswerCoverageDefault`), recomputed on every read.
+   */
+  readonly scopeChosen?: true;
 }
 
 export const EMPTY_APPROVED_AMOUNT: ApprovedAmountDraft = Object.freeze({
   amount: "",
   scope: "amount_only",
 });
+
+/**
+ * S285 R-S285-4 (ARCH-S285-3): the coverage the answer opens on for this lease, from the term the
+ * cycle's latest confirmed owner message stated and the saved working dates. A projection only.
+ */
+export function ownerAnswerCoverage(
+  choices: Pick<OwnerApprovalChoices, "ownerMessageTerm"> | null | undefined,
+  working: RenewalWorkingRecord | null | undefined,
+): OwnerAnswerCoverageDefault {
+  return ownerAnswerCoverageDefault({
+    statedTerm: choices?.ownerMessageTerm ?? null,
+    workingDates: coverableRenewalDates(working),
+  });
+}
+
+/**
+ * S285 R-S285-4: the draft as the form shows and reviews it: the coverage staff chose, else the
+ * coverage the owner message asked for.
+ */
+export function effectiveApprovedDraft(
+  draft: ApprovedAmountDraft,
+  coverage: OwnerAnswerCoverageDefault | null | undefined,
+): ApprovedAmountDraft {
+  if (draft.scopeChosen || !coverage) return draft;
+  return { ...draft, scope: coverage.scope };
+}
 
 /** The current-cycle renewal dates an exact-terms answer would cover, or null. */
 export function coverableRenewalDates(
@@ -127,20 +169,27 @@ function amountReturnId(reactId: string): string {
  * renewal terms editor, with a return to this form; what staff typed here stays.
  */
 export function ApprovedAmountFields({
-  draft,
+  draft: entered,
   onChange,
   working,
   disabled,
+  coverage = null,
 }: Readonly<{
   draft: ApprovedAmountDraft;
   onChange: (next: ApprovedAmountDraft) => void;
   working: RenewalWorkingRecord | null | undefined;
   disabled: boolean;
+  /**
+   * S285 R-S285-4: the coverage the owner message asked for. Until staff choose, the form opens
+   * on it; the review states the coverage before saving either way (S277 R-S277-4).
+   */
+  coverage?: OwnerAnswerCoverageDefault | null;
 }>) {
   const id = useId();
   const dates = coverableRenewalDates(working);
   const recommended = recommendedRentValue(working);
   const returnId = amountReturnId(id);
+  const draft = effectiveApprovedDraft(entered, coverage);
   return (
     <div
       className="ui-stack-tight"
@@ -159,7 +208,7 @@ export function ApprovedAmountFields({
           disabled={disabled}
           id={`${id}-amount`}
           inputMode="decimal"
-          onChange={(event) => onChange({ ...draft, amount: event.target.value })}
+          onChange={(event) => onChange({ ...entered, amount: event.target.value })}
           value={draft.amount}
         />
       </Field>
@@ -167,7 +216,7 @@ export function ApprovedAmountFields({
         <p className="ui-row" data-renewal-field="owner-answer-same-as-recommended">
           <Button
             disabled={disabled}
-            onClick={() => onChange({ ...draft, amount: recommended.toFixed(2) })}
+            onClick={() => onChange({ ...entered, amount: recommended.toFixed(2) })}
             size="compact"
             type="button"
             variant="secondary"
@@ -183,7 +232,9 @@ export function ApprovedAmountFields({
             checked={draft.scope === "amount_only"}
             disabled={disabled}
             name={`${id}-scope`}
-            onChange={() => onChange({ ...draft, scope: "amount_only" })}
+            onChange={() =>
+              onChange({ ...draft, scope: "amount_only", scopeChosen: true })
+            }
             type="radio"
             value="amount_only"
           />{" "}
@@ -195,13 +246,25 @@ export function ApprovedAmountFields({
               checked={draft.scope === "exact_terms"}
               disabled={disabled}
               name={`${id}-scope`}
-              onChange={() => onChange({ ...draft, scope: "exact_terms" })}
+              onChange={() =>
+                onChange({ ...draft, scope: "exact_terms", scopeChosen: true })
+              }
               type="radio"
               value="exact_terms"
             />{" "}
             Base rent and the renewal dates, {formatCalendarDate(dates.start)} to{" "}
             {formatCalendarDate(dates.end)}
           </label>
+        ) : null}
+        {/* S285 R-S285-4: why the form opens on this coverage. */}
+        {coverage?.reason === "message_asked" && dates ? (
+          <p data-renewal-field="owner-answer-message-asked">
+            {OWNER_ANSWER_MESSAGE_ASKED_LINE}
+          </p>
+        ) : coverage?.reason === "dates_changed" ? (
+          <p data-renewal-field="owner-answer-dates-changed" role="note">
+            {OWNER_ANSWER_DATES_CHANGED_LINE}
+          </p>
         ) : null}
         {!dates ? (
           <p data-renewal-field="owner-answer-dates-first">
@@ -369,7 +432,10 @@ export function ManualOwnerAnswerApproval({
 }>) {
   const working = useRenewalWorkingRecord();
   const record = working?.record ?? null;
-  const [draft, setDraft] = useState<ApprovedAmountDraft>(EMPTY_APPROVED_AMOUNT);
+  const [entered, setDraft] = useState<ApprovedAmountDraft>(EMPTY_APPROVED_AMOUNT);
+  // S285 R-S285-4: the form opens on the coverage the owner message asked for.
+  const coverage = ownerAnswerCoverage(choices, record);
+  const draft = effectiveApprovedDraft(entered, coverage);
   const [review, setReview] = useState<{
     approval: OwnerApprovalInput;
     base: ApprovedBaseInput;
@@ -414,8 +480,9 @@ export function ManualOwnerAnswerApproval({
       ) : (
         <>
           <ApprovedAmountFields
+            coverage={coverage}
             disabled={disabled}
-            draft={draft}
+            draft={entered}
             onChange={setDraft}
             working={record}
           />

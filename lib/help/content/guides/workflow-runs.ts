@@ -99,7 +99,7 @@ export const WORKFLOW_RUNS_GUIDES: readonly HelpGuide[] = [
         route: "/spaces/[spaceId]",
         where: "Space page, How this work is done, at the end",
         result:
-          "The Process Definition page opens. Owner UID and Approver UID read Not used: this process starts no runs, and the Renewal work panel says Renewal work is done on the Renewal Desk. This process is guidance. with Open the Renewal Desk. Recent Runs lists any earlier run of this process.",
+          "The Process Definition page opens. Run owner (staff account ID) and Default approver (staff account ID) read Not used: this process starts no runs, and the Renewal work panel says Renewal work is done on the Renewal Desk. This process is guidance. with Open the Renewal Desk. Recent Runs lists any earlier run of this process.",
         effect: "reads",
         note: "Approvers and Admins keep editing and publishing the process here; Publish a process definition explains it.",
       },

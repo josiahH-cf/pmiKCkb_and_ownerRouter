@@ -22,12 +22,13 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
 
 import { Button, ConfirmationDialog, Field } from "@/components/ui";
-import { formatBusinessTimestamp } from "@/lib/date-display";
+import { formatBusinessTimestamp, formatCalendarDate } from "@/lib/date-display";
 import { renderEditableCommunicationBody } from "@/lib/gmail-hub/sequence-model";
 import {
   LEASE_READ_NOT_SETTLED_CODE,
@@ -40,13 +41,33 @@ import {
   type LeaseReadSettlement,
   type ReviewedInput,
 } from "@/lib/gmail-hub/reviewed-inputs";
+import {
+  SEQUENCE_REFUSED_CODE,
+  type SequenceRefusal,
+} from "@/lib/gmail-hub/current-message";
+import {
+  SEQUENCE_REFUSAL_ACTION_LABELS,
+  sequenceRefusalMessage,
+} from "@/lib/gmail-hub/communication-state";
+import {
+  UNSENT_MESSAGE_WORDS,
+  carriedSendTime,
+  scheduledStoredLine,
+  unsentMessageWords,
+  unsentUpdateRefusal,
+  type UnsentMessageView,
+} from "@/lib/lease-renewal/unsent-message";
 import type {
   CommunicationSequence,
   RichCommunicationMessage,
 } from "@/lib/gmail-hub/sequence-model";
 import type { WorkflowCommunicationContext } from "@/lib/gmail-hub/workflow-context";
 import { BUSINESS_TIME_ZONE } from "@/lib/lease-renewal/business-calendar";
-import { GUIDED_PRIORITY_WORDS } from "@/lib/lease-renewal/guided-priority";
+import {
+  GUIDED_MESSAGE_GROUP_LABELS,
+  GUIDED_PRIORITY_WORDS,
+} from "@/lib/lease-renewal/guided-priority";
+import { RenewalSecondaryWork } from "./RenewalGuidedView";
 import { messageRevisionLabel } from "@/lib/lease-renewal/message-revision";
 import type { OffCycleReadinessItem } from "@/lib/lease-renewal/off-cycle-review";
 import { STALE_REFINED_BODY_MESSAGE } from "@/lib/lease-renewal/refined-message";
@@ -81,13 +102,25 @@ import { useRenewalFocusView } from "./RenewalFocusViewContext";
 import { nowSlotKey, useRenewalNowCard } from "./RenewalNowCardContext";
 import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
 import { workingRecommendationBasis } from "@/lib/lease-renewal/kickoff-facts";
-import { MESSAGE_CONTROL_IDS } from "@/lib/lease-renewal/message-readiness";
+import {
+  MESSAGE_CONTROL_IDS,
+  WORKING_END_FIELD_ID,
+  WORKING_START_FIELD_ID,
+} from "@/lib/lease-renewal/message-readiness";
+import { startDateFixFromOffer } from "./RenewalDateProposal";
 import { useRenewalPricingPolicy } from "./RenewalPricingPolicy";
 import { RecommendationBasisLine, WorkingBaseBasisLine } from "./RenewalRentBasis";
 import {
   STANDING_AGREEMENT_WORDS,
   standingRuleBasis,
 } from "@/lib/lease-renewal/standing-agreement";
+import {
+  FOLLOW_UP_START_WORDS,
+  followUpStartLine,
+  followUpStartingValues,
+  type FollowUpStartRead,
+  type FollowUpStartingValues,
+} from "@/lib/lease-renewal/follow-up-copy";
 
 export interface PreparedSignatureFields {
   readonly name: string;
@@ -171,6 +204,13 @@ export interface PreparedMessageApi {
   readonly signaturePresent: boolean;
   readonly outgoingReasons?: readonly string[];
   readonly renewOrNot?: boolean;
+  /** S285 R-S285-3: the owner copy in use states the renewal term. */
+  readonly ownerTermStated?: boolean;
+  /**
+   * S281 R-S281-2: the lease and its renewal in staff terms ("101 Sample Pl, renewal for the
+   * lease ending 12/31/2026"), shown in the exact review in place of internal identifiers.
+   */
+  readonly leaseLabel?: string | null;
   readonly onSignatureSetupSaved?: (choice: SenderSignatureChoice) => Promise<void>;
   /** Fill and save the sender's own signature on this message (it is kept for the sender). */
   readonly saveSignature: (fields: PreparedSignatureFields) => string | null;
@@ -209,6 +249,19 @@ const STEP_FOR_CHANNEL: Record<"owner" | "tenant", RenewalPathStepId> = {
   tenant: "offer-tenant",
 };
 
+/** S281 R-S281-3: the confirmed send a sent step reads in its Verification, with its receipt. */
+export interface SentMessageReceipt {
+  readonly sequenceId: string;
+  readonly sentAtMs: number;
+  readonly senderEmail: string;
+}
+
+/** S281 R-S281-1: the recipients line the step shows between its facts and its primary action. */
+export function recipientsLine(to: string | null, cc: readonly string[]): string | null {
+  if (!to) return null;
+  return cc.length ? `To: ${to} · Cc: ${cc.join(", ")}` : `To: ${to}`;
+}
+
 interface ReviewState {
   readonly mode: "send" | "schedule";
   readonly sequence: CommunicationSequence;
@@ -225,6 +278,54 @@ interface ReviewState {
   readonly reviewedInputs: readonly ReviewedInput[] | null;
   /** S274 R-S274-5: after a refusal, what changed since the earlier review, with both values. */
   readonly changes: readonly ChangedInput[] | null;
+  /**
+   * S276 R-S276-7 / R-S276-8: what the follow-up form opens with, read with this composition (the
+   * notice rules' interval, the follow-up copy's publication and its composed body); null on a
+   * read without it.
+   */
+  readonly followUpStart: FollowUpStartRead | null;
+  /**
+   * S273 R-S273-4: the review updates the held or out-of-date communication itself. Nothing is
+   * saved until the one confirmation, which saves this wording to the same communication and then
+   * authorizes it with the existing version checks.
+   */
+  readonly update?: {
+    readonly sequenceId: string;
+    readonly version: number;
+    readonly context: WorkflowCommunicationContext;
+    readonly initial: RichCommunicationMessage;
+    readonly followUp: CommunicationSequence["followUp"];
+    readonly title: string;
+    /** The earlier date and time were carried into the schedule fields. */
+    readonly carried: boolean;
+  } | null;
+}
+
+/** The lease's composition as the review reads it (the same read for a new message or an update). */
+interface RenewalCompositionRead {
+  readonly context: WorkflowCommunicationContext;
+  readonly initial: RichCommunicationMessage;
+  readonly target: {
+    readonly to: string[];
+    readonly cc: string[];
+    readonly blockers?: string[];
+    readonly noticeCycleId?: string | null;
+    readonly readSettlement?: LeaseReadSettlement;
+    readonly reviewedInputs?: ReviewedInput[];
+  };
+  readonly signatureParagraph?: RichCommunicationMessage["paragraphs"][number] | null;
+  readonly reviewedTargetHash: string;
+  /** S276 R-S276-7 / R-S276-8: the follow-up form's starting read (tenant only). */
+  readonly followUp?: FollowUpStartRead | null;
+}
+
+function readRenewalComposition(
+  channel: "owner" | "tenant",
+  leaseId: string,
+): Promise<RenewalCompositionRead> {
+  return json<RenewalCompositionRead>(
+    `/api/gmail-hub/composition?purpose=${channel === "owner" ? "renewal_owner" : "renewal_tenant"}&lease=${encodeURIComponent(leaseId)}`,
+  );
 }
 
 /** One save of the communication draft: the exact request, reused as is when it is retried. */
@@ -266,6 +367,7 @@ async function json<T>(url: string, body?: unknown): Promise<T> {
     error?: string;
     code?: string;
     changes?: ChangedInput[];
+    refusal?: SequenceRefusal;
   };
   if (!response.ok)
     throw Object.assign(new Error(payload.error ?? "This was not completed."), {
@@ -273,6 +375,10 @@ async function json<T>(url: string, body?: unknown): Promise<T> {
       // S274: the typed refusal the sequences route returns, when there is one.
       ...(typeof payload.code === "string" ? { code: payload.code } : {}),
       ...(Array.isArray(payload.changes) ? { changes: payload.changes } : {}),
+      // S272 R-S272-6: the one typed refusal reason, with the related communication.
+      ...(payload.refusal && typeof payload.refusal === "object"
+        ? { refusal: payload.refusal }
+        : {}),
     });
   return payload;
 }
@@ -281,11 +387,17 @@ async function json<T>(url: string, body?: unknown): Promise<T> {
 function refusalOf(error: unknown): {
   code: string | null;
   changes: readonly ChangedInput[];
+  sequenceRefusal: SequenceRefusal | null;
 } {
-  const value = error as { code?: unknown; changes?: unknown } | null;
+  const value = error as { code?: unknown; changes?: unknown; refusal?: unknown } | null;
   return {
     code: typeof value?.code === "string" ? value.code : null,
     changes: Array.isArray(value?.changes) ? (value.changes as ChangedInput[]) : [],
+    // S272 R-S272-6: the one typed refusal reason, when there is one.
+    sequenceRefusal:
+      value?.refusal && typeof value.refusal === "object"
+        ? (value.refusal as SequenceRefusal)
+        : null,
   };
 }
 
@@ -351,10 +463,109 @@ export async function previewAgainWhileGenerationReplaced<T>(
   return current;
 }
 
+/** The clock at the moment a review is read (called from handlers, never during render). */
+function clockNowMs(): number {
+  return Date.now();
+}
+
+/** The date input's native value (YYYY-MM-DD) for tomorrow in the business zone. */
 function tomorrowIso(): string {
-  return new Date(Date.now() + 86_400_000).toLocaleDateString("en-CA", {
-    timeZone: BUSINESS_TIME_ZONE,
-  });
+  return localDateAt(Date.now() + 86_400_000, BUSINESS_TIME_ZONE);
+}
+
+/** The sent message's host never notifies; it is read again on each render. */
+const noHostSubscription = () => () => {};
+
+/**
+ * S281 R-S281-3: after a confirmed send, the exact sent message and its receipt, read only, inside
+ * the step's Verification disclosure. The message is read from its communication once; nothing
+ * here sends, saves or changes anything.
+ */
+function SentMessageEvidence({
+  channel,
+  leaseId,
+  receipt,
+}: Readonly<{
+  channel: "owner" | "tenant";
+  leaseId: string;
+  receipt: SentMessageReceipt;
+}>) {
+  // The Verification host is read from the page after each render; the server render has none.
+  const host = useSyncExternalStore(
+    noHostSubscription,
+    () => document.getElementById(`renewal-sent-message-${channel}`),
+    () => null,
+  );
+  const [read, setRead] = useState<{
+    readonly id: string;
+    readonly message: RichCommunicationMessage | null;
+    readonly to: readonly string[];
+  } | null>(null);
+  useEffect(() => {
+    let active = true;
+    void fetchWithDeadline(
+      `/api/gmail-hub/sequences?id=${encodeURIComponent(receipt.sequenceId)}`,
+      { cache: "no-store" },
+    )
+      .then(async (response) => {
+        if (!response.ok) throw new Error("The sent message is unavailable.");
+        const body = (await response.json().catch(() => null)) as {
+          sequence?: CommunicationSequence;
+        } | null;
+        const sequence = body?.sequence;
+        if (
+          !sequence ||
+          sequence.id !== receipt.sequenceId ||
+          sequence.context?.entityId !== leaseId
+        )
+          throw new Error("The sent message is unavailable.");
+        if (active)
+          setRead({
+            id: receipt.sequenceId,
+            message: sequence.initial,
+            to: sequence.authorization?.to ?? [],
+          });
+      })
+      .catch(() => {
+        if (active) setRead({ id: receipt.sequenceId, message: null, to: [] });
+      });
+    return () => {
+      active = false;
+    };
+  }, [receipt.sequenceId, leaseId]);
+  if (!host) return null;
+  const current = read?.id === receipt.sequenceId ? read : null;
+  const body = current?.message
+    ? renderEditableCommunicationBody(current.message.paragraphs, current.message.layout)
+        .plainText
+    : null;
+  return createPortal(
+    <section
+      aria-label={channel === "owner" ? "Sent owner message" : "Sent tenant offer"}
+      className="ui-stack-tight"
+      data-renewal-field="sent-message"
+    >
+      <p data-renewal-field="sent-receipt">
+        Sent {formatBusinessTimestamp(receipt.sentAtMs)} from {receipt.senderEmail}
+        {current?.to.length ? ` to ${current.to.join(", ")}` : ""}. Gmail accepted it.
+      </p>
+      {current?.message ? (
+        <>
+          <p>
+            <strong>{current.message.subject}</strong>
+          </p>
+          <div className="draft-box" data-renewal-field="sent-body">
+            {body}
+          </div>
+        </>
+      ) : current ? (
+        <p className="muted">The sent message could not be read just now.</p>
+      ) : (
+        <p className="muted">Reading the sent message…</p>
+      )}
+    </section>,
+    host,
+  );
 }
 
 export function PreparedMessageSlot({
@@ -362,6 +573,9 @@ export function PreparedMessageSlot({
   compactFull = false,
   deliveryHeld = false,
   offCycleHold = null,
+  sent = null,
+  unsent = null,
+  pricingBasis = null,
   chargeReview = null,
   onSaveSignature,
   onSignatureSetupSaved,
@@ -386,6 +600,17 @@ export function PreparedMessageSlot({
      * the Now card reads; null when no off-cycle hold stands.
      */
     offCycleHold?: OffCycleReadinessItem | null;
+    /**
+     * S281 R-S281-3: this message's confirmed send. The step reads as sent: the message and its
+     * other ways to send are not rendered, and the exact sent message is read in Verification.
+     */
+    sent?: SentMessageReceipt | null;
+    /**
+     * S273 R-S273-3/R-S273-4: the step's held or out-of-date unsent message, from the same stage
+     * projection the Now card reads; its repair or recovery replaces the step's send actions.
+     */
+    unsent?: UnsentMessageView | null;
+    pricingBasis?: ReactNode;
     /** S264: Review offer charges for the tenant offer, shown after its working terms. */
     chargeReview?: ReactNode;
   } & PreparedMessageHandlers
@@ -393,6 +618,10 @@ export function PreparedMessageSlot({
   const nowCard = useRenewalNowCard();
   const view = useRenewalFocusView();
   const full = compactFull && view?.view === "full";
+  // S281 R-S281-12: in the Guided outcome layout the message renders in its card as named
+  // groups, as in Full view; the Now card keeps the one primary action.
+  const guidedInline =
+    compactFull && view?.outcomeLayout === true && view.view === "guided";
   const step = data.renewOrNot
     ? "assisted-owner-renewal-answer"
     : STEP_FOR_CHANNEL[data.channel];
@@ -419,19 +648,23 @@ export function PreparedMessageSlot({
   const preview = nowCard?.slots[nowSlotKey(step, "message-preview")] ?? null;
   const actions = nowCard?.slots[nowSlotKey(step, "review-and-send")] ?? null;
   // Only a shown Now card step that sends this audience's message takes the block.
-  if (!nowCard || (!preview && !full)) return null;
+  if (!nowCard || (!preview && !full && !guidedInline)) return null;
   return (
     <PreparedMessageBlock
-      actionsSlot={actions}
+      actionsSlot={guidedInline ? null : actions}
       api={api}
       chargeReview={chargeReview}
+      pricingBasis={pricingBasis}
       full={full}
+      guidedInline={guidedInline}
       deliveryHeld={deliveryHeld}
       offCycleHold={offCycleHold}
       preparation={nowCard?.preparation ?? null}
-      previewSlot={preview}
+      previewSlot={guidedInline ? null : preview}
+      sent={sent}
       setPrimary={nowCard?.setPrimary ?? null}
       step={step}
+      unsent={unsent}
     />
   );
 }
@@ -439,26 +672,38 @@ export function PreparedMessageSlot({
 function PreparedMessageBlock({
   api,
   chargeReview,
+  pricingBasis,
   preparation,
   previewSlot,
   actionsSlot,
   full,
+  guidedInline,
   deliveryHeld,
   offCycleHold,
+  sent,
   setPrimary,
   step,
+  unsent,
 }: Readonly<{
   api: PreparedMessageApi;
   chargeReview: ReactNode;
+  pricingBasis: ReactNode;
   preparation: RenewalPreparation | null;
   previewSlot: HTMLElement | null;
   actionsSlot: HTMLElement | null;
   full: boolean;
+  /** S281 R-S281-12: the Guided outcome layout renders the named groups in the message card. */
+  guidedInline: boolean;
   deliveryHeld: boolean;
   offCycleHold: OffCycleReadinessItem | null;
+  sent: SentMessageReceipt | null;
   setPrimary: NonNullable<ReturnType<typeof useRenewalNowCard>>["setPrimary"] | null;
   step: RenewalPathStepId;
+  unsent: UnsentMessageView | null;
 }>) {
+  // Full view and the Guided outcome layout render the message in its card.
+  const inline = full || guidedInline;
+  const inlineRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
   const working = useRenewalWorkingRecord();
   const pricing = useRenewalPricingPolicy();
@@ -482,7 +727,11 @@ function PreparedMessageBlock({
   const base = useId();
   const [review, setReview] = useState<ReviewState | null>(null);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
+  const [feedback, setFeedback] = useState<string | { scheduled: string }>("");
+  const message = typeof feedback === "string" ? feedback : feedback.scheduled;
+  const scheduleInWork = inline && typeof feedback === "object";
+  // S272 R-S272-3: the communication that already holds this renewal, for the refusal's link.
+  const [refusedCommunication, setRefusedCommunication] = useState<string | null>(null);
   const [changedReview, setChangedReview] = useState<string | null>(null);
   const [scheduleDate, setScheduleDate] = useState(tomorrowIso);
   const [scheduleTime, setScheduleTime] = useState("09:00");
@@ -495,15 +744,44 @@ function PreparedMessageBlock({
   const [followUpZone, setFollowUpZone] = useState<string>(BUSINESS_TIME_ZONE);
   const [followUpEnd, setFollowUpEnd] = useState("");
   const [followUpLimit, setFollowUpLimit] = useState("");
+  // S276 R-S276-7 (ARCH-S276-3): the starting values this review's follow-up form opened with, set
+  // the first time staff tick the option in a review. Form state only: unticking and ticking
+  // again keeps what staff last typed, and nothing is authorized until they confirm the review.
+  const [followUpSeed, setFollowUpSeed] = useState<FollowUpStartingValues | null>(null);
   const [unknownAuthorization, setUnknownAuthorization] = useState<string | null>(null);
   // S274 R-S274-5: the review is being read again in place after a refusal for a real change.
   const [reloading, setReloading] = useState(false);
   const reviewEpoch = useRef(0);
   const confirmLock = useRef(false);
   const followUpSave = useRef<PendingSave | null>(null);
+  // S273 R-S273-3/R-S273-4: the held or out-of-date message's one repair (an update of the same
+  // communication), or its existing recovery in Communications, and the cancel beside the repair.
+  const repair = unsent?.primary?.action === "update" ? unsent : null;
+  const recovery = unsent?.primary?.action === "open_communication" ? unsent : null;
+  const unsentWords = unsentMessageWords(api.channel);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const cancelTrigger = useRef<HTMLButtonElement | null>(null);
+  /** The update's one wording save, sent again as it was when its answer is lost. */
+  const updateSave = useRef<{
+    readonly body: {
+      readonly action: "save";
+      readonly draft: {
+        readonly id: string;
+        readonly context: WorkflowCommunicationContext;
+        readonly initial: RichCommunicationMessage;
+        readonly followUp: CommunicationSequence["followUp"];
+      };
+      readonly expectedVersion: number;
+      readonly operationId: string;
+    };
+  } | null>(null);
 
   const canIncludeFollowUps =
-    api.channel === "tenant" && review?.mode === "send" && Boolean(review.noticeCycleId);
+    api.channel === "tenant" &&
+    review?.mode === "send" &&
+    Boolean(review.noticeCycleId) &&
+    // S273 R-S273-4: an update authorizes the one message it replaces, with no new follow-ups.
+    !review.update;
   const includesFollowUps = canIncludeFollowUps && followUps;
   const followUpMessage =
     review && followUpSubject.trim() && followUpBody.trim()
@@ -556,8 +834,8 @@ function PreparedMessageBlock({
     recover?.();
   }, []);
   useEffect(() => {
-    draftOpenRef.current = draftOpen && Boolean(previewSlot);
-  }, [draftOpen, previewSlot]);
+    draftOpenRef.current = draftOpen && (Boolean(previewSlot) || inline);
+  }, [draftOpen, previewSlot, inline]);
   function closeDraft() {
     draftOpenRef.current = false;
     setDraftOpen(false);
@@ -595,7 +873,7 @@ function PreparedMessageBlock({
     recoveringFocus.current = false;
     if (api.draft.recoveryRequired) draftRecovery.current?.focus();
     else {
-      const heading = previewSlot
+      const heading = (previewSlot ?? inlineRef.current)
         ?.closest("[data-renewal-now-step]")
         ?.querySelector<HTMLElement>("#renewal-now-heading");
       if (heading)
@@ -605,8 +883,22 @@ function PreparedMessageBlock({
         });
     }
   }, [api.draft.pending, api.draft.recoveryRequired, previewSlot]);
-  const typedRent = workingRenewalTerms(working?.record ?? null).rent;
+  // S281 R-S281-1: the recipients line the Now card shows before the primary action.
+  const recipients = recipientsLine(api.to, api.cc);
+  const workingTerms = workingRenewalTerms(working?.record ?? null);
+  const typedRent = workingTerms.rent;
   const workingRentBasis = workingRecommendationBasis(working?.record);
+  // S285 R-S285-3: while the owner copy in use states the term, "Renewal dates" reads the saved
+  // working start and end.
+  const termStart = api.ownerTermStated ? workingTerms.effectiveDate : null;
+  const termEnd = api.ownerTermStated ? workingTerms.endDate : null;
+  // S281 R-S281-2: the renewal dates the message states, shown with its amounts in the review.
+  const datesStart = api.channel === "tenant" ? workingTerms.effectiveDate : termStart;
+  const datesEnd = api.channel === "tenant" ? workingTerms.endDate : termEnd;
+  const reviewDates =
+    datesStart && datesEnd
+      ? `Renewal term: ${formatCalendarDate(datesStart)} through ${formatCalendarDate(datesEnd)}`
+      : null;
   const live = useMemo(
     () =>
       preparation && api.channel === "owner" && !api.renewOrNot
@@ -617,6 +909,9 @@ function PreparedMessageBlock({
             recipientReady: api.to !== null,
             templateApproved: api.templateApproved,
             marked: api.marked,
+            ...(api.ownerTermStated
+              ? { renewalDates: { start: termStart, end: termEnd } }
+              : {}),
           })
         : null,
     [
@@ -629,6 +924,9 @@ function PreparedMessageBlock({
       api.to,
       api.templateApproved,
       api.marked,
+      api.ownerTermStated,
+      termStart,
+      termEnd,
     ],
   );
   // The items Send needs. For the owner they come from the one projection; for the tenant offer
@@ -706,6 +1004,26 @@ function PreparedMessageBlock({
     !offCycleHold;
   const missingWords = needs.filter((item) => !item.ready && item.missing);
   const firstMissing = offCycleHold ? null : needs.find((item) => !item.ready);
+  const tenantDateFix =
+    api.channel === "tenant" && !offCycleHold && (!datesStart || !datesEnd)
+      ? !datesStart
+        ? {
+            field: "renewalStartDate",
+            target: WORKING_START_FIELD_ID,
+            label: GUIDED_PRIORITY_WORDS.enterRenewalStart,
+          }
+        : {
+            field: "renewalEndDate",
+            target: WORKING_END_FIELD_ID,
+            label: GUIDED_PRIORITY_WORDS.enterRenewalEnd,
+          }
+      : null;
+  const dateFixOrigin = `renewal-offer-date-fix-${base}`;
+  const focusTenantDate = () => {
+    if (!tenantDateFix) return;
+    startDateFixFromOffer(tenantDateFix.field, dateFixOrigin);
+    focusRenewalDashboardControl(tenantDateFix.target);
+  };
   const reviewLabel = ready
     ? KICKOFF_WORDS.reviewAndSend
     : offCycleHold
@@ -735,7 +1053,8 @@ function PreparedMessageBlock({
     reloadAfter: readonly ChangedInput[] | null = null,
   ) => {
     setBusy(true);
-    setMessage("");
+    setFeedback("");
+    setRefusedCommunication(null);
     setChangedReview(null);
     if (reloadAfter) setReloading(true);
     const epoch = reviewEpoch.current;
@@ -744,16 +1063,20 @@ function PreparedMessageBlock({
     // the reason reads on the card.
     const fail = (text: string) => {
       if (reloadAfter) setReview(null);
-      setMessage(text);
+      setFeedback(text);
     };
     try {
       if (!reloadAfter && !(await api.flush())) {
-        setMessage(
+        setFeedback(
           "Your latest message could not be prepared for review. Your entries are kept; correct or retry the save.",
         );
         return;
       }
-      const workingFields = messageWorkingFieldsFor(api.channel, api.renewOrNot);
+      const workingFields = messageWorkingFieldsFor(
+        api.channel,
+        api.renewOrNot,
+        api.ownerTermStated,
+      );
       const workingVersion = working?.confirmedVersion?.(workingFields);
       const figuresChanged = () =>
         !reloadAfter &&
@@ -762,23 +1085,7 @@ function PreparedMessageBlock({
           working?.confirmedVersion?.(workingFields) !== workingVersion,
         );
       const changedMessage = `Working figures changed while this review was loading. Your entries are kept. Choose ${mode === "schedule" ? KICKOFF_WORDS.schedule : reviewAction} again to review the current message.`;
-      const readComposition = () =>
-        json<{
-          context: WorkflowCommunicationContext;
-          initial: RichCommunicationMessage;
-          target: {
-            to: string[];
-            cc: string[];
-            blockers?: string[];
-            noticeCycleId?: string | null;
-            readSettlement?: LeaseReadSettlement;
-            reviewedInputs?: ReviewedInput[];
-          };
-          signatureParagraph?: RichCommunicationMessage["paragraphs"][number] | null;
-          reviewedTargetHash: string;
-        }>(
-          `/api/gmail-hub/composition?purpose=${api.channel === "owner" ? "renewal_owner" : "renewal_tenant"}&lease=${encodeURIComponent(api.leaseId)}`,
-        );
+      const readComposition = () => readRenewalComposition(api.channel, api.leaseId);
       let composition = await readComposition();
       // A lease read older than a minute starts the next RentVine read, and the review made on the
       // older one answers that the generation is being replaced. As the reason asks, the review is
@@ -869,6 +1176,36 @@ function PreparedMessageBlock({
       );
       followUpSave.current = null;
       if (cancelled()) return;
+      const followUpStart = composition.followUp ?? null;
+      if (!reloadAfter) {
+        // S276 R-S276-7: every new review opens with the follow-up option unticked; its starting
+        // values are filled in the first time staff tick it in this review.
+        setFollowUps(false);
+        setFollowUpSeed(null);
+        setFollowUpSubject("");
+        setFollowUpBody("");
+        setEveryDays("");
+        setFollowUpTime("");
+        setFollowUpZone(BUSINESS_TIME_ZONE);
+        setFollowUpEnd("");
+        setFollowUpLimit("");
+      } else if (followUpSeed) {
+        // R-S276-8: the review read again after a real change. A follow-up subject or message
+        // staff have not changed follows the current reviewed facts; one they changed is kept.
+        const next = followUpStartingValues({
+          subject: saved.sequence.initial.subject,
+          start: followUpStart,
+        });
+        if (followUpSubject === followUpSeed.subject) setFollowUpSubject(next.subject);
+        if (followUpBody === followUpSeed.body) setFollowUpBody(next.body);
+        setFollowUpSeed({
+          ...followUpSeed,
+          subject: next.subject,
+          body: next.body,
+          published: next.published,
+          line: followUpStartLine(Number(followUpSeed.everyDays), next.published),
+        });
+      }
       setReview({
         mode,
         signatureParagraph: composition.signatureParagraph ?? null,
@@ -883,6 +1220,7 @@ function PreparedMessageBlock({
         reviewedAtMs: saved.sequence.updatedAtMs,
         reviewedInputs: composition.target.reviewedInputs ?? null,
         changes: reloadAfter,
+        followUpStart,
       });
     } catch (error) {
       fail(
@@ -896,6 +1234,149 @@ function PreparedMessageBlock({
     }
   };
 
+  /**
+   * S273 R-S273-4: "Review the updated offer". The existing review dialog opens with the lease's
+   * current message, recipients and sender, for the same communication that is held or out of
+   * date. The date and time are carried from the earlier authorization while still in the future;
+   * otherwise they start empty and Send now is offered. Nothing is saved here: the one
+   * confirmation saves the wording to that communication and authorizes it. `reloadAfter` reads
+   * the review again in place after a refusal for a real change (S274 R-S274-5).
+   */
+  const prepareUpdateReview = async (
+    reloadAfter: readonly ChangedInput[] | null = null,
+  ) => {
+    if (!repair) return;
+    setBusy(true);
+    setFeedback("");
+    setRefusedCommunication(null);
+    setChangedReview(null);
+    if (reloadAfter) setReloading(true);
+    const epoch = reviewEpoch.current;
+    const fail = (text: string) => {
+      if (reloadAfter) setReview(null);
+      setFeedback(text);
+    };
+    try {
+      if (!reloadAfter && !(await api.flush())) {
+        fail(
+          "Your latest message could not be prepared for review. Your entries are kept; correct or retry the save.",
+        );
+        return;
+      }
+      const read = await json<{ sequence: CommunicationSequence }>(
+        `/api/gmail-hub/sequences?id=${encodeURIComponent(repair.sequenceId)}`,
+      );
+      const refusal = unsentUpdateRefusal(read.sequence, {
+        sequenceId: repair.sequenceId,
+        leaseId: api.leaseId,
+        audience: api.channel,
+        senderEmail: api.senderEmail,
+      });
+      if (refusal) {
+        fail(refusal);
+        return;
+      }
+      let composition = await readRenewalComposition(api.channel, api.leaseId);
+      for (const waitMs of COMPOSITION_REREAD_WAITS_MS) {
+        if (!compositionWaitsOnRead(composition.target)) break;
+        await new Promise((resolve) => setTimeout(resolve, waitMs));
+        composition = await readRenewalComposition(api.channel, api.leaseId);
+      }
+      if (composition.target.blockers?.length) {
+        fail(`This message cannot be sent yet: ${composition.target.blockers.join(" ")}`);
+        return;
+      }
+      if (epoch !== reviewEpoch.current) return;
+      const carried = reloadAfter ? null : carriedSendTime(repair, clockNowMs());
+      if (!reloadAfter) {
+        setScheduleDate(carried?.date ?? "");
+        setScheduleTime(carried?.time ?? "");
+      }
+      const rendered = renderEditableCommunicationBody(
+        composition.initial.paragraphs,
+        composition.initial.layout,
+      );
+      const sequence = read.sequence;
+      setReview((previous) => ({
+        mode: reloadAfter && previous ? previous.mode : "schedule",
+        sequence,
+        signatureParagraph: composition.signatureParagraph ?? null,
+        noticeCycleId: composition.target.noticeCycleId ?? null,
+        reviewedAtMs: clockNowMs(),
+        // Known only once the confirmation saves the wording.
+        reviewedDraftHash: "",
+        reviewedTargetHash: composition.reviewedTargetHash,
+        to: composition.target.to,
+        cc: composition.target.cc,
+        subject: composition.initial.subject,
+        body: rendered.plainText,
+        reviewedInputs: composition.target.reviewedInputs ?? null,
+        changes: reloadAfter,
+        // S276 R-S276-7: an update authorizes the one message it replaces, with no new follow-ups,
+        // so the follow-up form has no starting read here.
+        followUpStart: null,
+        update: {
+          sequenceId: sequence.id,
+          version: sequence.version,
+          context: sequence.context,
+          initial: composition.initial,
+          followUp: sequence.followUp,
+          title: repair.primary?.label ?? unsentWords.review,
+          carried: reloadAfter ? (previous?.update?.carried ?? false) : carried !== null,
+        },
+      }));
+    } catch (error) {
+      fail(
+        error instanceof Error
+          ? error.message
+          : "The review could not be prepared. Nothing was sent.",
+      );
+    } finally {
+      setBusy(false);
+      if (reloadAfter) setReloading(false);
+    }
+  };
+
+  /** S273 R-S273-3: "Cancel the scheduled offer", after its own confirmation. Nothing is sent. */
+  async function cancelUnsent() {
+    if (!repair || busy) return;
+    setBusy(true);
+    setFeedback("");
+    try {
+      const read = await json<{ sequence: CommunicationSequence }>(
+        `/api/gmail-hub/sequences?id=${encodeURIComponent(repair.sequenceId)}`,
+      );
+      const sequence = read.sequence;
+      if (
+        sequence.id !== repair.sequenceId ||
+        sequence.context.entityId !== api.leaseId ||
+        sequence.confirmedCount !== 0 ||
+        sequence.state === "completed" ||
+        sequence.state === "cancelled"
+      ) {
+        setFeedback(UNSENT_MESSAGE_WORDS.changedElsewhere);
+        return;
+      }
+      await json("/api/gmail-hub/sequences", {
+        action: "cancel",
+        id: sequence.id,
+        expectedVersion: sequence.version,
+        operationId: crypto.randomUUID(),
+      });
+      setCancelOpen(false);
+      setFeedback(UNSENT_MESSAGE_WORDS.cancelled);
+      router.refresh();
+    } catch (error) {
+      setFeedback(
+        error instanceof Error
+          ? error.message
+          : "The message was not cancelled. Reload the lease and try again.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function confirm() {
     if (
       !review ||
@@ -908,13 +1389,67 @@ function PreparedMessageBlock({
       return;
     confirmLock.current = true;
     setBusy(true);
-    setMessage("");
+    setFeedback("");
+    setRefusedCommunication(null);
     let sendingId: string | null = null;
     // S274 R-S274-5: a refusal for a real change reloads this review in place after the request.
     let reloadAfter: readonly ChangedInput[] | null = null;
+    // S273 R-S273-4: the update's wording save landed; a later failure leaves it held with the
+    // new wording, and the step offers the retry.
+    let updateSaved = false;
     try {
       let sequence = review.sequence;
       let reviewedDraftHash = review.reviewedDraftHash;
+      if (review.update) {
+        // S273 R-S273-4: the one confirmation saves the lease's current wording to the same
+        // communication (its existing version check), then authorizes that exact end state below.
+        // A save whose answer was lost is sent again as it was, so it is never applied twice.
+        const update = review.update;
+        const draft = {
+          id: update.sequenceId,
+          context: update.context,
+          initial: update.initial,
+          followUp: update.followUp,
+        };
+        const pending =
+          updateSave.current &&
+          JSON.stringify(updateSave.current.body.draft) === JSON.stringify(draft) &&
+          updateSave.current.body.expectedVersion === update.version
+            ? updateSave.current
+            : {
+                body: {
+                  action: "save" as const,
+                  draft,
+                  expectedVersion: update.version,
+                  operationId: crypto.randomUUID(),
+                },
+              };
+        updateSave.current = pending;
+        let saved: { sequence: CommunicationSequence; reviewedDraftHash: string };
+        try {
+          saved = await json<{
+            sequence: CommunicationSequence;
+            reviewedDraftHash: string;
+          }>("/api/gmail-hub/sequences", pending.body);
+        } catch (error) {
+          if (!outcomeUnknown(error)) updateSave.current = null;
+          throw error;
+        }
+        updateSave.current = null;
+        updateSaved = true;
+        sequence = saved.sequence;
+        reviewedDraftHash = saved.reviewedDraftHash;
+        // A second confirmation in this review saves over this exact version.
+        setReview((previous) =>
+          previous?.update
+            ? {
+                ...previous,
+                sequence: saved.sequence,
+                update: { ...previous.update, version: saved.sequence.version },
+              }
+            : previous,
+        );
+      }
       if (includesFollowUps && followUpPlan && followUpMessage) {
         const draft = {
           id: sequence.id,
@@ -931,7 +1466,7 @@ function PreparedMessageBlock({
           },
         };
         if (JSON.stringify(pending.body.draft) !== JSON.stringify(draft)) {
-          setMessage(
+          setFeedback(
             "The prior save is unresolved. Reopen the current communication and review its saved wording.",
           );
           return;
@@ -981,9 +1516,12 @@ function PreparedMessageBlock({
         accepted && includesFollowUps && next !== null && followUpPlan
           ? ` Next follow-up: ${formatZonedInstant(next, followUpPlan.schedule.timeZone)}.`
           : "";
-      setMessage(
+      // S283 R-S283-1 (BEH-S283-1): the scheduled instant in the settled shape, its zone named.
+      setFeedback(
+        // S273 R-S273-7: the stored time from the communication, in the settled date and time
+        // format; the lease step reads the same stored time after a reload.
         review.mode === "schedule"
-          ? `Scheduled for ${scheduleDate} at ${scheduleTime} Central. It counts as sent once Gmail accepts it.`
+          ? { scheduled: scheduledStoredLine(result.sequence.nextDueAtMs) }
           : accepted
             ? `Sent. Gmail accepted the message; the lease now waits on the reply.${nextFollowUp}`
             : "The send is recorded, and Gmail has not confirmed it yet. The lease says what happens next.",
@@ -991,18 +1529,30 @@ function PreparedMessageBlock({
 
       router.refresh();
     } catch (error) {
+      // S273 R-S273-4: the wording saved and the authorization did not; the lease reads the
+      // communication as held with the new wording, and the step offers the retry.
+      if (updateSaved) router.refresh();
       const refusal = refusalOf(error);
       if (refusal.code === LEASE_READ_NOT_SETTLED_CODE) {
         // S274 R-S274-3: the lease is still being re-read. The review keeps its content and its
         // confirm button; nothing was sent, scheduled or held.
-        setMessage(LEASE_READ_NOT_SETTLED_MESSAGE);
+        setFeedback(LEASE_READ_NOT_SETTLED_MESSAGE);
       } else if (refusal.code === TARGET_CHANGED_CODE) {
         // S274 R-S274-5: a fact the review showed really changed. The review is read again in place
         // with each changed value marked, and needs one more confirmation.
         reloadAfter = refusal.changes;
+      } else if (refusal.code === SEQUENCE_REFUSED_CODE && refusal.sequenceRefusal) {
+        // S272 R-S272-6: one typed reason; its text derives in one place. Nothing was sent,
+        // scheduled or written. A message already holding this renewal is named with its link.
+        setFeedback(sequenceRefusalMessage(refusal.sequenceRefusal));
+        setRefusedCommunication(
+          refusal.sequenceRefusal.reason === "unsent_message_exists"
+            ? (refusal.sequenceRefusal.relatedSequenceId ?? null)
+            : null,
+        );
       } else {
         if (sendingId && outcomeUnknown(error)) setUnknownAuthorization(sendingId);
-        setMessage(
+        setFeedback(
           error instanceof Error
             ? `${error.message} Check the lease before trying again; nothing is sent twice.`
             : "The response did not arrive. Check the lease before trying again; nothing is sent twice.",
@@ -1012,15 +1562,20 @@ function PreparedMessageBlock({
       confirmLock.current = false;
       setBusy(false);
     }
-    if (reloadAfter) await prepareReview(review.mode, reloadAfter);
+    if (reloadAfter)
+      await (review.update
+        ? prepareUpdateReview(reloadAfter)
+        : prepareReview(review.mode, reloadAfter));
   }
 
   // R-S249-8: "Review and send" is the Now card's primary action while the step asks for its send.
   const runReview = (button: HTMLButtonElement) => {
-    if (!ready) {
+    if (!ready || (full && tenantDateFix)) {
       if (offCycleHold) {
         // S282 R-S282-4: the fix opens the lease end date review on Check the numbers.
         focusRenewalDashboardControl(offCycleHold.fix.target);
+      } else if (tenantDateFix && full) {
+        focusTenantDate();
       } else if (firstMissing?.key === "signature") {
         setSignatureOpen(true);
         requestAnimationFrame(() => {
@@ -1056,8 +1611,41 @@ function PreparedMessageBlock({
     (button: HTMLButtonElement) => latestRun.current(button),
     [],
   );
+  // S273 R-S273-3/R-S273-4: the held or out-of-date message's one action: its update review, or
+  // its existing recovery in Communications.
+  const runUnsent = (button: HTMLButtonElement) => {
+    if (repair) {
+      trigger.current = button;
+      void prepareUpdateReview();
+      return;
+    }
+    if (recovery)
+      router.push(`/gmail-hub?communication=${encodeURIComponent(recovery.sequenceId)}`);
+  };
+  const latestUnsentRun = useRef(runUnsent);
+  useEffect(() => {
+    latestUnsentRun.current = runUnsent;
+  });
+  const stableUnsentRun = useCallback(
+    (button: HTMLButtonElement) => latestUnsentRun.current(button),
+    [],
+  );
+  const unsentPrimaryLabel = (repair ?? recovery)?.primary?.label ?? null;
+  const unsentRepairs = Boolean(repair);
   useEffect(() => {
     if (!setPrimary) return;
+    // S273: the held or out-of-date message's action is the step's one primary on the Now card.
+    if (!full && unsentPrimaryLabel) {
+      setPrimary(step, {
+        label: unsentPrimaryLabel,
+        run: stableUnsentRun,
+        busy,
+        disabled: busy || (unsentRepairs && !api.canEdit),
+        reason: null,
+        recipients,
+      });
+      return;
+    }
     if (full || deliveryHeld) {
       setPrimary(step, null);
       return;
@@ -1068,6 +1656,7 @@ function PreparedMessageBlock({
       busy,
       disabled: busy || !api.canEdit,
       reason,
+      recipients,
     });
   }, [
     setPrimary,
@@ -1079,19 +1668,40 @@ function PreparedMessageBlock({
     reviewLabel,
     full,
     deliveryHeld,
+    unsentPrimaryLabel,
+    unsentRepairs,
+    stableUnsentRun,
+    recipients,
   ]);
   useEffect(
     () => (setPrimary ? () => setPrimary(step, null) : undefined),
     [setPrimary, step],
   );
 
-  if (!previewSlot && !full) return null;
+  if (!previewSlot && !inline) return null;
   const previewBlock = (
     <section
       aria-label={api.channel === "owner" ? "Owner message" : "Tenant offer"}
       className="ui-stack-tight renewal-now-message"
       data-renewal-message-revision={api.revision}
     >
+      {repair?.secondary && api.canEdit ? (
+        // S273 R-S273-3: the second action beside the repair, after its own confirmation.
+        <p data-renewal-field="unsent-cancel">
+          <Button
+            disabled={busy}
+            onClick={(event) => {
+              cancelTrigger.current = event.currentTarget;
+              setFeedback("");
+              setCancelOpen(true);
+            }}
+            size="compact"
+            variant="secondary"
+          >
+            {repair.secondary.label}
+          </Button>
+        </p>
+      ) : null}
       {api.channel === "owner" && live ? (
         <>
           <div className="ui-stack-tight">
@@ -1146,7 +1756,25 @@ function PreparedMessageBlock({
       {/* S264 R-S264-2: Review offer charges follows the working terms and leads the offer's
         own work, before the readiness list and the preview. */}
       {api.channel === "tenant" ? chargeReview : null}
-      <ul aria-label="What sending needs" className="renewal-now-readiness">
+      <ul
+        aria-label="What sending needs"
+        className="renewal-now-readiness"
+        // S281 R-S281-12: a failing readiness line leads the step, so "Message" opens on its own.
+        data-renewal-promote={!ready || (full && tenantDateFix) ? true : undefined}
+      >
+        {full && tenantDateFix ? (
+          <li data-renewal-ready="missing">
+            <button
+              className="text-link"
+              data-renewal-fix-link
+              id={dateFixOrigin}
+              onClick={focusTenantDate}
+              type="button"
+            >
+              {tenantDateFix.label}
+            </button>
+          </li>
+        ) : null}
         {offCycleHold ? (
           <li data-renewal-ready="missing" data-renewal-readiness-key={offCycleHold.key}>
             {offCycleHold.text}
@@ -1157,6 +1785,7 @@ function PreparedMessageBlock({
                 {" "}
                 <button
                   className="text-link"
+                  data-renewal-fix-link
                   onClick={() => focusRenewalDashboardControl(offCycleHold.fix.target)}
                   type="button"
                 >
@@ -1168,7 +1797,9 @@ function PreparedMessageBlock({
         ) : null}
         {needs.map((item) => (
           <li data-renewal-ready={item.ready ? "ready" : "missing"} key={item.key}>
-            {item.label}: {item.ready ? "Ready" : `Missing ${item.missing ?? ""}`}
+            {!item.ready && "line" in item && item.line
+              ? item.line
+              : `${item.label}: ${item.ready ? "Ready" : `Missing ${item.missing ?? ""}`}`}
             {!item.ready &&
             item.key === "signature" &&
             (deliveryHeld || firstMissing?.key !== "signature") ? (
@@ -1190,6 +1821,7 @@ function PreparedMessageBlock({
                 {" "}
                 <button
                   className="text-link"
+                  data-renewal-fix-link
                   onClick={() => focusRenewalDashboardControl(item.fix!.target)}
                   type="button"
                 >
@@ -1302,6 +1934,8 @@ function PreparedMessageBlock({
         <div
           className="renewal-notice ui-stack-tight"
           data-renewal-field="wording-changed"
+          // S281 R-S281-12: a wording fix leads the step, so "Message" opens on its own.
+          data-renewal-promote
         >
           <p role="status">{STALE_REFINED_BODY_MESSAGE}</p>
           {api.canEdit && api.returnToStandardWording ? (
@@ -1404,7 +2038,7 @@ function PreparedMessageBlock({
           ) : null}
         </div>
       ) : null}
-      {message ? <p role="status">{message}</p> : null}
+      {message && !scheduleInWork ? <p role="status">{message}</p> : null}
       {changedReview ? <p role="status">{changedReview}</p> : null}
       {api.notice && api.notice !== message ? <p role="status">{api.notice}</p> : null}
     </section>
@@ -1449,11 +2083,46 @@ function PreparedMessageBlock({
       </a>
     </div>
   );
+  // S281 R-S281-12: below the primary action, the message and its other ways to send are named
+  // groups, closed on entry; "Message" opens on its own when a wording or readiness fix leads.
+  // S281 R-S281-3: after a confirmed send neither group is rendered.
+  const groups = sent ? null : (
+    <>
+      <RenewalSecondaryWork label={GUIDED_MESSAGE_GROUP_LABELS.message} stepId={step}>
+        {previewBlock}
+      </RenewalSecondaryWork>
+      {!deliveryHeld ? (
+        <RenewalSecondaryWork label={GUIDED_MESSAGE_GROUP_LABELS.otherWays} stepId={step}>
+          {actionsBlock}
+        </RenewalSecondaryWork>
+      ) : null}
+    </>
+  );
   return (
     <>
-      {full ? (
-        <div className="ui-stack-tight" data-renewal-message-work={api.channel}>
-          {!deliveryHeld && api.canEdit ? (
+      {inline ? (
+        <div
+          className="ui-stack-tight"
+          data-renewal-message-sent={sent ? true : undefined}
+          data-renewal-message-work={api.channel}
+          ref={inlineRef}
+        >
+          {/* S281 R-S281-1: Full view's matching section shows the recipients before the
+              primary; the Guided Now card shows them before its own primary. */}
+          {full && !sent && recipients ? (
+            <p data-renewal-field="full-recipients">{recipients}</p>
+          ) : null}
+          {!full ? null : unsentPrimaryLabel && (recovery || api.canEdit) ? (
+            // S273 R-S273-3/R-S273-4: the held or out-of-date message's one action in Full view.
+            <Button
+              data-renewal-unsent-action={repair ? "update" : "open_communication"}
+              data-renewal-work-primary
+              busy={busy}
+              onClick={(event) => runUnsent(event.currentTarget)}
+            >
+              {unsentPrimaryLabel}
+            </Button>
+          ) : !deliveryHeld && api.canEdit ? (
             <Button
               data-renewal-work-primary
               busy={busy}
@@ -1462,16 +2131,22 @@ function PreparedMessageBlock({
               {reviewLabel}
             </Button>
           ) : null}
-          {previewBlock}
-          {!deliveryHeld ? actionsBlock : null}
+          {/* S273 R-S273-7: show the accepted schedule even when the Message group is closed. */}
+          {scheduleInWork ? <p role="status">{message}</p> : null}
+          {pricingBasis}
+          {groups}
         </div>
       ) : previewSlot ? (
         createPortal(previewBlock, previewSlot)
       ) : null}
       {actionsSlot && !deliveryHeld ? createPortal(actionsBlock, actionsSlot) : null}
+      {sent && inline ? (
+        <SentMessageEvidence channel={api.channel} leaseId={api.leaseId} receipt={sent} />
+      ) : null}
       <ConfirmationDialog
         busy={busy && !reloading}
         busyLabel={review?.mode === "schedule" ? "Scheduling…" : "Sending…"}
+        className="renewal-review-dialog"
         confirmDisabled={
           !review ||
           reloading ||
@@ -1496,11 +2171,27 @@ function PreparedMessageBlock({
         onConfirm={() => void confirm()}
         open={review !== null}
         startWithReview
-        title={review?.mode === "schedule" ? "Review and schedule" : "Review and send"}
+        title={
+          review?.update
+            ? review.update.title
+            : review?.mode === "schedule"
+              ? "Review and schedule"
+              : "Review and send"
+        }
         triggerRef={trigger}
       >
         {review ? (
           <div className="ui-stack-tight" data-renewal-field="exact-review">
+            {refusedCommunication ? (
+              // S272 R-S272-3: open the communication that already holds this renewal.
+              <p data-renewal-field="refused-communication">
+                <a
+                  href={`/gmail-hub?communication=${encodeURIComponent(refusedCommunication)}`}
+                >
+                  {SEQUENCE_REFUSAL_ACTION_LABELS.open_related}
+                </a>
+              </p>
+            ) : null}
             {reloading ? (
               // S274 R-S274-5: confirm stays disabled while the review is read again.
               <p data-renewal-field="review-reloading" role="status">
@@ -1524,27 +2215,33 @@ function PreparedMessageBlock({
                 </ul>
               </div>
             ) : null}
-            <p>
+            {/* S281 R-S281-2: the decision first: recipients, subject, the lease in staff
+                terms, the amounts and dates the message states, then the timing; the message
+                body last, in its own scroll area, with the buttons kept in view. */}
+            <p data-renewal-field="review-recipients">
               From {review.sequence.senderEmail} · To {review.to.join(", ")}
               {review.cc.length ? ` · Cc ${review.cc.join(", ")}` : ""}
             </p>
             <p>
               <strong>{review.subject}</strong>
             </p>
-            <div className="draft-box">{review.body}</div>
-            <p>
-              Lease {api.leaseId}
-              {review.noticeCycleId ? ` · Cycle ${review.noticeCycleId}` : ""}
-            </p>
-            {/* S277 R-S277-6 / R-S277-2: what the rent in this message rests on. */}
-            {api.channel === "owner" && !api.renewOrNot ? (
-              <RecommendationBasisLine
-                field="review-rent-basis"
-                proposal={preparation?.rent ?? null}
-              />
-            ) : api.channel === "tenant" ? (
-              <WorkingBaseBasisLine field="review-rent-basis" />
+            {api.leaseLabel ? (
+              <p data-renewal-field="review-lease">{api.leaseLabel}</p>
             ) : null}
+            <div className="ui-stack-tight" data-renewal-field="review-terms">
+              {/* S277 R-S277-6 / R-S277-2: what the rent in this message rests on. */}
+              {api.channel === "owner" && !api.renewOrNot ? (
+                <RecommendationBasisLine
+                  field="review-rent-basis"
+                  proposal={preparation?.rent ?? null}
+                />
+              ) : api.channel === "tenant" ? (
+                <WorkingBaseBasisLine field="review-rent-basis" />
+              ) : null}
+              {reviewDates ? (
+                <p data-renewal-field="review-dates">{reviewDates}</p>
+              ) : null}
+            </div>
             {unknownAuthorization ? (
               <a
                 href={`/gmail-hub?communication=${encodeURIComponent(unknownAuthorization)}`}
@@ -1558,7 +2255,26 @@ function PreparedMessageBlock({
                   type="checkbox"
                   checked={followUps}
                   disabled={busy}
-                  onChange={(event) => setFollowUps(event.target.checked)}
+                  onChange={(event) => {
+                    const checked = event.target.checked;
+                    // S276 R-S276-7 (ARCH-S276-3): the first tick in this review fills the form
+                    // from the one starting projection; a later tick keeps what staff typed.
+                    if (checked && !followUpSeed) {
+                      const start = followUpStartingValues({
+                        subject: review?.subject ?? "",
+                        start: review?.followUpStart ?? null,
+                      });
+                      setFollowUpSubject(start.subject);
+                      setFollowUpBody(start.body);
+                      setEveryDays(start.everyDays);
+                      setFollowUpTime(start.time);
+                      setFollowUpZone(start.timeZone);
+                      setFollowUpEnd(start.endDate);
+                      setFollowUpLimit(start.sendLimit);
+                      setFollowUpSeed(start);
+                    }
+                    setFollowUps(checked);
+                  }}
                 />
                 Authorize follow-ups after the tenant offer
               </label>
@@ -1566,6 +2282,14 @@ function PreparedMessageBlock({
             {includesFollowUps ? (
               <fieldset className="ui-stack-tight" disabled={busy}>
                 <legend>Follow-up message and timing</legend>
+                {followUpSeed ? (
+                  <p data-renewal-field="follow-up-start">{followUpSeed.line}</p>
+                ) : null}
+                {followUpSeed && !followUpSeed.published ? (
+                  <p data-renewal-field="follow-up-unpublished" role="note">
+                    {FOLLOW_UP_START_WORDS.unpublished}
+                  </p>
+                ) : null}
                 <label>
                   Follow-up subject{" "}
                   <input
@@ -1654,6 +2378,36 @@ function PreparedMessageBlock({
                 )}
               </fieldset>
             ) : null}
+            {review.update ? (
+              // S273 R-S273-4: the earlier date and time while still in the future; otherwise the
+              // fields start empty and Send now is offered.
+              <p data-renewal-field="update-timing">
+                {review.mode === "schedule"
+                  ? review.update.carried
+                    ? UNSENT_MESSAGE_WORDS.carriedTime
+                    : UNSENT_MESSAGE_WORDS.noCarriedTime
+                  : null}{" "}
+                <Button
+                  disabled={busy || reloading}
+                  onClick={() =>
+                    setReview((previous) =>
+                      previous
+                        ? {
+                            ...previous,
+                            mode: previous.mode === "schedule" ? "send" : "schedule",
+                          }
+                        : previous,
+                    )
+                  }
+                  size="compact"
+                  variant="secondary"
+                >
+                  {review.mode === "schedule"
+                    ? UNSENT_MESSAGE_WORDS.sendNow
+                    : UNSENT_MESSAGE_WORDS.scheduleInstead}
+                </Button>
+              </p>
+            ) : null}
             {review.mode === "schedule" ? (
               <div className="ui-row">
                 <Field
@@ -1684,6 +2438,15 @@ function PreparedMessageBlock({
                 </Field>
               </div>
             ) : null}
+            <div
+              aria-label="Message body"
+              className="draft-box renewal-review-body"
+              data-renewal-field="review-body"
+              role="region"
+              tabIndex={0}
+            >
+              {review.body}
+            </div>
           </div>
         ) : null}
       </ConfirmationDialog>
@@ -1727,6 +2490,24 @@ function PreparedMessageBlock({
           <p role="status">{api.notice || "Preparing the exact draft for review…"}</p>
         )}
       </ConfirmationDialog>
+      {repair?.secondary ? (
+        // S273 R-S273-3: cancelling the scheduled or held message is its own confirmed action.
+        <ConfirmationDialog
+          busy={busy}
+          busyLabel="Cancelling…"
+          confirmLabel={repair.secondary.label}
+          confirmVariant="destructive"
+          description={UNSENT_MESSAGE_WORDS.cancelDescription}
+          error={cancelOpen && message ? message : undefined}
+          onCancel={() => setCancelOpen(false)}
+          onConfirm={() => void cancelUnsent()}
+          open={cancelOpen}
+          title={unsentWords.cancelTitle}
+          triggerRef={cancelTrigger}
+        >
+          {repair.line ? <p>{repair.line}</p> : null}
+        </ConfirmationDialog>
+      ) : null}
     </>
   );
 }

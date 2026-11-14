@@ -65,6 +65,7 @@ import { RenewalWorkingTermsReveal } from "@/components/lease-renewal/RenewalWor
 import { formatMoneyReference } from "@/lib/lease-renewal/current-rent-display";
 import { RenewalNowCardProvider } from "@/components/lease-renewal/RenewalNowCardContext";
 import type { FinishUpPreparation } from "@/lib/lease-renewal/finish-up-preparation";
+import type { SourceUpdatesPageInput } from "@/lib/lease-renewal/source-updates-list";
 import type { TenantAcceptanceRead } from "@/lib/lease-renewal/tenant-acceptance-hold";
 import { renewalStageContextFor } from "@/lib/lease-renewal/renewal-stage-context";
 import { initialRenewalWorkspaceView } from "@/lib/lease-renewal/workspace-view";
@@ -118,6 +119,7 @@ import { RenewalDeskRefresh } from "@/components/lease-renewal/RenewalDeskRefres
 import { LEASE_EXPORT_TTL_MS } from "@/lib/lease-renewal/live-lease-cache";
 import {
   RenewalDashboardNavigation,
+  RenewalJumpReturn,
   RenewalProcessGuide,
   RenewalSectionNavigation,
 } from "@/components/lease-renewal/RenewalDashboardNavigation";
@@ -141,7 +143,7 @@ import {
 } from "@/components/lease-renewal/RenewalAuxiliaryNotice";
 import type { MoveOutDisposition } from "@/lib/lease-renewal/move-out-disposition";
 import type { MoveOutTimingResult } from "@/lib/lease-renewal/move-out-timing";
-import { NoticeTimingBasisSelection } from "@/components/lease-renewal/NoticeTimingBasisSelection";
+import { NoticeTimingBasisLine } from "@/components/lease-renewal/NoticeTimingBasisLine";
 import { OwnerDecisionForm } from "@/components/lease-renewal/RenewalProgressControls";
 import { RentSuggestionApproval } from "@/components/lease-renewal/RentSuggestionApproval";
 import { DRAFT_BANNER } from "@/lib/constants";
@@ -225,6 +227,7 @@ export function RenewalWorkspace({
   policySheetValue = null,
   policyTodayIso = null,
   finishUpPreparation = null,
+  sourceUpdatesPage = null,
   tenantAcceptance = null,
 }: Readonly<{
   compScreenshotExecutable?: boolean;
@@ -303,6 +306,11 @@ export function RenewalWorkspace({
    * working terms and this page's reads. Read only; null where the page did not assemble them.
    */
   finishUpPreparation?: FinishUpPreparation | null;
+  /**
+   * S278 R-S278-3: the page's Sheet row values and open Sheet proposal for Finish up's one list
+   * of source updates. Read only.
+   */
+  sourceUpdatesPage?: Omit<SourceUpdatesPageInput, "finishUp"> | null;
   /**
    * S264 R-S264-6: this page's read of the tenant's recorded acceptance against the current
    * offer's charges; the stage holds Offer the tenant while it answers an earlier offer.
@@ -595,6 +603,17 @@ export function RenewalWorkspace({
                   nonRenewal:
                     summary.moveOut?.state === "initiated" ||
                     manualNonRenewal(manualState ?? null),
+                  // S285 R-S285-1: the current lease's own length is offered only from its
+                  // verified RentVine end and the same lease's start.
+                  currentLease:
+                    workspace.leaseEnd.state === "verified" &&
+                    workspace.leaseEnd.basis === "rentvine" &&
+                    summary.leaseTerm?.endDateIso === workspace.leaseEnd.endIso
+                      ? {
+                          startIso: summary.leaseTerm?.startDateIso ?? null,
+                          endIso: workspace.leaseEnd.endIso,
+                        }
+                      : null,
                 }
               : null
           }
@@ -631,6 +650,21 @@ export function RenewalWorkspace({
 
                 <RenewalWorkspaceSidebars
                   identity={compactIdentity}
+                  identitySummary={
+                    // S281 R-S281-8: the pinned header's first line on a phone.
+                    <>
+                      <span className="renewal-workspace-identity-address">
+                        {summary.addressLabel}
+                      </span>
+                      {summary.tenantNameLabels.length > 0 ? (
+                        <span className="muted">
+                          {" "}
+                          · {summary.tenantNameLabels.length}{" "}
+                          {summary.tenantNameLabels.length === 1 ? "tenant" : "tenants"}
+                        </span>
+                      ) : null}
+                    </>
+                  }
                   leaseInformation={leaseInformation}
                   rentvineHref={
                     separated
@@ -664,6 +698,8 @@ export function RenewalWorkspace({
                     ) : null
                   }
                 >
+                  {/* S281 R-S281-5: the way back from a jump, in view below the lease toolbar. */}
+                  {separated ? <RenewalJumpReturn /> : null}
                   <RenewalFocusViewSlot enabled={focusAvailable}>
                     <RenewalAuxiliaryNotice failures={auxiliaryFailures} />
                     <RenewalFocusHashTarget openSectionsInFull={!legacyFocus} />
@@ -677,16 +713,6 @@ export function RenewalWorkspace({
                     <MoveOutTimingPanel
                       sourceHref={summary.sourceDestinations?.rentvine?.href ?? null}
                       timing={summary.moveOutTiming}
-                      selection={
-                        workspace.live ? (
-                          <NoticeTimingBasisSelection
-                            canEdit={hasRenewalRoleAuthority(
-                              "select_notice_timing_basis",
-                              role,
-                            )}
-                          />
-                        ) : null
-                      }
                     />
 
                     {!separated ? <RenewalPricingPolicyPanel /> : null}
@@ -705,6 +731,11 @@ export function RenewalWorkspace({
                     >
                       <RenewalManualProvider
                         ownerApproval={ownerApprovalChoices}
+                        sourceUpdatesPage={
+                          sourceUpdatesPage
+                            ? { ...sourceUpdatesPage, finishUp: finishUpPreparation }
+                            : { sheetValues: null, finishUp: finishUpPreparation }
+                        }
                         outreachEvidence={
                           stageContext.outreach
                             ? {
@@ -845,19 +876,15 @@ export function RenewalWorkspace({
                                 >
                                   {/* S120 (R120.1): prepare the message first; record outreach and the later
                       response after actual contact. The order is chronology, not a gate. */}
-                                  {/* S270: the current base and read-only recommendation with its
-                                    edit link lead Ask the owner's Work, before its named group. */}
+                                  {/* S281 R-S281-1: keep the Full facts above the recipients and
+                                    the primary action. Guided shows these facts in the Now card. */}
                                   {separated && section.id === "owner" ? (
-                                    <div
-                                      className="ui-stack-tight"
-                                      id="renewal-owner-pricing-basis"
-                                    >
-                                      <RentRecommendationSummary
-                                        base={baseRentFacts}
-                                        preparation={stageContext.preparation ?? null}
-                                      />
-                                      <RenewalPricingPolicyPanel />
-                                    </div>
+                                    <RentRecommendationSummary
+                                      base={baseRentFacts}
+                                      market
+                                      placement="full"
+                                      preparation={stageContext.preparation ?? null}
+                                    />
                                   ) : null}
                                   {section.id === "owner" || section.id === "tenant" ? (
                                     <RenewalMessagePreparation
@@ -867,6 +894,13 @@ export function RenewalWorkspace({
                                       canManageResources={can(role, "manageAdmin")}
                                       outcomeContext={
                                         separated ? stageContext : undefined
+                                      }
+                                      pricingBasis={
+                                        separated && section.id === "owner" ? (
+                                          <div id="renewal-owner-pricing-basis">
+                                            <RenewalPricingPolicyPanel />
+                                          </div>
+                                        ) : undefined
                                       }
                                       // S270: the outcome's one named group holds the message
                                       // options and the outreach or contact records together.
@@ -1068,6 +1102,9 @@ export function RenewalWorkspace({
                         </RenewalDashboardNavigation>
                       </RenewalManualProvider>
                     </RenewalPolicyProvider>
+                    {/* S283 R-S283-5: the shared basis is one read-only line, after the work, so
+                        it is never rendered above the step while the lease loads. */}
+                    {workspace.live ? <NoticeTimingBasisLine /> : null}
                   </RenewalFocusViewSlot>
                 </RenewalWorkspaceSidebars>
               </div>
@@ -2012,18 +2049,13 @@ function ChannelView({ message }: Readonly<{ message: ChannelMessage }>) {
 function MoveOutTimingPanel({
   timing,
   sourceHref,
-  selection = null,
 }: {
   timing: MoveOutTimingResult | undefined;
   sourceHref: string | null;
-  selection?: ReactNode;
 }) {
-  if (!timing || timing.state === "not_applicable")
-    return selection ? (
-      <section aria-label="Notice timing" className="renewal-move-out-timing">
-        {selection}
-      </section>
-    ) : null;
+  // S283 R-S283-5: the shared basis selector is no longer on the lease; the read-only basis line
+  // renders after the work, and an Admin changes the basis in Admin.
+  if (!timing || timing.state === "not_applicable") return null;
   const targetHeading = timing.targetLabel
     ? timing.targetLabel.charAt(0).toUpperCase() + timing.targetLabel.slice(1)
     : "Target date (basis not reviewed)";
@@ -2033,7 +2065,6 @@ function MoveOutTimingPanel({
       className="renewal-move-out-timing"
       data-renewal-move-out-timing={timing.state}
     >
-      {selection}
       <p className={timing.state === "below" ? "renewal-notice" : "muted"} role="status">
         <strong>Notice timing: {timing.label}.</strong> {timing.explanation}
       </p>

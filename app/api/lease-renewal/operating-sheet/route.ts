@@ -41,11 +41,25 @@ import {
   liveOperatingSheetId,
 } from "@/lib/lease-renewal/sheet-writeback/live";
 import {
+  SHEET_FIELD_UPDATE_KEY,
   SheetWritebackContractError,
   sheetWritebackExecutionId,
   type SheetWritebackProposal,
   type ValidatedSheetWritebackEffect,
 } from "@/lib/lease-renewal/sheet-writeback/proposal-contract";
+import {
+  SheetSetShapeError,
+  assertSheetSetConfirmation,
+  recheckSheetSet,
+  runSheetUpdateSet,
+} from "@/lib/lease-renewal/sheet-writeback/set-run";
+import {
+  SHEET_SET_MAX_CELLS,
+  SHEET_SET_WORDS,
+} from "@/lib/lease-renewal/sheet-writeback/set-words";
+import { SHEET_RESOLUTION_MESSAGES } from "@/lib/lease-renewal/sheet-writeback/resolution-error";
+import { getAdminFirestore } from "@/lib/firestore/admin";
+import { claimSheetSetRun, settleSheetSetRun } from "@/lib/firestore/s278-sheet-set-run";
 import type { ExternalExecutionStore } from "@/lib/external-execution/types";
 import { acceptanceHoldRefusal } from "@/lib/lease-renewal/offer-answers";
 import { sheetUpdateReliesOnAcceptance } from "@/lib/lease-renewal/tenant-acceptance-hold";
@@ -115,6 +129,18 @@ const BodySchema = z.discriminatedUnion("operation", [
       workspaceContext: WorkspaceContextSchema,
       previewHash: HashSchema,
       effectHash: HashSchema,
+      confirm: z.literal(true),
+    })
+    .strict(),
+  // S278 R-S278-4: one confirmation for a lease row's listed cells. It names the proposal and the
+  // ordered effect hashes it previewed; each cell is still applied through the existing exact
+  // field update with its own claim, read-back and receipt.
+  z
+    .object({
+      operation: z.literal("execute_set"),
+      workspaceContext: WorkspaceContextSchema,
+      previewHash: HashSchema,
+      effectHashes: z.array(HashSchema).min(1).max(SHEET_SET_MAX_CELLS),
       confirm: z.literal(true),
     })
     .strict(),
@@ -283,11 +309,10 @@ async function assertProposalCurrent(
   proposal: SheetWritebackProposal,
   binding: ReturnType<typeof sheetLookupBinding>,
   after = false,
+  /** S278 R-S278-4: the one cell of a combined review being written now. */
+  validated: ValidatedSheetWritebackEffect = proposal.effects[0]!,
 ): Promise<void> {
-  const effect =
-    proposal.effects[0]?.effect.kind === "field_update"
-      ? proposal.effects[0].effect
-      : null;
+  const effect = validated?.effect.kind === "field_update" ? validated.effect : null;
   const context = await resolveFreshOperatingSheetLeaseContext(
     proposal.scope.leaseId,
     undefined,
@@ -302,7 +327,13 @@ async function assertProposalCurrent(
           ),
         }
       : null;
-  assertProposalMatchesFreshLeaseContext(proposal, context, working, after);
+  assertProposalMatchesFreshLeaseContext(
+    proposal,
+    context,
+    working,
+    after,
+    proposal.effects.length > 1 ? validated.effectHash : undefined,
+  );
 }
 
 /**
@@ -509,6 +540,190 @@ async function handleRequest(request: Request, read: "status" | "lookup" | null)
         403,
       );
     const proposal = await loadProposalOr404(user, spreadsheetId, leaseId);
+
+    if (body.operation === "execute_set") {
+      // S128/S159: the reviewed switch refuses before the per-key gate or any writer.
+      if (!deps.writeFlagEnabled()) {
+        return NextResponse.json(
+          {
+            error:
+              "Operating-Sheet writes are paused by policy; no Sheet change was made.",
+            error_type: "writeback_paused",
+          },
+          { status: 409 },
+        );
+      }
+      // The exact field-update key is evaluated here and again once per cell by the service.
+      await assertSheetWritebackV2ExecutionAllowed(
+        descriptor,
+        "mutating",
+        SHEET_FIELD_UPDATE_KEY,
+      );
+      if (body.previewHash !== proposal.previewHash) serviceError("confirmation_invalid");
+      try {
+        assertSheetSetConfirmation(proposal, body.effectHashes);
+      } catch (error) {
+        if (error instanceof SheetSetShapeError)
+          return NextResponse.json(
+            { error: error.message, error_type: "confirmation_invalid" },
+            { status: 409 },
+          );
+        throw error;
+      }
+      const record = await readSheetWorkingRecord(leaseId);
+      const binding = sheetLookupBinding(record);
+      // S264 R-S264-6: a cell carrying the accepted terms waits; the whole set waits with it.
+      for (const entry of proposal.effects) {
+        const held = await acceptanceHoldBeforeClaim(
+          user,
+          leaseId,
+          proposal,
+          entry,
+          deps,
+        );
+        if (held) return held;
+      }
+      // AC-S278-4: one confirmation starts one run; a second confirmation starts nothing.
+      const db = getAdminFirestore();
+      const claimed = await claimSheetSetRun(db, {
+        leaseId,
+        previewHash: proposal.previewHash,
+        effectHashes: body.effectHashes,
+        actorUid: user.uid,
+      });
+      if (claimed !== "claimed")
+        return NextResponse.json(
+          {
+            error: SHEET_SET_WORDS.alreadyRun,
+            error_type: "set_already_confirmed",
+            effects: await loadSheetWritebackEffectStatuses(proposal, deps.store),
+          },
+          { status: 409 },
+        );
+      const setService = new SheetWritebackService(deps);
+      const confirmedAtIso = new Date().toISOString();
+      const outcome = await runSheetUpdateSet({
+        proposal,
+        effectHashes: body.effectHashes,
+        // R-S278-4: the one whole-set read before the first write.
+        recheck: async () => {
+          try {
+            await assertManualSheetProposalCurrent(user, proposal);
+          } catch {
+            return { changed: [SHEET_SET_WORDS.recordChanged] };
+          }
+          const fields = proposal.effects.flatMap((entry) =>
+            entry.effect.kind === "field_update" ? [entry.effect.field] : [],
+          );
+          const context = await resolveFreshOperatingSheetLeaseContext(
+            leaseId,
+            undefined,
+            fields,
+            { binding },
+          );
+          return recheckSheetSet(proposal, context, binding);
+        },
+        executeOne: (entry) =>
+          setService.executeEffect({
+            proposal,
+            effectHash: entry.effectHash,
+            confirmation: {
+              previewHash: body.previewHash,
+              effectHash: entry.effectHash,
+              confirmedAtIso,
+            },
+            revalidateAfterEffect: async () => {
+              try {
+                await assertManualSheetProposalCurrent(user, proposal);
+                await assertProposalCurrent(proposal, binding, true, entry);
+              } catch {
+                throw new SheetWritebackServiceError("provider_readback_mismatch");
+              }
+            },
+            revalidateBeforeEffect: async () => {
+              try {
+                await assertManualSheetProposalCurrent(user, proposal);
+                await assertProposalCurrent(proposal, binding, false, entry);
+              } catch {
+                throw new SheetWritebackServiceError("authorization_stale");
+              }
+            },
+          }),
+        describeError: (error) =>
+          error instanceof SheetWritebackServiceError
+            ? { message: SERVICE_MESSAGES[error.code], type: error.code }
+            : error instanceof SheetWorkspaceResolutionError
+              ? { message: error.plainMessage, type: error.code }
+              : error instanceof ActionNotExecutableError ||
+                  error instanceof ActionRuntimeSuspendedError
+                ? { message: error.message, type: error.code }
+                : {
+                    message:
+                      "This cell could not be applied. It is not sent again; review it before preparing another update.",
+                    type: "cell_failed",
+                  },
+      }).catch((error: unknown) => ({
+        // The whole-set read itself failed: nothing was written.
+        state: "refused" as const,
+        changed: [] as string[],
+        message:
+          error instanceof SheetWorkspaceResolutionError
+            ? error.plainMessage
+            : SHEET_RESOLUTION_MESSAGES.source_unavailable,
+      }));
+      if (outcome.state === "refused") {
+        await settleSheetSetRun(db, {
+          previewHash: proposal.previewHash,
+          state: "refused",
+          results: [],
+        }).catch(() => undefined);
+        return NextResponse.json(
+          {
+            error: outcome.message,
+            error_type: "sheet_changed_since_preview",
+            changed: outcome.changed,
+          },
+          { status: 409 },
+        );
+      }
+      await settleSheetSetRun(db, {
+        previewHash: proposal.previewHash,
+        state: "ran",
+        results: outcome.results,
+      }).catch(() => undefined);
+      invalidateLiveLeaseCache();
+      const workspaceSynchronization = await syncManualSheetReceipt(user, proposal).catch(
+        () => ({ state: "pending" as const }),
+      );
+      return postWriteResponse(
+        {
+          status: "executed_set",
+          workspaceSynchronization,
+          summary: outcome.summary,
+          results: outcome.results.map((result) => ({
+            effect_hash: result.effectHash,
+            field: result.field,
+            label: result.label,
+            state: result.state,
+            ...(result.duplicate !== undefined ? { duplicate: result.duplicate } : {}),
+            ...(result.receipt
+              ? {
+                  receipt: {
+                    provider_ref: result.receipt.providerRef,
+                    result_hash: result.receipt.resultHash,
+                    reconciled: result.receipt.reconciled,
+                    created_at: result.receipt.createdAt,
+                  },
+                }
+              : {}),
+            ...(result.error ? { error: result.error } : {}),
+            ...(result.errorType ? { error_type: result.errorType } : {}),
+          })),
+        },
+        Date.now(),
+      );
+    }
+
     const effect = effectByHash(proposal, body.effectHash);
     const service = new SheetWritebackService(deps);
 
@@ -558,6 +773,9 @@ async function handleRequest(request: Request, read: "status" | "lookup" | null)
       if (body.previewHash !== proposal.previewHash) {
         serviceError("confirmation_invalid");
       }
+      // S278 R-S278-4/5 and R-S278-6: a lease row's listed cells are applied by their one
+      // confirmation only; a single update keeps its own preview and confirmation.
+      if (proposal.effects.length !== 1) serviceError("confirmation_invalid");
       // S158/S160: the lookup selection and the working current rent the attempt starts with.
       // A working value that changed after the preview is refused before any claim; the same
       // check runs again inside the one-attempt claim (value integrity, not a permission).

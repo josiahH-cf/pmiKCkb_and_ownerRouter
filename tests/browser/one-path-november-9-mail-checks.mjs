@@ -298,6 +298,11 @@ export async function qualifyCompiledTenantOffer({
       response.request().postDataJSON()?.action?.kind === "tenant_response",
   );
   await tenantDecision.selectOption("accepted");
+  // S276 R-S276-1 (pin changed by S276): the response is recorded by its one visible Save.
+  await page
+    .locator("#renewal-manual-tenant_response")
+    .getByRole("button", { name: "Save", exact: true })
+    .click();
   const recorded = await decisionSaved;
   const decisionInput = recorded.request().postDataJSON();
   assert.equal(decisionInput.leaseId, leaseId);

@@ -1,6 +1,8 @@
+import { RenewalTeamLineSlot } from "@/components/attention/RenewalTeamLine";
 import { AppShell } from "@/components/layout/AppShell";
 import { WorkAccountabilityBoard } from "@/components/work/WorkAccountabilityBoard";
 import { requirePageCapability } from "@/lib/auth/page-guards";
+import { hasSpaceAccess } from "@/lib/auth/session";
 import {
   allowsMutation,
   resolveEnvironmentDescriptor,
@@ -20,7 +22,6 @@ export default async function MyWorkPage() {
         !space.readOnly,
     )
     .map(({ id, name }) => ({ id, name }));
-
   return (
     <AppShell user={user}>
       <main className="content content--workspace ui-stack">
@@ -31,6 +32,7 @@ export default async function MyWorkPage() {
           </p>
         </div>
         <WorkAccountabilityBoard
+          emptyAside={hasSpaceAccess(user, "renewals") ? <RenewalTeamLineSlot /> : null}
           mode="mine"
           mutationAllowed={mutationAllowed}
           spaces={spaces}

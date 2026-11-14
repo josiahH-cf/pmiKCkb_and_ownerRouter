@@ -13,6 +13,7 @@ import {
   recordOwnerApproval,
 } from "./one-path-november-10-core-journeys.mjs";
 import {
+  addDays,
   centralDate,
   compositionText,
   firestoreValue,
@@ -36,6 +37,44 @@ const prepared = (response, field) =>
   new URL(response.url()).pathname === PREPARATION &&
   response.request().method() === "POST" &&
   (field === undefined || field(response.request().postDataJSON()));
+
+const tenantOfferGroup = (label) =>
+  `details[data-renewal-group-step="offer-tenant"][data-renewal-group="${label}"]`;
+
+async function checkSentTenantWork(now) {
+  const work = now.locator(
+    '[data-renewal-message-work="tenant"][data-renewal-message-sent]',
+  );
+  if (!(await work.count())) return false;
+  await now
+    .locator(
+      '[data-renewal-outcome="offer-tenant"] [data-renewal-derived="tenant_offer"] [data-renewal-field="derived-origin"]',
+    )
+    .filter({
+      hasText: /^From the app's confirmed send: the tenant message Gmail accepted /,
+    })
+    .waitFor();
+  assert.equal(await work.count(), 1, "One confirmed tenant message");
+  // Guided keeps other steps' controls mounted. Check the current step's groups and editor.
+  for (const label of ["Message", "Other ways to send"]) {
+    assert.equal(
+      await now.locator(tenantOfferGroup(label)).count(),
+      0,
+      `No ${label} group for the confirmed tenant offer`,
+    );
+  }
+  assert.equal(
+    await work.locator('[data-renewal-field="message-preview"]').count(),
+    0,
+    "No editable preview for the confirmed tenant offer",
+  );
+  assert.equal(
+    await now.locator('[data-renewal-field="message-preview"]:visible').count(),
+    0,
+    "No editable preview is shown in the confirmed offer's Now card",
+  );
+  return true;
+}
 
 /** Save the tenant offer's charge decisions through the route, as the editor does. */
 async function saveOfferCharges(kit, page, leaseId, change) {
@@ -66,7 +105,13 @@ async function saveOfferCharges(kit, page, leaseId, change) {
 }
 
 /** Save the sequence and authorize it with the hashes the review read. */
-export async function authorizeTenantOffer(kit, page, composition, action) {
+export async function authorizeTenantOffer(
+  kit,
+  page,
+  composition,
+  action,
+  { firstDate = centralDate(1) } = {},
+) {
   const staged = await kit.post(page, SEQUENCES, {
     action: "save",
     expectedVersion: 0,
@@ -89,7 +134,7 @@ export async function authorizeTenantOffer(kit, page, composition, action) {
     schedule:
       action === "schedule"
         ? {
-            firstDate: centralDate(1),
+            firstDate,
             time: "09:15",
             timeZone: "America/Chicago",
             everyDays: null,
@@ -115,9 +160,12 @@ export async function recordTenantAcceptance(kit, page, leaseId, sent) {
     response.request().method() === "POST";
   const response = form.getByLabel("Tenant response", { exact: true });
   if ((await response.inputValue()) !== "accepted") {
+    // S276 R-S276-1 (pin changed by S276): choosing the response saves nothing; its one
+    // visible Save records it.
+    await response.selectOption("accepted");
     const [decided] = await Promise.all([
       page.waitForResponse(workspaceSave),
-      response.selectOption("accepted"),
+      form.getByRole("button", { name: "Save", exact: true }).click(),
     ]);
     assert.equal(decided.status(), 200, await decided.text());
   }
@@ -286,9 +334,11 @@ export async function journeyN1004(ctx, page) {
   await transitions("does_not_apply", "unchanged");
   const start = (await reads.working()).record.fields.terms_effective_date.value;
   await kit.open(page, kit.href(leaseId, "?step=offer-tenant"));
-  const options = page.locator(
-    'details[data-renewal-group="Tenant offer options and record of contact"]',
-  );
+  const options = kit
+    .now(page)
+    .locator(
+      'details[data-renewal-group="Record of contact"], details[data-renewal-group="Tenant offer options and record of contact"]',
+    );
   await kit.toggleDisclosure(page, options, true);
   await options
     .getByLabel("Add a charge for this lease only", { exact: true })
@@ -623,6 +673,15 @@ export async function journeyN1004(ctx, page) {
 
   // Change only one selected charge: the corrected pet line, $45.00 to $50.00.
   await kit.open(page, kit.href(leaseId, "?step=offer-tenant"));
+  const offerWork = kit.now(page);
+  const contact = offerWork.locator(tenantOfferGroup("Record of contact"));
+  if (await checkSentTenantWork(offerWork)) {
+    await kit.toggleDisclosure(page, contact, true);
+    await contact.locator("#renewal-offer-charges").waitFor();
+    assert.equal(await review.count(), 1, "One review for the current offer after send");
+  } else {
+    assert.equal(await contact.count(), 0, "The grouped offer carries the sent marker");
+  }
   const changed = review
     .locator("#renewal-offer-charge-rentvine-61011")
     .locator("details")
@@ -1017,6 +1076,16 @@ export async function journeyN1005(ctx, page) {
   };
   const sequenceOf = async (id) =>
     (await kit.read(page, SEQUENCES + "?id=" + id)).sequence;
+  const afterMailEvent = async (atMs, action) => {
+    if (!kit.compiledMail) return action();
+    kit.setClock(Math.max(Date.now(), atMs + 1));
+    try {
+      const result = await action();
+      return result;
+    } finally {
+      kit.setClock(null);
+    }
+  };
   try {
     // The changed package and the applicable insurance transition require both flyers. The
     // decisions are this journey's own, saved through the offer's route as the editor saves them.
@@ -1061,48 +1130,108 @@ export async function journeyN1005(ctx, page) {
     assert.equal(pending.authorized.status, 409, JSON.stringify(pending.authorized.body));
     assert.equal((await kit.sentMail()).length, sentBefore);
     await kit.open(page, kit.href(leaseId, "?step=offer-tenant"));
-    const work = kit.now(page).locator("[data-renewal-priority-state]").first();
+    const now = kit.now(page);
+    const work = now.locator(
+      '[data-renewal-outcome="offer-tenant"][data-renewal-priority-state]',
+    );
     await work.waitFor();
     const priority = {
       state: await work.getAttribute("data-renewal-priority-state"),
       lead: await work.getAttribute("data-renewal-priority-lead"),
     };
-    const leadFix = kit
-      .now(page)
-      .getByRole("button", { name: /^Shared resource link: / });
+    const leadFix = now.getByRole("button", { name: /^Shared resource link: / });
     let fix;
-    if (priority.state === "wait") {
-      // N10-04's offer went out and awaits the tenant, so recording the answer leads (S269 rule
-      // 4) and nothing about the next offer competes with it. The next offer's exact pending
-      // resource is its readiness fix (R-S265-3), in Tenant offer options and record of contact.
-      assert.equal(await leadFix.count(), 0, "No resource fix competes with the wait");
-      const options = page.locator(
-        'details[data-renewal-group="Tenant offer options and record of contact"]',
+    let pendingResource;
+    if (await checkSentTenantWork(now)) {
+      // After a confirmed offer the tenant answer or its wait leads. S281 removes the editable
+      // preview; the exact pending resource for the next offer remains on Connections.
+      assert.ok(
+        priority.state === "wait" ||
+          (priority.state === "act" && priority.lead === "tenant-answer"),
+        JSON.stringify(priority),
       );
-      await kit.toggleDisclosure(page, options, true);
-      fix = options.getByRole("link", { name: /^Shared resource link: / }).first();
+      assert.equal(
+        await leadFix.count(),
+        0,
+        "No resource fix competes with the tenant answer",
+      );
+      pendingResource = composition.target.tenantResourceRequired.find(
+        (id) => composition.target.tenantResources?.[id]?.state === "source_pending",
+      );
+      assert.ok(pendingResource);
+      const nav = page.getByRole("navigation", { name: "Primary", exact: true });
+      const connections = nav.getByRole("link", { name: "Connections", exact: true });
+      await nav.getByRole("button", { name: "Admin", exact: true }).press("ArrowDown");
+      assert.equal(await connections.getAttribute("href"), "/connections");
+      await connections.click();
+      await page.waitForURL(
+        (url) => url.pathname === "/connections" && !url.search && !url.hash,
+      );
+      const resources = page.locator("details").filter({
+        has: page.locator("summary").getByText("Renewal resource links", { exact: true }),
+      });
+      await kit.toggleDisclosure(page, resources, true);
+    } else if (priority.state === "wait") {
+      // A wait leads over preparation for the next offer. Follow its exact readiness link.
+      assert.equal(await leadFix.count(), 0, "No resource fix competes with the wait");
+      const message = now.locator(tenantOfferGroup("Message") + ":visible");
+      if (await message.count()) {
+        await kit.toggleDisclosure(page, message, true);
+        fix = message.getByRole("link", { name: /^Shared resource link: / }).first();
+      } else {
+        const options = page.locator(
+          'details[data-renewal-group="Tenant offer options and record of contact"]',
+        );
+        await kit.toggleDisclosure(page, options, true);
+        fix = options.getByRole("link", { name: /^Shared resource link: / }).first();
+      }
     } else {
       // S265: before the offer goes out, the Guided lead is the resource's one Connections entry.
       assert.equal(priority.lead, "included-resource");
       fix = leadFix.first();
     }
-    await fix.waitFor();
+    if (fix) {
+      await fix.waitFor();
+      record({
+        id: "N10-05",
+        check: "resource-fix",
+        priority,
+        label: await fix.innerText(),
+      });
+      await fix.click();
+    }
+    await page.waitForURL((url) => url.pathname === "/connections");
+    const destination = new URL(page.url());
+    const resourceTarget = pendingResource
+      ? "#renewal-resource-entry-" + pendingResource
+      : destination.hash;
+    assert.match(
+      resourceTarget,
+      /^#renewal-resource-entry-(?:insurance_flyer|rbp_flyer)$/,
+    );
+    const resourceId = resourceTarget.slice("#renewal-resource-entry-".length);
+    assert.ok(composition.target.tenantResourceRequired.includes(resourceId));
+    const projected = composition.target.tenantResources?.[resourceId];
+    assert.equal(projected?.state, "source_pending");
+    const entry = page.locator(resourceTarget);
+    await entry.waitFor();
+    const stateLine = `Source pending. ${projected.reason}`;
+    await entry.getByText(stateLine, { exact: true }).waitFor();
+    const resourceLink = entry.locator("#renewal-resource-" + resourceId);
+    assert.equal(await resourceLink.inputValue(), projected.url ?? "");
+    assert.ok(
+      await resourceLink.isDisabled(),
+      "An Editor cannot change the resource link",
+    );
     record({
       id: "N10-05",
-      check: "resource-fix",
+      check: "pending-resource-in-connections",
       priority,
-      label: await fix.innerText(),
+      resourceId,
+      destination: destination.pathname + destination.hash,
+      resourceTarget,
+      stateLine,
     });
-    await fix.click();
-    await page.waitForURL((url) => url.pathname === "/connections");
-    const target = new URL(page.url());
-    assert.match(target.hash, /^#renewal-resource-entry-(?:insurance_flyer|rbp_flyer)$/);
-    const entry = page.locator(target.hash);
-    await entry.waitFor();
-    await entry
-      .getByText(/^Source pending\. /)
-      .first()
-      .waitFor();
     assert.equal(
       await entry.getByRole("button", { name: /^Save / }).count(),
       0,
@@ -1320,21 +1449,34 @@ export async function journeyN1005(ctx, page) {
       confirmed: delivered.confirmedCount,
     });
     assert.equal(delivered.confirmedCount, 1);
+    const deliveryReceipt = delivered.threads[0];
+    assert.ok(Number.isSafeInteger(deliveryReceipt?.sentAtMs));
+    assert.equal(delivered.lastSentAtMs, deliveryReceipt.sentAtMs);
     const sent = await kit.sentMail();
     assert.equal(sent.length, sentBefore + 1);
-    assert.doesNotMatch(sent.at(-1).text, /renewal-form/);
+    const deliveredMail = sent.find((mail) => mail.id === deliveryReceipt.messageId);
+    assert.ok(deliveredMail, "The confirmed receipt names the stand-in message");
+    assert.equal(deliveredMail.threadId, deliveryReceipt.threadId);
+    assert.equal(Date.parse(deliveredMail.at), deliveryReceipt.sentAtMs);
+    assert.doesNotMatch(deliveredMail.text, /renewal-form/);
     await asAdmin(() =>
       saveResource(kit, page, "renewal_information_form", { url: "", clear: true }),
     );
     observed.omittedResourceChangeIgnored = true;
     observed.draftSendScheduledProofRechecked = true;
 
-    // An unsent authorization from before resource checks is held at dispatch.
+    // The compiled worker advanced to the scheduled send. Review the legacy-shaped authorization
+    // after that actual receipt so the earlier message cannot stop it before its resource check.
     composition = await reads.composition();
-    const legacy = await authorizeTenantOffer(kit, page, composition, "schedule");
-    assert.equal(legacy.authorized.status, 200);
+    const legacy = await afterMailEvent(deliveryReceipt.sentAtMs, () =>
+      authorizeTenantOffer(kit, page, composition, "schedule", {
+        firstDate: addDays(delivered.authorization.schedule.firstDate, 1),
+      }),
+    );
+    assert.equal(legacy.authorized.status, 200, JSON.stringify(legacy.authorized.body));
     const authorization = (await sequenceOf(legacy.authorized.body.sequence.id))
       .authorization;
+    assert.ok(authorization.approvedAtMs > deliveryReceipt.sentAtMs);
     const { payloadHash, resourceBasis, ...rest } = authorization;
     assert.equal(
       sequencePayloadHash({ ...rest, resourceBasis }),
@@ -1353,6 +1495,8 @@ export async function journeyN1005(ctx, page) {
       check: "legacy",
       state: heldLegacy.state,
       pause: heldLegacy.pause,
+      earlierSendAtMs: deliveryReceipt.sentAtMs,
+      approvedAtMs: authorization.approvedAtMs,
     });
     assert.equal(heldLegacy.state, "paused");
     assert.equal(heldLegacy.pause?.cause, "resource_changed");
@@ -1363,7 +1507,9 @@ export async function journeyN1005(ctx, page) {
     // An uncertain attempt reconciles from the provider readback without another send.
     composition = await reads.composition();
     await setNextSend(rehearsal, "unconfirmed");
-    const uncertain = await authorizeTenantOffer(kit, page, composition, "send");
+    const uncertain = await afterMailEvent(heldLegacy.pause.atMs, () =>
+      authorizeTenantOffer(kit, page, composition, "send"),
+    );
     assert.equal(
       uncertain.authorized.status,
       200,
@@ -1373,6 +1519,7 @@ export async function journeyN1005(ctx, page) {
     assert.equal(kept, sentBefore + 2);
     let attempt = await kit.read(page, SEQUENCES + "?id=" + uncertain.staged.id);
     assert.equal(attempt.sequence.state, "needs_reconciliation");
+    assert.ok(attempt.sequence.authorization.approvedAtMs > heldLegacy.pause.atMs);
     const frozen = attempt.sequence.authorization.resourceBasis;
     await asAdmin(() =>
       saveResource(kit, page, "rbp_flyer", {
@@ -1422,8 +1569,10 @@ export async function journeyN1005(ctx, page) {
         response.request().method() === "POST" &&
         response.request().postDataJSON()?.action === "reconcile",
     );
-    await reconcile.click();
-    assert.equal((await answer).status(), 200);
+    await afterMailEvent(attempt.sequence.authorization.approvedAtMs, async () => {
+      await reconcile.click();
+      assert.equal((await answer).status(), 200);
+    });
     attempt = await kit.read(page, SEQUENCES + "?id=" + uncertain.staged.id);
     assert.equal(attempt.sequence.unresolvedOccurrenceId, null);
     assert.equal(attempt.attempts.at(-1).state, "sent");

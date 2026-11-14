@@ -68,7 +68,7 @@ export const PROFILE_AND_MY_WORK_SCREENS: readonly HelpScreenReference[] = [
         role: "region",
         availability: "required",
         source: BOARD,
-        does: "Shows a card for each task assigned to you with its state, next action, due time, expected and recorded minutes and its controls. No tasks assigned shows when there are none.",
+        does: "Shows a card for each task assigned to you with its state, next action, due time, expected and recorded minutes and its controls. No tasks assigned shows when there are none, with the renewal team line: how many renewals have a next action for the team, and Open the Renewal Desk.",
         who: "All staff",
       },
       {
@@ -197,7 +197,7 @@ export const PROFILE_AND_MY_WORK_SCREENS: readonly HelpScreenReference[] = [
     ],
     guides: ["my-work-and-profile"],
     navItems: ["my-work"],
-    lastUpdated: "2026-11-04",
+    lastUpdated: "2026-11-13",
   },
   {
     id: "profile",

@@ -212,6 +212,13 @@
   {
     "kind": "inline",
     "location": "components/console/DashboardAttentionQueue.tsx",
+    "text": "More renewal messages may need your attention. Open Communications.",
+    "describes": "Waiting on you note when the bounded renewal message read is incomplete, with a link to Communications",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/console/DashboardAttentionQueue.tsx",
     "text": "Some sources could not be read just now, so this list may be incomplete.",
     "describes": "Waiting on you list when some sources did not answer",
     "disposition": "keep"

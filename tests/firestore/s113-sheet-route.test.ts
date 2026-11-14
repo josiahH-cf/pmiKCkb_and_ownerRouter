@@ -991,8 +991,12 @@ describe("S113 comp route through actual adapter and retained preparation", () =
   });
 });
 
-describe("S118 saved comparison preparation prepares the Sheet market value for separate confirmation", () => {
-  it("AC-S118-3: an Editor's saved PMI recommendation becomes the exact prepared Market value; withdrawing it removes the unconfirmed update and nothing is written", async () => {
+// Rewritten on purpose for S278 R-S278-1: the Sheet Market value is prepared from the reviewed Rent
+// to recommend (tests/firestore/s278-sheet-set.test.ts and tests/unit/s278-market-value-source.test.ts).
+// The comparison figure this form saves, often the provider's point estimate, no longer feeds the
+// Sheet; it and the range stay app evidence.
+describe("S118 saved comparison preparation stays app evidence (S278 R-S278-1)", () => {
+  it("AC-S118-3 / R-S278-1: an Editor's saved comparison figure and range stay app evidence; no Sheet Market value is prepared and nothing is written", async () => {
     testState.role = "Editor";
     let state = await startManual();
     state = (
@@ -1011,43 +1015,12 @@ describe("S118 saved comparison preparation prepares the Sheet market value for 
       rangeBasis: "provider",
       recommendationBasis: "provider",
     });
-    expect(Object.keys(state.sourceUpdates)).toEqual(["market_value"]);
-    // S155: saving reads and writes no Sheet; the value waits until staff prepare it.
-    expect(state.sourceUpdates.market_value.state).toBe("pending");
-    state = await prepareSource(
-      state,
-      "market_value",
-      state.sourceUpdates.market_value.eventId,
-    );
-    expect(state.sourceUpdates.market_value).toMatchObject({
-      state: "prepared",
-      intent: {
-        field: "market_value",
-        value: 1550,
-        source: "Reviewed RentCast result and two listings",
-      },
-    });
+    expect(state.sourceUpdates.market_value).toBeUndefined();
+    expect(
+      await getSheetWritebackProposal(actor, spreadsheetId, "Lease Renewal", scope, db),
+    ).toBeNull();
     expect(mutations).toBe(0);
-    const proposal = (await getSheetWritebackProposal(
-      actor,
-      spreadsheetId,
-      "Lease Renewal",
-      scope,
-      db,
-    ))!;
-    expect(proposal.effects).toHaveLength(1);
-    expect(proposal.effects[0].effect).toMatchObject({
-      kind: "field_update",
-      staffIntent: { field: "market_value", value: 1550 },
-    });
-    // The low/high range never becomes a Sheet column; only the recommendation is proposed.
-    // The content hash is hex and can contain either digit run by chance, so it is excluded.
-    const effectsWithoutHash = proposal.effects.map((effect) => ({
-      ...effect,
-      effectHash: undefined,
-    }));
-    expect(JSON.stringify(effectsWithoutHash)).not.toMatch(/1450|1650/);
-    // Withdrawing the recommendation removes the unconfirmed Sheet update; the range stays.
+    // A later review without a recommendation keeps the range as evidence and prepares nothing.
     state = (
       await recordManual(state, {
         kind: "preparation",
@@ -3671,9 +3644,11 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         fireEvent.keyDown(input, { key: "Enter" });
       }
       /**
-       * S155/S156: a response is recorded by choosing it, and its source saves when that field is
-       * left; nothing waits on a Record button. S157: the owner-approved terms are the working
-       * terms, each saved on its own; the approval itself carries no terms.
+       * S155/S156: an owner response is recorded by choosing it, and its source saves when that
+       * field is left. S276 R-S276-1 (rewritten on purpose): a tenant response and its source are
+       * recorded by the one visible Save under "Review the tenant's response". S157: the
+       * owner-approved terms are the working terms, each saved on its own; the approval itself
+       * carries no terms.
        */
       async function respond(
         audience: "owner" | "tenant",
@@ -3773,10 +3748,12 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         }
         if (control.value !== outcome) {
           change(control, outcome);
-          revision = await savedAfter(revision);
-          expect((await getRenewalWorkspace(actor, "701", db))![key]?.outcome).toBe(
-            outcome,
-          );
+          if (audience === "owner") {
+            revision = await savedAfter(revision);
+            expect((await getRenewalWorkspace(actor, "701", db))![key]?.outcome).toBe(
+              outcome,
+            );
+          }
         }
         if (terms) {
           if (terms.effectiveDate)
@@ -3799,6 +3776,13 @@ describe("S113 mounted operator journey with persisted backend state", () => {
           );
         }
         enter(root.getByLabelText("Response source or channel (optional)"), source);
+        if (audience === "tenant")
+          fireEvent.click(
+            within(document.getElementById("renewal-manual-tenant_response")!).getByRole(
+              "button",
+              { name: "Save" },
+            ),
+          );
         await savedAfter(revision);
         await waitFor(
           async () =>

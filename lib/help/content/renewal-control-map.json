@@ -254,10 +254,7 @@
     "availability": "conditional",
     "expectation": "Copy reviewed formatted owner wording.",
     "source": ["components/lease-renewal/RenewalMessagePreparation.tsx"],
-    "actions": [
-      "click-button:Full view",
-      "open-summary:Owner message options and outreach record"
-    ]
+    "actions": ["click-button:Full view", "open-summary:Outreach record"]
   },
   {
     "step": "22",
@@ -268,10 +265,7 @@
     "availability": "conditional",
     "expectation": "Preview an exact unsent draft.",
     "source": ["components/lease-renewal/RenewalMessagePreparation.tsx"],
-    "actions": [
-      "click-button:Full view",
-      "open-summary:Owner message options and outreach record"
-    ]
+    "actions": ["click-button:Full view", "open-summary:Outreach record"]
   },
   {
     "step": "23",
@@ -285,10 +279,7 @@
       "components/lease-renewal/RenewalDashboardNavigation.tsx",
       "components/lease-renewal/RenewalManualWorkspace.tsx"
     ],
-    "actions": [
-      "click-button:Full view",
-      "open-summary:Owner message options and outreach record"
-    ]
+    "actions": ["click-button:Full view", "open-summary:Outreach record"]
   },
   {
     "step": "24",
@@ -299,10 +290,7 @@
     "availability": "conditional",
     "expectation": "Copy the current-cycle tenant message.",
     "source": ["components/lease-renewal/RenewalMessagePreparation.tsx"],
-    "actions": [
-      "click-button:Full view",
-      "open-summary:Tenant offer options and record of contact"
-    ]
+    "actions": ["click-button:Full view", "open-summary:Record of contact"]
   },
   {
     "step": "25",
@@ -311,15 +299,12 @@
     "role": "label",
     "scope": "region:Tenant offer and response",
     "availability": "conditional",
-    "expectation": "Choose acceptance, decline or counter; it saves at once. A decision then names the offer it answers in Which offer does this answer respond to?",
+    "expectation": "Choose acceptance, decline or counter; choosing saves nothing. Review the tenant's response then shows the response, the offer it answers and what follows, with Save and Cancel, and Save stops this offer's reminders. A saved decision then names the offer it answers in Which offer does this answer respond to?",
     "source": [
       "components/lease-renewal/RenewalDashboardNavigation.tsx",
       "components/lease-renewal/RenewalManualWorkspace.tsx"
     ],
-    "actions": [
-      "click-button:Full view",
-      "open-summary:Tenant offer options and record of contact"
-    ]
+    "actions": ["click-button:Full view", "open-summary:Record of contact"]
   },
   {
     "step": "26",
@@ -618,10 +603,7 @@
     "availability": "conditional",
     "expectation": "Copy the complete To/Cc set the draft carries; a missing party refuses instead.",
     "source": ["components/lease-renewal/RenewalMessagePreparation.tsx"],
-    "actions": [
-      "click-button:Full view",
-      "open-summary:Owner message options and outreach record"
-    ]
+    "actions": ["click-button:Full view", "open-summary:Outreach record"]
   },
   {
     "step": "53",
@@ -827,10 +809,7 @@
     "availability": "conditional",
     "expectation": "Present while the message carries Needs Verification markers; each item links to the control that resolves it.",
     "source": ["components/lease-renewal/RenewalMessagePreparation.tsx"],
-    "actions": [
-      "click-button:Full view",
-      "open-summary:Owner message options and outreach record"
-    ]
+    "actions": ["click-button:Full view", "open-summary:Outreach record"]
   },
   {
     "step": "70",
@@ -841,10 +820,7 @@
     "availability": "required",
     "expectation": "Its help names the exact paragraph the wording replaces; the current paragraph is shown under it.",
     "source": ["components/lease-renewal/RenewalMessagePreparation.tsx"],
-    "actions": [
-      "click-button:Full view",
-      "open-summary:Tenant offer options and record of contact"
-    ]
+    "actions": ["click-button:Full view", "open-summary:Record of contact"]
   },
   {
     "step": "71",
@@ -915,7 +891,7 @@
   {
     "step": "77",
     "page": "/lease-renewal",
-    "control": "Prepare December 2026 leases",
+    "control": "Prepare 5 December 2026 leases",
     "formerly": {
       "control": "Prepare this batch",
       "role": "button"
@@ -923,9 +899,9 @@
     "role": "button",
     "scope": "region:Batch preparation",
     "availability": "conditional",
-    "expectation": "Prepares the chosen month in the app on a deliberate click.",
-    "source": ["components/lease-renewal/RenewalKickoffPreparation.tsx"],
-    "sourceText": "Prepare ${monthName} leases"
+    "expectation": "Prepares, on a deliberate click, the chosen month's leases the Working batch shows under its open group, tag and Search this month's leases. Its name counts them, such as Prepare 4 of 9 December 2026 leases when a filter narrows the list, and the line beside it says how many need a comparison, how many already have one and the monthly allowance left. At the allowance, the rest read Not run: the monthly allowance is reached.",
+    "source": ["lib/lease-renewal/preparation-scope.ts"],
+    "sourceText": "Prepare ${scope.shown} ${monthName} ${leases(scope.shown)}"
   },
   {
     "step": "78",
@@ -1034,9 +1010,9 @@
     "role": "region",
     "scope": "region:Now",
     "availability": "conditional",
-    "expectation": "The stored comparison, Rent to recommend, Reason to include and the message preview.",
+    "expectation": "Open Message to read Reason to include, What sending needs and the prepared owner message.",
     "source": ["components/lease-renewal/RenewalPreparedMessage.tsx"],
-    "actions": ["click-button:Ask the owner"]
+    "actions": ["click-button:Ask the owner", "open-summary:Message"]
   },
   {
     "step": "87",
@@ -1236,9 +1212,9 @@
     "role": "link",
     "scope": "region:Owner approval",
     "availability": "required",
-    "expectation": "Ask the owner shows the current base rent and Rent to recommend read only. This link opens the one Rent to recommend editor in Compare market rent; a person without Editor access sees View rent to recommend.",
+    "expectation": "In Full view, Owner approval shows the current base rent, the market range and Rent to recommend read only. This link opens the one Rent to recommend editor in Market rent comparison; a person without Editor access sees View rent to recommend. In Guided view the Now card's Edit opens the same editor in place.",
     "source": ["components/lease-renewal/RenewalKickoffFields.tsx"],
-    "actions": ["click-button:Ask the owner"]
+    "actions": ["click-button:Full view"]
   },
   {
     "step": "105",
@@ -1249,10 +1225,7 @@
     "availability": "conditional",
     "expectation": "The monthly base rent exactly as the owner approved it, entered by staff. Nothing fills it by itself; when this cycle has a rent to recommend, Same as recommended, with that amount in parentheses, fills it on your choice. A note under the coverage choice says what the answer means at Documents, and before the dates are saved Enter the renewal dates in Working renewal terms opens them.",
     "source": ["components/lease-renewal/RenewalOwnerAnswer.tsx"],
-    "actions": [
-      "click-button:Full view",
-      "open-summary:Owner message options and outreach record"
-    ]
+    "actions": ["click-button:Full view", "open-summary:Outreach record"]
   },
   {
     "step": "107",
@@ -1263,10 +1236,7 @@
     "availability": "conditional",
     "expectation": "Shows the recommended base rent, the amount approved, what the answer covers and the evidence before anything saves.",
     "source": ["components/lease-renewal/RenewalOwnerAnswer.tsx"],
-    "actions": [
-      "click-button:Full view",
-      "open-summary:Owner message options and outreach record"
-    ]
+    "actions": ["click-button:Full view", "open-summary:Outreach record"]
   },
   {
     "step": "108",
@@ -1326,13 +1296,17 @@
   {
     "step": "113",
     "page": "workspace:owner-decision",
-    "control": "Owner message options and outreach record",
+    "control": "Outreach record",
     "role": "summary",
     "scope": "region:Owner approval",
     "availability": "required",
-    "expectation": "Ask the owner's named Work group: Compose owner message in Communications, Copy the message, the unsent Gmail draft, Marked values, Work recorded by staff and Owner response.",
+    "expectation": "Ask the owner's named record group, renamed from the combined options and record group: Compose owner message in Communications, Copy the message, the unsent Gmail draft, Marked values, Work recorded by staff and Owner response. On the Now card, Message and Other ways to send come before it.",
     "source": ["lib/lease-renewal/guided-priority.ts"],
-    "actions": ["click-button:Full view"]
+    "actions": ["click-button:Full view"],
+    "formerly": {
+      "control": "Owner message options and outreach record",
+      "role": "summary"
+    }
   },
   {
     "step": "114",
@@ -1348,13 +1322,17 @@
   {
     "step": "115",
     "page": "workspace:tenant-decision",
-    "control": "Tenant offer options and record of contact",
+    "control": "Record of contact",
     "role": "summary",
     "scope": "region:Tenant offer and response",
     "availability": "required",
-    "expectation": "Offer the tenant's named Work group: Compose tenant message in Communications, Copy the message, the unsent Gmail draft, the charge and response options, Work recorded by staff, Tenant response and Waiting and follow-up.",
+    "expectation": "Offer the tenant's named record group, renamed from the combined options and record group: Compose tenant message in Communications, Copy the message, the unsent Gmail draft, the charge and response options, Work recorded by staff, Tenant response and Waiting and follow-up. On the Now card, Message and Other ways to send come before it.",
     "source": ["lib/lease-renewal/guided-priority.ts"],
-    "actions": ["click-button:Full view"]
+    "actions": ["click-button:Full view"],
+    "formerly": {
+      "control": "Tenant offer options and record of contact",
+      "role": "summary"
+    }
   },
   {
     "step": "116",
@@ -1475,10 +1453,7 @@
     "availability": "conditional",
     "expectation": "An optional charge for this lease only, added with its case source; it joins Review offer charges and saves with the tenant message.",
     "source": ["components/lease-renewal/RenewalOfferCharges.tsx"],
-    "actions": [
-      "click-button:Full view",
-      "open-summary:Tenant offer options and record of contact"
-    ]
+    "actions": ["click-button:Full view", "open-summary:Record of contact"]
   },
   {
     "step": "127",
@@ -1489,10 +1464,7 @@
     "availability": "conditional",
     "expectation": "Shown after Accepted, Counter / change requested or Declined / not renewing: each offer the tenant received, a confirmed send or a Gmail draft verified as sent, and Not one exact offer. It starts on Choose the offer; choosing saves nothing.",
     "source": ["components/lease-renewal/RenewalOfferAnswers.tsx"],
-    "actions": [
-      "click-button:Full view",
-      "open-summary:Tenant offer options and record of contact"
-    ]
+    "actions": ["click-button:Full view", "open-summary:Record of contact"]
   },
   {
     "step": "128",
@@ -1503,10 +1475,7 @@
     "availability": "conditional",
     "expectation": "Shown when the chosen offer is a Gmail draft: where staff checked it went out, such as the Gmail Sent folder entry and its date, saved with the answer.",
     "source": ["components/lease-renewal/RenewalOfferAnswers.tsx"],
-    "actions": [
-      "click-button:Full view",
-      "open-summary:Tenant offer options and record of contact"
-    ]
+    "actions": ["click-button:Full view", "open-summary:Record of contact"]
   },
   {
     "step": "129",
@@ -1517,10 +1486,7 @@
     "availability": "conditional",
     "expectation": "Records the tenant's answer again with the exact offer it answers. Answers the offer names it, and the line above says whether the answer covers the current offer or needs verification.",
     "source": ["components/lease-renewal/RenewalOfferAnswers.tsx"],
-    "actions": [
-      "click-button:Full view",
-      "open-summary:Tenant offer options and record of contact"
-    ]
+    "actions": ["click-button:Full view", "open-summary:Record of contact"]
   },
   {
     "step": "130",
@@ -1531,10 +1497,7 @@
     "availability": "conditional",
     "expectation": "Shown with Approved when the reviewed tenant offer lists charges, naming them. Checked with Base rent and the renewal dates, the saved approval covers that exact offer, charges included.",
     "source": ["components/lease-renewal/RenewalOfferAnswers.tsx"],
-    "actions": [
-      "click-button:Full view",
-      "open-summary:Owner message options and outreach record"
-    ]
+    "actions": ["click-button:Full view", "open-summary:Outreach record"]
   },
   {
     "step": "131",
@@ -1623,5 +1586,154 @@
     "expectation": "The fix words at the end of a Needs a check stage line, when the staff record and the lease's messages disagree about a reply: opens the Owner response or Tenant response editor that settles it. Record the owner outreach and Record the tenant offer do the same for an outreach the staff record does not show.",
     "source": ["lib/lease-renewal/lease-waiting.ts"],
     "actions": []
+  },
+  {
+    "step": "141",
+    "page": "workspace:tenant-decision",
+    "control": "Review the tenant's response",
+    "role": "region",
+    "scope": "region:Tenant offer and response",
+    "availability": "conditional",
+    "expectation": "Shown after a Tenant response is chosen and before it is saved: Response, Answers with the offer's rent, dates and selected charges or No offer has been sent from the app yet, and what follows, such as Reminders for this offer stop. Next: send the renewal information form. Save records the response and stops this offer's reminders; Cancel keeps the earlier response.",
+    "source": ["lib/lease-renewal/tenant-response-review.ts"],
+    "actions": ["click-button:Full view", "open-summary:Record of contact"]
+  },
+  {
+    "step": "142",
+    "page": "workspace:tenant-decision",
+    "control": "Stop them",
+    "role": "button",
+    "scope": "region:Tenant offer and response",
+    "availability": "conditional",
+    "expectation": "Shown after Reminders are still scheduled. when a saved tenant response could not stop this offer's reminders: pauses them once more. It only pauses and sends nothing.",
+    "source": ["lib/lease-renewal/tenant-response-review.ts"],
+    "actions": ["click-button:Full view", "open-summary:Record of contact"]
+  },
+  {
+    "step": "143",
+    "page": "workspace:tenant-decision",
+    "control": "Review the updated offer",
+    "role": "button",
+    "scope": "region:Now",
+    "availability": "conditional",
+    "expectation": "The primary action while the scheduled offer is out of date or held because the lease changed: opens one review of the offer rebuilt from the lease, carrying the earlier date and time while they are still ahead, and confirming saves and schedules or sends it once. Ask the owner reads Review the updated owner message.",
+    "source": ["lib/lease-renewal/unsent-message.ts"],
+    "sourceText": "Review the updated ${noun}",
+    "actions": ["click-button:Offer the tenant"]
+  },
+  {
+    "step": "144",
+    "page": "workspace:tenant-decision",
+    "control": "Cancel the scheduled offer",
+    "role": "button",
+    "scope": "region:Now",
+    "availability": "conditional",
+    "expectation": "Shown with the message preview while the scheduled offer is out of date or held: opens Cancel the scheduled offer?, and confirming sends nothing, keeps the communication's history and offers the step's send action again. Ask the owner reads Cancel the scheduled owner message.",
+    "source": ["lib/lease-renewal/unsent-message.ts"],
+    "sourceText": "Cancel the scheduled ${noun}",
+    "actions": ["click-button:Offer the tenant"]
+  },
+  {
+    "step": "145",
+    "page": "workspace:owner-decision",
+    "control": "Review the new owner wording",
+    "role": "button",
+    "scope": "region:Owner approval",
+    "availability": "conditional",
+    "expectation": "Approvers and Admins, while the owner wording that asks about the term is unpublished: shows how many unsent owner messages will be held, with Publish the new owner wording and Keep the current wording. Publishing makes owner messages state the renewal term. Editors do not see it.",
+    "source": ["lib/lease-renewal/owner-copy-version.ts"],
+    "who": "Admin",
+    "actions": ["click-button:Full view", "open-summary:Outreach record"]
+  },
+  {
+    "step": "146",
+    "page": "workspace:owner-decision",
+    "control": "Facts for the owner ask",
+    "role": "region",
+    "scope": "region:Now",
+    "availability": "conditional",
+    "expectation": "Leads the Now card on Ask the owner: Current base rent with its basis, Market with the comparison's source, range, comparable listings and compared date, and Rent to recommend with Edit. The To and Cc line follows it, before the primary action.",
+    "source": ["components/lease-renewal/RenewalGuidedView.tsx"],
+    "actions": ["click-button:Ask the owner"]
+  },
+  {
+    "step": "147",
+    "page": "workspace:owner-decision",
+    "control": "Edit rent to recommend",
+    "role": "button",
+    "scope": "region:Facts for the owner ask",
+    "availability": "conditional",
+    "expectation": "Edit beside Rent to recommend in Facts for the owner ask: opens the one Rent to recommend editor in place on the Now card; Enter saves it and focus returns to the primary action.",
+    "source": ["components/lease-renewal/RenewalKickoffFields.tsx"],
+    "actions": ["click-button:Ask the owner"]
+  },
+  {
+    "step": "148",
+    "page": "workspace:owner-decision",
+    "control": "Message",
+    "role": "summary",
+    "scope": "region:Now",
+    "availability": "conditional",
+    "expectation": "The message group under the primary action on Ask the owner and Offer the tenant, closed when you arrive: the current wording, What sending needs and Reason to include. It opens by itself when a wording or readiness fix leads, and leaves the step once Gmail accepts the message.",
+    "source": ["lib/lease-renewal/guided-priority.ts"],
+    "actions": ["click-button:Ask the owner"]
+  },
+  {
+    "step": "149",
+    "page": "workspace:owner-decision",
+    "control": "Other ways to send",
+    "role": "summary",
+    "scope": "region:Now",
+    "availability": "conditional",
+    "expectation": "The second group under the primary action, closed when you arrive: Schedule, Create Gmail draft instead, Copy and Open in Communications. It is not shown while the message is held, and leaves the step once Gmail accepts the message.",
+    "source": ["lib/lease-renewal/guided-priority.ts"],
+    "actions": ["click-button:Ask the owner"]
+  },
+  {
+    "step": "150",
+    "page": "workspace:compliance-close",
+    "control": "Review all 2 Sheet updates",
+    "role": "button",
+    "scope": "region:Documents and completion",
+    "availability": "conditional",
+    "expectation": "Shown in Source updates when two or more recorded Sheet updates are pending; the number counts them. Prepares up to 10 of them, in field order, as one preview that Apply 2 Sheet updates confirms once under Review Sheet updates. A remaining count is named for the next review.",
+    "source": ["lib/lease-renewal/sheet-writeback/set-words.ts"],
+    "sourceText": "Review all ${count} Sheet updates",
+    "actions": ["click-button:Full view"]
+  },
+  {
+    "step": "151",
+    "page": "workspace:owner-decision",
+    "control": "Sent owner message",
+    "role": "region",
+    "scope": "",
+    "availability": "conditional",
+    "expectation": "In the step's Verification once Gmail accepts the owner message: the exact sent message, read only, with when, from whom and to whom Gmail accepted it. Offer the tenant shows Sent tenant offer. It reads one stored message and sends nothing.",
+    "source": ["components/lease-renewal/RenewalPreparedMessage.tsx"],
+    "actions": ["click-button:Ask the owner"]
+  },
+  {
+    "step": "152",
+    "page": "workspace:owner-decision",
+    "control": "Use a 12 month term (ends 12/31/2027)",
+    "role": "button",
+    "scope": "region:Owner approval",
+    "availability": "conditional",
+    "expectation": "Shown in Working renewal terms while the end date is empty and a start is chosen: saves the end date a 12 month term gives, with the basis 12 month term chosen by staff. When the current lease runs a whole number of months other than 12, Use the current lease's length offers that end too. A start on February 29 asks for the end date instead.",
+    "source": ["lib/lease-renewal/renewal-date-proposal.ts"],
+    "sourceText": "Use a ${STANDARD_RENEWAL_TERM_MONTHS} month term (ends ${formatCalendarDate(standard.endIso)})",
+    "actions": ["click-button:Full view", "open-summary:Working renewal terms"]
+  },
+  {
+    "step": "153",
+    "page": "workspace:tenant-offer",
+    "control": "Publish the standard follow-up message",
+    "role": "button",
+    "scope": "region:Tenant message preparation",
+    "availability": "conditional",
+    "expectation": "Template approvers can publish the standard follow-up from the tenant message editor. Each new review starts with the published wording.",
+    "source": ["components/lease-renewal/FollowUpCopyPublication.tsx"],
+    "who": "Approver or Admin",
+    "actions": ["click-button:Full view", "open-summary:Record of contact"]
   }
 ]

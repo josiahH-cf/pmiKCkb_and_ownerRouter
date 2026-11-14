@@ -17,6 +17,10 @@ import {
   useWorkspacePanelSize,
 } from "@/components/ui/WorkspaceResizer";
 import { PersonalViewStatus } from "@/components/layout/PersonalViewProvider";
+import {
+  PHONE_HEADER_QUERY,
+  useNarrowViewport,
+} from "@/components/hooks/useNarrowViewport";
 import { useRenewalFocusView } from "./RenewalFocusViewContext";
 import {
   RENEWAL_LEASE_INFORMATION_REQUEST_EVENT,
@@ -108,6 +112,7 @@ function SlideOutPanel({
 export function RenewalWorkspaceSidebars({
   children,
   identity,
+  identitySummary = null,
   leaseInformation,
   processGuide = null,
   sectionNavigation = null,
@@ -118,6 +123,12 @@ export function RenewalWorkspaceSidebars({
   children: ReactNode;
   /** Compact lease identity that stays visible while the operator is lower on the page. */
   identity: ReactNode;
+  /**
+   * S281 R-S281-8: at phone width the pinned header's first line: the address with the tenant
+   * count. The full identity, copy buttons, RentVine link and view controls are in "Lease
+   * details" beside it.
+   */
+  identitySummary?: ReactNode;
   /** The relocated consolidated header facts, rendered by the server from owning projections. */
   leaseInformation: ReactNode;
   /** The process table of contents; absent on an inspection-only lease. */
@@ -146,6 +157,10 @@ export function RenewalWorkspaceSidebars({
   const view = useRenewalFocusView();
   const viewName = view?.view;
   const focusView = viewName === "focus" || viewName === "guided";
+  // S281 R-S281-8: at 760 px and narrower the shared lease header is two lines: the address with
+  // the tenant count and "Lease details", then the stage with Work status. Nothing is removed.
+  const phone = useNarrowViewport(PHONE_HEADER_QUERY);
+  const compact = phone && rentvineHref !== undefined && identitySummary !== null;
   // S152: links and the section navigation land their target below this sticky toolbar. Its
   // height varies with wrapping, so the measured height feeds the scroll margin.
   const shellRef = useRef<HTMLDivElement>(null);
@@ -200,10 +215,17 @@ export function RenewalWorkspaceSidebars({
     setInformationMounted(true);
     setInformationOpen((open) => !open);
   }
+  // S281 R-S281-8: on a phone the panel toggles sit in "Lease details"; focus returns to the
+  // toggle, so that disclosure opens first when it was closed.
+  function revealToggle(toggle: HTMLButtonElement | null) {
+    const details = toggle?.closest("details");
+    if (details && !details.open) details.open = true;
+    return toggle;
+  }
   function closeInformation(reason: CloseReason) {
     setInformationOpen(false);
     if (reason !== "navigate") {
-      informationToggleRef.current?.focus({ preventScroll: true });
+      revealToggle(informationToggleRef.current)?.focus({ preventScroll: true });
       if (window.innerWidth < 1100)
         requestAnimationFrame(() =>
           window.scrollTo({ top: taskScroll.current, behavior: "instant" }),
@@ -216,8 +238,51 @@ export function RenewalWorkspaceSidebars({
   }
   function closeGuide(reason: CloseReason) {
     setGuideOpen(false);
-    if (reason !== "navigate") guideToggleRef.current?.focus();
+    if (reason !== "navigate") revealToggle(guideToggleRef.current)?.focus();
   }
+
+  const rentvineLink = rentvineHref ? (
+    <a
+      className="text-link"
+      href={rentvineHref}
+      rel="noopener noreferrer"
+      target="_blank"
+    >
+      Open in RentVine
+    </a>
+  ) : rentvineHref === null ? (
+    <span className="muted">
+      RentVine link unavailable.{" "}
+      <a className="text-link" href="#renewal-step-verify-renewal">
+        Review source
+      </a>
+    </span>
+  ) : null;
+  const informationToggle = (
+    <button
+      aria-controls={informationId}
+      aria-expanded={informationOpen}
+      className="secondary-button renewal-workspace-toggle"
+      onClick={toggleInformation}
+      ref={informationToggleRef}
+      type="button"
+    >
+      Lease information
+    </button>
+  );
+  const guideToggle =
+    processGuide && !focusView ? (
+      <button
+        aria-controls={guideId}
+        aria-expanded={guideOpen}
+        className="secondary-button renewal-workspace-toggle"
+        onClick={toggleGuide}
+        ref={guideToggleRef}
+        type="button"
+      >
+        Process guide
+      </button>
+    ) : null;
 
   return (
     <div
@@ -228,63 +293,63 @@ export function RenewalWorkspaceSidebars({
     >
       <div
         className="renewal-workspace-toolbar"
+        data-renewal-toolbar-compact={compact ? true : undefined}
         data-shared-header={rentvineHref !== undefined ? true : undefined}
         ref={toolbarRef}
       >
-        <div className="renewal-workspace-toolbar-row">
-          <p className="renewal-workspace-identity">{identity}</p>
-          {rentvineHref ? (
-            <a
-              className="text-link"
-              href={rentvineHref}
-              rel="noopener noreferrer"
-              target="_blank"
-            >
-              Open in RentVine
-            </a>
-          ) : rentvineHref === null ? (
-            <span className="muted">
-              RentVine link unavailable.{" "}
-              <a className="text-link" href="#renewal-step-verify-renewal">
-                Review source
-              </a>
-            </span>
-          ) : null}
-          {viewSwitch}
-          <div
-            aria-label="Lease workspace panels"
-            className="renewal-workspace-toggles"
-            role="group"
-          >
-            <button
-              aria-controls={informationId}
-              aria-expanded={informationOpen}
-              className="secondary-button renewal-workspace-toggle"
-              onClick={toggleInformation}
-              ref={informationToggleRef}
-              type="button"
-            >
-              Lease information
-            </button>
-            {workStatus}
-            {processGuide && !focusView ? (
-              <button
-                aria-controls={guideId}
-                aria-expanded={guideOpen}
-                className="secondary-button renewal-workspace-toggle"
-                onClick={toggleGuide}
-                ref={guideToggleRef}
-                type="button"
+        {compact ? (
+          <>
+            <div className="renewal-workspace-toolbar-row renewal-toolbar-identity-row">
+              <p className="renewal-workspace-identity renewal-toolbar-summary">
+                {identitySummary}
+              </p>
+              <details className="renewal-lease-details" data-renewal-lease-details>
+                <summary>Lease details</summary>
+                <div className="ui-stack-tight renewal-lease-details-body">
+                  <p className="renewal-workspace-identity">{identity}</p>
+                  {rentvineLink}
+                  {viewSwitch}
+                  <div
+                    aria-label="Lease workspace panels"
+                    className="renewal-workspace-toggles"
+                    role="group"
+                  >
+                    {informationToggle}
+                    {guideToggle}
+                  </div>
+                </div>
+              </details>
+            </div>
+            <div className="renewal-toolbar-stage-row">
+              <div data-renewal-view-switch ref={view?.setStageSlot} />
+              {workStatus}
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="renewal-workspace-toolbar-row">
+              <p className="renewal-workspace-identity">{identity}</p>
+              {rentvineLink}
+              {viewSwitch}
+              <div
+                aria-label="Lease workspace panels"
+                className="renewal-workspace-toggles"
+                role="group"
               >
-                Process guide
-              </button>
-            ) : null}
-          </div>
-        </div>
-        <div data-renewal-view-switch ref={view?.setStageSlot} />
-        {focusView ? null : sectionNavigation}
+                {informationToggle}
+                {workStatus}
+                {guideToggle}
+              </div>
+            </div>
+            <div data-renewal-view-switch ref={view?.setStageSlot} />
+            {focusView ? null : sectionNavigation}
+          </>
+        )}
       </div>
-      <div className="renewal-workspace-body ui-stack">{children}</div>
+      <div className="renewal-workspace-body ui-stack">
+        {compact && !focusView ? sectionNavigation : null}
+        {children}
+      </div>
       {informationOpen ? (
         <WorkspaceResizer
           label="Resize lease information"

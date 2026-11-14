@@ -2,7 +2,9 @@ import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governanc
 import { isOperatingSheetWritebackPaused } from "@/lib/lease-renewal/sheet-writeback-policy";
 import {
   prepareDerivedWorkspaceSheetUpdate,
+  prepareMarketValueSheetUpdate,
   prepareWorkspaceSheetUpdate,
+  prepareWorkspaceSheetUpdateSet,
 } from "@/lib/lease-renewal/workspace-sheet-sync";
 import { OUTREACH_AUDIENCES } from "@/lib/lease-renewal/outreach-evidence";
 import { SHEET_FIELD_LABELS } from "@/lib/lease-renewal/sheet-writeback/field-intent";
@@ -18,8 +20,10 @@ import {
   listRenewalWorkspaceActivity,
   saveRenewalWorkspace,
   startRenewalCycle,
+  stopTenantReminders,
   SaveRenewalWorkspaceSchema,
   StartRenewalCycleSchema,
+  StopTenantRemindersSchema,
 } from "@/lib/firestore/renewal-workspace";
 import {
   resolveLeaseOwnerRoster,
@@ -71,6 +75,40 @@ const Body = z.discriminatedUnion("operation", [
       occurrenceId: z.string().regex(/^[0-9a-f]{64}$/),
     })
     .strict(),
+  // S278 R-S278-1: the Market value update from the reviewed Rent to recommend. The server derives
+  // the value, its basis and its binding from its own reads; the request names only the lease.
+  z
+    .object({
+      operation: z.literal("prepare_market_value"),
+      leaseId: z.string().regex(/^[1-9]\d*$/),
+      cycleId: z.string().uuid(),
+    })
+    .strict(),
+  // S278 R-S278-4: one review of the lease row's listed Sheet cells. The listed recorded facts are
+  // named by their events; the server orders them, takes the first ten and prepares one proposal.
+  z
+    .object({
+      operation: z.literal("prepare_source_set"),
+      leaseId: z.string().regex(/^[1-9]\d*$/),
+      cycleId: z.string().uuid(),
+      entries: z
+        .array(
+          z
+            .object({
+              field: z.enum(
+                Object.keys(SHEET_FIELD_LABELS) as [
+                  keyof typeof SHEET_FIELD_LABELS,
+                  ...(keyof typeof SHEET_FIELD_LABELS)[],
+                ],
+              ),
+              eventId: z.string().uuid(),
+            })
+            .strict(),
+        )
+        .max(Object.keys(SHEET_FIELD_LABELS).length),
+      marketValue: z.boolean(),
+    })
+    .strict(),
   StartRenewalCycleSchema.extend({ operation: z.literal("start_cycle") }),
   SaveRenewalWorkspaceSchema.extend({ operation: z.literal("record") }),
   // S246 R-S246-5: the two staff choices when RentVine reports a later lease end than the
@@ -81,6 +119,9 @@ const Body = z.discriminatedUnion("operation", [
   // S248 R-S248-10: "This was not the renewal outreach" removes a derived outreach record with a
   // reason; the record and its history stay.
   CorrectRenewalOutreachSchema.extend({ operation: z.literal("correct_outreach") }),
+  // S276 R-S276-3: "Stop them" pauses the reminders the recorded tenant response holds, when the
+  // pause at save time could not be written. It records nothing on the work record and sends nothing.
+  StopTenantRemindersSchema.extend({ operation: z.literal("stop_tenant_reminders") }),
 ]);
 export async function GET(request: Request) {
   try {
@@ -119,6 +160,26 @@ export async function POST(request: Request) {
       return NextResponse.json({
         state: await prepareWorkspaceSheetUpdate(actor, input),
       });
+    if (input.operation === "prepare_market_value")
+      return NextResponse.json({
+        state: await prepareMarketValueSheetUpdate(actor, {
+          leaseId: input.leaseId,
+          cycleId: input.cycleId,
+        }),
+        writeback_paused: isOperatingSheetWritebackPaused(),
+      });
+    if (input.operation === "prepare_source_set") {
+      const result = await prepareWorkspaceSheetUpdateSet(actor, {
+        leaseId: input.leaseId,
+        cycleId: input.cycleId,
+        entries: input.entries,
+        marketValue: input.marketValue,
+      });
+      return NextResponse.json(
+        { ...result, writeback_paused: isOperatingSheetWritebackPaused() },
+        { status: result.error ? 409 : 200 },
+      );
+    }
     if (input.operation === "prepare_derived_source") {
       return NextResponse.json({
         state: await prepareDerivedWorkspaceSheetUpdate(actor, {
@@ -144,6 +205,14 @@ export async function POST(request: Request) {
     if (input.operation === "correct_outreach") {
       const { operation: _, ...value } = input;
       return NextResponse.json({ record: await correctRenewalOutreach(actor, value) });
+    }
+    if (input.operation === "stop_tenant_reminders") {
+      return NextResponse.json({
+        tenantReminders: await stopTenantReminders(actor, {
+          leaseId: input.leaseId,
+          cycleId: input.cycleId,
+        }),
+      });
     }
     if (
       input.operation === "keep_working" ||

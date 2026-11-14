@@ -49,14 +49,17 @@ const LEASE = "lease-318-cedar-7";
 const CYCLE_ID = "b4bc3b81-c402-4f62-a2e2-c605c67867fb";
 const PINNED_NOW = new Date("2026-11-10T17:00:00.000Z");
 
-const GROUPS: Record<(typeof RENEWAL_PATH_STANDARD_STEPS)[number], string | null> = {
-  "check-numbers": "Correct other lease facts",
-  "compare-market": "Comparison inputs and deliberate rerun",
-  "ask-owner": "Owner message options and outreach record",
-  "offer-tenant": "Tenant offer options and record of contact",
-  documents: "Other packet and handoff work",
-  "finish-up": "Other follow-ups",
-  complete: null,
+// S281 R-S281-12 (rewritten on purpose): Ask the owner and Offer the tenant have three named
+// groups in order, "Message", "Other ways to send" and their record group; every other outcome
+// keeps its one named group.
+const GROUPS: Record<(typeof RENEWAL_PATH_STANDARD_STEPS)[number], readonly string[]> = {
+  "check-numbers": ["Correct other lease facts"],
+  "compare-market": ["Comparison inputs and deliberate rerun"],
+  "ask-owner": ["Message", "Other ways to send", "Outreach record"],
+  "offer-tenant": ["Message", "Other ways to send", "Record of contact"],
+  documents: ["Other packet and handoff work"],
+  "finish-up": ["Other follow-ups"],
+  complete: [],
 };
 const VERIFICATION: Record<(typeof RENEWAL_PATH_STANDARD_STEPS)[number], string> = {
   "check-numbers": "Verify lease numbers",
@@ -206,8 +209,8 @@ describe("S270 named Guided disclosures", { timeout: 120_000 }, () => {
       const groups = visibleGroups(card);
       expect(
         groups.map(summaryText),
-        `${step}: one named secondary Work group, or none for an outcome without one`,
-      ).toEqual(GROUPS[step] ? [GROUPS[step]] : []);
+        `${step}: its named secondary Work groups in order, or none for an outcome without one`,
+      ).toEqual(GROUPS[step]);
       const verification = visibleVerification(card);
       expect(verification.map(summaryText), `${step}: one named Verification`).toEqual([
         VERIFICATION[step],
@@ -249,13 +252,17 @@ describe("S270 named Guided disclosures", { timeout: 120_000 }, () => {
     );
 
     await choose("ask-owner");
-    const owner = visibleGroups(nowCard())[0]!;
-    // The current base and recommendation with its edit link stay in Work, above the group.
+    // S281 R-S281-12: the record group holds the outreach and response paths; the facts block
+    // stays in Work above every named group.
+    const ownerGroups = visibleGroups(nowCard());
+    const owner = ownerGroups.find((group) => summaryText(group) === "Outreach record")!;
     const pricing = document.getElementById("renewal-owner-pricing-basis")!;
-    expect(owner.contains(pricing)).toBe(false);
-    expect(
-      pricing.compareDocumentPosition(owner) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+    for (const group of ownerGroups) {
+      expect(group.contains(pricing)).toBe(false);
+      expect(
+        pricing.compareDocumentPosition(group) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    }
     expect(owner.contains(document.getElementById("renewal-manual-owner_response"))).toBe(
       true,
     );
@@ -302,10 +309,11 @@ describe("S270 named Guided disclosures", { timeout: 120_000 }, () => {
           "details[data-renewal-secondary-work]",
         ),
       ];
-      expect(groups.map(summaryText), `${step} group`).toEqual(
-        GROUPS[step] ? [GROUPS[step]] : [],
-      );
-      expect(groups.every((group) => !group.open)).toBe(true);
+      expect(groups.map(summaryText), `${step} group`).toEqual(GROUPS[step]);
+      // Closed on entry; only a group holding current work (a failing readiness line opens
+      // "Message", S281 R-S281-12) is open, and says why.
+      for (const group of groups)
+        if (group.open) expect(group).toHaveAttribute("data-renewal-promoted");
       const verification = [
         ...section.querySelectorAll<HTMLDetailsElement>(
           "details[data-renewal-verification]",
@@ -359,7 +367,7 @@ describe("S270 named Guided disclosures", { timeout: 120_000 }, () => {
     const group = target.closest<HTMLDetailsElement>(
       "details[data-renewal-secondary-work]",
     )!;
-    expect(summaryText(group)).toBe("Owner message options and outreach record");
+    expect(summaryText(group)).toBe("Outreach record");
     expect(group.open).toBe(true);
     // Verification and the other groups stay closed.
     for (const details of visibleVerification(nowCard()))
@@ -407,48 +415,52 @@ describe("S270 named Guided disclosures", { timeout: 120_000 }, () => {
     expect(outcome).toHaveValue("done");
   });
 
-  it("S270 Ask the owner: the one Working renewal terms editor is its own named reveal, and an exact date fix from the offer opens it as current work, not the options group", async () => {
+  it("S270 Ask the owner: the one Working renewal terms editor is its own named reveal in Work, above every named group", async () => {
     const fake = await open({}, { extra: { workingRecord: savedTerms() } });
     await choose("ask-owner");
     const reveal = () =>
       nowCard().querySelector<HTMLDetailsElement>("details[data-renewal-working-terms]")!;
-    const group = visibleGroups(nowCard())[0]!;
+    const groups = visibleGroups(nowCard());
     expect(reveal()).not.toBeNull();
     expect(summaryText(reveal())).toMatch(/^Working renewal terms/);
-    // In Work, above the options group, and the one place its dates are edited.
-    expect(group.contains(reveal())).toBe(false);
-    expect(
-      reveal().compareDocumentPosition(group) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+    // In Work, above the named groups, and the one place its dates are edited.
+    for (const group of groups) {
+      expect(group.contains(reveal())).toBe(false);
+      expect(
+        reveal().compareDocumentPosition(group) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    }
     expect(document.querySelectorAll(`#${WORKING_START_FIELD_ID}`)).toHaveLength(1);
     expect(reveal().contains(document.getElementById(WORKING_START_FIELD_ID))).toBe(true);
     // Saved dates are not the current work: closed.
     expect(reveal().open).toBe(false);
     expect(reveal()).not.toHaveAttribute("data-renewal-promoted");
 
-    // "Enter renewal start date" from Offer the tenant opens only this reveal, as current work.
+    // S281 R-S281-14 (rewritten on purpose): a date fix from Offer the tenant opens the one
+    // editor in place on the offer, with no second editor and no return to the offer needed.
     await choose("offer-tenant");
     act(() => {
       startDateFixFromOffer("renewalStartDate", MESSAGE_CONTROL_IDS.readiness("tenant"));
       focusRenewalDashboardControl(WORKING_START_FIELD_ID);
     });
     await settle();
-    expect(nowCard()).toHaveAttribute("data-renewal-now-step", "ask-owner");
-    await waitFor(() => expect(reveal()).toHaveAttribute("data-renewal-promoted"));
-    expect(reveal().open).toBe(true);
+    expect(nowCard()).toHaveAttribute("data-renewal-now-step", "offer-tenant");
+    const inPlace = nowCard().querySelector("[data-renewal-working-terms-in-place]")!;
+    expect(inPlace).not.toBeNull();
+    expect(document.querySelectorAll(`#${WORKING_START_FIELD_ID}`)).toHaveLength(1);
+    await waitFor(() =>
+      expect(
+        document.getElementById(WORKING_START_FIELD_ID)!.contains(document.activeElement),
+      ).toBe(true),
+    );
+    expect(inPlace.contains(document.activeElement)).toBe(true);
     expect(
-      document.getElementById(WORKING_START_FIELD_ID)!.contains(document.activeElement),
-    ).toBe(true);
-    expect(group.open).toBe(false);
-    expect(group).not.toHaveAttribute("data-renewal-promoted");
-    // "Return to tenant offer" ends the fix; the reveal is closed on its next entry.
-    await userEvent
-      .setup()
-      .click(within(reveal()).getByRole("button", { name: "Return to tenant offer" }));
-    await settle();
-    expect(reveal()).not.toHaveAttribute("data-renewal-promoted");
-    await choose("check-numbers");
+      within(nowCard()).queryByRole("button", { name: "Return to tenant offer" }),
+    ).toBeNull();
+    // Back on Ask the owner the one editor is in its reveal again, closed.
     await choose("ask-owner");
+    expect(document.querySelectorAll(`#${WORKING_START_FIELD_ID}`)).toHaveLength(1);
+    expect(reveal().contains(document.getElementById(WORKING_START_FIELD_ID))).toBe(true);
     expect(reveal().open).toBe(false);
     expect(fake.writes()).toEqual([]);
   });

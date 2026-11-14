@@ -509,7 +509,7 @@ export const ADMIN_SCREENS: readonly HelpScreenReference[] = [
     who: "Admin",
     adminOnly: true,
     summary:
-      "The roster of people with access. Each person shows an individual role, inherited capabilities, Spaces and derived renewal authority, with a Role choice and a required reason. Accounts start as Editors, every staff account has every internal Space, and app roles are separate from Google Workspace account creation. When the roster cannot be read in the session, the page says so and lists nobody.",
+      "The roster of people with access. Each person shows an individual role, inherited capabilities, Spaces and derived renewal authority, with a Role choice and a required reason. Each record shows Account ID with the person's staff account ID under the email; a process's Run owner (staff account ID) and Default approver (staff account ID) take that value. Accounts start as Editors, every staff account has every internal Space, and app roles are separate from Google Workspace account creation. When the roster cannot be read in the session, the page says so and lists nobody.",
     controls: [
       {
         label: "People and Access",
@@ -562,7 +562,7 @@ export const ADMIN_SCREENS: readonly HelpScreenReference[] = [
       },
     ],
     guides: ["admin-tasks"],
-    lastUpdated: "2026-11-04",
+    lastUpdated: "2026-11-13",
   },
   {
     id: "admin-team-work",

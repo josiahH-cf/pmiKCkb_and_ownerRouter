@@ -137,6 +137,15 @@ export function OwnerCurrentBaseRent({
       <strong>
         {base.amount === null ? "Needs verification" : formatUsd(base.amount)}
       </strong>
+      {/* S281 R-S281-1: the current base rent with its basis, on the owner ask's facts line. */}
+      {base.amount !== null && base.label ? (
+        <>
+          {" "}
+          <span className="muted" data-renewal-field="owner-current-base-basis">
+            {base.label}
+          </span>
+        </>
+      ) : null}
       {base.amount === null && base.check ? (
         <>
           {" "}

@@ -87,6 +87,18 @@ describe("renewal review board gather", () => {
     });
   });
 
+  it("passes the read-only display choice only for Dashboard review reads", async () => {
+    await expect(loadRenewalRunViews(actor, { displayOnly: true })).resolves.toEqual([
+      liveView,
+    ]);
+    expect(mocks.loadLiveRenewalReview).toHaveBeenCalledWith(
+      actor,
+      expect.any(String),
+      expect.any(Promise),
+      { displayOnly: true },
+    );
+  });
+
   it("returns the exact current-source run alongside its projection", async () => {
     await expect(loadRenewalRunViewContext(actor)).resolves.toEqual({
       views: [liveView],

@@ -26,8 +26,12 @@ const initial = () =>
     source: "RentVine lease end",
   });
 
-describe("S118 reviewed recommendation to Sheet market value and the five-mile default", () => {
-  it("AC-S118-3: saving preparation with a PMI recommendation records only the market_value Sheet intent, with its basis markers", () => {
+describe("S118 market evidence, the S278 Market value source and the five-mile default", () => {
+  // S278 R-S278-1 (pinned on purpose): the Sheet market value takes the reviewed Rent to
+  // recommend (lib/lease-renewal/market-value-source.ts). The comparison figure this form saves,
+  // often the provider's point estimate, no longer prepares a Sheet value; the range stays app
+  // evidence. tests/unit/s278-market-value-source.test.ts covers the new source.
+  it("AC-S118-3 / R-S278-1: saving preparation keeps its figures and basis markers as app evidence and records no Sheet value", () => {
     const next = planRenewalWorkspaceAction(
       initial(),
       {
@@ -48,16 +52,7 @@ describe("S118 reviewed recommendation to Sheet market value and the five-mile d
       rangeBasis: "provider",
       recommendationBasis: "provider",
     });
-    expect(Object.keys(next.sourceUpdates)).toEqual(["market_value"]);
-    expect(next.sourceUpdates.market_value).toEqual({
-      eventId: "f2d3b4d1-3d6e-4c9b-8e0c-1a2b3c4d5e6f",
-      intent: {
-        field: "market_value",
-        value: 1550,
-        source: "Reviewed RentCast result and two listings",
-      },
-      state: "pending",
-    });
+    expect(next.sourceUpdates).toEqual({});
     // The persisted market basis accepts the markers and refuses an invented one.
     expect(RenewalMarketBasisSchema.parse(next.preparation!.market)).toEqual(
       next.preparation!.market,
@@ -74,20 +69,20 @@ describe("S118 reviewed recommendation to Sheet market value and the five-mile d
     ).toThrow();
   });
 
-  it("AC-S118-3: a starting-rule range without a recommendation prepares no Sheet value and clears a stale pending one", () => {
-    const withValue = planRenewalWorkspaceAction(
-      initial(),
-      {
-        kind: "preparation",
-        source: "First review",
-        pmiNumber: 1500,
-        recommendationBasis: "reviewed",
+  it("AC-S118-3 / R-S278-1: a comparison save withdraws an unconfirmed retired value, keeps a verified one and leaves the recommendation's value alone", () => {
+    // An unconfirmed Market value an earlier comparison figure prepared (before S278).
+    const legacy = {
+      ...initial(),
+      sourceUpdates: {
+        market_value: {
+          eventId: "0d3f6c1e-9d61-4c1c-9a63-6a1e1d7b2c11",
+          intent: { field: "market_value" as const, value: 1500, source: "First review" },
+          state: "pending" as const,
+        },
       },
-      meta("0d3f6c1e-9d61-4c1c-9a63-6a1e1d7b2c11"),
-    );
-    expect(withValue.sourceUpdates.market_value?.state).toBe("pending");
+    };
     const withoutValue = planRenewalWorkspaceAction(
-      withValue,
+      legacy,
       {
         kind: "preparation",
         source: "Second review, recommendation withdrawn",
@@ -105,10 +100,10 @@ describe("S118 reviewed recommendation to Sheet market value and the five-mile d
     });
     // A verified Sheet value stays on record; only an unconfirmed one is withdrawn.
     const verified = {
-      ...withValue,
+      ...legacy,
       sourceUpdates: {
         market_value: {
-          ...withValue.sourceUpdates.market_value,
+          ...legacy.sourceUpdates.market_value,
           state: "verified" as const,
         },
       },
@@ -120,6 +115,33 @@ describe("S118 reviewed recommendation to Sheet market value and the five-mile d
         meta("9c8b7a6f-5e4d-4c3b-8a2f-1e0d9c8b7a33"),
       ).sourceUpdates.market_value?.state,
     ).toBe("verified");
+    // A Market value prepared from the reviewed Rent to recommend is not the comparison's.
+    const fromRecommendation = {
+      ...legacy,
+      sourceUpdates: {
+        market_value: {
+          ...legacy.sourceUpdates.market_value,
+          intent: {
+            field: "market_value" as const,
+            value: 1500,
+            source: "Rent to recommend, entered by staff",
+          },
+          fromRecommendation: {
+            field: "terms_rent" as const,
+            revision: 2,
+            eventId: "rec-event-1",
+            review: "staff_save" as const,
+          },
+        },
+      },
+    };
+    expect(
+      planRenewalWorkspaceAction(
+        fromRecommendation,
+        { kind: "preparation", source: "Fourth review", pmiNumber: 1480 },
+        meta("1c8b7a6f-5e4d-4c3b-8a2f-1e0d9c8b7a44"),
+      ).sourceUpdates.market_value,
+    ).toEqual(fromRecommendation.sourceUpdates.market_value);
   });
 
   it("AC-S118-2: a new source-resolved query carries the five-mile default into the request policy and cache identity", () => {

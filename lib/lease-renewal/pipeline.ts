@@ -13,6 +13,7 @@
 
 import {
   mapReconciliationToQueueItem,
+  renewalReconciliationSourceTriggerKey,
   type ApprovalQueueItemDraft,
   type ReconciliationQueueMapping,
 } from "@/lib/lease-renewal/approval-queue-mapping";
@@ -36,7 +37,18 @@ import {
 import type { FieldContext, Severity } from "@/lib/lease-renewal/severity";
 import type { RawGrid } from "@/lib/lease-renewal/sheet-types";
 import { renewalResolutionCandidateFingerprint } from "@/lib/lease-renewal/resolution-fingerprint";
+import {
+  RENTVINE_SOURCE_ID,
+  classifyRentVineSheetDifference,
+  type SourceDifferenceInformation,
+} from "@/lib/lease-renewal/source-difference-rule";
 import { createHash } from "node:crypto";
+
+/**
+ * The field a RentVine lease read carries its lease end in (lib/integrations/rentvine/lease-mapper.ts).
+ * It has no reconciliation spec of its own (F-RENEWAL-DATE-SEMANTICS), so it never raises a flag.
+ */
+const RENTVINE_LEASE_END_FIELD = "lease_end_date";
 
 /** One field value carried by a non-sheet source (Rentvine / building level / Google Form). */
 export interface NonSheetFieldValue {
@@ -108,6 +120,18 @@ export interface RenewalRunInput {
   tableJoinIds?: readonly (readonly (string | null)[])[];
   /** Add-on accounting for the base-rent reconciliation (defaults to the known RBP + insurance). */
   rentReconciliation?: RentAgreementOptions;
+  /**
+   * S280 R-S280-6: true when `tables` are the team's operating Sheet read live (the Live renewal
+   * review). The one source-difference rule then reads a RentVine and Sheet difference in the
+   * current rent or the lease dates as information: no flag, no queue item, an `information`
+   * outcome instead. Omitted for synthetic and simulation inputs, which keep their labeled flags.
+   */
+  operatingSheet?: boolean;
+  /**
+   * S280 R-S280-3: the lease label (its RentVine property address) per exact join id
+   * (`lease:123`), so every outcome names its lease. Labels only, never a value.
+   */
+  leaseLabels?: Readonly<Record<string, string>>;
 }
 
 export interface RecordRef {
@@ -133,6 +157,18 @@ export interface ReconciledFieldOutcome {
   propertyKey?: string;
   /** Exact non-Sheet join ids accepted for this row after one-to-one association. */
   matchedCandidateJoinIds?: readonly string[];
+  /**
+   * S280 R-S280-3: the lease this row names: its RentVine property address when a joined lease
+   * carries one, otherwise the operating Sheet row. Set only on operating-Sheet runs.
+   */
+  leaseLabel?: string;
+  /**
+   * S280 R-S280-6: set when the one source-difference rule read this field's RentVine and Sheet
+   * difference as information. Such an outcome raises no flag and maps to no queue item.
+   */
+  information?: SourceDifferenceInformation;
+  /** S280: the item identity of an information outcome (the trigger key a flag would carry). */
+  informationKey?: string;
 }
 
 export interface RenewalRunResult {
@@ -434,6 +470,55 @@ export function runRenewalPipeline(input: RenewalRunInput): RenewalRunResult {
         reconciliation = { ...reconciliation, raise_flag: false };
       }
 
+      // S280 R-S280-6 (ARCH-S280-4): on the operating Sheet, a RentVine and Sheet difference in the
+      // current rent or the lease dates is information (D-OP-7 on every screen). The one rule decides;
+      // a decision stays raised when RentVine is unreadable, other sources hold a value, or the field
+      // is any other. Nothing is applied to either source.
+      let information: SourceDifferenceInformation | undefined;
+      let informationJoinId: string | undefined;
+      if (input.operatingSheet && reconciliation.agreement === "conflict") {
+        const rule = classifyRentVineSheetDifference({
+          fieldKey: spec.fieldKey,
+          candidates: reconciliation.candidates,
+        });
+        if (rule.kind === "information") {
+          information = rule;
+          reconciliation = { ...reconciliation, raise_flag: false };
+        }
+      }
+      // S280 R-S280-6 for the lease dates on Live renewal review: a RentVine lease read carries its
+      // lease end as `lease_end_date`, which is kept out of the Sheet's renewal date reconciliation
+      // (F-RENEWAL-DATE-SEMANTICS), so a Sheet lease end that differs from it never reached the rule
+      // above. Read it here through the same rule, for information only: the reconciliation, and so
+      // every flag and count, stays exactly as it was. A Sheet date the rule would not call
+      // information (unreadable, or equal) adds nothing.
+      if (
+        input.operatingSheet &&
+        !information &&
+        spec.fieldKey === "renewal_date" &&
+        reconciliation.agreement === "single_source" &&
+        matched.length === 0
+      ) {
+        // The association already requires a unique match for each source.
+        const lease = (entityAssociations?.get(recordIndex) ?? [])
+          .map((index) => nonSheetCandidates[index])
+          .find((candidate) => candidate.source === RENTVINE_SOURCE_ID);
+        const leaseEnd = lease?.fields[RENTVINE_LEASE_END_FIELD]?.value;
+        if (lease && leaseEnd !== undefined) {
+          const rule = classifyRentVineSheetDifference({
+            fieldKey: spec.fieldKey,
+            candidates: [
+              { source: sheetCandidate.source, value: sheetCandidate.value },
+              { source: RENTVINE_SOURCE_ID, value: leaseEnd },
+            ],
+          });
+          if (rule.kind === "information") {
+            information = rule;
+            informationJoinId = lease.joinId;
+          }
+        }
+      }
+
       // §2.3: a current_rent "conflict" is suppressed ONLY when EVERY joined authoritative amount is
       // the same base rent as the sheet once the known add-ons (RBP + insurance) are accounted for.
       // RentVine's rent is the base and the sheet may fold the add-ons IN, so suppression is
@@ -466,11 +551,25 @@ export function runRenewalPipeline(input: RenewalRunInput): RenewalRunResult {
         tabNumber: record.tabNumber,
         sourceRowIndex: record.sourceRowIndex,
       };
+      const recordKey = renewalDecisionRecordKey(recordId, recordRef);
       const queueMapping = mapReconciliationToQueueItem(reconciliation, {
         runId,
         fieldLabel,
-        recordKey: renewalDecisionRecordKey(recordId, recordRef),
+        recordKey,
       });
+      // S280 R-S280-3: name the lease. The joined RentVine lease's address when one is known,
+      // otherwise the operating Sheet row (never a tenant name or a value).
+      const matchedJoinIds = matchedSources.flatMap((candidate) =>
+        candidate.joinId ? [candidate.joinId] : [],
+      );
+      if (informationJoinId) matchedJoinIds.push(informationJoinId);
+      const leaseLabel = input.operatingSheet
+        ? (matchedJoinIds
+            .map((joinId) => input.leaseLabels?.[joinId])
+            .find((label): label is string => Boolean(label?.trim())) ??
+          (recordId ? input.leaseLabels?.[recordId] : undefined) ??
+          `Sheet row ${record.sourceRowIndex + 1}`)
+        : undefined;
 
       outcomes.push({
         recordRef,
@@ -494,10 +593,15 @@ export function runRenewalPipeline(input: RenewalRunInput): RenewalRunResult {
         ),
         queueMapping,
         propertyKey,
-        ...(matchedSources.some((candidate) => candidate.joinId)
+        ...(matchedJoinIds.length ? { matchedCandidateJoinIds: matchedJoinIds } : {}),
+        ...(leaseLabel ? { leaseLabel } : {}),
+        ...(information
           ? {
-              matchedCandidateJoinIds: matchedSources.flatMap((candidate) =>
-                candidate.joinId ? [candidate.joinId] : [],
+              information,
+              informationKey: renewalReconciliationSourceTriggerKey(
+                runId,
+                recordKey,
+                spec.fieldKey,
               ),
             }
           : {}),

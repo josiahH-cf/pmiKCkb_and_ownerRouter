@@ -248,13 +248,21 @@ async function loadLookupBinding(leaseId: string): Promise<OperatingSheetLookupB
   }
 }
 
-/** One complete, fresh, read-only source rebuild for a canonical lease workspace. */
+/**
+ * One complete, fresh, read-only source rebuild for a canonical lease workspace. S278 R-S278-4:
+ * `inspect` names one field, or a lease row's listed fields for a combined review; each listed
+ * field's exact cell is read. Several fields always resolve the lease's one row (its link, note or
+ * selected row); a field with its own selected cell is reviewed on its own.
+ */
 export async function resolveFreshOperatingSheetLeaseContext(
   leaseId: string,
   readAtIso = new Date().toISOString(),
-  inspectField?: string,
+  inspect?: string | readonly string[],
   options: ResolveFreshLeaseContextOptions = {},
 ): Promise<FreshOperatingSheetLeaseContext> {
+  const inspectFields: readonly string[] =
+    inspect === undefined ? [] : typeof inspect === "string" ? [inspect] : inspect;
+  const inspectField = inspectFields.length === 1 ? inspectFields[0] : undefined;
   const config = buildLiveRenewalConfig();
   if (!config.ok || !config.sheetsReader.batchGetFormulas) {
     throw new SheetWorkspaceResolutionError("source_unavailable");
@@ -472,16 +480,19 @@ export async function resolveFreshOperatingSheetLeaseContext(
           }
         : null);
     let cellEvidence: Record<string, SheetCellEvidence> | undefined;
-    if (inspectField && columns.has(inspectField) && !refusal) {
+    const evidenceFields = refusal
+      ? []
+      : inspectFields.filter((field) => columns.has(field));
+    for (const field of evidenceFields) {
       if (!config.sheetsReader.getCellEvidence)
         throw new SheetWorkspaceResolutionError("source_unavailable");
       const cell = await config.sheetsReader.getCellEvidence(
         config.spreadsheetId,
-        `${quoteSheetTab(OPERATING_SHEET_TAB)}!${columnLetters(columns.get(inspectField)!)}${rawRowIndex + 1}`,
+        `${quoteSheetTab(OPERATING_SHEET_TAB)}!${columnLetters(columns.get(field)!)}${rawRowIndex + 1}`,
       );
-      if (cell.formattedValue !== (row[columns.get(inspectField)!] ?? ""))
+      if (cell.formattedValue !== (row[columns.get(field)!] ?? ""))
         throw new SheetWorkspaceResolutionError("row_state_mismatch");
-      cellEvidence = { [inspectField]: cell };
+      cellEvidence = { ...(cellEvidence ?? {}), [field]: cell };
     }
     const fieldValues = Object.fromEntries(
       [...columns].map(([field, index]) => [field, row[index] ?? ""]),
@@ -490,7 +501,10 @@ export async function resolveFreshOperatingSheetLeaseContext(
     // the same tab read; a cell on another tab is read by the lookup itself.
     const fieldCells: Record<string, string> = {};
     for (const [field, selection] of Object.entries(binding.cells)) {
-      if (field === inspectField || selection.value.tabTitle !== OPERATING_SHEET_TAB)
+      if (
+        inspectFields.includes(field) ||
+        selection.value.tabTitle !== OPERATING_SHEET_TAB
+      )
         continue;
       const cell = parseSheetCell(selection.value.cell);
       if (!cell || cell.rowNumber - 1 >= rawTable.length) continue;
@@ -543,23 +557,46 @@ export interface WorkingCurrentRentInput {
   readonly workingCurrentRent: number | null;
 }
 
-/** Revalidate every immutable term before the claim/effect. Throws on any source/decision drift. */
+/**
+ * Revalidate every immutable term before the claim/effect. Throws on any source/decision drift.
+ * S278 R-S278-4: a proposal of a lease row's listed cells is revalidated one cell at a time, the
+ * cell named by `effectHash`, right before and after that cell's own write; every other proposal
+ * still holds exactly one effect.
+ */
 export function assertProposalMatchesFreshLeaseContext(
   proposal: SheetWritebackProposal,
   context: FreshOperatingSheetLeaseContext,
   working: WorkingCurrentRentInput | null,
   after = false,
+  effectHash?: string,
 ): void {
+  const selected =
+    proposal.effects.length === 1
+      ? proposal.effects[0]
+      : proposal.effects.length > 1 &&
+          proposal.effects.length <= 10 &&
+          effectHash !== undefined &&
+          proposal.effects.every(
+            (entry) =>
+              entry.effect.kind === "field_update" &&
+              Boolean(entry.effect.staffIntent) &&
+              !entry.effect.authorization &&
+              !entry.effect.audienceIntent &&
+              entry.effect.field !== "current_rent",
+          )
+        ? proposal.effects.find((entry) => entry.effectHash === effectHash)
+        : undefined;
   if (
     proposal.scope.kind !== "lease_workspace" ||
     proposal.scope.leaseId !== context.leaseId ||
     proposal.scope.propertyId !== context.propertyId ||
-    proposal.effects.length !== 1 ||
+    !selected ||
+    (effectHash !== undefined && selected.effectHash !== effectHash) ||
     proposal.headerHash !== hashSheetHeader(context.header, context.columns)
   ) {
     throw new SheetWorkspaceResolutionError("proposal_stale");
   }
-  const effect = proposal.effects[0].effect;
+  const effect = selected.effect;
   if (effect.kind === "row_append") {
     // S116: a saved append stays valid only while the fresh read still confirms absence.
     if (

@@ -860,7 +860,9 @@ describe("loadLiveRenewalDesk", () => {
     expect(agrees?.openConflicts).toBe(0);
     // Rent agreement alone cannot skip unresolved authoritative recipients.
     expect(agrees?.stageLabel).toBe("Verify renewal");
-    expect(conflicts?.openConflicts).toBe(1);
+    // Rewritten on purpose for S280 R-S280-6: RentVine's readable $1,400 against the Sheet's
+    // $1,300 is information (RentVine is the basis), so it opens no conflict.
+    expect(conflicts?.openConflicts).toBe(0);
     expect(conflicts?.stageLabel).toBe("Verify renewal");
     // A field RentVine could not reconcile is NOT counted as a conflict (and never a fabricated pass).
     expect(needsInput?.openConflicts).toBe(0);
@@ -1029,7 +1031,8 @@ describe("loadLiveRenewalDesk", () => {
 });
 
 describe("loadLiveRenewalLeaseWorkspace", () => {
-  it("maps the REAL rent reconciliation into the Data-check for a conflicting lease", async () => {
+  // Rewritten on purpose for S280 R-S280-6: the Sheet's different rent is information.
+  it("maps the REAL rent reconciliation into the Data-check for a lease whose Sheet rent differs", async () => {
     const result = await loadLiveRenewalLeaseWorkspace(
       "5001",
       READ_TS,
@@ -1044,7 +1047,8 @@ describe("loadLiveRenewalLeaseWorkspace", () => {
     expect(workspace.tenantDraft).toBeNull();
 
     const rent = workspace.dataCheck.find((item) => item.fieldKey === "current_rent");
-    expect(rent?.agreement).toBe("conflict");
+    expect(rent?.agreement).toBe("agree");
+    expect(workspace.summary.openConflicts).toBe(0);
     // Both real sources are carried (in-app PII display), sourced from RentVine and the sheet.
     const sources = rent?.candidates.map((c) => c.source) ?? [];
     expect(sources).toContain("rentvine");
@@ -1132,21 +1136,20 @@ describe("loadLiveRenewalLeaseWorkspace", () => {
       [correctedRentResolution(rentCheck, "$1,300.00", "stale-record")],
     );
     if (drifted.status !== "ok") throw new Error(drifted.status);
+    // Rewritten on purpose for S280 R-S280-6: the stale resolution is never applied, and
+    // RentVine's readable $1,500 is the basis; the Sheet's $1,300 stays information.
     expect(
       drifted.workspace.ownerDraft.facts.find((fact) => fact.key === "current_rent"),
-    ).toMatchObject({ confidence: "Needs Verification" });
+    ).toMatchObject({ value: "$1,500", confidence: "Verified" });
     expect(
       drifted.workspace.dataCheck.find((item) => item.fieldKey === "current_rent"),
-    ).toMatchObject({ agreement: "conflict" });
-    expect(drifted.workspace.summary.openConflicts).toBe(1);
+    ).toMatchObject({ agreement: "agree" });
+    expect(drifted.workspace.summary.openConflicts).toBe(0);
     const reopenedMissingEvidence = drifted.workspace.process.steps.flatMap((step) =>
       step.substeps.flatMap((substep) => substep.missingEvidence),
     );
-    expect(reopenedMissingEvidence).toContain("base-rent");
-    expect(reopenedMissingEvidence).toContain("source-conflicts-resolved");
-    expect(
-      drifted.workspace.process.steps[drifted.workspace.process.currentStepIndex]?.id,
-    ).toBe("verify-renewal");
+    expect(reopenedMissingEvidence).not.toContain("base-rent");
+    expect(reopenedMissingEvidence).not.toContain("source-conflicts-resolved");
   });
 
   it("marks a field it cannot reconcile as 'Needs input', never a fabricated pass", async () => {
@@ -1196,7 +1199,7 @@ describe("loadLiveRenewalLeaseWorkspace", () => {
     expect(periodic.workspace.live).toMatchObject({ leaseId: "7003", complete: false });
     expect(periodic.workspace.process.version).toBe(RENEWAL_PROCESS_VERSION);
     expect(periodic.workspace.guidance).toMatchObject({
-      contract: "s251-variants",
+      contract: "s280-rentvine-basis",
       isBlocked: false,
       blockers: [],
       action: { kind: "act", label: "Owner outreach" },
@@ -1234,7 +1237,7 @@ describe("loadLiveRenewalLeaseWorkspace", () => {
     });
     expect(skipped.workspace.live).toMatchObject({ leaseId: "9007", complete: false });
     expect(skipped.workspace.guidance).toMatchObject({
-      contract: "s251-variants",
+      contract: "s280-rentvine-basis",
       blockers: [],
       action: { kind: "act", label: "Owner outreach" },
     });
@@ -1399,7 +1402,7 @@ describe("loadLiveRenewalLeaseWorkspace", () => {
     expect(workspace.workspace.summary.stageIndex).toBeGreaterThanOrEqual(0);
     expect(workspace.workspace.live).toMatchObject({ leaseId: "8004", complete: false });
     expect(workspace.workspace.guidance).toMatchObject({
-      contract: "s251-variants",
+      contract: "s280-rentvine-basis",
       overallStatus: "ready",
       action: { kind: "act", label: "Owner outreach" },
     });
@@ -1684,7 +1687,7 @@ describe("live renewal workspace + versioned evidence progress", () => {
     // surface; the desk row and the workspace carry the same staff-lane guidance.
     expect(row?.guidance.blockers).toEqual([]);
     expect(workspace.workspace.guidance.blockers).toEqual([]);
-    expect(row?.guidance.contract).toBe("s251-variants");
+    expect(row?.guidance.contract).toBe("s280-rentvine-basis");
     expect(row?.guidance.overallStatus).toBe(workspace.workspace.guidance.overallStatus);
     expect(row?.guidance.action).toEqual(workspace.workspace.guidance.action);
   });
@@ -1841,7 +1844,9 @@ describe("live renewal workspace + versioned evidence progress", () => {
     ).not.toBe("complete");
   });
 
-  it("removes stale stored base-rent proof when current reconciliation conflicts", async () => {
+  // Rewritten on purpose for S280 R-S280-6: the Sheet's different rent is information, so the
+  // current reconciliation does not conflict and the stored base-rent proof stands.
+  it("keeps stored base-rent proof when only the Sheet's rent differs from RentVine", async () => {
     const result = await loadLiveRenewalLeaseWorkspace(
       "5001",
       READ_TS,
@@ -1867,10 +1872,9 @@ describe("live renewal workspace + versioned evidence progress", () => {
     const baseRent = result.workspace.process.steps[0].substeps.find(
       (substep) => substep.id === "verify-base-rent",
     );
-    expect(baseRent?.state).toBe("blocked");
-    expect(baseRent?.blockers.join(" ")).toMatch(/base rent/i);
-    expect(result.workspace.live?.ownerDecisionCurrent).toBe(false);
-    expect(result.workspace.tenantDraft).toBeNull();
+    expect(baseRent?.state).toBe("complete");
+    expect(baseRent?.blockers).toEqual([]);
+    expect(result.workspace.summary.openConflicts).toBe(0);
   });
 
   it("the desk projects exact evidence instead of trusting a recorded coarse stage", async () => {
@@ -1912,16 +1916,15 @@ describe("S82 desk guidance rows", () => {
     expect(agreeing?.guidance.rentVerification.state).toBe("verified");
     expect(agreeing?.guidance.rentVerification.verifiedByResolutionDiffers).toBe(false);
 
-    // S157 BEH-6/7 (8a3f929d): the conflicting rent stays visible as rentVerification with its
-    // verification destination, while the row's status and action stay available.
+    // Rewritten on purpose for S280 R-S280-6: the Sheet's different rent is information, so
+    // RentVine's rent is verified as the basis, while the row's status and action stay available.
     const conflicting = byId.get("5001");
     expect(conflicting?.guidance.currentBaseRent).toBe(1400);
-    expect(conflicting?.guidance.rentVerification).toEqual({
-      state: "needs_verification",
+    expect(conflicting?.guidance.rentVerification).toMatchObject({
+      state: "verified",
       verifiedByResolutionDiffers: false,
-      destination: { kind: "workspace_phase", stepId: "verify-renewal" },
     });
-    expect(conflicting?.openConflicts).toBe(1);
+    expect(conflicting?.openConflicts).toBe(0);
     expect(conflicting?.guidance.overallStatus).toBe("ready");
     expect(conflicting?.guidance.isBlocked).toBe(false);
     expect(conflicting?.guidance.blockers).toEqual([]);
@@ -1934,7 +1937,7 @@ describe("S82 desk guidance rows", () => {
         controlId: "renewal-manual-owner_outreach",
       },
     });
-    expect(conflicting?.guidance.contract).toBe("s251-variants");
+    expect(conflicting?.guidance.contract).toBe("s280-rentvine-basis");
 
     const noMatch = byId.get("6002");
     expect(noMatch?.guidance.rentVerification.state).toBe("needs_verification");
@@ -1993,14 +1996,16 @@ describe("S82 desk guidance rows", () => {
       [resolution],
     );
     if (drifted.status !== "ok") throw new Error(drifted.status);
+    // Rewritten on purpose for S280 R-S280-6: after RentVine moves to $1,500 the stale
+    // resolution is not applied; RentVine's readable rent is the basis and the Sheet's $1,300 is
+    // information, so no conflict reopens.
     const reopened = drifted.view.items.find((item) => item.id === "5001");
-    expect(reopened?.openConflicts).toBe(1);
-    expect(reopened?.guidance.rentVerification.state).toBe("needs_verification");
+    expect(reopened?.openConflicts).toBe(0);
+    expect(reopened?.guidance.currentBaseRent).toBe(1500);
+    expect(reopened?.guidance.rentVerification.state).toBe("verified");
     expect(reopened?.guidance.rentVerification.verifiedByResolutionDiffers).toBe(false);
-    // The reopened difference is advisory: the row stays Ready for its staff work.
     expect(reopened?.guidance.overallStatus).toBe("ready");
     expect(reopened?.guidance.isBlocked).toBe(false);
-    expect(reopened?.workflowStepId).toBe("verify-renewal");
   });
 
   it("does not verify a conflicting rent from a zero-value resolution", async () => {
@@ -2027,7 +2032,9 @@ describe("S82 desk guidance rows", () => {
     if (result.status !== "ok") throw new Error(result.status);
     const row = result.view.items.find((item) => item.id === "5001");
     expect(row?.guidance.currentBaseRent).toBe(1400);
-    expect(row?.guidance.rentVerification.state).toBe("needs_verification");
+    // Rewritten on purpose for S280 R-S280-6: the zero-value resolution is never applied; the
+    // rent is verified from RentVine's readable value, not from the resolution.
+    expect(row?.guidance.rentVerification.state).toBe("verified");
     expect(row?.guidance.rentVerification.verifiedByResolutionDiffers).toBe(false);
   });
 });

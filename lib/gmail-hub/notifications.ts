@@ -15,6 +15,11 @@ import {
 import { readCommunicationLabels } from "@/lib/gmail-hub/sequence-store";
 import { leaseWorkspaceHrefOrNull } from "@/lib/lease-renewal/desk-view-continuation";
 import type { UnifiedNotification } from "@/lib/notifications/families";
+import {
+  listRenewalHoldNotifications,
+  markRenewalHoldNotificationRead,
+} from "@/lib/firestore/renewal-hold-notices";
+import { isRenewalHoldNotificationId } from "@/lib/lease-renewal/renewal-hold-notice";
 
 /** S275 R-S275-6: the stored lease label of each named communication; never a body or address. */
 export type CommunicationLabelReader = (
@@ -54,14 +59,33 @@ export function renewalReplyNotice(
   };
 }
 
+/** S273 R-S273-6: the signed-in sender's renewal hold notices, in the same family. */
+export type RenewalHoldNotificationReader = (
+  actor: AuthenticatedUser,
+  options: { unreadOnly?: boolean; limit?: number },
+) => Promise<UnifiedNotification[]>;
+
 export async function listGmailWorkflowNotifications(
   actor: AuthenticatedUser,
   options: { unreadOnly?: boolean; limit?: number } = {},
-  store: GmailStateStore = createDefaultGmailStateStore(),
+  linkStore?: GmailStateStore,
   readLabels: CommunicationLabelReader = readCommunicationLabels,
+  /**
+   * S273 R-S273-6: the renewal hold notices read beside the links. The app's own store reads them;
+   * a caller that injects its own link store reads none unless it passes a reader.
+   */
+  readHolds: RenewalHoldNotificationReader | null = linkStore
+    ? null
+    : listRenewalHoldNotifications,
 ): Promise<UnifiedNotification[]> {
   assertRead(actor);
+  const store = linkStore ?? createDefaultGmailStateStore();
   const nowMs = Date.now();
+  // S273 R-S273-6: shown only with current renewals workflow access; a failed read shows none.
+  const holds =
+    readHolds && hasSpaceAccess(actor, "renewals")
+      ? readHolds(actor, options).catch(() => [] as UnifiedNotification[])
+      : Promise.resolve([] as UnifiedNotification[]);
   const links = (await store.listCommunicationLinks(actor.email))
     .filter((link) => link.actor_uid === actor.uid)
     .filter((link) => hasSpaceAccess(actor, link.lane))
@@ -85,7 +109,7 @@ export async function listGmailWorkflowNotifications(
   const labels: ReadonlyMap<string, string> = replyIds.length
     ? await readLabels(replyIds).catch(() => new Map<string, string>())
     : new Map<string, string>();
-  return links.map((link) => {
+  const notifications = links.map((link) => {
     const renewal = link.lane === "renewals";
     const reply = renewalReplyNotice(
       link,
@@ -120,6 +144,7 @@ export async function listGmailWorkflowNotifications(
       ...(link.read_at_ms ? { read_at: new Date(link.read_at_ms).toISOString() } : {}),
     } satisfies UnifiedNotification;
   });
+  return [...notifications, ...(await holds)];
 }
 
 export async function markGmailWorkflowNotificationRead(
@@ -128,6 +153,11 @@ export async function markGmailWorkflowNotificationRead(
   store: GmailStateStore = createDefaultGmailStateStore(),
 ) {
   assertRead(actor);
+  // S273 R-S273-6: a renewal hold notice is the sender's own record, never a communication link.
+  if (isRenewalHoldNotificationId(communicationId)) {
+    await markRenewalHoldNotificationRead(actor, communicationId);
+    return;
+  }
   const link = (await store.listCommunicationLinks(actor.email)).find(
     (candidate) => candidate.id === communicationId && candidate.actor_uid === actor.uid,
   );

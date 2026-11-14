@@ -207,10 +207,10 @@ const lease = (page) => {
   const now = () => guided().getByRole("region", { name: "Now", exact: true });
   const strip = () =>
     guided().getByRole("navigation", { name: "Renewal path", exact: true });
+  const viewControls = () =>
+    page.getByRole("group", { name: "Lease view", exact: true, includeHidden: true });
   const viewButton = (name) =>
-    page
-      .getByRole("group", { name: "Lease view", exact: true })
-      .getByRole("button", { name, exact: true });
+    viewControls().getByRole("button", { name, exact: true, includeHidden: true });
   /**
    * "true" when Guided view is the lease's active view. November 9 (S258) and later the switch is
    * one "Full view" toggle (`data-renewal-full-toggle`): Guided is active while it is not pressed
@@ -220,9 +220,7 @@ const lease = (page) => {
     const guidedButton = viewButton("Guided view");
     if (await guidedButton.count())
       return guidedButton.getAttribute("aria-pressed").catch(() => null);
-    const toggle = page
-      .getByRole("group", { name: "Lease view", exact: true })
-      .locator("[data-renewal-full-toggle]");
+    const toggle = viewControls().locator("[data-renewal-full-toggle]");
     if ((await toggle.count()) !== 1) return null;
     return (await toggle.getAttribute("aria-pressed")) === "false" &&
       (await guided().isVisible())
@@ -239,9 +237,8 @@ const lease = (page) => {
       await page.goto(`${origin}${leasePath(leaseId, query)}`, {
         waitUntil: "domcontentloaded",
       });
-      await page
-        .getByRole("group", { name: "Lease view", exact: true })
-        .waitFor({ state: "visible" });
+      // The compact toolbar puts the mounted view controls inside closed Lease details.
+      await viewControls().waitFor({ state: "attached" });
       await guided().waitFor({ state: "visible" });
       await page.waitForTimeout(1500);
     },
@@ -378,12 +375,11 @@ async function reviewAndConfirm(page, phase, kind, dialogName, confirmName) {
 async function journey(browser) {
   const { context, page } = await newPage(browser);
   const view = lease(page);
-  const route = (path, body) => routeFromPage(page, path, body);
+  const route = (path) => routeFromPage(page, path);
   const mix = rehearsalMix(rehearsal);
-  const ownerEmailOf = (leaseId) =>
-    mix.leases.find((row) => row.lease.leaseID === Number(leaseId))?.portfolio.owners[0]
-      ?.email ?? null;
-  // The sequence id of each send the page makes, for the owner reply's thread read.
+  const preparedOwner = mix.leases.find((row) => row.lease.leaseID === Number(prepared))
+    ?.portfolio.owners[0];
+  // The exact thread and sequence of each send made through the page.
   const sends = [];
   page.on("response", (response) => {
     const request = response.request();
@@ -407,6 +403,7 @@ async function journey(browser) {
           id: sent.id,
           status: response.status(),
           state: body?.sequence?.state,
+          threadId: body?.sequence?.threads?.at(-1)?.threadId ?? null,
         }),
       );
   });
@@ -574,18 +571,28 @@ async function journey(browser) {
           );
       }
       if (step.id === "read-the-prepared-message") {
-        // November 10 (S261): Ask the owner reads Rent to recommend, the amount the owner message
-        // proposes, beside Current base rent, with "Edit rent to recommend" linking to its one
-        // editor on Compare market rent. That editor shows the basis; it is read there after the
-        // kickoff count, with no action.
+        // Ask the owner shows the recommendation and its edit control. S281 places the
+        // editor here and closes the Message group on entry. The three-action kickoff
+        // inspects the exact message in the required review, without opening that group.
         const recommended = view
           .now()
           .locator('[data-renewal-field="owner-recommended-rent"]');
-        await shownWithin(recommended, 60_000);
-        await shownWithin(
-          view.now().getByRole("document", { name: "Message preview" }),
-          60_000,
+        const message = view
+          .now()
+          .locator(
+            'details[data-renewal-group="Message"][data-renewal-group-step="ask-owner"]',
+          );
+        const edit = recommended.getByRole("button", {
+          name: "Edit rent to recommend",
+          exact: true,
+        });
+        // The facts and the asynchronous message mount independently. Read the named owner
+        // work and the rendered preview before asking the exact review to open.
+        const messagePreview = message.locator(
+          '[role="document"][aria-label="Message preview"]',
         );
+        await edit.waitFor({ state: "visible", timeout: 60_000 });
+        await messagePreview.waitFor({ state: "attached", timeout: 60_000 });
         kickoffObserved.prepared = {
           comparison: await shownCount(
             view.now().locator('[data-renewal-comparison="stored"]'),
@@ -603,13 +610,33 @@ async function journey(browser) {
                   .catch(() => ""),
               ).replace(/[^0-9.]/g, ""),
             ) || null,
-          editRent: await recommended
-            .getByRole("link", { name: "Edit rent to recommend", exact: true })
-            .count(),
-          preview: await view
-            .now()
-            .getByRole("document", { name: "Message preview" })
-            .count(),
+          editRent: await edit.count(),
+          preview: await messagePreview.count(),
+          previewText: squash(
+            (
+              await messagePreview.locator("p").evaluateAll((paragraphs) =>
+                paragraphs.map((paragraph) => {
+                  const text = paragraph.cloneNode(true);
+                  for (const link of text.querySelectorAll("a[href]")) {
+                    const href = link.getAttribute("href");
+                    const label = link.textContent.trim();
+                    if (href !== label && href !== `mailto:${label}`) {
+                      link.append(`: ${href}`);
+                    }
+                  }
+                  for (const br of text.querySelectorAll("br")) br.replaceWith(" ");
+                  return text.textContent;
+                }),
+              )
+            ).join(" "),
+          ),
+          messageClosed: (await message.getAttribute("open")) === null,
+          basis: squash(
+            await view
+              .now()
+              .locator('[data-renewal-field="owner-recommended-basis"]')
+              .textContent(),
+          ),
           now: (await view.nowText()).slice(0, 900),
         };
       }
@@ -619,8 +646,19 @@ async function journey(browser) {
           dialog.locator('[data-renewal-field="exact-review"]'),
           120_000,
         );
+        const reviewBody = dialog.getByRole("region", {
+          name: "Message body",
+          exact: true,
+        });
+        const reviewBasis = dialog.locator('[data-renewal-field="review-rent-basis"]');
         kickoffObserved.review = {
           reviewShown,
+          body: (await shownWithin(reviewBody, 15_000))
+            ? squash(await reviewBody.innerText())
+            : null,
+          basis: (await shownWithin(reviewBasis, 15_000))
+            ? squash(await reviewBasis.innerText())
+            : null,
           exact: reviewShown
             ? squash(
                 await dialog.locator('[data-renewal-field="exact-review"]').textContent(),
@@ -651,7 +689,7 @@ async function journey(browser) {
   });
   const kickoffCount = countActions(log.since(mark));
   const mail = (await standInState(rehearsal)).mail;
-  const ownerAddress = ownerEmailOf(prepared);
+  const ownerAddress = preparedOwner?.email;
   const sentToOwner = mail.mailboxes
     .flatMap((box) => box.messages ?? [])
     .filter((message) => ownerAddress && JSON.stringify(message).includes(ownerAddress));
@@ -731,7 +769,7 @@ async function journey(browser) {
     (await standInState(rehearsal)).comparison.comparisonsByLease ?? {};
   check(
     "journey.comparison",
-    "the stored comparison, Rent to recommend with its basis and the owner message preview show with no action, and no second comparison is requested (L22, L32)",
+    "the stored comparison and the recommendation with its basis are ready, the owner message is available in the exact review, and no second comparison is requested (L22, L32, S281)",
     kickoffObserved.market?.comparison === 1 &&
       kickoffObserved.market?.comparisonAge === 1 &&
       kickoffObserved.market?.evidenceClosedOnArrival === true &&
@@ -743,10 +781,24 @@ async function journey(browser) {
         kickoffObserved.market?.basis ?? "",
       ) &&
       kickoffObserved.prepared?.preview === 1 &&
+      kickoffObserved.prepared?.messageClosed === true &&
+      kickoffObserved.review?.reviewShown === true &&
+      kickoffObserved.review?.body === kickoffObserved.prepared.previewText &&
+      Boolean(kickoffObserved.review?.body) &&
+      kickoffObserved.review.body.includes(
+        new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
+          kickoffObserved.prepared.rent,
+        ),
+      ) &&
+      /^Rent to recommend .*suggested from the stored comparison\b/.test(
+        kickoffObserved.prepared.basis,
+      ) &&
+      kickoffObserved.review.basis === kickoffObserved.prepared.basis &&
       (comparisonsAfter[prepared] ?? 0) === (comparisonsBefore[prepared] ?? 0),
     {
       prepared: kickoffObserved.prepared,
       market: kickoffObserved.market,
+      review: kickoffObserved.review,
       before: comparisonsBefore[prepared] ?? 0,
       after: comparisonsAfter[prepared] ?? 0,
     },
@@ -811,14 +863,45 @@ async function journey(browser) {
     },
   );
 
-  // J07 owner reply (L36, first half).
+  // J07 owner reply (L36, first half). Record the staff check separately from the
+  // preceding zero-action waiting evidence and the following decision budget.
   const sendRecord = sends.findLast((entry) => entry.status === 200) ?? null;
   const reply = await deliverOwnerReply(rehearsal, {
-    to: ownerEmailOf(prepared) ?? undefined,
+    threadId: sendRecord?.threadId ?? undefined,
+    to: preparedOwner?.email,
     text: "Synthetic owner reply: the renewal terms are approved.",
   }).catch((error) => ({ error: String(error?.message ?? error) }));
-  if (sendRecord?.id)
-    await route("/api/gmail-hub/sequences", { action: "refresh", id: sendRecord.id });
+  await view.open(prepared, "?step=ask-owner");
+  const checkReply = view.now().getByRole("button", {
+    name: "Check for a reply now",
+    exact: true,
+  });
+  let checked = null;
+  if (sendRecord?.id && reply.messageId && (await shownWithin(checkReply, 20_000))) {
+    const [response] = await Promise.all([
+      page.waitForResponse(
+        (response) => {
+          const request = response.request();
+          if (
+            new URL(response.url()).pathname !== "/api/gmail-hub/sequences" ||
+            request.method() !== "POST"
+          )
+            return false;
+          const input = request.postDataJSON();
+          return input?.action === "refresh" && input.id === sendRecord.id;
+        },
+        { timeout: 30_000 },
+      ),
+      checkReply.click(),
+    ]);
+    log.act("owner-reply", "choice", "Check for a reply now");
+    const sequence = (await response.json().catch(() => null))?.sequence;
+    checked = {
+      status: response.status(),
+      replyKind: sequence?.inbound?.find((entry) => entry.messageId === reply.messageId)
+        ?.kind,
+    };
+  }
   await view.open(prepared);
   const replyNow = await view.nowText();
   const replyNext = await view.nextStep();
@@ -827,12 +910,14 @@ async function journey(browser) {
   check(
     "journey.owner-reply",
     'the observed reply reads "Owner replied" with "Record the owner\'s answer" as the one next action (L36, S262)',
-    /Owner replied/.test(replyNow) &&
+    checked?.status === 200 &&
+      checked.replyKind === "human" &&
+      /Owner replied/.test(replyNow) &&
       replyNext.primaries === 1 &&
       replyNext.primary === "Record the owner's answer" &&
       replyNext.lines === 1 &&
       /Record the owner's (answer|decision)/.test(replyNext.text),
-    { reply, sendRecord, now: replyNow.slice(0, 400), next: replyNext },
+    { reply, sendRecord, checked, now: replyNow.slice(0, 400), next: replyNext },
   );
 
   // J07b the working terms the decision approves. The prepared kickoff fills the rent from the
@@ -873,11 +958,9 @@ async function journey(browser) {
   }
   await view.open(prepared);
 
-  // J08 the owner's decision from the observed reply (L36): at most three actions, nothing
-  // preselected. November 10 (S262 R-S262-1): the approving branch of "Record the owner's
-  // answer" asks Amount approved, typed exactly as the owner gave it and never prefilled, and who
-  // approved, then shows Review the owner's answer before Save the owner's answer. Each is
-  // counted: no budget is met by removing a review or a confirmation (AC-S252-1).
+  // J08 keeps the original S252 three-action measure. S262 requires the outcome, empty
+  // amount, evidence, review and save. S285 supplies the uniquely matched owner after staff
+  // choose the reply. Count all four remaining actions and verify the exact reply and owner.
   mark = log.mark();
   const decisionObserved = {};
   const decision = view.now().locator('[data-renewal-field="owner-decision-from-reply"]');
@@ -898,11 +981,21 @@ async function journey(browser) {
     decisionObserved.amountApproved = kickoffObserved.prepared?.rent ?? null;
     await amount.fill(String(decisionObserved.amountApproved ?? ""));
     log.act("decision", "entry", "Amount approved");
-    const party = decision.getByLabel("Who approved in this reply");
+    const party = decision.getByLabel("Who approved in this reply", { exact: true });
     await party.waitFor({ state: "visible" });
     const partyPreselected = await party.inputValue();
-    await party.selectOption({ index: 1 });
-    log.act("decision", "choice", "Who approved in this reply");
+    const ownerLabel = `${preparedOwner?.name} (owner of record)`;
+    const selectedReason = decision.locator(
+      '[data-renewal-field="owner-approver-selected"]',
+    );
+    decisionObserved.replyingOwnerSelected =
+      Boolean(
+        partyPreselected && preparedOwner?.email && reply.from === preparedOwner.email,
+      ) &&
+      squash(await party.locator("option:checked").textContent()) === ownerLabel &&
+      (await shownWithin(selectedReason, 15_000)) &&
+      squash(await selectedReason.textContent()) ===
+        "Selected because this reply came from the address the owner message was sent to.";
     await decision
       .getByRole("button", { name: "Review the owner's answer", exact: true })
       .click();
@@ -917,23 +1010,43 @@ async function journey(browser) {
       exact: true,
     });
     const confirmShown = answerReviewShown && (await shownWithin(confirm, 15_000));
-    const saved = page
-      .waitForResponse(
-        (response) =>
-          response.request().method() === "POST" &&
-          new URL(response.url()).pathname === "/api/lease-renewal/workspace",
-        { timeout: 20_000 },
-      )
-      .then(async (response) => ({
-        status: response.status(),
-        body: await response.text().then((text) => text.slice(0, 400)),
-      }))
-      .catch(() => null);
     if (confirmShown) {
+      const saved = page
+        .waitForResponse(
+          (response) => {
+            const request = response.request();
+            if (
+              request.method() !== "POST" ||
+              new URL(response.url()).pathname !== "/api/lease-renewal/workspace"
+            )
+              return false;
+            const payload = request.postDataJSON();
+            return (
+              payload?.leaseId === String(prepared) &&
+              payload.action?.kind === "owner_response"
+            );
+          },
+          { timeout: 20_000 },
+        )
+        .catch(() => null);
       await confirm.click();
       log.act("decision", "confirmation", "Save the owner's answer");
+      const response = await saved;
+      const body = await response?.json().catch(() => null);
+      const approval = body?.state?.ownerResponse?.approval;
+      decisionObserved.saved = {
+        status: response?.status() ?? null,
+        error: body?.error ?? null,
+      };
+      decisionObserved.savedReplyingOwner =
+        Boolean(partyPreselected && sendRecord?.id && reply.messageId) &&
+        approval?.party?.kind === "owner" &&
+        approval.party.label === preparedOwner?.name &&
+        approval.party.sourceRef === partyPreselected &&
+        approval.channel?.kind === "linked_reply" &&
+        approval.channel.sequenceId === sendRecord.id &&
+        approval.channel.messageId === reply.messageId;
     }
-    decisionObserved.saved = await saved;
     decisionObserved.alert = squash(
       await decision
         .locator('[role="alert"]')
@@ -975,6 +1088,25 @@ async function journey(browser) {
         "the lease moves on to Offer the tenant": afterDecision === "offer-tenant",
       },
     },
+  );
+
+  const count = countActions(log.since(mark));
+  check(
+    "journey.owner-decision.replyingOwner",
+    "the exact replying owner is selected, the amount starts empty, and outcome, amount, review and confirmation record the same owner and reply on one page (S262, S285)",
+    decisionShown &&
+      preselected === 0 &&
+      decisionObserved.amountPrefilled === "" &&
+      decisionObserved.replyingOwnerSelected &&
+      decisionObserved.saved?.status === 200 &&
+      decisionObserved.savedReplyingOwner &&
+      afterDecision === "offer-tenant" &&
+      openPages(context).length === 1 &&
+      count.actions === 4 &&
+      count.choices === 2 &&
+      count.entries === 1 &&
+      count.confirmations === 1,
+    { ...decisionObserved, count },
   );
 
   // J09 to J13: the rest of the path to Complete on the guided path (L53, L17), with hand records
@@ -1043,9 +1175,12 @@ async function journey(browser) {
     }
     if (step === "offer-tenant") {
       const primary = view.now().locator("[data-renewal-now-primary]");
-      // The tenant offer is the lease's one tenant message record, which loads after the page;
-      // its Review and send becomes the Now card's primary once it has loaded.
-      await shownWithin(view.now().locator("[data-renewal-message-revision]"), 60_000);
+      // S281: the audience's Message group can be closed or absent after send. The
+      // visible message-work wrapper stays mounted while the offer record is available.
+      await shownWithin(
+        view.now().locator('[data-renewal-message-work="tenant"]'),
+        60_000,
+      );
       await page.waitForTimeout(1000);
       const label = squash(await primary.textContent().catch(() => ""));
       const review = primary;
@@ -1110,14 +1245,13 @@ async function journey(browser) {
         await page.waitForTimeout(3000);
         continue;
       }
-      // November 10 (S270): the hand record sits in the outcome's named group, "Tenant offer
-      // options and record of contact", closed on arrival; staff open it to reach the record.
+      // S281 names the offer's group of hand records "Record of contact".
       if (
         !tenantOffer &&
         !offerDone &&
         !(await offerRecord.isVisible().catch(() => false))
       )
-        await openNamedGroup(page, "Tenant offer options and record of contact", "path");
+        await openNamedGroup(page, STEP_GROUPS["offer-tenant"], "path");
       if (
         !tenantOffer &&
         !offerDone &&
@@ -1160,12 +1294,7 @@ async function journey(browser) {
         if (label === "Record what happened") {
           await review.click();
           log.act("path", "choice", "Record what happened");
-        } else
-          await openNamedGroup(
-            page,
-            "Tenant offer options and record of contact",
-            "path",
-          );
+        } else await openNamedGroup(page, STEP_GROUPS["offer-tenant"], "path");
       }
       if (
         (await shownWithin(response, 10_000)) &&
@@ -1173,6 +1302,12 @@ async function journey(browser) {
       ) {
         await response.selectOption("accepted");
         log.act("path", "choice", "Tenant response: Accepted");
+        // S276 R-S276-1 (pin changed by S276): the response is recorded by its one visible Save.
+        await page
+          .locator("#renewal-manual-tenant_response")
+          .getByRole("button", { name: "Save", exact: true })
+          .click();
+        log.act("path", "confirmation", "Save tenant response");
         await page.waitForTimeout(3000);
         continue;
       }
@@ -1572,8 +1707,12 @@ async function journey(browser) {
       if (await stepButton.count()) {
         await stepButton.click();
         log.read("layout", `path strip: ${label}`);
-        await page.waitForTimeout(800);
       }
+      // The view may still be switching after the path control is clicked.
+      await view
+        .now()
+        .getByRole("heading", { name: new RegExp(`^(?:Now: )?${label}$`) })
+        .waitFor({ state: "visible", timeout: 15_000 });
       await page.evaluate(() => window.scrollTo(0, 0));
       await page.waitForTimeout(300);
       const boxes = await page.evaluate(() => {
@@ -1589,8 +1728,10 @@ async function journey(browser) {
           stage: box('[data-renewal-field="stage-line"]'),
           strip: box('[aria-label="Guided view"] nav[aria-label="Renewal path"]'),
           primary: box('[aria-label="Guided view"] [data-renewal-now-primary]'),
-          // Evidence only: the Now heading and the primary's words.
           nowHeading: box('[aria-label="Guided view"] h2#renewal-now-heading'),
+          verificationClosed: !document.querySelector(
+            '[aria-label="Guided view"] details[data-renewal-verification][open]',
+          ),
           primaryLabel:
             document
               .querySelector('[aria-label="Guided view"] [data-renewal-now-primary]')
@@ -1607,6 +1748,7 @@ async function journey(browser) {
             .textContent()
             .catch(() => ""),
         ),
+        height,
         limit: height * screens,
         ...boxes,
       });
@@ -1626,6 +1768,26 @@ async function journey(browser) {
           onScreen(entry.primary, entry.limit) &&
           (entry.width !== 1280 ||
             (onScreen(entry.stage, entry.limit) && onScreen(entry.strip, entry.limit))),
+      ),
+    { lease: missingRecipient, stepLayouts },
+  );
+
+  // The S269 replacement measures from the Now heading. Keep the original page-top result
+  // above while independently requiring the current layout and closed evidence.
+  check(
+    "journey.layout-steps.fromNowHeading",
+    "the exact Now action fits in one viewport from the heading on all four steps, at both widths, with evidence closed (S269)",
+    stepLayouts.length === LAYOUT_STEPS.length * 2 &&
+      stepLayouts.every(
+        (entry) =>
+          entry.scrollY === 0 &&
+          !entry.overflow &&
+          entry.heading.endsWith(entry.step) &&
+          entry.verificationClosed &&
+          entry.nowHeading &&
+          entry.primary &&
+          entry.primary.top >= entry.nowHeading.bottom &&
+          entry.primary.bottom <= entry.nowHeading.top + entry.height,
       ),
     { lease: missingRecipient, stepLayouts },
   );
@@ -1725,6 +1887,10 @@ async function journey(browser) {
  * false when the shown outcome has no such group.
  */
 async function openNamedGroup(page, label, phase) {
+  if (Array.isArray(label)) {
+    for (const name of label) if (await openNamedGroup(page, name, phase)) return true;
+    return false;
+  }
   const group = page.locator(`details[data-renewal-group="${label}"]:visible`).first();
   if (!(await group.count())) return false;
   if ((await group.getAttribute("open")) === null) {
@@ -1735,9 +1901,9 @@ async function openNamedGroup(page, label, phase) {
   return true;
 }
 
-/** Each step's named group of supporting work (S270), where its hand records sit. */
+/** Each step's named group of supporting work, where its hand records sit. */
 const STEP_GROUPS = {
-  "offer-tenant": "Tenant offer options and record of contact",
+  "offer-tenant": ["Record of contact", "Tenant offer options and record of contact"],
   documents: "Other packet and handoff work",
   "finish-up": "Other follow-ups",
 };

@@ -16,6 +16,15 @@
 
 import { formatBusinessTimestamp, formatCalendarDate } from "@/lib/date-display";
 import { businessDateIso } from "@/lib/lease-renewal/business-calendar";
+import {
+  earlierAttemptViews,
+  projectUnsentMessage,
+  type EarlierAttemptEvidence,
+  type EarlierAttemptView,
+  type LeaseMessageBases,
+  type UnsentMessageView,
+  type UnsentWorkEvidence,
+} from "@/lib/lease-renewal/unsent-message";
 import type {
   ManualActivity,
   RenewalWorkspaceState,
@@ -70,6 +79,14 @@ export interface LinkedRenewalMessageEvidence {
     readonly checkedAtMs: number | null;
     readonly state: "current" | "unavailable" | null;
   };
+  /**
+   * S273 R-S273-1: the message's unsent authorized work (scheduled, held or unconfirmed), with the
+   * content basis kept with its authorization and the authorized wording's revision. Absent when it
+   * holds none, and on evidence read before S273. No message body and no recipient address.
+   */
+  readonly unsent?: UnsentWorkEvidence | null;
+  /** S273 R-S273-5: the message's earlier attempts, read only. Absent when it has none. */
+  readonly attempts?: readonly EarlierAttemptEvidence[];
 }
 
 /** An unsent Gmail draft prepared for this lease, audience and cycle (S162 draft head). */
@@ -103,6 +120,11 @@ export interface LeaseOutreachEvidenceInput {
   readonly messages: readonly LinkedRenewalMessageEvidence[];
   readonly records: readonly StoredOutreachRecord[];
   readonly drafts: readonly GmailDraftEvidence[];
+  /**
+   * S273 R-S273-2: the lease's current values for each audience that holds unsent work, read on
+   * this lease or desk read. Absent when not read; the unsent message then shows its stored state.
+   */
+  readonly currentMessage?: LeaseMessageBases;
 }
 
 export const EMPTY_OUTREACH_EVIDENCE_INPUT: LeaseOutreachEvidenceInput = Object.freeze({
@@ -161,6 +183,14 @@ export interface AudienceOutreachEvidence {
    * and the time of the latest check that did not read cleanly. Null when none can be checked.
    */
   readonly replyCheck?: ReplyCheckEvidence | null;
+  /**
+   * S273 R-S273-1 / R-S273-3 (ARCH-S273-1): the one projection of this audience's unsent authorized
+   * work in the cycle (scheduled, held or unconfirmed), with its out-of-date state against the
+   * lease's current values when they were read. Absent when there is none.
+   */
+  readonly unsent?: UnsentMessageView | null;
+  /** S273 R-S273-5: the cycle's earlier attempts for this audience, read only, oldest first. */
+  readonly earlierAttempts?: readonly EarlierAttemptView[];
   /** Derived records staff removed with "This was not the renewal outreach"; history only. */
   readonly corrected: readonly {
     readonly occurrenceId: string;
@@ -435,6 +465,46 @@ function projectAudience(
         failedAtMs: latest(failedChecks),
       }
     : null;
+  // S273 R-S273-1 (ARCH-S273-1): the audience's unsent authorized work in this cycle (one at most
+  // since S272; the newest when an older record holds more), read against the lease's current
+  // values when this read has them (R-S273-2). Both audiences use this same projection.
+  // A superseded message still belongs to verification history, but the accepted outreach
+  // has the current step. A newer unconfirmed attempt still needs reconciliation.
+  const unsentMessage =
+    pending
+      .filter(
+        (message) => message.unsent && message.unsent.cause !== "newer_message_sent",
+      )
+      .at(-1) ?? null;
+  const unsent =
+    unsentMessage && unsentMessage.unsent
+      ? projectUnsentMessage(
+          { sequenceId: unsentMessage.sequenceId, audience },
+          unsentMessage.unsent,
+          input.currentMessage?.[audience],
+        )
+      : null;
+  // S273 R-S273-5: the cycle's earlier attempts for this audience, read only.
+  const earlierAttempts = earlierAttemptViews(
+    messages.map((message) => {
+      const superseded = message.unsent;
+      return superseded?.cause === "newer_message_sent" && superseded.atMs !== null
+        ? {
+            ...message,
+            attempts: [
+              ...(message.attempts ?? []),
+              {
+                state: "held" as const,
+                atMs: superseded.atMs,
+                cause: superseded.cause,
+                endedAtMs: superseded.atMs,
+                resolution: "superseded" as const,
+              },
+            ],
+          }
+        : message;
+    }),
+  );
   return {
     audience,
     state,
@@ -449,6 +519,8 @@ function projectAudience(
     unconfirmedSequenceId: unconfirmed?.sequenceId ?? null,
     corrected,
     ...(replyCheck ? { replyCheck } : {}),
+    ...(unsent ? { unsent } : {}),
+    ...(earlierAttempts.length ? { earlierAttempts } : {}),
   };
 }
 

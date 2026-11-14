@@ -38,6 +38,7 @@ import {
   type RenewalActionStatus,
 } from "@/lib/lease-renewal/renewal-actions";
 import type { RenewalIssue } from "@/lib/lease-renewal/renewal-issues";
+import { STEP_NOT_USED_LABEL } from "@/lib/lease-renewal/renewal-path";
 import type { RenewalWorkspaceState } from "@/lib/lease-renewal/workspace-state";
 import type { RenewalChargeInventory } from "@/lib/lease-renewal/writeback/charge-inventory-model";
 import {
@@ -104,7 +105,8 @@ const GROUPS: readonly { status: RenewalActionStatus; label: string }[] = [
   { status: "unknown", label: "Needs a check" },
   { status: "unresolved", label: "Review in Full view" },
   { status: "complete", label: "Done" },
-  { status: "not_applicable", label: "Not part of this lease's path" },
+  // S283 R-S283-7: the Focus pane lists only the work on this lease's path; work that does not
+  // apply is left out, and the retired not-on-path group is gone.
 ];
 
 /** The concrete rule problem behind a diagnostic, named with the actions it involves. */
@@ -181,7 +183,7 @@ function stateText(
     case "complete":
       return completedText(action);
     case "not_applicable":
-      return "Not part of this lease's path.";
+      return `${STEP_NOT_USED_LABEL}.`;
   }
 }
 
@@ -790,7 +792,14 @@ function FocusPane({
         </div>
       ) : null}
       <details className="renewal-focus-all">
-        <summary>All renewal work ({projection.actions.length})</summary>
+        <summary>
+          All renewal work (
+          {
+            projection.actions.filter((action) => action.status !== "not_applicable")
+              .length
+          }
+          )
+        </summary>
         {GROUPS.map((group) => {
           const members = projection.actions.filter(
             (action) => action.status === group.status,

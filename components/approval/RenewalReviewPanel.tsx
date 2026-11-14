@@ -1,7 +1,8 @@
 import Link from "next/link";
-import type {
-  RenewalReviewBoard,
-  RenewalReviewFlag,
+import {
+  renewalRowLabel,
+  type RenewalReviewBoard,
+  type RenewalReviewFlag,
 } from "@/lib/approval/renewal-review";
 
 // Read-only renewal review sub-tab body (OQ-UI-1). Value-free triage of open reconciliation flags,
@@ -11,7 +12,7 @@ function ReviewFlagRow({ flag }: Readonly<{ flag: RenewalReviewFlag }>) {
   return (
     <li className="ui-spread">
       <Link className="text-link" href={flag.href}>
-        <strong>{flag.fieldLabel}</strong>
+        <strong>{renewalRowLabel(flag.leaseLabel, flag.fieldLabel)}</strong>
         <span className="muted"> · {flag.actionNeeded}</span>
       </Link>
       <span className="renewal-review-flag-tags">
@@ -112,7 +113,11 @@ export function RenewalReviewPanel({ board }: Readonly<{ board?: RenewalReviewBo
             ) : (
               <ul className="ui-rows">
                 {openFlags.map((flag) => (
-                  <ReviewFlagRow flag={flag} key={flag.fieldKey} />
+                  // S280 ARCH-S280-2: one row per lease and field, so keys stay unique.
+                  <ReviewFlagRow
+                    flag={flag}
+                    key={flag.sourceTriggerKey ?? flag.fieldKey}
+                  />
                 ))}
               </ul>
             )}
@@ -125,7 +130,10 @@ export function RenewalReviewPanel({ board }: Readonly<{ board?: RenewalReviewBo
                 </summary>
                 <ul className="ui-rows">
                   {resolvedFlags.map((flag) => (
-                    <ReviewFlagRow flag={flag} key={flag.fieldKey} />
+                    <ReviewFlagRow
+                      flag={flag}
+                      key={flag.sourceTriggerKey ?? flag.fieldKey}
+                    />
                   ))}
                 </ul>
               </details>

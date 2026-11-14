@@ -173,14 +173,26 @@ export async function reviewText(ctx, dialog) {
  * makes (`requestKind` is the kind of request the button sends). Resolves with the answer's status,
  * the message record id and state, and the dialog's alert when it stays open.
  */
-export async function confirmReview(ctx, page, dialog, buttonName, requestKind) {
+export async function confirmReview(
+  ctx,
+  page,
+  dialog,
+  buttonName,
+  requestKind,
+  { onNoAnswer } = {},
+) {
   const { kit } = ctx;
   const answer = kit.appResponse(page, SEQUENCES_ROUTE, {
     match: (body) => kit.sequenceAction(body) === requestKind,
     timeout: 180_000,
   });
+  const observed = onNoAnswer ? answer.catch(() => null) : answer;
   await dialog.getByRole("button", { name: buttonName, exact: true }).click();
-  const response = await answer;
+  const response = await observed;
+  if (!response) {
+    onNoAnswer();
+    return { status: null, sequenceId: null, state: null, alert: null, error: null };
+  }
   const body = await response.json().catch(() => null);
   const status = response.status();
   let alert = null;
@@ -362,14 +374,29 @@ export async function prepareTenantOffer(ctx, page, leaseId, log, { end }) {
   return { owner, answer, dates, amount };
 }
 
+/**
+ * The step's "Schedule" button as staff reach it: in the Now card, or (S281 R-S281-12) inside the
+ * step's "Other ways to send" group, which is closed on entry and opened by its summary.
+ */
+export async function stepScheduleButton(ctx, page) {
+  const { kit } = ctx;
+  const group = page
+    .locator('details[data-renewal-group="Other ways to send"]:visible')
+    .first();
+  if (await kit.shownWithin(group, 3_000)) {
+    await kit.openDisclosure(group);
+    const inGroup = group.getByRole("button", { name: "Schedule", exact: true });
+    if (await kit.shownWithin(inGroup, 10_000)) return inGroup;
+  }
+  const schedule = kit.now(page).getByRole("button", { name: "Schedule", exact: true });
+  if (await kit.shownWithin(schedule, 20_000)) return schedule;
+  return page.getByRole("button", { name: "Schedule", exact: true }).first();
+}
+
 /** Offer the tenant: "Schedule" in the step, the dialog's date and time as offered, then confirm. */
 export async function scheduleTenantOffer(ctx, page, leaseId) {
-  const { kit } = ctx;
   await reachPrimary(ctx, page, leaseId, "offer-tenant", "Review tenant offer");
-  const schedule = kit.now(page).getByRole("button", { name: "Schedule", exact: true });
-  const trigger = (await kit.shownWithin(schedule, 20_000))
-    ? schedule
-    : page.getByRole("button", { name: "Schedule", exact: true }).first();
+  const trigger = await stepScheduleButton(ctx, page);
   const dialog = await openReviewDialog(ctx, page, trigger, DIALOG_SCHEDULE);
   const firstDate = await dialog
     .locator('input[type="date"]')
@@ -450,7 +477,46 @@ export async function resumeFromCommunications(ctx, page, leaseId, purposeWords)
     name: "Resume reviewed sequence",
     exact: true,
   });
-  await resume.waitFor({ timeout: 60_000 });
+  // A build that refuses this Resume (S272 R-S272-5) shows its reason in place of the control
+  // once the communication's lease read answers; until then Resume shows but stays disabled.
+  const refusal = composer.locator('[data-communication-field="refusal"]');
+  await resume.or(refusal).first().waitFor({ timeout: 60_000 });
+  await page
+    .waitForFunction(
+      () => {
+        const region = document.querySelector(
+          'section[aria-label="Workflow communication composer"]',
+        );
+        if (!region) return false;
+        if (region.querySelector('[data-communication-field="refusal"]')) return true;
+        return [...region.querySelectorAll("button")].some(
+          (button) =>
+            (button.textContent ?? "").trim() === "Resume reviewed sequence" &&
+            !button.disabled,
+        );
+      },
+      null,
+      { timeout: 60_000 },
+    )
+    .catch(() => undefined);
+  if (!(await resume.isVisible())) {
+    const shown = async (name) =>
+      (await composer.getByRole("button", { name, exact: true }).count()) > 0;
+    return {
+      cardText,
+      offered: false,
+      controlsShown: {
+        send: await shown("Send"),
+        schedule: await shown("Schedule"),
+        resume: false,
+      },
+      refusalReason: await refusal.first().getAttribute("data-refusal-reason"),
+      dialogShown: (await page.getByRole("dialog").count()) > 0,
+      status: null,
+      state: null,
+      statusLine: await kit.visibleText(composer.locator('p[role="status"]').first()),
+    };
+  }
   const controls = {
     send: await composer.getByRole("button", { name: "Send", exact: true }).isEnabled(),
     schedule: await composer
@@ -467,6 +533,7 @@ export async function resumeFromCommunications(ctx, page, leaseId, purposeWords)
   const body = await response.json().catch(() => null);
   return {
     cardText,
+    offered: true,
     controlsEnabled: controls,
     dialogShown: (await before.count()) > 0,
     status: response.status(),
@@ -582,6 +649,28 @@ export async function journeyW1202(ctx, page) {
   };
 }
 
+/** S273 R-S273-3: the Offer step's primary while it holds the step on a held or outdated offer. */
+const HELD_OFFER_PRIMARY =
+  /^Review the updated offer$|^Review this tenant communication$/;
+
+/**
+ * W12-01's "send a new offer from the lease". The baseline's Offer step still reads "Review tenant
+ * offer" and the offer is sent as before. A build whose step holds on the held offer (S273
+ * R-S273-3: "Review the updated offer" and "Cancel the scheduled offer") offers no new send there;
+ * that is recorded with the primary it read, and nothing is clicked.
+ */
+async function newOfferFromLease(ctx, page, leaseId) {
+  await ctx.kit.openLease(page, leaseId, "?step=offer-tenant");
+  // The held state shows once the step's message read answers; any other name is taken only
+  // after it has stayed the same for ten seconds with nothing still reading.
+  const primary = await waitForPrimary(ctx, page, (name) =>
+    HELD_OFFER_PRIMARY.test(name),
+  );
+  if (HELD_OFFER_PRIMARY.test(primary ?? ""))
+    return { offered: false, primary, status: null, alert: null };
+  return { offered: true, primary, ...(await sendTenantOffer(ctx, page, leaseId)) };
+}
+
 /** W12-01: the same, then a new offer from the lease, Resume on the paused one, and a tick. */
 export async function journeyW1201(ctx, page) {
   const { kit } = ctx;
@@ -592,10 +681,15 @@ export async function journeyW1201(ctx, page) {
   const held = (await kit.sequences(leaseId, "renewal_tenant")).find(
     (sequence) => sequence.id === scheduled.sequenceId,
   );
-  const fresh = await sendTenantOffer(ctx, page, leaseId);
-  log.add("new tenant offer sent from the lease", { status: fresh.status });
+  const fresh = await newOfferFromLease(ctx, page, leaseId);
+  log.add("new tenant offer sent from the lease", {
+    offered: fresh.offered,
+    primary: fresh.primary,
+    status: fresh.status,
+  });
   const resumed = await resumeFromCommunications(ctx, page, leaseId, "renewal tenant");
   log.add("Resume reviewed sequence", {
+    offered: resumed.offered,
     status: resumed.status,
     state: resumed.state,
     dialogShown: resumed.dialogShown,
@@ -613,14 +707,24 @@ export async function journeyW1201(ctx, page) {
   });
   return {
     observed: {
+      scheduledSequenceId: scheduled.sequenceId,
       firstTick: pickTick(firstTick),
       heldMessage: sequenceSummary(held),
       newOfferStatus: fresh.status,
+      newOffer: {
+        offered: fresh.offered,
+        primary: fresh.primary,
+        status: fresh.status,
+        alert: fresh.alert ?? null,
+      },
       resume: {
+        offered: resumed.offered,
         status: resumed.status,
         state: resumed.state,
         dialogShown: resumed.dialogShown,
-        controlsEnabled: resumed.controlsEnabled,
+        controlsEnabled: resumed.controlsEnabled ?? null,
+        controlsShown: resumed.controlsShown ?? null,
+        refusalReason: resumed.refusalReason ?? null,
       },
       secondTick: pickTick(secondTick),
       tenantMessages: messages.length,
@@ -653,38 +757,10 @@ export async function journeyW1203(ctx, page) {
       log.add("harness reset before the next try");
     }
     const { dialog, refreshes } = await openOwnerReview(ctx, page, leaseId);
-    const workingBefore = await kit.read(page, `${WORKING_ROUTE}?leaseId=${leaseId}`);
-    const posts = [];
-    const reads = [];
-    const listen = (request) => {
-      const url = new URL(request.url());
-      if (url.origin !== ctx.origin) return;
-      if (request.method() === "GET") reads.push(url.pathname);
-      else posts.push(url.pathname);
-    };
-    page.on("request", listen);
-    const opened = Date.now();
-    await page.waitForTimeout(waitSeconds * 1000);
-    const confirmed = await confirmReview(ctx, page, dialog, "Send this message", "send");
-    page.off("request", listen);
-    const workingAfter = await kit.read(page, `${WORKING_ROUTE}?leaseId=${leaseId}`);
-    const sent = await kit.sentTo(kit.ownerAddresses(leaseId));
     const result = {
       attempt,
       refreshesBeforeReview: refreshes,
-      waitedSeconds: Math.round((Date.now() - opened) / 1000),
-      status: confirmed.status,
-      alert: confirmed.alert,
-      refusedAsChanged: /recipients or source facts changed/i.test(
-        `${confirmed.alert ?? ""} ${confirmed.error ?? ""}`,
-      ),
-      // Nothing edited: the only writes were the send itself, and the working record is unchanged.
-      postsDuringTry: [...new Set(posts)],
-      readsDuringWait: [...new Set(reads)].slice(0, 20),
-      workingRecordUnchanged:
-        JSON.stringify(workingBefore?.record?.fields ?? null) ===
-        JSON.stringify(workingAfter?.record?.fields ?? null),
-      ownerMessagesSent: sent.length,
+      ...(await observeTimedOwnerConfirmation(ctx, page, leaseId, dialog, waitSeconds)),
     };
     tries.push(result);
     log.add("confirm after waiting", {
@@ -692,7 +768,7 @@ export async function journeyW1203(ctx, page) {
       status: result.status,
       refused: result.refusedAsChanged,
     });
-    if (result.refusedAsChanged || confirmed.status !== 200) break;
+    if (result.refusedAsChanged || result.status !== 200) break;
   }
   return {
     observed: {
@@ -701,6 +777,98 @@ export async function journeyW1203(ctx, page) {
       waitSeconds,
     },
     steps: log.steps,
+  };
+}
+
+/** Observe the open review through one wait and one staff confirmation, including its receipt. */
+export async function observeTimedOwnerConfirmation(ctx, page, leaseId, dialog, seconds) {
+  const { kit } = ctx;
+  const workingUrl = `${WORKING_ROUTE}?leaseId=${leaseId}`;
+  const workingBefore = (await kit.read(page, workingUrl))?.record;
+  const owners = kit.ownerAddresses(leaseId);
+  const mailBefore = new Set((await kit.sentTo(owners)).map(({ id }) => id));
+  const reviewBefore = await reviewText(ctx, dialog);
+  const reads = new Set();
+  const posts = [];
+  let sendRequests = 0;
+  const listen = (request) => {
+    const url = new URL(request.url());
+    if (url.origin !== ctx.origin) return;
+    if (request.method() === "GET") reads.add(url.pathname);
+    else {
+      posts.push(url.pathname);
+      if (request.method() === "POST" && url.pathname === SEQUENCES_ROUTE) {
+        try {
+          if (kit.sequenceAction(request.postDataJSON()) === "send") sendRequests += 1;
+        } catch {
+          // An unreadable command does not count as a send confirmation.
+        }
+      }
+    }
+  };
+  page.on("request", listen);
+  let waitedMs;
+  let reviewUnchanged;
+  let postsBeforeConfirm;
+  let readsDuringWait;
+  let confirmed;
+  try {
+    const opened = performance.now();
+    await page.waitForTimeout(seconds * 1000);
+    reviewUnchanged =
+      reviewBefore.length > 0 && (await reviewText(ctx, dialog)) === reviewBefore;
+    waitedMs = Math.floor(performance.now() - opened);
+    postsBeforeConfirm = posts.length;
+    readsDuringWait = [...reads].slice(0, 20);
+    confirmed = await confirmReview(ctx, page, dialog, "Send this message", "send", {
+      onNoAnswer: () => ctx.unresolved?.("W12-03 timed send: no answer"),
+    });
+  } finally {
+    page.off("request", listen);
+  }
+  const workingAfter = (await kit.read(page, workingUrl))?.record;
+  const sent = (await kit.sentTo(owners)).filter(({ id }) => !mailBefore.has(id));
+  const receiptRead =
+    confirmed.status === 200 && confirmed.sequenceId
+      ? await kit
+          .read(page, `${SEQUENCES_ROUTE}?id=${confirmed.sequenceId}`)
+          .catch(() => null)
+      : null;
+  const sequence = receiptRead?.sequence;
+  const [receipt] = receiptRead?.attempts ?? [];
+  const [mail] = sent;
+  return {
+    waitedMs,
+    waitedSeconds: Math.floor(waitedMs / 1000),
+    status: confirmed.status,
+    alert: confirmed.alert,
+    refusedAsChanged: /recipients or source facts changed/i.test(
+      `${confirmed.alert ?? ""} ${confirmed.error ?? ""}`,
+    ),
+    reviewUnchanged,
+    postsBeforeConfirm,
+    postsDuringTry: posts,
+    sendRequests,
+    readsDuringWait,
+    workingRecordUnchanged:
+      Boolean(workingBefore?.fields && workingAfter?.fields) &&
+      JSON.stringify(workingBefore.fields) === JSON.stringify(workingAfter.fields),
+    ownerMessagesSent: sent.length,
+    receiptMatches:
+      Boolean(sequence) &&
+      sequence.id === confirmed.sequenceId &&
+      sequence.confirmedCount === 1 &&
+      sequence.unresolvedOccurrenceId === null &&
+      receiptRead?.attemptsTruncated === false &&
+      receiptRead.attempts.length === 1 &&
+      receipt?.sequenceId === sequence.id &&
+      receipt.authorizationRevision === sequence.authorization?.revision &&
+      receipt.index === 0 &&
+      receipt.state === "sent" &&
+      Boolean(mail) &&
+      receipt.gmailMessageId === mail.id &&
+      receipt.gmailThreadId === mail.threadId &&
+      receipt.rfcMessageId === mail.rfcMessageId,
   };
 }
 
@@ -866,11 +1034,24 @@ export async function journeyW1205(ctx, page) {
     .catch(() => null);
   await select.selectOption("accepted");
   const response = await saved;
-  const reviewShown = await page
-    .getByRole("region", { name: /Review the tenant/i })
-    .count();
-  const workspace = await kit.read(page, `${WORKSPACE_ROUTE}?leaseId=${leaseId}`);
+  const reviewRegion = page.getByRole("region", { name: /Review the tenant/i });
+  const reviewShown = await reviewRegion.count();
   log.add('tenant response "Accepted" chosen', { status: response?.status() ?? null });
+  // S276 R-S276-1 (W12-05 candidate adaptation): where choosing no longer saves, staff read the
+  // review and choose its one Save, so both builds reach the same recorded "Accepted" before the
+  // tick. On a build that saves on selection there is no review and nothing more is clicked.
+  let reviewText = null;
+  let savedWithSave = null;
+  if (response === null && reviewShown > 0) {
+    reviewText = await kit.visibleText(reviewRegion.first());
+    const answer = kit.appResponse(page, WORKSPACE_ROUTE, {
+      match: (body) => body?.action?.kind === "tenant_response",
+    });
+    await reviewRegion.first().getByRole("button", { name: "Save", exact: true }).click();
+    savedWithSave = (await answer).status();
+    log.add('tenant response "Accepted" saved with Save', { status: savedWithSave });
+  }
+  const workspace = await kit.read(page, `${WORKSPACE_ROUTE}?leaseId=${leaseId}`);
   const tick = await kit.tick(sequenceId);
   log.add("worker tick at the next due time", pickTick(tick));
   const mailAfter = (await kit.sentTo(kit.tenantAddresses(leaseId))).length;
@@ -882,6 +1063,8 @@ export async function journeyW1205(ctx, page) {
       offerStatus: offer.status,
       savedOnSelection: response !== null && response.status() === 200,
       reviewShownBeforeSave: reviewShown > 0,
+      reviewText,
+      savedWithSave,
       recordedOutcome: workspace?.state?.tenantResponse?.outcome ?? null,
       tick: pickTick(tick),
       tenantMessagesBeforeTick: mailBefore,
@@ -1237,6 +1420,10 @@ export async function journeyW1210(ctx, page) {
   ).length;
   await reachPrimary(ctx, page, leaseId, "ask-owner", "Review owner message");
   const link = page.locator('a[data-renewal-field="composer-link"]').first();
+  // S281 R-S281-12 moved "Open in Communications" into the closed "Other ways to send" group on
+  // purpose: open the disclosure that holds it by its summary, as staff do. Where the link is
+  // already shown (the baseline) this opens nothing, so both builds reach the same state.
+  await kit.reveal(page, 'a[data-renewal-field="composer-link"]');
   await link.waitFor({ timeout: 30_000 });
   const posts = [];
   const opened = page.context().waitForEvent("page", { timeout: 60_000 });
@@ -1377,9 +1564,23 @@ export async function journeyW1211(ctx, page) {
 // ---- W12-12: Prepare under a filter ---------------------------------------------------------------
 
 /**
+ * The Working batch search term of the candidate adaptation below: in the November 5 mix it shows
+ * 5 of the 9 monthly rows by address (every tenant name reads "Example", so the desk table's term
+ * would show all nine there), 3 of the month's 5 preparation targets.
+ */
+export const W1212_BATCH_SEARCH = "Sample";
+
+/**
  * W12-12: narrow the month with the visible filter staff have, then "Prepare {month} leases" on the
  * Working batch. The baseline's Working batch has no filter of its own; its desk table filters
  * the leases ("Filter lease/location") and the Working batch control returns to the month.
+ *
+ * Candidate adaptation (S283 R-S283-2): on a build whose Working batch has its own search box,
+ * Prepare follows that box and not the desk table's filter, so after the same desk table steps the
+ * sequence also types W1212_BATCH_SEARCH (or ctx.options.w1212Search) into it before Prepare, the
+ * way staff narrow the month on that build. On the baseline (no such box) nothing changes. The
+ * extra observations (the search, the shown targets, the line, the leases posted and the lookups
+ * by lease) are additive.
  */
 export async function journeyW1212(ctx, page) {
   const { kit } = ctx;
@@ -1443,6 +1644,30 @@ export async function journeyW1212(ctx, page) {
     .evaluateAll(
       (nodes) => new Set(nodes.map((node) => node.getAttribute("data-batch-lease"))).size,
     );
+  // The candidate adaptation: narrow the month in the Working batch's own search box.
+  let batchSearchTerm = null;
+  if (batchFilterControls > 0) {
+    batchSearchTerm = ctx.options?.w1212Search ?? W1212_BATCH_SEARCH;
+    await batch.getByRole("searchbox").first().fill(batchSearchTerm);
+    await page.waitForTimeout(800);
+    log.add("Working batch searched", { term: batchSearchTerm });
+  }
+  const shownRows = await page
+    .locator('section[aria-label="Working batch"] tr[data-batch-lease]')
+    .evaluateAll((nodes) =>
+      nodes.map((node) => ({
+        leaseId: node.getAttribute("data-batch-lease"),
+        group: node.getAttribute("data-batch-group"),
+        preparation: node.getAttribute("data-batch-preparation"),
+      })),
+    );
+  const shownTargetRows = [
+    ...new Set(
+      shownRows
+        .filter((row) => row.group === "this_batch" && row.preparation !== "held")
+        .map((row) => row.leaseId),
+    ),
+  ].filter(Boolean);
   let prepare = page.locator("[data-kickoff-prepare]").first();
   await prepare.waitFor({ timeout: 60_000 });
   if (await prepare.isDisabled()) {
@@ -1451,11 +1676,17 @@ export async function journeyW1212(ctx, page) {
     await prepare.waitFor({ timeout: 60_000 });
   }
   const buttonName = kit.squash(await prepare.innerText());
-  const targets = Number(
-    (await page
-      .locator('section[aria-label="Batch preparation"]')
+  const preparation = page.locator('section[aria-label="Batch preparation"]').first();
+  const targets = Number((await preparation.getAttribute("data-kickoff-targets")) ?? NaN);
+  const monthTargets = Number(
+    (await preparation.getAttribute("data-kickoff-month-targets")) ?? NaN,
+  );
+  const scopeLine = kit.squash(
+    await preparation
+      .locator("[data-kickoff-scope]")
       .first()
-      .getAttribute("data-kickoff-targets")) ?? NaN,
+      .innerText()
+      .catch(() => ""),
   );
   const posted = [];
   const listen = (request) => {
@@ -1488,6 +1719,11 @@ export async function journeyW1212(ctx, page) {
     .count()
     .catch(() => 0);
   const prepared = [...new Set(posted.filter(Boolean))];
+  const lookupsByLease = Object.fromEntries(
+    Object.entries(comparisonsAfter)
+      .map(([leaseId, count]) => [leaseId, count - (comparisonsBefore[leaseId] ?? 0)])
+      .filter(([, count]) => count !== 0),
+  );
   return {
     observed: {
       monthlyRenewalsButton: monthlyText,
@@ -1507,6 +1743,17 @@ export async function journeyW1212(ctx, page) {
       comparisonRequests:
         Object.values(comparisonsAfter).reduce((sum, count) => sum + count, 0) -
         Object.values(comparisonsBefore).reduce((sum, count) => sum + count, 0),
+      // The candidate adaptation's observations (null or empty on the baseline).
+      workingBatchSearch: batchSearchTerm,
+      rowsShownAfterSearch: new Set(shownRows.map((row) => row.leaseId)).size,
+      shownTargets: shownTargetRows,
+      monthTargets: Number.isFinite(monthTargets) ? monthTargets : null,
+      scopeLine: scopeLine || null,
+      postedLeases: posted.filter(Boolean),
+      preparedOutsideShown: prepared.filter(
+        (leaseId) => !shownTargetRows.includes(leaseId),
+      ).length,
+      lookupsByLease,
     },
     steps: log.steps,
   };

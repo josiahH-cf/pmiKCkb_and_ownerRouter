@@ -19,6 +19,9 @@ import {
 export const WORKING_START_FIELD_ID = "renewal-working-terms-start";
 export const WORKING_END_FIELD_ID = "renewal-working-terms-end";
 
+/** S285 R-S285-3: the fix of the owner message's "Renewal dates" readiness line. */
+export const ENTER_RENEWAL_DATES_LABEL = "Enter the renewal dates";
+
 /** S263: missing values whose fix is a date the tenant offer can return from. */
 export const OFFER_DATE_FIX_FIELDS = [
   "leaseEndDate",
@@ -120,6 +123,12 @@ export function messageInputTarget(
     return control(WORKING_START_FIELD_ID, ENTER_RENEWAL_START_LABEL);
   if (field === "renewalEndDate")
     return control(WORKING_END_FIELD_ID, ENTER_RENEWAL_END_LABEL);
+  // S285 R-S285-3: the owner message's "Renewal dates" line opens the one Working renewal terms
+  // editor in Ask the owner, at the date that is missing, with its next-day start and end choices.
+  if (field === "renewalDates")
+    return control(WORKING_START_FIELD_ID, ENTER_RENEWAL_DATES_LABEL);
+  if (field === "renewalDates.end")
+    return control(WORKING_END_FIELD_ID, ENTER_RENEWAL_DATES_LABEL);
   if (field === "names" || field === "address")
     return control("renewal-section-lease-details", "Lease details (source facts)");
   if (field === "currentBaseRent")

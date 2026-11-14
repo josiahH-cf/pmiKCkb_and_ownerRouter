@@ -118,6 +118,25 @@ afterAll(async () => {
   vi.unstubAllEnvs();
 });
 describe("emulator durable notice generations", () => {
+  it("reads a Dashboard move-out without admitting, creating or changing notice markers", async () => {
+    const now = Date.now();
+    const notice = { ...source(true, now), noticeAdmitted: false, admittedLeaseKeys: [] };
+    const ref = noticeSafetyMarkerRef(db, "9001");
+    const before = (await ref.get()).data();
+
+    const read = await observeRenewalNotice(actor, notice, db, { displayOnly: true });
+    expect(read).toMatchObject({
+      disposition: { state: "initiated" },
+      basis: null,
+      ready: false,
+    });
+    expect((await ref.get()).data()).toEqual(before);
+
+    await ref.delete();
+    await observeRenewalNotice(actor, notice, db, { displayOnly: true });
+    expect((await ref.get()).exists).toBe(false);
+  });
+
   it("atomically verifies mixed reserved and unreserved leases without reads after writes", async () => {
     const now = Date.now();
     const sources = Array.from({ length: 32 }, (_, i) => {

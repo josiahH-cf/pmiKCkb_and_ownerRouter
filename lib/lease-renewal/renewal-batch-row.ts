@@ -227,6 +227,16 @@ export interface RenewalBatchRowView extends RenewalBatchItem {
   readonly approvedRent?: number | null;
   readonly nextStep: RenewalBatchNextStep;
   readonly tags: readonly RenewalBatchTag[];
+  /**
+   * S273 R-S273-3: the one actionable exception cue for a held or out-of-date unsent message
+   * ("Scheduled message out of date" or "Message held"), linking to its step (S246 R-S246-7 allows
+   * one). Absent when there is none.
+   */
+  readonly messageCue?: {
+    readonly kind: "out_of_date" | "held";
+    readonly label: string;
+    readonly stepId: string;
+  };
   /** R-S246-12: "RentVine status unavailable" when the lease status could not be read. */
   readonly statusNote: string | null;
   /**
@@ -249,6 +259,8 @@ export interface RenewalBatchRowView extends RenewalBatchItem {
     readonly cycleId: string;
     readonly revision: number;
   } | null;
+  /** False when this row is visible but its current lease facts preclude preparation. */
+  readonly preparationEligible?: boolean;
   /**
    * S249 R-S249-11 / R-S249-13: the kickoff from the one preparation projection the Now card reads:
    * ready for review, or the named missing inputs with the step that fixes them. Null when the row
@@ -263,6 +275,36 @@ export interface RenewalBatchRowView extends RenewalBatchItem {
     /** The cycle date the batch claim is keyed by. */
     readonly cycleDateIso: string | null;
   } | null;
+  /**
+   * S283 R-S283-2: whether "Prepare" would look a comparison up for this lease, whatever its stage
+   * (preparationComparisonNeeded). Null when the row was projected without its preparation facts or
+   * they could not be read.
+   */
+  readonly comparisonNeeded?: boolean | null;
+}
+
+/**
+ * S283 R-S283-2 (BEH-S283-2): whether "Prepare" would look a comparison up for this lease's cycle,
+ * decided the way the preparation service decides it (lib/lease-renewal/kickoff-preparation-
+ * service.ts), for every row whatever its stage. A lease whose owner step is underway is still
+ * sent and still looked up when nothing is stored, so the line beside the button counts it. No
+ * lookup: a standing agreement that covers the owner step or could not be confirmed,
+ * a housing assistance hold, a stored comparison, or this cycle's one claimed lookup.
+ * At the allowance a lookup is still needed. Null when the preparation facts are absent or unread.
+ */
+export function preparationComparisonNeeded(
+  row: Pick<DeskLeaseRow, "kickoff" | "renewalPricing">,
+): boolean | null {
+  const preparation = row.kickoff;
+  if (!preparation) return null;
+  const authority = row.renewalPricing?.authority;
+  if (authority?.covered === true || authority?.unconfirmed === true) return false;
+  const comparison = preparation.comparison;
+  if (comparison.state === "unreadable") return null;
+  return (
+    (comparison.state === "none" && !comparison.attempted) ||
+    comparison.state === "allowance_reached"
+  );
 }
 
 /** S249: whether the lease's owner step is underway (sent, scheduled, waiting or decided). */
@@ -374,6 +416,11 @@ export function projectRenewalBatchRow(
     attention,
     kickoffGroup: kickoff.group,
     kickoff: kickoff.view,
+    comparisonNeeded: preparationComparisonNeeded(row),
+    preparationEligible:
+      !target?.statusUnavailable &&
+      !cycleDispositionHold(target?.cycleDisposition) &&
+      (!row.offCycleEndDate || row.offCycleEndDate.state === "included"),
     sortDateIso: dateIso,
     sortLabel: row.addressLabel,
     leaseId: row.id,
@@ -401,6 +448,9 @@ export function projectRenewalBatchRow(
         : null,
     nextStep: stage.nextStep,
     tags: renewalBatchRowTags(row, stage),
+    ...(row.renewalStage?.messageCue && !cycleDispositionHold(target?.cycleDisposition)
+      ? { messageCue: { ...row.renewalStage.messageCue } }
+      : {}),
     statusNote:
       [
         target?.statusUnavailable

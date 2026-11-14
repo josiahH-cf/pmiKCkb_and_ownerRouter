@@ -55,19 +55,29 @@ beforeEach(() => {
 });
 afterEach(() => setAuthResolverForTest(() => null));
 
+// S283 R-S283-5 (ARCH-S283-5): the shared basis has one writer, the Admin entry. The Editor and
+// Approver cases are rewritten on purpose: the route refuses them before any write, and an Admin
+// keeps the one documented selection with no extra approval note.
+const admin = { ...editor, uid: "staff-admin", role: "Admin" as const };
 describe("S125 canonical staff route (ARCH-S125-3/4)", () => {
-  it.each(["Editor", "Approver", "Admin"] as const)(
-    "allows %s one documented choice, using only server actor and no extra approval note",
+  it("allows an Admin one documented choice, using only server actor and no extra approval note", async () => {
+    setAuthResolverForTest(() => admin);
+    vi.mocked(selectMoveOutTimingBasis).mockResolvedValue({
+      record: { version: 1 } as never,
+      duplicate: false,
+    });
+    const response = await PATCH(request(input));
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+    expect(selectMoveOutTimingBasis).toHaveBeenCalledWith(admin, input);
+  });
+  it.each(["Editor", "Approver"] as const)(
+    "AC-S283-5 refuses %s before any write: the basis is changed only in Admin",
     async (role) => {
       setAuthResolverForTest(() => ({ ...editor, role }));
-      vi.mocked(selectMoveOutTimingBasis).mockResolvedValue({
-        record: { version: 1 } as never,
-        duplicate: false,
-      });
       const response = await PATCH(request(input));
-      expect(response.status).toBe(200);
-      expect(response.headers.get("cache-control")).toBe("private, no-store");
-      expect(selectMoveOutTimingBasis).toHaveBeenCalledWith({ ...editor, role }, input);
+      expect(response.status).toBe(403);
+      expect(selectMoveOutTimingBasis).not.toHaveBeenCalled();
     },
   );
   it("authenticates before decoding and refuses wrong domain/Space and verification writes before the store", async () => {
@@ -87,7 +97,7 @@ describe("S125 canonical staff route (ARCH-S125-3/4)", () => {
     expect(selectMoveOutTimingBasis).not.toHaveBeenCalled();
   });
   it("rejects arbitrary policy/actor/provenance and malformed intent instead of widening policy editing", async () => {
-    setAuthResolverForTest(() => editor);
+    setAuthResolverForTest(() => admin);
     for (const body of [
       { ...input, decisionId: "other" },
       { ...input, thresholdDays: 31 },
@@ -100,12 +110,18 @@ describe("S125 canonical staff route (ARCH-S125-3/4)", () => {
     }
     expect(selectMoveOutTimingBasis).not.toHaveBeenCalled();
   });
-  it("admits any managed role with read_workspace to the read gate and keeps selecting on edit", () => {
+  it("admits any managed role with read_workspace to the read gate and keeps selecting for an Admin", () => {
     const viewer = { ...editor, uid: "staff-viewer", role: "Viewer" as never };
     expect(() => assertTimingBasisStaff(viewer, false)).not.toThrow();
     expect(() => assertTimingBasisStaff(viewer, true)).toThrow(
-      /Editor access is required/,
+      /Only an Admin changes the shared notice timing basis/,
     );
+    // S283 R-S283-5: an Editor reads the basis and cannot select it.
+    expect(() => assertTimingBasisStaff(editor, false)).not.toThrow();
+    expect(() => assertTimingBasisStaff(editor, true)).toThrow(
+      /Only an Admin changes the shared notice timing basis/,
+    );
+    expect(() => assertTimingBasisStaff(admin, true)).not.toThrow();
     expect(() =>
       assertTimingBasisStaff({ ...editor, role: "Stranger" as never }, false),
     ).toThrow(/Managed renewal staff access is required/);

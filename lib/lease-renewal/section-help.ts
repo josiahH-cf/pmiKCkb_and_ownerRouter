@@ -81,10 +81,10 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
     steps: [
       "Check the starting range and the five-mile radius, then run one deliberate lookup or type your own low and high figures with their source.",
       "Review the result, its query and the report links; edit any figure your review changes.",
-      "The preparation saves by itself. The owner message reuses it, and the reviewed PMI recommendation becomes the Sheet Market value you confirm separately.",
+      "The preparation saves by itself. The owner message reuses it, and once staff review the PMI recommendation it is listed as the Sheet Market value under Source updates, which you prepare and confirm separately.",
     ],
     saves:
-      "Saved comparison figures with their origin, their source and any retained lookup result are stored with this lease and cycle for the owner message. A saved PMI recommendation prepares the exact Sheet Market value update, which you confirm separately.",
+      "Saved comparison figures with their origin, their source and any retained lookup result are stored with this lease and cycle for the owner message. A reviewed PMI recommendation is listed as the Sheet Market value under Source updates; preparing and confirming that update are separate steps.",
     notDone:
       "A comparison never sets the renewal rent, changes a source or sends anything. The starting range is not market evidence, and a recommendation that is still the RentCast point estimate enters a message only after staff accept that exact number or enter their own. Opening the section, typing or saving spends no paid lookup.",
     next: {
@@ -268,11 +268,11 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
   "source-updates": {
     label: "Source updates",
     purpose:
-      "Lists the Sheet or RentVine updates this cycle's staff records offered, with their current state.",
+      "Lists each Sheet and RentVine update this lease needs, with the new value, the value in the source now, its basis and its state, and counts the ones pending.",
     saves:
-      "Each offered update becomes an exact proposal that needs its own preview, your exact confirmation and readback in Lease details.",
+      "Prepare and review prepares one update as an exact preview; Review all prepares up to ten recorded Sheet updates as one preview. Each needs your exact confirmation and readback in Lease details.",
     notDone:
-      "An offered update is not an applied one. Recording staff work never writes to a source by itself.",
+      "A listed or prepared update is not an applied one. Recording staff work never writes to a source by itself.",
   },
   "market-evidence": {
     label: "Market evidence",
@@ -281,10 +281,10 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
     steps: [
       "Check the starting range and the radius, then run one deliberate lookup or type sourced figures.",
       "Review the result, its query basis and the RentCast report links; edit any figure your review changes.",
-      "The preparation saves by itself, so the owner message can use it and the Sheet Market value can be prepared.",
+      "The preparation saves by itself, so the owner message can use it. The comparison figure itself never becomes the Sheet Market value.",
     ],
     saves:
-      "Saved figures with their origin, their source and the retained lookup result stay with this cycle. The saved PMI recommendation prepares the exact Sheet Market value for your confirmation. A recommendation that is still the RentCast point estimate enters a message only after staff accept that exact number or enter their own.",
+      "Saved figures with their origin, their source and the retained lookup result stay with this cycle. Once staff review the PMI recommendation, Source updates lists it as the Sheet Market value for you to prepare and confirm. A recommendation that is still the RentCast point estimate enters a message only after staff accept that exact number or enter their own.",
     notDone:
       "A lookup or a saved figure never sets the renewal rent, and nothing is sent. The report links open RentCast's own report and are not a receipt of the saved result. Opening the section, typing or saving spends no paid lookup.",
   },
@@ -384,13 +384,13 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
     purpose:
       "Records what the tenant actually answered: accepted, asked for changes, declined or still needs verification.",
     steps: [
-      "Choose the response the tenant gave.",
-      "The answer saves when you choose it; the source or channel is optional.",
+      "Choose the response the tenant gave; the source or channel is optional.",
+      "Read Review the tenant's response, then choose Save. Cancel keeps the earlier response.",
     ],
     saves:
-      "The response is stored with this cycle and decides whether documents or the non-renewal handoff come next.",
+      "The response is stored with this cycle and decides whether documents or the non-renewal handoff come next. Saving it stops this offer's follow-up reminders.",
     notDone:
-      "Saving accepts nothing for the tenant and sends nothing. A recorded response is staff evidence.",
+      "Saving accepts nothing for the tenant and sends nothing. Clearing a response resumes no reminder. A recorded response is staff evidence.",
   },
   "message-preparation-owner": {
     label: "Owner message preparation",

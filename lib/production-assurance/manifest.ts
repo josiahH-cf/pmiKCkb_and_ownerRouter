@@ -39,7 +39,11 @@ export const ASSURANCE_GUIDED_WORKSPACE = {
   path: "Renewal path",
   firstSteps: ["Check the numbers", "Month-to-month review"],
   lastStep: "Complete",
-  minimumSteps: 7,
+  // S283 R-S283-7: the strip lists only the steps on this lease's path, so a standing agreement,
+  // housing assistance or non-renewal lease shows fewer than the seven standard steps. The first,
+  // the one current and the last step are still asserted; three is the shortest real path
+  // (Check the numbers, the non-renewal handoff, Complete).
+  minimumSteps: 3,
   now: "Now",
   primarySelector: "[data-renewal-now-primary]",
   stageHeader: "Current renewal stage",

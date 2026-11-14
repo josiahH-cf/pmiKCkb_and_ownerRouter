@@ -2330,6 +2330,12 @@ label.secondary-button:focus-within {
   scroll-margin-top: var(--renewal-sticky-offset, 132px);
 }
 
+/* S281 R-S281-5: a jump lands with the control's label or legend fully below the sticky toolbar
+   (the navigation helper scrolls to the label when the label and the control share a screen). */
+.renewal-workspace-shell :is(label, legend) {
+  scroll-margin-top: var(--renewal-sticky-offset, 132px);
+}
+
 .renewal-workspace-identity-tenants {
   font-weight: 600;
   overflow-wrap: anywhere;
@@ -5389,7 +5395,9 @@ body {
   color: var(--ui-text);
 }
 
-/* The phone header shares rows in DOM order, so global utilities leave room for the task. */
+/* The phone header shares rows in DOM order, so global utilities leave room for the task.
+   S281 R-S281-7: at 760 px and narrower it is one row (see the S281 block at the end); search is
+   a trigger there and opens its field in place over the row. */
 @media (max-width: 760px) {
   .topbar {
     align-items: center;
@@ -5402,7 +5410,7 @@ body {
   }
 
   .global-entity-search {
-    flex-basis: 100%;
+    flex-basis: auto;
   }
 }
 .global-entity-search-fields {
@@ -5475,8 +5483,8 @@ body {
 }
 @media (max-width: 760px) {
   .global-entity-search {
-    flex: 1 1 100%;
-    width: 100%;
+    flex: 0 0 auto;
+    width: auto;
     min-width: 0;
   }
   .global-entity-search-fields input {
@@ -5629,4 +5637,449 @@ body {
 
 .renewal-header-work-status-panel {
   max-height: min(60dvh, 28rem);
+}
+
+/* ==========================================================================================
+   S281: the deciding facts first, every jump landed, and the work kept on a narrow screen.
+   These rules sit inside the S165 phone pass and, like it, hide no control (BEH-S165-10): a
+   phone layout that needs fewer controls in view arranges them (one row, a disclosure, a
+   contained scroll) and the components choose the arrangement.
+   ========================================================================================== */
+
+/* R-S281-5: the way back from a jump stays in view below the sticky lease toolbar. */
+.renewal-jump-return {
+  align-items: center;
+  display: flex;
+  justify-content: flex-start;
+  position: sticky;
+  top: var(--renewal-sticky-offset, 132px);
+  z-index: 3;
+}
+
+/* With the keyboard open (a short viewport) it stops floating, as the lease toolbar does. */
+@media (max-height: 520px) {
+  .renewal-jump-return {
+    position: static;
+  }
+}
+
+/* R-S281-1: Ask the owner's facts line leads its Work, before the recipients and the primary. */
+.renewal-now-owner-facts {
+  border-left: 3px solid var(--ui-border);
+  padding-left: var(--space-3);
+}
+
+/* The facts read as one block with the recipients line under it: the stack's own gap spaces
+   them, not each paragraph's default margins, so the status, the three amounts and the primary
+   action are on the first screen at 1280 by 800 (BEH-S281-1). */
+.renewal-now-owner-facts p,
+.renewal-active-group > [data-renewal-field="now-recipients"] {
+  margin: 0;
+}
+
+/* R-S281-2: the exact review keeps the decision and its buttons in view; the message body is
+   last and scrolls in its own area. */
+.ui-confirmation-dialog.renewal-review-dialog .ui-dialog-actions {
+  background: var(--ui-surface);
+  border-top: 1px solid var(--ui-border);
+  bottom: 0;
+  padding-bottom: var(--space-2);
+  padding-top: var(--space-3);
+  position: sticky;
+  z-index: 1;
+}
+
+.renewal-review-body {
+  max-height: 30dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* R-S281-7: the phone header keeps Menu, the product name, Search, Notifications and the
+   utility disclosure in one row. On wider screens the utilities take no box of their own. */
+.topbar-utilities {
+  display: contents;
+}
+
+.global-entity-search-trigger {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--topbar-border);
+  border-radius: var(--radius-md);
+  color: var(--topbar-text);
+  cursor: pointer;
+  display: inline-flex;
+  font-weight: 700;
+  min-height: var(--target-min);
+  padding: 6px 10px;
+}
+
+@media (max-width: 760px) {
+  .topbar {
+    gap: var(--space-1);
+    flex-wrap: nowrap;
+    min-height: 0;
+    padding: var(--space-2);
+  }
+
+  .topbar .primary-navigation {
+    flex: 0 0 auto;
+    margin-left: 0;
+    order: -1;
+    position: static;
+  }
+
+  .topbar .primary-nav-mobile-region {
+    left: var(--space-4);
+    max-height: calc(100dvh - 80px);
+    overflow-y: auto;
+    position: absolute;
+    right: var(--space-4);
+    top: 100%;
+    width: auto;
+    z-index: 950;
+  }
+
+  .topbar .primary-nav-menu-trigger,
+  .topbar .global-entity-search-trigger {
+    min-width: var(--target-min);
+    padding-inline: var(--space-1);
+  }
+
+  .topbar .brand {
+    align-items: center;
+    flex: 1 1 auto;
+    min-height: var(--target-min);
+    min-width: 44px;
+  }
+
+  .topbar .notification-menu {
+    flex: 0 0 auto;
+    position: static;
+    width: auto;
+  }
+
+  .topbar .notification-button {
+    justify-content: center;
+    min-width: var(--target-min);
+    padding: 0;
+    position: relative;
+    width: var(--target-min);
+  }
+
+  .topbar .notification-badge {
+    inset: 0 0 auto auto;
+    min-height: 0;
+    min-width: 0;
+    padding-inline: var(--space-1);
+    position: absolute;
+  }
+
+  .topbar .notification-popover {
+    left: auto;
+    right: var(--space-3);
+  }
+
+  .topbar:has(> .environment-badge) {
+    margin-bottom: calc(var(--target-min) + var(--space-3));
+  }
+
+  .topbar > .environment-badge {
+    inset: calc(100% + var(--space-1)) auto auto var(--space-3);
+    max-width: calc(100% - 2 * var(--space-3));
+    padding-block: var(--space-1);
+    position: absolute;
+    white-space: normal;
+  }
+
+  .global-entity-search[data-search-expanded] {
+    align-items: center;
+    background: var(--topbar-surface);
+    bottom: var(--space-2);
+    display: flex;
+    left: var(--space-4);
+    position: absolute;
+    right: var(--space-4);
+    top: var(--space-2);
+    z-index: 960;
+  }
+
+  .global-entity-search[data-search-expanded] .global-entity-search-fields {
+    flex: 1 1 auto;
+  }
+
+  .global-entity-search[data-search-expanded] .global-entity-search-fields input {
+    width: auto;
+  }
+
+  .topbar-utilities {
+    display: block;
+    flex: 0 0 auto;
+  }
+
+  .topbar-utilities > summary {
+    align-items: center;
+    border: 1px solid var(--topbar-border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    display: flex;
+    font-weight: 700;
+    min-height: var(--target-min);
+    min-width: var(--target-min);
+    padding: var(--space-1);
+    white-space: nowrap;
+  }
+
+  .topbar-utility-panel {
+    align-items: flex-start;
+    background: var(--topbar-surface);
+    border: 1px solid var(--topbar-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--elevation-overlay);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    inset: 100% var(--space-3) auto;
+    padding: var(--space-2);
+    position: absolute;
+    z-index: 920;
+  }
+
+  .topbar-utility-panel .user-role {
+    min-height: var(--target-min);
+    min-width: var(--target-min);
+  }
+
+  /* R-S281-8: the pinned lease header is two lines: the address with the tenant count and
+     "Lease details" (the names, copy buttons, RentVine link and view controls), then the stage
+     with Work status. "Lease details" opens over the page below the header. */
+  .renewal-workspace-toolbar[data-renewal-toolbar-compact] {
+    gap: var(--space-1);
+    padding-bottom: var(--space-1);
+    padding-top: var(--space-1);
+  }
+
+  .renewal-toolbar-identity-row {
+    align-items: center;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: var(--space-2);
+    min-width: 0;
+  }
+
+  .renewal-toolbar-summary {
+    flex: 1 1 auto;
+    margin: 0;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .renewal-lease-details {
+    flex: 0 0 auto;
+  }
+
+  .renewal-lease-details > summary {
+    align-items: center;
+    cursor: pointer;
+    display: inline-flex;
+    min-height: var(--target-min);
+  }
+
+  .renewal-lease-details[open] > .renewal-lease-details-body {
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    box-shadow: var(--elevation-raised);
+    left: 0;
+    max-height: 60dvh;
+    overflow-y: auto;
+    padding: var(--space-3);
+    position: absolute;
+    right: 0;
+    top: 100%;
+    z-index: 5;
+  }
+
+  .renewal-toolbar-stage-row {
+    align-items: center;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: var(--space-2);
+    min-width: 0;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+
+  .renewal-toolbar-stage-row > [data-renewal-view-switch] {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .renewal-workspace-shell:has([data-renewal-toolbar-compact]) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .renewal-workspace-shell:has([data-renewal-toolbar-compact]) .renewal-path-strip {
+    min-width: 0;
+  }
+
+  .renewal-toolbar-stage-row .renewal-header-work-status {
+    flex: 0 0 clamp(7rem, 41%, 11rem);
+    min-width: 0;
+  }
+
+  .renewal-toolbar-stage-row .renewal-header-work-status > summary {
+    font-size: var(--font-size-min);
+    line-height: 1.2;
+    min-height: var(--target-min);
+    overflow-wrap: normal;
+    padding: var(--space-1) var(--space-2);
+  }
+
+  .renewal-toolbar-stage-row [data-renewal-stage-header] > .ui-row {
+    flex-wrap: nowrap;
+    gap: var(--space-1);
+  }
+
+  .renewal-toolbar-stage-row .renewal-guided-stage {
+    flex: 1 1 auto;
+    max-block-size: 3.25rem;
+    min-width: 0;
+    overflow: auto;
+  }
+
+  .renewal-toolbar-stage-row #renewal-record-work {
+    flex: 0 0 auto;
+    min-height: var(--target-min);
+    white-space: nowrap;
+  }
+
+  .renewal-workspace-body > .renewal-section-nav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+
+  .renewal-workspace-body > .renewal-section-nav > a {
+    flex: 0 0 auto;
+  }
+
+  /* R-S281-10: the path strip is one row that scrolls sideways inside itself, so the Now card's
+     heading, cue and primary action are on the first screen. */
+  .renewal-path-strip .renewal-path-steps {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+
+  .renewal-path-strip .renewal-path-step {
+    flex: 0 0 auto;
+  }
+}
+
+/* R-S281-9: on a phone the monthly table shows the lease identity and Next action together on
+   the first screen; the identity stays pinned while the other columns scroll inside the one
+   table's own region. */
+.renewal-batch-table-scroll {
+  container-type: inline-size;
+}
+
+.renewal-batch-phone-row > summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  font-weight: 700;
+  min-height: var(--target-min);
+}
+
+@media (max-width: 430px) {
+  .content:has(> [data-desk-surface="batch"]) {
+    padding-block-start: var(--space-3);
+  }
+
+  [data-desk-surface="batch"],
+  .renewal-batch,
+  .renewal-batch-lead,
+  .renewal-batch-panel {
+    gap: var(--space-2);
+  }
+
+  [data-desk-surface="batch"] > .ui-page-header {
+    gap: var(--space-2);
+    margin-bottom: 0;
+  }
+
+  [data-desk-surface="batch"] > p,
+  .renewal-batch-panel > p {
+    margin-block: 0;
+  }
+
+  .renewal-batch-summary {
+    font-size: 1rem;
+  }
+
+  .renewal-batch-views,
+  .renewal-batch-months {
+    gap: var(--space-1);
+  }
+
+  .renewal-batch-views .secondary-button,
+  .renewal-batch-month-link {
+    align-items: center;
+    display: inline-flex;
+    font-size: 0.875rem;
+    padding: var(--space-1) var(--space-2);
+  }
+
+  .renewal-batch-months {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 1fr);
+    text-align: center;
+  }
+
+  .renewal-batch-month-link {
+    justify-content: center;
+  }
+
+  .renewal-batch-months .renewal-batch-inline-link {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .renewal-batch-panel {
+    align-items: baseline;
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding-top: var(--space-2);
+  }
+
+  .renewal-batch-panel > :not(h2, p[role="status"]) {
+    grid-column: 1 / -1;
+  }
+
+  .renewal-batch-table {
+    min-width: 0;
+    width: calc(90vw + 4 * 8.5rem);
+    width: calc(100cqi + 4 * 8.5rem);
+  }
+
+  .renewal-batch-table :is(th, td):nth-child(-n + 2) {
+    width: 45vw;
+    width: 50cqi;
+  }
+
+  .renewal-batch-table :is(th, td):nth-child(n + 3) {
+    width: 8.5rem;
+  }
+
+  .renewal-batch-table :is(th, td):first-child {
+    background: var(--ui-surface);
+    left: 0;
+    position: sticky;
+    z-index: 1;
+  }
+
+  .renewal-batch-table thead th:first-child {
+    background: var(--ui-selected-surface);
+  }
 }

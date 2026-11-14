@@ -287,7 +287,9 @@ describe("ApprovalQueue bulk UI", () => {
     ).toHaveTextContent("Approver or Admin role is required.");
   });
 
-  it("caps Select visible at the 50-item bulk limit and keeps execute visibly guarded", async () => {
+  // S283 R-S283-6 (rewritten on purpose): the bulk action list no longer offers Execute; the
+  // 50-item cap and the other bulk actions are unchanged.
+  it("caps Select visible at the 50-item bulk limit and offers no bulk Execute", async () => {
     const user = userEvent.setup();
     renderQueue({
       items: Array.from({ length: 52 }, (_, index) =>
@@ -310,15 +312,17 @@ describe("ApprovalQueue bulk UI", () => {
     expect(screen.getByLabelText("Select Approve item-50")).toBeChecked();
     expect(screen.getByLabelText("Select Approve item-51")).not.toBeChecked();
 
-    await user.selectOptions(screen.getByRole("combobox", { name: "Action" }), "execute");
-
+    const action = screen.getByRole("combobox", { name: "Action" });
+    expect(
+      [...(action as HTMLSelectElement).options].map((option) => option.textContent),
+    ).toEqual(["Approve", "Return for Revision", "Assign", "Snooze", "Disable Action"]);
+    expect(screen.queryByRole("option", { name: "Execute" })).toBeNull();
+    expect(screen.queryByText(/Execute skips every current item/)).toBeNull();
+    // The 50 selected fixture items are High-risk approvals, so the preview names them first.
     expect(
       screen.getByText(
-        "Execute skips every current item; no external write is attempted.",
+        "50 High-risk approval(s) require confirmation. The server checks every selected item again before updating it.",
       ),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/50 selected\. 0 ready by visible checks, 50 likely skipped\./),
     ).toBeInTheDocument();
   });
 

@@ -221,8 +221,14 @@ async function readinessOn(ctx, page, leaseId, step) {
   const { kit } = ctx;
   await kit.openLease(page, leaseId, `?step=${step}`);
   const primary = await waitForPrimary(ctx, page);
-  const list = page.locator('ul[aria-label="What sending needs"]').first();
-  const shown = await kit.shownWithin(list, 30_000);
+  // Missing readiness keeps Message open. Once ready, staff can open the same group's summary.
+  const message = kit
+    .now(page)
+    .locator(`details[data-renewal-group="Message"][data-renewal-group-step="${step}"]`)
+    .filter({ visible: true });
+  if (await kit.shownWithin(message, 30_000)) await kit.openDisclosure(message);
+  const list = message.getByRole("list", { name: "What sending needs", exact: true });
+  const shown = await kit.shownWithin(list, 10_000);
   const rows = shown
     ? await list
         .locator(":scope > li")
@@ -237,7 +243,7 @@ async function readinessOn(ctx, page, leaseId, step) {
     : [];
   return {
     step,
-    shown,
+    shown: shown && rows.length > 0,
     primary,
     rows,
     offCycle:
@@ -984,7 +990,7 @@ export async function checkW1211(ctx, page, start) {
     ctx.record({ includedReview: brief.review(includedReview), deskIncluded });
     ctx.record({ run });
     const rowCleared = (list) =>
-      list.offCycle === null || list.offCycle.ready === "ready";
+      list.shown && (list.offCycle === null || list.offCycle.ready === "ready");
     const cleared = {
       owner: rowCleared(clearedOwner),
       tenant: rowCleared(clearedTenant),
@@ -1090,6 +1096,7 @@ export async function checkW1211(ctx, page, start) {
         correctedReview.shown === false &&
         correctedReview.attached === 0 &&
         correctedNow.primary !== FIX &&
+        correctedOwner.shown &&
         correctedOwner.offCycle === null,
       // The original value finds its own decision again: the exact recorded value, "Include".
       restored:

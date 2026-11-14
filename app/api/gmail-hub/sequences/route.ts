@@ -24,6 +24,20 @@ async function readAttempts(
     return "unavailable";
   }
 }
+/**
+ * S272 R-S272-4/R-S272-5: whether a newer confirmed send stops this communication's current
+ * authorization. A failed read never hides the recorded state; the field is then omitted.
+ */
+async function readStanding(
+  service: ReturnType<typeof createCommunicationSequenceService>,
+  sequence: CommunicationSequence,
+) {
+  try {
+    return { newerSend: await service.newerSend(sequence) };
+  } catch {
+    return undefined;
+  }
+}
 export async function GET(request: Request) {
   try {
     const actor = await requireCapability("read");
@@ -34,7 +48,11 @@ export async function GET(request: Request) {
       const sequence = await service.get(actor, id);
       // S233 R-S233-1: refused and unconfirmed attempts stay visible after a refresh; when they
       // cannot be read, the recorded state still returns and the response says so.
-      return sequenceResponse(sequence, await readAttempts(service, actor, id));
+      return sequenceResponse(
+        sequence,
+        await readAttempts(service, actor, id),
+        await readStanding(service, sequence),
+      );
     }
     const after = q.has("after") ? z.string().uuid().parse(q.get("after")) : null;
     return NextResponse.json(await service.list(actor, after), {
@@ -56,7 +74,11 @@ export async function POST(request: Request) {
     // the evidence list follows a send, reconcile or refresh without a reload. A failed attempt
     // read leaves the action's own result standing and says the attempts are unavailable.
     const respond = async (sequence: CommunicationSequence) =>
-      sequenceResponse(sequence, await readAttempts(service, actor, sequence.id));
+      sequenceResponse(
+        sequence,
+        await readAttempts(service, actor, sequence.id),
+        await readStanding(service, sequence),
+      );
     if (input.action === "save")
       return respond(
         await service.save(actor, input.draft, input.expectedVersion, input.operationId),

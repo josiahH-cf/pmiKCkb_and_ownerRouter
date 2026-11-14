@@ -161,11 +161,13 @@ describe("S249 C: the preparation loop belongs to the view that started it", () 
     });
   };
 
+  // S283 R-S283-2: the button states its count ("Prepare 2 December 2026 leases"); the name
+  // pattern below is rewritten on purpose.
+  const PREPARE_OR_CONTINUE = /Prepare \d+ (of \d+ )?December|Continue December/;
+
   it("leaving the batch mid-loop stops it: nothing further is sent and the next page is never refreshed", async () => {
     const view = render(<RenewalKickoffPreparation {...props} />);
-    fireEvent.click(
-      screen.getByRole("button", { name: /Prepare December|Continue December/ }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: PREPARE_OR_CONTINUE }));
     await advance(50);
     expect(calls).toEqual(["9101"]);
     view.unmount();
@@ -177,19 +179,136 @@ describe("S249 C: the preparation loop belongs to the view that started it", () 
     expect(pending[0]?.signal?.aborted).toBe(true);
   });
 
+  it.each(["pagehide", "beforeunload"])(
+    "%s stops an interrupted foreground run before React unmount; explicit continuation reuses the exact operation",
+    async (eventName) => {
+      const view = render(<RenewalKickoffPreparation {...props} />);
+      fireEvent.click(screen.getByRole("button", { name: PREPARE_OR_CONTINUE }));
+      await advance(50);
+      const original = JSON.parse(String(vi.mocked(fetch).mock.calls[0]?.[1]?.body));
+      expect(original).toMatchObject({
+        leaseId: "9101",
+        cycleDateIso: "2026-12-31",
+        month: "2026-12",
+        trigger: "staff",
+      });
+      expect(original.operationId).toEqual(expect.any(String));
+
+      // A hard navigation can reject its fetch before React ever unmounts.
+      fireEvent(window, new Event(eventName));
+      await advance(0);
+      await act(async () => pending[0]?.resolve());
+      await advance(6000);
+      expect(calls).toEqual(["9101"]);
+      expect(pending[0]?.signal?.aborted).toBe(true);
+      expect(router.refresh).not.toHaveBeenCalled();
+
+      view.unmount();
+      await advance(0);
+      render(<RenewalKickoffPreparation {...props} />);
+      await advance(0);
+      expect(calls).toEqual(["9101"]);
+      const continuation = screen.getByRole("button", {
+        name: "Continue December 2026 preparation",
+      });
+      expect(continuation).toBeEnabled();
+      fireEvent.click(continuation);
+      await advance(50);
+      expect(calls).toEqual(["9101", "9101"]);
+      expect(JSON.parse(String(vi.mocked(fetch).mock.calls[1]?.[1]?.body))).toEqual(
+        original,
+      );
+      for (let round = 0; round < 4; round += 1) {
+        await act(async () => {
+          for (const entry of pending.splice(0)) entry.resolve();
+        });
+        await advance(50);
+      }
+      expect(calls).toEqual(["9101", "9101", "9104"]);
+      expect(maxInFlight).toBe(1);
+      expect(router.refresh).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it("a canceled beforeunload leaves an explicit Continue action in the still-mounted page", async () => {
+    render(<RenewalKickoffPreparation {...props} />);
+    fireEvent.click(screen.getByRole("button", { name: PREPARE_OR_CONTINUE }));
+    await advance(50);
+    const original = JSON.parse(String(vi.mocked(fetch).mock.calls[0]?.[1]?.body));
+    // Another browser listener may cancel departure; React stays mounted and no pageshow fires.
+    fireEvent(window, new Event("beforeunload", { cancelable: true }));
+    await advance(0);
+    await act(async () => pending[0]?.resolve());
+    await advance(6000);
+    expect(calls).toEqual(["9101"]);
+    expect(pending[0]?.signal?.aborted).toBe(true);
+    expect(router.refresh).not.toHaveBeenCalled();
+    const continuation = screen.getByRole("button", {
+      name: "Continue December 2026 preparation",
+    });
+    expect(continuation).toBeEnabled();
+    fireEvent.click(continuation);
+    await advance(50);
+    expect(calls).toEqual(["9101", "9101"]);
+    expect(JSON.parse(String(vi.mocked(fetch).mock.calls[1]?.[1]?.body))).toEqual(
+      original,
+    );
+    for (let round = 0; round < 4; round += 1) {
+      await act(async () => {
+        for (const entry of pending.splice(0)) entry.resolve();
+      });
+      await advance(50);
+    }
+    expect(calls).toEqual(["9101", "9101", "9104"]);
+    expect(maxInFlight).toBe(1);
+    expect(router.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("a persisted pageshow restores an idle Continue action without silently resuming the abandoned run", async () => {
+    render(<RenewalKickoffPreparation {...props} />);
+    fireEvent.click(screen.getByRole("button", { name: PREPARE_OR_CONTINUE }));
+    await advance(50);
+    const original = JSON.parse(String(vi.mocked(fetch).mock.calls[0]?.[1]?.body));
+    fireEvent(window, new PageTransitionEvent("pagehide", { persisted: true }));
+    await advance(0);
+    await act(async () => pending[0]?.resolve());
+    await advance(6000);
+    expect(calls).toEqual(["9101"]);
+    expect(router.refresh).not.toHaveBeenCalled();
+
+    fireEvent(window, new PageTransitionEvent("pageshow", { persisted: true }));
+    await advance(0);
+    expect(calls).toEqual(["9101"]);
+    const continuation = screen.getByRole("button", {
+      name: "Continue December 2026 preparation",
+    });
+    expect(continuation).toBeEnabled();
+    fireEvent.click(continuation);
+    await advance(50);
+    expect(calls).toEqual(["9101", "9101"]);
+    expect(JSON.parse(String(vi.mocked(fetch).mock.calls[1]?.[1]?.body))).toEqual(
+      original,
+    );
+    for (let round = 0; round < 4; round += 1) {
+      await act(async () => {
+        for (const entry of pending.splice(0)) entry.resolve();
+      });
+      await advance(50);
+    }
+    expect(calls).toEqual(["9101", "9101", "9104"]);
+    expect(maxInFlight).toBe(1);
+    expect(router.refresh).toHaveBeenCalledTimes(1);
+  });
+
   it("a remount never runs a second loop beside the first; an explicit continuation rechecks the same targets", async () => {
     const first = render(<RenewalKickoffPreparation {...props} />);
-    fireEvent.click(
-      screen.getByRole("button", { name: /Prepare December|Continue December/ }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: PREPARE_OR_CONTINUE }));
     await advance(50);
     expect(calls).toEqual(["9101"]);
     first.unmount();
     await advance(0);
     render(<RenewalKickoffPreparation {...props} />);
-    fireEvent.click(
-      screen.getByRole("button", { name: /Prepare December|Continue December/ }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: PREPARE_OR_CONTINUE }));
     await advance(50);
     // Answer whatever the remounted view asked, one lease at a time.
     for (let round = 0; round < 4; round += 1) {

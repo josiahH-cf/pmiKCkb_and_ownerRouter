@@ -53,10 +53,12 @@ import {
   CHANGED_TERM_END,
   FIRST_TERM_END,
   enterRenewalDates,
+  observeTimedOwnerConfirmation,
   reachPrimary,
   recordOwnerAnswer,
   refreshData,
   reviewText,
+  stepScheduleButton,
 } from "./one-path-november-12-journeys.mjs";
 import {
   SEQUENCES_ROUTE,
@@ -158,13 +160,8 @@ async function openReview(ctx, page, leaseId, channel, mode) {
     step,
     channel === "owner" ? "Review owner message" : "Review tenant offer",
   );
-  let trigger = kit.primary(page);
-  if (mode === "schedule") {
-    const inNow = kit.now(page).getByRole("button", { name: "Schedule", exact: true });
-    trigger = (await kit.shownWithin(inNow, 20_000))
-      ? inNow
-      : page.getByRole("button", { name: "Schedule", exact: true }).first();
-  }
+  const trigger =
+    mode === "schedule" ? await stepScheduleButton(ctx, page) : kit.primary(page);
   await trigger.click();
   const dialog = page.getByRole("dialog", {
     name: mode === "schedule" ? DIALOG_SCHEDULE : DIALOG_SEND,
@@ -380,78 +377,80 @@ async function readCommunications(
   return result;
 }
 
-/** The lease's own page on a step, as staff read it (the stage and the step's Now card). */
-async function readLease(ctx, page, leaseId, step) {
+/** The held message's differences, as staff read them on the lease's Now card. */
+async function readLeaseHold(ctx, page, leaseId, line) {
   const { kit } = ctx;
-  await kit.openLease(page, leaseId, `?step=${step}`);
-  await kit.primaryName(page, 45_000);
-  await page.waitForTimeout(1500);
-  const main = await kit.visibleText(page.locator("main").first());
-  return main || kit.visibleText(page.locator("body"));
+  await kit.openLease(page, leaseId, "?step=ask-owner");
+  const now = kit.now(page);
+  const changedValue = now
+    .locator('[data-renewal-field="now-detail"]')
+    .filter({ hasText: /^Owner message held on / })
+    .filter({ hasText: line });
+  const review = kit
+    .primary(page)
+    .filter({ hasText: /^Review the updated owner message$/ });
+  return (
+    (await kit.shownWithin(changedValue, 20_000)) &&
+    (await kit.shownWithin(review, 5_000))
+  );
 }
 
 // ---- AC-S274-1: ten confirmations after 90 seconds, nothing edited ---------------------------------
 
 async function timedConfirmation(ctx, page, leaseId, attempt) {
-  const { kit } = ctx;
   await ctx.resetState();
-  const owners = kit.ownerAddresses(leaseId);
   const dialog = await openReview(ctx, page, leaseId, "owner", "send");
-  const opened = Date.now();
-  const edits = [];
-  const listen = (request) => {
-    const url = new URL(request.url());
-    if (url.origin !== ctx.origin || request.method() === "GET") return;
-    if ([WORKING_ROUTE, WORKSPACE_ROUTE].includes(url.pathname)) edits.push(url.pathname);
-  };
-  page.on("request", listen);
-  await page.waitForTimeout(
-    Math.max(0, TIMED_WAIT_SECONDS * 1000 - (Date.now() - opened)),
-  );
-  page.off("request", listen);
-  const waitedSeconds = Math.round((Date.now() - opened) / 1000);
-  const answer = await pressConfirm(ctx, page, dialog, SEND, "send");
-  if (answer.status === null) ctx.unresolved("W12-03 timed send: no answer");
-  const sent = await kit.sentTo(owners);
   return {
     attempt,
-    waitedSeconds,
-    status: answer.status,
-    code: answer.body?.code ?? null,
-    refused: answer.status === 409,
-    edits: edits.length,
-    ownerMessagesSent: sent.length,
-    sent:
-      answer.status === 200 &&
-      sent.length === 1 &&
-      waitedSeconds >= TIMED_WAIT_SECONDS &&
-      edits.length === 0,
+    ...(await observeTimedOwnerConfirmation(
+      ctx,
+      page,
+      leaseId,
+      dialog,
+      TIMED_WAIT_SECONDS,
+    )),
   };
 }
 
+const passedTimedConfirmation = (entry) =>
+  entry.waitedMs >= TIMED_WAIT_SECONDS * 1000 &&
+  entry.status === 200 &&
+  entry.refusedAsChanged === false &&
+  entry.reviewUnchanged === true &&
+  entry.postsBeforeConfirm === 0 &&
+  entry.sendRequests === 1 &&
+  entry.postsDuringTry.length === 1 &&
+  entry.postsDuringTry[0] === SEQUENCES_ROUTE &&
+  entry.workingRecordUnchanged === true &&
+  entry.ownerMessagesSent === 1 &&
+  entry.receiptMatches === true;
+
 async function timedPart(ctx, page, leaseId, start) {
   const startTries = start.observed?.tries ?? [];
-  // Any try of the starting sequence that was refused (or not sent) is a refusal with nothing edited.
-  const startRefusals = startTries.filter(
-    (entry) => entry.refusedAsChanged || entry.status !== 200,
-  ).length;
-  const counted = startTries.filter(
-    (entry) =>
-      entry.waitedSeconds >= TIMED_WAIT_SECONDS &&
-      entry.status === 200 &&
-      !entry.refusedAsChanged &&
-      entry.ownerMessagesSent === 1 &&
-      entry.workingRecordUnchanged !== false,
-  ).length;
+  const counted = startTries.filter(passedTimedConfirmation).length;
+  const inWindow = startTries.filter(
+    (entry) => entry.waitedMs >= TIMED_WAIT_SECONDS * 1000,
+  );
+  const failed = startTries.some(
+    (entry) => entry.status !== 200 || entry.refusedAsChanged,
+  );
+  // A full-window attempt with missing evidence cannot be replaced by a later passing attempt.
+  if (start.error || failed || counted !== inWindow.length)
+    return {
+      "AC-S274-1": false,
+      summary: { startTries: startTries.length, counted, failed: true },
+    };
   const tries = [];
   for (let attempt = counted + 1; attempt <= TIMED_CONFIRMATIONS; attempt += 1) {
     const result = await timedConfirmation(ctx, page, leaseId, attempt);
     tries.push(result);
     ctx.record({ part: "timed", ...result });
-    if (!result.sent) break;
+    if (!passedTimedConfirmation(result)) break;
   }
-  const sends = counted + tries.filter((entry) => entry.sent).length;
-  const refusals = startRefusals + tries.filter((entry) => entry.refused).length;
+  const sends = counted + tries.filter(passedTimedConfirmation).length;
+  const refusals = tries.filter(
+    (entry) => entry.status !== 200 || entry.refusedAsChanged,
+  ).length;
   return {
     "AC-S274-1":
       !start.error &&
@@ -736,8 +735,12 @@ async function holdPart(ctx, page, leaseId) {
     hub.cardText.includes(`Paused: ${PAUSED_CHANGED}`) &&
     hub.cardChanged.includes(line) &&
     hub.composerChanged.includes(line);
-  const leaseText = await readLease(ctx, page, leaseId, "ask-owner");
-  const leaseShows = leaseText.includes(line);
+  const leaseShows = await readLeaseHold(
+    ctx,
+    page,
+    leaseId,
+    `Rent to recommend: ${money(before)} in the scheduled message, ${money(after)} on the lease.`,
+  );
   ctx.record({
     part: "hold",
     waitTick,
@@ -969,8 +972,10 @@ export async function checkW1203(ctx, page, start) {
     startTries: (start.observed?.tries ?? []).map((entry) => ({
       attempt: entry.attempt,
       waitedSeconds: entry.waitedSeconds,
+      waitedMs: entry.waitedMs,
       status: entry.status,
       refused: entry.refusedAsChanged,
+      receiptMatches: entry.receiptMatches,
     })),
     parts: parts ? [...parts] : "all",
   });

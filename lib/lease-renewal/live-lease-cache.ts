@@ -168,6 +168,29 @@ function recordFailure(nowMs: number): void {
   failure = { count, nextRetryAtMs: nowMs + delay };
 }
 
+/** Fetch one provider generation. Its caller owns caching and any separate notice admission. */
+export async function fetchLiveLeaseSnapshot(
+  reader: Pick<LeaseExportReader, "listAllLeasesExport" | "getLease">,
+  readAtMs: number,
+): Promise<LiveLeaseSnapshot> {
+  const exportRead = await reader.listAllLeasesExport();
+  const views = leaseViewsFromExport(exportRead.rows);
+  // S102: the generation carries documented lease detail, never the export's listed unit rent.
+  const detail = await enrichLeaseViewsWithDetail(
+    views,
+    typeof reader.getLease === "function"
+      ? { getLease: (id) => reader.getLease!(id) }
+      : undefined,
+  );
+  return {
+    views,
+    complete: exportRead.complete,
+    readAtMs,
+    detailComplete: detail.detailComplete,
+    detailUnavailableCount: detail.detailUnavailableCount,
+  };
+}
+
 /** One coalesced provider read. Success replaces the entry and clears the failure state. */
 function readOnce(reader: LeaseExportReader, nowMs: number): Promise<LiveLeaseSnapshot> {
   if (inflight) return inflight;
@@ -175,24 +198,14 @@ function readOnce(reader: LeaseExportReader, nowMs: number): Promise<LiveLeaseSn
   inflight = (async () => {
     try {
       const admittedAt = await reader.beforeLeaseSourceRead?.(nowMs);
-      const exportRead = await reader.listAllLeasesExport();
-      const views = leaseViewsFromExport(exportRead.rows);
-      // S102: the same generation carries each lease's documented detail so every consumer of the
-      // snapshot reads the tenant's base rent, never the export unit's listed rent.
-      const detail = await enrichLeaseViewsWithDetail(
-        views,
-        typeof reader.getLease === "function"
-          ? { getLease: (id) => reader.getLease!(id) }
-          : undefined,
+      const snapshot = await fetchLiveLeaseSnapshot(
+        reader,
+        admittedAt?.readAtMs ?? nowMs,
       );
-      const snapshot: LiveLeaseSnapshot = {
-        views,
-        complete: exportRead.complete,
-        readAtMs: admittedAt?.readAtMs ?? nowMs,
-        ...(admittedAt ? { noticeAdmitted: true, noticeAdmission: admittedAt } : {}),
-        detailComplete: detail.detailComplete,
-        detailUnavailableCount: detail.detailUnavailableCount,
-      };
+      if (admittedAt) {
+        snapshot.noticeAdmitted = true;
+        snapshot.noticeAdmission = admittedAt;
+      }
       admissionContexts.set(snapshot, {
         context: admittedAt ? noticeAdmissionContext(admittedAt) : undefined,
         epoch,
@@ -447,6 +460,20 @@ export function liveLeaseSnapshotHasAdmission(
     Number.isFinite(snapshot.readAtMs) &&
     classifyLeaseDataAge(snapshot.readAtMs, nowMs) !== "expired"
   );
+}
+
+/** Reuse current admitted facts for display without revalidating or changing their proof. */
+export function peekAdmittedLiveLeaseSnapshot(
+  nowMs: number,
+  context: object,
+  leaseKeys: readonly string[],
+): LiveLeaseSnapshot | null {
+  const snapshot = entry?.snapshot;
+  return snapshot &&
+    classifyLeaseDataAge(snapshot.readAtMs, nowMs) === "fresh" &&
+    liveLeaseSnapshotHasAdmission(snapshot, nowMs, context, leaseKeys)
+    ? snapshot
+    : null;
 }
 
 /**

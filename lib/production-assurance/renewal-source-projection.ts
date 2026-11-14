@@ -38,6 +38,8 @@ export const INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER = "s248-evidence-stage";
  * and housing assistance wording is no longer a program skip. Defined with the variant oracle.
  */
 export { INDEPENDENT_VARIANTS_CONTRACT_MARKER };
+/** S280 adds the readable RentVine basis for operating-Sheet differences. */
+export const INDEPENDENT_RENTVINE_BASIS_CONTRACT_MARKER = "s280-rentvine-basis";
 /** The rule set one desk row is verified under. */
 export type IndependentGuidanceContract = "predecessor" | "staff_lane";
 /** What a caller may require of every row: a staff-lane marker, or no marker at all. */
@@ -46,6 +48,7 @@ export type IndependentExpectedContractMarker =
   | typeof INDEPENDENT_ONE_STATUS_CONTRACT_MARKER
   | typeof INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER
   | typeof INDEPENDENT_VARIANTS_CONTRACT_MARKER
+  | typeof INDEPENDENT_RENTVINE_BASIS_CONTRACT_MARKER
   | "none";
 
 /** The staff-lane waiting rule a marker names: S156's response step or S232's awaited party. */
@@ -55,7 +58,7 @@ export function independentStaffLaneWaitingRule(
 ): IndependentStaffLaneWaitingRule {
   return marker === INDEPENDENT_ONE_STATUS_CONTRACT_MARKER ||
     marker === INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER ||
-    marker === INDEPENDENT_VARIANTS_CONTRACT_MARKER
+    independentContractReadsVariants(marker)
     ? "awaited_party"
     : "response_step";
 }
@@ -141,6 +144,7 @@ export interface IndependentSheetIdentitySource {
 export type IndependentRentEvidence =
   | "agree"
   | "add_on_explained"
+  | "rentvine_basis"
   | "missing_rentvine"
   | "missing_sheet"
   | "conflict";
@@ -594,6 +598,7 @@ export function projectIndependentRentExpectation(input: {
   readonly rentvineCurrentRent: number | null;
   readonly sheetFact: IndependentSheetLeaseFact | null;
   readonly resolutions: readonly Readonly<Record<string, unknown>>[];
+  readonly rentvineBasis?: boolean;
 }): IndependentRentExpectation {
   const rentvine = finiteAmount(input.rentvineCurrentRent);
   if (rentvine === null || rentvine <= 0) {
@@ -631,6 +636,14 @@ export function projectIndependentRentExpectation(input: {
       rentVerification: "verified",
       verifiedByResolutionDiffers: resolvedValue !== rentvine,
       resolvedValue,
+    };
+  }
+  if (input.rentvineBasis) {
+    return {
+      evidence: "rentvine_basis",
+      rentVerification: "verified",
+      verifiedByResolutionDiffers: false,
+      resolvedValue: null,
     };
   }
   return unresolvedRentExpectation("conflict");
@@ -708,6 +721,7 @@ export function countIndependentContractMarkerMismatches(
     INDEPENDENT_ONE_STATUS_CONTRACT_MARKER,
     INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER,
     INDEPENDENT_VARIANTS_CONTRACT_MARKER,
+    INDEPENDENT_RENTVINE_BASIS_CONTRACT_MARKER,
   ].map((value) => markers.filter((marker) => marker === value).length);
   const recognised = groups.reduce((sum, count) => sum + count, 0);
   return markers.length - recognised + (recognised - Math.max(...groups));
@@ -1656,7 +1670,7 @@ export function independentContractReadsEvidence(
   const selected = expected !== undefined ? expected : marker;
   return (
     selected === INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER ||
-    selected === INDEPENDENT_VARIANTS_CONTRACT_MARKER
+    independentContractReadsVariants(marker, expected)
   );
 }
 
@@ -1665,8 +1679,10 @@ export function independentContractReadsVariants(
   marker: string | null,
   expected?: IndependentExpectedContractMarker,
 ): boolean {
+  const selected = expected !== undefined ? expected : marker;
   return (
-    (expected !== undefined ? expected : marker) === INDEPENDENT_VARIANTS_CONTRACT_MARKER
+    selected === INDEPENDENT_VARIANTS_CONTRACT_MARKER ||
+    selected === INDEPENDENT_RENTVINE_BASIS_CONTRACT_MARKER
   );
 }
 

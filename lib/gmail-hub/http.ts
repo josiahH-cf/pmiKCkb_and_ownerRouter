@@ -18,6 +18,7 @@ import {
   CommunicationTargetChangedError,
   LeaseReadNotSettledError,
 } from "@/lib/gmail-hub/reviewed-inputs";
+import { CommunicationSequenceRefusedError } from "@/lib/gmail-hub/current-message";
 
 export function gmailHubErrorResponse(error: unknown) {
   if (error instanceof z.ZodError) {
@@ -77,6 +78,14 @@ export function gmailHubErrorResponse(error: unknown) {
   if (error instanceof CommunicationTargetChangedError) {
     return NextResponse.json(
       { code: error.code, changes: error.changes, error: error.message },
+      { status: error.status, headers: { "Cache-Control": "private, no-store" } },
+    );
+  }
+  // S272 R-S272-6: one typed refusal reason with the related communication and changed values;
+  // the staff text derives from it in one place (`describeSequenceRefusal`).
+  if (error instanceof CommunicationSequenceRefusedError) {
+    return NextResponse.json(
+      { code: error.code, refusal: error.refusal, error: error.message },
       { status: error.status, headers: { "Cache-Control": "private, no-store" } },
     );
   }

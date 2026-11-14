@@ -112,6 +112,7 @@ export function categorizeLiveReviewError(
 async function runLiveReview(
   actor: AuthenticatedUser,
   readTimestamp: string,
+  displayOnly = false,
 ): Promise<
   | { status: "ok"; result: FullyLiveRenewalRunResult; currency: LiveLeaseCurrency }
   | { status: Exclude<LiveReviewStatus, "ok"> }
@@ -122,7 +123,9 @@ async function runLiveReview(
   try {
     // S102: reuse the live lease generation (export + per-lease detail) instead of a second read.
     const { snapshot, currency } = await getLiveLeaseSnapshot(
-      withRenewalNoticeAdmission(actor, config.rentvineClient),
+      displayOnly
+        ? config.rentvineClient
+        : withRenewalNoticeAdmission(actor, config.rentvineClient),
       Date.parse(readTimestamp),
     );
     const result = await runFullyLiveRenewalReview({
@@ -152,11 +155,12 @@ export async function loadLiveRenewalReview(
   actor: AuthenticatedUser,
   readTimestamp: string,
   overlay: LiveReviewOverlay | Promise<LiveReviewOverlay> = {},
+  options: { readonly displayOnly?: boolean } = {},
 ): Promise<LiveReviewOutcome> {
   // Independent source and saved-overlay reads start together. Projection still waits for both;
   // a pending overlay never becomes an empty approval/decision projection.
   const [outcome, savedOverlay] = await Promise.all([
-    runLiveReview(actor, readTimestamp),
+    runLiveReview(actor, readTimestamp, options.displayOnly),
     overlay,
   ]);
   if (outcome.status !== "ok") return { status: outcome.status };

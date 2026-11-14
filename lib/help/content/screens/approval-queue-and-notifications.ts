@@ -44,7 +44,7 @@ export const APPROVAL_QUEUE_AND_NOTIFICATIONS_SCREENS: readonly HelpScreenRefere
         role: "tab",
         availability: "conditional",
         source: [QUEUE],
-        does: "Read-only list of open renewal reconciliation flags by run, resolved on each run page. The tab adds the open count when there is one.",
+        does: "Read-only list of open renewal reconciliation flags by run, resolved on each run page, one row per lease and field named as the lease and the field, such as an address and Current rent. The tab adds the open count when there is one, and the tab counts and the total come from the same count.",
         who: "All staff",
       },
       {
@@ -109,7 +109,7 @@ export const APPROVAL_QUEUE_AND_NOTIFICATIONS_SCREENS: readonly HelpScreenRefere
         region: "Bulk actions",
         availability: "conditional",
         source: [BULK],
-        does: "The bulk action: Approve, Return for Revision, Assign, Snooze, Disable Action or Execute. Execute skips every current item.",
+        does: "The bulk action: Approve, Return for Revision, Assign, Snooze or Disable Action. The preview reads The server checks every selected item again before updating it.",
         who: "All staff",
       },
       {
@@ -295,7 +295,7 @@ export const APPROVAL_QUEUE_AND_NOTIFICATIONS_SCREENS: readonly HelpScreenRefere
     ],
     guides: ["approve-or-deny", "notifications"],
     navItems: ["approval-queue"],
-    lastUpdated: "2026-11-04",
+    lastUpdated: "2026-11-13",
   },
   {
     id: "notifications",
@@ -303,7 +303,7 @@ export const APPROVAL_QUEUE_AND_NOTIFICATIONS_SCREENS: readonly HelpScreenRefere
     routes: ["/notifications"],
     who: "All staff",
     summary:
-      "The Notifications button in the top bar opens a panel of your unread event notifications, with Refresh, Notification types, Mark all read, See all notifications and Open Approval Queue. The Notifications page holds Needs your decision, Recent activity and Set-up for everyone, plus Feedback and Team review for Admins. Both only point to where the work is done.",
+      "The Notifications button in the top bar opens a panel of your unread event notifications, with Refresh, Notification types, Mark all read, See all notifications and Open Approval Queue. The Notifications page holds Needs your decision, Recent activity and Set-up for everyone, plus Feedback and Team review for Admins. Both only point to where the work is done. Connection setup, Space coverage, team review and feedback notices go to Admins only, and maintenance ticket and maintenance communication notices are no longer sent to anyone.",
     controls: [
       {
         label: "Notifications",
@@ -329,7 +329,7 @@ export const APPROVAL_QUEUE_AND_NOTIFICATIONS_SCREENS: readonly HelpScreenRefere
         region: "Notifications",
         availability: "conditional",
         source: [MENU],
-        does: "Lists the notification types with a checkbox each. Clearing one stops that type for you, and a type you cannot turn on says why.",
+        does: "Lists the notification types your role receives with a checkbox each. Clearing one stops that type for you, and a type you cannot turn on says why. Editors and Approvers see no setup, coverage, review or feedback type, and no one sees a maintenance type.",
         who: "All staff",
         actions: OPEN_MENU,
       },
@@ -339,7 +339,7 @@ export const APPROVAL_QUEUE_AND_NOTIFICATIONS_SCREENS: readonly HelpScreenRefere
         region: "Notifications",
         availability: "conditional",
         source: [MENU],
-        does: "Marks every notification read for you and clears the count.",
+        does: "Marks every notification read for you and clears the count. It leaves maintenance records as they are.",
         who: "All staff",
         actions: OPEN_MENU,
       },
@@ -417,7 +417,7 @@ export const APPROVAL_QUEUE_AND_NOTIFICATIONS_SCREENS: readonly HelpScreenRefere
         role: "region",
         availability: "required",
         source: [HUB],
-        does: "Standing set-up gaps under Connections to set up and Space coverage.",
+        does: "Standing set-up gaps under Connections to set up and Space coverage. Only an Admin is sent these gaps; for an Editor or Approver both lanes read their all-clear line.",
         who: "All staff",
       },
       {
@@ -440,6 +440,6 @@ export const APPROVAL_QUEUE_AND_NOTIFICATIONS_SCREENS: readonly HelpScreenRefere
       },
     ],
     guides: ["notifications", "approve-or-deny"],
-    lastUpdated: "2026-11-04",
+    lastUpdated: "2026-11-13",
   },
 ];

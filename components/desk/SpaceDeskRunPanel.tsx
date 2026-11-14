@@ -4,11 +4,12 @@ import { fetchWithDeadline as fetch, waitFailureMessage } from "@/lib/ui/fetch-l
 // SpaceDeskRunPanel — checklist controls for an existing ordinary workflow run. Browser Test-run
 // construction is retired; this component never starts or reconstructs a run.
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
 import { Card, StatusPill } from "@/components/ui";
+import { newRunStartKey, runStartRefusalText } from "@/lib/processes/run-start";
 import type {
   ProcessDefinitionStep,
   WorkflowRunRecord,
@@ -53,25 +54,39 @@ export function SpaceDeskRunPanel({
     : false;
   const canMutateChecklist = canEdit && !isTerminal;
 
+  // S283 R-S283-4: one click starts at most one run. The click's key is kept while its start is in
+  // flight or its answer was lost, so a double click or a retry returns the same run; a definite
+  // answer clears it. A refused start shows the server's reason in staff words.
+  const startKey = useRef<string | null>(null);
+  const starting = useRef(false);
+
   async function startRun() {
+    if (starting.current) return;
+    starting.current = true;
+    startKey.current ??= newRunStartKey();
+    const key = startKey.current;
     setError(null);
     setPending("__start__");
     try {
       const response = await fetch(`/api/process-definitions/${definitionId}/runs`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          definitionRevision ? { expected_revision: definitionRevision } : {},
-        ),
+        body: JSON.stringify({
+          ...(definitionRevision ? { expected_revision: definitionRevision } : {}),
+          start_key: key,
+        }),
       });
       if (!response.ok) {
-        setError("Could not start a run.");
+        startKey.current = null;
+        setError(runStartRefusalText(await response.json().catch(() => null)));
         return;
       }
+      startKey.current = null;
       router.refresh();
     } catch (error) {
       setError(waitFailureMessage(error, "Could not reach the run endpoint."));
     } finally {
+      starting.current = false;
       setPending(null);
     }
   }

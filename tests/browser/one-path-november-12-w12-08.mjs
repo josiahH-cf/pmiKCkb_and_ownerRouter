@@ -63,6 +63,7 @@ import {
   journeyW1208,
   reachPrimary,
   sendTenantOffer,
+  stepScheduleButton,
   waitForPrimary,
 } from "./one-path-november-12-journeys.mjs";
 import { DESK, WORKING_ROUTE, WORKSPACE_ROUTE } from "./one-path-november-12-kit.mjs";
@@ -621,9 +622,27 @@ async function responseEditor(ctx, page, leaseId, who) {
   return form;
 }
 
+/** The tenant answer saves only when staff confirm its S276 review. */
+async function saveReviewedTenantResponse(ctx, page, form, outcome) {
+  const review = form.getByRole("region", {
+    name: "Review the tenant's response",
+    exact: true,
+  });
+  const save = review.getByRole("button", { name: "Save", exact: true });
+  await save.waitFor({ timeout: 30_000 });
+  const response = ctx.kit.appResponse(page, WORKSPACE_ROUTE, {
+    match: (body) =>
+      body?.action?.kind === "tenant_response" && body.action.outcome === outcome,
+    timeout: 60_000,
+  });
+  await save.click();
+  return (await response).status();
+}
+
 /**
  * Record "No response" (owner) or "Awaiting response" (tenant) after the reply, as staff do: the
- * response stays at that answer and the source is typed, which saves the answer on leaving it.
+ * response stays at that answer and the source is typed. The owner saves on input and blur; the
+ * tenant's form waits for the review's Save.
  */
 async function recordStillWaiting(ctx, page, leaseId, who) {
   const { kit } = ctx;
@@ -632,16 +651,21 @@ async function recordStillWaiting(ctx, page, leaseId, who) {
     exact: true,
   });
   const waiting = who === "owner" ? "no_response" : "awaiting_response";
+  const source = form.getByLabel("Response source or channel (optional)", {
+    exact: true,
+  });
+  if (who === "tenant") {
+    if ((await select.inputValue()) !== waiting) await select.selectOption(waiting);
+    await source.fill("Phone message left for the tenant; no answer yet");
+    return { status: await saveReviewedTenantResponse(ctx, page, form, waiting) };
+  }
   const saved = kit.appResponse(page, WORKSPACE_ROUTE, {
-    match: (body) => body?.action?.kind === `${who}_response`,
+    match: (body) => body?.action?.kind === "owner_response",
     timeout: 60_000,
   });
   if ((await select.inputValue()) !== waiting) await select.selectOption(waiting);
   else {
-    const source = form.getByLabel("Response source or channel (optional)", {
-      exact: true,
-    });
-    await source.fill(`Phone message left for the ${who}; no answer yet`);
+    await source.fill("Phone message left for the owner; no answer yet");
     await source.press("Tab");
   }
   const response = await saved.catch(() => null);
@@ -702,15 +726,11 @@ async function recordOwnerApproval(ctx, page, leaseId, amount) {
 }
 
 /** The tenant's acceptance, then the offer it answers, in the tenant response editor. */
-async function recordTenantAcceptance(ctx, page, leaseId) {
+async function recordTenantAcceptance(ctx, page, leaseId, sequenceId) {
   const { kit } = ctx;
   const form = await responseEditor(ctx, page, leaseId, "tenant");
-  const decided = kit.appResponse(page, WORKSPACE_ROUTE, {
-    match: (body) => body?.action?.kind === "tenant_response",
-    timeout: 60_000,
-  });
   await form.getByLabel("Tenant response", { exact: true }).selectOption("accepted");
-  const accepted = await decided.catch(() => null);
+  const accepted = await saveReviewedTenantResponse(ctx, page, form, "accepted");
   await page.waitForLoadState("networkidle", { timeout: 30_000 }).catch(() => undefined);
   const answer = form.locator('[data-renewal-offer-answer="tenant"]');
   const which = answer.getByLabel("Which offer does this answer respond to?", {
@@ -722,14 +742,19 @@ async function recordTenantAcceptance(ctx, page, leaseId) {
     const values = await which
       .locator("option")
       .evaluateAll((nodes) => nodes.map((node) => node.value));
-    const choice =
-      values.find((value) => value.startsWith("sent:")) ??
-      values.find((value) => value && value !== "unattributed") ??
-      null;
+    const choice = sequenceId
+      ? values.find((value) => value.startsWith(`sent:${sequenceId}:`))
+      : null;
     if (choice) {
       offered = choice.split(":")[0];
       await which.selectOption(choice);
-      const saved = kit.appResponse(page, WORKSPACE_ROUTE, { timeout: 60_000 });
+      const saved = kit.appResponse(page, WORKSPACE_ROUTE, {
+        match: (body) =>
+          body?.action?.kind === "tenant_response" &&
+          body.action.outcome === "accepted" &&
+          body.offer?.sequenceId === sequenceId,
+        timeout: 60_000,
+      });
       await answer
         .getByRole("button", { name: "Record the offer this answers", exact: true })
         .click();
@@ -739,7 +764,7 @@ async function recordTenantAcceptance(ctx, page, leaseId) {
         .catch(() => undefined);
     }
   }
-  return { accepted: accepted?.status() ?? null, offered, linked };
+  return { accepted, offered, linked };
 }
 
 /** The check's fix in the stage line, followed as staff follow it, on the current step. */
@@ -764,12 +789,8 @@ async function followFix(ctx, page, leaseId, who) {
 
 /** Ask the owner: the step's Schedule, the dialog's own date and time, then confirm. */
 async function scheduleOwnerMessage(ctx, page, leaseId) {
-  const { kit } = ctx;
   await reachPrimary(ctx, page, leaseId, "ask-owner", "Review owner message");
-  const inNow = kit.now(page).getByRole("button", { name: "Schedule", exact: true });
-  const trigger = (await kit.shownWithin(inNow, 20_000))
-    ? inNow
-    : page.getByRole("button", { name: "Schedule", exact: true }).first();
+  const trigger = await stepScheduleButton(ctx, page);
   await trigger.click();
   const dialog = page.getByRole("dialog", { name: "Review and schedule" });
   await dialog
@@ -1167,7 +1188,12 @@ export async function checkW1208(ctx, page, start) {
       reads: reads.R6,
     });
 
-    actions.acceptance = await recordTenantAcceptance(ctx, page, leaseId);
+    actions.acceptance = await recordTenantAcceptance(
+      ctx,
+      page,
+      leaseId,
+      actions.tenantSend.sequenceId,
+    );
     reads.R7 = await editorOnly("R7 tenant acceptance recorded", "offer-tenant");
     note(ctx, "R7", { actions: actions.acceptance, reads: reads.R7 });
   };
@@ -1342,6 +1368,8 @@ export async function checkW1208(ctx, page, start) {
     ["R3", "owner", actions.ownerFix],
     ["R6", "tenant", actions.tenantFix],
   ]) {
+    if (actions[`${who}StillWaiting`]?.status !== 200)
+      fail("AC-S279-3", `${name}: the recorded waiting answer was not saved`);
     const pair = reads[name];
     if (!pair) {
       fail("AC-S279-3", `${name}: not read`);
@@ -1364,7 +1392,11 @@ export async function checkW1208(ctx, page, start) {
   const R7 = reads.R7;
   if (!R7) fail("AC-S279-4", "R7: not read");
   else {
-    if (actions.acceptance?.accepted !== 200)
+    if (
+      actions.acceptance?.accepted !== 200 ||
+      actions.acceptance.offered !== "sent" ||
+      actions.acceptance.linked !== 200
+    )
       fail(
         "AC-S279-4",
         `the acceptance was not recorded: ${JSON.stringify(actions.acceptance)}`,

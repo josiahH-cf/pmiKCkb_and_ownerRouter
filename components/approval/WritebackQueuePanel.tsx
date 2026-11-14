@@ -4,6 +4,7 @@ import type {
   WritebackApprovalQueueGroup,
 } from "@/lib/approval/writeback-approval-queue";
 import type { WritebackApprovalState } from "@/lib/lease-renewal/writeback-approval";
+import { renewalRowLabel } from "@/lib/approval/renewal-review";
 
 // Read-only cross-run write-back queue body (F-WRITEBACK-QUEUE). Every QUEUED write-back proposal,
 // grouped by approval state, deep-linking to its run page. Value-free: no proposed value, reason, or
@@ -58,10 +59,14 @@ function QueueStateGroup({ group }: Readonly<{ group: WritebackApprovalQueueGrou
     ) : (
       <ul className="ui-rows">
         {group.rows.map((row) => (
-          <li className="ui-spread" key={`${row.runId}:${row.fieldKey}`}>
+          // S280 ARCH-S280-2: one row per run, lease row and field, so keys stay unique.
+          <li
+            className="ui-spread"
+            key={row.sourceTriggerKey ?? `${row.runId}:${row.fieldKey}`}
+          >
             <div>
               <Link className="text-link" href={row.href}>
-                <strong>{row.fieldLabel}</strong>
+                <strong>{renewalRowLabel(row.leaseLabel, row.fieldLabel)}</strong>
                 <span className="muted"> · {row.runLabel}</span>
               </Link>
               <p className="muted">

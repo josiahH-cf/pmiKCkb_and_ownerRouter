@@ -12,6 +12,12 @@ export interface OwnerReplyChoice {
   /** Existing linked-thread and message identities; absent on older metadata-only choices. */
   readonly threadId?: string;
   readonly messageId?: string;
+  /**
+   * S285 R-S285-5: the one roster owner this reply came from, computed on the server when the
+   * reply came from the address the owner message was sent to for exactly one owner of record.
+   * Absent otherwise. Only the roster entry; never an address.
+   */
+  readonly approver?: { readonly label: string; readonly sourceRef: string };
 }
 
 export interface OwnerApprovalChoices {
@@ -33,6 +39,11 @@ export interface OwnerApprovalChoices {
    * approval still covers them; null or absent when the page could not compute them.
    */
   readonly economicsHash?: string | null;
+  /**
+   * S285 R-S285-4: the renewal term the cycle's latest confirmed owner message stated, as ISO
+   * dates; null or absent when that message stated no term (or none was confirmed sent).
+   */
+  readonly ownerMessageTerm?: { readonly start: string; readonly end: string } | null;
 }
 
 /** One line naming who approved, how and when, for the lease page and the handoff. */

@@ -1,6 +1,10 @@
 import { z } from "zod";
 
-import { formatCalendarDate } from "@/lib/date-display";
+import {
+  formatCalendarDate,
+  formatWallClock,
+  formatZonedTimestamp,
+} from "@/lib/date-display";
 import { BUSINESS_TIME_ZONE } from "@/lib/lease-renewal/business-calendar";
 
 const calendarDate = z
@@ -149,17 +153,16 @@ export function nextOccurrence(
   const next = resolveWallTime(date, s.time, s.timeZone);
   return s.endDate && next.resolvedDate > s.endDate ? null : next.instantMs;
 }
-/** S233: an instant in its named zone with the zone always shown, e.g. "Nov 1, 2026, 1:30 AM CDT". */
+/**
+ * S233: an instant in its named zone with the zone always shown. S283 R-S283-1: in the settled
+ * instant shape of lib/date-display.ts, e.g. "11/01/2026, 1:30 AM CDT".
+ */
 export function formatZonedInstant(ms: number, timeZone: string): string {
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    timeZoneName: "short",
-  }).format(ms);
+  return formatZonedTimestamp(ms, timeZone);
+}
+/** S283 R-S283-1 (BEH-S283-1): a scheduled message nothing has sent yet, e.g. "Scheduled for 11/13/2026, 9:00 AM CST". */
+export function describeScheduledFor(ms: number, timeZone: string): string {
+  return `Scheduled for ${formatZonedInstant(ms, timeZone)}`;
 }
 /** S233: the plain statement shown before scheduling when the wall time is repeated or skipped. */
 export function describeWallTimeAdjustment(
@@ -169,14 +172,8 @@ export function describeWallTimeAdjustment(
 ): string | null {
   const resolved = resolveWallTime(date, time, timeZone);
   if (resolved.adjustment === "none") return null;
-  const wall = new Intl.DateTimeFormat("en-US", {
-    timeZone: "UTC",
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(Date.parse(`${date}T${time}:00Z`));
+  // S283 R-S283-1: the wall time has no zone of its own; it reads MM/DD/YYYY, h:mm AM.
+  const wall = formatWallClock(date, time);
   const at = formatZonedInstant(resolved.instantMs, timeZone);
   return resolved.adjustment === "earlier_overlap"
     ? `${wall} happens twice in ${timeZone} when clocks fall back; this schedule uses the first one, ${at}.`

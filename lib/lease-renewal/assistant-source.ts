@@ -36,11 +36,20 @@ import {
 } from "@/lib/lease-renewal/auxiliary-read";
 import { buildRenewalDeskWindow } from "@/lib/lease-renewal/desk-query";
 import { buildLiveRenewalConfig } from "@/lib/lease-renewal/live-config";
-import { readCoherentRenewalDisplaySource } from "@/lib/lease-renewal/admitted-notice-source";
+import {
+  readCoherentRenewalDisplaySource,
+  readRenewalPortfolioForDisplay,
+} from "@/lib/lease-renewal/admitted-notice-source";
 import { loadLiveRenewalDesk } from "@/lib/lease-renewal/live-desk";
 import { packetSnapshotsForAiContext } from "@/lib/ai-boundary/dotloop-origin";
 import { DEFAULT_NOTICE_RULE_SET } from "@/lib/lease-renewal/notice-rules";
 import { measureRead, withReadDeadline } from "@/lib/observability/read-lifetime";
+import {
+  DESK_CURRENT_MESSAGE_READ_LIMIT,
+  DESK_CURRENT_MESSAGE_READ_WAIT_MS,
+  DESK_CURRENT_MESSAGE_TOTAL_WAIT_MS,
+  withCurrentMessageBases,
+} from "@/lib/lease-renewal/unsent-message-read";
 
 /** The desk's own window rule: from the first of the current month, forward this many days. */
 export const RENEWAL_DESK_WINDOW_DAYS = 120;
@@ -57,13 +66,13 @@ export async function runRenewalAssistantSource(
   user: AuthenticatedUser,
   now: Date,
   sourceRefreshAfter: number | null = null,
-  options: { readonly aiContext?: boolean } = {},
+  options: { readonly aiContext?: boolean; readonly countsOnly?: boolean } = {},
 ) {
   // The window opens on the business calendar day (America/Chicago), the same day the assistant's
   // period parser and the workspace reference date read, so the three never disagree at a month end.
   const window = buildRenewalDeskWindow(businessDateIso(now), RENEWAL_DESK_WINDOW_DAYS);
   const liveConfig = buildLiveRenewalConfig();
-  if (liveConfig.ok)
+  if (liveConfig.ok && !options.countsOnly)
     liveConfig.rentvineClient = withRenewalNoticeAdmission(
       user,
       liveConfig.rentvineClient,
@@ -103,6 +112,8 @@ export async function runRenewalAssistantSource(
     try {
       return await measureRead("renewal.inventory", () =>
         withReadDeadline(async () => {
+          if (options.countsOnly)
+            return readRenewalPortfolioForDisplay(user, liveConfig.rentvineClient);
           const read = await readCoherentRenewalDisplaySource(
             user,
             liveConfig.rentvineClient,
@@ -208,31 +219,48 @@ export async function runRenewalAssistantSource(
       // S248: one bulk read of the loaded leases' linked renewal messages, outreach records and
       // Gmail drafts. Read-only; when it is unavailable nothing is derived, and every stage reads
       // from the staff record alone.
-      withReadDeadline(async () => {
-        const source = await leaseRead;
-        if (!source) throw new Error("Source unavailable");
-        return readRenewalOutreachEvidence(
-          source.snapshot.views.flatMap((view) => {
-            const leaseId = leaseViewId(view);
-            return leaseId ? [leaseId] : [];
-          }),
-        );
-      }).catch(() => null),
+      options.countsOnly
+        ? null
+        : withReadDeadline(async () => {
+            const source = await leaseRead;
+            if (!source) throw new Error("Source unavailable");
+            return readRenewalOutreachEvidence(
+              source.snapshot.views.flatMap((view) => {
+                const leaseId = leaseViewId(view);
+                return leaseId ? [leaseId] : [];
+              }),
+            );
+          })
+            // S273 R-S273-2: the current values of each lease holding a scheduled or held message, so
+            // the row shows it out of date on this read. Bounded; a late or failed read adds nothing.
+            .then((evidence) =>
+              withReadDeadline(
+                () =>
+                  withCurrentMessageBases(user, evidence, {
+                    limit: DESK_CURRENT_MESSAGE_READ_LIMIT,
+                    waitMs: DESK_CURRENT_MESSAGE_READ_WAIT_MS,
+                  }),
+                DESK_CURRENT_MESSAGE_TOTAL_WAIT_MS,
+              ).catch(() => evidence),
+            )
+            .catch(() => null),
       // S249: one read behind every row's preparation projection: the loaded leases' stored
       // comparisons, the signed-in sender's signature, the owner template and the allowance. Each
       // part that fails reads as unknown; this read never throws.
-      withReadDeadline(async () => {
-        const source = await leaseRead;
-        if (!source) throw new Error("Source unavailable");
-        return readKickoffSupport(
-          user,
-          source.snapshot.views.flatMap((view) => {
-            const leaseId = leaseViewId(view);
-            return leaseId ? [leaseId] : [];
-          }),
-          { nowMs: now.getTime() },
-        );
-      }).catch(() => null),
+      options.countsOnly
+        ? null
+        : withReadDeadline(async () => {
+            const source = await leaseRead;
+            if (!source) throw new Error("Source unavailable");
+            return readKickoffSupport(
+              user,
+              source.snapshot.views.flatMap((view) => {
+                const leaseId = leaseViewId(view);
+                return leaseId ? [leaseId] : [];
+              }),
+              { nowMs: now.getTime() },
+            );
+          }).catch(() => null),
     ]),
   );
 
@@ -295,7 +323,7 @@ export async function runRenewalAssistantSource(
           },
           preparedSheetRead,
           timingBasis,
-          renewalNoticeObserver(user),
+          renewalNoticeObserver(user, undefined, { displayOnly: options.countsOnly }),
           leaseSnapshotResult.statusTable,
           // S250/S251: a failed working-record read is "not read" (absent), never "no records":
           // the desk then confirms no standing coverage and assumes no Housing assistance fact.
@@ -315,6 +343,11 @@ export async function runRenewalAssistantSource(
     coverage: window,
     /** S246: false when the keep-working choices could not be read for this render. */
     cycleDateDecisionsAvailable: cycleDateDecisions !== null,
+    /**
+     * S283 R-S283-2 (ARCH-S283-2): the monthly comparison allowance as counts only, from the same
+     * support read; null when it could not be read. It reserves nothing.
+     */
+    kickoffAllowance: kickoffSupport?.allowance ?? null,
   };
 }
 

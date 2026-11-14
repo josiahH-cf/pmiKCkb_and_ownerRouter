@@ -51,8 +51,20 @@ export interface KickoffSupportRead {
   readonly templateApproved: boolean | null;
   /** This month's comparison allowance is reached; null when unread. */
   readonly allowanceReached: boolean | null;
+  /**
+   * S283 R-S283-2 (ARCH-S283-2): the same monthly allowance as counts only, read before the
+   * click so Prepare can say what it covers; null when unread. The server still enforces the
+   * allowance at reservation; this count reserves nothing.
+   */
+  readonly allowance?: PreparationAllowanceCount | null;
   /** Batch preparation outcomes by lease (S249 R-S249-3); absent or null when unread. */
   readonly preparationsByLease?: ReadonlyMap<string, KickoffPreparationOutcome> | null;
+}
+
+/** S283 R-S283-2: the monthly comparison allowance as counts only, with no lease value. */
+export interface PreparationAllowanceCount {
+  readonly remaining: number;
+  readonly total: number;
 }
 
 export const UNREAD_KICKOFF_SUPPORT: KickoffSupportRead = Object.freeze({
@@ -60,6 +72,7 @@ export const UNREAD_KICKOFF_SUPPORT: KickoffSupportRead = Object.freeze({
   signature: null,
   templateApproved: null,
   allowanceReached: null,
+  allowance: null,
   preparationsByLease: null,
 });
 

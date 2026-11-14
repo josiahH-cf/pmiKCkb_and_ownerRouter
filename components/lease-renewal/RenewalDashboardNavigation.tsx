@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import Link from "next/link";
 import { useRenewalFocusView } from "./RenewalFocusViewContext";
 import {
   RENEWAL_DASHBOARD_SECTIONS,
   renewalDashboardTarget,
 } from "@/lib/lease-renewal/dashboard-sections";
+import type { RenewalPathStepId } from "@/lib/lease-renewal/renewal-path";
+import { guidedReturnLabel } from "@/lib/lease-renewal/guided-priority";
+import { Button } from "@/components/ui";
 
 import {
   MANUAL_ACTIVITIES,
@@ -409,6 +412,222 @@ export function setRenewalStickyOffset(shell: HTMLElement, toolbar: HTMLElement)
   );
 }
 
+// ---- S281 R-S281-5: landing with the label visible, and the way back -------------------------
+
+/** What a focus request carries: the control and the control the jump started from. */
+export interface RenewalFocusRequestDetail {
+  readonly id: string;
+  /** S281 R-S281-5: the control that had focus when the jump started, if any. */
+  readonly origin?: HTMLElement | null;
+}
+
+/**
+ * S281 R-S281-5 (ARCH-S281-2): the label a person reads for a landed control: its own label, the
+ * element that names it, or the legend of its fieldset, when that label sits above the control.
+ * Null when the control carries its own words (a button, a summary, a heading).
+ */
+export function renewalLandingLabel(target: HTMLElement): HTMLElement | null {
+  const own =
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLSelectElement ||
+    target instanceof HTMLTextAreaElement
+      ? (target.labels?.[0] ?? null)
+      : null;
+  const labelledBy = target.getAttribute("aria-labelledby")?.split(/\s+/)[0];
+  const named = labelledBy ? document.getElementById(labelledBy) : null;
+  const legend =
+    target.closest("fieldset")?.querySelector<HTMLElement>(":scope > legend") ?? null;
+  return (
+    [own, named, legend].find(
+      (element): element is HTMLElement =>
+        element instanceof HTMLElement &&
+        element !== target &&
+        element.isConnected &&
+        !element.closest("[hidden], [data-renewal-focus-hidden]") &&
+        (element.contains(target) ||
+          Boolean(
+            element.compareDocumentPosition(target) & Node.DOCUMENT_POSITION_FOLLOWING,
+          )),
+    ) ?? null
+  );
+}
+
+/**
+ * S281 R-S281-5: scroll so the landed control's label is fully below the sticky toolbar. The
+ * label leads only while the control stays on the same screen; otherwise the control does. The
+ * scroll margin (app/globals.css) is the toolbar's measured height.
+ */
+export function scrollRenewalLanding(target: HTMLElement) {
+  const label = renewalLandingLabel(target);
+  const labelTop = label?.getBoundingClientRect().top ?? 0;
+  const targetBottom = target.getBoundingClientRect().bottom;
+  const fits =
+    label !== null &&
+    (typeof window.innerHeight !== "number" ||
+      window.innerHeight === 0 ||
+      targetBottom - labelTop < window.innerHeight * 0.75);
+  (fits && label ? label : target).scrollIntoView?.({ block: "start" });
+}
+
+/** The step each Full section belongs to, for the way back from a jump between sections. */
+const SECTION_STEPS: Readonly<Record<string, RenewalPathStepId>> = {
+  "renewal-section-lease-details": "check-numbers",
+  "renewal-section-comps": "compare-market",
+  "renewal-section-owner": "ask-owner",
+  "renewal-section-tenant": "offer-tenant",
+  "renewal-section-documents": "documents",
+};
+
+/** S281 R-S281-5: the way back a jump offers, until it is taken or another jump replaces it. */
+export interface RenewalJumpReturn {
+  /** The control the jump started from. */
+  readonly origin: HTMLElement;
+  /** The step or section it belongs to, which names the return. */
+  readonly stepId: RenewalPathStepId;
+  /** Where to land when the origin is no longer on the page. */
+  readonly fallbackId: string | null;
+}
+
+let jumpReturn: RenewalJumpReturn | null = null;
+const jumpListeners = new Set<() => void>();
+function subscribeJumpReturn(listener: () => void) {
+  jumpListeners.add(listener);
+  return () => {
+    jumpListeners.delete(listener);
+  };
+}
+
+/** Offer (or clear, with null) the one way back. Presentation only. */
+export function offerRenewalJumpReturn(entry: RenewalJumpReturn | null) {
+  if (jumpReturn === entry) return;
+  jumpReturn = entry;
+  for (const listener of jumpListeners) listener();
+}
+
+export function useRenewalJumpReturn(): RenewalJumpReturn | null {
+  return useSyncExternalStore(
+    subscribeJumpReturn,
+    () => jumpReturn,
+    () => null,
+  );
+}
+
+/** True while an element is shown to a person: not hidden and not under a closed reveal. */
+function presentable(element: HTMLElement): boolean {
+  return (
+    element.isConnected &&
+    !element.matches(":disabled") &&
+    !element.closest(
+      "[hidden], [inert], [aria-hidden='true'], [data-renewal-focus-hidden]",
+    )
+  );
+}
+
+/** Focus an exact element where it stands, opening the disclosures that hold it. */
+export function focusRenewalElementInPlace(element: HTMLElement): boolean {
+  let ancestor: HTMLElement | null = element.parentElement;
+  while (ancestor) {
+    if (ancestor instanceof HTMLDetailsElement) ancestor.open = true;
+    ancestor = ancestor.parentElement;
+  }
+  if (!presentable(element)) return false;
+  const shell = element.closest<HTMLElement>(".renewal-workspace-shell");
+  const toolbar = shell?.querySelector<HTMLElement>(".renewal-workspace-toolbar");
+  if (shell && toolbar) setRenewalStickyOffset(shell, toolbar);
+  focusProgrammatically(element);
+  scrollRenewalLanding(element);
+  return document.activeElement === element;
+}
+
+/** S281 R-S281-5: take the way back: the control the jump started from, or its step. */
+export function returnFromRenewalJump(): boolean {
+  const entry = jumpReturn;
+  offerRenewalJumpReturn(null);
+  if (!entry) return false;
+  if (focusRenewalElementInPlace(entry.origin)) return true;
+  return entry.fallbackId
+    ? focusRenewalDashboardControl(entry.fallbackId, { viewRequest: false })
+    : false;
+}
+
+/**
+ * S281 R-S281-5 (ARCH-S281-2, BEH-S281-5): the way back from a jump. When a jump lands in another
+ * section (Full view), or a fix link followed from the Now card lands further down the same step
+ * (Guided view), this one control offers "Return to {step}", which focuses the exact control the
+ * jump started from. It stays in view below the sticky lease toolbar; taking it, a later jump or a
+ * view switch clears it. Presentation only: it saves, sends and reads nothing.
+ */
+export function RenewalJumpReturn() {
+  const entry = useRenewalJumpReturn();
+  const view = useRenewalFocusView()?.view ?? null;
+  useEffect(() => {
+    offerRenewalJumpReturn(null);
+  }, [view]);
+  useEffect(() => () => offerRenewalJumpReturn(null), []);
+  if (!entry) return null;
+  return (
+    <div className="renewal-jump-return" data-renewal-jump-return={entry.stepId}>
+      <Button
+        data-renewal-presentation-control
+        onClick={() => {
+          returnFromRenewalJump();
+        }}
+        size="compact"
+        variant="secondary"
+      >
+        {guidedReturnLabel(entry.stepId)}
+      </Button>
+    </div>
+  );
+}
+
+/**
+ * S281 R-S281-5: a request to show a step and focus its primary action, used when a return's
+ * earlier landing element is absent. The Guided view answers it; Full view lands on the step's
+ * outcome and its primary there.
+ */
+export const RENEWAL_STEP_PRIMARY_REQUEST_EVENT = "renewal:step-primary-request";
+
+export function focusRenewalStepPrimary(stepId: RenewalPathStepId): boolean {
+  if (
+    !document.dispatchEvent(
+      new CustomEvent(RENEWAL_STEP_PRIMARY_REQUEST_EVENT, {
+        cancelable: true,
+        detail: { stepId },
+      }),
+    )
+  )
+    return true;
+  const outcome = document.querySelector<HTMLElement>(
+    `section[data-renewal-outcome="${stepId}"]`,
+  );
+  const primary = [
+    ...(outcome?.querySelectorAll<HTMLElement>("[data-renewal-work-primary]") ?? []),
+  ].find(presentable);
+  if (primary) return focusRenewalElementInPlace(primary);
+  return focusRenewalDashboardControl(`renewal-outcome-${stepId}`, {
+    focusContainer: true,
+    viewRequest: false,
+  });
+}
+
+/**
+ * S281 R-S281-5: outside the Guided view, a jump from one section to another offers the way back
+ * to the control it started from. A jump within one section clears an older way back.
+ */
+function noteFullJump(origin: HTMLElement | null, target: HTMLElement) {
+  if (target.closest("[data-renewal-guided]")) return;
+  // A repeated request for the control that already holds focus (a link's own handler and the
+  // page's fragment handler both land it) is not a new jump, so it keeps the way back.
+  if (origin === target) return;
+  const from = origin?.closest<HTMLElement>("section[id^='renewal-section-']");
+  const to = target.closest<HTMLElement>("section[id^='renewal-section-']");
+  const stepId = from ? SECTION_STEPS[from.id] : undefined;
+  if (origin && from && to && from !== to && stepId)
+    offerRenewalJumpReturn({ origin, stepId, fallbackId: from.id });
+  else if (origin) offerRenewalJumpReturn(null);
+}
+
 /** Focus the linked heading or control, opening disclosures without recording any progress. */
 export function focusRenewalDashboardControl(
   id: string,
@@ -419,10 +638,22 @@ export function focusRenewalDashboardControl(
   }: { allowButtons?: boolean; focusContainer?: boolean; viewRequest?: boolean } = {},
 ) {
   if (!id.startsWith("renewal-")) return false;
+  // S281 R-S281-5 (ARCH-S281-2): the helper records where a jump started.
+  const active = document.activeElement;
+  const origin =
+    viewRequest &&
+    active instanceof HTMLElement &&
+    active !== document.body &&
+    active.closest(".renewal-workspace-body")
+      ? active
+      : null;
   if (
     viewRequest &&
     !document.dispatchEvent(
-      new CustomEvent(RENEWAL_FOCUS_REQUEST_EVENT, { cancelable: true, detail: { id } }),
+      new CustomEvent<RenewalFocusRequestDetail>(RENEWAL_FOCUS_REQUEST_EVENT, {
+        cancelable: true,
+        detail: { id, origin },
+      }),
     )
   )
     return true;
@@ -483,6 +714,8 @@ export function focusRenewalDashboardControl(
   const toolbar = shell?.querySelector<HTMLElement>(".renewal-workspace-toolbar");
   if (shell && toolbar) setRenewalStickyOffset(shell, toolbar);
   focusProgrammatically(target);
-  target.scrollIntoView?.({ block: "start" });
+  // S281 R-S281-5: the label above the control lands fully below the sticky toolbar.
+  scrollRenewalLanding(target);
+  if (viewRequest) noteFullJump(origin, target);
   return document.activeElement === target;
 }

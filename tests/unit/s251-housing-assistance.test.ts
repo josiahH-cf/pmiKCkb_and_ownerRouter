@@ -227,10 +227,11 @@ describe("S251 BEH-S251-3: Keep the current rent or Propose a change", () => {
     const kept = apply(renewed(), { kind: "rent_choice", choice: "keep_current" });
     const stage = projectRenewalStage(kept, assistedContext);
     expect(stage.currentStepId).toBe("offer-tenant");
+    // S283 R-S283-7 (rewritten on purpose): the retired chip text is replaced.
     for (const id of ["compare-market", "ask-owner"])
       expect(stage.steps.find((step) => step.id === id)).toMatchObject({
         state: "not_part",
-        detail: "Not part of this lease's path",
+        detail: "This lease does not use this step",
       });
   });
   it("Propose brings in the prepared comparison, the recommendation and the owner's rent decision", () => {
@@ -305,7 +306,7 @@ describe("S251 R-S251-9 / BEH-S251-5: the later follow-up follows the fact", () 
     const stage = projectRenewalStage(accepted(), CONTEXT);
     expect(
       stage.finishUp.find((item) => item.key === "follow-up:assisted_housing"),
-    ).toMatchObject({ detail: "Not part of this lease's path" });
+    ).toMatchObject({ detail: "Not used on this lease", notPart: true });
   });
   it("with Yes it is part of the lease's path", () => {
     const state = apply(accepted(), {

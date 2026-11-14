@@ -77,6 +77,9 @@ const DIRECT_PRODUCT_RECORD_REFERENCE_INVENTORY = {
   ],
   lease_renewal_resolutions: ["lib/firestore/lease-renewal-resolutions.ts"],
   maintenance_tickets: [
+    // S280 R-S280-5: mark-all-read names the retired maintenance_tickets notification family to
+    // skip it; it reads and writes no ticket.
+    "app/api/notifications/mark-all-read/route.ts",
     "lib/firestore/maintenance-artifacts.ts",
     "lib/firestore/maintenance-case-records.ts",
     "lib/firestore/maintenance-tickets.ts",

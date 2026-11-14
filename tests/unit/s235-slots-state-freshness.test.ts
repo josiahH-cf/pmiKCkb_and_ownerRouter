@@ -363,10 +363,11 @@ describe("S235 R-S235-6 selection freshness", () => {
   it("shows the saved selection with the last observation time and no problem when it matches", () => {
     const result = freshness();
     expect(result.selection).toBe(
-      "Saved selection version 3: profile PMI KC renewals, template Renewal loop, transaction type LISTING_FOR_LEASE, initial status PRE_LISTING, saved Oct 20, 2026, 10:00 AM Central.",
+      // S283 R-S283-1: the settled instant shape, its zone named (rewritten on purpose).
+      "Saved selection version 3: profile PMI KC renewals, template Renewal loop, transaction type LISTING_FOR_LEASE, initial status PRE_LISTING, saved 10/20/2026, 10:00 AM CDT.",
     );
     expect(result.observation).toBe(
-      "Last resource observation: Oct 28, 2026, 9:00 AM Central.",
+      "Last resource observation: 10/28/2026, 9:00 AM CDT.",
     );
     expect(result.problems).toEqual([]);
   });

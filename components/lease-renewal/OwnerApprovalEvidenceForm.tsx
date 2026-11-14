@@ -5,12 +5,17 @@ import { useId, useState } from "react";
 import { Button, Field } from "@/components/ui";
 import { formatBusinessTimestamp } from "@/lib/date-display";
 import type { OwnerApprovalChoices } from "@/lib/lease-renewal/owner-approval-evidence";
+import { OWNER_APPROVER_SELECTED_LINE } from "@/lib/lease-renewal/owner-copy-version";
 import type { OwnerApprovalInput } from "@/lib/lease-renewal/workspace-state";
 
 /**
- * S234 R-S234-1: recording "Approved" names who approved for the owner, how and when. Nothing is
- * pre-selected, a reply is chosen from this lease's own owner thread, and an unreadable owner
- * list records nothing. The server checks the party and the reply again.
+ * S234 R-S234-1: recording "Approved" names who approved for the owner, how and when. A reply is
+ * chosen from this lease's own owner thread, and an unreadable owner list records nothing. The
+ * server checks the party and the reply again.
+ *
+ * S285 R-S285-5 (retires R-S234-1's last sentence): when the chosen reply came from the address
+ * the owner message was sent to for exactly one owner of record, "Who approved" opens with that
+ * owner selected and says why; staff can change it. Nothing else is preselected.
  */
 export function OwnerApprovalEvidenceForm({
   choices,
@@ -37,9 +42,25 @@ export function OwnerApprovalEvidenceForm({
     [reference, setReference] = useState(""),
     [participants, setParticipants] = useState(""),
     [when, setWhen] = useState(""),
-    [error, setError] = useState("");
+    [error, setError] = useState(""),
+    [partyChosen, setPartyChosen] = useState(false);
   const roster = choices?.roster ?? null;
   const replies = choices?.replies ?? [];
+  // S285 R-S285-5 (ARCH-S285-3): a reply chosen from this lease's renewal thread that came from the
+  // address the owner message was sent to for exactly one owner of record opens with that owner
+  // selected. Staff can change it before the review; nothing is stored until it is recorded.
+  const chosenReply =
+    channel === "linked_reply" && reply
+      ? (replies.find(
+          (entry) => `${entry.sequenceId}\u0000${entry.evidenceId}` === reply,
+        ) ?? null)
+      : null;
+  const suggestedParty =
+    chosenReply?.approver &&
+    roster?.some((owner) => owner.sourceRef === chosenReply.approver!.sourceRef)
+      ? chosenReply.approver.sourceRef
+      : null;
+  const selectedParty = partyChosen ? party : (suggestedParty ?? party);
   if (!roster)
     return (
       <p role="status" data-renewal-field="owner-approval-unavailable">
@@ -48,10 +69,11 @@ export function OwnerApprovalEvidenceForm({
       </p>
     );
   function submit() {
-    const owner = roster?.find((entry) => entry.sourceRef === party) ?? null;
+    const who = selectedParty;
+    const owner = roster?.find((entry) => entry.sourceRef === who) ?? null;
     const occurred = Date.parse(when);
     const approval: OwnerApprovalInput = {
-      ...(party === "representative"
+      ...(who === "representative"
         ? name.trim() && capacity.trim()
           ? {
               party: {
@@ -61,7 +83,7 @@ export function OwnerApprovalEvidenceForm({
               },
             }
           : {}
-        : party && owner && choices?.rosterFingerprint
+        : who && owner && choices?.rosterFingerprint
           ? {
               party: {
                 kind: "owner",
@@ -118,8 +140,11 @@ export function OwnerApprovalEvidenceForm({
         <select
           disabled={disabled}
           id={`${id}-party`}
-          value={party}
-          onChange={(event) => setParty(event.target.value)}
+          value={selectedParty}
+          onChange={(event) => {
+            setParty(event.target.value);
+            setPartyChosen(true);
+          }}
         >
           <option value="">Choose who approved</option>
           {roster.map((owner) => (
@@ -130,7 +155,12 @@ export function OwnerApprovalEvidenceForm({
           <option value="representative">Authorized representative</option>
         </select>
       </Field>
-      {party === "representative" ? (
+      {!partyChosen && suggestedParty ? (
+        <p className="muted" data-renewal-field="owner-approver-selected">
+          {OWNER_APPROVER_SELECTED_LINE}
+        </p>
+      ) : null}
+      {selectedParty === "representative" ? (
         <>
           <Field htmlFor={`${id}-name`} label="Representative name" required>
             <input

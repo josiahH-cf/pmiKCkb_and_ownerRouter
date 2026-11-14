@@ -97,8 +97,9 @@ describe("S264 AC-S264-6 the tenant response names the exact offer it answers", 
       [...(choice as HTMLSelectElement).options].map((option) => option.textContent),
     ).toEqual([
       "Choose the offer",
-      "Sent 11/9/2026: Rent $920.00 per month; Pet rent $45.00 per month",
-      "Gmail draft prepared 11/8/2026, sent from Gmail: Rent $920.00 per month; Pet rent $45.00 per month",
+      // S283 R-S283-1: the settled MM/DD/YYYY date (rewritten on purpose).
+      "Sent 11/09/2026: Rent $920.00 per month; Pet rent $45.00 per month",
+      "Gmail draft prepared 11/08/2026, sent from Gmail: Rent $920.00 per month; Pet rent $45.00 per month",
       "Not one exact offer (record the answer as it is)",
     ]);
     const button = screen.getByRole("button", { name: "Record the offer this answers" });

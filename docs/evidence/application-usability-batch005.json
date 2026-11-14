@@ -29868,6 +29868,106 @@
           "tests/unit/s286-renewal-guidance-render.test.tsx",
           "tests/unit/s286-renewal-space-page.test.ts"
         ]
+      },
+      {
+        "owner": "components/attention/RenewalTeamLine.tsx",
+        "cohort": "dashboard_work",
+        "kind": "asynchronous",
+        "lifetime": "shared finite wait or owning operation",
+        "ownerTests": ["tests/unit/s280-team-line.test.tsx"],
+        "inspected": true,
+        "checks": [
+          {
+            "test": "Current owning source inspection: components/attention/RenewalTeamLine.tsx (S280 R-S280-2: the team line streams after the Dashboard and My Work render, counts the month's renewals with a next action, links Open the Renewal Desk., and reads without a count when the desk cannot be read)",
+            "outcome": "passed",
+            "environment": "staff workflow audit chunk 2 branch claude/staff-audit-chunk-2, Help and controls review, 2026-11-13; privacy-safe static strings only",
+            "evidence": "source read during the Help V6.0 content update"
+          },
+          {
+            "test": "tests/unit/s280-team-line.test.tsx",
+            "outcome": "passed",
+            "environment": "native WSL lane mirror of the chunk 2 worktree, vitest, 2026-11-13; 7 tests",
+            "evidence": "private scratchpad log help-run2.log"
+          }
+        ],
+        "plannedChecks": [],
+        "compiledCoverage": "Rendered unit coverage of the counted, singular and unknown lines; the W12-09 rehearsal journey covers it in a browser separately.",
+        "ownerUnitFilesPassed": ["tests/unit/s280-team-line.test.tsx"]
+      },
+      {
+        "owner": "components/lease-renewal/NoticeTimingBasisLine.tsx",
+        "cohort": "renewals",
+        "kind": "asynchronous",
+        "lifetime": "shared finite wait or owning operation",
+        "ownerTests": ["tests/unit/s283-notice-basis-line.test.tsx"],
+        "inspected": true,
+        "checks": [
+          {
+            "test": "Current owning source inspection: components/lease-renewal/NoticeTimingBasisLine.tsx (S283 R-S283-5: one read-only Notice timing basis line from the existing GET, nothing rendered until it answers, and Change in Admin only for an Admin; no selector on the lease)",
+            "outcome": "passed",
+            "environment": "staff workflow audit chunk 2 branch claude/staff-audit-chunk-2, Help and controls review, 2026-11-13; privacy-safe static strings only",
+            "evidence": "source read during the Help V6.0 content update"
+          },
+          {
+            "test": "tests/unit/s283-notice-basis-line.test.tsx",
+            "outcome": "passed",
+            "environment": "native WSL lane mirror of the chunk 2 worktree, vitest, 2026-11-13; 7 tests",
+            "evidence": "private scratchpad log help-run2.log"
+          }
+        ],
+        "plannedChecks": [],
+        "compiledCoverage": "Mounted unit coverage of the saved, missing and unreadable lines and the Admin link; the W12-12 rehearsal journey covers it in a browser separately.",
+        "ownerUnitFilesPassed": ["tests/unit/s283-notice-basis-line.test.tsx"]
+      },
+      {
+        "owner": "components/lease-renewal/OwnerWordingPublication.tsx",
+        "cohort": "renewals",
+        "kind": "asynchronous",
+        "lifetime": "shared finite wait or owning operation",
+        "ownerTests": ["tests/unit/s285-owner-wording-publication.test.tsx"],
+        "inspected": true,
+        "checks": [
+          {
+            "test": "Current owning source inspection: components/lease-renewal/OwnerWordingPublication.tsx (S285 R-S285-6: Review the new owner wording for an Approver or Admin, the held-message count, Publish the new owner wording or Keep the current wording, and the changed-count refusal; nothing for an Editor)",
+            "outcome": "passed",
+            "environment": "staff workflow audit chunk 2 branch claude/staff-audit-chunk-2, Help and controls review, 2026-11-13; privacy-safe static strings only",
+            "evidence": "source read during the Help V6.0 content update"
+          },
+          {
+            "test": "tests/unit/s285-owner-wording-publication.test.tsx",
+            "outcome": "passed",
+            "environment": "native WSL lane mirror of the chunk 2 worktree, vitest, 2026-11-13; 4 tests",
+            "evidence": "private scratchpad log help-run2.log"
+          }
+        ],
+        "plannedChecks": [],
+        "compiledCoverage": "Mounted unit coverage of the count, publish and keep paths and the Editor view; the W12-13 rehearsal journey covers it in a browser separately.",
+        "ownerUnitFilesPassed": ["tests/unit/s285-owner-wording-publication.test.tsx"]
+      },
+      {
+        "owner": "components/lease-renewal/RenewalSourceUpdatesList.tsx",
+        "cohort": "renewals",
+        "kind": "asynchronous",
+        "lifetime": "shared finite wait or owning operation",
+        "ownerTests": ["tests/unit/s278-source-updates-list-ui.test.tsx"],
+        "inspected": true,
+        "checks": [
+          {
+            "test": "Current owning source inspection: components/lease-renewal/RenewalSourceUpdatesList.tsx (S278 R-S278-3/4: Source updates (N pending), one row per update with its basis and state, Prepare and review, Review all N Sheet updates, the open-update wait and the paused state)",
+            "outcome": "passed",
+            "environment": "staff workflow audit chunk 2 branch claude/staff-audit-chunk-2, Help and controls review, 2026-11-13; privacy-safe static strings only",
+            "evidence": "source read during the Help V6.0 content update"
+          },
+          {
+            "test": "tests/unit/s278-source-updates-list-ui.test.tsx",
+            "outcome": "passed",
+            "environment": "native WSL lane mirror of the chunk 2 worktree, vitest, 2026-11-13; 5 tests",
+            "evidence": "private scratchpad log help-run2.log"
+          }
+        ],
+        "plannedChecks": [],
+        "compiledCoverage": "Mounted unit coverage of the list, Review all and the focus move; the W12-07 rehearsal journey covers it in a browser separately.",
+        "ownerUnitFilesPassed": ["tests/unit/s278-source-updates-list-ui.test.tsx"]
       }
     ],
     "cohorts": [

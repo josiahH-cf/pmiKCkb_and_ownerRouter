@@ -136,6 +136,10 @@ describe("AC-S262-1 Record the owner's answer from the linked reply", () => {
     expect(amount).toHaveValue("");
     expect(before(outcome, amount)).toBe(true);
     expect(before(amount, party)).toBe(true);
+    // Rewritten on purpose for S285 R-S285-4: Base rent only is no longer the default in every
+    // case. It is the coverage the form opens on here because no confirmed owner message stated a
+    // term (these choices carry none) and no dates are saved.
+    expect(CHOICES.ownerMessageTerm ?? null).toBeNull();
     expect(screen.getByRole("radio", { name: "Base rent only" })).toBeChecked();
     // No saved dates: the answer cannot claim to cover them.
     expect(

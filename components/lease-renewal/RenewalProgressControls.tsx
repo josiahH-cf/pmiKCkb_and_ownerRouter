@@ -35,6 +35,7 @@ import {
   type StartingRange,
 } from "@/lib/lease-renewal/market-starting-range";
 import type { MarketSubjectProjection } from "@/lib/lease-renewal/market-subject";
+import { KICKOFF_FIX_TARGETS } from "@/lib/lease-renewal/renewal-preparation";
 import {
   buildRentcastMarketReportLink,
   buildRentcastPropertyReportLink,
@@ -459,13 +460,14 @@ export function OwnerDecisionForm({
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
 
+  const rangeLowId = useId();
   const id = {
     decision: useId(),
     rent: useId(),
     form: useId(),
     rbp: useId(),
     insurance: useId(),
-    rangeLow: useId(),
+    rangeLow: preparing ? KICKOFF_FIX_TARGETS.comparison : rangeLowId,
     rangeHigh: useId(),
     pmiNumber: useId(),
     screenshot: useId(),

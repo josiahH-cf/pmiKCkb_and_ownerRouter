@@ -8,6 +8,7 @@ import {
 import { CommunicationScheduleSchema } from "./schedule-calendar";
 import { sequenceHash } from "./sequence-store";
 import { ReviewedInputsSchema } from "./reviewed-inputs";
+import type { NewerSend } from "./current-message";
 import { EditableLayerError } from "@/lib/firestore/errors";
 
 const identity = {
@@ -57,6 +58,12 @@ export type SequenceAttemptsRead =
 export function sequenceResponse(
   sequence: CommunicationSequence,
   attempts?: SequenceAttemptsRead,
+  /**
+   * S272 R-S272-4/R-S272-5: the newer confirmed send that stops this communication's current
+   * authorization (null when none), so Communications offers only the actions that can succeed.
+   * Omitted when it was not read.
+   */
+  standing?: { newerSend: NewerSend | null },
 ) {
   return NextResponse.json(
     {
@@ -65,6 +72,7 @@ export function sequenceResponse(
         initial: sequence.initial,
         followUp: sequence.followUp,
       }),
+      ...(standing ? { newerSend: standing.newerSend } : {}),
       // A failed attempt read is stated, so a client never presents its last list as current.
       ...(attempts === "unavailable"
         ? { attemptsUnavailable: true }

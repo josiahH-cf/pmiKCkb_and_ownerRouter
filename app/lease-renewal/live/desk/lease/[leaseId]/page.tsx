@@ -17,8 +17,10 @@ import {
   listLeaseOwnerReplies,
   listLeaseTenantReplies,
 } from "@/lib/gmail-hub/sequence-store";
+import { listOwnerAnswerChoices } from "@/lib/gmail-hub/owner-answer-choices";
 import { readLeaseOutreachEvidence } from "@/lib/firestore/renewal-outreach-records";
 import { UNREADABLE_OUTREACH_EVIDENCE_INPUT } from "@/lib/lease-renewal/outreach-evidence";
+import { withLeaseCurrentMessageBases } from "@/lib/lease-renewal/unsent-message-read";
 import { readKickoffSupport } from "@/lib/lease-renewal/kickoff-support";
 import {
   UNREAD_KICKOFF_SUPPORT,
@@ -227,7 +229,11 @@ export default async function LiveRenewalLeaseWorkspacePage({
   // with the same bounded wait.
   const outreachEvidencePromise = withReadDeadline(() =>
     readLeaseOutreachEvidence(leaseId),
-  ).catch(() => null);
+  )
+    // S273 R-S273-2: for a scheduled or held message, the lease's current values, so the step
+    // shows it out of date on this read, before any worker run. A late or failed read adds nothing.
+    .then((evidence) => withLeaseCurrentMessageBases(user, leaseId, evidence))
+    .catch(() => null);
   // S249: the same preparation read the desk makes, for this one lease, with the same wait.
   const kickoffSupportPromise = withReadDeadline(() =>
     readKickoffSupport(user, [leaseId]),
@@ -432,25 +438,43 @@ export default async function LiveRenewalLeaseWorkspacePage({
   // representative, and may cite a reply from this lease's own owner thread. The server checks
   // both again when the approval is recorded; an unreadable roster records nothing.
   const ownerViews =
-    leaseSnapshotAttempt?.status === "available"
+    leaseSnapshotAttempt?.status === "available" &&
+    leaseSnapshotAttempt.value.currency.state !== "expired" &&
+    !leaseSnapshotAttempt.value.currency.lastError
       ? leaseSnapshotAttempt.value.snapshot.views.filter(
           (v) => leaseViewId(v) === leaseId,
         )
       : [];
-  const ownerRoster =
-    ownerViews.length === 1
-      ? projectRenewalDeskIdentity(ownerViews[0]).owners.map(({ label, sourceRef }) => ({
+  const ownerParties =
+    ownerViews.length === 1 ? projectRenewalDeskIdentity(ownerViews[0]).owners : null;
+  const ownerRoster = ownerParties
+    ? ownerParties.map(({ label, sourceRef }) => ({ label, sourceRef }))
+    : null;
+  // S285 R-S285-4 / R-S285-5 (ARCH-S285-3): the replies, each with the one roster owner it came
+  // from when that is certain, and the term the cycle's latest confirmed owner message stated. The
+  // match is made here on the server; only the roster entry reaches the page, never an address.
+  const ownerAnswerChoices = await listOwnerAnswerChoices({
+    leaseId,
+    cycleId: renewalAuxiliaryValue(manualRead, null)?.cycleId ?? null,
+    roster: ownerParties
+      ? ownerParties.map(({ label, sourceRef, email }) => ({
           label,
           sourceRef,
+          email: email?.label ?? null,
         }))
-      : null;
+      : null,
+  }).catch(async () => ({
+    replies: await listLeaseOwnerReplies(leaseId).catch(() => []),
+    ownerMessageTerm: null,
+  }));
   const ownerApprovalChoices: OwnerApprovalChoices = {
     roster: ownerRoster,
-    replies: await listLeaseOwnerReplies(leaseId).catch(() => []),
+    replies: ownerAnswerChoices.replies,
     // S275 R-S275-4: a tenant reply is an evidence choice for the tenant's answer, as an owner's is.
     tenantReplies: await listLeaseTenantReplies(leaseId).catch(() => []),
     // PR #162 review: an owner choice is sent back with the roster it was made from.
     rosterFingerprint: ownerRoster ? ownerRosterFingerprint(ownerRoster) : null,
+    ownerMessageTerm: ownerAnswerChoices.ownerMessageTerm,
   };
   const policy = renewalAuxiliaryValue(policyRead, {
     state: "unreadable" as const,
@@ -712,6 +736,51 @@ export default async function LiveRenewalLeaseWorkspacePage({
             attemptSummary={attemptSummary}
             auxiliaryFailures={auxiliaryFailures}
             finishUpPreparation={finishUpPreparation}
+            sourceUpdatesPage={
+              // S278 R-S278-3: the Sheet row read and the lease's open Sheet proposal for
+              // Finish up's one list of source updates. Read only.
+              {
+                sheetValues:
+                  sheetFieldsRead.status === "available"
+                    ? (sheetFields?.row?.fieldValues ?? null)
+                    : null,
+                ...(sheetProposalRead.status === "available"
+                  ? {
+                      openSheetProposal: sheetProposal
+                        ? {
+                            previewHash: sheetProposal.previewHash,
+                            fields: sheetProposal.effects.flatMap((entry) =>
+                              entry.effect.kind === "field_update"
+                                ? [entry.effect.field]
+                                : [],
+                            ),
+                            // S278 R-S278-5: a combined run that stopped never resumes,
+                            // so its unattempted cells wait for a fresh preview.
+                            settled:
+                              sheetEffects !== null &&
+                              (sheetEffects.every((entry) =>
+                                ["succeeded", "failed"].includes(entry.state),
+                              ) ||
+                                (sheetEffects.length > 1 &&
+                                  sheetEffects.some((entry) =>
+                                    ["succeeded", "failed"].includes(entry.state),
+                                  ) &&
+                                  sheetEffects.every(
+                                    (entry) =>
+                                      !["running", "ambiguous"].includes(entry.state),
+                                  ))),
+                            failed: (sheetEffects ?? []).flatMap((entry) =>
+                              entry.state === "failed" &&
+                              typeof entry.effect.field === "string"
+                                ? [entry.effect.field]
+                                : [],
+                            ),
+                          }
+                        : null,
+                    }
+                  : {}),
+              }
+            }
             tenantAcceptance={tenantAcceptance}
             sheetWritebackPaused={isOperatingSheetWritebackPaused()}
             policyMaterial={policyMaterial}

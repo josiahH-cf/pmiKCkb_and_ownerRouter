@@ -13,6 +13,8 @@ import {
 } from "@/lib/gmail-hub/sequence-dependencies";
 import { WorkflowCommunicationContextSchema } from "@/lib/gmail-hub/workflow-context";
 import { gmailHubErrorResponse, readAllowedQuery } from "@/lib/gmail-hub/http";
+import { readTenantFollowUpStart } from "@/lib/lease-renewal/follow-up-start";
+import type { FollowUpFacts } from "@/lib/lease-renewal/follow-up-copy";
 
 async function handleGet(request: Request) {
   try {
@@ -65,12 +67,23 @@ async function handleGet(request: Request) {
         : "gmail.maintenance_owner_notice.send",
       sourceRefs: lease ? [`rentvine:lease:${lease}`] : [],
     });
-    const result = await operationStage("prepare", () =>
+    const { followUpFacts, ...result } = (await operationStage("prepare", () =>
       prepareWorkflowComposition(actor, context),
-    );
+    )) as Awaited<ReturnType<typeof prepareWorkflowComposition>> & {
+      followUpFacts?: FollowUpFacts;
+    };
+    // S276 R-S276-7 / R-S276-8: what the tenant offer review's follow-up form opens with. Form
+    // state only; a failed read leaves the form with its built-in timing and a blank message.
+    const followUp =
+      purpose === "renewal_tenant" && lease
+        ? await readTenantFollowUpStart(actor, lease, followUpFacts ?? null).catch(
+            () => null,
+          )
+        : undefined;
     return NextResponse.json(
       {
         ...result,
+        ...(followUp !== undefined ? { followUp } : {}),
         context,
         reviewedTargetHash: reviewedCommunicationTargetHash(result.target),
       },

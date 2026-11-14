@@ -28,6 +28,7 @@ import {
 import {
   INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER,
   INDEPENDENT_ONE_STATUS_CONTRACT_MARKER,
+  INDEPENDENT_RENTVINE_BASIS_CONTRACT_MARKER,
   INDEPENDENT_STAFF_LANE_CONTRACT_MARKER,
   INDEPENDENT_VARIANTS_CONTRACT_MARKER,
   PRODUCTION_RECONCILIATION_DESK_VIEW,
@@ -497,7 +498,7 @@ describe("S156 oracle: the contract marker selects exactly one rule set", () => 
     // S250/S251: this checkout renders the variants marker; S248's stays recognised for an
     // earlier serving revision.
     expect(INDEPENDENT_VARIANTS_CONTRACT_MARKER).toBe("s251-variants");
-    expect(INDEPENDENT_VARIANTS_CONTRACT_MARKER).toBe(DESK_GUIDANCE_CONTRACT);
+    expect(INDEPENDENT_RENTVINE_BASIS_CONTRACT_MARKER).toBe(DESK_GUIDANCE_CONTRACT);
     expect(resolveIndependentGuidanceContract(INDEPENDENT_VARIANTS_CONTRACT_MARKER)).toBe(
       "staff_lane",
     );
@@ -1030,7 +1031,7 @@ describe("S156 oracle: the independent rules equal the rules the application ren
           "destination" in rendered.action ? rendered.action.destination : null;
         // S248: the rendered marker was the evidence-stage contract. S250/S251: this checkout
         // renders the variants contract, which reads the same rules with the variant facts.
-        expect(rendered.contract).toBe(INDEPENDENT_VARIANTS_CONTRACT_MARKER);
+        expect(rendered.contract).toBe(INDEPENDENT_RENTVINE_BASIS_CONTRACT_MARKER);
         expect(rendered.blockers).toEqual([]);
         expect(expected.markerMismatches).toBe(0);
         expect(expected.overallStatus).toBe(rendered.overallStatus);
@@ -1148,6 +1149,47 @@ describe("S156 oracle: the independent work-record read", () => {
       expect([...(facts.manualByLease?.keys() ?? [])].sort()).toEqual(["703", "706"]);
       expect(facts.staffLaneManualByLease).toBeNull();
     }
+  });
+
+  it("reads an exact S282 Include even when outreach or lease-bound reads fail", async () => {
+    const endDateIso = "2026-12-15";
+    const include: RenewalWorkspaceState = {
+      ...STATE_703,
+      endDateReviews: [
+        {
+          cycleId: STATE_703.cycleId,
+          eventId: META.eventId,
+          actorUid: META.actorUid,
+          actorLabel: "Synthetic staff",
+          recordedAt: META.recordedAt,
+          decision: "include",
+          reason: "Synthetic review",
+          endDateIso,
+        },
+      ],
+    };
+    const facts = await readIndependentDecisionFacts(
+      firestore(
+        {
+          ...base,
+          [RENEWAL_WORKSPACE_COLLECTIONS.head]: [{ id: docId("703"), data: include }],
+        },
+        ["gmail_communication_sequences", RENEWAL_WORKSPACE_COLLECTIONS.leaseBoundHead],
+      ),
+    );
+    const index = BASE_ROWS.findIndex((row) => row.leaseId === "703");
+    const rows = buildExpectedProjectionRows(
+      [{ ...BASE_ROWS[index]!, endDate: endDateIso }],
+      [RENTVINE_ROWS[index]!],
+      SHEET,
+      facts,
+      REFERENCE_DATE,
+      LEASE_DETAILS,
+      "staff_lane",
+      true,
+    );
+    expect(facts.variantInputs).toBeNull();
+    expect(rows[0]?.dispositionExpected).toBe("actionable");
   });
 
   it("still refuses an invalid dated record for both rule sets", async () => {

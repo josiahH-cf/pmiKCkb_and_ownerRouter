@@ -1,5 +1,6 @@
 import { LEASE_ARTIFACT_FAMILIES } from "@/lib/lease-documents/artifact-catalog";
 import { FAMILY_USE_LABELS } from "@/lib/lease-documents/family-use";
+import { FORM_USE_NEEDS_VERIFICATION_LABEL } from "@/lib/lease-documents/lease-packet-readiness";
 import type { FormFamilyUse } from "@/lib/lease-documents/packet-types";
 import type { ArtifactIntakeManifest } from "@/lib/lease-documents/artifact-intake-contract";
 import {
@@ -39,7 +40,8 @@ export function projectTemplateProcessReadiness(input: {
       applicabilitySource: !input.familyUse.readable
         ? "Unknown"
         : use?.source.system === "engineering_default"
-          ? "Engineering default, not yet approved by the client"
+          ? // S283 R-S283-7: a default reads Needs Verification; it still is not policy.
+            FORM_USE_NEEDS_VERIFICATION_LABEL
           : "Recorded configuration",
       sourceUrl: usableRenewalResourceUrl(source),
       sourceState:

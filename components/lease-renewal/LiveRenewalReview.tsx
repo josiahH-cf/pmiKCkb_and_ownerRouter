@@ -28,6 +28,7 @@ import type { RenewalFlagView, RenewalRunView } from "@/lib/lease-renewal/run-vi
 import { RenewalReviewMode } from "@/components/lease-renewal/RenewalReviewMode";
 import { buildPropertyHistoryHref } from "@/lib/lease-renewal/property-history-link";
 import { liveRenewalReviewItemId } from "@/lib/lease-renewal/live-review-destination";
+import { SOURCE_DIFFERENCE_WORDS } from "@/lib/lease-renewal/source-difference-rule";
 
 // Humanize the reconciliation agreement label into the operator's language.
 const AGREEMENT_LABEL: Record<string, string> = {
@@ -57,13 +58,17 @@ export function LiveRenewalReview({
   resolutionsError: boolean;
 }>) {
   const decisionReady = meta.currencyState === "fresh" && !resolutionsError;
+  // S280 R-S280-6: RentVine and operating Sheet differences in rent or lease dates are information.
+  const information = view.information ?? [];
   const comparison = (
     <>
       {view.groups.length === 0 ? (
         <EmptyState
           description={
             decisionReady
-              ? "Every reconciled field agrees across sources. Nothing needs a decision right now."
+              ? information.length > 0
+                ? "Nothing needs a decision right now. The differences below are information."
+                : "Every reconciled field agrees across sources. Nothing needs a decision right now."
               : "The retained comparison has no rows. Refresh its source and saved decisions before current work can be established."
           }
           title={decisionReady ? "No open items" : "Retained comparison"}
@@ -92,6 +97,34 @@ export function LiveRenewalReview({
           </section>
         ))
       )}
+      {information.length > 0 ? (
+        <section
+          aria-label={SOURCE_DIFFERENCE_WORDS.groupLabel}
+          className="ui-stack-tight"
+          data-group="information"
+        >
+          <h2 className="section-subtitle">{SOURCE_DIFFERENCE_WORDS.groupLabel}</h2>
+          <p className="muted">{SOURCE_DIFFERENCE_WORDS.groupIntro}</p>
+          <ul className="ui-rows">
+            {information.map((row) => (
+              <li
+                className="lr-flag-card"
+                data-field={row.fieldKey}
+                id={liveRenewalReviewItemId(row.key) ?? undefined}
+                key={row.key}
+                tabIndex={-1}
+              >
+                <p>{row.line}</p>
+                {row.sheetUpdateHref ? (
+                  <Link className="text-link" href={row.sheetUpdateHref}>
+                    {SOURCE_DIFFERENCE_WORDS.sheetUpdateLink}
+                  </Link>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </>
   );
   return (
@@ -188,7 +221,10 @@ function LiveFlagCard({
       tabIndex={-1}
     >
       <header className="lr-flag-head">
-        <strong>{flag.fieldLabel}</strong>
+        {/* S280 R-S280-3: every item names its lease. */}
+        <strong>
+          {flag.leaseLabel ? `${flag.leaseLabel}: ${flag.fieldLabel}` : flag.fieldLabel}
+        </strong>
         <StatusPill value={flag.severity} />
         <span className="muted">{humanizeAgreement(flag.agreement)}</span>
       </header>

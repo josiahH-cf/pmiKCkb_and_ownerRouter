@@ -25,25 +25,27 @@ const schedule = {
   sendLimit: 3,
 };
 
+// S283 R-S283-1: the expected strings move to the settled shapes of lib/date-display.ts
+// ("MM/DD/YYYY, h:mm AM CDT"), rewritten on purpose; every instant still names its zone.
 describe("S233 named-zone display and clock-change disclosure (R-S233-6)", () => {
   it("shows every instant with its zone", () => {
     expect(
       formatZonedInstant(Date.parse("2026-11-01T06:30:00.000Z"), "America/Chicago"),
-    ).toBe("Nov 1, 2026, 1:30 AM CDT");
+    ).toBe("11/01/2026, 1:30 AM CDT");
     expect(
       formatZonedInstant(Date.parse("2026-11-01T07:30:00.000Z"), "America/Chicago"),
-    ).toBe("Nov 1, 2026, 1:30 AM CST");
+    ).toBe("11/01/2026, 1:30 AM CST");
   });
 
   it("states the repeated 1:30 AM on Nov 1, 2026 uses the first one (CDT)", () => {
     expect(describeWallTimeAdjustment("2026-11-01", "01:30", "America/Chicago")).toBe(
-      "Nov 1, 2026, 1:30 AM happens twice in America/Chicago when clocks fall back; this schedule uses the first one, Nov 1, 2026, 1:30 AM CDT.",
+      "11/01/2026, 1:30 AM happens twice in America/Chicago when clocks fall back; this schedule uses the first one, 11/01/2026, 1:30 AM CDT.",
     );
   });
 
   it("states a skipped spring-forward time moves to the next valid minute", () => {
     expect(describeWallTimeAdjustment("2027-03-14", "02:30", "America/Chicago")).toBe(
-      "Mar 14, 2027, 2:30 AM does not occur in America/Chicago when clocks spring forward; the message is scheduled for Mar 14, 2027, 3:00 AM CDT.",
+      "03/14/2027, 2:30 AM does not occur in America/Chicago when clocks spring forward; the message is scheduled for 03/14/2027, 3:00 AM CDT.",
     );
   });
 
@@ -60,10 +62,10 @@ describe("S233 past-due visibility and Resume disclosure (R-S233-5/7)", () => {
   it("names the next due time in the sequence's zone and a past-due lag", () => {
     expect(
       describeNextDue(Date.parse("2026-11-02T16:00:00.000Z"), "America/Chicago", now),
-    ).toBe("Next: Nov 2, 2026, 10:00 AM CST");
+    ).toBe("Next: 11/02/2026, 10:00 AM CST");
     expect(
       describeNextDue(Date.parse("2026-11-02T15:30:00.000Z"), "America/Chicago", now),
-    ).toBe("Due Nov 2, 2026, 9:30 AM CST; not yet sent (12 min late)");
+    ).toBe("Due 11/02/2026, 9:30 AM CST; not yet sent (12 min late)");
   });
 
   it("discloses that a paused sequence sends on the next worker run with its remaining limit", () => {
@@ -85,7 +87,7 @@ describe("S233 past-due visibility and Resume disclosure (R-S233-5/7)", () => {
         now,
       ),
     ).toBe(
-      "If resumed, the next message is due Nov 6, 2026, 9:30 AM CST; no send limit is set. To send at a different time, edit the message and use Schedule instead.",
+      "If resumed, the next message is due 11/06/2026, 9:30 AM CST; no send limit is set. To send at a different time, edit the message and use Schedule instead.",
     );
     expect(
       describeResumeTiming(

@@ -118,6 +118,22 @@ describe("S254 comparison stand-in (L33)", () => {
     );
   });
 
+  it("answers the parameterless key check without counting a lease comparison", async () => {
+    const before = standIns.describe().comparison.requests;
+    const response = await fetch(`${standIns.origin}/rentcast/v1/avm/rent/long-term`);
+    expect(response.status).toBe(400);
+    expect(standIns.describe().comparison.requests).toEqual(before);
+    const events = readFileSync(join(logDir, "stand-ins.jsonl"), "utf8")
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line) as Record<string, unknown>);
+    expect(events.at(-1)).toMatchObject({
+      standIn: "comparison",
+      kind: "health_probe",
+      status: 400,
+    });
+  });
+
   it("answers the market trend read", async () => {
     const trend = await provider().lookupTrend("00101");
     expect(trend.confidence).toBe("Likely");
@@ -173,6 +189,29 @@ describe("S254 mail stand-in (L25, L27, L29, L36 to L38, L40)", () => {
       rfcMessageId: outgoing.messageId,
     });
     expect(kept.from).toContain(MAILBOX);
+  });
+
+  it("holds exactly one synthetic send before acceptance until released (W12-05)", async () => {
+    const outgoing = message();
+    expect(await control("hold-mail-send")).toMatchObject({
+      status: 200,
+      body: { armed: true },
+    });
+    const sending = client().sendWorkflowMessage(outgoing);
+    try {
+      await expect.poll(() => standIns.describe().mail.sendHeld).toBe(true);
+      expect(standIns.describe().mail.mailboxes[0]?.messages).not.toContainEqual(
+        expect.objectContaining({ rfcMessageId: outgoing.messageId }),
+      );
+    } finally {
+      expect(await control("release-mail-send")).toMatchObject({
+        status: 200,
+        body: { released: true },
+      });
+      await sending;
+    }
+    expect(standIns.describe().mail.sendHeld).toBe(false);
+    expect((await sending).messageId).toBeDefined();
   });
 
   it("delivers an owner reply on the thread, read as a person's reply (L36)", async () => {

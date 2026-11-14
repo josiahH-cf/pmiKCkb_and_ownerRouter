@@ -47,8 +47,27 @@ import type { SheetWritebackEffectStatusView } from "@/lib/lease-renewal/sheet-w
 import { hasRenewalRoleAuthority } from "@/lib/lease-renewal/role-action-governance";
 import { parseSheetCell } from "@/lib/lease-renewal/sheet-lookup";
 import { workingCurrentRent } from "@/lib/lease-renewal/working-record";
+import {
+  SHEET_SET_WORDS,
+  sheetFieldLabel,
+} from "@/lib/lease-renewal/sheet-writeback/set-words";
+import {
+  FROM_WORKING_TERMS,
+  focusPrefilledInput,
+  useSourceFormPrefill,
+} from "@/components/lease-renewal/sourceFormPrefill";
 
 export type SheetWritebackEffectStatus = SheetWritebackEffectStatusView;
+
+/** S278 R-S278-5: one cell's outcome of a combined confirmation, as the route returns it. */
+interface SheetSetCellView {
+  readonly effect_hash: string;
+  readonly field: string;
+  readonly label: string;
+  readonly state: "done" | "failed" | "unattempted";
+  readonly receipt?: { readonly provider_ref: string; readonly created_at: string };
+  readonly error?: string;
+}
 
 interface ReversalPreview {
   reversalExecutionId: string;
@@ -225,6 +244,30 @@ export function OperatingSheetPanel({
     sheetEditorValue(field, initialFieldValues[field] ?? ""),
   );
   const [source, setSource] = useState("");
+  // S278 R-S278-2: the value a Finish up preview filled in, marked until staff change it.
+  const [prefilled, setPrefilled] = useState<{
+    field: SheetEditableField;
+    value: string;
+  } | null>(null);
+  const [focusValue, setFocusValue] = useState(0);
+  const valueInputRef = useRef<HTMLInputElement>(null);
+  useSourceFormPrefill("sheet_field", (request) => {
+    if (request.form !== "sheet_field" || request.field === "current_rent") return;
+    setField(request.field);
+    setValue(request.value);
+    setPrefilled({ field: request.field, value: request.value });
+    setFocusValue((count) => count + 1);
+  });
+  useEffect(() => {
+    if (focusValue > 0) focusPrefilledInput(valueInputRef.current);
+  }, [focusValue]);
+  const prefilledShown =
+    prefilled !== null && prefilled.field === field && prefilled.value === value;
+  // S278 R-S278-4/5: the outcome of the one confirmation of a lease row's listed cells.
+  const [setRun, setSetRun] = useState<{
+    readonly summary: readonly string[];
+    readonly results: readonly SheetSetCellView[];
+  } | null>(null);
   const shape = sheetFieldShape(field);
   const [effects, setEffects] = useState<SheetWritebackEffectStatus[] | null>(
     initialEffects,
@@ -387,8 +430,28 @@ export function OperatingSheetPanel({
     });
     setProposal(null);
     setEffects(null);
+    setSetRun(null);
 
     setNotice("Proposal discarded. Provider receipts, if any, remain on record.");
+    // S278 R-S278-3: the Finish up list reads the open proposal from the page.
+    router.refresh();
+  }
+
+  // S278 R-S278-4: the one confirmation of a lease row's listed cells, in their previewed order.
+  async function executeSet() {
+    if (!proposal) return;
+    const payload = await postSheet(workspaceContext, {
+      operation: "execute_set",
+      previewHash: proposal.preview_hash,
+      effectHashes: proposal.effects.map((effect) => effect.effect_hash),
+      confirm: true,
+    });
+    const results = (payload.results as SheetSetCellView[] | undefined) ?? [];
+    const summary = (payload.summary as string[] | undefined) ?? [];
+    setSetRun({ summary, results });
+    setNotice(summary.join(" "));
+    await refreshStatus();
+    router.refresh();
   }
 
   async function executeEffect(effect: SheetWritebackClientEffect) {
@@ -460,6 +523,23 @@ export function OperatingSheetPanel({
     proposal !== null &&
     (effects === null ||
       effects.some((entry) => ["running", "ambiguous"].includes(entry.state)));
+  // S278 R-S278-4: a proposal holding a lease row's listed cells has one confirmation.
+  const combined = proposal !== null && proposal.effects.length > 1;
+  const setConfirmable =
+    proposal !== null &&
+    combined &&
+    effects !== null &&
+    !expired &&
+    !proposal.requires_fresh_review &&
+    !paused &&
+    proposal.effects.every((effect) => {
+      const status = statusByHash.get(effect.effect_hash);
+      return (
+        status?.state === "not_started" &&
+        status.effect_executable !== false &&
+        !heldForAcceptance(effect)
+      );
+    });
 
   return (
     <article aria-labelledby="operating-sheet-title" className="panel ui-stack">
@@ -494,6 +574,55 @@ export function OperatingSheetPanel({
               This proposal belongs to an earlier release or pause. Review the current
               target and prepare a new proposal before confirming.
             </p>
+          ) : null}
+          {combined ? (
+            // S278 R-S278-4: one exact preview lists every cell of the lease's one row: the
+            // field, its column, the value read from the Sheet now, the new value and its basis.
+            <section
+              aria-label={SHEET_SET_WORDS.heading(proposal.effects.length)}
+              className="ui-stack-tight"
+              data-renewal-sheet-set={proposal.effects.length}
+            >
+              <h3>{SHEET_SET_WORDS.heading(proposal.effects.length)}</h3>
+              <p className="muted">{SHEET_SET_WORDS.intro}</p>
+              {/* S165: the table scrolls inside itself on a phone, never the page. */}
+              <div className="table-scroll">
+                <table className="renewal-sheet-set-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Field</th>
+                      <th scope="col">Column</th>
+                      <th scope="col">In the Sheet now</th>
+                      <th scope="col">New value</th>
+                      <th scope="col">Basis</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {proposal.effects.map((effect) => {
+                      const fieldKey = String(effect.effect.field ?? "");
+                      const cell = previewLocation(effect).cell;
+                      const column = cell ? (/^[A-Z]+/.exec(cell)?.[0] ?? null) : null;
+                      return (
+                        <tr
+                          data-renewal-sheet-set-cell={fieldKey}
+                          key={effect.effect_hash}
+                        >
+                          <th scope="row">{sheetFieldLabel(fieldKey)}</th>
+                          <td>
+                            {column
+                              ? `Column ${column} (cell ${cell})`
+                              : `Row ${String(effect.effect.rowNumber)}`}
+                          </td>
+                          <td>{String(effect.effect.expectedValue ?? "") || "Blank"}</td>
+                          <td>{String(effect.effect.afterValue ?? "")}</td>
+                          <td>{String(effect.effect.source ?? "")}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </section>
           ) : null}
           <ol className="ui-stack">
             {proposal.effects.map((effect) => {
@@ -556,7 +685,8 @@ export function OperatingSheetPanel({
                   ) : null}
                   {executor ? (
                     <div className="ui-actions">
-                      {state === "not_started" &&
+                      {!combined &&
+                      state === "not_started" &&
                       !expired &&
                       !proposal.requires_fresh_review &&
                       !paused &&
@@ -628,6 +758,22 @@ export function OperatingSheetPanel({
               );
             })}
           </ol>
+          {combined && executor && setConfirmable ? (
+            // S278 R-S278-4: the one confirmation; each cell keeps its own claim and receipt.
+            <p className="ui-actions">
+              <Button disabled={pending} onClick={() => void run(executeSet)}>
+                {SHEET_SET_WORDS.apply(proposal.effects.length)}
+              </Button>
+            </p>
+          ) : null}
+          {combined && setRun ? (
+            // S278 R-S278-5: what was written, where the run stopped and what was not attempted.
+            <div className="ui-stack-tight" data-renewal-sheet-set-outcome role="status">
+              {setRun.summary.map((line) => (
+                <p key={line}>{line}</p>
+              ))}
+            </div>
+          ) : null}
           {effects === null ? (
             <Button
               disabled={pending || statusPending}
@@ -795,7 +941,12 @@ export function OperatingSheetPanel({
                   </div>
                 ) : (
                   <>
-                    <Field label="New value" htmlFor="sheet-field-value" required>
+                    <Field
+                      label="New value"
+                      htmlFor="sheet-field-value"
+                      required
+                      hint={prefilledShown ? FROM_WORKING_TERMS : undefined}
+                    >
                       {shape === "yes_no" || shape === "boolean" ? (
                         <select
                           id="sheet-field-value"
@@ -810,6 +961,10 @@ export function OperatingSheetPanel({
                       ) : (
                         <input
                           id="sheet-field-value"
+                          ref={valueInputRef}
+                          data-renewal-prefilled={
+                            prefilledShown ? "working-terms" : undefined
+                          }
                           type={
                             shape === "date"
                               ? "date"

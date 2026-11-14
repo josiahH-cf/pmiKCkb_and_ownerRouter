@@ -67,6 +67,13 @@ import {
 import type { WorkflowCommunicationContext } from "./workflow-context";
 import { replyCheckable, type ReplyWatchEndReason } from "./reply-watch";
 import {
+  TENANT_RESPONSE_PAUSE_CAUSE,
+  tenantReminderScope,
+  tenantResponseHolds,
+  tenantResponsePause,
+  type RecordedTenantResponse,
+} from "./tenant-response-hold";
+import {
   authorizedOccurrenceBasis,
   projectTenantResourceInclusion,
   tenantResourceEffectVerdict,
@@ -75,18 +82,35 @@ import {
 } from "@/lib/lease-renewal/tenant-resource-inclusion";
 import type { TenantResourceId } from "@/lib/lease-renewal/tenant-resource-evidence";
 import {
+  appendUnsentHistory,
+  unsentAttemptOnResume,
+  unsentAttemptOnSave,
+} from "@/lib/lease-renewal/unsent-message";
+import {
   CommunicationTargetChangedError,
   LEASE_READ_REREAD_WAITS_MS,
   LeaseReadNotSettledError,
+  OWNER_WORDING_UPDATED_INPUT,
   changedReviewedInputs,
   type ChangedInput,
   type LeaseReadUnsettledReason,
   type ReviewedInput,
 } from "./reviewed-inputs";
+import {
+  CommunicationSequenceRefusedError,
+  contentDigestFor,
+  currentMessageRefusal,
+  isCurrentMessageScope,
+  newerInitialSend,
+  wordingPredatesChange,
+  type NewerSend,
+  type SequenceRefusal,
+} from "./current-message";
 
 /** S274: how a target is read. `settle` reads the lease as an approval read (it joins a read in flight). */
 export interface ResolveTargetOptions {
   readonly settle?: boolean;
+  readonly compareOnly?: boolean;
 }
 
 /** S274 ARCH-S274-1: one target resolution, settled or not, as a typed result. */
@@ -170,7 +194,10 @@ export interface SequenceMailClient {
   subject: string;
   getProfile(): Promise<GmailProfile>;
   getThread(id: string): Promise<GmailThreadView>;
-  sendWorkflowMessage(message: WorkflowMimeMessage): Promise<GmailSendResult>;
+  sendWorkflowMessage(
+    message: WorkflowMimeMessage,
+    beforeTransport?: () => Promise<void>,
+  ): Promise<GmailSendResult>;
   findWorkflowMessage(
     rfcMessageId: string,
     expected: WorkflowMimeMessage,
@@ -222,6 +249,20 @@ export interface CommunicationSequenceDependencies {
     sequence: CommunicationSequence,
     nowMs: number,
   ): Promise<ReplyWatchEndReason | null>;
+  /**
+   * S276 R-S276-3 (ARCH-S276-2): the tenant response recorded on the message's lease (its current
+   * work record), or null when none is recorded. Read-only. Absent, dispatch reads no response and
+   * the claim transaction still applies the hold on the stored record.
+   */
+  readTenantResponse?(
+    sequence: CommunicationSequence,
+  ): Promise<RecordedTenantResponse | null>;
+  /**
+   * S273 R-S273-6: after the communication worker held a message, raise its one in-app notice for
+   * the responsible sender (deduplicated per sequence and pause; no body, no recipient address). It
+   * runs after the hold and never decides it: a failure here is swallowed.
+   */
+  recordHold?(sequence: CommunicationSequence): Promise<void>;
 }
 export function assertCommunicationStaff(
   actor: AuthenticatedUser,
@@ -277,6 +318,63 @@ export class WorkflowCommunicationSequenceService {
       waitsMs,
       this.deps.waitForLeaseRead ?? sleep,
     );
+  }
+  /**
+   * S272 R-S272-4: the newer confirmed initial send, by another communication for the same lease,
+   * cycle and audience, that stops this communication's current authorization; null when none (or
+   * when the store cannot list the lease's communications). Reads stored sequences only.
+   */
+  async newerSend(s: CommunicationSequence): Promise<NewerSend | null> {
+    if (
+      !s.authorization ||
+      !isCurrentMessageScope(s.context) ||
+      ["completed", "cancelled"].includes(s.state) ||
+      !this.deps.store.relatedRenewalSequences
+    )
+      return null;
+    return newerInitialSend(
+      s,
+      await this.deps.store.relatedRenewalSequences(s.context.entityId),
+    );
+  }
+  /**
+   * S272 (R-S272-2 to R-S272-4): the refusal a Resume, Send or Schedule of this communication meets
+   * on the settled target, before anything is observed, synced or written: an older authorization
+   * after a newer send, wording written before a content change, then another unsent initial
+   * message for the same lease, cycle and audience. The authorization transaction applies the same
+   * rules again on the record it reads.
+   */
+  private async currentMessageRefusalFor(
+    s: CommunicationSequence,
+    target: VerifiedCommunicationTarget,
+    draftHash: string,
+  ): Promise<SequenceRefusal | null> {
+    if (!isCurrentMessageScope(s.context)) return null;
+    const related = this.deps.store.relatedRenewalSequences
+      ? await this.deps.store.relatedRenewalSequences(s.context.entityId)
+      : [];
+    const newer = newerInitialSend(s, related);
+    const stale = newer
+      ? null
+      : wordingPredatesChange({
+          sequence: s,
+          draftHash,
+          contentBasis: target.contentBasis,
+          outgoingContract: target.outgoingContract,
+        });
+    if (stale) return stale;
+    return currentMessageRefusal({
+      subject: s,
+      next: {
+        ...(target.noticeCycleId !== undefined
+          ? { noticeCycleId: target.noticeCycleId }
+          : s.noticeCycleId !== undefined
+            ? { noticeCycleId: s.noticeCycleId }
+            : {}),
+        confirmedCount: s.confirmedCount,
+      },
+      related,
+    });
   }
   async list(actor: AuthenticatedUser, after: string | null = null) {
     assertCommunicationStaff(actor, "read");
@@ -476,6 +574,9 @@ export class WorkflowCommunicationSequenceService {
             "Keep this history and start a new communication.",
             409,
           );
+        // S273 R-S273-5: a save over unsent authorized work ends that attempt (scheduled or held,
+        // then updated); it stays listed, read only, beside the authorization.
+        const ended = unsentAttemptOnSave(current, nowMs);
         return {
           ...parsed,
           workflowLabel: current?.workflowLabel ?? admission!.label,
@@ -514,6 +615,32 @@ export class WorkflowCommunicationSequenceService {
           threads: current?.threads ?? [],
           observedMessageIds: current?.observedMessageIds ?? [],
           observation: current?.observation ?? null,
+          // S272: what is kept beside the authorization stays with it across a wording save (the
+          // notice cycle, the authorizing operation, the reviewed inputs and the content basis),
+          // and a save after an authorization records that the wording was edited or rebuilt since
+          // (R-S272-2: the existing one-action Update then applies).
+          ...(current?.noticeCycleId !== undefined
+            ? { noticeCycleId: current.noticeCycleId }
+            : {}),
+          ...(current?.authorizationOperation
+            ? { authorizationOperation: current.authorizationOperation }
+            : {}),
+          ...(current?.authorizedInputs
+            ? { authorizedInputs: current.authorizedInputs }
+            : {}),
+          ...(current?.authorizedContentBasis
+            ? { authorizedContentBasis: current.authorizedContentBasis }
+            : {}),
+          ...(current?.authorization
+            ? { wordingSavedAfterRevision: current.authorization.revision }
+            : current?.wordingSavedAfterRevision !== undefined
+              ? { wordingSavedAfterRevision: current.wordingSavedAfterRevision }
+              : {}),
+          ...(ended
+            ? { unsentHistory: appendUnsentHistory(current?.unsentHistory, ended) }
+            : current?.unsentHistory
+              ? { unsentHistory: current.unsentHistory }
+              : {}),
           lastOperation: { id: operationId, hash: operationHash },
         };
       },
@@ -585,6 +712,15 @@ export class WorkflowCommunicationSequenceService {
           target.reviewedInputs ?? null,
         ),
       );
+    // S272 R-S272-2 to R-S272-4: on the settled target and the stored sequences, before anything
+    // is observed, synced or written. A refusal dispatches nothing, writes nothing and names the
+    // fix; the authorization transaction applies the same rules again on the record it reads.
+    const currentMessage = await this.currentMessageRefusalFor(
+      s,
+      target,
+      input.reviewedDraftHash,
+    );
+    if (currentMessage) throw new CommunicationSequenceRefusedError(currentMessage);
     if (input.action === "resume" && (!s.authorization || s.state !== "paused"))
       throw new EditableLayerError(
         "Only a paused approved communication can resume.",
@@ -742,6 +878,8 @@ export class WorkflowCommunicationSequenceService {
         s.confirmedCount === 0 &&
         s.context.purpose === "renewal_tenant" &&
         !s.context.replyTo,
+      // S272 ARCH-S272-2: R-S272-3 and R-S272-4 run in this transaction on stored sequences.
+      currentMessage: true,
       apply: (current) => {
         const c = requireSequence(current);
         if (
@@ -754,8 +892,22 @@ export class WorkflowCommunicationSequenceService {
             "This communication changed; review the current version.",
             409,
           );
+        // S272 R-S272-2, on the record this transaction read.
+        const stale = wordingPredatesChange({
+          sequence: c,
+          draftHash: input.reviewedDraftHash,
+          contentBasis: target.contentBasis,
+          outgoingContract: target.outgoingContract,
+        });
+        if (stale) throw new CommunicationSequenceRefusedError(stale);
+        // S273 R-S273-5: a Resume ends the held attempt (held, then resumed), read only.
+        const resumed =
+          input.action === "resume" ? unsentAttemptOnResume(c, nowMs) : null;
         return {
           ...c,
+          ...(resumed
+            ? { unsentHistory: appendUnsentHistory(c.unsentHistory, resumed) }
+            : {}),
           version: input.expectedVersion + 1,
           state: "active",
           workflowLabel: target.label,
@@ -774,6 +926,24 @@ export class WorkflowCommunicationSequenceService {
                 authorizedInputs: {
                   revision: authorization.revision,
                   inputs: target.reviewedInputs,
+                },
+              }
+            : {}),
+          // S272 R-S272-1: the content basis this review was made on (its digest, with the same
+          // legacy or current choice dispatch makes, and the labelled values behind it) and the
+          // wording it authorized, kept beside the authorization; payload and replay binding are
+          // unchanged.
+          ...(target.contentBasis
+            ? {
+                authorizedContentBasis: {
+                  revision: authorization.revision,
+                  digest: contentDigestFor(
+                    authorization,
+                    target.contentBasis,
+                    target.outgoingContract,
+                  ),
+                  values: [...target.contentBasis.values],
+                  draftHash: input.reviewedDraftHash,
                 },
               }
             : {}),
@@ -925,6 +1095,13 @@ export class WorkflowCommunicationSequenceService {
             ...s.authorization.to,
             ...s.authorization.cc,
           ]);
+          // S285 R-S285-5: whether a person's reply came from an address the message was sent to.
+          // A yes or no only; the address itself is not kept.
+          const from = emailFrom(m.from);
+          const fromSentTo =
+            classification === "human" && from
+              ? s.authorization.to.some((address) => address.toLowerCase() === from)
+              : undefined;
           // S233 R-S233-1/R-S233-2: evidence only; a report names its attempt when one is clear.
           messages.push({
             id: `${mailboxKey}:${m.id}`,
@@ -933,6 +1110,7 @@ export class WorkflowCommunicationSequenceService {
             messageId: m.id,
             kind: classification,
             receivedAtMs,
+            ...(fromSentTo === undefined ? {} : { fromSentTo }),
             ...(classification === "bounce"
               ? {
                   attemptOccurrenceId: correlateBounceAttempt(
@@ -1013,14 +1191,14 @@ export class WorkflowCommunicationSequenceService {
    */
   async observeMailbox(
     actor: AuthenticatedUser,
-    options: { readonly skip?: ReadonlySet<string>; readonly limit?: number } = {},
+    options: { readonly skip?: ReadonlySet<string>; readonly pageSize?: number } = {},
   ): Promise<{ observed: number; notChecked: number; ended: number }> {
     assertCommunicationStaff(actor, "read");
     const counts = { observed: 0, notChecked: 0, ended: 0 };
     if (!this.deps.store.listReplyCheckable) return counts;
     const mailbox = actor.email.toLowerCase();
     const candidates = (
-      await this.deps.store.listReplyCheckable(options.limit ?? 100)
+      await this.deps.store.listReplyCheckable(mailbox, options.pageSize ?? 100)
     ).filter(
       (s) =>
         replyCheckable(s) &&
@@ -1028,15 +1206,15 @@ export class WorkflowCommunicationSequenceService {
         (s.senderEmail.toLowerCase() === mailbox ||
           s.threads.some((t) => t.senderEmail.toLowerCase() === mailbox)),
     );
-    for (const original of candidates) {
-      if (options.skip?.has(original.id)) continue;
+    const check = async (original: CommunicationSequence) => {
+      if (options.skip?.has(original.id)) return;
       try {
         let s = original;
         if (s.state === "completed") {
           const settled = await this.settleReplyWatch(s);
           if (settled.ended) {
             counts.ended += 1;
-            continue;
+            return;
           }
           s = settled.sequence;
         }
@@ -1048,7 +1226,10 @@ export class WorkflowCommunicationSequenceService {
         // Not checked this run: the record says so, and the other messages carry on.
         await this.markNotChecked(original).catch(() => undefined);
       }
-    }
+    };
+    const concurrency = 4;
+    for (let offset = 0; offset < candidates.length; offset += concurrency)
+      await Promise.all(candidates.slice(offset, offset + concurrency).map(check));
     return counts;
   }
   async dispatch(id: string): Promise<{
@@ -1130,6 +1311,89 @@ export class WorkflowCommunicationSequenceService {
       }
       return { status: "paused", sequence: s };
     }
+    // S272 R-S272-4: before it claims a due occurrence the worker stops an authorization granted
+    // before a newer confirmed initial send for the same lease, cycle and audience, and pauses it
+    // with its own cause. The claim transaction applies the same check atomically.
+    let newer: NewerSend | null = null;
+    try {
+      newer = await this.newerSend(s);
+    } catch {
+      newer = null; // The claim transaction reads the same stored state.
+    }
+    if (newer) {
+      const stopped = newer;
+      try {
+        s = await this.deps.store.write({
+          id: s.id,
+          actorUid: "communication-worker",
+          expectedVersion: s.version,
+          operationId: randomUUID(),
+          operationHash: sequenceHash([s.id, s.version, "newer_message_sent"]),
+          nowMs: this.now(),
+          action: "newer_message_sent",
+          apply: (current) => ({
+            ...requireSequence(current),
+            version: s.version + 1,
+            state: "paused",
+            nextDueAtMs: null,
+            pause: {
+              cause: "newer_message_sent",
+              byUid: "communication-worker",
+              atMs: this.now(),
+              evidenceIds: [`communication:${stopped.sequenceId}`],
+            },
+            updatedAtMs: this.now(),
+          }),
+        });
+      } catch (error) {
+        if (!(error instanceof EditableLayerError) || error.status !== 409) throw error;
+        s = requireSequence(await this.deps.store.get(id));
+      }
+      return { status: "paused", sequence: s };
+    }
+    // S276 R-S276-3 / R-S276-4 (ARCH-S276-2): the tenant's recorded response is checked before any
+    // claim, ahead of the lease read, so a reminder that became due after any recorded response (a
+    // decline included) is paused under the response's own cause and never sent, even when the
+    // pause at save time was not written. The claim transaction applies the same check.
+    if (this.deps.readTenantResponse && tenantReminderScope(s)) {
+      let response: RecordedTenantResponse | null = null;
+      try {
+        response = await this.deps.readTenantResponse(s);
+      } catch {
+        response = null; // The claim transaction reads the same stored record.
+      }
+      if (response && tenantResponseHolds(s, response)) {
+        const recorded = response;
+        try {
+          s = await this.deps.store.write({
+            id: s.id,
+            actorUid: "communication-worker",
+            expectedVersion: s.version,
+            operationId: randomUUID(),
+            operationHash: sequenceHash([
+              s.id,
+              s.version,
+              TENANT_RESPONSE_PAUSE_CAUSE,
+              recorded.eventId,
+            ]),
+            nowMs: this.now(),
+            action: TENANT_RESPONSE_PAUSE_CAUSE,
+            apply: (current) => ({
+              ...requireSequence(current),
+              version: s.version + 1,
+              state: "paused",
+              nextDueAtMs: null,
+              pause: tenantResponsePause(recorded, recorded.actorUid, this.now()),
+              updatedAtMs: this.now(),
+            }),
+          });
+        } catch (error) {
+          if (!(error instanceof EditableLayerError) || error.status !== 409) throw error;
+          s = requireSequence(await this.deps.store.get(id));
+        }
+        return { status: "paused", sequence: s };
+      }
+    }
     // S274 R-S274-4 (ARCH-S274-2): dispatch tells "not settled" from "changed" before any claim.
     // One read, no wait: a read in flight, a generation not ready or a retirement status that is
     // unavailable only because the read is not fresh is handled like an unreadable source (no
@@ -1202,9 +1466,18 @@ export class WorkflowCommunicationSequenceService {
       // S274 R-S274-6: the hold on a settled difference stores each changed input, with the value
       // kept with this authorization where one was kept; without kept values none is guessed.
       const kept = keptAuthorizedInputs(s);
-      const changedInputs: ChangedInput[] = kept
-        ? changedReviewedInputs(kept, target.reviewedInputs ?? null)
-        : [];
+      // S285 R-S285-6: an authorization that matches this read under the earlier owner copy was
+      // held only because an approver published the new owner wording; the hold names that cause.
+      const ownerWordingOnly =
+        !readinessHeld &&
+        materialSourceHash === target.materialSourceHash &&
+        target.priorOwnerWordingMaterialSourceHash !== undefined &&
+        target.priorOwnerWordingMaterialSourceHash === authorization.materialSourceHash;
+      const changedInputs: ChangedInput[] = ownerWordingOnly
+        ? [OWNER_WORDING_UPDATED_INPUT]
+        : kept
+          ? changedReviewedInputs(kept, target.reviewedInputs ?? null)
+          : [];
       s = await this.deps.store.write({
         id: s.id,
         actorUid: actor.uid,
@@ -1359,11 +1632,20 @@ export class WorkflowCommunicationSequenceService {
       },
       threading,
     );
-    if (!claim)
+    if (!claim) {
+      const after = requireSequence(await this.deps.store.get(id));
+      // S272 R-S272-4: the claim itself stopped an older authorization after a newer send.
+      // S276 R-S276-3: or held a reminder for the tenant's recorded response.
       return {
-        status: "not_due",
-        sequence: requireSequence(await this.deps.store.get(id)),
+        status:
+          after.state === "paused" &&
+          (after.pause?.cause === "newer_message_sent" ||
+            after.pause?.cause === TENANT_RESPONSE_PAUSE_CAUSE)
+            ? "paused"
+            : "not_due",
+        sequence: after,
       };
+    }
     const o = claim.occurrence;
     const message: WorkflowMimeMessage = {
       from: a.senderEmail,
@@ -1378,10 +1660,11 @@ export class WorkflowCommunicationSequenceService {
       ...threading,
       verifyThreading: true,
     };
+    const reminder = tenantReminderScope(claim.sequence);
     let attempted = false;
     try {
       await this.deps.assertRuntimeAction(communicationSendKey(s.context));
-      if (!(await this.deps.store.canDispatch(o)))
+      if (!(await this.deps.store.canDispatch(o, reminder ? this.now() : undefined)))
         return {
           status: "refused",
           sequence: await this.deps.store.settle(o, {
@@ -1391,7 +1674,16 @@ export class WorkflowCommunicationSequenceService {
           }),
         };
       attempted = true;
-      const sent = await client.sendWorkflowMessage(message);
+      const sent = reminder
+        ? await client.sendWorkflowMessage(message, async () => {
+            attempted = false;
+            if (!(await this.deps.store.canDispatch(o, this.now())))
+              throw new Error(
+                "The claimed reminder is no longer authorized to dispatch.",
+              );
+            attempted = true;
+          })
+        : await client.sendWorkflowMessage(message);
       const readback = await client.findWorkflowMessage(o.rfcMessageId, message);
       if (
         !readback ||

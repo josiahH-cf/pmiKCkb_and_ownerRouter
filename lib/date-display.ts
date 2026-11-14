@@ -178,3 +178,94 @@ export function formatBusinessTimestamp(
   if (Number.isNaN(instant.getTime())) return TIMESTAMP_INVALID_LABEL;
   return BUSINESS_TIMESTAMP_FORMAT.format(instant);
 }
+
+const zonedTimestampFormats = new Map<string, Intl.DateTimeFormat>();
+
+function zonedTimestampFormat(timeZone: string): Intl.DateTimeFormat {
+  let format = zonedTimestampFormats.get(timeZone);
+  if (!format) {
+    format = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZoneName: "short",
+    });
+    zonedTimestampFormats.set(timeZone, format);
+  }
+  return format;
+}
+
+/**
+ * S283 R-S283-1: the settled instant shape, "MM/DD/YYYY, h:mm AM CDT", in a named zone a schedule
+ * chose (the business zone when none). The zone is always named. A non-finite instant or an
+ * unsupported zone reads as the explicit invalid label, never as the epoch or today.
+ */
+export function formatZonedTimestamp(
+  value: number | Date,
+  timeZone: string = BUSINESS_TIME_ZONE,
+): string {
+  const instant = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(instant.getTime())) return TIMESTAMP_INVALID_LABEL;
+  try {
+    return zonedTimestampFormat(timeZone).format(instant);
+  } catch {
+    return TIMESTAMP_INVALID_LABEL;
+  }
+}
+
+const BUSINESS_DAY_PARTS = new Intl.DateTimeFormat("en-CA", {
+  timeZone: BUSINESS_TIME_ZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+/**
+ * S283 R-S283-1: the business-zone calendar day of an instant, as MM/DD/YYYY ("Sent 11/01/2026").
+ * A date-only value keeps its own calendar day; it is never passed through a zone.
+ */
+export function formatBusinessDate(
+  value: string | number | Date | null | undefined,
+  unavailableLabel: string = DATE_UNAVAILABLE_LABEL,
+): string {
+  if (value === null || value === undefined || value === "") return unavailableLabel;
+  if (typeof value === "string") {
+    if (!value.trim()) return unavailableLabel;
+    if (ISO_DATE.test(value)) return formatCalendarDate(value, unavailableLabel);
+    const datePrefix = ISO_INSTANT.exec(value);
+    if (!datePrefix || !parseCalendarDate(datePrefix[1])) return DATE_INVALID_LABEL;
+  }
+  const instant = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(instant.getTime())) return DATE_INVALID_LABEL;
+  return formatCalendarDate(BUSINESS_DAY_PARTS.format(instant), unavailableLabel);
+}
+
+/**
+ * S283 R-S283-1: a wall-clock date and time with no zone of its own (a repeated or skipped local
+ * time), as "MM/DD/YYYY, h:mm AM". The inputs are a canonical YYYY-MM-DD date and a 24-hour HH:MM
+ * time; anything else reads as the explicit invalid label.
+ */
+export function formatWallClock(date: string, time: string): string {
+  const parts = parseCalendarDate(date);
+  const clock = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(time);
+  if (!parts || !clock) return TIMESTAMP_INVALID_LABEL;
+  const hour = Number(clock[1]);
+  const twelve = hour % 12 === 0 ? 12 : hour % 12;
+  return `${formatCalendarDate(date)}, ${twelve}:${clock[2]} ${hour < 12 ? "AM" : "PM"}`;
+}
+
+/**
+ * S283 R-S283-1: a JSON.stringify replacer for a staff-visible record dump. A canonical calendar
+ * date reads MM/DD/YYYY and an ISO instant reads in the settled instant shape with its zone; every
+ * other value, and the stored record itself, is unchanged.
+ */
+export function displayDateReplacer(_key: string, value: unknown): unknown {
+  if (typeof value !== "string") return value;
+  if (ISO_DATE.test(value) && parseCalendarDate(value)) return formatCalendarDate(value);
+  const instant = ISO_INSTANT.exec(value);
+  if (instant && parseCalendarDate(instant[1])) return formatBusinessTimestamp(value);
+  return value;
+}

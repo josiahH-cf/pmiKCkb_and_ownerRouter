@@ -222,7 +222,10 @@ export class GmailRuntimeClient {
   }
 
   /** One attempt of a staff-authorized immutable workflow snapshot; no retry is performed here. */
-  async sendWorkflowMessage(input: WorkflowMimeMessage): Promise<GmailSendResult> {
+  async sendWorkflowMessage(
+    input: WorkflowMimeMessage,
+    beforeTransport?: () => Promise<void>,
+  ): Promise<GmailSendResult> {
     if (input.from.toLowerCase() !== this.subject)
       throw new GmailRuntimeError(
         "Gmail From must match the approved managed sender.",
@@ -240,6 +243,7 @@ export class GmailRuntimeClient {
         raw,
         ...(input.threadId ? { threadId: opaqueId(input.threadId, "thread id") } : {}),
       },
+      beforeTransport,
     });
     return readSendResult(data);
   }
@@ -601,6 +605,7 @@ export class GmailRuntimeClient {
       query?: Record<string, string>;
       body?: unknown;
       maxResponseBytes?: number;
+      beforeTransport?: () => Promise<void>;
     } = {},
   ): Promise<unknown> {
     const token = await this.getToken(scope);
@@ -609,6 +614,9 @@ export class GmailRuntimeClient {
       url.searchParams.set(key, value);
     }
 
+    // Give a claimed workflow reminder one last local check after the compose token is ready.
+    // An error here has not reached the Gmail transport and is handled by the caller.
+    if (options.beforeTransport) await options.beforeTransport();
     let response;
     try {
       response = await this.transport.send({

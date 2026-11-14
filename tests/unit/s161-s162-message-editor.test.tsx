@@ -577,6 +577,42 @@ const storedPreparation = () =>
   });
 
 describe("reviewed unsent Gmail creation and original draft recovery", () => {
+  it.each([
+    ["v2.0", null, true],
+    ["v2.1", null, false],
+    ["v2.1", "2027-12-31", true],
+  ] as const)(
+    "only holds the owner Gmail draft under %s when the term is incomplete (end: %s)",
+    async (ownerCopyVersion, endDate, enabled) => {
+      const api = server(
+        preparation({
+          facts: tenantFacts({
+            channel: "owner",
+            ownerIntent: "recommend_rent",
+            ownerCopyVersion,
+            ownerTerms: {
+              rent: null,
+              effectiveDate: "2027-01-01",
+              endDate,
+              source: "Working renewal terms",
+            },
+          }),
+          publication: { status: "approved", ref: "owner-renewal:v2.0" },
+        }),
+        () => Response.json({}),
+      );
+      render(<RenewalMessagePreparation channel="owner" canEdit />);
+      const preview = await screen.findByRole("button", {
+        name: "Preview unsent Gmail draft",
+      });
+      if (enabled) expect(preview).toBeEnabled();
+      else expect(preview).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Copy plain text" })).toBeEnabled();
+      expect(screen.getByLabelText("Email body")).toBeEnabled();
+      expect(api.posts()).toHaveLength(0);
+    },
+  );
+
   for (const resolution of ["created", "not_found", "needs_review"] as const) {
     it(`refreshes only a confirmed original recovery: ${resolution}`, async () => {
       const api = server(

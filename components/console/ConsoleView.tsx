@@ -10,7 +10,7 @@ import {
   type AttentionQueue,
 } from "@/lib/attention/attention-queue";
 import { can } from "@/lib/auth/roles";
-import type { AuthenticatedUser } from "@/lib/auth/session";
+import { hasSpaceAccess, type AuthenticatedUser } from "@/lib/auth/session";
 import { historyModeFor } from "@/lib/assistant-history/route-support";
 import {
   historyOwnerKey,
@@ -81,7 +81,11 @@ export function ConsoleView({ user }: { user: AuthenticatedUser }) {
         key={ownerKey}
         ownerKey={ownerKey}
         secondary={
-          <DashboardAttentionQueue canApprove={canApprove} initial={attention} />
+          <DashboardAttentionQueue
+            canApprove={canApprove}
+            initial={attention}
+            showRenewalTeamLine={hasSpaceAccess(user, "renewals")}
+          />
         }
       />
     </section>

@@ -7,6 +7,7 @@ import { ACCESS_CAPABILITIES, capabilityCatalogEntry } from "@/lib/access/catalo
 import type { AppUser } from "@/lib/admin/users";
 import { can } from "@/lib/auth/roles";
 import { formatBusinessTimestamp } from "@/lib/date-display";
+import { staffAccountIdLine } from "@/lib/processes/staff-fields";
 import {
   RENEWAL_GOVERNANCE_MATRIX,
   renewalRoleCapability,
@@ -176,6 +177,10 @@ export function UserManagementPanel({
               <div className="admin-user-row">
                 <div className="admin-user-id">
                   <strong>{user.email}</strong>
+                  {/* S283 R-S283-3: the account ID a process's run owner and approver use. */}
+                  <span className="muted" data-admin-user-account-id>
+                    {staffAccountIdLine(user.uid)}
+                  </span>
                   <span className="muted">
                     {user.lastSignInAt
                       ? `Last sign-in ${formatBusinessTimestamp(user.lastSignInAt)}`

@@ -37,6 +37,17 @@ vi.mock("@/lib/lease-renewal/live-desk", () => ({
     throw new Error("The Dashboard must not read the live renewal desk.");
   }),
 }));
+// S280: the viewer's own renewal follow-through and the team line are their own reads, streamed
+// beside the attention gather; they are stubbed here so the Dashboard render stays offline. The
+// team line's desk read never blocks the attention panel or the question box.
+const readOwnRenewalFollowThrough = vi.fn(async () => ({
+  state: "ok" as const,
+  rows: [],
+}));
+vi.mock("@/lib/attention/renewal-follow-through-read", () => ({
+  readOwnRenewalFollowThrough: (...args: unknown[]) =>
+    readOwnRenewalFollowThrough(...(args as [])),
+}));
 
 import { ConsoleView } from "@/components/console/ConsoleView";
 
@@ -52,6 +63,10 @@ const readyItem = {
 };
 
 beforeEach(() => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => Response.json(null)),
+  );
   listApprovalQueue.mockResolvedValue([readyItem]);
   loadRenewalRunViews.mockResolvedValue([]);
   listProcessDefinitions.mockResolvedValue([
@@ -61,6 +76,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  vi.unstubAllGlobals();
   vi.clearAllMocks();
 });
 
@@ -179,12 +195,35 @@ describe("ConsoleView (S146/S147 AI-first Dashboard)", () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/Waiting on an approver/)).toBeInTheDocument();
     expect(loadRenewalRunViews).toHaveBeenCalledTimes(1);
-    expect(loadRenewalRunViews).toHaveBeenCalledWith(editorUser);
+    expect(loadRenewalRunViews).toHaveBeenCalledWith(editorUser, { displayOnly: true });
     // The role still decides: an Editor never gets the inline Approve control.
     expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
     expect(screen.getByRole("link", { name: "Open the full list" })).toHaveAttribute(
       "href",
       "/approval-queue",
     );
+  });
+
+  it("S280 BEH-S280-5: starts the viewer's own follow-through and the team line beside the queue, and shows the line", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      Response.json({
+        count: 12,
+        month: "2026-12",
+        href: "/lease-renewal/live/desk",
+      }),
+    );
+    await renderView(editorUser);
+    expect(await screen.findByTestId("renewal-team-line")).toHaveTextContent(
+      "12 renewals have a next action for the team. Open the Renewal Desk.",
+    );
+    expect(readOwnRenewalFollowThrough).toHaveBeenCalledTimes(1);
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/dashboard/renewal-team",
+      expect.objectContaining({
+        cache: "no-store",
+        keepalive: true,
+      }),
+    );
+    expect(screen.getByLabelText(/Question/)).toBeEnabled();
   });
 });

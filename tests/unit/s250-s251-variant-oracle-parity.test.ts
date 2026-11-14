@@ -25,6 +25,7 @@ import {
 } from "@/lib/lease-renewal/workspace-state";
 import { INDEPENDENT_UNRECORDED_STAFF_LANE } from "@/lib/production-assurance/manual-renewal-projection";
 import {
+  INDEPENDENT_RENTVINE_BASIS_CONTRACT_MARKER,
   INDEPENDENT_VARIANTS_CONTRACT_MARKER,
   independentContractReadsEvidence,
   independentContractReadsVariants,
@@ -829,12 +830,17 @@ describe("S251 program skip signal: the cohort and the oracle agree", () => {
     });
 });
 
-describe("S251 contract marker: the variants rules are a new marker the oracle reads", () => {
-  it("the app renders the variants marker and the oracle reads it with the evidence", () => {
-    expect(DESK_GUIDANCE_CONTRACT).toBe(INDEPENDENT_VARIANTS_CONTRACT_MARKER);
-    expect(independentContractReadsVariants(DESK_GUIDANCE_CONTRACT)).toBe(true);
-    expect(independentContractReadsEvidence(DESK_GUIDANCE_CONTRACT)).toBe(true);
-    expect(independentStaffLaneWaitingRule(DESK_GUIDANCE_CONTRACT)).toBe("awaited_party");
+describe("S251 variants remain part of the desk reconciliation contract", () => {
+  it("reads the variants and evidence under both the S251 and S280 markers", () => {
+    expect(DESK_GUIDANCE_CONTRACT).toBe(INDEPENDENT_RENTVINE_BASIS_CONTRACT_MARKER);
+    for (const contract of [
+      INDEPENDENT_VARIANTS_CONTRACT_MARKER,
+      DESK_GUIDANCE_CONTRACT,
+    ]) {
+      expect(independentContractReadsVariants(contract)).toBe(true);
+      expect(independentContractReadsEvidence(contract)).toBe(true);
+      expect(independentStaffLaneWaitingRule(contract)).toBe("awaited_party");
+    }
     expect(independentContractReadsVariants("s248-evidence-stage")).toBe(false);
   });
 });

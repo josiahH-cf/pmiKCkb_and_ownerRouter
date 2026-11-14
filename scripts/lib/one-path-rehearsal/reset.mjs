@@ -24,6 +24,7 @@ import {
   resetStandIns,
   setRecordingCycles,
   setRentvineOutage,
+  setTenantResponsePauseFault,
 } from "./control.mjs";
 import {
   loadNovember5Mix,
@@ -64,6 +65,8 @@ export async function resetRehearsalState({ rehearsal, browser, steps = SEED_STE
   await clearEmulatorDocuments(rehearsal);
   clearRentvineFlags(rehearsal);
   setRentvineOutage(rehearsal, null);
+  // S284 W12-05: a write fault one row armed never reaches the next.
+  if (rehearsal.files?.firestoreFault) setTenantResponsePauseFault(rehearsal, false);
   setRecordingCycles(rehearsal, true);
   const context = await browser.newContext({
     timezoneId: "America/Chicago",

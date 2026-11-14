@@ -4,6 +4,8 @@ import { fetchWithDeadline as fetch, waitFailureMessage } from "@/lib/ui/fetch-l
 import Link from "next/link";
 import { useRef, useState } from "react";
 
+import { newRunStartKey } from "@/lib/processes/run-start";
+
 interface StartedRun {
   id: string;
 }
@@ -18,10 +20,13 @@ export function StartRunButton({
   const [error, setError] = useState("");
   const [unavailable, setUnavailable] = useState(false);
   const inFlight = useRef(false);
+  // S283 R-S283-4: one key per click, kept until a definite answer, so a retry is the same run.
+  const startKey = useRef<string | null>(null);
 
   async function start() {
     if (inFlight.current) return;
     inFlight.current = true;
+    startKey.current ??= newRunStartKey();
     setPending(true);
     setError("");
     try {
@@ -32,9 +37,11 @@ export function StartRunButton({
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
             note: "Started from the Internal Processes anticipation lane.",
+            start_key: startKey.current,
           }),
         },
       );
+      startKey.current = null;
       if (response.ok) {
         const payload = (await response.json()) as { run: StartedRun };
         setRun(payload.run);

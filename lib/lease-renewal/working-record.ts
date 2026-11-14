@@ -27,8 +27,12 @@ const TENANT_MESSAGE_WORKING_FIELDS = [
 export function messageWorkingFieldsFor(
   channel: "owner" | "tenant",
   renewOrNot = false,
+  /** S285 R-S285-3: the owner message's copy states the renewal term, so its dates feed it. */
+  ownerTermStated = false,
 ): readonly string[] {
   if (renewOrNot) return ["housing_assistance"];
+  if (channel === "owner" && ownerTermStated)
+    return [...OWNER_MESSAGE_WORKING_FIELDS, "terms_effective_date", "terms_end_date"];
   return channel === "owner"
     ? OWNER_MESSAGE_WORKING_FIELDS
     : TENANT_MESSAGE_WORKING_FIELDS;

@@ -5,8 +5,16 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { ConnectorCard } from "@/components/connections/ConnectorCard";
 import { ConnectorSetupActions } from "@/components/connections/ConnectorSetupActions";
-import type { ConnectorConnectionView } from "@/lib/connections/connection-status";
+import {
+  allowsAppManagedConnection,
+  CONNECTORS,
+} from "@/lib/connections/connector-catalog";
+import {
+  classifyConnector,
+  type ConnectorConnectionView,
+} from "@/lib/connections/connection-status";
 
 const refresh = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
@@ -258,32 +266,44 @@ describe("ConnectorSetupActions", () => {
     ).toBeVisible();
   });
 
-  it("states in the present tense that a connector has no in-app sign-in (litmus 2026-11-04)", async () => {
-    // The generic connect route answers provider_not_available for an OAuth connector the app
-    // has no sign-in for (QuickBooks today). The result says what is true now, never a roadmap.
-    fetchMock.mockImplementation(async () =>
-      jsonResponse({ connectorId: "quickbooks", status: "provider_not_available" }),
-    );
-    const navigate = vi.fn();
-    const user = userEvent.setup();
+  // S283 R-S283-6 (rewritten on purpose): the QuickBooks card carries no Connect action at all,
+  // and states in the present tense that the app has no QuickBooks sign-in.
+  it("AC-S283-7 shows QuickBooks with its state and no Connect button, for an Admin too", () => {
+    const def = CONNECTORS.find((connector) => connector.id === "quickbooks")!;
+    expect(def.connectAction).toBe("none");
+    expect(allowsAppManagedConnection(def)).toBe(false);
+    const status = classifyConnector(def, {});
+    expect(status).toMatchObject({
+      state: "none",
+      label: "Not connected",
+      detail: "This app has no QuickBooks sign-in.",
+    });
+    for (const canManage of [true, false]) {
+      const view = render(
+        <ConnectorCard canManage={canManage} item={{ def, status }} verifiable={false} />,
+      );
+      expect(view.container).toHaveTextContent("Not connected");
+      expect(view.container).toHaveTextContent("This app has no QuickBooks sign-in.");
+      expect(view.container.textContent).not.toMatch(
+        /\b(yet|not built|coming|soon|until)\b/i,
+      );
+      expect(screen.queryByRole("button", { name: /Connect/ })).toBeNull();
+      expect(screen.queryByText("Set up QuickBooks")).toBeNull();
+      view.unmount();
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("AC-S283-7 keeps every other connector's Connect action", () => {
+    const def = CONNECTORS.find((connector) => connector.id === "dotloop")!;
+    expect(allowsAppManagedConnection(def)).toBe(true);
     render(
-      <ConnectorSetupActions
-        connectorId="quickbooks"
-        connectorName="QuickBooks"
-        method="oauth"
-        navigate={navigate}
+      <ConnectorCard
+        canManage
+        item={{ def, status: classifyConnector(def, {}) }}
+        verifiable={false}
       />,
     );
-    await user.click(screen.getByRole("button", { name: "Connect with QuickBooks" }));
-    const status = await screen.findByText(
-      "The app has no QuickBooks sign-in, so nothing was opened. Nothing was connected.",
-    );
-    expect(status).toBeVisible();
-    expect(status.textContent).not.toMatch(/\b(yet|not built|coming|soon|until)\b/i);
-    expect(navigate).not.toHaveBeenCalled();
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(String(fetchMock.mock.calls[0][0])).toBe(
-      "/api/connections/quickbooks/connect",
-    );
+    expect(screen.getByRole("button", { name: "Connect with Dotloop" })).toBeVisible();
   });
 });

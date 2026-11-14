@@ -7,6 +7,7 @@ import {
   setRecurringCharges,
   setSourceCycleDate,
 } from "../../scripts/lib/one-path-rehearsal/control.mjs";
+import { openOwnerRecommendationEditor } from "../../scripts/lib/one-path-rehearsal/journey-kit.mjs";
 import {
   confirmReviewDialog,
   forceSourceRefresh,
@@ -169,12 +170,14 @@ export async function journeyN1003(ctx, page) {
     .first();
   await enterStart.waitFor();
   await enterStart.click();
-  const terms = page.locator("#renewal-working-terms");
+  const inPlaceTerms = kit.now(page).locator("[data-renewal-working-terms-in-place]");
+  const terms = inPlaceTerms.or(page.locator("#renewal-working-terms:visible"));
   const suggestion = page.getByRole("button", {
     name: "Use the day after the current lease ends",
     exact: true,
   });
   await suggestion.waitFor();
+  const termsInPlace = await inPlaceTerms.isVisible();
   const startField = page.locator("#renewal-working-terms-start");
   assert.match(
     await startField.innerText(),
@@ -206,51 +209,65 @@ export async function journeyN1003(ctx, page) {
   assert.equal(working.fields.terms_effective_date.cycleId, working.cycle.cycleId);
   observed.nextDayChoiceFromVerifiedEnd = true;
 
-  // Return to tenant offer restores the same offer before the end is entered.
-  const back = page.getByRole("button", { name: "Return to tenant offer", exact: true });
-  await back.waitFor();
-  // Return focuses the tenant offer's readiness, which mounts with the offer's own first read.
-  // Staff return to a loaded offer; a return before that read finishes has nothing to focus
-  // (seen twice on the development server, reported with the S271 runs).
-  const readiness = page.locator("#renewal-message-tenant-readiness");
-  await readiness.waitFor({ state: "attached" });
-  const readinessShown = await readiness.count();
-  await back.click();
-  try {
+  // S281 saves in place and focuses the offer's primary. Earlier source returns to the
+  // same offer from Ask the owner's Working renewal terms.
+  if (termsInPlace) {
     await page.waitForFunction(() =>
-      Boolean(document.activeElement?.closest("#renewal-message-tenant-readiness")),
+      document.activeElement?.matches("#renewal-now-primary"),
     );
-  } catch (error) {
-    // Diagnostics only: where focus went and whether the tenant offer's readiness was mounted.
-    record({
-      id: "N10-03",
-      check: "return-focus",
-      readinessShown,
-      ...(await page.evaluate(() => ({
-        active: document.activeElement
-          ? document.activeElement.tagName + "#" + document.activeElement.id
-          : null,
-        readinessNow: Boolean(
-          document.getElementById("renewal-message-tenant-readiness"),
-        ),
-        summary:
-          document
-            .getElementById("renewal-message-tenant-readiness-summary")
-            ?.textContent?.slice(0, 200) ?? null,
-        nowStep:
-          document
-            .querySelector('[role="region"][aria-label="Now"]')
-            ?.getAttribute("data-renewal-now-step") ?? null,
-      }))),
+    assert.equal(
+      await kit.now(page).getAttribute("data-renewal-now-step"),
+      "offer-tenant",
+    );
+  } else {
+    const back = page.getByRole("button", {
+      name: "Return to tenant offer",
+      exact: true,
     });
-    throw error;
+    await back.waitFor();
+    // Return focuses the tenant offer's readiness, which mounts with the offer's own first read.
+    // Staff return to a loaded offer; a return before that read finishes has nothing to focus
+    // (seen twice on the development server, reported with the S271 runs).
+    const readiness = page.locator("#renewal-message-tenant-readiness");
+    await readiness.waitFor({ state: "attached" });
+    const readinessShown = await readiness.count();
+    await back.click();
+    try {
+      await page.waitForFunction(() =>
+        Boolean(document.activeElement?.closest("#renewal-message-tenant-readiness")),
+      );
+    } catch (error) {
+      // Diagnostics only: where focus went and whether the tenant offer's readiness was mounted.
+      record({
+        id: "N10-03",
+        check: "return-focus",
+        readinessShown,
+        ...(await page.evaluate(() => ({
+          active: document.activeElement
+            ? document.activeElement.tagName + "#" + document.activeElement.id
+            : null,
+          readinessNow: Boolean(
+            document.getElementById("renewal-message-tenant-readiness"),
+          ),
+          summary:
+            document
+              .getElementById("renewal-message-tenant-readiness-summary")
+              ?.textContent?.slice(0, 200) ?? null,
+          nowStep:
+            document
+              .querySelector('[role="region"][aria-label="Now"]')
+              ?.getAttribute("data-renewal-now-step") ?? null,
+        }))),
+      });
+      throw error;
+    }
   }
   const tenant1 = await reads.tenant();
   assert.equal(tenant1.saved?.revision ?? null, tenantSavedBefore);
   assert.match(tenant1.content.plainText, new RegExp("effective " + usDate(start)));
   observed.returnToTenantOffer = true;
 
-  // No stored duration: the end has no suggestion and is entered by hand.
+  // S285 shows a term choice without storing a duration. Manual entry is still available.
   const enterEnd = page
     .getByRole("button", { name: "Enter renewal end date", exact: true })
     .or(page.getByRole("link", { name: "Enter renewal end date", exact: true }))
@@ -259,8 +276,15 @@ export async function journeyN1003(ctx, page) {
   await enterEnd.click();
   const endField = page.locator("#renewal-working-terms-end");
   await endField.waitFor();
-  assert.equal(await endField.getByRole("button", { name: /^Use / }).count(), 0);
-  assert.doesNotMatch(await endField.innerText(), /Suggested end/);
+  if (termsInPlace) {
+    await endField
+      .getByRole("button", { name: /^Use a 12 month term \(ends / })
+      .waitFor();
+    assert.equal((await reads.working()).record.fields.terms_end_date, undefined);
+  } else {
+    assert.equal(await endField.getByRole("button", { name: /^Use / }).count(), 0);
+    assert.doesNotMatch(await endField.innerText(), /Suggested end/);
+  }
   const endInput = endField.locator('input[type="date"]');
   const manual = page.waitForResponse(
     (response) =>
@@ -426,6 +450,11 @@ export async function journeyN1003(ctx, page) {
     "Review tenant offer",
     "The tenant offer is ready to review",
   );
+  const otherWays = kit
+    .now(page)
+    .locator('details[data-renewal-group="Other ways to send"]');
+  if ((await otherWays.count()) && (await otherWays.getAttribute("open")) === null)
+    await otherWays.locator(":scope > summary").click();
   const scheduleInNow = kit
     .now(page)
     .getByRole("button", { name: "Schedule", exact: true });
@@ -1037,10 +1066,8 @@ export async function journeyN1001(ctx, page, mutations) {
     assert.equal(ownerAgain.saved.revision, ownerBefore.saved.revision);
     assert.equal(ownerAgain.cycleId, (await reads.workspace()).state.cycleId);
     await kit.open(page, kit.href(leaseId, "?step=ask-owner"));
-    await page.getByRole("link", { name: "Edit rent to recommend", exact: true }).click();
-    await page.waitForFunction(
-      () => document.activeElement?.id === "renewal-now-rent-to-recommend",
-    );
+    const ownerEditor = await openOwnerRecommendationEditor(page, kit.now(page));
+    assert.equal(Number(await ownerEditor.inputValue()), termsBefore.value);
     observed.ownerDraftResumed = true;
 
     assert.match(

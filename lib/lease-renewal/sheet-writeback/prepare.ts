@@ -23,6 +23,10 @@ import {
 } from "@/lib/lease-renewal/sheet-writeback/workspace-resolution";
 import { sheetLookupBinding } from "@/lib/lease-renewal/sheet-lookup";
 import { workingCurrentRent } from "@/lib/lease-renewal/working-record";
+import {
+  SHEET_SET_MAX_CELLS,
+  SHEET_SET_WORDS,
+} from "@/lib/lease-renewal/sheet-writeback/set-words";
 
 export type SheetProposalIntent =
   | "append_missing_row"
@@ -120,4 +124,117 @@ export async function assembleSheetProposal(
     effects,
     nowMs: Date.now(),
   });
+}
+
+/** S278 R-S278-4: one listed cell that is not part of the combined review, and why. */
+export interface SheetSetLeftOut {
+  readonly field: SheetFieldIntent["field"];
+  readonly message: string;
+  /** "refused": the cell cannot be updated now (its row, column or value); "own": review it alone. */
+  readonly kind: "refused" | "own";
+}
+
+/**
+ * S278 R-S278-4: assemble one proposal for a lease's one existing row holding the listed recorded
+ * cells, from one fresh server read. Each cell is the same exact field update a single review
+ * prepares (`effectForSheetFieldIntent`). A cell the read refuses (no change, a formula, a missing
+ * column) or a field with its own selected cell is left out with its reason; the rest are
+ * prepared together. Nothing is written.
+ */
+export async function assembleSheetProposalSet(
+  user: AuthenticatedUser,
+  spreadsheetId: string,
+  leaseId: string,
+  intents: readonly SheetFieldIntent[],
+  evidenceRefFor: (fields: readonly SheetFieldIntent["field"][]) => string,
+): Promise<{
+  readonly proposal: SheetWritebackProposal | null;
+  readonly leftOut: readonly SheetSetLeftOut[];
+}> {
+  if (isOperatingSheetWritebackPaused())
+    throw new EditableLayerError(
+      "Saved in app; Sheet updates paused. No proposal was created.",
+      409,
+    );
+  const runtimeBinding = readSheetWritebackRuntimeBinding();
+  if (!runtimeBinding)
+    throw new EditableLayerError(
+      "The Sheet update requires a verified runtime revision. Review and prepare it again after release.",
+      409,
+    );
+  if (intents.length > SHEET_SET_MAX_CELLS)
+    throw new EditableLayerError(
+      `One review holds at most ${SHEET_SET_MAX_CELLS} Sheet updates.`,
+      409,
+    );
+  let record: Awaited<ReturnType<typeof readSheetWorkingRecord>>;
+  try {
+    record = await readSheetWorkingRecord(leaseId);
+  } catch {
+    throw new SheetWorkspaceResolutionError("lookup_unavailable");
+  }
+  const binding = sheetLookupBinding(record);
+  const leftOut: SheetSetLeftOut[] = [];
+  const listed: SheetFieldIntent[] = [];
+  for (const intent of intents) {
+    if (intent.field === "current_rent")
+      leftOut.push({
+        field: intent.field,
+        kind: "own",
+        message:
+          "Current base rent is prepared from the working current rent and reviewed on its own.",
+      });
+    else if (binding.cells[intent.field])
+      leftOut.push({
+        field: intent.field,
+        kind: "own",
+        message: SHEET_SET_WORDS.cellSelected,
+      });
+    else listed.push(intent);
+  }
+  if (listed.length === 0) return { proposal: null, leftOut };
+  const context = await resolveFreshOperatingSheetLeaseContext(
+    leaseId,
+    undefined,
+    listed.map((intent) => intent.field),
+    { binding },
+  );
+  if (context.association.kind === "ambiguous")
+    throw new SheetWorkspaceResolutionError("row_join_ambiguous");
+  const effects: SheetWritebackEffectInput[] = [];
+  const prepared: SheetFieldIntent["field"][] = [];
+  for (const intent of listed) {
+    try {
+      effects.push(effectForSheetFieldIntent(context, intent));
+      prepared.push(intent.field);
+    } catch (error) {
+      if (!(error instanceof SheetWorkspaceResolutionError)) throw error;
+      leftOut.push({ field: intent.field, kind: "refused", message: error.plainMessage });
+    }
+  }
+  if (effects.length === 0) return { proposal: null, leftOut };
+  return {
+    proposal: buildSheetWritebackProposal({
+      runtimeBinding,
+      generationId: `proposal-${randomUUID()}`,
+      spreadsheetId,
+      tabTitle: OPERATING_SHEET_TAB,
+      headerHash: hashSheetHeader(context.header, context.columns),
+      headerWidth: context.header.length,
+      tenantColumnIndex: context.tenantColumnIndex,
+      scope: {
+        kind: "lease_workspace",
+        leaseId: context.leaseId,
+        propertyId: context.propertyId,
+      },
+      actorUid: user.uid,
+      actorEmail: user.email ?? "",
+      actorRole: user.role,
+      sourceReadAtIso: context.sourceReadAtIso,
+      evidenceRef: evidenceRefFor(prepared),
+      effects,
+      nowMs: Date.now(),
+    }),
+    leftOut,
+  };
 }

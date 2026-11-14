@@ -8,6 +8,27 @@ import type { HelpChangelogEntry } from "@/lib/help/types";
  */
 export const HELP_CHANGELOG: readonly HelpChangelogEntry[] = [
   {
+    version: "V6.0",
+    date: "2026-11-13",
+    summary:
+      "V6.0, a tenant response is reviewed before it saves: Review the tenant's response names the offer it answers and what follows, and Save stops that offer's reminders. A lease keeps one current message per audience, and a scheduled or held message the lease has since changed is updated once with Review the updated offer or Review the updated owner message, or cancelled; Communications offers Update from the lease. Ask the owner leads with the facts for the ask, the review shows the message body last, and the message groups are Message, Other ways to send and the step's record group. The renewal end date offers a 12 month term, an Approver can publish owner wording that states the term, and the owner's answer opens on what the message asked. Finish up lists every source update with Prepare and review and Review all for the Sheet. The Dashboard lists the follow-through your own messages call for, Prepare counts the leases shown, only an Admin sets the notice timing basis, and times show their zone.",
+    affectedGuides: [
+      "work-a-renewal",
+      "train-and-review",
+      "compare-rent",
+      "owner-message",
+      "tenant-offer",
+      "update-sources",
+      "prepare-documents",
+      "notifications",
+      "find-your-way",
+      "admin-tasks",
+      "publish-a-process",
+      "outreach-checklist",
+    ],
+    contentDigest: "6952fea22b986a8fb274149a6faa2ac1a9b91234be0ca8161a8e817ac3ced430",
+  },
+  {
     version: "V5.0",
     date: "2026-11-13",
     summary:
