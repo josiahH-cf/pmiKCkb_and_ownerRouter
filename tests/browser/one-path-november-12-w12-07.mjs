@@ -398,8 +398,11 @@ async function saveRentToRecommend(ctx, page, leaseId, value) {
   const field = page.locator("#renewal-now-rent-to-recommend");
   await field.waitFor({ timeout: 60_000 });
   const before = await field.inputValue().catch(() => "");
+  if (amount(before) === value)
+    throw new Error("The reviewed recommendation must differ from the saved amount.");
   const saved = kit.appResponse(page, WORKING_ROUTE, {
-    match: (body) => ["terms_rent", "recommended_rent"].includes(body?.field),
+    match: (body) =>
+      ["terms_rent", "recommended_rent"].includes(body?.field) && body?.value === value,
   });
   await field.fill(String(value));
   await field.press("Enter");
@@ -946,14 +949,15 @@ export async function checkW1207(ctx, page, start) {
     };
   })();
   const untouched = await readList(ctx, page, leaseId);
-  const reviewedValue = rent + 50;
+  // The comparison seed already saved $1,400 on the prepared lease. Enter a distinct amount.
+  const reviewedValue = rent + 75;
   const reviewed = await saveRentToRecommend(ctx, page, leaseId, reviewedValue);
   const afterReview = await readList(ctx, page, leaseId);
   ctx.record({
     part: "M after reset",
     untouchedField,
     untouched: untouched.rows,
-    reviewed,
+    reviewed: { ...reviewed, value: reviewedValue },
     afterReview: afterReview.rows,
   });
 
