@@ -32,9 +32,11 @@ import { renewalStageContextFor } from "@/lib/lease-renewal/renewal-stage-contex
 import { emptyRenewalWorkspace } from "@/lib/lease-renewal/workspace-state";
 import type { RenewalWorkspaceState } from "@/lib/lease-renewal/workspace-state";
 import {
+  preparation,
   renderWorkspace,
   settle,
   stubRenewalRoutes,
+  type RouteFakeOptions,
   viewButton,
 } from "@/tests/helpers/focus-workspace";
 import { fixtureWorkingRecord } from "@/tests/helpers/rent-charge-fixtures";
@@ -133,8 +135,12 @@ function live(working = workingRecord({ terms_rent: { value: 1395, revision: 1 }
 }
 
 /** Working record saves answer with the saved value; every other route answers as before. */
-function routes(state: RenewalWorkspaceState = manual()) {
+function routes(
+  state: RenewalWorkspaceState,
+  messagePreparation?: RouteFakeOptions["messagePreparation"],
+) {
   return stubRenewalRoutes(state, {
+    messagePreparation,
     other({ url, method, body }) {
       if (url.includes("/api/lease-renewal/notice-review"))
         return Response.json({
@@ -159,18 +165,20 @@ function routes(state: RenewalWorkspaceState = manual()) {
 }
 
 async function open({
+  messagePreparation,
   packetLeadPanel,
   step,
   working,
   state = manual(),
 }: {
+  messagePreparation?: RouteFakeOptions["messagePreparation"];
   packetLeadPanel?: ReactNode;
   step?: string;
   working?: ReturnType<typeof workingRecord>;
   state?: RenewalWorkspaceState;
 } = {}) {
   const record = working ?? workingRecord({ terms_rent: { value: 1395, revision: 1 } });
-  const fake = routes(state);
+  const fake = routes(state, messagePreparation);
   await renderWorkspace({
     manual: state,
     view: "default",
@@ -283,7 +291,13 @@ describe(
 );
 
 it("R-S281-1: the Full owner action follows facts and recipients before the pricing controls", async () => {
-  const fake = await open({ step: "ask-owner" });
+  const fake = await open({
+    step: "ask-owner",
+    messagePreparation: (channel, cycleId) => ({
+      ...preparation(channel, cycleId),
+      recipients: { status: "ready", to: `${channel}@example.invalid`, cc: [] },
+    }),
+  });
   const user = userEvent.setup();
   await user.click(viewButton("Full view"));
   await settle();
@@ -293,7 +307,7 @@ it("R-S281-1: the Full owner action follows facts and recipients before the pric
   const primary = owner.querySelector("[data-renewal-work-primary]")!;
   const pricing = document.getElementById("renewal-owner-pricing-basis")!;
   const message = owner.querySelector('details[data-renewal-group="Message"]')!;
-  expect(recipients).toBeInTheDocument();
+  expect(recipients).toHaveTextContent("To: owner@example.invalid");
   expect(primary).toBeVisible();
   expect(follows(facts, recipients)).toBe(true);
   expect(follows(recipients, primary)).toBe(true);

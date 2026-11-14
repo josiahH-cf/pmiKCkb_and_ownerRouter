@@ -26,7 +26,7 @@ export interface FetchCall {
   readonly body: Record<string, unknown> | null;
 }
 
-function preparation(channel: "owner" | "tenant", cycleId: string | null) {
+export function preparation(channel: "owner" | "tenant", cycleId: string | null) {
   const inputs = emptyMessagePreparationInputs();
   return {
     senderEmail: "fixture-staff@pmikcmetro.com",
