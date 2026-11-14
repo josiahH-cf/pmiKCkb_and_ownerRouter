@@ -33,6 +33,7 @@ import { chromium, errors } from "playwright-core";
 
 import { prepareHelpBrowserFonts } from "./lib/help-browser-fonts.mjs";
 import { compareHelpScene } from "./lib/help-scene-drift.mjs";
+import { openVisibleHelpSummary } from "./lib/help-scene-actions.mjs";
 import { HELP_FIXTURE_INSTANT } from "./lib/help-rehearsal-clock.mjs";
 import { resolveBrowserExecutable } from "./lib/browser-executable.mjs";
 import { requireLoopbackRehearsalOrigin } from "./lib/help-rehearsal-origin.mjs";
@@ -814,12 +815,7 @@ async function perform(page, action) {
     // S252: All leases and filters is an in-page navigation; wait for the table it opens.
     if (argument === "All leases and filters")
       await page.locator("table.renewal-table").first().waitFor({ state: "visible" });
-  } else if (kind === "open-summary")
-    await page
-      .locator("summary")
-      .filter({ hasText: new RegExp(`^\\s*${escape(argument)}\\s*$`) })
-      .first()
-      .click();
+  } else if (kind === "open-summary") await openVisibleHelpSummary(page, argument);
   else if (kind === "wait-text")
     await page.getByText(argument, { exact: false }).first().waitFor();
   else if (kind === "scroll-to")

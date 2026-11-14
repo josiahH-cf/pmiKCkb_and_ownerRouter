@@ -290,11 +290,21 @@ describe("AC-S277-1 adopt the agreement amount where the fix lands", () => {
     expect(ownerStep()).toBeNull();
     expect(adoption()).not.toBeVisible();
 
-    const fix = within(now).getByRole("button", { name: "Set renewal base rent" });
+    // The full workspace keeps inactive controls mounted. Skip the repeated visibility
+    // traversal for every button, then assert this exact accessible control is visible.
+    const fix = within(now).getByRole("button", {
+      name: "Set renewal base rent",
+      hidden: true,
+    });
+    expect(fix).toBeVisible();
     const originalAdoption = adoption();
     const user = userEvent.setup();
     await user.click(fix);
-    const useAgreement = await within(now).findByRole("button", { name: ADOPT });
+    expect(now).toContainElement(originalAdoption);
+    const useAgreement = await within(originalAdoption!).findByRole("button", {
+      name: ADOPT,
+    });
+    expect(useAgreement).toBeVisible();
     expect(adoption()).toBe(originalAdoption);
     expect(adoption()).toContainElement(useAgreement);
     expect(useAgreement).toHaveFocus();
