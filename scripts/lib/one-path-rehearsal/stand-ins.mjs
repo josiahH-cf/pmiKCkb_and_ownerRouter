@@ -206,6 +206,11 @@ export async function startStandIns({
 
   async function comparison(url) {
     if (url.pathname === "/rentcast/v1/avm/rent/long-term") {
+      // The S59 connection check is deliberately parameterless and receives an unbilled 4xx.
+      if (url.search === "") {
+        record({ standIn: "comparison", kind: "health_probe", status: 400 });
+        refuse(400, "An address or coordinates are required.");
+      }
       const address = url.searchParams.get("address") ?? "";
       const row = leaseForAddress(address);
       const leaseId = row ? row.lease.leaseID : null;
