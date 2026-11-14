@@ -1690,10 +1690,11 @@ export async function checkW1210(ctx, page, start) {
   });
 
   await part(ctx, book, "failing readiness opens Message", ["AC-S281-8"], async () => {
-    // The five-tenant lease has no verified owner recipient: its owner message's readiness line
-    // for the recipient fails from the starting state.
+    // The first blocker on this lease is the missing recommended rent. Its fix is the primary
+    // action, so the Message group shows the missing item without a duplicate button.
+    const fix = "Enter the rent to recommend";
     await screen(page, DESKTOP);
-    await openStep(ctx, page, fiveTenant, "ask-owner");
+    await openStep(ctx, page, fiveTenant, "ask-owner", fix);
     await page
       .locator(
         `${NOW} details[data-renewal-group="Message"][data-renewal-group-step="ask-owner"]`,
@@ -1726,21 +1727,24 @@ export async function checkW1210(ctx, page, start) {
         promoted: message?.getAttribute("data-renewal-promoted") ?? null,
         missing: (missing?.textContent ?? "").replace(/\s+/g, " ").trim().slice(0, 160),
         missingShown: Boolean(box && box.height > 0),
-        missingOnScreen: Boolean(box && box.top >= 0 && box.bottom <= window.innerHeight),
         others,
-        primary: (
-          document.getElementById("renewal-now-primary")?.textContent ?? ""
-        ).trim(),
       };
     });
+    const { primary, viewport } = await boxes(page, {
+      primary: `${NOW} #renewal-now-primary`,
+    });
+    const { cover } = await landing(page);
     book.note(
       "AC-S281-8",
-      'a failing readiness line opens "Message" on its own with the line in view; the other groups stay closed',
+      'the missing rent opens "Message", its exact fix fits on screen, and the other groups stay closed',
       read.open === true &&
         Boolean(read.promoted) &&
+        read.missing === "Rent to recommend: Missing the rent to recommend" &&
         read.missingShown &&
+        primary?.text === fix &&
+        inScreen(primary, viewport, cover) &&
         read.others.every((group) => !group.open),
-      { lease: fiveTenant, read },
+      { lease: fiveTenant, read, primary, viewport, cover },
     );
   });
 
