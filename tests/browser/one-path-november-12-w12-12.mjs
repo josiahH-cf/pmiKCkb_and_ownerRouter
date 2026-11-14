@@ -1243,8 +1243,36 @@ export async function checkW1212(ctx, page, start) {
     await admin.waitForURL((url) => url.pathname === "/admin/users", { timeout: 90_000 });
     const accountLines = admin.locator("[data-admin-user-account-id]");
     await accountLines.first().waitFor({ timeout: 60_000 });
-    const accountIds = (await accountLines.allInnerTexts()).map(squash);
-    return { live, documents, create, edit, accountIds, writes: writesSince(ctx, mark) };
+    const accounts = await admin.evaluate(async () => {
+      const response = await fetch("/api/admin/users", { cache: "no-store" });
+      const body = response.ok ? await response.json() : null;
+      const users = Array.isArray(body?.users) ? body.users : [];
+      const byEmail = new Map(users.map(({ email, uid }) => [email, uid]));
+      const rows = [...document.querySelectorAll(".admin-user-record")];
+      const matched = new Set();
+      for (const row of rows) {
+        const email = row.querySelector(".admin-user-id strong")?.textContent?.trim();
+        const uid = byEmail.get(email);
+        const lines = row.querySelectorAll("[data-admin-user-account-id]");
+        if (
+          uid &&
+          lines.length === 1 &&
+          lines[0].checkVisibility({ visibilityProperty: true }) &&
+          lines[0].textContent?.trim() === `Account ID ${uid}`
+        )
+          matched.add(email);
+      }
+      return {
+        status: response.status,
+        roster: users.length,
+        shown: rows.length,
+        matched: matched.size,
+        demos: ["local-demo-admin", "local-demo-approver", "local-demo-editor"].every(
+          (uid) => users.some((user) => user.uid === uid),
+        ),
+      };
+    });
+    return { live, documents, create, edit, accounts, writes: writesSince(ctx, mark) };
   });
 
   // ---- AC-S283-5: the notice basis line, the route and the Admin change ---------------------
@@ -1951,11 +1979,10 @@ export async function checkW1212(ctx, page, start) {
       wording.edit.approverLabel &&
       wording.edit.hints >= 2 &&
       !wording.edit.uid &&
-      sameSet(wording.accountIds, [
-        "Account ID local-demo-admin",
-        "Account ID local-demo-approver",
-        "Account ID local-demo-editor",
-      ])
+      wording.accounts.status === 200 &&
+      wording.accounts.demos &&
+      wording.accounts.roster === wording.accounts.shown &&
+      wording.accounts.roster === wording.accounts.matched
     );
   })();
 
