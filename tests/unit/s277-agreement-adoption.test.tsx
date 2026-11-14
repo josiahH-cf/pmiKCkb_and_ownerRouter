@@ -245,6 +245,19 @@ describe("AC-S277-1 adopt the agreement amount where the fix lands", () => {
           return Response.json(pricing());
         if (url.startsWith("/api/lease-renewal/working-record"))
           return Response.json({ record: null });
+        if (url.startsWith("/api/lease-renewal/notice-review"))
+          return Response.json({
+            disposition: {
+              state: "not_initiated",
+              label: "No move-out notice recorded.",
+            },
+            ready: false,
+          });
+        if (url.startsWith("/api/lease-renewal/notice-timing-basis"))
+          return Response.json({
+            timingBasis: { state: "missing", record: null },
+            canSelect: false,
+          });
         return null;
       },
     });
@@ -268,7 +281,7 @@ describe("AC-S277-1 adopt the agreement amount where the fix lands", () => {
       manual,
       extra: { selectedStepId: "offer-tenant", workingRecord: null },
     });
-    const now = screen.getByRole("region", { name: /^Now$/ });
+    const now = await screen.findByRole("region", { name: /^Now$/ });
     const path = screen.getByRole("navigation", { name: "Renewal path" });
     const ownerStep = () => within(path).queryByRole("button", { name: "Ask the owner" });
     const adoption = () => document.getElementById(STANDING_ADOPTION_CONTROL_ID);
