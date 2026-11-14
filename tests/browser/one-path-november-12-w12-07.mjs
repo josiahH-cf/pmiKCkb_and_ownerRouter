@@ -486,30 +486,49 @@ async function openFromPreview(
   extra = async () => ({}),
   entry = null,
 ) {
-  const writesBefore = ctx.writes.length;
-  const callsBefore = serverCalls(ctx).length;
   const button = entry ?? page.locator(`[data-renewal-finish-up-apply="${key}"]`).first();
   const buttonShown = await ctx.kit.shownWithin(button, 30_000);
   if (!buttonShown) return { key, buttonShown: false };
   const buttonText = squash(await button.innerText().catch(() => ""));
   await button.scrollIntoViewIfNeeded().catch(() => undefined);
-  await button.click();
-  await page
-    .waitForFunction(
-      ([id, value]) => {
-        const input = document.getElementById(id);
-        return Boolean(
-          input && input.value === value && document.activeElement === input,
-        );
-      },
-      [inputId, expected],
-      { timeout: 20_000 },
-    )
-    .catch(() => undefined);
-  // Anything the opening would start has time to happen before it is counted.
-  await page.waitForTimeout(3_000);
-  const input = await readFilledInput(page, inputId);
-  const more = await extra();
+  // Ready the target and complete any page reads before opening the form.
+  await button.click({ trial: true });
+  await page.waitForLoadState("networkidle", { timeout: 30_000 });
+  const settledAt = new Date().toISOString();
+  const settledUrl = new URL(page.url());
+  const writesBefore = ctx.writes.length;
+  const callsBefore = serverCalls(ctx).length;
+  const appReads = [];
+  const recordRequest = (request) => {
+    if (request.method() !== "GET") return;
+    const url = new URL(request.url());
+    if (url.origin === settledUrl.origin && url.pathname.startsWith("/api/"))
+      appReads.push({ at: new Date().toISOString(), path: url.pathname });
+  };
+  page.on("request", recordRequest);
+  let input;
+  let more;
+  try {
+    await button.click();
+    await page
+      .waitForFunction(
+        ([id, value]) => {
+          const input = document.getElementById(id);
+          return Boolean(
+            input && input.value === value && document.activeElement === input,
+          );
+        },
+        [inputId, expected],
+        { timeout: 20_000 },
+      )
+      .catch(() => undefined);
+    // Anything the opening would start has time to happen before it is counted.
+    await page.waitForTimeout(3_000);
+    input = await readFilledInput(page, inputId);
+    more = await extra();
+  } finally {
+    page.off("request", recordRequest);
+  }
   const calls = serverCalls(ctx).slice(callsBefore);
   const writes = ctx.writes.slice(writesBefore);
   return {
@@ -519,7 +538,11 @@ async function openFromPreview(
     input,
     ...more,
     writes,
+    settledAt,
+    settledUrl: settledUrl.pathname + settledUrl.search + settledUrl.hash,
+    appReads,
     providerCalls: calls.map((entry) => ({
+      at: entry.at ?? null,
       served: entry.served ?? null,
       refused: entry.refused ?? null,
       host: entry.host ?? null,
@@ -713,9 +736,11 @@ export async function checkW1207(ctx, page, start) {
   await kit.openLease(page, leaseId, "?step=finish-up");
   const finish = page.locator(FINISH_UP).first();
   let finishShown = await kit.shownWithin(finish, 30_000);
+  let full = false;
   if (!finishShown) {
     await kit.openLease(page, leaseId, "?view=full");
     finishShown = await kit.reveal(page, FINISH_UP, 30_000);
+    full = true;
   }
   await settled(page);
   const previews = finishShown
@@ -731,6 +756,64 @@ export async function checkW1207(ctx, page, start) {
       }))
     : null;
   const finishUrl = page.url();
+  // Read the Sheet destination in its own settled visit before the RentVine proposal.
+  const sheetPage = await ctx.newPage("Editor");
+  const { sheetOpened, sheetChanged } = await (async () => {
+    try {
+      const url = new URL(finishUrl);
+      await kit.openLease(sheetPage, leaseId, url.search + url.hash);
+      await sheetPage.waitForLoadState("load", { timeout: 30_000 });
+      if (full) await kit.reveal(sheetPage, FINISH_UP, 30_000);
+      await settled(sheetPage);
+      const sheetOpened = await openFromPreview(
+        ctx,
+        sheetPage,
+        "sheet-renewal_date",
+        "sheet-field-value",
+        FIRST_TERM_END,
+        async () => ({
+          field: await sheetPage
+            .locator("#sheet-field")
+            .inputValue()
+            .catch(() => null),
+        }),
+      );
+      if (!sheetOpened.input?.present)
+        return { sheetOpened, sheetChanged: { attempted: false } };
+      const input = sheetPage.locator("#sheet-field-value");
+      const panel = input.locator("xpath=ancestor::article[1]");
+      const submit = input
+        .locator("xpath=ancestor::form[1]")
+        .locator('button[type="submit"]')
+        .first();
+      await input.fill(CHANGED_END);
+      await sheetPage.waitForTimeout(500);
+      const afterEdit = await readFilledInput(sheetPage, "sheet-field-value");
+      const panelText = squash(await panel.innerText().catch(() => ""));
+      const applyButtons = await panel
+        .getByRole("button", { name: /^Apply (?:Sheet update|\d+ Sheet updates)$/ })
+        .all();
+      return {
+        sheetOpened,
+        sheetChanged: {
+          attempted: true,
+          afterEdit,
+          switchOffNotice: panelText.includes(WORDS.sheetOff),
+          applyAvailable: (
+            await Promise.all(applyButtons.map((button) => button.isEnabled()))
+          ).some(Boolean),
+          previewButton: (await submit.count())
+            ? {
+                text: squash(await submit.innerText().catch(() => "")),
+                disabled: await submit.isDisabled().catch(() => null),
+              }
+            : null,
+        },
+      };
+    } finally {
+      await sheetPage.context().close();
+    }
+  })();
   const rentvineOpened = await openFromPreview(
     ctx,
     page,
@@ -813,57 +896,6 @@ export async function checkW1207(ctx, page, start) {
       rentvineWrites: serverCalls(ctx)
         .slice(callsBefore)
         .filter((entry) => entry.refused === "rentvine_write").length,
-    };
-  }
-  // The Sheet renewal date's preview, from the same Finish up.
-  await page.goto(finishUrl, { waitUntil: "domcontentloaded", timeout: 120_000 });
-  await page
-    .getByRole("region", { name: "Current renewal stage" })
-    .waitFor({ timeout: 120_000 });
-  await settled(page);
-  const sheetOpened = await openFromPreview(
-    ctx,
-    page,
-    "sheet-renewal_date",
-    "sheet-field-value",
-    FIRST_TERM_END,
-    async () => ({
-      field: await page
-        .locator("#sheet-field")
-        .inputValue()
-        .catch(() => null),
-    }),
-  );
-  let sheetChanged = { attempted: false };
-  if (sheetOpened.input?.present) {
-    await page.locator("#sheet-field-value").fill(CHANGED_END);
-    await page.waitForTimeout(500);
-    const afterEdit = await readFilledInput(page, "sheet-field-value");
-    const panel = page
-      .locator("#sheet-field-value")
-      .locator("xpath=ancestor::article[1]");
-    const panelText = squash(await panel.innerText().catch(() => ""));
-    const submit = page
-      .locator("#sheet-field-value")
-      .locator("xpath=ancestor::form[1]")
-      .locator('button[type="submit"]')
-      .first();
-    const applyButtons = await panel
-      .getByRole("button", { name: /^Apply (?:Sheet update|\d+ Sheet updates)$/ })
-      .all();
-    sheetChanged = {
-      attempted: true,
-      afterEdit,
-      switchOffNotice: panelText.includes(WORDS.sheetOff),
-      applyAvailable: (
-        await Promise.all(applyButtons.map((button) => button.isEnabled()))
-      ).some(Boolean),
-      previewButton: (await submit.count())
-        ? {
-            text: squash(await submit.innerText().catch(() => "")),
-            disabled: await submit.isDisabled().catch(() => null),
-          }
-        : null,
     };
   }
   ctx.record({
