@@ -2466,10 +2466,29 @@ export async function checkW1210(ctx, page, start) {
       await screen(phone, { width, height: PHONE.height });
       await kit.openPath(phone, DESK);
       await phone.locator("tr[data-batch-lease]").first().waitFor({ timeout: 120_000 });
-      await phone.waitForTimeout(1500);
+      await phone
+        .getByRole("button", { name: "Search records", exact: true })
+        .waitFor({ timeout: 30_000 });
       const header = await headerControls(phone);
+      const utilities = phone.locator("header.topbar details.topbar-utilities");
+      const more = utilities.locator(":scope > summary");
+      const moreShown = await kit.shownWithin(more, 10_000);
+      if (moreShown && (await utilities.getAttribute("open")) === null)
+        await more.click();
+      const expanded = await headerControls(phone);
+      if (moreShown && (await utilities.getAttribute("open")) !== null)
+        await more.click();
+      const environment = phone.locator(".environment-badge");
+      const environmentReachable =
+        !wideHeader.environment ||
+        ((await environment.count()) === 1 &&
+          (await environment
+            .getByRole("button", { name: /^About / })
+            .click({ trial: true, timeout: 5_000 })
+            .then(() => true)
+            .catch(() => false)));
       const missing = wideHeader.names.filter(
-        (name) => name && !header.names.includes(name),
+        (name) => name && !expanded.names.includes(name),
       );
       const search = await openSearch(phone);
       const menu = await openMenu(phone);
@@ -2478,17 +2497,27 @@ export async function checkW1210(ctx, page, start) {
         `desk ${width}px: the header is one row of at most ${HEADER_MAX}px with every control reachable`,
         header.height <= HEADER_MAX &&
           header.items.length > 0 &&
-          header.items.every((item) => item.reachable) &&
+          expanded.items.every(
+            (item) => item.scope === "environment" || item.reachable,
+          ) &&
           missing.length === 0 &&
-          header.menu &&
+          header.core.menu &&
+          header.core.brand &&
+          header.core.search &&
+          header.core.notifications &&
+          moreShown &&
+          environmentReachable &&
           menu.links > 0 &&
           search.opened &&
           search.inHeader &&
           search.folded,
         {
           height: header.height,
-          unreachable: header.items.filter((item) => !item.reachable),
+          unreachable: expanded.items.filter((item) => !item.reachable),
           missing,
+          core: header.core,
+          moreShown,
+          environmentReachable,
           search,
           menu,
         },
@@ -2496,7 +2525,7 @@ export async function checkW1210(ctx, page, start) {
       const table = await phone.evaluate(() => {
         const row = document.querySelector("tr[data-batch-lease]");
         const cells = row ? [...row.querySelectorAll(":scope > td, :scope > th")] : [];
-        const identity = cells[0];
+        const identity = cells[0]?.querySelector(".renewal-batch-lease");
         const next = row?.querySelector("[data-batch-next-step]");
         const box = (node) => {
           if (!node) return null;
@@ -2536,20 +2565,22 @@ export async function checkW1210(ctx, page, start) {
         Boolean(table.identity && table.next) &&
           table.identity.left >= -1 &&
           table.next.right <= table.viewport.width + 1 &&
+          table.nextInSecondColumn &&
           !table.pageScrollsSideways &&
           (width !== 390 || both) &&
           (!table.prepareShown ||
             (!table.prepareOutsideRow &&
               table.phoneRows.some((label) => /^Prepare /.test(label ?? "")))) &&
           table.phoneRows.includes("Filter renewals"),
-        table,
+        { ...table, layout: await phoneLayout(phone) },
       );
       for (const target of [oneTenant, fiveTenant]) {
         await kit.openPath(phone, DESK);
         const link = phone
           .locator(`tr[data-batch-lease="${target}"] a[href*="/lease/${target}"]`)
           .first();
-        if (await kit.shownWithin(link, 60_000)) {
+        const openedFromDesk = await kit.shownWithin(link, 60_000);
+        if (openedFromDesk) {
           await link.scrollIntoViewIfNeeded();
           await link.click();
           await phone
@@ -2601,6 +2632,7 @@ export async function checkW1210(ctx, page, start) {
               document.documentElement.scrollWidth > window.innerWidth + 1,
           };
         });
+        const layout = await phoneLayout(phone);
         const details = await leaseDetails(phone, kit.row(target)?.lease?.tenants ?? []);
         const tenants = (kit.row(target)?.lease?.tenants ?? []).length;
         book.note(
@@ -2612,19 +2644,20 @@ export async function checkW1210(ctx, page, start) {
             leaseRead.height <= TOOLBAR_MAX &&
             new RegExp(`${tenants} tenant`).test(leaseRead.summary) &&
             details.ok,
-          { leaseRead, details },
+          { leaseRead, details, layout },
         );
         if (width === 390)
           book.note(
             "AC-S281-6",
             `lease ${target} at 390x844 opened from the desk: the Now card's heading, cue and primary are in the first screen`,
             // On the screen and not under the pinned lease toolbar.
-            inScreen(leaseRead.heading, leaseRead.viewport, leaseRead.cover) &&
+            openedFromDesk &&
+              inScreen(leaseRead.heading, leaseRead.viewport, leaseRead.cover) &&
               (leaseRead.cue === null ||
                 inScreen(leaseRead.cue, leaseRead.viewport, leaseRead.cover)) &&
               inScreen(leaseRead.primary, leaseRead.viewport, leaseRead.cover) &&
               !leaseRead.pageScrollsSideways,
-            leaseRead,
+            { ...leaseRead, openedFromDesk },
           );
       }
     }
@@ -2824,7 +2857,7 @@ async function sentStepChecks(ctx, page, book, leaseId, step, audience) {
 async function headerControls(page) {
   return page.evaluate(() => {
     const header = document.querySelector("header.topbar");
-    if (!header) return { height: null, items: [], names: [] };
+    if (!header) return { height: null, items: [], names: [], core: {} };
     const headerBox = header.getBoundingClientRect();
     const nameOf = (element) => {
       if (element.matches("input"))
@@ -2841,7 +2874,9 @@ async function headerControls(page) {
         ? "nav"
         : element.closest(".global-entity-search")
           ? "search"
-          : "other";
+          : element.closest(".environment-badge")
+            ? "environment"
+            : "other";
     const controls = [
       ...header.querySelectorAll(
         "a[href], button, input:not([type='hidden']), select, summary",
@@ -2852,12 +2887,13 @@ async function headerControls(page) {
           ".primary-nav-mobile-region, .global-entity-search-popover, [role='menu'], [role='dialog'], [role='listbox']",
         ),
     );
-    const items = controls.map((element) => {
+    const reachableControl = (element) => {
       const style = getComputedStyle(element);
       const rendered =
         style.display !== "none" &&
         style.visibility !== "hidden" &&
-        element.getBoundingClientRect().width > 0;
+        element.getBoundingClientRect().width > 0 &&
+        element.getBoundingClientRect().height > 0;
       if (rendered) element.scrollIntoView({ block: "nearest", inline: "nearest" });
       const rect = element.getBoundingClientRect();
       const hit = rendered
@@ -2874,11 +2910,32 @@ async function headerControls(page) {
           rendered &&
           rect.left >= -1 &&
           rect.right <= window.innerWidth + 1 &&
-          Boolean(
-            hit && (hit === element || element.contains(hit) || hit.contains(element)),
-          ),
+          Boolean(hit && (hit === element || element.contains(hit))),
       };
-    });
+    };
+    const items = controls.map(reachableControl);
+    const core = Object.fromEntries(
+      Object.entries({
+        menu: ".primary-nav-menu-trigger",
+        brand: ".brand",
+        search: ".global-entity-search-trigger",
+        notifications: ".notification-button",
+      }).map(([name, selector]) => {
+        const element = header.querySelector(selector);
+        const rect = element?.getBoundingClientRect();
+        return [
+          name,
+          Boolean(
+            rect &&
+            rect.top >= headerBox.top &&
+            rect.bottom <= headerBox.bottom &&
+            rect.width >= 44 &&
+            rect.height >= 44 &&
+            reachableControl(element).reachable,
+          ),
+        ];
+      }),
+    );
     window.scrollTo(0, 0);
     for (const scroller of header.querySelectorAll(".topbar-utilities"))
       scroller.scrollLeft = 0;
@@ -2887,7 +2944,46 @@ async function headerControls(page) {
       height: Math.round(headerBox.height),
       items: rendered,
       names: rendered.filter((item) => item.scope === "other").map((item) => item.name),
-      menu: rendered.some((item) => item.scope === "nav" && item.reachable),
+      environment: rendered.some((item) => item.scope === "environment"),
+      core,
+    };
+  });
+}
+
+/** Geometry of the shared regions and any box leaking outside the document width. */
+async function phoneLayout(page) {
+  return page.evaluate(() => {
+    const box = (node) => {
+      const rect = node.getBoundingClientRect();
+      return [rect.left, rect.top, rect.width, rect.height].map(Math.round);
+    };
+    const regions = [
+      ".topbar",
+      ".topbar > *",
+      '[data-desk-surface="batch"] > *',
+      ".renewal-batch > *",
+      ".renewal-batch-panel > *",
+      ".renewal-workspace-toolbar",
+      ".renewal-workspace-toolbar > *",
+    ];
+    const outside = [...document.querySelectorAll("body *")].filter((node) => {
+      const rect = node.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0 || rect.right <= window.innerWidth + 1)
+        return false;
+      for (let parent = node.parentElement; parent; parent = parent.parentElement) {
+        if (getComputedStyle(parent).overflowX !== "visible") return false;
+      }
+      return true;
+    });
+    const name = (node) =>
+      `${node.tagName.toLowerCase()}${node.id ? `#${node.id}` : ""}.${[...node.classList].join(".")}`;
+    return {
+      viewport: window.innerWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+      regions: regions.flatMap((selector) =>
+        [...document.querySelectorAll(selector)].map((node) => [name(node), box(node)]),
+      ),
+      outside: outside.slice(0, 12).map((node) => [name(node), box(node)]),
     };
   });
 }

@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { RenewalWorkspaceSidebars } from "@/components/lease-renewal/RenewalWorkspaceSidebars";
 import { GlobalEntitySearch } from "@/components/search/GlobalEntitySearch";
+import { TopbarUtilities } from "@/components/layout/TopbarUtilities";
 import {
   PHONE_HEADER_QUERY,
   PHONE_TABLE_QUERY,
@@ -120,14 +121,17 @@ describe("S281 the phone stylesheet arranges and hides nothing (ARCH-S281-4)", (
     ).toEqual([]);
   });
 
-  it("R-S281-7: at 760 px the app header is one row and the utilities scroll inside it", () => {
+  it("R-S281-7: at 760 px the app header is one row and the existing utilities open together", () => {
     expect(PHONE_HEADER_QUERY).toBe("(max-width: 760px)");
     const narrow = /max-width: 760px/;
     expect(ruleFor(".topbar", narrow)?.body).toContain("flex-wrap: nowrap");
     expect(ruleFor(".topbar .primary-navigation", narrow)?.body).toContain("order: -1");
-    const utilities = ruleFor(".topbar-utilities", narrow)?.body;
-    expect(utilities).toContain("overflow-x: auto");
-    expect(utilities).toContain("min-width: 0");
+    expect(ruleFor(".topbar-utility-panel", narrow)?.body).toContain(
+      "max-width: calc(100% - 2 * var(--space-3))",
+    );
+    expect(read("components/layout/TopbarUtilities.tsx")).toContain(
+      '<details className="topbar-utilities">',
+    );
     // Wider screens keep the earlier header: the utilities wrapper takes no box of its own.
     expect(ruleFor(".topbar-utilities")?.body).toContain("display: contents");
     expect(ruleFor(".global-entity-search-trigger")?.body).toContain(
@@ -219,6 +223,31 @@ describe("S281 phone header search (R-S281-7)", () => {
     render(<GlobalEntitySearch />);
     expect(screen.getByRole("combobox", { name: "Search records" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Search records" })).toBeNull();
+  });
+});
+
+describe("S281 the app header's remaining controls (R-S281-7)", () => {
+  const utilities = (
+    <TopbarUtilities>
+      <button type="button">Appearance</button>
+      <a href="/profile">My business profile</a>
+    </TopbarUtilities>
+  );
+
+  it("keeps one set of controls in the phone disclosure", () => {
+    viewport(390);
+    const { container } = render(utilities);
+    const panel = container.querySelector("details.topbar-utilities");
+    expect(panel?.querySelector("summary")).toHaveTextContent("More");
+    expect(panel?.querySelectorAll("button, a")).toHaveLength(2);
+  });
+
+  it("keeps the wide controls in their existing row", () => {
+    viewport(1280);
+    const { container } = render(utilities);
+    expect(container.querySelector("details")).toBeNull();
+    expect(screen.getByRole("button", { name: "Appearance" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "My business profile" })).toBeVisible();
   });
 });
 

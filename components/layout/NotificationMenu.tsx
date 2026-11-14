@@ -2,7 +2,11 @@
 import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { ActionLink, Button, Disclosure, Notice } from "@/components/ui";
+import { ActionLink, Button, Disclosure, Icon, Notice } from "@/components/ui";
+import {
+  PHONE_HEADER_QUERY,
+  useNarrowViewport,
+} from "@/components/hooks/useNarrowViewport";
 import {
   activateTransientLayer,
   dismissTransientLayerDescendants,
@@ -31,6 +35,7 @@ const NOTIFICATION_REFRESH_MS = 60_000;
 export function NotificationMenu({
   navigate = (url) => window.location.assign(url),
 }: Readonly<{ navigate?: (url: string) => void }>) {
+  const narrow = useNarrowViewport(PHONE_HEADER_QUERY);
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<UnifiedNotification[]>([]);
   const [families, setFamilies] = useState<NotificationFamilyView[]>([]);
@@ -322,6 +327,7 @@ export function NotificationMenu({
         aria-controls={`${layerId}-panel`}
         aria-expanded={isOpen}
         aria-haspopup="true"
+        aria-label={narrow ? buttonLabel : undefined}
         className="notification-button"
         onClick={() => {
           const nextIsOpen = !isOpen;
@@ -335,7 +341,7 @@ export function NotificationMenu({
         ref={triggerRef}
         type="button"
       >
-        <span>{buttonLabel}</span>
+        {narrow ? <Icon name="notifications" /> : <span>{buttonLabel}</span>}
         {/* The label already states the count, so the badge is hidden from assistive technology
             and a screen reader reads the count once. */}
         {unreadCount > 0 ? (

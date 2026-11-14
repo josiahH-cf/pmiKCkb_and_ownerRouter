@@ -714,7 +714,10 @@ export function RenewalWorkingBatch({
  * expandable row, so the first lease row is on the first screen. Wider screens show them as
  * before. Opening a row saves and reads nothing.
  */
-function PhoneRow({ label, children }: Readonly<{ label: string; children: ReactNode }>) {
+export function PhoneRow({
+  label,
+  children,
+}: Readonly<{ label: string; children: ReactNode }>) {
   const phone = useNarrowViewport(PHONE_TABLE_QUERY);
   if (!phone) return <>{children}</>;
   return (

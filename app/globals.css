@@ -5717,11 +5717,10 @@ body {
 
 @media (max-width: 760px) {
   .topbar {
-    column-gap: var(--space-2);
+    gap: var(--space-1);
     flex-wrap: nowrap;
     min-height: 0;
-    padding-bottom: var(--space-2);
-    padding-top: var(--space-2);
+    padding: var(--space-2) var(--space-3);
   }
 
   .topbar .primary-navigation {
@@ -5742,10 +5741,44 @@ body {
   }
 
   .topbar .brand {
-    flex: 0 1 auto;
-    min-width: 0;
-    overflow: hidden;
-    white-space: nowrap;
+    align-items: center;
+    flex: 1 1 auto;
+    min-height: var(--target-min);
+    min-width: 44px;
+  }
+
+  .topbar .notification-menu,
+  .topbar .notification-button {
+    width: auto;
+  }
+
+  .topbar .notification-menu {
+    flex: 0 0 auto;
+    position: static;
+  }
+
+  .topbar .notification-button {
+    gap: var(--space-1);
+    justify-content: center;
+    min-width: var(--target-min);
+    padding: var(--space-1) var(--space-2);
+  }
+
+  .topbar .notification-popover {
+    left: auto;
+    right: var(--space-3);
+  }
+
+  .topbar:has(> .environment-badge) {
+    margin-bottom: calc(var(--target-min) + var(--space-3));
+  }
+
+  .topbar > .environment-badge {
+    inset: calc(100% + var(--space-1)) auto auto var(--space-3);
+    max-width: calc(100% - 2 * var(--space-3));
+    padding-block: var(--space-1);
+    position: absolute;
+    white-space: normal;
   }
 
   .global-entity-search[data-search-expanded] {
@@ -5769,18 +5802,35 @@ body {
   }
 
   .topbar-utilities {
-    align-items: center;
-    display: flex;
-    flex: 1 1 0;
-    gap: var(--space-2);
-    justify-content: flex-end;
-    min-width: 0;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
+    display: block;
+    flex: 0 0 auto;
   }
 
-  .topbar-utilities > * {
-    flex: 0 0 auto;
+  .topbar-utilities > summary {
+    align-items: center;
+    border: 1px solid var(--topbar-border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    display: flex;
+    font-weight: 700;
+    min-height: var(--target-min);
+    padding: var(--space-1) var(--space-2);
+  }
+
+  .topbar-utility-panel {
+    align-items: flex-start;
+    background: var(--topbar-surface);
+    border: 1px solid var(--topbar-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--elevation-overlay);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    inset: 100% var(--space-3) auto auto;
+    max-width: calc(100% - 2 * var(--space-3));
+    padding: var(--space-2);
+    position: absolute;
+    z-index: 920;
   }
 
   /* R-S281-8: the pinned lease header is two lines: the address with the tenant count and
@@ -5927,6 +5977,45 @@ body {
 }
 
 @media (max-width: 430px) {
+  .content:has(> [data-desk-surface="batch"]) {
+    padding-block-start: var(--space-3);
+  }
+
+  [data-desk-surface="batch"],
+  .renewal-batch,
+  .renewal-batch-lead,
+  .renewal-batch-panel {
+    gap: var(--space-2);
+  }
+
+  [data-desk-surface="batch"] > .ui-page-header {
+    gap: var(--space-2);
+    margin-bottom: 0;
+  }
+
+  [data-desk-surface="batch"] > p,
+  .renewal-batch-panel > p {
+    margin-block: 0;
+  }
+
+  .renewal-batch-views,
+  .renewal-batch-months {
+    gap: var(--space-1);
+  }
+
+  .renewal-batch-views .secondary-button,
+  .renewal-batch-month-link {
+    align-items: center;
+    display: inline-flex;
+    font-size: 0.875rem;
+    padding: var(--space-1) var(--space-2);
+  }
+
+  .renewal-batch-month-name {
+    flex-basis: 100%;
+    order: -1;
+  }
+
   .renewal-batch-table {
     min-width: 0;
     width: calc(90vw + 4 * 8.5rem);

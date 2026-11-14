@@ -4,6 +4,7 @@ import { GlobalEntitySearch } from "@/components/search/GlobalEntitySearch";
 import { PmiWordmark } from "@/components/brand/PmiWordmark";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { EnvironmentBadge } from "@/components/layout/EnvironmentBadge";
+import { TopbarUtilities } from "@/components/layout/TopbarUtilities";
 import { NotificationMenu } from "@/components/layout/NotificationMenu";
 import { Appearance } from "@/components/layout/Appearance";
 import { PrimaryNav } from "@/components/layout/PrimaryNav";
@@ -61,24 +62,19 @@ export async function AppShell({
             ) : null}
           </Link>
           <GlobalEntitySearch key={user.uid} />
-          {/* Sits beside the wordmark, before the nav, so it cannot collide with the nav's own
-            wrapping at narrow widths. Renders nothing at all in ordinary live Production. */}
           <EnvironmentBadge descriptor={environment} />
           <nav className="primary-navigation" aria-label="Primary">
             <PrimaryNav groups={navigationGroups} />
           </nav>
           <NotificationMenu />
-          {/* S281 R-S281-7: at phone width the header is one row (Menu, the product name, the
-            search trigger and Notifications); these utilities share the row's end and scroll
-            sideways inside it. No control is removed. */}
-          <div className="topbar-utilities">
+          <TopbarUtilities>
             <Appearance />
             {mutationControlsVisible ? <ReportIssueButton /> : null}
             <Link href="/profile" className="user-role" aria-label="My business profile">
               {user.role}
             </Link>
             <SignOutButton />
-          </div>
+          </TopbarUtilities>
         </header>
         <Suspense fallback={null}>
           <NavigationFeedback />
