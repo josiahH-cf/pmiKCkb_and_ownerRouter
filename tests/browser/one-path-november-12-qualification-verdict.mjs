@@ -730,8 +730,27 @@ export function scoreQualification(input) {
   const { servedSource, buildId } = matrix.identities;
   const failFirst = scoreFailFirstBaseline(baseline, { servedSource });
   const gate = scoreStaffPathGate(staffPath, { servedSource });
+  const preservation = scorePreservationReplays({
+    servedSource,
+    buildId,
+    bound: matrix.bound,
+    s260: replays?.s260 ?? null,
+    s271: replays?.s271 ?? null,
+    s252: replays?.s252 ?? null,
+    changedPins,
+    staffPath: gate,
+  });
   return {
     version: MATRIX_VERSION,
+    qualified:
+      matrix.admissible &&
+      matrix.verdict === YES &&
+      failFirst.status === "recorded" &&
+      failFirst.reproduced + failFirst.flagged === W12_MATRIX.length &&
+      gate.status === "pass" &&
+      preservation.s260.verdict === YES &&
+      preservation.s271.verdict === YES &&
+      preservation.s252.verdict === YES,
     matrix: {
       ...matrix,
       journeys: matrix.journeys.map((journey) => ({
@@ -747,16 +766,7 @@ export function scoreQualification(input) {
       flagged: failFirst.flagged,
     },
     staffPath: gate,
-    preservation: scorePreservationReplays({
-      servedSource,
-      buildId,
-      bound: matrix.bound,
-      s260: replays?.s260 ?? null,
-      s271: replays?.s271 ?? null,
-      s252: replays?.s252 ?? null,
-      changedPins,
-      staffPath: gate,
-    }),
+    preservation,
     production: productionReadFields(production),
     human: humanVerdictField(human, { buildId: matrix.bound ? buildId : null }),
   };

@@ -25,6 +25,7 @@
 //                            and no replay runs unless --replays names it.
 //   --replays s260,s271,s252 the replays to run (default: all three on a compiled synthetic-mail
 //                            run without --only; none otherwise). "none" runs none.
+//                            An omitted preservation replay leaves the batch unqualified.
 //   --baseline <file>        the R-S284-1 record, november-12-baseline.json of a private run.
 //   --s271-baseline <file>   passed to the S271 driver as its --baseline (november-10-baseline.json).
 //   --rendered-help <dir>, --rendered-help-drift <dir>   passed to the S260 driver unchanged.
@@ -981,12 +982,7 @@ try {
   };
   const scored = scoreQualification(input);
   const diagnostics = results.map(diagnose);
-  const replayVerdicts = replays.map((name) => scored.preservation[name]?.verdict);
-  const qualified =
-    scored.matrix.admissible === true &&
-    scored.matrix.verdict === "Yes" &&
-    scored.staffPath.status === "pass" &&
-    replayVerdicts.every((verdict) => verdict === "Yes");
+  const { qualified } = scored;
   const diagnosticPass =
     results.length > 0 &&
     diagnostics.every(
@@ -1005,7 +1001,6 @@ try {
         startedAt,
         finishedAt: new Date().toISOString(),
         admissible: scored.matrix.admissible === true,
-        qualified,
         only,
         replays,
         restarts: {

@@ -535,6 +535,38 @@ describe("AC-S284-1 the fail-first baseline", () => {
   });
 });
 
+describe("R-S284-6 cumulative qualification", () => {
+  const baseline = {
+    source: baselineSource,
+    rows: W12_JOURNEYS.map((id) => ({ id, reproduced: id !== "W12-12" })),
+  };
+  const input = {
+    run: completeRun(),
+    baseline,
+    staffPath: cleanStaffPath,
+    replays: replays(),
+    changedPins: pins,
+  };
+
+  it("requires the full baseline and all three preservation replays", () => {
+    expect(scoreQualification(input).qualified).toBe(true);
+    expect(scoreQualification({ ...input, baseline: null }).qualified).toBe(false);
+    expect(
+      scoreQualification({
+        ...input,
+        baseline: { ...baseline, rows: baseline.rows.slice(1) },
+      }).qualified,
+    ).toBe(false);
+    expect(scoreQualification({ ...input, replays: {} }).qualified).toBe(false);
+    expect(
+      scoreQualification({
+        ...input,
+        replays: { s260: input.replays.s260, s271: input.replays.s271 },
+      }).qualified,
+    ).toBe(false);
+  });
+});
+
 describe("AC-S284-4 preservation replays on the same build", () => {
   it("scores the S260, S271 and scoped S252 replays bound to the matrix's build", () => {
     const scored = scoreQualification({
