@@ -126,9 +126,10 @@ describe("S281 the phone stylesheet arranges and hides nothing (ARCH-S281-4)", (
     const narrow = /max-width: 760px/;
     expect(ruleFor(".topbar", narrow)?.body).toContain("flex-wrap: nowrap");
     expect(ruleFor(".topbar .primary-navigation", narrow)?.body).toContain("order: -1");
-    expect(ruleFor(".topbar-utility-panel", narrow)?.body).toContain(
-      "max-width: calc(100% - 2 * var(--space-3))",
-    );
+    const utilityPanel = ruleFor(".topbar-utility-panel", narrow)?.body;
+    expect(utilityPanel).toContain("position: absolute");
+    expect(utilityPanel).toContain("inset: 100% var(--space-3) auto");
+    expect(utilityPanel).toContain("flex-wrap: wrap");
     expect(read("components/layout/TopbarUtilities.tsx")).toContain(
       '<details className="topbar-utilities">',
     );
