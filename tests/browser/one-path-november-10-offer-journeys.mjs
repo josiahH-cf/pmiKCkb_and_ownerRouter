@@ -1150,6 +1150,10 @@ export async function journeyN1005(ctx, page) {
       await page.waitForURL(
         (url) => url.pathname === "/connections" && !url.search && !url.hash,
       );
+      const resources = page.locator("details").filter({
+        has: page.locator("summary").getByText("Renewal resource links", { exact: true }),
+      });
+      await kit.toggleDisclosure(page, resources, true);
     } else if (priority.state === "wait") {
       // A wait leads over preparation for the next offer. Follow its exact readiness link.
       assert.equal(await leadFix.count(), 0, "No resource fix competes with the wait");
