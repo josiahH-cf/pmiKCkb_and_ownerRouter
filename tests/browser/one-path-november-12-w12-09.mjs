@@ -69,7 +69,12 @@ import {
   sendOwnerMessage,
   sendTenantOffer,
 } from "./one-path-november-12-journeys.mjs";
-import { DESK, WORKING_ROUTE, WORKSPACE_ROUTE } from "./one-path-november-12-kit.mjs";
+import {
+  DESK,
+  LEASE_LOAD_MS,
+  WORKING_ROUTE,
+  WORKSPACE_ROUTE,
+} from "./one-path-november-12-kit.mjs";
 import {
   serverProviderCalls,
   sheetWriteAttempts,
@@ -608,6 +613,10 @@ export async function checkW1209(ctx, page, start) {
 
   async function liveReview(open = page, hash = "") {
     await kit.openPath(open, `${LIVE}${hash}`);
+    return readLiveReview(open);
+  }
+
+  async function readLiveReview(open) {
     await open
       .getByRole("heading", { name: "Live renewal review" })
       .waitFor({ timeout: 120_000 });
@@ -615,6 +624,9 @@ export async function checkW1209(ctx, page, start) {
     return open.evaluate(() => {
       const text = (node) => (node?.textContent ?? "").replace(/\s+/g, " ").trim();
       const section = document.querySelector('section[data-group="information"]');
+      const dataStatus = [...document.querySelectorAll("p.muted")].find((line) =>
+        text(line).startsWith("Data status:"),
+      );
       return {
         cards: [...document.querySelectorAll("article.lr-flag-card")].map((card) => ({
           id: card.id,
@@ -633,10 +645,8 @@ export async function checkW1209(ctx, page, start) {
         ),
         infoIntro: text(section?.querySelector("p.muted")),
         infoDecisionWords: /High|Needs human approval|severity/.test(text(section)),
-        status:
-          [...document.querySelectorAll("p.muted")]
-            .map(text)
-            .find((line) => line.startsWith("Data status:")) ?? null,
+        status: dataStatus ? text(dataStatus) : null,
+        readAt: dataStatus?.querySelector("time")?.getAttribute("datetime") ?? null,
         blocker:
           text(document.querySelector('p.workflow-blocker[role="status"]')) || null,
         hash: location.hash,
@@ -941,16 +951,44 @@ export async function checkW1209(ctx, page, start) {
     // A decision control on a retained row: the row's own item, opened on a read past its limit.
     await park(page);
     await page.waitForTimeout(AGE_MS);
-    const target = (aged.panel.rows.find((row) => row.retained) ?? aged.panel.rows[0])
-      ?.href;
-    const hash = target?.includes("#") ? `#${target.split("#")[1]}` : "";
+    const target = aged.panel.rows.find((row) => row.retained);
+    const hash = target?.href?.includes("#") ? `#${target.href.split("#")[1]}` : "";
+    if (!hash) throw new Error("The retained renewal row has no review item link.");
+    const item = { hash, label: target.label };
     const staleItem = await liveReview(page, hash);
-    // The stale read started the background re-read; the item is read again once it lands.
+    // Reopening the same fragment can be a same-document navigation. Reload the exact item.
     let currentItem = null;
+    let currentDocumentStatus = null;
     for (let attempt = 0; attempt < 6; attempt += 1) {
       await page.waitForTimeout(5_000);
-      currentItem = await liveReview(page, hash);
-      if (/Data status: fresh/.test(currentItem.status ?? "")) break;
+      const document = await page.reload({
+        waitUntil: "domcontentloaded",
+        timeout: LEASE_LOAD_MS,
+      });
+      currentDocumentStatus = document?.status() ?? null;
+      currentItem = await readLiveReview(page);
+      const card = currentItem.cards.find((card) => `#${card.id}` === hash);
+      ctx.record({
+        part: "P6 current review document",
+        attempt: attempt + 1,
+        documentStatus: currentDocumentStatus,
+        item,
+        hash: currentItem.hash,
+        status: currentItem.status,
+        readAt: currentItem.readAt,
+        target: currentItem.target,
+        resolveForms: card?.resolveForms ?? null,
+        blocker: currentItem.blocker,
+      });
+      if (
+        currentDocumentStatus === 200 &&
+        /Data status: fresh/.test(currentItem.status ?? "") &&
+        Date.parse(currentItem.readAt) > Date.parse(staleItem.readAt) &&
+        currentItem.hash === hash &&
+        card?.head === item.label &&
+        card.resolveForms > 0
+      )
+        break;
     }
     // The retained Dashboard row's link, followed.
     await park(page);
@@ -967,15 +1005,18 @@ export async function checkW1209(ctx, page, start) {
       await page
         .getByRole("heading", { name: "Live renewal review" })
         .waitFor({ timeout: 120_000 });
-      followed = await liveReview(page, new URL(page.url()).hash);
+      followed = await readLiveReview(page);
     }
     return {
       aged: aged.panel,
       afterRefresh,
+      item,
       staleItem,
       currentItem,
+      currentDocumentStatus,
       agedAgain: agedAgain.panel,
       followed,
+      followedRow: retainedRow ?? null,
     };
   });
 
@@ -1537,22 +1578,36 @@ export async function checkW1209(ctx, page, start) {
     // does. A control is only ever shown beside a current ("fresh") read.
     const controls = (live) =>
       live ? live.cards.reduce((sum, card) => sum + card.resolveForms, 0) : -1;
+    const exactCard = (live) =>
+      live && read?.item && live.hash === read.item.hash
+        ? live.cards.find(
+            (card) => `#${card.id}` === read.item.hash && card.head === read.item.label,
+          )
+        : null;
     const freshOnly = (live) =>
       Boolean(
         live && (controls(live) === 0 || /Data status: fresh/.test(live.status ?? "")),
       );
     const staleOk = Boolean(
       read?.staleItem &&
+      exactCard(read.staleItem) &&
       !/Data status: fresh/.test(read.staleItem.status ?? "") &&
       controls(read.staleItem) === 0 &&
       Boolean(read.staleItem.blocker),
     );
     const currentOk = Boolean(
       read?.currentItem &&
+      read.currentDocumentStatus === 200 &&
       /Data status: fresh/.test(read.currentItem.status ?? "") &&
-      controls(read.currentItem) > 0,
+      Date.parse(read.currentItem.readAt) > Date.parse(read.staleItem?.readAt) &&
+      (exactCard(read.currentItem)?.resolveForms ?? 0) > 0,
     );
-    const followedOk = Boolean(read?.followed && freshOnly(read.followed));
+    const followedOk = Boolean(
+      read?.followed &&
+      read.followedRow?.href === `${LIVE}${read.followed.hash}` &&
+      read.followed.target === read.followedRow.label &&
+      freshOnly(read.followed),
+    );
     verdicts["AC-S280-4"] = {
       aged: retainedOk(read?.aged),
       refreshOk,
