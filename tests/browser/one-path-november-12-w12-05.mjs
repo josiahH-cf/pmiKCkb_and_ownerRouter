@@ -274,18 +274,44 @@ async function resumeInCommunications(ctx, page, leaseId) {
     .first();
   if (!(await kit.shownWithin(card, 60_000))) return { shown: false };
   const cardText = await kit.visibleText(card);
+  // The saved communication can render before the separate current-target read completes.
+  const composition = page
+    .waitForResponse(
+      (response) => {
+        const url = new URL(response.url());
+        return (
+          response.request().method() === "GET" &&
+          url.pathname === "/api/gmail-hub/composition" &&
+          url.searchParams.get("purpose") === "renewal_tenant" &&
+          url.searchParams.get("lease") === String(leaseId)
+        );
+      },
+      { timeout: 60_000 },
+    )
+    .catch(() => null);
   await card.getByRole("button", { name: "Open communication", exact: true }).click();
   const composer = page.getByRole("region", { name: "Workflow communication composer" });
   await composer.waitFor({ timeout: 60_000 });
-  await page.waitForLoadState("networkidle", { timeout: 30_000 }).catch(() => undefined);
   const resume = composer.getByRole("button", {
     name: "Resume reviewed sequence",
     exact: true,
   });
+  const currentTarget = await composition;
+  const compositionStatus = currentTarget?.status() ?? null;
   if (!(await kit.shownWithin(resume, 60_000)))
-    return { shown: true, cardText, offered: false };
-  if (!(await resume.isEnabled()))
-    return { shown: true, cardText, offered: true, enabled: false };
+    return { shown: true, cardText, offered: false, compositionStatus };
+  if (
+    !currentTarget?.ok() ||
+    !(await kit.shownWithin(resume.and(composer.locator("button:enabled")), 30_000))
+  )
+    return {
+      shown: true,
+      cardText,
+      offered: true,
+      enabled: false,
+      compositionStatus,
+      statuses: await composer.getByRole("status").allInnerTexts(),
+    };
   const answer = kit.appResponse(page, SEQUENCES_ROUTE, {
     match: (body) => kit.sequenceAction(body) === "resume",
   });
@@ -297,6 +323,7 @@ async function resumeInCommunications(ctx, page, leaseId) {
     cardText,
     offered: true,
     enabled: true,
+    compositionStatus,
     status: response?.status() ?? null,
     state: body?.sequence?.state ?? null,
   };
@@ -906,6 +933,8 @@ async function guidedPart(ctx, page, leaseId, sequenceId) {
       shown: resumed.shown,
       offered: resumed.offered ?? null,
       enabled: resumed.enabled ?? null,
+      compositionStatus: resumed.compositionStatus ?? null,
+      statuses: resumed.statuses ?? [],
       status: resumed.status ?? null,
       state: resumed.state ?? null,
     },
