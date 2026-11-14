@@ -424,7 +424,7 @@ async function restartServer(reason) {
 }
 
 /** Put the rehearsal where a unit starts: the run's own state for the first, else fresh. */
-async function freshStart(unit, { held }) {
+async function freshStart(unit, { held, browser = null }) {
   const pristine = firstUnit && (!held || rehearsal.automaticComparisonHeld === true);
   firstUnit = false;
   if (pristine) return { restarted: false, reset: false };
@@ -433,11 +433,18 @@ async function freshStart(unit, { held }) {
     await restartServer(unit);
     restarted = true;
   }
-  const seeds = await resetRehearsalState({
-    rehearsal: held ? heldRehearsal : rehearsal,
-    browser,
-    steps: startingSeedSteps(rehearsal),
-  });
+  // Each replay child starts its own browser. Release the separate seed browser before it runs.
+  const seedBrowser = browser ?? (await launchBrowser());
+  let seeds;
+  try {
+    seeds = await resetRehearsalState({
+      rehearsal: held ? heldRehearsal : rehearsal,
+      browser: seedBrowser,
+      steps: startingSeedSteps(rehearsal),
+    });
+  } finally {
+    if (!browser) await seedBrowser.close();
+  }
   note(
     `${unit} started again (restart ${restarted}): ${seeds.map((seed) => `${seed.name}=${seed.state}`).join(" ")}`,
   );
@@ -694,13 +701,15 @@ async function runReplay(name) {
 
 // ---- W12 rows ----------------------------------------------------------------------------------
 
-const browser = await chromium.launch({
-  executablePath: resolveBrowserExecutable(),
-  headless: true,
-});
+function launchBrowser() {
+  return chromium.launch({
+    executablePath: resolveBrowserExecutable(),
+    headless: true,
+  });
+}
 
 /** A signed-in page in a fresh context that refuses every request off the rehearsal's origin. */
-async function signedInPage(role, writes, contexts) {
+async function signedInPage(browser, role, writes, contexts) {
   const context = await browser.newContext({
     viewport: WIDE,
     colorScheme: "light",
@@ -785,13 +794,15 @@ async function runW12Row(id) {
   let checks = {};
   let error = null;
   let before = null;
+  let browser = null;
   // A refusal made while the row starts again (its reset and seeds) belongs to the row too.
   const mark = refusalMark();
   try {
-    fresh = await freshStart(id, { held: true });
+    browser = await launchBrowser();
+    fresh = await freshStart(id, { held: true, browser });
     // Read after the fresh start, so a restart before the row is not read as another build.
     before = await servedBuild();
-    const page = await signedInPage("Editor", writes, contexts);
+    const page = await signedInPage(browser, "Editor", writes, contexts);
     pages.push(page);
     const ctx = {
       journeyId: id,
@@ -809,7 +820,7 @@ async function runW12Row(id) {
       record: (entry) => note(`${id} ${JSON.stringify(entry)}`),
       unresolved: (kind) => effects.push(String(kind ?? "effect").slice(0, 80)),
       newPage: async (role) => {
-        const extra = await signedInPage(role, writes, contexts);
+        const extra = await signedInPage(browser, role, writes, contexts);
         pages.push(extra);
         return extra;
       },
@@ -848,6 +859,9 @@ async function runW12Row(id) {
     await screenshots(id, "stopped", pages);
   } finally {
     for (const context of contexts) await context.close().catch(() => undefined);
+    await browser?.close().catch((failure) => {
+      error ??= message(failure);
+    });
   }
   const after = await servedBuild();
   before ??= after;
@@ -933,7 +947,6 @@ try {
     );
   }
 } finally {
-  await browser.close().catch(() => undefined);
   const input = {
     run: {
       servedSource: rehearsal.servedVersion,
