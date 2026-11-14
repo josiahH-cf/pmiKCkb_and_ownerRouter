@@ -580,6 +580,21 @@ async function tenantPart(ctx, page, start) {
   };
   await openComposer(ctx, page, olderDueId);
   out.olderDueAfterView = summarize(await readComposer(ctx, page));
+  for (const [part, view] of [
+    ["older paused before tick", out.olderPausedView],
+    ["older due before tick", out.olderDueView],
+    ["older due after tick", out.olderDueAfterView],
+  ]) {
+    ctx.record({
+      part,
+      state: view.state,
+      refusals: view.refusals,
+      buttons: view.buttons,
+      scheduleFieldset: view.scheduleFieldset,
+      resumeTiming: view.resumeTiming,
+    });
+  }
+  ctx.record({ part: "older dispatch checks", ...out.race });
   // Communications' Outgoing list names the new cause on the stopped message's row.
   await kit.openPath(page, "/gmail-hub");
   await page.getByRole("tab", { name: "Outgoing", exact: true }).click();
@@ -599,6 +614,14 @@ async function tenantPart(ctx, page, start) {
       "cancel",
     );
   }
+
+  ctx.record({
+    part: "older worklist and cancellation",
+    rowLabel: out.rowLabel,
+    pausedCancel: out["cancel-paused"]?.status,
+    dueCancel: out["cancel-due"]?.status,
+    tenantMessages: (await kit.sentTo(tenants)).length - sentAtStart.length,
+  });
 
   // A record from before S272 paused by staff, authorized after that send: it resumes as today.
   const legacyStaffId = await seedCopy(ctx, original, (fields) => {
