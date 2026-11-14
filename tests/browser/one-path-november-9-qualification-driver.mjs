@@ -2310,6 +2310,33 @@ try {
           });
         }
         await open(page, href(prepared, "?view=full"));
+        const toolbar = page.locator(
+          ".renewal-workspace-toolbar[data-renewal-toolbar-compact]",
+        );
+        await toolbar.locator('summary[aria-label="Work status"]').waitFor();
+        await toolbar.locator("#renewal-record-work").waitFor();
+        const compactFull = await toolbar.evaluate((node) => {
+          const status = node.querySelector('summary[aria-label="Work status"]');
+          const record = node.querySelector("#renewal-record-work");
+          return {
+            toolbar: node.getBoundingClientRect().height,
+            status: status?.getBoundingClientRect().toJSON(),
+            record: record?.getBoundingClientRect().toJSON(),
+            viewport: window.innerWidth,
+          };
+        });
+        record({ id: "N09-10", compactFull });
+        assert.ok(compactFull.toolbar <= 112, "Full view keeps its compact toolbar");
+        for (const control of [compactFull.status, compactFull.record]) {
+          assert.ok(
+            control &&
+              control.width >= 44 &&
+              control.height >= 44 &&
+              control.left >= 0 &&
+              control.right <= compactFull.viewport + 1,
+            "Both compact Full view controls fit without scrolling sideways",
+          );
+        }
         for (const step of steps) {
           const outcome = page.locator(`section[data-renewal-outcome="${step}"]`);
           await outcome.waitFor();

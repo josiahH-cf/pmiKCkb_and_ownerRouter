@@ -324,7 +324,6 @@ export function RenewalWorkspaceSidebars({
               <div data-renewal-view-switch ref={view?.setStageSlot} />
               {workStatus}
             </div>
-            {focusView ? null : sectionNavigation}
           </>
         ) : (
           <>
@@ -347,7 +346,10 @@ export function RenewalWorkspaceSidebars({
           </>
         )}
       </div>
-      <div className="renewal-workspace-body ui-stack">{children}</div>
+      <div className="renewal-workspace-body ui-stack">
+        {compact && !focusView ? sectionNavigation : null}
+        {children}
+      </div>
       {informationOpen ? (
         <WorkspaceResizer
           label="Resize lease information"

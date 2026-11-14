@@ -230,6 +230,7 @@ describe("S281 the pinned lease header on a phone (R-S281-8)", () => {
         identitySummary="7001 Sample St · 2 tenants"
         leaseInformation={<p>Current source facts</p>}
         rentvineHref="https://example.invalid/lease/7001"
+        sectionNavigation={<nav aria-label="Renewal dashboard sections">Sections</nav>}
         viewSwitch={<button type="button">Full view</button>}
         workStatus={<button type="button">Work status</button>}
       >
@@ -261,6 +262,11 @@ describe("S281 the pinned lease header on a phone (R-S281-8)", () => {
     const stageRow = toolbar.querySelector(".renewal-toolbar-stage-row")!;
     expect(stageRow.querySelector("[data-renewal-view-switch]")).not.toBeNull();
     expect(stageRow).toHaveTextContent("Work status");
+    const sections = screen.getByRole("navigation", {
+      name: "Renewal dashboard sections",
+    });
+    expect(toolbar).not.toContainElement(sections);
+    expect(container.querySelector(".renewal-workspace-body")).toContainElement(sections);
   });
 
   it("closing Lease information returns focus to its toggle inside an opened Lease details", () => {
@@ -286,6 +292,9 @@ describe("S281 the pinned lease header on a phone (R-S281-8)", () => {
     const toolbar = container.querySelector(".renewal-workspace-toolbar")!;
     expect(toolbar).not.toHaveAttribute("data-renewal-toolbar-compact");
     expect(toolbar.querySelector("[data-renewal-lease-details]")).toBeNull();
+    expect(toolbar).toContainElement(
+      screen.getByRole("navigation", { name: "Renewal dashboard sections" }),
+    );
     expect(screen.getByRole("button", { name: "Lease information" })).toBeInTheDocument();
   });
 });

@@ -5849,6 +5849,47 @@ body {
     min-width: 0;
   }
 
+  .renewal-toolbar-stage-row .renewal-header-work-status {
+    flex: 0 0 clamp(7rem, 41%, 11rem);
+    min-width: 0;
+  }
+
+  .renewal-toolbar-stage-row .renewal-header-work-status > summary {
+    font-size: var(--font-size-min);
+    line-height: 1.2;
+    min-height: var(--target-min);
+    overflow-wrap: normal;
+    padding: var(--space-1) var(--space-2);
+  }
+
+  .renewal-toolbar-stage-row [data-renewal-stage-header] > .ui-row {
+    flex-wrap: nowrap;
+    gap: var(--space-1);
+  }
+
+  .renewal-toolbar-stage-row .renewal-guided-stage {
+    flex: 1 1 auto;
+    max-block-size: 3.5rem;
+    min-width: 0;
+    overflow: auto;
+  }
+
+  .renewal-toolbar-stage-row #renewal-record-work {
+    flex: 0 0 auto;
+    min-height: var(--target-min);
+    white-space: nowrap;
+  }
+
+  .renewal-workspace-body > .renewal-section-nav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+
+  .renewal-workspace-body > .renewal-section-nav > a {
+    flex: 0 0 auto;
+  }
+
   /* R-S281-10: the path strip is one row that scrolls sideways inside itself, so the Now card's
      heading, cue and primary action are on the first screen. */
   .renewal-path-strip .renewal-path-steps {
