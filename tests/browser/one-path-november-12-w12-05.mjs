@@ -1048,8 +1048,13 @@ async function declinePart(ctx, page, leaseId) {
   const afterTick = await tenantSequence(ctx, leaseId, sequenceId);
   const card = await communicationsCard(ctx, page, leaseId);
   await kit.openLease(page, leaseId, "");
-  const leaseText = await kit.visibleText(page.locator("main").first());
-  const handoff = /Non-renewal handoff/i.test(leaseText);
+  const stage = page
+    .getByRole("region", { name: "Current renewal stage", exact: true })
+    .locator('[data-renewal-field="stage-line"]');
+  const stageLine = await kit.visibleText(stage);
+  const currentStep = await stage.getAttribute("data-renewal-current-step");
+  const handoff =
+    currentStep === "non-renewal-handoff" && /^Non-renewal handoff\b/i.test(stageLine);
   const result =
     chosen.savedOnChoice === 0 &&
     chosen.lines?.response === `Response: ${LABELS.declined_nonrenewing}.` &&
@@ -1081,6 +1086,8 @@ async function declinePart(ctx, page, leaseId) {
     line,
     cardPaused: card.includes(PAUSED_LINE),
     cardChanged: card.includes(PAUSED_CHANGED),
+    currentStep,
+    stageLine,
     handoff,
   });
   return { checks: { "AC-S276-2": result } };
