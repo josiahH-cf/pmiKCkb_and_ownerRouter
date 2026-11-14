@@ -1327,6 +1327,14 @@ export async function checkW1213(ctx, page, start) {
         await approval
           .getByLabel("Who approved", { exact: true })
           .selectOption(second.value);
+        const approvalTime = centralLocal(2);
+        await approval
+          .getByLabel("When they approved", { exact: true })
+          .fill(approvalTime);
+        const occurredAt = await page.evaluate(
+          (localTime) => new Date(localTime).toISOString(),
+          approvalTime,
+        );
         const reviewed = await reviewAnswer(kit, page, approval);
         const status = await saveAnswer(kit, page, reviewed.review, staff);
         const stored = await ownerResponse(kit, page, leaseId);
@@ -1342,6 +1350,7 @@ export async function checkW1213(ctx, page, start) {
             outcome: stored?.outcome ?? null,
             party: stored?.approval?.party ?? null,
             channel: stored?.approval?.channel?.kind ?? null,
+            occurredAt: stored?.approval?.occurredAt ?? null,
             scope: stored?.approvedBase?.scope ?? null,
           },
           noAddress: holdsNoAddress(stored),
@@ -1358,8 +1367,10 @@ export async function checkW1213(ctx, page, start) {
             status === 200 &&
             stored?.outcome === "approved_terms" &&
             stored?.approval?.party?.kind === "owner" &&
+            stored?.approval?.party?.sourceRef === second.value &&
             stored?.approval?.party?.label === SECOND_OWNER &&
             stored?.approval?.channel?.kind === "linked_reply" &&
+            stored?.approval?.occurredAt === occurredAt &&
             stored?.approvedBase?.scope === "amount_only" &&
             holdsNoAddress(stored),
         };
