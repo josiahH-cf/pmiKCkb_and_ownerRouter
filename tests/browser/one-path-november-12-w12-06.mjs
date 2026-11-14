@@ -188,12 +188,10 @@ const pick = (entry) =>
 /** The Offer step's "Renewal base rent" once its basis has loaded. */
 async function offerBaseRent(kit, page, leaseId, accept) {
   await kit.openLease(page, leaseId, "?step=offer-tenant");
-  const base = page.locator('[data-offer-charge-total="base"]');
-  await base
-    .first()
-    .waitFor({ state: "attached", timeout: 60_000 })
-    .catch(() => undefined);
-  return settledText(kit, base, accept);
+  const selector = '[data-offer-charge-total="base"]';
+  // The offer's message or contact disclosure can contain this total after approval.
+  if (!(await kit.reveal(page, selector, 60_000))) return "";
+  return settledText(kit, page.locator(selector), accept);
 }
 
 /** The Ask the owner facts line naming what the recommendation rests on. */
