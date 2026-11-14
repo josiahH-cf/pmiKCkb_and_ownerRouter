@@ -37,6 +37,44 @@ const prepared = (response, field) =>
   response.request().method() === "POST" &&
   (field === undefined || field(response.request().postDataJSON()));
 
+const tenantOfferGroup = (label) =>
+  `details[data-renewal-group-step="offer-tenant"][data-renewal-group="${label}"]`;
+
+async function checkSentTenantWork(now) {
+  const work = now.locator(
+    '[data-renewal-message-work="tenant"][data-renewal-message-sent]',
+  );
+  if (!(await work.count())) return false;
+  await now
+    .locator(
+      '[data-renewal-outcome="offer-tenant"] [data-renewal-derived="tenant_offer"] [data-renewal-field="derived-origin"]',
+    )
+    .filter({
+      hasText: /^From the app's confirmed send: the tenant message Gmail accepted /,
+    })
+    .waitFor();
+  assert.equal(await work.count(), 1, "One confirmed tenant message");
+  // Guided keeps other steps' controls mounted. Check the current step's groups and editor.
+  for (const label of ["Message", "Other ways to send"]) {
+    assert.equal(
+      await now.locator(tenantOfferGroup(label)).count(),
+      0,
+      `No ${label} group for the confirmed tenant offer`,
+    );
+  }
+  assert.equal(
+    await work.locator('[data-renewal-field="message-preview"]').count(),
+    0,
+    "No editable preview for the confirmed tenant offer",
+  );
+  assert.equal(
+    await now.locator('[data-renewal-field="message-preview"]:visible').count(),
+    0,
+    "No editable preview is shown in the confirmed offer's Now card",
+  );
+  return true;
+}
+
 /** Save the tenant offer's charge decisions through the route, as the editor does. */
 async function saveOfferCharges(kit, page, leaseId, change) {
   const tenant = await kit.read(
@@ -629,22 +667,13 @@ export async function journeyN1004(ctx, page) {
   // Change only one selected charge: the corrected pet line, $45.00 to $50.00.
   await kit.open(page, kit.href(leaseId, "?step=offer-tenant"));
   const offerWork = kit.now(page);
-  const sentOffer = offerWork.locator(
-    '[data-renewal-message-work="tenant"][data-renewal-message-sent]',
-  );
-  const contact = offerWork.locator('details[data-renewal-group="Record of contact"]');
-  if (await sentOffer.count()) {
-    assert.equal(
-      await offerWork.locator('details[data-renewal-group="Message"]').count(),
-      0,
-    );
-    assert.equal(
-      await offerWork.locator('details[data-renewal-group="Other ways to send"]').count(),
-      0,
-    );
+  const contact = offerWork.locator(tenantOfferGroup("Record of contact"));
+  if (await checkSentTenantWork(offerWork)) {
     await kit.toggleDisclosure(page, contact, true);
     await contact.locator("#renewal-offer-charges").waitFor();
     assert.equal(await review.count(), 1, "One review for the current offer after send");
+  } else {
+    assert.equal(await contact.count(), 0, "The grouped offer carries the sent marker");
   }
   const changed = review
     .locator("#renewal-offer-charge-rentvine-61011")
@@ -1084,22 +1113,19 @@ export async function journeyN1005(ctx, page) {
     assert.equal(pending.authorized.status, 409, JSON.stringify(pending.authorized.body));
     assert.equal((await kit.sentMail()).length, sentBefore);
     await kit.open(page, kit.href(leaseId, "?step=offer-tenant"));
-    const work = kit.now(page).locator("[data-renewal-priority-state]").first();
+    const now = kit.now(page);
+    const work = now.locator(
+      '[data-renewal-outcome="offer-tenant"][data-renewal-priority-state]',
+    );
     await work.waitFor();
     const priority = {
       state: await work.getAttribute("data-renewal-priority-state"),
       lead: await work.getAttribute("data-renewal-priority-lead"),
     };
-    const leadFix = kit
-      .now(page)
-      .getByRole("button", { name: /^Shared resource link: / });
-    const message = kit.now(page).locator('details[data-renewal-group="Message"]');
-    const sentOffer = kit
-      .now(page)
-      .locator('[data-renewal-message-work="tenant"][data-renewal-message-sent]');
+    const leadFix = now.getByRole("button", { name: /^Shared resource link: / });
     let fix;
     let pendingResource;
-    if (await sentOffer.count()) {
+    if (await checkSentTenantWork(now)) {
       // After a confirmed offer the tenant answer or its wait leads. S281 removes the editable
       // preview; the exact pending resource for the next offer remains on Connections.
       assert.ok(
@@ -1112,28 +1138,22 @@ export async function journeyN1005(ctx, page) {
         0,
         "No resource fix competes with the tenant answer",
       );
-      assert.equal(
-        await message.count(),
-        0,
-        "No editable Message after the confirmed offer",
-      );
       pendingResource = composition.target.tenantResourceRequired.find(
         (id) => composition.target.tenantResources?.[id]?.state === "source_pending",
       );
       assert.ok(pendingResource);
       const nav = page.getByRole("navigation", { name: "Primary", exact: true });
       const connections = nav.getByRole("link", { name: "Connections", exact: true });
-      await nav.getByRole("button", { name: "Admin", exact: true }).click();
+      await nav.getByRole("button", { name: "Admin", exact: true }).press("ArrowDown");
+      assert.equal(await connections.getAttribute("href"), "/connections");
       await connections.click();
-      record({
-        id: "N10-05",
-        check: "pending-resource-in-connections",
-        priority,
-        pendingResource,
-      });
+      await page.waitForURL(
+        (url) => url.pathname === "/connections" && !url.search && !url.hash,
+      );
     } else if (priority.state === "wait") {
       // A wait leads over preparation for the next offer. Follow its exact readiness link.
       assert.equal(await leadFix.count(), 0, "No resource fix competes with the wait");
+      const message = now.locator(tenantOfferGroup("Message") + ":visible");
       if (await message.count()) {
         await kit.toggleDisclosure(page, message, true);
         fix = message.getByRole("link", { name: /^Shared resource link: / }).first();
@@ -1160,19 +1180,37 @@ export async function journeyN1005(ctx, page) {
       await fix.click();
     }
     await page.waitForURL((url) => url.pathname === "/connections");
+    const destination = new URL(page.url());
     const resourceTarget = pendingResource
       ? "#renewal-resource-entry-" + pendingResource
-      : new URL(page.url()).hash;
+      : destination.hash;
     assert.match(
       resourceTarget,
       /^#renewal-resource-entry-(?:insurance_flyer|rbp_flyer)$/,
     );
+    const resourceId = resourceTarget.slice("#renewal-resource-entry-".length);
+    assert.ok(composition.target.tenantResourceRequired.includes(resourceId));
+    const projected = composition.target.tenantResources?.[resourceId];
+    assert.equal(projected?.state, "source_pending");
     const entry = page.locator(resourceTarget);
     await entry.waitFor();
-    await entry
-      .getByText(/^Source pending\. /)
-      .first()
-      .waitFor();
+    const stateLine = `Source pending. ${projected.reason}`;
+    await entry.getByText(stateLine, { exact: true }).waitFor();
+    const resourceLink = entry.locator("#renewal-resource-" + resourceId);
+    assert.equal(await resourceLink.inputValue(), projected.url ?? "");
+    assert.ok(
+      await resourceLink.isDisabled(),
+      "An Editor cannot change the resource link",
+    );
+    record({
+      id: "N10-05",
+      check: "pending-resource-in-connections",
+      priority,
+      resourceId,
+      destination: destination.pathname + destination.hash,
+      resourceTarget,
+      stateLine,
+    });
     assert.equal(
       await entry.getByRole("button", { name: /^Save / }).count(),
       0,
