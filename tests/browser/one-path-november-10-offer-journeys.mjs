@@ -13,6 +13,7 @@ import {
   recordOwnerApproval,
 } from "./one-path-november-10-core-journeys.mjs";
 import {
+  addDays,
   centralDate,
   compositionText,
   firestoreValue,
@@ -104,7 +105,13 @@ async function saveOfferCharges(kit, page, leaseId, change) {
 }
 
 /** Save the sequence and authorize it with the hashes the review read. */
-export async function authorizeTenantOffer(kit, page, composition, action) {
+export async function authorizeTenantOffer(
+  kit,
+  page,
+  composition,
+  action,
+  { firstDate = centralDate(1) } = {},
+) {
   const staged = await kit.post(page, SEQUENCES, {
     action: "save",
     expectedVersion: 0,
@@ -127,7 +134,7 @@ export async function authorizeTenantOffer(kit, page, composition, action) {
     schedule:
       action === "schedule"
         ? {
-            firstDate: centralDate(1),
+            firstDate,
             time: "09:15",
             timeZone: "America/Chicago",
             everyDays: null,
@@ -1069,6 +1076,16 @@ export async function journeyN1005(ctx, page) {
   };
   const sequenceOf = async (id) =>
     (await kit.read(page, SEQUENCES + "?id=" + id)).sequence;
+  const afterMailEvent = async (atMs, action) => {
+    if (!kit.compiledMail) return action();
+    kit.setClock(Math.max(Date.now(), atMs + 1));
+    try {
+      const result = await action();
+      return result;
+    } finally {
+      kit.setClock(null);
+    }
+  };
   try {
     // The changed package and the applicable insurance transition require both flyers. The
     // decisions are this journey's own, saved through the offer's route as the editor saves them.
@@ -1432,21 +1449,34 @@ export async function journeyN1005(ctx, page) {
       confirmed: delivered.confirmedCount,
     });
     assert.equal(delivered.confirmedCount, 1);
+    const deliveryReceipt = delivered.threads[0];
+    assert.ok(Number.isSafeInteger(deliveryReceipt?.sentAtMs));
+    assert.equal(delivered.lastSentAtMs, deliveryReceipt.sentAtMs);
     const sent = await kit.sentMail();
     assert.equal(sent.length, sentBefore + 1);
-    assert.doesNotMatch(sent.at(-1).text, /renewal-form/);
+    const deliveredMail = sent.find((mail) => mail.id === deliveryReceipt.messageId);
+    assert.ok(deliveredMail, "The confirmed receipt names the stand-in message");
+    assert.equal(deliveredMail.threadId, deliveryReceipt.threadId);
+    assert.equal(Date.parse(deliveredMail.at), deliveryReceipt.sentAtMs);
+    assert.doesNotMatch(deliveredMail.text, /renewal-form/);
     await asAdmin(() =>
       saveResource(kit, page, "renewal_information_form", { url: "", clear: true }),
     );
     observed.omittedResourceChangeIgnored = true;
     observed.draftSendScheduledProofRechecked = true;
 
-    // An unsent authorization from before resource checks is held at dispatch.
+    // The compiled worker advanced to the scheduled send. Review the legacy-shaped authorization
+    // after that actual receipt so the earlier message cannot stop it before its resource check.
     composition = await reads.composition();
-    const legacy = await authorizeTenantOffer(kit, page, composition, "schedule");
-    assert.equal(legacy.authorized.status, 200);
+    const legacy = await afterMailEvent(deliveryReceipt.sentAtMs, () =>
+      authorizeTenantOffer(kit, page, composition, "schedule", {
+        firstDate: addDays(delivered.authorization.schedule.firstDate, 1),
+      }),
+    );
+    assert.equal(legacy.authorized.status, 200, JSON.stringify(legacy.authorized.body));
     const authorization = (await sequenceOf(legacy.authorized.body.sequence.id))
       .authorization;
+    assert.ok(authorization.approvedAtMs > deliveryReceipt.sentAtMs);
     const { payloadHash, resourceBasis, ...rest } = authorization;
     assert.equal(
       sequencePayloadHash({ ...rest, resourceBasis }),
@@ -1465,6 +1495,8 @@ export async function journeyN1005(ctx, page) {
       check: "legacy",
       state: heldLegacy.state,
       pause: heldLegacy.pause,
+      earlierSendAtMs: deliveryReceipt.sentAtMs,
+      approvedAtMs: authorization.approvedAtMs,
     });
     assert.equal(heldLegacy.state, "paused");
     assert.equal(heldLegacy.pause?.cause, "resource_changed");
@@ -1475,7 +1507,9 @@ export async function journeyN1005(ctx, page) {
     // An uncertain attempt reconciles from the provider readback without another send.
     composition = await reads.composition();
     await setNextSend(rehearsal, "unconfirmed");
-    const uncertain = await authorizeTenantOffer(kit, page, composition, "send");
+    const uncertain = await afterMailEvent(heldLegacy.pause.atMs, () =>
+      authorizeTenantOffer(kit, page, composition, "send"),
+    );
     assert.equal(
       uncertain.authorized.status,
       200,
@@ -1485,6 +1519,7 @@ export async function journeyN1005(ctx, page) {
     assert.equal(kept, sentBefore + 2);
     let attempt = await kit.read(page, SEQUENCES + "?id=" + uncertain.staged.id);
     assert.equal(attempt.sequence.state, "needs_reconciliation");
+    assert.ok(attempt.sequence.authorization.approvedAtMs > heldLegacy.pause.atMs);
     const frozen = attempt.sequence.authorization.resourceBasis;
     await asAdmin(() =>
       saveResource(kit, page, "rbp_flyer", {
@@ -1534,8 +1569,10 @@ export async function journeyN1005(ctx, page) {
         response.request().method() === "POST" &&
         response.request().postDataJSON()?.action === "reconcile",
     );
-    await reconcile.click();
-    assert.equal((await answer).status(), 200);
+    await afterMailEvent(attempt.sequence.authorization.approvedAtMs, async () => {
+      await reconcile.click();
+      assert.equal((await answer).status(), 200);
+    });
     attempt = await kit.read(page, SEQUENCES + "?id=" + uncertain.staged.id);
     assert.equal(attempt.sequence.unresolvedOccurrenceId, null);
     assert.equal(attempt.attempts.at(-1).state, "sent");
