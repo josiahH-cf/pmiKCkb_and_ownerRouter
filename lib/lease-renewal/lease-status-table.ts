@@ -165,3 +165,20 @@ export function leaseStatusTableHasAdmission(
     nowMs - result.readAtMs! < LEASE_STATUS_TABLE_TTL_MS
   );
 }
+
+/** Reuse a current admitted status read without clearing the cache or running its hooks. */
+export function peekAdmittedLeaseStatusTable(
+  nowMs: number,
+  context: object,
+  leaseKeys: readonly string[],
+) {
+  if (!cached) return null;
+  const read = {
+    status: "available" as const,
+    statuses: cached.statuses,
+    readAtMs: cached.readAtMs,
+    noticeAdmitted: cached.noticeAdmitted,
+    admittedLeaseKeys: cached.admittedLeaseKeys,
+  };
+  return leaseStatusTableHasAdmission(read, nowMs, context, leaseKeys) ? read : null;
+}

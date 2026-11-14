@@ -75,6 +75,154 @@ beforeEach(() => vi.restoreAllMocks());
 afterEach(() => vi.useRealTimers());
 
 describe("notice source coherence across independent runtime caches", () => {
+  it("reads current team-count facts across runtimes without admitting or changing notices", async () => {
+    const dashboard = await runtime();
+    const desk = await runtime();
+    const fake = new FakeTransactionalFirestore();
+    const db = fake as unknown as Firestore;
+    const provider = reader();
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime("2026-11-13T18:00:00Z");
+    await desk.safety.reserveRenewalNoticeLease(actor, "9001", db);
+    const first = await dashboard.helper.readOnlyRenewalDisplaySource(
+      provider,
+      Date.now(),
+    );
+    vi.setSystemTime(Date.now() + 1_000);
+    provider.getLease.mockResolvedValue({
+      ...(await provider.getLease()),
+      leaseStatusID: "11",
+    });
+    provider.listLeaseStatuses.mockResolvedValue([
+      {
+        ...(await provider.listLeaseStatuses())[0],
+        leaseStatusID: "11",
+        name: "Synthetic pending move-out",
+        isPendingMoveOutStatus: true,
+      },
+    ]);
+    const canonical = await desk.helper.readCoherentRenewalDisplaySource(
+      actor,
+      provider,
+      Date.now(),
+      {},
+      db,
+    );
+    const observed = await desk.safety.observeRenewalNotice(actor, source(canonical), db);
+    expect(observed.disposition.state).toBe("initiated");
+    const before = structuredClone([...fake.store.entries()]);
+    const stale = await dashboard.helper.readOnlyRenewalDisplaySource(
+      provider,
+      Date.now(),
+    );
+    expect(stale.snapshot).toBe(first.snapshot);
+    const wrongGeneration = await dashboard.safety.observeRenewalNotice(
+      actor,
+      source(stale),
+      db,
+      { displayOnly: true },
+    );
+    expect(wrongGeneration.disposition.reason).toBe("approval_safety_unavailable");
+
+    provider.listAllLeasesExport.mockClear();
+    provider.listLeaseStatuses.mockClear();
+    const reads = await Promise.all(
+      [1, 2, 3].map(() =>
+        dashboard.helper.readRenewalPortfolioForDisplay(actor, provider, db),
+      ),
+    );
+    expect(reads[0]).toBeDefined();
+    for (const current of reads) {
+      expect(current?.snapshot).toBe(reads[0]?.snapshot);
+      expect(current?.snapshot.noticeAdmission).toBeUndefined();
+      expect(current?.statusTable).toMatchObject({ noticeAdmitted: false });
+      const display = await dashboard.safety.observeRenewalNotice(
+        actor,
+        source(current!),
+        db,
+        { displayOnly: true },
+      );
+      expect(display.disposition.state).toBe(observed.disposition.state);
+      expect(display.basis).toBeNull();
+    }
+    expect(
+      await dashboard.helper.readRenewalPortfolioForDisplay(actor, provider, db),
+    ).toMatchObject({ snapshot: reads[0]!.snapshot });
+    expect(provider.listAllLeasesExport).toHaveBeenCalledTimes(1);
+    expect(provider.listLeaseStatuses).toHaveBeenCalledTimes(1);
+    expect([...fake.store.entries()]).toEqual(before);
+  });
+
+  it("withholds team-count facts when a concurrent admission advances a floor during the read", async () => {
+    const dashboard = await runtime();
+    const desk = await runtime();
+    const fake = new FakeTransactionalFirestore();
+    const db = fake as unknown as Firestore;
+    const provider = reader();
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime("2026-11-13T18:00:00Z");
+    await desk.safety.reserveRenewalNoticeLease(actor, "9001", db);
+    const other = desk.safety.withRenewalNoticeAdmission(actor, provider, db);
+    const listStatuses = provider.listLeaseStatuses.getMockImplementation()!;
+    provider.listLeaseStatuses.mockImplementationOnce(async () => {
+      vi.setSystemTime(Date.now() + 1);
+      await other.beforeStatusSourceRead(Date.now());
+      return listStatuses();
+    });
+    await expect(
+      dashboard.helper.readRenewalPortfolioForDisplay(actor, provider, db),
+    ).resolves.toBeUndefined();
+    const before = structuredClone([...fake.store.entries()]);
+    await expect(
+      dashboard.helper.readRenewalPortfolioForDisplay(actor, provider, db),
+    ).resolves.toMatchObject({ currency: { state: "fresh" } });
+    expect(provider.listAllLeasesExport).toHaveBeenCalledTimes(1);
+    expect(provider.listLeaseStatuses).toHaveBeenCalledTimes(2);
+    expect([...fake.store.entries()]).toEqual(before);
+  });
+
+  it("uses current admitted facts without replacing their cache or lending them to another provider", async () => {
+    const app = await runtime();
+    const fake = new FakeTransactionalFirestore();
+    const db = fake as unknown as Firestore;
+    const provider = reader();
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime("2026-11-13T18:00:00Z");
+    const initial = await app.helper.readAdmittedRenewalNoticeLease(
+      actor,
+      "9001",
+      provider,
+      Date.now(),
+      db,
+    );
+    const before = structuredClone([...fake.store.entries()]);
+    const display = await app.helper.readRenewalPortfolioForDisplay(actor, provider, db);
+    expect(display?.snapshot).toBe(initial.snapshot);
+    expect(display?.statusTable).toBeDefined();
+    expect(provider.listAllLeasesExport).toHaveBeenCalledTimes(1);
+    expect(provider.listLeaseStatuses).toHaveBeenCalledTimes(1);
+
+    const other = reader();
+    other.listLeaseStatuses.mockRejectedValue(new Error("synthetic status outage"));
+    const otherDisplay = () =>
+      app.helper.readRenewalPortfolioForDisplay(actor, other, db);
+    await expect(otherDisplay()).resolves.toBeUndefined();
+    await expect(otherDisplay()).resolves.toBeUndefined();
+    expect(other.listAllLeasesExport).toHaveBeenCalledTimes(1);
+    expect(other.listLeaseStatuses).toHaveBeenCalledTimes(1);
+    const stillAdmitted = await app.helper.readAdmittedRenewalNoticeLease(
+      actor,
+      "9001",
+      provider,
+      Date.now(),
+      db,
+    );
+    expect(stillAdmitted.snapshot).toBe(initial.snapshot);
+    expect(provider.listAllLeasesExport).toHaveBeenCalledTimes(1);
+    expect(provider.listLeaseStatuses).toHaveBeenCalledTimes(1);
+    expect([...fake.store.entries()]).toEqual(before);
+  });
+
   it("counts a cold display acquisition as initial and refuses before a third lease export", async () => {
     const a = await runtime(),
       b = await runtime(),

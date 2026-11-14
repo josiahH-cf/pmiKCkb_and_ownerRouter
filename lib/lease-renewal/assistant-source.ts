@@ -38,7 +38,7 @@ import { buildRenewalDeskWindow } from "@/lib/lease-renewal/desk-query";
 import { buildLiveRenewalConfig } from "@/lib/lease-renewal/live-config";
 import {
   readCoherentRenewalDisplaySource,
-  readOnlyRenewalDisplaySource,
+  readRenewalPortfolioForDisplay,
 } from "@/lib/lease-renewal/admitted-notice-source";
 import { loadLiveRenewalDesk } from "@/lib/lease-renewal/live-desk";
 import { packetSnapshotsForAiContext } from "@/lib/ai-boundary/dotloop-origin";
@@ -113,7 +113,7 @@ export async function runRenewalAssistantSource(
       return await measureRead("renewal.inventory", () =>
         withReadDeadline(async () => {
           if (options.countsOnly)
-            return readOnlyRenewalDisplaySource(liveConfig.rentvineClient, now.getTime());
+            return readRenewalPortfolioForDisplay(user, liveConfig.rentvineClient);
           const read = await readCoherentRenewalDisplaySource(
             user,
             liveConfig.rentvineClient,
