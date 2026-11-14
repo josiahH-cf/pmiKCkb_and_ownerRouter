@@ -293,6 +293,8 @@ describe("S272 AC-S272-5: Communications offers only the actions that can succee
     const open = screen.getByRole("link", { name: "Open the lease" });
     expect(open.getAttribute("href")).toContain("2720");
     expect(screen.getByRole("button", { name: "Cancel future messages" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: /^Pause$/ })).toBeNull();
+    expect(screen.getByRole("button", { name: "Check recorded status" })).toBeEnabled();
     expect(authorizing()).toEqual([]);
     expect(
       screen.getByText(/Paused: A newer message for this renewal was sent\./),

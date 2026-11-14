@@ -823,6 +823,9 @@ export function CommunicationComposer({
   const authorizationWithheld = refusals.some((refusal) =>
     refusalWithholdsAuthorization(refusal.reason),
   );
+  const newerMessageSent = refusals.some(
+    (refusal) => refusal.reason === "newer_message_sent",
+  );
   return (
     <section
       className="ui-card ui-stack communication-composer"
@@ -1368,9 +1371,11 @@ export function CommunicationComposer({
       ) : null}
       {sequence && !terminal ? (
         <div className="ui-row">
-          <button disabled={busy} onClick={() => void run("pause")}>
-            Pause
-          </button>
+          {!newerMessageSent ? (
+            <button disabled={busy} onClick={() => void run("pause")}>
+              Pause
+            </button>
+          ) : null}
           <button disabled={busy} onClick={() => void run("cancel")}>
             Cancel future messages
           </button>

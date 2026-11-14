@@ -44,6 +44,7 @@
 // Development iteration only: --w1201-parts tenant,owner,duplicate runs those parts; a check whose
 // part did not run is left out (not recorded), so such a run never reads Yes.
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
 
 import {
   deliverOwnerReply,
@@ -53,6 +54,7 @@ import {
   CHANGED_TERM_END,
   FIRST_TERM_END,
   reachPrimary,
+  refreshData,
   stepScheduleButton,
 } from "./one-path-november-12-journeys.mjs";
 import {
@@ -70,6 +72,8 @@ const CHECKS = [
   "AC-S272-6",
 ];
 const SEQUENCES = "gmail_communication_sequences";
+const OCCURRENCES = "gmail_communication_occurrences";
+const COMPOSITION_ROUTE = "/api/gmail-hub/composition";
 const COMPOSER = "Workflow communication composer";
 const REVIEW_TEXT = '[data-renewal-field="exact-review"]';
 const DIALOG_ERROR = '.ui-dialog-error[role="alert"]';
@@ -95,6 +99,8 @@ const OWNER_PAUSED = new RegExp(
 );
 const OWNER_UNCONFIRMED =
   "An owner message for this renewal has a send that is not confirmed yet. Open it to check that send.";
+const NEEDS_NOTICE_REFRESH =
+  /Notice evidence needs a fresh admitted source read|Notice approval safety is unavailable or source generations conflict|Current notice evidence could not be verified/;
 
 const usDate = (iso) => `${iso.slice(5, 7)}/${iso.slice(8, 10)}/${iso.slice(0, 4)}`;
 const END_LINE = `Renewal end date: ${usDate(FIRST_TERM_END)} in this message, ${usDate(CHANGED_TERM_END)} on the lease.`;
@@ -140,6 +146,24 @@ const brief = (sequence) =>
         keptBasis: Boolean(sequence.authorizedContentBasis),
       }
     : null;
+const mailSendAttempts = ({ rehearsal }) =>
+  readFileSync(rehearsal.files.standInLog, "utf8")
+    .trim()
+    .split("\n")
+    .map(JSON.parse)
+    .filter(
+      (entry) =>
+        entry.standIn === "mail" &&
+        entry.method === "POST" &&
+        entry.path === "/messages/send",
+    ).length;
+const tickRead = (tick) => ({
+  status: tick?.status ?? null,
+  inspected: tick?.inspected ?? null,
+  sent: tick?.sent ?? null,
+  held: tick?.held ?? null,
+  failures: tick?.failures ?? null,
+});
 /** Wait until `read` returns a value `ready` accepts (at most `ms`); resolves with the last value. */
 async function settle(read, ready, ms = 20_000) {
   const deadline = Date.now() + ms;
@@ -178,6 +202,40 @@ async function openComposer(ctx, page, sequenceId) {
     `/gmail-hub?communication=${encodeURIComponent(sequenceId)}`,
   );
   return settleComposer(ctx, page);
+}
+/** The exact lease target a saved tenant composer fetched, with its displayed Resume readiness. */
+async function openLegacyStaffResume(ctx, page, leaseId, id) {
+  const response = page
+    .waitForResponse(
+      (entry) => {
+        const url = new URL(entry.url());
+        return (
+          url.origin === ctx.origin &&
+          url.pathname === COMPOSITION_ROUTE &&
+          url.searchParams.get("purpose") === "renewal_tenant" &&
+          url.searchParams.get("lease") === String(leaseId) &&
+          entry.request().method() === "GET"
+        );
+      },
+      { timeout: 60_000 },
+    )
+    .catch(() => null);
+  await ctx.kit.openPath(page, `/gmail-hub?communication=${encodeURIComponent(id)}`);
+  const answer = await response;
+  const body = await answer?.json().catch(() => null);
+  const view = await readComposer(ctx, page);
+  const resume = composerButton(page, "Resume reviewed sequence");
+  const ready =
+    answer?.ok() === true &&
+    view.refusals.length === 0 &&
+    (await ctx.kit.shownWithin(resume.and(page.locator("button:enabled")), 10_000));
+  return {
+    ready,
+    status: answer?.status() ?? null,
+    blockers: body?.target?.blockers ?? [],
+    error: body?.error ?? null,
+    view: summarize(view),
+  };
 }
 async function settleComposer(ctx, page) {
   const composer = page.getByRole("region", { name: COMPOSER });
@@ -316,13 +374,11 @@ async function clickFor(ctx, page, control, action, method = "POST") {
   const { kit } = ctx;
   // A read (method GET) carries no request body to match.
   const wanted = (body) => method !== "POST" || kit.sequenceAction(body) === action;
-  const answer = kit.appResponse(page, SEQUENCES_ROUTE, {
-    method,
-    match: wanted,
-    timeout: 150_000,
-  });
+  const answer = kit
+    .appResponse(page, SEQUENCES_ROUTE, { method, match: wanted, timeout: 150_000 })
+    .catch(() => null);
   await control.click();
-  const response = await answer.catch(() => null);
+  const response = await answer;
   const body = response ? await response.json().catch(() => null) : null;
   await page.waitForLoadState("networkidle", { timeout: 30_000 }).catch(() => undefined);
   await page.waitForTimeout(1000);
@@ -562,20 +618,27 @@ async function tenantPart(ctx, page, start) {
   const olderDueId = await seedCopy(ctx, original, (fields) => {
     fields.state = text("active");
     fields.nextDueAtMs = integer(Date.now() - 1000);
-    delete fields.pause;
+    // The real active record carries null; observe writes this field before dispatch.
+    fields.pause = { nullValue: null };
   });
   await openComposer(ctx, page, olderPausedId);
   out.olderPausedView = summarize(await readComposer(ctx, page));
   await openComposer(ctx, page, olderDueId);
   out.olderDueView = summarize(await readComposer(ctx, page));
   const beforeRace = (await kit.sentTo(tenants)).length;
+  const attemptsBefore = mailSendAttempts(ctx);
+  const occurrencesBefore = (await kit.listDocuments(OCCURRENCES)).length;
+  const writesBefore = ctx.writes.length;
   const raceDue = await kit.tick(olderDueId);
   const racePaused = await kit.tick(olderPausedId);
   out.race = {
-    ticks: [raceDue?.sent ?? null, racePaused?.sent ?? null],
+    ticks: [tickRead(raceDue), tickRead(racePaused)],
     due: brief(await sequenceById(ctx, leaseId, "renewal_tenant", olderDueId)),
     paused: brief(await sequenceById(ctx, leaseId, "renewal_tenant", olderPausedId)),
     sentDuring: (await kit.sentTo(tenants)).length - beforeRace,
+    sendAttempts: mailSendAttempts(ctx) - attemptsBefore,
+    newOccurrences: (await kit.listDocuments(OCCURRENCES)).length - occurrencesBefore,
+    staffWrites: ctx.writes.length - writesBefore,
     newerSendId: held.id,
   };
   await openComposer(ctx, page, olderDueId);
@@ -599,11 +662,20 @@ async function tenantPart(ctx, page, start) {
   await kit.openPath(page, "/gmail-hub");
   await page.getByRole("tab", { name: "Outgoing", exact: true }).click();
   const row = page
-    .locator('[role="tabpanel"] article.ui-card')
+    .getByRole("tabpanel", { name: "Outgoing", exact: true })
+    .locator("article.ui-card")
     .filter({ hasText: `renewal tenant · Lease ${leaseId}` })
-    .filter({ hasText: `Paused: ${NEWER_LABEL}` })
+    .filter({
+      has: page
+        .getByText(`Paused: ${NEWER_LABEL}`, { exact: true })
+        .and(page.locator('[data-communication-field="pause-cause"]')),
+    })
     .first();
   out.rowLabel = await kit.shownWithin(row, 30_000);
+  if (out.rowLabel) {
+    await row.getByRole("button", { name: "Open communication", exact: true }).click();
+    out.rowTarget = new URL(page.url()).searchParams.get("communication") === olderDueId;
+  }
   // Cancel both, as the reason line says.
   for (const id of [olderPausedId, olderDueId]) {
     await openComposer(ctx, page, id);
@@ -618,6 +690,7 @@ async function tenantPart(ctx, page, start) {
   ctx.record({
     part: "older worklist and cancellation",
     rowLabel: out.rowLabel,
+    rowTarget: out.rowTarget ?? false,
     pausedCancel: out["cancel-paused"]?.status,
     dueCancel: out["cancel-due"]?.status,
     tenantMessages: (await kit.sentTo(tenants)).length - sentAtStart.length,
@@ -640,11 +713,26 @@ async function tenantPart(ctx, page, start) {
       },
     };
   });
-  await openComposer(ctx, page, legacyStaffId);
-  const legacyStaffView = await readComposer(ctx, page);
-  out.legacyStaffView = summarize(legacyStaffView);
+  let legacy = await openLegacyStaffResume(ctx, page, leaseId, legacyStaffId);
+  ctx.record({ part: "legacy staff Resume target", ...legacy });
+  if (
+    !legacy.ready &&
+    [...legacy.blockers, legacy.error].some((line) => NEEDS_NOTICE_REFRESH.test(line))
+  ) {
+    // The lease source aged while the earlier checks ran. Staff use its normal refresh before
+    // reopening the same unchanged sequence; this does not replace the reviewed message.
+    await kit.openLease(page, leaseId, "?step=offer-tenant");
+    const refreshed = await refreshData(ctx, page);
+    legacy = await openLegacyStaffResume(ctx, page, leaseId, legacyStaffId);
+    ctx.record({
+      part: "legacy staff Resume after source refresh",
+      refreshed,
+      ...legacy,
+    });
+  }
+  out.legacyStaffView = legacy.view;
   const beforeResume = (await kit.sentTo(tenants)).length;
-  if (legacyStaffView.buttons.resume > 0) {
+  if (legacy.ready) {
     const resumedAt = Date.now();
     out.legacyStaffResume = await clickFor(
       ctx,
@@ -656,14 +744,14 @@ async function tenantPart(ctx, page, start) {
       out.legacyStaffResume.sequence?.state === "active" &&
       Number(out.legacyStaffResume.sequence?.nextDueAtMs) <= resumedAt + 60_000;
     out.legacyStaffResume.dialogs = await page.getByRole("dialog").count();
-    // Nothing goes out in this check: no tick runs before it is cancelled.
-    out.legacyStaffCancel = await clickFor(
-      ctx,
-      page,
-      composerButton(page, "Cancel future messages"),
-      "cancel",
-    );
   }
+  // Nothing goes out in this check: no tick runs before it is cancelled.
+  out.legacyStaffCancel = await clickFor(
+    ctx,
+    page,
+    composerButton(page, "Cancel future messages"),
+    "cancel",
+  );
   out.legacyStaffSent = (await kit.sentTo(tenants)).length - beforeResume;
   out.finalTenantMessages = (await kit.sentTo(tenants)).length - sentAtStart.length;
   return out;
@@ -743,6 +831,7 @@ function tenantVerdicts(out) {
       !refusal.buttons.includes("Update from the lease") &&
       view.buttons.update === 0 &&
       view.buttons.cancel === 1 &&
+      view.buttons.pause === 0 &&
       withheld(view)
     );
   };
@@ -752,12 +841,25 @@ function tenantVerdicts(out) {
     newerShown(out.olderDueView) &&
     newerShown(out.olderDueAfterView) &&
     !!race &&
+    race.ticks.every(
+      (tick) =>
+        tick.status === "processed" &&
+        tick.inspected > 0 &&
+        tick.failures === 0 &&
+        tick.sent === 0,
+    ) &&
+    race.ticks[0].held === 1 &&
     race.sentDuring === 0 &&
+    race.sendAttempts === 0 &&
+    race.newOccurrences === 0 &&
+    race.staffWrites === 0 &&
     race.due?.state === "paused" &&
     race.due?.pause === "newer_message_sent" &&
+    race.due?.nextDueAtMs === null &&
     race.due?.evidence.includes(`communication:${race.newerSendId}`) &&
     race.paused?.state === "paused" &&
     out.rowLabel === true &&
+    out.rowTarget === true &&
     out["cancel-paused"]?.status === 200 &&
     out["cancel-due"]?.status === 200 &&
     out.finalTenantMessages === 1;
