@@ -221,8 +221,11 @@ async function readinessOn(ctx, page, leaseId, step) {
   const { kit } = ctx;
   await kit.openLease(page, leaseId, `?step=${step}`);
   const primary = await waitForPrimary(ctx, page);
-  const list = page.locator('ul[aria-label="What sending needs"]').first();
-  const shown = await kit.shownWithin(list, 30_000);
+  // S281 groups the two readiness lists under their respective Message summaries.
+  const channel = step === "ask-owner" ? "owner" : "tenant";
+  const selector = `[data-renewal-message-work="${channel}"] ul[aria-label="What sending needs"]`;
+  const list = page.locator(selector);
+  const shown = await kit.reveal(page, selector, 30_000);
   const rows = shown
     ? await list
         .locator(":scope > li")
@@ -984,7 +987,7 @@ export async function checkW1211(ctx, page, start) {
     ctx.record({ includedReview: brief.review(includedReview), deskIncluded });
     ctx.record({ run });
     const rowCleared = (list) =>
-      list.offCycle === null || list.offCycle.ready === "ready";
+      list.shown && (list.offCycle === null || list.offCycle.ready === "ready");
     const cleared = {
       owner: rowCleared(clearedOwner),
       tenant: rowCleared(clearedTenant),
