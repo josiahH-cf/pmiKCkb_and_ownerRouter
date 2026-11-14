@@ -5869,7 +5869,7 @@ body {
 
   .renewal-toolbar-stage-row .renewal-guided-stage {
     flex: 1 1 auto;
-    max-block-size: 3.5rem;
+    max-block-size: 3.25rem;
     min-width: 0;
     overflow: auto;
   }
