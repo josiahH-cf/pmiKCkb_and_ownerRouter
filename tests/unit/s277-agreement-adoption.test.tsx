@@ -268,7 +268,7 @@ describe("AC-S277-1 adopt the agreement amount where the fix lands", () => {
       manual,
       extra: { selectedStepId: "offer-tenant", workingRecord: null },
     });
-    const now = screen.getByRole("region", { name: "Now", exact: true });
+    const now = screen.getByRole("region", { name: /^Now$/ });
     const path = screen.getByRole("navigation", { name: "Renewal path" });
     const ownerStep = () => within(path).queryByRole("button", { name: "Ask the owner" });
     const adoption = () => document.getElementById(STANDING_ADOPTION_CONTROL_ID);
