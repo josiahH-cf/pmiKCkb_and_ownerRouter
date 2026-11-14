@@ -16,9 +16,14 @@ import {
   type RenewalBatchSourceRow,
 } from "@/lib/lease-renewal/renewal-batch";
 import { RENEWAL_DESK_ROUTE } from "@/lib/lease-renewal/desk-view-continuation";
+import type { MoveOutDisposition } from "@/lib/lease-renewal/move-out-disposition";
+
+export interface RenewalTeamSourceRow extends RenewalBatchSourceRow {
+  readonly moveOut?: Pick<MoveOutDisposition, "reason">;
+}
 
 export interface RenewalTeamLine {
-  /** The working batch's next-action count; null when the desk could not be read. */
+  /** The working batch's next-action count; null when membership could not be verified. */
   readonly count: number | null;
   /** The working month (`YYYY-MM`) the count is for; null when unknown. */
   readonly month: string | null;
@@ -42,12 +47,22 @@ const LISTED: ReadonlySet<string> = new Set(RENEWAL_BATCH_LISTED_GROUPS);
  * batch uses: the rows it lists for the month (carried over and this batch).
  */
 export function renewalTeamNextActionCount(
-  rows: readonly RenewalBatchSourceRow[],
+  rows: readonly RenewalTeamSourceRow[],
   workingMonth: string,
-): number {
-  return rows.filter((row) =>
+): number | null {
+  const listed = rows.filter((row) =>
     LISTED.has(renewalBatchGroupFor(renewalBatchPlacement(row), workingMonth)),
-  ).length;
+  );
+  // A source generation behind notice admission can project a move-out as renewal work.
+  if (
+    listed.some(
+      (row) =>
+        row.moveOut?.reason === "approval_safety_unavailable" ||
+        row.moveOut?.reason === "status_table_unavailable",
+    )
+  )
+    return null;
+  return listed.length;
 }
 
 /** "12 renewals have a next action for the team." / "1 renewal has ..." / the unknown line. */

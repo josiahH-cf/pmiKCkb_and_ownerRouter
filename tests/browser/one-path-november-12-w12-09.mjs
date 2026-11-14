@@ -679,9 +679,8 @@ export async function checkW1209(ctx, page, start) {
 
   // ==== P2: the team line ==========================================================================
   const p2 = await part("P2 team line", async () => {
-    const dash = await dashboard("Editor", "team line");
-    // The bare desk is the working batch the line counts.
-    await kit.openPath(page, DESK);
+    // Refresh the working batch before comparing the read-only lines with its current count.
+    const refreshed = await refreshFromDesk(ctx, page);
     const batch = page.getByRole("region", { name: "Working batch", exact: true });
     await batch.waitFor({ timeout: 120_000 });
     const desk = await batch.evaluate((root) => {
@@ -712,6 +711,7 @@ export async function checkW1209(ctx, page, start) {
         listedRows: leases.size,
       };
     });
+    const dash = await dashboard("Editor", "team line");
     // The line's link, followed from the Dashboard.
     await kit.openPath(page, "/");
     const link = page
@@ -753,6 +753,7 @@ export async function checkW1209(ctx, page, start) {
       .locator("a")
       .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("href")));
     return {
+      refreshed,
       dashboard: dash.panel.team,
       desk,
       landed: { month: landedMonth, sameMonth: landedMonth === desk.month },
@@ -1258,6 +1259,8 @@ export async function checkW1209(ctx, page, start) {
     );
     const agreesWithDesk = Boolean(
       desk &&
+      p2.refreshed?.status === 200 &&
+      p2.refreshed.refreshed === true &&
       count === deskCount &&
       count === desk.monthly &&
       (desk.listedRows === 0 || desk.listedRows === deskCount),
@@ -1279,6 +1282,7 @@ export async function checkW1209(ctx, page, start) {
     verdicts["AC-S280-2"] = {
       count,
       deskCount,
+      refreshed: p2?.refreshed ?? null,
       dashboardLine,
       agreesWithDesk,
       landed: p2?.landed ?? null,

@@ -106,6 +106,32 @@ describe("S280 AC-S280-2: the count is the desk's working-batch membership", () 
     expect(line).toEqual({ count: 5, month: MONTH, href: RENEWAL_TEAM_LINE_HREF });
   });
 
+  it.each(["approval_safety_unavailable", "status_table_unavailable"] as const)(
+    "AC-S280-2: withholds the count when a listed lease has %s",
+    async (reason) => {
+      const user = {
+        uid: "editor-1",
+        role: "Editor",
+        email: "editor@pmikcmetro.com",
+      } as never;
+      const now = new Date("2026-11-12T18:20:00.000Z");
+      const moveOut = { reason };
+      const loadDeskRows = vi.fn(async () => [
+        ...DESK_ROWS,
+        { ...target("2026-12-20"), moveOut },
+      ]);
+      const line = await loadRenewalTeamLine(user, now, { loadDeskRows });
+      expect(loadDeskRows).toHaveBeenCalledTimes(1);
+      expect(line).toEqual({ count: null, month: MONTH, href: RENEWAL_TEAM_LINE_HREF });
+      expect(
+        renewalTeamNextActionCount(
+          [...DESK_ROWS, { ...target("2027-01-20"), moveOut }],
+          MONTH,
+        ),
+      ).toBe(5);
+    },
+  );
+
   it("R-S280-2: an unreadable desk shows the line without a count", async () => {
     const user = {
       uid: "editor-1",

@@ -6,13 +6,11 @@ import {
   RENEWAL_TEAM_LINE_HREF,
   renewalTeamNextActionCount,
   type RenewalTeamLine,
+  type RenewalTeamSourceRow,
 } from "@/lib/attention/renewal-team-line";
 import { hasSpaceAccess, type AuthenticatedUser } from "@/lib/auth/session";
 import { businessDateIso } from "@/lib/lease-renewal/business-calendar";
-import {
-  defaultRenewalBatchMonth,
-  type RenewalBatchSourceRow,
-} from "@/lib/lease-renewal/renewal-batch";
+import { defaultRenewalBatchMonth } from "@/lib/lease-renewal/renewal-batch";
 import { withReadDeadline } from "@/lib/observability/read-lifetime";
 
 export interface RenewalTeamLineDependencies {
@@ -20,13 +18,13 @@ export interface RenewalTeamLineDependencies {
   readonly loadDeskRows?: (
     user: AuthenticatedUser,
     now: Date,
-  ) => Promise<readonly RenewalBatchSourceRow[] | null>;
+  ) => Promise<readonly RenewalTeamSourceRow[] | null>;
 }
 
 async function defaultLoadDeskRows(
   user: AuthenticatedUser,
   now: Date,
-): Promise<readonly RenewalBatchSourceRow[] | null> {
+): Promise<readonly RenewalTeamSourceRow[] | null> {
   const { loadRenewalAssistantSource } =
     await import("@/lib/lease-renewal/assistant-source");
   const { outcome } = await loadRenewalAssistantSource(user, now, null, {
@@ -41,7 +39,7 @@ async function defaultLoadDeskRows(
 
 /**
  * R-S280-2: the team line for this user, or null when the user has no Renewals Space.
- * A failed or stale source read gives the link without a count.
+ * An unavailable or incoherent working batch gives the link without a count.
  */
 export async function loadRenewalTeamLine(
   user: AuthenticatedUser,
