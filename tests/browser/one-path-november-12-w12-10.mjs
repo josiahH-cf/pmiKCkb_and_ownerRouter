@@ -2492,6 +2492,13 @@ export async function checkW1210(ctx, page, start) {
       );
       const search = await openSearch(phone);
       const menu = await openMenu(phone);
+      const notifications = phone
+        .locator("header.topbar")
+        .getByRole("button", { name: /^Notifications(?:, \d+ unread)?$/ });
+      const notificationsReachable = await notifications
+        .click({ trial: true, timeout: 5_000 })
+        .then(() => true)
+        .catch(() => false);
       book.note(
         "AC-S281-6",
         `desk ${width}px: the header is one row of at most ${HEADER_MAX}px with every control reachable`,
@@ -2507,6 +2514,7 @@ export async function checkW1210(ctx, page, start) {
           header.core.notifications &&
           moreShown &&
           environmentReachable &&
+          notificationsReachable &&
           menu.links > 0 &&
           search.opened &&
           search.inHeader &&
@@ -2518,6 +2526,7 @@ export async function checkW1210(ctx, page, start) {
           core: header.core,
           moreShown,
           environmentReachable,
+          notificationsReachable,
           search,
           menu,
         },
@@ -2538,6 +2547,8 @@ export async function checkW1210(ctx, page, start) {
           };
         };
         const scroller = row?.closest(".renewal-batch-table-scroll");
+        window.scrollTo(0, 0);
+        if (scroller) scroller.scrollLeft = 0;
         return {
           lease: row?.getAttribute("data-batch-lease") ?? null,
           identity: box(identity),
@@ -2856,8 +2867,11 @@ async function headerControls(page) {
   return page.evaluate(() => {
     const header = document.querySelector("header.topbar");
     if (!header) return { height: null, items: [], names: [], core: {} };
+    window.scrollTo(0, 0);
     const headerBox = header.getBoundingClientRect();
     const nameOf = (element) => {
+      // The unread count may change between the desktop and phone visits.
+      if (element.matches(".notification-button")) return "Notifications";
       if (element.matches("input"))
         return `${element.labels?.[0]?.textContent?.trim() ?? ""} input`;
       return (element.getAttribute("aria-label") || element.textContent || "")
@@ -2886,14 +2900,11 @@ async function headerControls(page) {
         ),
     );
     const reachableControl = (element) => {
-      const style = getComputedStyle(element);
-      const rendered =
-        style.display !== "none" &&
-        style.visibility !== "hidden" &&
-        element.getBoundingClientRect().width > 0 &&
-        element.getBoundingClientRect().height > 0;
-      if (rendered) element.scrollIntoView({ block: "nearest", inline: "nearest" });
       const rect = element.getBoundingClientRect();
+      const rendered =
+        element.checkVisibility({ visibilityProperty: true }) &&
+        rect.width > 0 &&
+        rect.height > 0;
       const hit = rendered
         ? document.elementFromPoint(
             rect.left + rect.width / 2,
@@ -2934,9 +2945,6 @@ async function headerControls(page) {
         ];
       }),
     );
-    window.scrollTo(0, 0);
-    for (const scroller of header.querySelectorAll(".topbar-utilities"))
-      scroller.scrollLeft = 0;
     const rendered = items.filter((item) => item.rendered);
     return {
       height: Math.round(headerBox.height),

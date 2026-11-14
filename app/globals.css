@@ -5695,9 +5695,8 @@ body {
   overscroll-behavior: contain;
 }
 
-/* R-S281-7: the app header is one row on a phone: Menu, the product name, the search trigger and
-   Notifications, with the remaining utilities at the row's end in a contained sideways scroll.
-   Wider screens keep the earlier layout (the utilities box takes no box of its own). */
+/* R-S281-7: the phone header keeps Menu, the product name, Search, Notifications and the
+   utility disclosure in one row. On wider screens the utilities take no box of their own. */
 .topbar-utilities {
   display: contents;
 }
@@ -5720,7 +5719,7 @@ body {
     gap: var(--space-1);
     flex-wrap: nowrap;
     min-height: 0;
-    padding: var(--space-2) var(--space-3);
+    padding: var(--space-2);
   }
 
   .topbar .primary-navigation {
@@ -5737,7 +5736,14 @@ body {
     position: absolute;
     right: var(--space-4);
     top: 100%;
+    width: auto;
     z-index: 950;
+  }
+
+  .topbar .primary-nav-menu-trigger,
+  .topbar .global-entity-search-trigger {
+    min-width: var(--target-min);
+    padding-inline: var(--space-1);
   }
 
   .topbar .brand {
@@ -5747,21 +5753,26 @@ body {
     min-width: 44px;
   }
 
-  .topbar .notification-menu,
-  .topbar .notification-button {
-    width: auto;
-  }
-
   .topbar .notification-menu {
     flex: 0 0 auto;
     position: static;
+    width: auto;
   }
 
   .topbar .notification-button {
-    gap: var(--space-1);
     justify-content: center;
     min-width: var(--target-min);
-    padding: var(--space-1) var(--space-2);
+    padding: 0;
+    position: relative;
+    width: var(--target-min);
+  }
+
+  .topbar .notification-badge {
+    inset: 0 0 auto auto;
+    min-height: 0;
+    min-width: 0;
+    padding-inline: var(--space-1);
+    position: absolute;
   }
 
   .topbar .notification-popover {
@@ -5814,7 +5825,9 @@ body {
     display: flex;
     font-weight: 700;
     min-height: var(--target-min);
-    padding: var(--space-1) var(--space-2);
+    min-width: var(--target-min);
+    padding: var(--space-1);
+    white-space: nowrap;
   }
 
   .topbar-utility-panel {
@@ -5826,11 +5839,15 @@ body {
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-2);
-    inset: 100% var(--space-3) auto auto;
-    max-width: calc(100% - 2 * var(--space-3));
+    inset: 100% var(--space-3) auto;
     padding: var(--space-2);
     position: absolute;
     z-index: 920;
+  }
+
+  .topbar-utility-panel .user-role {
+    min-height: var(--target-min);
+    min-width: var(--target-min);
   }
 
   /* R-S281-8: the pinned lease header is two lines: the address with the tenant count and
@@ -5998,6 +6015,10 @@ body {
     margin-block: 0;
   }
 
+  .renewal-batch-summary {
+    font-size: 1rem;
+  }
+
   .renewal-batch-views,
   .renewal-batch-months {
     gap: var(--space-1);
@@ -6011,9 +6032,29 @@ body {
     padding: var(--space-1) var(--space-2);
   }
 
-  .renewal-batch-month-name {
-    flex-basis: 100%;
-    order: -1;
+  .renewal-batch-months {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 1fr);
+    text-align: center;
+  }
+
+  .renewal-batch-month-link {
+    justify-content: center;
+  }
+
+  .renewal-batch-months .renewal-batch-inline-link {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .renewal-batch-panel {
+    align-items: baseline;
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding-top: var(--space-2);
+  }
+
+  .renewal-batch-panel > :not(h2, p[role="status"]) {
+    grid-column: 1 / -1;
   }
 
   .renewal-batch-table {
