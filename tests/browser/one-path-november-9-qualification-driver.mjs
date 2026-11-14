@@ -728,8 +728,16 @@ try {
         const sameLease = draftReadbacks.find(({ leaseId }) => leaseId === exact.leaseId);
         assert.equal(sameLease.revision, interruptedDraft.saved.revision);
         assert.equal(hits[exact.leaseId], hitsBeforeReturn[exact.leaseId]);
+        // Keep the changed end date at month end to exercise the older cycle fence.
+        // W12-11 separately verifies the S282 off-cycle hold and review.
+        const previousCycle = new Date(`${exact.cycleDateIso}T12:00:00Z`);
         const nextDate = new Date(
-          Date.parse(exact.cycleDateIso + "T12:00:00Z") + 86_400_000,
+          Date.UTC(
+            previousCycle.getUTCFullYear(),
+            previousCycle.getUTCMonth() + 2,
+            0,
+            12,
+          ),
         )
           .toISOString()
           .slice(0, 10);
@@ -745,6 +753,8 @@ try {
           });
           assert.equal(stale.status, 409);
           assert.equal(stale.body.code, "outside_working_batch");
+          assert.equal(stale.body.cycleDateIso, nextDate);
+          assert.equal(stale.body.billed, false);
           assert.match(stale.body.message, /cycle changed/i);
           assert.deepEqual(await comparisons(), hits);
         } finally {

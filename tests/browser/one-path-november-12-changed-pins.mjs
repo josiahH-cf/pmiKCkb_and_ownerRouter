@@ -22,6 +22,7 @@ export const CHANGED_PINS = Object.freeze([
     suite: "S285",
   }),
   Object.freeze({ pin: "journey.layout-steps", suite: "S269" }),
+  Object.freeze({ pin: "N09-02.changedCycleAtMonthEnd", suite: "S282" }),
   Object.freeze({ pin: "N09-03.exactEditorReturn", suite: "S281" }),
   Object.freeze({ pin: "N10-01.ownerDraftResumed.editInPlace", suite: "S281" }),
   Object.freeze({ pin: "N10-03.returnToTenantOffer", suite: "S281" }),
