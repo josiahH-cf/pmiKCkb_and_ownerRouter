@@ -71,9 +71,11 @@ import {
 } from "./one-path-november-12-journeys.mjs";
 import {
   PREPARATION_ROUTE,
+  REFRESH_ROUTE,
   WORKING_ROUTE,
   WORKSPACE_ROUTE,
 } from "./one-path-november-12-kit.mjs";
+import { serverProviderCalls } from "./one-path-november-12-provider-log.mjs";
 
 const PACKET_INPUTS_ROUTE = "/api/lease-renewal/packet-inputs";
 const PARTS = ["A", "B", "C", "E", "F"];
@@ -762,6 +764,24 @@ async function chooseLinkedReply(approval, index = -1) {
   return { replies: values.length };
 }
 
+/** Wait out the source refresh throttle and report the exact current source result. */
+async function readOwnerRosterAgain(ctx, page) {
+  const button = page.getByRole("button", { name: "Refresh data", exact: true });
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const received = ctx.kit
+      .appResponse(page, REFRESH_ROUTE, {
+        match: (body) => body?.mode === "force",
+        timeout: 60_000,
+      })
+      .catch(() => null);
+    await button.click({ timeout: 30_000 });
+    const response = await received;
+    const body = response ? await response.json().catch(() => null) : null;
+    if (!body?.throttled || attempt === 1) return { status: response?.status(), body };
+    await page.waitForTimeout(10_000);
+  }
+}
+
 /** What Documents shows about the owner's approval: its packet inputs, opened as staff open them. */
 async function documentsApproval(kit, page, leaseId) {
   await kit.openLease(page, leaseId, "?step=documents");
@@ -1199,19 +1219,21 @@ export async function checkW1213(ctx, page, start) {
       ]);
       try {
         await kit.openLease(page, leaseId, "?step=ask-owner");
-        const refreshed = await refreshData(ctx, page);
-        const form = await replyForm(ctx, page, leaseId);
-        if (!form) throw new Error("The reply form is not shown with another owner.");
-        const index = await chooseReply(kit, form, "Synthetic reply from the sole owner");
-        const read = await readAnswer(kit, form, "Who approved in this reply");
+        const refreshed = await readOwnerRosterAgain(ctx, page);
+        const approval = await manualApproval(kit, page, leaseId);
+        const linked = await chooseLinkedReply(approval);
+        const read = await readAnswer(kit, approval, "Who approved");
         return {
           refreshed,
-          index,
+          linked,
           owners: read.owners.map((owner) => owner.text),
           who: read.who,
           selectedLine: read.selectedLine,
           ok:
-            index >= 0 &&
+            refreshed?.status === 200 &&
+            refreshed.body?.refreshed === true &&
+            refreshed.body.lastError === false &&
+            linked.replies === 1 &&
             read.owners.length === 1 &&
             read.owners[0].text.startsWith("Example Other Owner") &&
             read.who === "" &&
@@ -1227,18 +1249,24 @@ export async function checkW1213(ctx, page, start) {
     // RentVine cannot be read, so the roster cannot: nothing is selected and the form says why.
     await phase("unreadableRoster", async () => {
       let read = null;
-      let formShown = false;
+      let outageReads = 0;
       let during = null;
-      setRentvineOutage(rehearsal, OUTAGE_PATH);
+      await kit.openLease(page, leaseId, "?step=ask-owner");
+      const mark = serverProviderCalls(rehearsal).length;
       try {
+        setRentvineOutage(rehearsal, OUTAGE_PATH);
+        during = await readOwnerRosterAgain(ctx, page);
+        outageReads = serverProviderCalls(rehearsal)
+          .slice(mark)
+          .filter(
+            (call) =>
+              call.served === "rentvine" &&
+              call.outage === true &&
+              call.path?.endsWith(`/${OUTAGE_PATH}`),
+          ).length;
         await kit.openLease(page, leaseId, "?step=ask-owner");
-        during = await refreshData(ctx, page);
-        const form = await replyForm(ctx, page, leaseId).catch(() => null);
-        formShown = Boolean(form);
-        if (form) {
-          await chooseReply(kit, form, "Synthetic reply from the sole owner");
-          read = await readAnswer(kit, form, "Who approved in this reply");
-        }
+        const approval = await manualApproval(kit, page, leaseId);
+        read = await readAnswer(kit, approval, "Who approved");
       } catch (error) {
         ctx.record({
           phase: "unreadableRoster",
@@ -1248,10 +1276,10 @@ export async function checkW1213(ctx, page, start) {
         setRentvineOutage(rehearsal, null);
       }
       await kit.openLease(page, leaseId, "?step=ask-owner");
-      const refreshed = await refreshData(ctx, page);
+      const refreshed = await readOwnerRosterAgain(ctx, page);
       return {
         during,
-        formShown,
+        outageReads,
         read: read
           ? {
               whoShown: read.whoShown,
@@ -1262,7 +1290,11 @@ export async function checkW1213(ctx, page, start) {
           : null,
         refreshed,
         ok:
-          formShown &&
+          during?.status === 200 &&
+          during.body?.lastError === true &&
+          outageReads > 0 &&
+          refreshed?.status === 200 &&
+          refreshed.body?.lastError === false &&
           read !== null &&
           (!read.whoShown || read.who === "") &&
           read.selectedLine.length === 0 &&
@@ -1279,22 +1311,21 @@ export async function checkW1213(ctx, page, start) {
       ]);
       try {
         await kit.openLease(page, leaseId, "?step=ask-owner");
-        const refreshed = await refreshData(ctx, page);
-        const form = await replyForm(ctx, page, leaseId);
-        if (!form) throw new Error("The reply form is not shown with two owners.");
-        const index = await chooseReply(kit, form, "Synthetic reply from the sole owner");
-        const read = await readAnswer(kit, form, "Who approved in this reply");
+        const refreshed = await readOwnerRosterAgain(ctx, page);
+        const approval = await manualApproval(kit, page, leaseId);
+        const linked = await chooseLinkedReply(approval);
+        const read = await readAnswer(kit, approval, "Who approved");
         const second = read.owners.find((owner) => owner.text.startsWith(SECOND_OWNER));
         if (!second) throw new Error("The second owner is not on the roster.");
-        await form
-          .getByLabel("Who approved in this reply", { exact: true })
+        await approval
+          .getByLabel("Who approved", { exact: true })
           .selectOption(second.value);
-        const reviewed = await reviewAnswer(kit, page, form);
+        const reviewed = await reviewAnswer(kit, page, approval);
         const status = await saveAnswer(kit, page, reviewed.review, staff);
         const stored = await ownerResponse(kit, page, leaseId);
         return {
           refreshed,
-          index,
+          linked,
           owners: read.owners.map((owner) => owner.text),
           who: read.who,
           selectedLine: read.selectedLine,
@@ -1308,7 +1339,10 @@ export async function checkW1213(ctx, page, start) {
           },
           noAddress: holdsNoAddress(stored),
           ok:
-            index >= 0 &&
+            refreshed?.status === 200 &&
+            refreshed.body?.refreshed === true &&
+            refreshed.body.lastError === false &&
+            linked.replies === 1 &&
             read.owners.length === 2 &&
             read.who === "" &&
             read.selectedLine.length === 0 &&

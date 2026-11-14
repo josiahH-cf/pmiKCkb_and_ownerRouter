@@ -438,7 +438,9 @@ export default async function LiveRenewalLeaseWorkspacePage({
   // representative, and may cite a reply from this lease's own owner thread. The server checks
   // both again when the approval is recorded; an unreadable roster records nothing.
   const ownerViews =
-    leaseSnapshotAttempt?.status === "available"
+    leaseSnapshotAttempt?.status === "available" &&
+    leaseSnapshotAttempt.value.currency.state !== "expired" &&
+    !leaseSnapshotAttempt.value.currency.lastError
       ? leaseSnapshotAttempt.value.snapshot.views.filter(
           (v) => leaseViewId(v) === leaseId,
         )
