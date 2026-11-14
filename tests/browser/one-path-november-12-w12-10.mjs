@@ -2611,9 +2611,7 @@ export async function checkW1210(ctx, page, start) {
           const work = document.querySelector(
             "[data-renewal-now-step] [data-renewal-work]",
           );
-          const cue =
-            work?.querySelector("[data-renewal-priority-cue]") ??
-            work?.querySelector(":scope > p");
+          const cue = work?.querySelector(":scope > [data-renewal-priority-cue]");
           return {
             height: rect ? Math.round(rect.height) : null,
             cover: rect ? Math.round(rect.bottom) : 0,
