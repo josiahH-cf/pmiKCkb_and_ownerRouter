@@ -979,7 +979,17 @@ async function changePart(ctx, page, leaseId) {
   const saved = await saveResponse(ctx, page, form, leaseId);
   const state = await workspaceState(ctx, page, leaseId);
   const atSave = await tenantSequence(ctx, leaseId, sequenceId);
-  const line = await remindersLine(ctx, form);
+  // The counter advances Guided to the owner. Reopen the offer on this page to read the
+  // tenant response's save feedback, which stays with its form.
+  let line = await remindersLine(ctx, form);
+  if (!line.stopped) {
+    const offer = page
+      .getByRole("navigation", { name: "Renewal path", exact: true })
+      .getByRole("button", { name: "Offer the tenant", exact: true });
+    await offer.click({ timeout: 30_000 });
+    if (!(await kit.shownWithin(form, 5_000))) await kit.reveal(page, FORM);
+    line = await remindersLine(ctx, form);
+  }
   const mailBefore = (await tenantMail(ctx, leaseId)).length;
   const tick = tickCounts(await kit.tick(sequenceId));
   const mailAfter = (await tenantMail(ctx, leaseId)).length;
