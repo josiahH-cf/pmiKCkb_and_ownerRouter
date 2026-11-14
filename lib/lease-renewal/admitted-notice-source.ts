@@ -118,7 +118,7 @@ export async function readRenewalPortfolioForDisplay(
       minimum.status,
       now,
       LEASE_STATUS_TABLE_TTL_MS,
-      async () => ({
+      async (): Promise<DisplayStatusRead> => ({
         status: "available",
         statuses: Object.freeze([...(await listLeaseStatuses())]),
         readAtMs: now,
