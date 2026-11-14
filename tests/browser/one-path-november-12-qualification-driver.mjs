@@ -817,7 +817,14 @@ async function runW12Row(id) {
         buildId: compiled?.buildId ?? null,
       }),
       writes,
-      record: (entry) => note(`${id} ${JSON.stringify(entry)}`),
+      record: (entry) => {
+        const detail = JSON.stringify(entry);
+        const recorded =
+          detail.length <= 64_000
+            ? detail
+            : JSON.stringify({ length: detail.length, excerpt: detail.slice(0, 2_000) });
+        appendFileSync(notesFile, `${new Date().toISOString()} ${id} ${recorded}\n`);
+      },
       unresolved: (kind) => effects.push(String(kind ?? "effect").slice(0, 80)),
       newPage: async (role) => {
         const extra = await signedInPage(browser, role, writes, contexts);
