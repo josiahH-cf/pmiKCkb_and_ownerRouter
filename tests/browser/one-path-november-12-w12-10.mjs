@@ -960,6 +960,9 @@ const fixPasses = (result) =>
   result.found &&
   Boolean(result.landed.focused) &&
   result.landed.labelVisible &&
+  (result.words !== "Enter your own comparison figures" ||
+    (result.landed.focused.id === "renewal-market-comparison-low" &&
+      result.landed.focused.label === "Market rent: low estimate")) &&
   (result.inPlace
     ? true
     : result.offered &&

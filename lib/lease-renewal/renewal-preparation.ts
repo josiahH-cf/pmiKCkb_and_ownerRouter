@@ -51,7 +51,7 @@ export const KICKOFF_WORDS = {
 export const KICKOFF_FIX_TARGETS = {
   correctFact: "renewal-correct-a-fact",
   rentAndCharges: "renewal-rent-and-charges",
-  comparison: "renewal-section-comps",
+  comparison: "renewal-market-comparison-low",
   ownerMessage: "renewal-card-message-owner",
   ownerRecipient: "renewal-message-owner-recipients",
   ownerTemplate: "renewal-message-owner-publication",

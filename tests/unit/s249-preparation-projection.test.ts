@@ -232,7 +232,10 @@ describe("S249 ARCH-S249-1 / R-S249-11 one projection: ready or the named missin
     expect(preparation.comparison.line).toBe(
       "Comparison not run: monthly allowance reached",
     );
-    expect(preparation.comparison.fix?.label).toBe("Enter your own comparison figures");
+    expect(preparation.comparison.fix).toEqual({
+      label: "Enter your own comparison figures",
+      target: "renewal-market-comparison-low",
+    });
     expect(kickoffRowLine(preparation)).toBe(
       "Comparison not run: monthly allowance reached",
     );

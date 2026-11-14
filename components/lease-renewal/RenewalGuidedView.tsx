@@ -1225,7 +1225,7 @@ export function RenewalGuidedView({
         const active = nowRegion()?.querySelector("[data-renewal-active-group]");
         if (
           origin &&
-          origin.closest("[data-renewal-fix-link]") &&
+          origin.closest("[data-renewal-fix-link], [data-renewal-exact-fix]") &&
           nowRegion()?.contains(origin) &&
           !active?.contains(element)
         )
@@ -2202,6 +2202,7 @@ function NowCard({
         <Button
           busy={busy || (!shownPrimary && fillerActive && filler?.busy === true)}
           data-renewal-now-primary
+          data-renewal-exact-fix={lead?.key === "comparison-recovery" || undefined}
           data-renewal-work-primary
           data-renewal-now-target={
             shownPrimary?.target ?? (fillerActive ? undefined : primary.target)
