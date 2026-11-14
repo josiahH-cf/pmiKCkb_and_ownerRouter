@@ -4,7 +4,10 @@ import {
   inspectOutcome,
   outcomeFaults,
 } from "../browser/one-path-november-9-outcome-check.mjs";
-import { novemberNineMatrixVerdict } from "../browser/one-path-november-9-qualification-verdict.mjs";
+import {
+  novemberNineMatrixVerdict,
+  S283_PREPARATION_LEASE_IDS,
+} from "../browser/one-path-november-9-qualification-verdict.mjs";
 
 const focused = {
   workAreas: 1,
@@ -130,9 +133,12 @@ describe("S260 exact matrix verdict", () => {
       deliberateContinuation: true,
       changedCycleRefused: true,
       reuseAtAllowance: true,
-      eligible: 1,
-      capStops: 1,
-      draftReadbacks: [{ leaseId: "1", revision: 1 }],
+      eligible: 4,
+      capStops: 4,
+      draftReadbacks: ["9107", "9108", "9109", "9106"].map((leaseId) => ({
+        leaseId,
+        revision: 1,
+      })),
     },
     "N09-03": {
       exactEditorReturn: true,
@@ -242,6 +248,45 @@ describe("S260 exact matrix verdict", () => {
     servedHelp: { version: "V3.0", scenes: 27, controls: 831 },
   };
 
+  const [firstLease, ...notRunLeaseIds] = S283_PREPARATION_LEASE_IDS;
+  const capHalt = {
+    targetLeaseIds: S283_PREPARATION_LEASE_IDS,
+    request: {
+      leaseId: firstLease,
+      trigger: "staff",
+      month: "2027-01",
+      cycleDateIso: "2027-01-31",
+    },
+    response: {
+      http: 200,
+      leaseId: firstLease,
+      cycleDateIso: "2027-01-31",
+      status: "allowance_reached",
+      billed: false,
+    },
+    notRunLeaseIds,
+    postedBeforeContinue: [firstLease],
+    lookupsBeforeContinue: 0,
+    draftsBeforeContinue: 0,
+    interruptedLeaseId: firstLease,
+    continuedLeaseIds: S283_PREPARATION_LEASE_IDS,
+  };
+  const currentPreparation = {
+    ...reports["N09-02"],
+    month: "2027-01",
+    eligible: 7,
+    capStops: 1,
+    capHalt,
+    draftReadbacks: S283_PREPARATION_LEASE_IDS.map((leaseId) => ({
+      leaseId,
+      channel: "owner",
+      revision: 1,
+      cycleId: "11e8c155-0de2-4a5f-9469-00000000" + leaseId,
+    })),
+  };
+  const preparationRows = (observed) =>
+    rows.map((row) => (row.id === "N09-02" ? { ...row, observed } : row));
+
   it("records a matrix pass separately from the other gates and human verdict", () => {
     expect(novemberNineMatrixVerdict(input)).toMatchObject({
       source,
@@ -250,6 +295,119 @@ describe("S260 exact matrix verdict", () => {
       exact: true,
       human: "NOT RUN",
     });
+  });
+
+  it("requires the S283 first capped POST, retained leases and all seven exact drafts when requested", () => {
+    const currentInput = { ...input, requireS283Preparation: true };
+    expect(
+      novemberNineMatrixVerdict({
+        ...currentInput,
+        results: preparationRows(currentPreparation),
+      }).verdict,
+    ).toBe("Yes");
+    expect(novemberNineMatrixVerdict(currentInput).verdict).toBe("No");
+    expect(
+      novemberNineMatrixVerdict({
+        ...input,
+        results: preparationRows(currentPreparation),
+      }).verdict,
+    ).toBe("Yes");
+    expect(
+      novemberNineMatrixVerdict({
+        ...input,
+        results: preparationRows({ ...reports["N09-02"], capHalt: undefined }),
+      }).verdict,
+    ).toBe("No");
+  });
+
+  it.each([
+    ["cap evidence absent", { capHalt: undefined }],
+    ["legacy count substituted", { capStops: 7 }],
+    [
+      "extra POST before Continue",
+      { capHalt: { ...capHalt, postedBeforeContinue: [firstLease, notRunLeaseIds[0]] } },
+    ],
+    ["lookup at the cap", { capHalt: { ...capHalt, lookupsBeforeContinue: 1 } }],
+    ["draft before Continue", { capHalt: { ...capHalt, draftsBeforeContinue: 1 } }],
+    [
+      "wrong cap response",
+      { capHalt: { ...capHalt, response: { ...capHalt.response, billed: true } } },
+    ],
+    [
+      "another cycle's cap response",
+      {
+        capHalt: {
+          ...capHalt,
+          response: { ...capHalt.response, cycleDateIso: "2027-02-28" },
+        },
+      },
+    ],
+    [
+      "wrong not-run lease",
+      {
+        capHalt: { ...capHalt, notRunLeaseIds: [firstLease, ...notRunLeaseIds.slice(1)] },
+      },
+    ],
+    [
+      "Continue skipped a target",
+      { capHalt: { ...capHalt, continuedLeaseIds: notRunLeaseIds } },
+    ],
+    [
+      "distinct drafts for the wrong population",
+      {
+        draftReadbacks: [
+          { ...currentPreparation.draftReadbacks[0], leaseId: "9138" },
+          ...currentPreparation.draftReadbacks.slice(1),
+        ],
+      },
+    ],
+    [
+      "duplicate draft",
+      {
+        draftReadbacks: [
+          currentPreparation.draftReadbacks[1],
+          ...currentPreparation.draftReadbacks.slice(1),
+        ],
+      },
+    ],
+    [
+      "missing draft revision",
+      {
+        draftReadbacks: [
+          { ...currentPreparation.draftReadbacks[0], revision: 0 },
+          ...currentPreparation.draftReadbacks.slice(1),
+        ],
+      },
+    ],
+    [
+      "draft for the wrong channel",
+      {
+        draftReadbacks: [
+          { ...currentPreparation.draftReadbacks[0], channel: "tenant" },
+          ...currentPreparation.draftReadbacks.slice(1),
+        ],
+      },
+    ],
+    [
+      "duplicate cycle across two drafts",
+      {
+        draftReadbacks: [
+          {
+            ...currentPreparation.draftReadbacks[0],
+            cycleId: currentPreparation.draftReadbacks[1].cycleId,
+          },
+          ...currentPreparation.draftReadbacks.slice(1),
+        ],
+      },
+    ],
+  ])("refuses the current preparation report with %s", (_label, bad) => {
+    expect(
+      novemberNineMatrixVerdict({
+        ...input,
+        requireS283Preparation: true,
+        results: preparationRows({ ...currentPreparation, ...bad }),
+      }).verdict,
+    ).toBe("No");
   });
 
   it.each([

@@ -1,5 +1,5 @@
 // S260. Runs on one guarded, compiled rehearsal build and records exact scoped results.
-// S271 R-S271-6 replays all ten journeys (N09-01 to N09-10) on the cumulative candidate.
+// S271 R-S271-6 and S284 R-S284-4 replay all ten journeys on the cumulative candidate.
 //
 //   exact qualification, from a clean committed head (the only run that can record Yes):
 //     bash scripts/run-renewal-one-path-rehearsal.sh --compiled --compiled-synthetic-mail \
@@ -47,7 +47,11 @@ import {
   servedHelpInventory,
 } from "./one-path-november-9-help-proof.mjs";
 import { qualifyCompiledTenantOffer } from "./one-path-november-9-mail-checks.mjs";
-import { novemberNineMatrixVerdict } from "./one-path-november-9-qualification-verdict.mjs";
+import {
+  hasS283PreparationReadback,
+  novemberNineMatrixVerdict,
+  S283_PREPARATION_LEASE_IDS,
+} from "./one-path-november-9-qualification-verdict.mjs";
 
 assert.equal(globalThis.fetch.name, "guardedFetch");
 assert.equal(Socket.prototype.connect.name, "guardedConnect");
@@ -57,6 +61,9 @@ const rehearsal = readRehearsal(runDir);
 const run = JSON.parse(readFileSync(join(runDir, "run.json"), "utf8"));
 const tenantSendProof = process.argv.includes("--tenant-send-proof");
 const fenceProof = process.argv.includes("--compiled-mail-fence-proof");
+// The S284 caller requires the new behavior. Standalone historical runs can use the S249 proof
+// when the served app does not expose S283's preparation scope.
+const requireS283Preparation = process.argv.includes("--require-s283-preparation");
 const onlyTenant = tenantSendProof || fenceProof;
 assert.ok(!(tenantSendProof && fenceProof));
 assert.equal(rehearsal.servedVersion, rehearsal.servedCommit);
@@ -611,31 +618,130 @@ try {
         assert.equal(refused.status, 409);
         assert.equal(refused.body.code, "automatic_start_off");
         assert.deepEqual(await comparisons(), {});
-        const eligible = await batch(page)
+        const targets = await batch(page)
           .locator('tbody[data-batch-list="this_batch"] tr[data-batch-lease]')
-          .evaluateAll((nodes) => nodes.map((node) => node.dataset.batchLease));
+          .evaluateAll((nodes) =>
+            nodes.map((node) => ({
+              leaseId: node.dataset.batchLease,
+              address: node.querySelector(".renewal-batch-lease")?.textContent?.trim(),
+            })),
+          );
+        const eligible = targets.map(({ leaseId }) => leaseId);
         const prepare = page.locator("[data-kickoff-prepare]");
         assert.ok(
           eligible.length && (await prepare.isEnabled()),
           "The alternate month needs an eligible, current fixture.",
         );
+        const scope = page.locator("[data-kickoff-scope]");
+        if (requireS283Preparation) await scope.waitFor();
+        const s283Preparation = requireS283Preparation || (await scope.isVisible());
+        if (s283Preparation) {
+          assert.deepEqual([...eligible].sort(), S283_PREPARATION_LEASE_IDS);
+          assert.equal(
+            await page
+              .getByRole("region", { name: "Batch preparation", exact: true })
+              .getAttribute("data-kickoff-targets"),
+            String(eligible.length),
+          );
+          assert.equal(
+            new Set(targets.map(({ address }) => address)).size,
+            eligible.length,
+          );
+          assert.ok(targets.every(({ address }) => address));
+        }
+        const isPreparationPost = (request) =>
+          request.method() === "POST" &&
+          request.url() === origin + "/api/lease-renewal/kickoff-preparation";
+        const readOwnerDraft = (leaseId) =>
+          read(
+            page,
+            "/api/lease-renewal/message-preparation?channel=owner&leaseId=" + leaseId,
+          );
         const requests = [];
         page.on("request", (request) => {
-          if (
-            request.method() === "POST" &&
-            new URL(request.url()).pathname.endsWith("/kickoff-preparation")
-          )
-            requests.push(request.postDataJSON());
+          if (isPreparationPost(request)) requests.push(request.postDataJSON());
         });
         await setComparisonAllowance(rehearsal, true);
         let capStops;
+        let capProof = null;
         try {
-          await prepare.click();
-          await page.getByText(/Preparation finished for/).waitFor({ timeout: 60_000 });
+          const [capAnswer] = await Promise.all([
+            s283Preparation &&
+              page.waitForResponse((response) => isPreparationPost(response.request()), {
+                timeout: 60_000,
+              }),
+            prepare.click(),
+          ]);
+          const progress = page.getByText(/Preparation finished for/);
+          await progress.waitFor({ timeout: 60_000 });
           capStops = await page
             .locator('[data-kickoff-outcome="allowance_reached"]')
             .count();
-          assert.ok(capStops > 0, "A fresh eligible lease stops at the real stored cap");
+          if (s283Preparation) {
+            const request = capAnswer.request().postDataJSON();
+            const answer = await capAnswer.json();
+            assert.deepEqual(requests, [request]);
+            assert.equal(request.trigger, "staff");
+            assert.equal(request.month, month);
+            assert.equal(request.leaseId, eligible[0]);
+            assert.ok(request.cycleDateIso?.startsWith(month + "-"));
+            assert.equal(capAnswer.status(), 200);
+            assert.equal(answer.leaseId, request.leaseId);
+            assert.equal(answer.cycleDateIso, request.cycleDateIso);
+            assert.equal(answer.status, "allowance_reached");
+            assert.equal(answer.billed, false);
+            assert.equal(capStops, 1);
+            const outcomes = await page
+              .getByRole("list", { name: "Preparation results", exact: true })
+              .locator("li[data-kickoff-outcome]")
+              .all();
+            assert.equal(outcomes.length, targets.length);
+            const notRunLeaseIds = [];
+            for (const [index, { leaseId, address }] of targets.entries()) {
+              const outcome = outcomes[index];
+              await outcome.waitFor();
+              const status = index === 0 ? "allowance_reached" : "not_run";
+              assert.equal(await outcome.getAttribute("data-kickoff-outcome"), status);
+              assert.equal(
+                (await outcome.innerText()).trim(),
+                address +
+                  ": " +
+                  (index === 0
+                    ? answer.message
+                    : "Not run: the monthly allowance is reached."),
+              );
+              if (index > 0) notRunLeaseIds.push(leaseId);
+            }
+            assert.match(
+              await progress.innerText(),
+              new RegExp(
+                `The monthly allowance is reached, so ${notRunLeaseIds.length} leases were not run[.]`,
+              ),
+            );
+            capProof = {
+              targetLeaseIds: eligible,
+              request: {
+                leaseId: request.leaseId,
+                trigger: request.trigger,
+                month: request.month,
+                cycleDateIso: request.cycleDateIso,
+              },
+              response: {
+                http: capAnswer.status(),
+                leaseId: answer.leaseId,
+                cycleDateIso: answer.cycleDateIso,
+                status: answer.status,
+                billed: answer.billed,
+              },
+              notRunLeaseIds,
+            };
+          } else {
+            assert.equal(
+              capStops,
+              eligible.length,
+              "Every eligible lease meets the stored cap",
+            );
+          }
           assert.deepEqual(await comparisons(), {});
         } finally {
           await setComparisonAllowance(rehearsal, false);
@@ -649,6 +755,7 @@ try {
           name: /^Continue .* preparation$/,
         });
         await continuation.waitFor();
+        await page.waitForLoadState("networkidle", { timeout: 15_000 });
         const interruption = Promise.withResolvers();
         const depart = Promise.withResolvers();
         await page.route(
@@ -671,6 +778,18 @@ try {
         );
         let interrupted;
         try {
+          if (capProof) {
+            const draftsAtCap = await Promise.all(eligible.map(readOwnerDraft));
+            assert.ok(draftsAtCap.every((draft) => draft.saved === null));
+            const passiveLookups = await comparisons();
+            assert.deepEqual(passiveLookups, {});
+            capProof.lookupsBeforeContinue = Object.keys(passiveLookups).length;
+            capProof.draftsBeforeContinue = draftsAtCap.filter(
+              (draft) => draft.saved,
+            ).length;
+            capProof.postedBeforeContinue = requests.map(({ leaseId }) => leaseId);
+            assert.deepEqual(capProof.postedBeforeContinue, [eligible[0]]);
+          }
           await continuation.click();
           interrupted = await Promise.race([
             interruption.promise,
@@ -683,16 +802,18 @@ try {
         } finally {
           depart.resolve();
         }
+        if (capProof) {
+          assert.equal(interrupted.request.leaseId, capProof.request.leaseId);
+          assert.equal(interrupted.request.cycleDateIso, capProof.request.cycleDateIso);
+          assert.equal(interrupted.request.month, month);
+        }
         const hitsBeforeReturn = await comparisons();
-        const interruptedDraft = await read(
-          page,
-          "/api/lease-renewal/message-preparation?channel=owner&leaseId=" +
-            interrupted.request.leaseId,
-        );
+        const interruptedDraft = await readOwnerDraft(interrupted.request.leaseId);
         assert.ok(interruptedDraft.saved?.revision > 0);
         await open(page, monthUrl.replace(origin, ""));
         await continuation.waitFor();
         assert.deepEqual(await comparisons(), hitsBeforeReturn);
+        if (capProof) assert.deepEqual(requests.slice(1), [interrupted.request]);
         requests.length = 0;
         await continuation.click();
         await page.getByText(/Preparation finished for/).waitFor({ timeout: 60_000 });
@@ -700,33 +821,58 @@ try {
           requests.length > 0 &&
             requests.every((r) => r.month === month && eligible.includes(r.leaseId)),
         );
+        if (capProof) {
+          capProof.interruptedLeaseId = interrupted.request.leaseId;
+          capProof.continuedLeaseIds = requests.map(({ leaseId }) => leaseId);
+          assert.deepEqual([...capProof.continuedLeaseIds].sort(), [...eligible].sort());
+          assert.deepEqual(
+            requests.find(({ leaseId }) => leaseId === interrupted.request.leaseId),
+            interrupted.request,
+          );
+        }
         const hits = await comparisons();
         assert.ok(Object.keys(hits).every((id) => eligible.includes(id)));
         const draftReadbacks = [];
-        for (const { leaseId } of requests) {
-          const draft = await read(
-            page,
-            "/api/lease-renewal/message-preparation?channel=owner&leaseId=" + leaseId,
+        for (const leaseId of eligible) {
+          const draft = await readOwnerDraft(leaseId);
+          assert.equal(draft.saved?.leaseId, leaseId);
+          assert.equal(draft.saved?.channel, "owner");
+          assert.equal(draft.saved?.cycleId, draft.cycleId);
+          assert.ok(
+            draft.cycleId &&
+              Number.isSafeInteger(draft.saved?.revision) &&
+              draft.saved.revision > 0,
           );
-          if (draft.saved)
-            draftReadbacks.push({ leaseId, revision: draft.saved.revision });
+          draftReadbacks.push({
+            leaseId,
+            channel: draft.saved.channel,
+            revision: draft.saved.revision,
+            cycleId: draft.cycleId,
+          });
         }
-        assert.ok(
-          draftReadbacks.length > 0,
-          "Read back at least one app-owned owner draft",
+        assert.equal(
+          new Set(draftReadbacks.map(({ leaseId }) => leaseId)).size,
+          eligible.length,
         );
         await setComparisonAllowance(rehearsal, true);
-        await prepare.click();
-        await page.getByText(/Preparation finished for/).waitFor({ timeout: 60_000 });
-        assert.deepEqual(
-          await comparisons(),
-          hits,
-          "Continuing reuses evidence at the allowance",
-        );
-        await setComparisonAllowance(rehearsal, false);
+        try {
+          await prepare.click();
+          const reused = page.locator('[data-kickoff-outcome="reused"]');
+          await reused.nth(eligible.length - 1).waitFor({ timeout: 60_000 });
+          await page.getByText(/Preparation finished for/).waitFor({ timeout: 60_000 });
+          assert.equal(await reused.count(), eligible.length);
+          assert.deepEqual(
+            await comparisons(),
+            hits,
+            "Continuing reuses evidence at the allowance",
+          );
+        } finally {
+          await setComparisonAllowance(rehearsal, false);
+        }
         const exact = interrupted.request;
         const sameLease = draftReadbacks.find(({ leaseId }) => leaseId === exact.leaseId);
         assert.equal(sameLease.revision, interruptedDraft.saved.revision);
+        assert.equal(sameLease.cycleId, interruptedDraft.saved.cycleId);
         assert.equal(hits[exact.leaseId], hitsBeforeReturn[exact.leaseId]);
         // Keep the changed end date at month end to exercise the older cycle fence.
         // W12-11 separately verifies the S282 off-cycle hold and review.
@@ -764,19 +910,22 @@ try {
             "Restore the fixture's current source",
           );
         }
-        monthPreparation = exact;
-        return {
+        const observed = {
           month,
           requested: requests.length,
           eligible: eligible.length,
           legacyRefused: true,
           capStops,
+          ...(capProof ? { capHalt: capProof } : {}),
           interruptedResponseRecovered: true,
           deliberateContinuation: true,
           changedCycleRefused: true,
           draftReadbacks,
           reuseAtAllowance: true,
         };
+        if (s283Preparation) assert.ok(hasS283PreparationReadback(observed));
+        monthPreparation = exact;
+        return observed;
       },
     );
 
@@ -2661,6 +2810,7 @@ try {
     networkRefusals: refusedConnections(rehearsal),
     tenantSendProof: onlyTenant,
     servedHelp,
+    requireS283Preparation,
   });
   writeFileSync(
     join(

@@ -13,6 +13,20 @@ const CASES = [
   "N09-10",
 ];
 
+export const S283_PREPARATION_PIN = "N09-02.capStops";
+// The fixture shifts dates with the business month while keeping the seven next-month lease IDs.
+export const S283_PREPARATION_LEASE_IDS = Object.freeze([
+  "9110",
+  "9111",
+  "9112",
+  "9113",
+  "9114",
+  "9115",
+  "9116",
+]);
+const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
+const CYCLE_ID = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/;
+
 const required = {
   "N09-01": ["oneTable", "narrowTable", "savedViewRetained", "sharedExactReturn"],
   "N09-02": [
@@ -102,7 +116,73 @@ function hasDeskDisposition(entry) {
   return Boolean(entry?.stage && entry?.next);
 }
 
-function hasCaseReadback({ id, role, observed }, source, compiledMail, servedHelp) {
+function sameLeaseIds(actual, expected) {
+  return (
+    Array.isArray(actual) &&
+    actual.length === expected.length &&
+    new Set(actual).size === expected.length &&
+    actual.every((id) => expected.includes(id))
+  );
+}
+
+export function hasS283PreparationReadback(observed) {
+  if (!observed) return false;
+  const leaseIds = S283_PREPARATION_LEASE_IDS;
+  const proof = observed.capHalt;
+  if (
+    observed.eligible !== leaseIds.length ||
+    observed.capStops !== 1 ||
+    !sameLeaseIds(proof?.targetLeaseIds, leaseIds)
+  )
+    return false;
+  const [first, ...rest] = proof.targetLeaseIds;
+  const request = proof.request;
+  const response = proof.response;
+  const drafts = observed.draftReadbacks;
+  return (
+    sameLeaseIds(proof.postedBeforeContinue, [first]) &&
+    sameLeaseIds(proof.notRunLeaseIds, rest) &&
+    typeof observed.month === "string" &&
+    MONTH.test(observed.month) &&
+    request?.leaseId === first &&
+    request.trigger === "staff" &&
+    request.month === observed.month &&
+    typeof request.cycleDateIso === "string" &&
+    /^\d{4}-\d{2}-\d{2}$/.test(request.cycleDateIso) &&
+    request.cycleDateIso.startsWith(observed.month + "-") &&
+    response?.http === 200 &&
+    response.leaseId === first &&
+    response.cycleDateIso === request.cycleDateIso &&
+    response.status === "allowance_reached" &&
+    response.billed === false &&
+    proof.lookupsBeforeContinue === 0 &&
+    proof.draftsBeforeContinue === 0 &&
+    proof.interruptedLeaseId === first &&
+    sameLeaseIds(proof.continuedLeaseIds, leaseIds) &&
+    Array.isArray(drafts) &&
+    sameLeaseIds(
+      drafts.map((draft) => draft?.leaseId),
+      leaseIds,
+    ) &&
+    new Set(drafts.map(({ cycleId }) => cycleId)).size === leaseIds.length &&
+    drafts.every(
+      ({ channel, revision, cycleId }) =>
+        channel === "owner" &&
+        Number.isSafeInteger(revision) &&
+        revision > 0 &&
+        typeof cycleId === "string" &&
+        CYCLE_ID.test(cycleId),
+    )
+  );
+}
+
+function hasCaseReadback(
+  { id, role, observed },
+  source,
+  compiledMail,
+  servedHelp,
+  requireS283Preparation,
+) {
   const help = id.startsWith("N09-09-");
   if (!required[help ? "N09-09" : id]?.every((key) => observed[key] === true)) {
     return false;
@@ -136,12 +216,23 @@ function hasCaseReadback({ id, role, observed }, source, compiledMail, servedHel
         Boolean(observed.exactReturn && observed.linkedWorkStage && observed.currentStep)
       );
     case "N09-02":
+      if (requireS283Preparation || "capHalt" in observed)
+        return hasS283PreparationReadback(observed);
       return (
+        Number.isSafeInteger(observed.eligible) &&
         observed.eligible > 0 &&
         observed.capStops === observed.eligible &&
-        observed.draftReadbacks?.length === observed.eligible &&
-        new Set(observed.draftReadbacks.map(({ leaseId }) => leaseId)).size ===
-          observed.eligible
+        Array.isArray(observed.draftReadbacks) &&
+        observed.draftReadbacks.length === observed.eligible &&
+        new Set(observed.draftReadbacks.map((draft) => draft?.leaseId)).size ===
+          observed.eligible &&
+        observed.draftReadbacks.every(
+          (draft) =>
+            typeof draft?.leaseId === "string" &&
+            /^[1-9]\d*$/.test(draft.leaseId) &&
+            Number.isSafeInteger(draft.revision) &&
+            draft.revision > 0,
+        )
       );
     case "N09-03":
       return observed.savedRevision > 0;
@@ -186,6 +277,7 @@ export function novemberNineMatrixVerdict({
   networkRefusals,
   tenantSendProof,
   servedHelp = null,
+  requireS283Preparation = false,
 }) {
   const source = rehearsal.servedVersion;
   const compiledMail = rehearsal.compiledMail ?? null;
@@ -217,7 +309,8 @@ export function novemberNineMatrixVerdict({
       !observed ||
       !Object.keys(observed).length ||
       Boolean(observed.missing) ||
-      (!tenantSendProof && !hasCaseReadback(row, source, compiledMail, servedHelp))
+      (!tenantSendProof &&
+        !hasCaseReadback(row, source, compiledMail, servedHelp, requireS283Preparation))
     );
   });
   const rejected = !exact || !completeMatrix || networkRefusals.length > 0 || unsupported;

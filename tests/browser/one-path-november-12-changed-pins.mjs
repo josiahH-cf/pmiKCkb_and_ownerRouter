@@ -14,6 +14,8 @@
 //   journey.layout-steps    on Check the numbers the primary action sits below the 1280 by 800
 //                           screen measured from the page top; S269 measures from the heading.
 //                           S269 governs.
+import { S283_PREPARATION_PIN } from "./one-path-november-9-qualification-verdict.mjs";
+
 export const CHANGED_PINS = Object.freeze([
   Object.freeze({ pin: "journey.owner-decision", suite: "S262" }),
   // The S285 fact changed inside the old budget. The separate four-action proof must pass.
@@ -22,6 +24,7 @@ export const CHANGED_PINS = Object.freeze([
     suite: "S285",
   }),
   Object.freeze({ pin: "journey.layout-steps", suite: "S269" }),
+  Object.freeze({ pin: S283_PREPARATION_PIN, suite: "S283" }),
   Object.freeze({ pin: "N09-02.changedCycleAtMonthEnd", suite: "S282" }),
   Object.freeze({ pin: "N09-03.exactEditorReturn", suite: "S281" }),
   Object.freeze({ pin: "N10-01.ownerDraftResumed.editInPlace", suite: "S281" }),

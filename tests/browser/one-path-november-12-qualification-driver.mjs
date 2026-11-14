@@ -235,6 +235,7 @@ const REPLAYS = Object.freeze({
     driver: S260_DRIVER,
     output: "s260-verdict.json",
     args: () => [
+      "--require-s283-preparation",
       ...(argument("--rendered-help")
         ? ["--rendered-help", argument("--rendered-help")]
         : []),
